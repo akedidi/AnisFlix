@@ -2,9 +2,27 @@ import { useState } from "react";
 import SearchBar from "@/components/SearchBar";
 import MediaCard from "@/components/MediaCard";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
+import CategorySection from "@/components/CategorySection";
 
 export default function Series() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Tous");
+
+  const categories = [
+    "Tous",
+    "Action",
+    "Comédie",
+    "Drame",
+    "Science-Fiction",
+    "Crime",
+    "Fantastique",
+    "Thriller",
+    "Mystère",
+    "Animation",
+    "Documentaire",
+    "Western",
+  ];
 
   // todo: remove mock functionality
   const mockSeries = [
@@ -35,13 +53,22 @@ export default function Series() {
                 onSelect={(item) => console.log("Selected:", item)}
               />
             </div>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-8">Séries</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-6">Séries</h1>
+        
+        <div className="mb-8">
+          <CategorySection
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+        </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
           {mockSeries.map((series) => (

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Download, Heart, Info } from "lucide-react";
+import { Heart, Info } from "lucide-react";
 import { Star } from "lucide-react";
 
 interface HeroSectionProps {
@@ -10,8 +10,6 @@ interface HeroSectionProps {
   rating: number;
   year?: string;
   mediaType?: "movie" | "tv" | "anime" | "documentary";
-  onPlay?: () => void;
-  onDownload?: () => void;
   onFavorite?: () => void;
   onInfo?: () => void;
 }
@@ -23,8 +21,6 @@ export default function HeroSection({
   rating,
   year,
   mediaType,
-  onPlay,
-  onDownload,
   onFavorite,
   onInfo,
 }: HeroSectionProps) {
@@ -72,31 +68,13 @@ export default function HeroSection({
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 size="lg"
-                onClick={onPlay}
-                className="gap-2"
-                data-testid="button-play"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                Lecture
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={onDownload}
-                className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
-                data-testid="button-download"
-              >
-                <Download className="w-5 h-5" />
-                Télécharger
-              </Button>
-              <Button
-                size="lg"
                 variant="outline"
                 onClick={onFavorite}
                 className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
                 data-testid="button-favorite"
               >
                 <Heart className="w-5 h-5" />
+                Favoris
               </Button>
               <Button
                 size="lg"
@@ -106,6 +84,7 @@ export default function HeroSection({
                 data-testid="button-info"
               >
                 <Info className="w-5 h-5" />
+                Plus d'infos
               </Button>
             </div>
           </div>

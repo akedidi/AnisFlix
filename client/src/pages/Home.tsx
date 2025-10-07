@@ -3,6 +3,9 @@ import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
+import ProviderCard from "@/components/ProviderCard";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,6 +49,16 @@ export default function Home() {
     { id: 14, title: "Blue Planet II", posterPath: "/592Uvp4JJ4XUPMmsuBzuWRAR25i.jpg", rating: 9.3, year: "2017", mediaType: "documentary" as const },
   ];
 
+  // todo: remove mock functionality
+  const mockProviders = [
+    { id: 8, name: "Netflix", logoPath: "/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg", movieCount: 150, tvCount: 80 },
+    { id: 9, name: "Amazon Prime", logoPath: "/emthp39XA2YScoYL1p0sdbAH2WA.jpg", movieCount: 120, tvCount: 65 },
+    { id: 350, name: "Apple TV+", logoPath: "/6uhKBfmtzFqOcLousHwZuzcrScK.jpg", movieCount: 45, tvCount: 30 },
+    { id: 531, name: "Paramount+", logoPath: "/xbhHHa1YgtpwhC8lb1NQ3ACVcLd.jpg", movieCount: 85, tvCount: 50 },
+    { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg", movieCount: 95, tvCount: 42 },
+    { id: 384, name: "HBO Max", logoPath: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg", movieCount: 70, tvCount: 55 },
+  ];
+
   const mockSearchSuggestions = [
     { id: 1, title: "Inception", posterPath: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", mediaType: "movie" as const, year: "2010" },
     { id: 2, title: "Interstellar", posterPath: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg", mediaType: "movie" as const, year: "2014" },
@@ -63,6 +76,7 @@ export default function Home() {
                 onSelect={(item) => console.log("Selected:", item)}
               />
             </div>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>
@@ -71,13 +85,28 @@ export default function Home() {
       <div className="space-y-8 md:space-y-12">
         <HeroSection
           {...mockFeatured}
-          onPlay={() => console.log("Play")}
-          onDownload={() => console.log("Download")}
           onFavorite={() => console.log("Favorite")}
           onInfo={() => console.log("Info")}
         />
 
         <div className="container mx-auto px-4 md:px-8 lg:px-12 space-y-8 md:space-y-12">
+          <div className="space-y-4">
+            <h2 className="text-2xl md:text-3xl font-semibold">Plateformes de streaming</h2>
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4">
+                {mockProviders.map((provider) => (
+                  <div key={provider.id} className="w-40 flex-shrink-0">
+                    <ProviderCard
+                      {...provider}
+                      onClick={() => console.log("Provider clicked:", provider.name)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </div>
+
           {mockContinueWatching.length > 0 && (
             <MediaCarousel
               title="Continuer à regarder"

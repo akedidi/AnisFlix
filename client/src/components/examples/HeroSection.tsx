@@ -9,8 +9,6 @@ export default function HeroSectionExample() {
       rating={8.8}
       year="2010"
       mediaType="movie"
-      onPlay={() => console.log("Play clicked")}
-      onDownload={() => console.log("Download clicked")}
       onFavorite={() => console.log("Favorite clicked")}
       onInfo={() => console.log("Info clicked")}
     />
