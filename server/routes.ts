@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getVidzyM3u8Link } from "./vidzy-scraper";
+import { registerHLSProxyRoutes } from "./hls-proxy";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -35,6 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Erreur serveur lors de l\'extraction' });
     }
   });
+
+  // Enregistrer les routes proxy HLS pour les chaînes TV
+  registerHLSProxyRoutes(app);
 
   const httpServer = createServer(app);
 

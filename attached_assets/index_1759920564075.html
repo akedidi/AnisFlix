@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Lecteur HLS → Télécharge en MP4 → Import MP4</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mux.js@5.8.0/dist/mux.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin:0; background:#f3f3f3; display:grid; place-items:center; min-height:100vh; }
+    #wrap { width: min(900px, 92vw); background:#fff; border-radius:14px; box-shadow:0 6px 20px rgba(0,0,0,.08); overflow:hidden; }
+    video { width:100%; display:block; background:#000; }
+    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; padding:.8rem; border-top:1px solid #eee; }
+    button { background:#111; color:#fff; border:0; border-radius:10px; padding:.6rem .9rem; font-weight:600; cursor:pointer; }
+    button:disabled { background:#555; cursor:not-allowed; }
+    button.secondary{ background:#444; }
+    .progress { padding:.6rem .8rem 1rem; }
+    .row { display:flex; justify-content:space-between; font-size:.9rem; color:#555; margin:.2rem 0 .4rem; }
+    .bar { height:10px; background:#eee; border-radius:999px; overflow:hidden; }
+    .fill { height:100%; width:0%; background:#111; transition: width .2s; }
+    .note { padding:.2rem .8rem 1rem; color:#555; font-size:.9rem; }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <video id="video" controls playsinline preload="auto"></video>
+
+  <div class="toolbar">
+    <button id="btn-mp4">Télécharger en .MP4</button>
+    <button id="btn-import" class="secondary">Importer .MP4</button>
+    <input id="file-input" type="file" accept=".mp4,video/mp4" hidden />
+  </div>
+
+  <div class="progress">
+    <div class="row"><span>Téléchargement & Conversion</span><span id="pct-dl">0%</span></div>
+    <div class="bar"><div id="bar-dl" class="fill"></div></div>
+  </div>
+
+  <div class="note">
+    • **Téléchargement .MP4 :** Convertit le flux HLS (.ts) en un fichier MP4 propre et standard.
+    • **Importation .MP4 :** Lecture native par le navigateur, simple et fiable.
+  </div>
+</div>
+
+<script>
+  const video = document.getElementById('video');
+  const btnMp4 = document.getElementById('btn-mp4');
+  const btnImport = document.getElementById('btn-import');
+  const fileInput = document.getElementById('file-input');
+  const barDl = document.getElementById('bar-dl');
+  const pctDl = document.getElementById('pct-dl');
+
+  const setBar = (bar, lbl, ratio) => {
+    const pct = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+    bar.style.width = pct + '%';
+    lbl.textContent = pct + '%';
+  };
+  const resetBars = () => setBar(barDl, pctDl, 0);
+
+  const videoSrc = 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8';
+  let hls;
+
+  (function init() {
+    if (Hls.isSupported()) {
+      hls = new Hls(); hls.loadSource(videoSrc); hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = videoSrc;
+    }
+  })();
+
+  btnMp4.addEventListener('click', async () => {
+    try {
+      btnMp4.disabled = true;
+      resetBars();
+
+      if (!hls || !hls.levels?.length) await new Promise(resolve => hls.once(Hls.Events.MANIFEST_PARSED, resolve));
+      let details = hls.levels[hls.currentLevel]?.details;
+      if (!details || !details.fragments?.length) {
+        await new Promise(resolve => { hls.once(Hls.Events.LEVEL_LOADED, (_, data) => { if (data.details.fragments.length > 0) resolve(); }); hls.startLoad(); });
+        details = hls.levels[hls.currentLevel].details;
+      }
+      const frags = details.fragments;
+      if (!frags?.length) throw new Error('Aucun segment TS trouvé.');
+
+      const transmuxer = new muxjs.mp4.Transmuxer();
+      // *** LOGIQUE CORRIGÉE ICI ***
+      let initSegment = null;
+      const mediaSegments = [];
+      
+      transmuxer.on('data', segment => {
+        // 1. On capture le segment d'initialisation (l'en-tête) UNE SEULE FOIS.
+        if (segment.initSegment) {
+          initSegment = segment.initSegment;
+        }
+        // 2. On stocke les segments de données (le contenu vidéo/audio).
+        if (segment.data) {
+          mediaSegments.push(segment.data);
+        }
+      });
+      
+      const transmuxerDone = new Promise(resolve => transmuxer.on('done', resolve));
+
+      const baseUrl = new URL(details.url);
+      for (let i = 0; i < frags.length; i++) {
+        const fragUrl = new URL(frags[i].url, baseUrl).toString();
+        const resp = await fetch(fragUrl);
+        const tsSegment = new Uint8Array(await resp.arrayBuffer());
+        
+        // On donne les segments TS au transmuxer SANS le "flusher" à chaque fois.
+        transmuxer.push(tsSegment);
+        setBar(barDl, pctDl, (i + 1) / frags.length);
+      }
+      
+      // On appelle flush() UNE SEULE FOIS à la fin pour tout traiter.
+      transmuxer.flush();
+      await transmuxerDone;
+
+      if (!initSegment) throw new Error("Le segment d'initialisation MP4 n'a pas pu être créé.");
+
+      // 3. On assemble le fichier final DANS LE BON ORDRE : en-tête d'abord !
+      const mp4Blob = new Blob([initSegment, ...mediaSegments], { type: 'video/mp4' });
+
+      await saveBlob(mp4Blob, 'video_final.mp4');
+      alert('Téléchargement .MP4 terminé.');
+
+    } catch (e) {
+      console.error(e);
+      alert('Échec du téléchargement MP4 : ' + e.message);
+    } finally {
+      btnMp4.disabled = false;
+    }
+  });
+
+  btnImport.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fileUrl = URL.createObjectURL(file);
+    video.src = fileUrl;
+    video.load();
+    video.play().catch(err => console.warn("La lecture auto a échoué:", err.name));
+    resetBars();
+  });
+  
+  async function saveBlob(blob, name) {
+    if ('showSaveFilePicker' in window) {
+      try {
+        const handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'MPEG-4 Video', accept: { 'video/mp4': ['.mp4'] } }] });
+        const w = await handle.createWritable(); await w.write(blob); await w.close(); return;
+      } catch(e) { console.warn('File picker annulé ou échoué, fallback sur <a>', e.name); }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+</script>
+</body>
+</html>
