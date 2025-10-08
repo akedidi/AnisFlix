@@ -318,6 +318,12 @@ export default function SeriesDetail() {
                                     src={selectedSource.url}
                                     type={selectedSource.type}
                                     title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                    mediaId={series.id}
+                                    mediaType="tv"
+                                    posterPath={series.poster_path}
+                                    backdropPath={series.backdrop_path}
+                                    seasonNumber={selectedSeasonNumber}
+                                    episodeNumber={selectedEpisode}
                                   />
                                 </div>
                               )}

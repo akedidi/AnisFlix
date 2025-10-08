@@ -4,21 +4,40 @@ import Hls from "hls.js";
 import muxjs from "mux.js";
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
+import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
+import type { MediaType } from "@shared/schema";
 
 interface VideoPlayerProps {
   src: string;
   type?: "m3u8" | "mp4" | "auto";
   title?: string;
   onClose?: () => void;
+  mediaId?: number;
+  mediaType?: MediaType;
+  posterPath?: string | null;
+  backdropPath?: string | null;
+  seasonNumber?: number;
+  episodeNumber?: number;
 }
 
-export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: VideoPlayerProps) {
+export default function VideoPlayer({ 
+  src, 
+  type = "auto", 
+  title = "Vidéo",
+  mediaId,
+  mediaType,
+  posterPath,
+  backdropPath,
+  seasonNumber,
+  episodeNumber
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
+  const lastSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!videoRef.current || !src) return;
@@ -72,6 +91,84 @@ export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: Vi
       }
     };
   }, [src, type]);
+
+  // Restaurer la position de lecture
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+    const savedProgress = getMediaProgress(mediaId, mediaType, seasonNumber, episodeNumber);
+
+    if (savedProgress && savedProgress.currentTime > 0) {
+      const handleLoadedMetadata = () => {
+        if (video.duration > 0 && savedProgress.currentTime < video.duration - 5) {
+          video.currentTime = savedProgress.currentTime;
+        }
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    }
+  }, [mediaId, mediaType, seasonNumber, episodeNumber]);
+
+  // Sauvegarder la progression périodiquement
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+
+    const handleTimeUpdate = () => {
+      const now = Date.now();
+      
+      // Sauvegarder toutes les 5 secondes
+      if (now - lastSaveTimeRef.current < 5000) return;
+      
+      if (video.duration > 0 && video.currentTime > 0) {
+        const progress = Math.round((video.currentTime / video.duration) * 100);
+        
+        saveWatchProgress({
+          mediaId,
+          mediaType,
+          title: title || "Vidéo",
+          posterPath: posterPath || null,
+          backdropPath: backdropPath || null,
+          currentTime: video.currentTime,
+          duration: video.duration,
+          progress,
+          seasonNumber,
+          episodeNumber,
+        });
+        
+        lastSaveTimeRef.current = now;
+      }
+    };
+
+    const handleEnded = () => {
+      // Ne pas sauvegarder si la vidéo est terminée (pour ne pas la voir dans "Continuer à regarder")
+      if (mediaId && mediaType) {
+        saveWatchProgress({
+          mediaId,
+          mediaType,
+          title: title || "Vidéo",
+          posterPath: posterPath || null,
+          backdropPath: backdropPath || null,
+          currentTime: 0,
+          duration: video.duration,
+          progress: 100,
+          seasonNumber,
+          episodeNumber,
+        });
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
 
   const handleDownloadMP4 = async () => {
     if (!hlsRef.current || sourceType !== "m3u8") {

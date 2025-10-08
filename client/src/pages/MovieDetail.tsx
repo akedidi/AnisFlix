@@ -245,6 +245,10 @@ export default function MovieDetail() {
                     src={selectedSource.url}
                     type={selectedSource.type}
                     title={movie?.title || "Vidéo"}
+                    mediaId={movie.id}
+                    mediaType="movie"
+                    posterPath={movie.poster_path}
+                    backdropPath={movie.backdrop_path}
                   />
                 </div>
               )}

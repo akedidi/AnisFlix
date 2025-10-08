@@ -16,6 +16,9 @@ export interface WatchProgress {
   currentTime: number; // in seconds
   duration: number; // in seconds
   lastWatched: string; // ISO date
+  // Pour les séries uniquement
+  seasonNumber?: number;
+  episodeNumber?: number;
 }
 
 // Favorites

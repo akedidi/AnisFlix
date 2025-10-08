@@ -16,6 +16,7 @@ import {
   useSeriesByProvider,
   useMultiSearch 
 } from "@/hooks/useTMDB";
+import { getWatchProgress } from "@/lib/watchProgress";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,11 +65,44 @@ export default function Home() {
     { id: 384, name: "HBO Max", logoPath: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg", movieCount: 0, tvCount: 0 },
   ];
 
-  // Mock continue watching - could be stored in localStorage
-  const mockContinueWatching = [
-    { id: 1, title: "Breaking Bad", posterPath: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg", rating: 9.5, year: "2008", progress: 45, mediaType: "tv" as const },
-    { id: 2, title: "Stranger Things", posterPath: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg", rating: 8.7, year: "2016", progress: 60, mediaType: "tv" as const },
-  ];
+  // Charger la progression réelle depuis localStorage
+  const [continueWatching, setContinueWatching] = useState(() => {
+    const progress = getWatchProgress();
+    // Ne montrer que les vidéos avec progression < 95%
+    return progress
+      .filter(p => p.progress < 95 && p.progress > 0)
+      .map(p => ({
+        id: p.mediaId, // ID réel (seriesId pour les séries, movieId pour les films)
+        title: p.title, // Contient déjà "S{season}E{episode}" pour les séries
+        posterPath: p.posterPath,
+        rating: 0,
+        year: "",
+        progress: p.progress,
+        mediaType: p.mediaType,
+      }));
+  });
+
+  // Mettre à jour la liste toutes les 10 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const progress = getWatchProgress();
+      setContinueWatching(
+        progress
+          .filter(p => p.progress < 95 && p.progress > 0)
+          .map(p => ({
+            id: p.mediaId,
+            title: p.title,
+            posterPath: p.posterPath,
+            rating: 0,
+            year: "",
+            progress: p.progress,
+            mediaType: p.mediaType,
+          }))
+      );
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -101,10 +135,10 @@ export default function Home() {
         )}
 
         <div className="container mx-auto px-4 md:px-8 lg:px-12 space-y-8 md:space-y-12">
-          {mockContinueWatching.length > 0 && (
+          {continueWatching.length > 0 && (
             <MediaCarousel
               title={t("home.continueWatching")}
-              items={mockContinueWatching}
+              items={continueWatching}
               onItemClick={(item) => {
                 const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
                 window.location.href = path;

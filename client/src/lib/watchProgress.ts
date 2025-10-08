@@ -18,9 +18,17 @@ export function saveWatchProgress(progress: Omit<WatchProgress, "id" | "lastWatc
     const allProgress = getWatchProgress();
     
     // Find existing progress for this media
-    const existingIndex = allProgress.findIndex(
-      p => p.mediaId === progress.mediaId && p.mediaType === progress.mediaType
-    );
+    // Pour les séries, chercher par mediaId, mediaType, seasonNumber et episodeNumber
+    const existingIndex = allProgress.findIndex(p => {
+      if (p.mediaId !== progress.mediaId || p.mediaType !== progress.mediaType) {
+        return false;
+      }
+      // Pour les séries, vérifier aussi season et episode
+      if (progress.mediaType === 'tv' && (progress.seasonNumber !== undefined || progress.episodeNumber !== undefined)) {
+        return p.seasonNumber === progress.seasonNumber && p.episodeNumber === progress.episodeNumber;
+      }
+      return true;
+    });
     
     const newProgress: WatchProgress = {
       ...progress,
@@ -55,7 +63,21 @@ export function removeWatchProgress(mediaId: number, mediaType: string): void {
   }
 }
 
-export function getMediaProgress(mediaId: number, mediaType: string): WatchProgress | null {
+export function getMediaProgress(
+  mediaId: number, 
+  mediaType: string, 
+  seasonNumber?: number, 
+  episodeNumber?: number
+): WatchProgress | null {
   const allProgress = getWatchProgress();
-  return allProgress.find(p => p.mediaId === mediaId && p.mediaType === mediaType) || null;
+  return allProgress.find(p => {
+    if (p.mediaId !== mediaId || p.mediaType !== mediaType) {
+      return false;
+    }
+    // Pour les séries, vérifier aussi season et episode si fournis
+    if (mediaType === 'tv' && seasonNumber !== undefined && episodeNumber !== undefined) {
+      return p.seasonNumber === seasonNumber && p.episodeNumber === episodeNumber;
+    }
+    return true;
+  }) || null;
 }
