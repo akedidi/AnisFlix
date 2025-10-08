@@ -33,7 +33,7 @@ export default function Movies() {
   const latestMovies = latestMoviesData?.results || [];
 
   // Filter only movies from search results
-  const movieSearchResults = searchResults.filter(item => item.mediaType === 'movie');
+  const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">

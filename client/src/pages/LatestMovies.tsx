@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import MediaCard from "@/components/MediaCard";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLatestMovies } from "@/hooks/useTMDB";
 
 export default function LatestMovies() {
   const [currentPage, setCurrentPage] = useState(1);
+  const { t } = useLanguage();
   
   // Fetch data from TMDB
   const { data: moviesData, isLoading } = useLatestMovies(currentPage);
@@ -19,7 +21,7 @@ export default function LatestMovies() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-2xl">Chargement...</div>
+          <div className="text-2xl">{t("common.loading")}</div>
         </div>
       </div>
     );
@@ -30,9 +32,9 @@ export default function LatestMovies() {
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold">Derniers films</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">{t("movies.latest")}</h1>
             <div className="flex items-center gap-2">
-              <LanguageToggle />
+              <LanguageSelect />
               <ThemeToggle />
             </div>
           </div>

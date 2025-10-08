@@ -33,7 +33,7 @@ export default function Series() {
   const latestSeries = latestSeriesData?.results || [];
 
   // Filter only series from search results
-  const seriesSearchResults = searchResults.filter(item => item.mediaType === 'tv');
+  const seriesSearchResults = searchResults.filter((item: any) => item.mediaType === 'tv');
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
