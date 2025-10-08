@@ -17,9 +17,13 @@ StreamApp is a streaming media platform for discovering and watching movies, TV 
   - New /tv page with live TV channels player
   - Backend HLS proxy with cookie/session management (server/hls-proxy.ts)
   - SSRF protection with domain whitelist (fremtv.lol, directfr.lat)
-  - 17 French TV channels organized by categories:
+  - 25 French TV channels organized by categories:
     - Généraliste (9): TF1, France 2, France 3, M6, Canal+, TMC, W9, TFX, RMC Découverte
     - Sport (8): Bein Sports 1/2/3, Canal+ Foot, Canal+ Sport 360, RMC Sport 1/2/3
+    - Fiction & Série (1): Syfy
+    - Jeunesse (4): Game One, Mangas, Boomerang, Cartoon Network
+    - Découverte (2): National Geographic Channel, National Geographic Wild
+    - Cinéma (1): TCM Cinema
   - HLS.js player integration with error handling
 
 ## User Preferences

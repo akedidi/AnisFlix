@@ -36,6 +36,22 @@ const TV_CHANNELS: TVChannel[] = [
   { id: "33", name: "RMC Sport 1", category: "Sport" },
   { id: "40", name: "RMC Sport 2", category: "Sport" },
   { id: "42", name: "RMC Sport 3", category: "Sport" },
+  
+  // Fiction & Série
+  { id: "91", name: "Syfy", category: "Fiction & Série" },
+  
+  // Jeunesse
+  { id: "104", name: "Game One", category: "Jeunesse" },
+  { id: "97", name: "Mangas", category: "Jeunesse" },
+  { id: "180", name: "Boomerang", category: "Jeunesse" },
+  { id: "76", name: "Cartoon Network", category: "Jeunesse" },
+  
+  // Découverte
+  { id: "81", name: "National Geographic Channel", category: "Découverte" },
+  { id: "82", name: "National Geographic Wild", category: "Découverte" },
+  
+  // Cinéma
+  { id: "95", name: "TCM Cinema", category: "Cinéma" },
 ];
 
 export default function TVChannels() {
