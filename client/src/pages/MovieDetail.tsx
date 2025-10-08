@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Clock, Star, Calendar } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import { useMovieDetails, useMovieVideos, useSimilarMovies } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
+  const { t } = useLanguage();
   
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
@@ -22,11 +24,14 @@ export default function MovieDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate streaming sources
+  // Generate streaming sources - including movix.site APIs
   const sources = movie ? [
     { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/movie/${movie.id}` },
     { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/movie/${movie.id}` },
     { id: 3, name: "SuperEmbed", url: `https://multiembed.mov/?video_id=${movie.id}&tmdb=1` },
+    { id: 4, name: "FStream", url: `https://api.movix.site/api/fstream/movie/${movie.id}`, isApi: true },
+    { id: 5, name: "TopStream", url: `https://api.movix.site/api/topstream/movie/${movie.id}`, isApi: true },
+    { id: 6, name: "Wiflix", url: `https://api.movix.site/api/wiflix/movie/${movie.id}`, isApi: true },
   ] : [];
   
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
@@ -58,7 +63,7 @@ export default function MovieDetail() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl md:text-3xl font-bold">Détail du film</h1>
             <div className="flex items-center gap-2">
-              <LanguageToggle />
+              <LanguageSelect />
               <ThemeToggle />
             </div>
           </div>

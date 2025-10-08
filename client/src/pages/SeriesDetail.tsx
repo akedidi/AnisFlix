@@ -6,16 +6,18 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Star, Calendar } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function SeriesDetail() {
   const { id } = useParams();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const seriesId = parseInt(id || "0");
+  const { t } = useLanguage();
   
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
@@ -28,10 +30,13 @@ export default function SeriesDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate episode sources
+  // Generate episode sources - including movix.site APIs
   const episodeSources = series && selectedEpisode ? [
     { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
     { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
+    { id: 3, name: "FStream", url: `https://api.movix.site/api/fstream/tv/${series.id}/season/${selectedSeasonNumber}`, isApi: true },
+    { id: 4, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
+    { id: 5, name: "Wiflix", url: `https://api.movix.site/api/wiflix/tv/${series.id}/${selectedSeasonNumber}`, isApi: true },
   ] : [];
   
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
@@ -63,7 +68,7 @@ export default function SeriesDetail() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl md:text-3xl font-bold">Détail de la série</h1>
             <div className="flex items-center gap-2">
-              <LanguageToggle />
+              <LanguageSelect />
               <ThemeToggle />
             </div>
           </div>
