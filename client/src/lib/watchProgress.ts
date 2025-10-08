@@ -1,6 +1,6 @@
 import type { WatchProgress } from "@shared/schema";
 
-const WATCH_PROGRESS_KEY = "streamapp_watch_progress";
+const WATCH_PROGRESS_KEY = "anisflix_watch_progress";
 
 export function getWatchProgress(): WatchProgress[] {
   try {

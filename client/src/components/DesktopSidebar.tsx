@@ -18,7 +18,7 @@ export default function DesktopSidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-primary">StreamApp</h1>
+        <h1 className="text-2xl font-bold text-primary">AnisFlix</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-1">
