@@ -8,62 +8,53 @@ import { Play, Star, Calendar } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import MediaCarousel from "@/components/MediaCarousel";
+import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries } from "@/hooks/useTMDB";
+import { getImageUrl } from "@/lib/tmdb";
 
 export default function SeriesDetail() {
   const { id } = useParams();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
+  const seriesId = parseInt(id || "0");
+  
+  // Fetch data from TMDB
+  const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
+  const { data: videos } = useSeriesVideos(seriesId);
+  const { data: seasonDetails } = useSeasonDetails(seriesId, selectedSeasonNumber);
+  const { data: similarSeries = [] } = useSimilarSeries(seriesId);
 
-  // todo: fetch from TMDB API
-  const mockSeries = {
-    id: parseInt(id || "1"),
-    title: "Breaking Bad",
-    overview: "Walter White, 50 ans, est professeur de chimie dans un lycée du Nouveau-Mexique. Pour subvenir aux besoins de Skyler, sa femme enceinte, et de Walt Jr, son fils handicapé, il est obligé de travailler doublement.",
-    backdropPath: "/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg",
-    posterPath: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
-    rating: 9.5,
-    firstAirDate: "2008-01-20",
-    numberOfSeasons: 5,
-    genres: ["Drame", "Crime", "Thriller"],
-    seasons: [
-      {
-        id: 1,
-        seasonNumber: 1,
-        name: "Saison 1",
-        overview: "Walter White commence sa descente aux enfers en fabricant de la méthamphétamine.",
-        episodeCount: 7,
-        trailerKey: "HhesaQXLuRY",
-        episodes: [
-          { id: 1, episodeNumber: 1, name: "Chute libre", overview: "Un professeur de chimie découvre qu'il a un cancer du poumon et décide de fabriquer de la drogue.", runtime: 58 },
-          { id: 2, episodeNumber: 2, name: "Le choix", overview: "Walter et Jesse tentent de se débarrasser du corps.", runtime: 48 },
-        ],
-      },
-      {
-        id: 2,
-        seasonNumber: 2,
-        name: "Saison 2",
-        overview: "Les conséquences des actions de Walter commencent à se faire sentir.",
-        episodeCount: 13,
-        trailerKey: "HhesaQXLuRY",
-        episodes: [
-          { id: 3, episodeNumber: 1, name: "Traqués", overview: "Walter et Jesse doivent gérer les conséquences.", runtime: 47 },
-        ],
-      },
-    ],
-  };
-
-  const mockSimilar = [
-    { id: 2, title: "Better Call Saul", posterPath: "/fC2HDm5t0kHl7mTm7jxMR31b7by.jpg", rating: 8.9, year: "2015", mediaType: "tv" as const },
-    { id: 3, title: "The Wire", posterPath: "/4lbclFySvugI51fwsyxBTOm4DqK.jpg", rating: 9.3, year: "2002", mediaType: "tv" as const },
-  ];
-
-  const backdropUrl = mockSeries.backdropPath
-    ? `https://image.tmdb.org/t/p/original${mockSeries.backdropPath}`
-    : "";
-
-  const episodeSources = [
-    { id: 1, name: "VidSrc", url: "https://vidsrc.to/embed/tv/1396" },
-    { id: 2, name: "VidSrc Pro", url: "https://vidsrc.pro/embed/tv/1396" },
-  ];
+  // Find trailer from videos
+  const trailer = videos?.results?.find(
+    (video: any) => video.type === "Trailer" && video.site === "YouTube"
+  );
+  
+  // Generate episode sources
+  const episodeSources = series && selectedEpisode ? [
+    { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
+    { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
+  ] : [];
+  
+  const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
+  
+  if (isLoadingSeries) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!series) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl">Série non trouvée</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -81,11 +72,13 @@ export default function SeriesDetail() {
 
       <div className="relative h-[50vh] md:h-[60vh]">
         <div className="absolute inset-0">
-          <img
-            src={backdropUrl}
-            alt={mockSeries.title}
-            className="w-full h-full object-cover"
-          />
+          {backdropUrl && (
+            <img
+              src={backdropUrl}
+              alt={series.name}
+              className="w-full h-full object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
         </div>
       </div>
@@ -93,112 +86,125 @@ export default function SeriesDetail() {
       <div className="container mx-auto px-4 md:px-8 lg:px-12 -mt-32 relative z-10">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
-            <img
-              src={`https://image.tmdb.org/t/p/w500${mockSeries.posterPath}`}
-              alt={mockSeries.title}
-              className="w-full rounded-lg shadow-2xl"
-            />
+            {series.poster_path && (
+              <img
+                src={getImageUrl(series.poster_path, 'w500')}
+                alt={series.name}
+                className="w-full rounded-lg shadow-2xl"
+              />
+            )}
           </div>
 
           <div className="space-y-6">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">{mockSeries.title}</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">{series.name}</h1>
               
               <div className="flex flex-wrap items-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="text-lg font-semibold">{mockSeries.rating}</span>
+                  <span className="text-lg font-semibold">
+                    {Math.round(series.vote_average * 10) / 10}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  <span>{new Date(mockSeries.firstAirDate).getFullYear()}</span>
-                </div>
-                <Badge variant="secondary">{mockSeries.numberOfSeasons} saisons</Badge>
+                {series.first_air_date && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    <span>{new Date(series.first_air_date).getFullYear()}</span>
+                  </div>
+                )}
+                <Badge variant="secondary">{series.number_of_seasons} saisons</Badge>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-6">
-                {mockSeries.genres.map((genre) => (
-                  <Badge key={genre} variant="secondary">
-                    {genre}
+                {series.genres?.map((genre: any) => (
+                  <Badge key={genre.id} variant="secondary">
+                    {genre.name}
                   </Badge>
                 ))}
               </div>
 
               <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
               <p className="text-muted-foreground leading-relaxed mb-6">
-                {mockSeries.overview}
+                {series.overview || "Aucun synopsis disponible."}
               </p>
             </div>
 
-            <Tabs defaultValue="season-1" className="w-full">
+            <Tabs defaultValue="season-1" className="w-full" onValueChange={(value) => {
+              const seasonNum = parseInt(value.replace('season-', ''));
+              setSelectedSeasonNumber(seasonNum);
+            }}>
               <TabsList className="flex-wrap h-auto">
-                {mockSeries.seasons.map((season) => (
+                {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
                   <TabsTrigger
                     key={season.id}
-                    value={`season-${season.seasonNumber}`}
-                    data-testid={`tab-season-${season.seasonNumber}`}
+                    value={`season-${season.season_number}`}
+                    data-testid={`tab-season-${season.season_number}`}
                   >
-                    {season.name}
+                    Saison {season.season_number}
                   </TabsTrigger>
                 ))}
               </TabsList>
 
-              {mockSeries.seasons.map((season) => (
-                <TabsContent key={season.id} value={`season-${season.seasonNumber}`} className="space-y-6">
+              {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
+                <TabsContent key={season.id} value={`season-${season.season_number}`} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">{season.name}</h3>
-                    <p className="text-muted-foreground mb-4">{season.overview}</p>
-                    <p className="text-sm text-muted-foreground">{season.episodeCount} épisodes</p>
+                    <h3 className="text-lg font-semibold mb-2">Saison {season.season_number}</h3>
+                    <p className="text-muted-foreground mb-4">{season.overview || "Aucune description disponible."}</p>
+                    <p className="text-sm text-muted-foreground">{season.episode_count} épisodes</p>
                   </div>
 
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Bande-annonce</h3>
-                    <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                      <iframe
-                        width="100%"
-                        height="100%"
-                        src={`https://www.youtube.com/embed/${season.trailerKey}`}
-                        title={`${season.name} Trailer`}
-                        frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                  {trailer && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">Bande-annonce</h3>
+                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${trailer.key}`}
+                          title="Trailer"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Épisodes</h3>
                     <div className="space-y-3">
-                      {season.episodes.map((episode) => (
+                      {seasonDetails?.episodes?.map((episode: any) => (
                         <Card
                           key={episode.id}
                           className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-                          onClick={() => setSelectedEpisode(episode.id)}
-                          data-testid={`card-episode-${episode.episodeNumber}`}
+                          onClick={() => setSelectedEpisode(episode.episode_number)}
+                          data-testid={`card-episode-${episode.episode_number}`}
                         >
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h4 className="font-semibold mb-1">
-                                {episode.episodeNumber}. {episode.name}
+                                {episode.episode_number}. {episode.name}
                               </h4>
                               <p className="text-sm text-muted-foreground mb-2">
-                                {episode.overview}
+                                {episode.overview || "Aucune description disponible."}
                               </p>
-                              <p className="text-xs text-muted-foreground">{episode.runtime} min</p>
+                              {episode.runtime && (
+                                <p className="text-xs text-muted-foreground">{episode.runtime} min</p>
+                              )}
                             </div>
                             <Button
                               size="icon"
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedEpisode(episode.id);
+                                setSelectedEpisode(episode.episode_number);
                               }}
                             >
                               <Play className="w-4 h-4" />
                             </Button>
                           </div>
 
-                          {selectedEpisode === episode.id && (
+                          {selectedEpisode === episode.episode_number && (
                             <div className="mt-4 pt-4 border-t space-y-2">
                               <h5 className="font-semibold text-sm">Sources de visionnage</h5>
                               {episodeSources.map((source) => (
@@ -209,7 +215,7 @@ export default function SeriesDetail() {
                                   className="w-full justify-between"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(`${source.url}/${season.seasonNumber}/${episode.episodeNumber}`, '_blank');
+                                    window.open(source.url, '_blank');
                                   }}
                                   data-testid={`button-episode-source-${source.name.toLowerCase()}`}
                                 >
@@ -232,13 +238,15 @@ export default function SeriesDetail() {
           </div>
         </div>
 
-        <div className="mt-16">
-          <MediaCarousel
-            title="Séries similaires"
-            items={mockSimilar}
-            onItemClick={(item) => console.log("Clicked:", item)}
-          />
-        </div>
+        {similarSeries.length > 0 && (
+          <div className="mt-16">
+            <MediaCarousel
+              title="Séries similaires"
+              items={similarSeries.slice(0, 10)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

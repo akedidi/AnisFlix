@@ -4,18 +4,26 @@ import MediaCard from "@/components/MediaCard";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useLatestSeries } from "@/hooks/useTMDB";
 
 export default function LatestSeries() {
   const [currentPage, setCurrentPage] = useState(1);
-
-  // todo: fetch from TMDB API with pagination
-  const mockSeries = [
-    { id: 1, title: "Breaking Bad", posterPath: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg", rating: 9.5, year: "2008", mediaType: "tv" as const },
-    { id: 2, title: "Game of Thrones", posterPath: "/7WUHnWGx5OO145IRxPDUkQSh4C7.jpg", rating: 9.3, year: "2011", mediaType: "tv" as const },
-    { id: 3, title: "Stranger Things", posterPath: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg", rating: 8.7, year: "2016", mediaType: "tv" as const },
-  ];
-
-  const totalPages = 10; // todo: get from API
+  
+  // Fetch data from TMDB
+  const { data: seriesData, isLoading } = useLatestSeries(currentPage);
+  
+  const series = seriesData?.results || [];
+  const totalPages = Math.min(seriesData?.total_pages || 1, 500); // TMDB limits to 500 pages
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl">Chargement...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -33,11 +41,11 @@ export default function LatestSeries() {
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-          {mockSeries.map((series) => (
+          {series.map((item) => (
             <MediaCard
-              key={series.id}
-              {...series}
-              onClick={() => window.location.href = `/series/${series.id}`}
+              key={item.id}
+              {...item}
+              onClick={() => window.location.href = `/series/${item.id}`}
             />
           ))}
         </div>
