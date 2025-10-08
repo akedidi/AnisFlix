@@ -122,3 +122,30 @@ export async function getAllSeriesStreams(
   
   return results as Record<StreamProvider, any>;
 }
+
+/**
+ * Extrait le lien m3u8 depuis une URL Vidzy en utilisant l'API backend
+ * @param vidzyUrl - URL complète de la page Vidzy (ex: https://vidzy.org/embed-xxxxx.html)
+ * @returns Le lien m3u8 extrait ou null si échec
+ */
+export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch('/api/vidzy/extract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: vidzyUrl }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.m3u8Url || null;
+  } catch (error) {
+    console.error('Erreur lors de l\'extraction Vidzy:', error);
+    return null;
+  }
+}

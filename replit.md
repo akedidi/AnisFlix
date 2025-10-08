@@ -113,6 +113,11 @@ Preferred communication style: Simple, everyday language.
   - FStream: `https://api.movix.site/api/fstream`
   - TopStream: `https://api.movix.site/api/topstream` (direct MP4 with quality/subtitle/audio track selection)
   - Wiflix: `https://api.movix.site/api/wiflix`
+- **Vidzy scraper** (backend API):
+  - Endpoint: `/api/vidzy/extract` (POST)
+  - Désobfuscation automatique du code JavaScript "packed"
+  - Extraction de liens m3u8 pour lecteur vidéo
+  - Utilisation: `extractVidzyM3u8(vidzyUrl)` depuis le frontend
 - Configurable in app settings with primary/secondary/backup hierarchy
 
 **UI Component Libraries**
