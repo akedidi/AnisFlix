@@ -1,18 +1,23 @@
+import { useState } from "react";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, Star, Calendar } from "lucide-react";
+import { Play, Clock, Star, Calendar, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
+import VideoPlayer from "@/components/VideoPlayer";
 import { useMovieDetails, useMovieVideos, useSimilarMovies } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
   const { t } = useLanguage();
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
+  const [isLoadingSource, setIsLoadingSource] = useState(false);
   
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
@@ -26,9 +31,50 @@ export default function MovieDetail() {
   
   // Generate streaming sources - TopStream et Vidzy uniquement
   const sources = movie ? [
-    { id: 1, name: "TopStream", url: `https://api.movix.site/api/topstream/movie/${movie.id}`, isApi: true },
-    { id: 2, name: "Vidzy", url: `https://api.movix.site/api/vidzy/movie/${movie.id}`, isApi: true, needsExtraction: true },
+    { id: 1, name: "TopStream", provider: "topstream" as const },
+    { id: 2, name: "Vidzy", provider: "vidzy" as const },
   ] : [];
+
+  const handleSourceClick = async (sourceName: string, provider: "topstream" | "vidzy") => {
+    if (!movie) return;
+    
+    setIsLoadingSource(true);
+    try {
+      if (provider === "topstream") {
+        // TopStream retourne directement du MP4
+        const response = await getMovieStream(movie.id, "topstream");
+        
+        if (response?.sources?.[0]?.url) {
+          setSelectedSource({
+            url: response.sources[0].url,
+            type: "mp4",
+            name: sourceName
+          });
+        } else {
+          alert("Impossible de charger la source TopStream");
+        }
+      } else if (provider === "vidzy") {
+        // Vidzy nécessite une extraction pour obtenir le m3u8
+        const vidzyPageUrl = `https://api.movix.site/api/vidzy/movie/${movie.id}`;
+        const m3u8Url = await extractVidzyM3u8(vidzyPageUrl);
+        
+        if (m3u8Url) {
+          setSelectedSource({
+            url: m3u8Url,
+            type: "m3u8",
+            name: sourceName
+          });
+        } else {
+          alert("Impossible d'extraire la source Vidzy");
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement de la source:", error);
+      alert("Erreur lors du chargement de la source");
+    } finally {
+      setIsLoadingSource(false);
+    }
+  };
   
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
   
@@ -146,26 +192,50 @@ export default function MovieDetail() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Sources de visionnage</h2>
-                <div className="grid gap-3">
-                  {sources.map((source) => (
-                    <Button
-                      key={source.id}
-                      variant="outline"
-                      className="justify-between h-auto py-3"
-                      onClick={() => window.open(source.url, '_blank')}
-                      data-testid={`button-source-${source.name.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Play className="w-4 h-4" />
-                        {source.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">Regarder</span>
-                    </Button>
-                  ))}
+              {!selectedSource ? (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Sources de visionnage</h2>
+                  <div className="grid gap-3">
+                    {sources.map((source) => (
+                      <Button
+                        key={source.id}
+                        variant="outline"
+                        className="justify-between h-auto py-3"
+                        onClick={() => handleSourceClick(source.name, source.provider)}
+                        disabled={isLoadingSource}
+                        data-testid={`button-source-${source.name.toLowerCase().replace(/\s+/g, "-")}`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <Play className="w-4 h-4" />
+                          {source.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {isLoadingSource ? "Chargement..." : "Regarder"}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">Lecture - {selectedSource.name}</h2>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedSource(null)}
+                      data-testid="button-close-player"
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  </div>
+                  <VideoPlayer
+                    src={selectedSource.url}
+                    type={selectedSource.type}
+                    title={movie?.title || "Vidéo"}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
