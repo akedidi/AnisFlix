@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Tv } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
@@ -206,40 +207,54 @@ export default function TVChannels() {
             )}
           </div>
 
-          <div className="space-y-6">
-            {categories.map(category => {
-              const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
-              
-              return (
-                <div key={category}>
-                  <h3 className="text-lg font-semibold mb-3">{category}</h3>
-                  <div className="space-y-2">
-                    {channelsInCategory.map(channel => (
-                      <Card
-                        key={channel.id}
-                        className={`p-4 cursor-pointer transition-colors hover-elevate ${
-                          selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => setSelectedChannel(channel)}
-                        data-testid={`channel-${channel.id}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                              <Tv className="w-6 h-6 text-primary" />
+          <div>
+            <Tabs defaultValue={categories[0]} className="w-full">
+              <TabsList className="w-full flex-wrap h-auto gap-1 mb-4">
+                {categories.map(category => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="flex-1 min-w-[120px]"
+                    data-testid={`tab-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {categories.map(category => {
+                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
+                
+                return (
+                  <TabsContent key={category} value={category} className="mt-0">
+                    <div className="space-y-2">
+                      {channelsInCategory.map(channel => (
+                        <Card
+                          key={channel.id}
+                          className={`p-4 cursor-pointer transition-colors hover-elevate ${
+                            selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
+                          }`}
+                          onClick={() => setSelectedChannel(channel)}
+                          data-testid={`channel-${channel.id}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Tv className="w-6 h-6 text-primary" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold">{channel.name}</h4>
+                              </div>
                             </div>
-                            <div>
-                              <h4 className="font-semibold">{channel.name}</h4>
-                            </div>
+                            <Play className="w-5 h-5 text-muted-foreground" />
                           </div>
-                          <Play className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                        </Card>
+                      ))}
+                    </div>
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
           </div>
         </div>
       </div>
