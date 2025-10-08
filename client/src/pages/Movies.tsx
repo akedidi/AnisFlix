@@ -1,39 +1,40 @@
 import { useState } from "react";
 import SearchBar from "@/components/SearchBar";
-import MediaCard from "@/components/MediaCard";
+import MediaCarousel from "@/components/MediaCarousel";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
-import CategorySection from "@/components/CategorySection";
 
 export default function Movies() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tous");
-
-  const categories = [
-    "Tous",
-    "Action",
-    "Comédie",
-    "Drame",
-    "Science-Fiction",
-    "Horreur",
-    "Romance",
-    "Thriller",
-    "Aventure",
-    "Animation",
-    "Crime",
-    "Fantastique",
-  ];
 
   // todo: remove mock functionality
-  const mockMovies = [
+  const mockLatestMovies = [
     { id: 1, title: "The Shawshank Redemption", posterPath: "/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg", rating: 9.3, year: "1994", mediaType: "movie" as const },
     { id: 2, title: "The Godfather", posterPath: "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg", rating: 9.2, year: "1972", mediaType: "movie" as const },
     { id: 3, title: "The Dark Knight", posterPath: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg", rating: 9.0, year: "2008", mediaType: "movie" as const },
-    { id: 4, title: "Pulp Fiction", posterPath: "/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", rating: 8.9, year: "1994", mediaType: "movie" as const },
-    { id: 5, title: "Forrest Gump", posterPath: "/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg", rating: 8.8, year: "1994", mediaType: "movie" as const },
-    { id: 6, title: "Inception", posterPath: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", rating: 8.8, year: "2010", mediaType: "movie" as const },
-    { id: 7, title: "The Matrix", posterPath: "/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg", rating: 8.7, year: "1999", mediaType: "movie" as const },
-    { id: 8, title: "Interstellar", posterPath: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg", rating: 8.6, year: "2014", mediaType: "movie" as const },
+  ];
+
+  const mockActionMovies = [
+    { id: 4, title: "The Dark Knight", posterPath: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg", rating: 9.0, year: "2008", mediaType: "movie" as const },
+    { id: 5, title: "Inception", posterPath: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", rating: 8.8, year: "2010", mediaType: "movie" as const },
+    { id: 6, title: "Mad Max: Fury Road", posterPath: "/hA2ple9q4qnwxp3hKVNhroipsir.jpg", rating: 8.1, year: "2015", mediaType: "movie" as const },
+  ];
+
+  const mockDramaMovies = [
+    { id: 7, title: "The Shawshank Redemption", posterPath: "/q6y0Go1tsGEsmtFryDOJo3dEmqu.jpg", rating: 9.3, year: "1994", mediaType: "movie" as const },
+    { id: 8, title: "The Godfather", posterPath: "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg", rating: 9.2, year: "1972", mediaType: "movie" as const },
+    { id: 9, title: "Forrest Gump", posterPath: "/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg", rating: 8.8, year: "1994", mediaType: "movie" as const },
+  ];
+
+  const mockCrimeMovies = [
+    { id: 10, title: "Pulp Fiction", posterPath: "/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", rating: 8.9, year: "1994", mediaType: "movie" as const },
+    { id: 11, title: "The Godfather", posterPath: "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg", rating: 9.2, year: "1972", mediaType: "movie" as const },
+    { id: 12, title: "The Dark Knight", posterPath: "/qJ2tW6WMUDux911r6m7haRef0WH.jpg", rating: 9.0, year: "2008", mediaType: "movie" as const },
+  ];
+
+  const mockMysteryMovies = [
+    { id: 13, title: "Inception", posterPath: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", rating: 8.8, year: "2010", mediaType: "movie" as const },
+    { id: 14, title: "Shutter Island", posterPath: "/52d7CAy5LlPrjPd87dQM5lH7gR2.jpg", rating: 8.2, year: "2010", mediaType: "movie" as const },
   ];
 
   const mockSearchSuggestions = [
@@ -50,7 +51,7 @@ export default function Movies() {
               <SearchBar
                 onSearch={setSearchQuery}
                 suggestions={searchQuery ? mockSearchSuggestions : []}
-                onSelect={(item) => console.log("Selected:", item)}
+                onSelect={(item) => window.location.href = `/movie/${item.id}`}
               />
             </div>
             <LanguageToggle />
@@ -59,26 +60,39 @@ export default function Movies() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-6">Films</h1>
-        
-        <div className="mb-8">
-          <CategorySection
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-          {mockMovies.map((movie) => (
-            <MediaCard
-              key={movie.id}
-              {...movie}
-              onClick={() => console.log("Clicked:", movie)}
-            />
-          ))}
-        </div>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
+        <h1 className="text-3xl md:text-4xl font-bold">Films</h1>
+
+        <MediaCarousel
+          title="Derniers films"
+          items={mockLatestMovies}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          seeAllLink="/latest-movies"
+        />
+
+        <MediaCarousel
+          title="Action"
+          items={mockActionMovies}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+        />
+
+        <MediaCarousel
+          title="Drame"
+          items={mockDramaMovies}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+        />
+
+        <MediaCarousel
+          title="Crime"
+          items={mockCrimeMovies}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+        />
+
+        <MediaCarousel
+          title="Mystère"
+          items={mockMysteryMovies}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+        />
       </div>
     </div>
   );
