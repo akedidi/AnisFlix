@@ -28,6 +28,8 @@ export default function Home() {
   const { data: latestSeriesData } = useLatestSeries();
   const { data: netflixMovies = [] } = useMoviesByProvider(8);
   const { data: amazonSeries = [] } = useSeriesByProvider(9);
+  const { data: disneyMovies = [] } = useMoviesByProvider(337);
+  const { data: appleTvSeries = [] } = useSeriesByProvider(350);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const latestMovies = latestMoviesData?.results || [];
@@ -110,34 +112,6 @@ export default function Home() {
             />
           )}
 
-          <MediaCarousel
-            title={t("home.latestMovies")}
-            items={latestMovies.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
-            seeAllLink="/latest-movies"
-          />
-
-          <MediaCarousel
-            title={t("home.latestSeries")}
-            items={latestSeries.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
-            seeAllLink="/latest-series"
-          />
-
-          <MediaCarousel
-            title={t("home.popularMovies")}
-            items={popularMovies.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
-            seeAllLink="/latest-movies"
-          />
-
-          <MediaCarousel
-            title={t("home.popularSeries")}
-            items={popularSeries.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
-            seeAllLink="/latest-series"
-          />
-
           <div className="space-y-4">
             <h2 className="text-2xl md:text-3xl font-semibold">{t("home.byPlatform")}</h2>
             <ScrollArea className="w-full">
@@ -170,6 +144,50 @@ export default function Home() {
               onItemClick={(item) => window.location.href = `/series/${item.id}`}
             />
           )}
+
+          {disneyMovies.length > 0 && (
+            <MediaCarousel
+              title={`Disney+ - ${t("home.latestMovies")}`}
+              items={disneyMovies.slice(0, 10)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            />
+          )}
+
+          {appleTvSeries.length > 0 && (
+            <MediaCarousel
+              title={`Apple TV+ - ${t("home.latestSeries")}`}
+              items={appleTvSeries.slice(0, 10)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            />
+          )}
+
+          <MediaCarousel
+            title={t("home.latestMovies")}
+            items={latestMovies.slice(0, 10)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            seeAllLink="/latest-movies"
+          />
+
+          <MediaCarousel
+            title={t("home.latestSeries")}
+            items={latestSeries.slice(0, 10)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            seeAllLink="/latest-series"
+          />
+
+          <MediaCarousel
+            title={t("home.popularMovies")}
+            items={popularMovies.slice(0, 10)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            seeAllLink="/latest-movies"
+          />
+
+          <MediaCarousel
+            title={t("home.popularSeries")}
+            items={popularSeries.slice(0, 10)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            seeAllLink="/latest-series"
+          />
         </div>
       </div>
     </div>

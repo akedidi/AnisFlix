@@ -29,7 +29,7 @@ export default function HeroSection({
     : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Crect fill='%23334155' width='1920' height='1080'/%3E%3C/svg%3E";
 
   return (
-    <div className="relative w-full h-[50vh] md:h-[70vh] overflow-hidden" data-testid="hero-section">
+    <div className="relative w-full h-[35vh] md:h-[50vh] overflow-hidden" data-testid="hero-section">
       <div className="absolute inset-0">
         <img
           src={imageUrl}
