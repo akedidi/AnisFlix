@@ -90,8 +90,47 @@ export default function Home() {
         />
 
         <div className="container mx-auto px-4 md:px-8 lg:px-12 space-y-8 md:space-y-12">
+          {mockContinueWatching.length > 0 && (
+            <MediaCarousel
+              title="Continuer à regarder"
+              items={mockContinueWatching}
+              onItemClick={(item) => {
+                const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                window.location.href = path;
+              }}
+            />
+          )}
+
+          <MediaCarousel
+            title="Derniers films"
+            items={mockMovies}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            seeAllLink="/latest-movies"
+          />
+
+          <MediaCarousel
+            title="Dernières séries"
+            items={mockSeries}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            seeAllLink="/latest-series"
+          />
+
+          <MediaCarousel
+            title="Films populaires"
+            items={mockMovies}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            seeAllLink="/latest-movies"
+          />
+
+          <MediaCarousel
+            title="Séries populaires"
+            items={mockSeries}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            seeAllLink="/latest-series"
+          />
+
           <div className="space-y-4">
-            <h2 className="text-2xl md:text-3xl font-semibold">Plateformes de streaming</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold">Par plateforme</h2>
             <ScrollArea className="w-full">
               <div className="flex gap-4 pb-4">
                 {mockProviders.map((provider) => (
@@ -107,36 +146,16 @@ export default function Home() {
             </ScrollArea>
           </div>
 
-          {mockContinueWatching.length > 0 && (
-            <MediaCarousel
-              title="Continuer à regarder"
-              items={mockContinueWatching}
-              onItemClick={(item) => console.log("Clicked:", item)}
-            />
-          )}
-
           <MediaCarousel
-            title="Films populaires"
-            items={mockMovies}
-            onItemClick={(item) => console.log("Clicked:", item)}
+            title="Netflix - Derniers films"
+            items={mockMovies.slice(0, 3)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           />
 
           <MediaCarousel
-            title="Séries tendances"
-            items={mockSeries}
-            onItemClick={(item) => console.log("Clicked:", item)}
-          />
-
-          <MediaCarousel
-            title="Animes"
-            items={mockAnimes}
-            onItemClick={(item) => console.log("Clicked:", item)}
-          />
-
-          <MediaCarousel
-            title="Documentaires"
-            items={mockDocumentaries}
-            onItemClick={(item) => console.log("Clicked:", item)}
+            title="Amazon Prime - Dernières séries"
+            items={mockSeries.slice(0, 2)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
           />
         </div>
       </div>

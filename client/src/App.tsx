@@ -9,7 +9,10 @@ import Movies from "@/pages/Movies";
 import Series from "@/pages/Series";
 import TVChannels from "@/pages/TVChannels";
 import Settings from "@/pages/Settings";
-import MediaDetail from "@/pages/MediaDetail";
+import MovieDetail from "@/pages/MovieDetail";
+import SeriesDetail from "@/pages/SeriesDetail";
+import LatestMovies from "@/pages/LatestMovies";
+import LatestSeries from "@/pages/LatestSeries";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
@@ -21,7 +24,10 @@ function Router() {
       <Route path="/series" component={Series} />
       <Route path="/tv" component={TVChannels} />
       <Route path="/settings" component={Settings} />
-      <Route path="/detail/:type/:id" component={MediaDetail} />
+      <Route path="/movie/:id" component={MovieDetail} />
+      <Route path="/series/:id" component={SeriesDetail} />
+      <Route path="/latest-movies" component={LatestMovies} />
+      <Route path="/latest-series" component={LatestSeries} />
       <Route component={NotFound} />
     </Switch>
   );
