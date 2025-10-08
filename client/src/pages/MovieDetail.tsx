@@ -24,14 +24,13 @@ export default function MovieDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate streaming sources - including movix.site APIs
+  // Generate streaming sources - TopStream et Vidzy uniquement
   const sources = movie ? [
     { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/movie/${movie.id}` },
     { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/movie/${movie.id}` },
     { id: 3, name: "SuperEmbed", url: `https://multiembed.mov/?video_id=${movie.id}&tmdb=1` },
-    { id: 4, name: "FStream", url: `https://api.movix.site/api/fstream/movie/${movie.id}`, isApi: true },
-    { id: 5, name: "TopStream", url: `https://api.movix.site/api/topstream/movie/${movie.id}`, isApi: true },
-    { id: 6, name: "Wiflix", url: `https://api.movix.site/api/wiflix/movie/${movie.id}`, isApi: true },
+    { id: 4, name: "TopStream", url: `https://api.movix.site/api/topstream/movie/${movie.id}`, isApi: true },
+    { id: 5, name: "Vidzy", url: `https://api.movix.site/api/vidzy/movie/${movie.id}`, isApi: true, needsExtraction: true },
   ] : [];
   
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";

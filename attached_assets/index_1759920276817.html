@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mon Player HLS</title>
+  <style>
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:#121212;color:#e1e1e1;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;}
+    #video-container { width:90%; max-width:960px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+    h1 { text-align:center; font-weight:300; }
+    video { width:100%; border-radius:8px; background:#000; outline:none; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+  <div id="video-container">
+    <h1>Player HLS via Proxy Node.js</h1>
+    <video id="videoPlayer" controls autoplay></video>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('videoPlayer');
+      const streamUrl = '/stream/playlist.m3u8';
+
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        hls.on(Hls.Events.ERROR, (_, data) => console[(data.fatal?'error':'warn')]('HLS.js:', data));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.addEventListener('loadedmetadata', () => video.play());
+      }
+    });
+  </script>
+</body>
+</html>

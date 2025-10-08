@@ -30,13 +30,12 @@ export default function SeriesDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate episode sources - including movix.site APIs
+  // Generate episode sources - TopStream et Vidzy uniquement
   const episodeSources = series && selectedEpisode ? [
     { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
     { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
-    { id: 3, name: "FStream", url: `https://api.movix.site/api/fstream/tv/${series.id}/season/${selectedSeasonNumber}`, isApi: true },
-    { id: 4, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
-    { id: 5, name: "Wiflix", url: `https://api.movix.site/api/wiflix/tv/${series.id}/${selectedSeasonNumber}`, isApi: true },
+    { id: 3, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
+    { id: 4, name: "Vidzy", url: `https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true, needsExtraction: true },
   ] : [];
   
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
