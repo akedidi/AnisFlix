@@ -139,7 +139,7 @@ export default function Home() {
           />
 
           <div className="space-y-4">
-            <h2 className="text-2xl md:text-3xl font-semibold">Par plateforme</h2>
+            <h2 className="text-2xl md:text-3xl font-semibold">{t("home.byPlatform")}</h2>
             <ScrollArea className="w-full">
               <div className="flex gap-4 pb-4">
                 {providers.map((provider) => (
@@ -157,7 +157,7 @@ export default function Home() {
 
           {netflixMovies.length > 0 && (
             <MediaCarousel
-              title="Netflix - Derniers films"
+              title={`Netflix - ${t("home.latestMovies")}`}
               items={netflixMovies.slice(0, 10)}
               onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             />
@@ -165,7 +165,7 @@ export default function Home() {
 
           {amazonSeries.length > 0 && (
             <MediaCarousel
-              title="Amazon Prime - Dernières séries"
+              title={`Amazon Prime - ${t("home.latestSeries")}`}
               items={amazonSeries.slice(0, 10)}
               onItemClick={(item) => window.location.href = `/series/${item.id}`}
             />

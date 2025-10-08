@@ -21,6 +21,7 @@ export default {
   "home.disneyPlus": "Disney+",
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
+  "home.byPlatform": "Por plataforma",
   
   // Movies page
   "movies.title": "Películas",
