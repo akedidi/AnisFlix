@@ -5,11 +5,14 @@
 StreamApp is a streaming media platform for discovering and watching movies, TV series, anime, and documentaries. The application provides a Netflix-like experience with features including content browsing, search functionality, favorites management, watch progress tracking, and download capabilities. Built with a modern tech stack featuring React frontend and Express backend, the platform integrates with The Movie Database (TMDB) API for content metadata and uses multiple video streaming providers.
 
 **Recent Changes (October 8, 2025):**
-- Complete TMDB API integration across all pages - all content now displays real movie and series data
-- Home page, Movies page, and Series page now show live TMDB data organized by genres and categories
-- Movie and Series detail pages fetch real metadata including trailers, seasons, episodes, and similar content
-- Pagination pages (LatestMovies/LatestSeries) fully integrated with TMDB and working pagination
-- Search functionality uses TMDB multi-search API for real-time results
+- Complete i18n system with 6 languages (FR/EN/ES/DE/IT/PT) using LanguageContext and combo box selector
+- All site labels translate dynamically based on selected language with TMDB API language sync
+- Hero section height reduced to 35vh/50vh (mobile/desktop) for better content visibility
+- Home page reorganized: "Par plateforme" section moved after "Continuer à regarder"
+- Added platform-specific carousels: Netflix, Amazon Prime, Disney+, Apple TV+ with latest films/series
+- Movix.site streaming API integration for enhanced video sources (FStream, TopStream, Wiflix)
+- Movie detail pages now show 6 streaming sources (3 traditional + 3 movix.site APIs)
+- Series detail pages include 5 streaming sources per episode with season/episode support
 
 ## User Preferences
 
@@ -58,8 +61,9 @@ Preferred communication style: Simple, everyday language.
 
 **API Integration**
 - TMDB (The Movie Database) API for movie/series metadata
-- Multiple video streaming providers (VidSrc, VidSrc.me, SuperEmbed, etc.)
-- Language support (French/English) with localStorage persistence
+- Multiple video streaming providers (VidSrc, VidSrc Pro, SuperEmbed)
+- Movix.site streaming APIs (FStream, TopStream, Wiflix) for enhanced video sources
+- Language support (6 languages: FR/EN/ES/DE/IT/PT) with localStorage persistence and TMDB sync
 
 ### Data Storage Solutions
 
@@ -105,6 +109,10 @@ Preferred communication style: Simple, everyday language.
 - VidSrc (`https://vidsrc.to`)
 - VidSrc Pro (`https://vidsrc.pro`)
 - SuperEmbed (`https://multiembed.mov`)
+- **Movix.site APIs** (integrated):
+  - FStream: `https://api.movix.site/api/fstream`
+  - TopStream: `https://api.movix.site/api/topstream` (direct MP4 with quality/subtitle/audio track selection)
+  - Wiflix: `https://api.movix.site/api/wiflix`
 - Configurable in app settings with primary/secondary/backup hierarchy
 
 **UI Component Libraries**
