@@ -16,16 +16,26 @@ interface TVChannel {
 }
 
 const TV_CHANNELS: TVChannel[] = [
-  { id: "78", name: "TF1", category: "Généraliste" },
-  { id: "79", name: "France 2", category: "Généraliste" },
-  { id: "80", name: "France 3", category: "Généraliste" },
-  { id: "81", name: "Canal+", category: "Premium" },
-  { id: "82", name: "France 5", category: "Culturel" },
-  { id: "83", name: "M6", category: "Généraliste" },
-  { id: "84", name: "Arte", category: "Culturel" },
-  { id: "85", name: "C8", category: "Généraliste" },
-  { id: "86", name: "W9", category: "Généraliste" },
-  { id: "87", name: "TMC", category: "Généraliste" },
+  // Chaînes généralistes
+  { id: "87", name: "TF1", category: "Généraliste" },
+  { id: "137", name: "France 2", category: "Généraliste" },
+  { id: "138", name: "France 3", category: "Généraliste" },
+  { id: "102", name: "M6", category: "Généraliste" },
+  { id: "106", name: "Canal+", category: "Généraliste" },
+  { id: "78", name: "TMC", category: "Généraliste" },
+  { id: "79", name: "W9", category: "Généraliste" },
+  { id: "77", name: "TFX", category: "Généraliste" },
+  { id: "90", name: "RMC Découverte", category: "Généraliste" },
+  
+  // Chaînes de Sport
+  { id: "44", name: "Bein Sports 1", category: "Sport" },
+  { id: "49", name: "Bein Sports 2", category: "Sport" },
+  { id: "50", name: "Bein Sports 3", category: "Sport" },
+  { id: "88", name: "Canal+ Foot", category: "Sport" },
+  { id: "58", name: "Canal+ Sport 360", category: "Sport" },
+  { id: "33", name: "RMC Sport 1", category: "Sport" },
+  { id: "40", name: "RMC Sport 2", category: "Sport" },
+  { id: "42", name: "RMC Sport 3", category: "Sport" },
 ];
 
 export default function TVChannels() {
