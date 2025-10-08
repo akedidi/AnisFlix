@@ -25,6 +25,14 @@ StreamApp is a streaming media platform for discovering and watching movies, TV 
     - Découverte (2): National Geographic Channel, National Geographic Wild
     - Cinéma (1): TCM Cinema
   - HLS.js player integration with error handling
+- **Watch Progress & Continue Watching feature:**
+  - Automatic video position tracking saved to localStorage every 5 seconds
+  - Position restoration when resuming playback
+  - "Continuer à regarder" section on homepage displays in-progress content (0% < progress < 95%)
+  - Distinct tracking per series episode using seasonNumber/episodeNumber
+  - Auto-refresh every 10 seconds to update progress list
+  - Stores: mediaId, mediaType, title, progress, currentTime, duration, posterPath, backdropPath
+  - Supports both movies and TV series with proper navigation routing
 
 ## User Preferences
 
