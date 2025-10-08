@@ -10,9 +10,15 @@ StreamApp is a streaming media platform for discovering and watching movies, TV 
 - Hero section height reduced to 35vh/50vh (mobile/desktop) for better content visibility
 - Home page reorganized: "Par plateforme" section moved after "Continuer à regarder"
 - Added platform-specific carousels: Netflix, Amazon Prime, Disney+, Apple TV+ with latest films/series
-- Movix.site streaming API integration for enhanced video sources (FStream, TopStream, Wiflix)
-- Movie detail pages now show 6 streaming sources (3 traditional + 3 movix.site APIs)
-- Series detail pages include 5 streaming sources per episode with season/episode support
+- **Streaming sources restricted to TopStream and Vidzy only** (removed VidSrc, VidSrc Pro, SuperEmbed, FStream, Wiflix)
+- Movie detail pages now show 2 streaming sources: TopStream and Vidzy
+- Series detail pages now show 2 streaming sources per episode: TopStream and Vidzy
+- **TV Channels feature with HLS proxy:**
+  - New /tv page with live TV channels player
+  - Backend HLS proxy with cookie/session management (server/hls-proxy.ts)
+  - SSRF protection with domain whitelist (fremtv.lol, directfr.lat)
+  - French TV channels organized by categories (Généraliste, Premium, Culturel)
+  - HLS.js player integration with error handling
 
 ## User Preferences
 
