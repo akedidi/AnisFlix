@@ -3,7 +3,8 @@ import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { 
@@ -18,6 +19,7 @@ import {
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage();
   
   // Fetch data from TMDB
   const { data: popularMovies = [] } = usePopularMovies();
@@ -81,7 +83,7 @@ export default function Home() {
                 }}
               />
             </div>
-            <LanguageToggle />
+            <LanguageSelect />
             <ThemeToggle />
           </div>
         </div>
@@ -99,7 +101,7 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 space-y-8 md:space-y-12">
           {mockContinueWatching.length > 0 && (
             <MediaCarousel
-              title="Continuer à regarder"
+              title={t("home.continueWatching")}
               items={mockContinueWatching}
               onItemClick={(item) => {
                 const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
@@ -109,28 +111,28 @@ export default function Home() {
           )}
 
           <MediaCarousel
-            title="Derniers films"
+            title={t("home.latestMovies")}
             items={latestMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             seeAllLink="/latest-movies"
           />
 
           <MediaCarousel
-            title="Dernières séries"
+            title={t("home.latestSeries")}
             items={latestSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             seeAllLink="/latest-series"
           />
 
           <MediaCarousel
-            title="Films populaires"
+            title={t("home.popularMovies")}
             items={popularMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             seeAllLink="/latest-movies"
           />
 
           <MediaCarousel
-            title="Séries populaires"
+            title={t("home.popularSeries")}
             items={popularSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             seeAllLink="/latest-series"

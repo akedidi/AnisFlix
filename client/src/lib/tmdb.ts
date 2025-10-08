@@ -32,9 +32,22 @@ export interface TMDBProvider {
   logo_path: string;
 }
 
-// Get language from localStorage
+// Get language from localStorage (synced with i18n context)
 const getLanguage = (): string => {
-  return localStorage.getItem('language') || 'fr';
+  return localStorage.getItem('app-language') || 'fr';
+};
+
+// Map language codes to TMDB language format
+const getLanguageCode = (lang: string): string => {
+  const languageMap: Record<string, string> = {
+    'fr': 'fr-FR',
+    'en': 'en-US',
+    'es': 'es-ES',
+    'de': 'de-DE',
+    'it': 'it-IT',
+    'pt': 'pt-PT'
+  };
+  return languageMap[lang] || 'en-US';
 };
 
 // Fetch helpers
@@ -42,7 +55,7 @@ const tmdbFetch = async (endpoint: string, params: Record<string, string> = {}) 
   const language = getLanguage();
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   url.searchParams.append('api_key', TMDB_API_KEY);
-  url.searchParams.append('language', language === 'fr' ? 'fr-FR' : 'en-US');
+  url.searchParams.append('language', getLanguageCode(language));
   
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);

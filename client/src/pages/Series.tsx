@@ -2,11 +2,13 @@ import { useState } from "react";
 import SearchBar from "@/components/SearchBar";
 import MediaCarousel from "@/components/MediaCarousel";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 
 export default function Series() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage();
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -45,54 +47,54 @@ export default function Series() {
                 onSelect={(item) => window.location.href = `/series/${item.id}`}
               />
             </div>
-            <LanguageToggle />
+            <LanguageSelect />
             <ThemeToggle />
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
-        <h1 className="text-3xl md:text-4xl font-bold">Séries</h1>
+        <h1 className="text-3xl md:text-4xl font-bold">{t("series.title")}</h1>
 
         <MediaCarousel
-          title="Dernières séries"
+          title={t("series.latest")}
           items={latestSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           seeAllLink="/latest-series"
         />
 
         <MediaCarousel
-          title="Action & Aventure"
+          title={t("series.actionAdventure")}
           items={actionSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
 
         <MediaCarousel
-          title="Drame"
+          title={t("series.drama")}
           items={dramaSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
 
         <MediaCarousel
-          title="Crime"
+          title={t("series.crime")}
           items={crimeSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
 
         <MediaCarousel
-          title="Mystère"
+          title={t("series.mystery")}
           items={mysterySeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
 
         <MediaCarousel
-          title="Documentaires"
+          title={t("series.documentary")}
           items={documentarySeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
 
         <MediaCarousel
-          title="Animation"
+          title={t("series.animation")}
           items={animeSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
         />
