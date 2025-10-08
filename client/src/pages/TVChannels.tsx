@@ -1,198 +1,221 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SearchBar from "@/components/SearchBar";
-import { Play } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Play, Tv } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageToggle from "@/components/LanguageToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import Hls from "hls.js";
 
-interface Channel {
-  id: number;
+interface TVChannel {
+  id: string;
   name: string;
-  logo: string;
+  logo?: string;
   category: string;
-  isLive: boolean;
 }
 
+const TV_CHANNELS: TVChannel[] = [
+  { id: "78", name: "TF1", category: "Généraliste" },
+  { id: "79", name: "France 2", category: "Généraliste" },
+  { id: "80", name: "France 3", category: "Généraliste" },
+  { id: "81", name: "Canal+", category: "Premium" },
+  { id: "82", name: "France 5", category: "Culturel" },
+  { id: "83", name: "M6", category: "Généraliste" },
+  { id: "84", name: "Arte", category: "Culturel" },
+  { id: "85", name: "C8", category: "Généraliste" },
+  { id: "86", name: "W9", category: "Généraliste" },
+  { id: "87", name: "TMC", category: "Généraliste" },
+];
+
 export default function TVChannels() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage();
+  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
-  // Static channel data - NOT from API
-  const allChannels: Channel[] = [
-    // Généraliste
-    { id: 1, name: "TF1", logo: "https://upload.wikimedia.org/wikipedia/commons/d/dc/TF1_logo_2013.png", category: "Généraliste", isLive: true },
-    { id: 2, name: "France 2", logo: "https://upload.wikimedia.org/wikipedia/commons/0/0c/France_2_2008.svg", category: "Généraliste", isLive: true },
-    { id: 3, name: "M6", logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/M6_2009.svg", category: "Généraliste", isLive: true },
-    
-    // Information
-    { id: 4, name: "BFM TV", logo: "https://upload.wikimedia.org/wikipedia/commons/9/9a/BFM_TV_2016.svg", category: "Information", isLive: true },
-    { id: 5, name: "France 24", logo: "https://upload.wikimedia.org/wikipedia/commons/8/8a/France24.svg", category: "Information", isLive: true },
-    { id: 6, name: "LCI", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b4/LCI_-_La_Cha%C3%AEne_Info_%282016%29.svg", category: "Information", isLive: true },
-    
-    // Sport
-    { id: 7, name: "Eurosport", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e8/Eurosport_Logo_2015.svg", category: "Sport", isLive: true },
-    { id: 8, name: "L'Équipe", logo: "https://upload.wikimedia.org/wikipedia/fr/5/57/Logo_La_Cha%C3%AEne_L%27%C3%89quipe.svg", category: "Sport", isLive: true },
-    
-    // Découverte
-    { id: 9, name: "National Geographic", logo: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Natgeologo.svg", category: "Découverte", isLive: true },
-    { id: 10, name: "Discovery Channel", logo: "https://upload.wikimedia.org/wikipedia/commons/2/27/Discovery_Channel_-_Logo_2019.svg", category: "Découverte", isLive: true },
-    
-    // Cinéma
-    { id: 11, name: "Canal+", logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Canal%2B.svg", category: "Cinéma", isLive: true },
-    { id: 12, name: "OCS", logo: "https://upload.wikimedia.org/wikipedia/fr/4/4c/Orange_Cinema_Series_logo.svg", category: "Cinéma", isLive: true },
-    
-    // Fiction et Série
-    { id: 13, name: "13ème Rue", logo: "https://upload.wikimedia.org/wikipedia/commons/6/69/13eme_rue_logo_2018.svg", category: "Fiction et Série", isLive: true },
-    { id: 14, name: "Warner TV", logo: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Warner2018LA.svg", category: "Fiction et Série", isLive: true },
-    
-    // Jeunesse
-    { id: 15, name: "Disney Channel", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d2/Disney_Channel_logo_%282014%29.svg", category: "Jeunesse", isLive: true },
-    { id: 16, name: "Cartoon Network", logo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Cartoon_Network_logo.svg", category: "Jeunesse", isLive: true },
-    
-    // Musique
-    { id: 17, name: "MTV", logo: "https://upload.wikimedia.org/wikipedia/commons/6/68/MTV_2021_%28brand_version%29.svg", category: "Musique", isLive: true },
-    { id: 18, name: "NRJ Hits", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d5/NRJ_Hits_logo_2018.svg", category: "Musique", isLive: true },
-  ];
+  useEffect(() => {
+    if (!selectedChannel || !videoRef.current) return;
 
-  const categories = [
-    "Tous",
-    "Généraliste",
-    "Information",
-    "Sport",
-    "Découverte",
-    "Cinéma",
-    "Fiction et Série",
-    "Jeunesse",
-    "Musique",
-  ];
+    const video = videoRef.current;
+    const streamUrl = `/api/tv/stream/${selectedChannel.id}`;
 
-  const getChannelsByCategory = (category: string) => {
-    if (category === "Tous") return allChannels;
-    return allChannels.filter((channel) => channel.category === category);
-  };
+    setIsLoading(true);
+    setError(null);
 
-  const filteredChannels = searchQuery
-    ? allChannels.filter((channel) =>
-        channel.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : allChannels;
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      });
+      
+      hlsRef.current = hls;
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsLoading(false);
+        video.play().catch(err => {
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
+      
+      hls.on(Hls.Events.ERROR, (_event, data: any) => {
+        console.error("Erreur HLS:", data);
+        setIsLoading(false);
+        if (data.fatal) {
+          setError("Erreur fatale lors du chargement du flux");
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.error("Erreur réseau fatale");
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error("Erreur média fatale");
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error("Erreur fatale non récupérable");
+              hls.destroy();
+              break;
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        setIsLoading(false);
+        video.play().catch(err => {
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
+    } else {
+      setError("Votre navigateur ne supporte pas HLS");
+      setIsLoading(false);
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [selectedChannel]);
+
+  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <SearchBar
-                onSearch={setSearchQuery}
-                suggestions={[]}
-                onSelect={() => {}}
-              />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Tv className="w-8 h-8" />
+              <h1 className="text-2xl md:text-3xl font-bold">{t('tv_channels')}</h1>
             </div>
-            <LanguageToggle />
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <LanguageSelect />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-6">Chaînes TV</h1>
-
-        {searchQuery ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredChannels.map((channel) => (
-              <Card
-                key={channel.id}
-                className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-                data-testid={`card-channel-${channel.name.toLowerCase().replace(/\s+/g, "-")}`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center p-2">
-                      <img
-                        src={channel.logo}
-                        alt={channel.name}
-                        className="w-full h-full object-contain"
-                      />
+        <div className="grid lg:grid-cols-[1fr_350px] gap-8">
+          <div className="space-y-6">
+            {selectedChannel ? (
+              <Card className="overflow-hidden">
+                <div className="aspect-video bg-black relative">
+                  {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-white text-xl">Chargement du flux...</div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{channel.name}</h3>
-                      <Badge variant="secondary" className="text-xs mt-1">
-                        {channel.category}
-                      </Badge>
-                    </div>
-                  </div>
-                  {channel.isLive && (
-                    <Badge variant="default" className="gap-1">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                      LIVE
-                    </Badge>
                   )}
+                  {error && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-red-500 text-xl">{error}</div>
+                    </div>
+                  )}
+                  <video
+                    ref={videoRef}
+                    className="w-full h-full"
+                    controls
+                    autoPlay
+                    data-testid="video-player"
+                  />
                 </div>
-                <Button className="w-full gap-2" data-testid={`button-watch-${channel.name.toLowerCase()}`}>
-                  <Play className="w-4 h-4" />
-                  Regarder
-                </Button>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Tabs defaultValue="Tous" className="w-full">
-            <TabsList className="flex-wrap h-auto mb-6">
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category}
-                  value={category}
-                  data-testid={`tab-${category.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {categories.map((category) => (
-              <TabsContent key={category} value={category}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {getChannelsByCategory(category).map((channel) => (
-                    <Card
-                      key={channel.id}
-                      className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-                      data-testid={`card-channel-${channel.name.toLowerCase().replace(/\s+/g, "-")}`}
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
+                      <Badge variant="secondary">{selectedChannel.category}</Badge>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedChannel(null)}
+                      data-testid="button-close-player"
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center p-2">
-                            <img
-                              src={channel.logo}
-                              alt={channel.name}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold">{channel.name}</h3>
-                            <p className="text-sm text-muted-foreground">{channel.category}</p>
-                          </div>
-                        </div>
-                        {channel.isLive && (
-                          <Badge variant="default" className="gap-1">
-                            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            LIVE
-                          </Badge>
-                        )}
-                      </div>
-                      <Button className="w-full gap-2" data-testid={`button-watch-${channel.name.toLowerCase()}`}>
-                        <Play className="w-4 h-4" />
-                        Regarder
-                      </Button>
-                    </Card>
-                  ))}
+                      Changer de chaîne
+                    </Button>
+                  </div>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        )}
+              </Card>
+            ) : (
+              <div className="text-center py-20">
+                <Tv className="w-20 h-20 mx-auto mb-6 text-muted-foreground" />
+                <h2 className="text-2xl font-bold mb-2">Sélectionnez une chaîne</h2>
+                <p className="text-muted-foreground">
+                  Choisissez une chaîne dans la liste pour commencer à regarder
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            {categories.map(category => {
+              const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
+              
+              return (
+                <div key={category}>
+                  <h3 className="text-lg font-semibold mb-3">{category}</h3>
+                  <div className="space-y-2">
+                    {channelsInCategory.map(channel => (
+                      <Card
+                        key={channel.id}
+                        className={`p-4 cursor-pointer transition-colors hover-elevate ${
+                          selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => setSelectedChannel(channel)}
+                        data-testid={`channel-${channel.id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Tv className="w-6 h-6 text-primary" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold">{channel.name}</h4>
+                            </div>
+                          </div>
+                          <Play className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
