@@ -54,23 +54,35 @@ export default function MovieDetail() {
           alert("Impossible de charger la source TopStream");
         }
       } else if (provider === "vidzy") {
-        // Vidzy nécessite une extraction pour obtenir le m3u8
-        const vidzyPageUrl = `https://api.movix.site/api/vidzy/movie/${movie.id}`;
-        const m3u8Url = await extractVidzyM3u8(vidzyPageUrl);
+        // Vidzy : récupérer l'URL vidzy.org depuis Movix, puis extraire le m3u8
+        const movixResponse = await fetch(`https://api.movix.site/api/vidzy/movie/${movie.id}`);
         
-        if (m3u8Url) {
-          setSelectedSource({
-            url: m3u8Url,
-            type: "m3u8",
-            name: sourceName
-          });
-        } else {
-          alert("Impossible d'extraire la source Vidzy");
+        if (!movixResponse.ok) {
+          throw new Error("Impossible de récupérer la source Vidzy depuis Movix");
         }
+        
+        const movixData = await movixResponse.json();
+        const vidzyUrl = movixData?.sources?.[0]?.url;
+        
+        if (!vidzyUrl) {
+          throw new Error("URL Vidzy introuvable dans la réponse Movix");
+        }
+        
+        const m3u8Url = await extractVidzyM3u8(vidzyUrl);
+        
+        if (!m3u8Url) {
+          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
+        }
+        
+        setSelectedSource({
+          url: m3u8Url,
+          type: "m3u8",
+          name: sourceName
+        });
       }
     } catch (error) {
       console.error("Erreur lors du chargement de la source:", error);
-      alert("Erreur lors du chargement de la source");
+      alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
     } finally {
       setIsLoadingSource(false);
     }

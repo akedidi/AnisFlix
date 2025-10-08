@@ -1,23 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Star, Calendar } from "lucide-react";
+import { Play, Star, Calendar, X } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
+import VideoPlayer from "@/components/VideoPlayer";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 
 export default function SeriesDetail() {
   const { id } = useParams();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
+  const [isLoadingSource, setIsLoadingSource] = useState(false);
   const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
+
+  // Réinitialiser la source quand l'épisode ou la saison change
+  useEffect(() => {
+    setSelectedSource(null);
+  }, [selectedEpisode, selectedSeasonNumber]);
   
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
@@ -32,9 +41,62 @@ export default function SeriesDetail() {
   
   // Generate episode sources - TopStream et Vidzy uniquement
   const episodeSources = series && selectedEpisode ? [
-    { id: 1, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
-    { id: 2, name: "Vidzy", url: `https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true, needsExtraction: true },
+    { id: 1, name: "TopStream", provider: "topstream" as const },
+    { id: 2, name: "Vidzy", provider: "vidzy" as const },
   ] : [];
+
+  const handleSourceClick = async (sourceName: string, provider: "topstream" | "vidzy") => {
+    if (!series || !selectedEpisode) return;
+    
+    setIsLoadingSource(true);
+    try {
+      if (provider === "topstream") {
+        // TopStream retourne directement du MP4
+        const response = await getSeriesStream(series.id, selectedSeasonNumber, selectedEpisode, "topstream");
+        
+        if (response?.sources?.[0]?.url) {
+          setSelectedSource({
+            url: response.sources[0].url,
+            type: "mp4",
+            name: sourceName
+          });
+        } else {
+          alert("Impossible de charger la source TopStream");
+        }
+      } else if (provider === "vidzy") {
+        // Vidzy : récupérer l'URL vidzy.org depuis Movix, puis extraire le m3u8
+        const movixResponse = await fetch(`https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`);
+        
+        if (!movixResponse.ok) {
+          throw new Error("Impossible de récupérer la source Vidzy depuis Movix");
+        }
+        
+        const movixData = await movixResponse.json();
+        const vidzyUrl = movixData?.sources?.[0]?.url;
+        
+        if (!vidzyUrl) {
+          throw new Error("URL Vidzy introuvable dans la réponse Movix");
+        }
+        
+        const m3u8Url = await extractVidzyM3u8(vidzyUrl);
+        
+        if (!m3u8Url) {
+          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
+        }
+        
+        setSelectedSource({
+          url: m3u8Url,
+          type: "m3u8",
+          name: sourceName
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement de la source:", error);
+      alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+    } finally {
+      setIsLoadingSource(false);
+    }
+  };
   
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
   
@@ -207,27 +269,58 @@ export default function SeriesDetail() {
                           </div>
 
                           {selectedEpisode === episode.episode_number && (
-                            <div className="mt-4 pt-4 border-t space-y-2">
-                              <h5 className="font-semibold text-sm">Sources de visionnage</h5>
-                              {episodeSources.map((source) => (
-                                <Button
-                                  key={source.id}
-                                  variant="outline"
-                                  size="sm"
-                                  className="w-full justify-between"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(source.url, '_blank');
-                                  }}
-                                  data-testid={`button-episode-source-${source.name.toLowerCase()}`}
-                                >
-                                  <span className="flex items-center gap-2">
-                                    <Play className="w-3 h-3" />
-                                    {source.name}
-                                  </span>
-                                  <span className="text-xs">Regarder</span>
-                                </Button>
-                              ))}
+                            <div className="mt-4 pt-4 border-t space-y-3">
+                              {!selectedSource ? (
+                                <>
+                                  <h5 className="font-semibold text-sm">Sources de visionnage</h5>
+                                  <div className="space-y-2">
+                                    {episodeSources.map((source) => (
+                                      <Button
+                                        key={source.id}
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full justify-between"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSourceClick(source.name, source.provider);
+                                        }}
+                                        disabled={isLoadingSource}
+                                        data-testid={`button-episode-source-${source.name.toLowerCase()}`}
+                                      >
+                                        <span className="flex items-center gap-2">
+                                          <Play className="w-3 h-3" />
+                                          {source.name}
+                                        </span>
+                                        <span className="text-xs">
+                                          {isLoadingSource ? "Chargement..." : "Regarder"}
+                                        </span>
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="font-semibold text-sm">Lecture - {selectedSource.name}</h5>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedSource(null);
+                                      }}
+                                      data-testid="button-close-episode-player"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <VideoPlayer
+                                    src={selectedSource.url}
+                                    type={selectedSource.type}
+                                    title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
                         </Card>

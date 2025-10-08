@@ -121,12 +121,31 @@ export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: Vi
       
       const transmuxerDone = new Promise(resolve => transmuxer.on('done', resolve));
 
-      const baseUrl = new URL(details.url);
+      // Récupérer l'URL de base pour résoudre les URLs relatives
+      const baseUrl = details.url ? new URL(details.url) : null;
+      
       for (let i = 0; i < frags.length; i++) {
-        const fragUrl = new URL(frags[i].url, baseUrl).toString();
-        const resp = await fetch(fragUrl);
-        const tsSegment = new Uint8Array(await resp.arrayBuffer());
+        let fragUrl: string;
         
+        if (frags[i].url.startsWith('http://') || frags[i].url.startsWith('https://')) {
+          // URL absolue
+          fragUrl = frags[i].url;
+        } else if (baseUrl) {
+          // URL relative avec baseUrl disponible
+          fragUrl = new URL(frags[i].url, baseUrl).toString();
+        } else if (frags[i].baseurl) {
+          // Utiliser baseurl du fragment si disponible
+          fragUrl = new URL(frags[i].url, frags[i].baseurl).toString();
+        } else {
+          throw new Error(`Impossible de résoudre l'URL du fragment ${i}`);
+        }
+        
+        const resp = await fetch(fragUrl);
+        if (!resp.ok) {
+          throw new Error(`Erreur lors du téléchargement du segment ${i}: ${resp.status}`);
+        }
+        
+        const tsSegment = new Uint8Array(await resp.arrayBuffer());
         transmuxer.push(tsSegment);
         setDownloadProgress(Math.round(((i + 1) / frags.length) * 100));
       }
@@ -151,7 +170,9 @@ export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: Vi
   };
 
   const handleImportMP4 = () => {
-    fileInputRef.current?.click();
+    if (!isDownloading) {
+      fileInputRef.current?.click();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +185,8 @@ export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: Vi
       videoRef.current.load();
       videoRef.current.play().catch(err => console.warn("Autoplay failed:", err));
     }
+    // Réinitialiser l'input pour permettre de réimporter le même fichier
+    e.target.value = '';
   };
 
   async function saveBlob(blob: Blob, name: string) {
@@ -224,6 +247,7 @@ export default function VideoPlayer({ src, type = "auto", title = "Vidéo" }: Vi
             onClick={handleImportMP4}
             variant="secondary"
             className="gap-2"
+            disabled={isDownloading}
             data-testid="button-import-mp4"
           >
             <Upload className="w-4 h-4" />

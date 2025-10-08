@@ -29,7 +29,7 @@ export interface SeriesStreamResponse {
 export async function getMovieStream(
   movieId: number,
   provider: StreamProvider = "topstream"
-): Promise<any> {
+): Promise<MovieStreamResponse> {
   try {
     const url = `${MOVIX_BASE_URL}/${provider}/movie/${movieId}`;
     const response = await fetch(url);
@@ -38,7 +38,8 @@ export async function getMovieStream(
       throw new Error(`Failed to fetch ${provider} stream for movie ${movieId}`);
     }
     
-    return await response.json();
+    const data = await response.json();
+    return data as MovieStreamResponse;
   } catch (error) {
     console.error(`Error fetching movie stream from ${provider}:`, error);
     throw error;
@@ -50,7 +51,7 @@ export async function getSeriesStream(
   season: number,
   episode?: number,
   provider: StreamProvider = "topstream"
-): Promise<any> {
+): Promise<SeriesStreamResponse> {
   try {
     let url: string;
     
@@ -78,7 +79,8 @@ export async function getSeriesStream(
       throw new Error(`Failed to fetch ${provider} stream for series ${seriesId}`);
     }
     
-    return await response.json();
+    const data = await response.json();
+    return data as SeriesStreamResponse;
   } catch (error) {
     console.error(`Error fetching series stream from ${provider}:`, error);
     throw error;
