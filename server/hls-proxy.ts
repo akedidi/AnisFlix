@@ -22,6 +22,18 @@ const browserHeaders = {
   'Connection': 'keep-alive'
 };
 
+// Whitelist des domaines autorisés pour le proxy
+const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat'];
+
+function isAllowedUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return ALLOWED_HOSTS.some(host => url.hostname === host || url.hostname.endsWith('.' + host));
+  } catch {
+    return false;
+  }
+}
+
 function toAbsolute(base: string, maybeRelative: string): string {
   try { 
     return new URL(maybeRelative, base).toString(); 
@@ -90,6 +102,12 @@ export function registerHLSProxyRoutes(app: Express) {
       return res.status(400).send('Paramètre "url" manquant.');
     }
     
+    // Validation SSRF: vérifier que l'URL est autorisée
+    if (!isAllowedUrl(target)) {
+      console.error(`[TV M3U8] URL non autorisée: ${target}`);
+      return res.status(403).send('URL non autorisée.');
+    }
+    
     try {
       const r = await http.get(target, { 
         headers: browserHeaders, 
@@ -122,6 +140,12 @@ export function registerHLSProxyRoutes(app: Express) {
     const target = req.query.url as string;
     if (!target) {
       return res.status(400).send('Paramètre "url" manquant.');
+    }
+    
+    // Validation SSRF: vérifier que l'URL est autorisée
+    if (!isAllowedUrl(target)) {
+      console.error(`[TV SEG] URL non autorisée: ${target}`);
+      return res.status(403).send('URL non autorisée.');
     }
     
     try {

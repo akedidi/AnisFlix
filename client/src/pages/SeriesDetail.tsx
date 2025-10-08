@@ -32,10 +32,8 @@ export default function SeriesDetail() {
   
   // Generate episode sources - TopStream et Vidzy uniquement
   const episodeSources = series && selectedEpisode ? [
-    { id: 1, name: "VidSrc", url: `https://vidsrc.to/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
-    { id: 2, name: "VidSrc Pro", url: `https://vidsrc.pro/embed/tv/${series.id}/${selectedSeasonNumber}/${selectedEpisode}` },
-    { id: 3, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
-    { id: 4, name: "Vidzy", url: `https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true, needsExtraction: true },
+    { id: 1, name: "TopStream", url: `https://api.movix.site/api/topstream/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true },
+    { id: 2, name: "Vidzy", url: `https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`, isApi: true, needsExtraction: true },
   ] : [];
   
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";

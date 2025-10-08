@@ -119,7 +119,7 @@ export default function TVChannels() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Tv className="w-8 h-8" />
-              <h1 className="text-2xl md:text-3xl font-bold">{t('tv_channels')}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold">{t('nav.tvChannels')}</h1>
             </div>
             <div className="flex items-center gap-2">
               <LanguageSelect />
