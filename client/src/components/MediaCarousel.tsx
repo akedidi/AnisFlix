@@ -63,31 +63,11 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink }:
           </Button>
         )}
       </div>
-      <div className="relative -mx-4 md:-mx-8">
-        {showLeftArrow && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <ChevronLeft className="w-10 h-10 text-white" />
-          </Button>
-        )}
-        {showRightArrow && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <ChevronRight className="w-10 h-10 text-white" />
-          </Button>
-        )}
+      <div className="relative">
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide px-4 md:px-8"
+          className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {items.map((item) => (
@@ -99,6 +79,26 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink }:
             </div>
           ))}
         </div>
+        {showLeftArrow && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => scroll('left')}
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronLeft className="w-10 h-10 text-white" />
+          </Button>
+        )}
+        {showRightArrow && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => scroll('right')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronRight className="w-10 h-10 text-white" />
+          </Button>
+        )}
       </div>
     </div>
   );
