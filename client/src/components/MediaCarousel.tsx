@@ -63,15 +63,15 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink }:
           </Button>
         )}
       </div>
-      <div className="relative">
+      <div className="relative -mx-4 md:-mx-8">
         {showLeftArrow && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-full w-12 rounded-none bg-black/50 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <ChevronLeft className="w-8 h-8" />
+            <ChevronLeft className="w-10 h-10 text-white" />
           </Button>
         )}
         {showRightArrow && (
@@ -79,15 +79,15 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink }:
             variant="ghost"
             size="icon"
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-full w-12 rounded-none bg-black/50 hover:bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-16 w-16 rounded-full bg-black/80 hover:bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity"
           >
-            <ChevronRight className="w-8 h-8" />
+            <ChevronRight className="w-10 h-10 text-white" />
           </Button>
         )}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide"
+          className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide px-4 md:px-8"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {items.map((item) => (
