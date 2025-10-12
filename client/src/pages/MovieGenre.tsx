@@ -7,6 +7,8 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 
@@ -94,20 +96,25 @@ export default function MovieGenre() {
   }
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      {/* Header avec recherche et contrôles */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => window.history.back()}
-              className="flex-shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("common.back")}
-            </Button>
-            <div className="flex-1">
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        {/* Header avec recherche et contrôles */}
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => window.history.back()}
+                className="flex-shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t("common.back")}
+              </Button>
+              <div className="flex-1">
               <SearchBar
                 onSearch={setSearchQuery}
                 suggestions={searchQuery ? searchResults : []}
@@ -163,6 +170,10 @@ export default function MovieGenre() {
             <p className="text-muted-foreground">Aucun film {genreName.toLowerCase()} disponible</p>
           </div>
         )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Download, Heart, Star, ArrowLeft, Youtube } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 
 export default function MediaDetail() {
   const [, params] = useRoute("/detail/:type/:id");
@@ -39,32 +41,37 @@ export default function MediaDetail() {
   ];
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <div className="relative w-full h-[40vh] md:h-[60vh] overflow-hidden">
-        <div className="absolute inset-0">
-          <img
-            src={`https://image.tmdb.org/t/p/original${mockMedia.backdropPath}`}
-            alt={mockMedia.title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-        </div>
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        <div className="relative w-full h-[40vh] md:h-[60vh] overflow-hidden">
+          <div className="absolute inset-0">
+            <img
+              src={`https://image.tmdb.org/t/p/original${mockMedia.backdropPath}`}
+              alt={mockMedia.title}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          </div>
 
-        <div className="relative h-full">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-6">
-            <Button
-              variant="ghost"
-              onClick={() => window.history.back()}
-              className="gap-2 text-white hover:bg-white/10"
-              data-testid="button-back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Retour
-            </Button>
+          <div className="relative h-full">
+            <div className="container mx-auto px-4 md:px-8 lg:px-12 py-6">
+              <Button
+                variant="ghost"
+                onClick={() => window.history.back()}
+                className="gap-2 text-white hover:bg-white/10"
+                data-testid="button-back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Retour
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 -mt-32 relative z-10">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
@@ -178,6 +185,10 @@ export default function MediaDetail() {
             onItemClick={(item) => console.log("Clicked:", item)}
           />
         </div>
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );
