@@ -360,7 +360,6 @@ export default function Home() {
             />
           )}
         </div>
-        </div>
       </div>
       
       {/* Mobile Bottom Navigation */}
