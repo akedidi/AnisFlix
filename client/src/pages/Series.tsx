@@ -147,6 +147,7 @@ export default function Series() {
       
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+      </div>
     </div>
   );
 }

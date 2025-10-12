@@ -367,6 +367,7 @@ export default function Home() {
       
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+      </div>
     </div>
   );
 }

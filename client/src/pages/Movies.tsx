@@ -147,6 +147,7 @@ export default function Movies() {
       
       {/* Mobile Bottom Navigation */}
       <BottomNav />
+      </div>
     </div>
   );
 }
