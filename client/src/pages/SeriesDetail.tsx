@@ -11,6 +11,8 @@ import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -115,20 +117,25 @@ export default function SeriesDetail() {
   }
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <SearchBar onNavigate={setLocation} />
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSelect />
-              <ThemeToggle />
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <SearchBar onNavigate={setLocation} />
+              </div>
+              <div className="flex items-center gap-2">
+                <LanguageSelect />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
@@ -317,6 +324,10 @@ export default function SeriesDetail() {
             />
           </div>
         )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );
