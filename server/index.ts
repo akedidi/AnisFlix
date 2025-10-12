@@ -61,10 +61,10 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
 const port = Number(process.env.PORT ?? 5000);
-const host = process.env.HOST ?? "127.0.0.1";
+const host = process.env.HOST ?? "0.0.0.0"; // Changed from 127.0.0.1 to 0.0.0.0 for online environments
 
-server.listen(
-  { port, host }, 
-  () => log(`serving on http://${host}:${port}`)
-);
+server.listen(port, host, () => {
+  log(`serving on http://${host}:${port}`);
+  log(`Local access: http://localhost:${port}`);
+});
 })();
