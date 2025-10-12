@@ -21,12 +21,10 @@ import {
   useMultiSearch 
 } from "@/hooks/useTMDB";
 import { getWatchProgress } from "@/lib/watchProgress";
-import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
-  const { restoreScrollPosition } = useScrollPosition('home');
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -76,19 +74,10 @@ export default function Home() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
-  // Restaurer la position de scroll au chargement (seulement si on revient sur la page)
+  // S'assurer que la page commence en haut
   useEffect(() => {
-    // Attendre que les données soient chargées
-    const timer = setTimeout(() => {
-      // Ne restaurer que si on a une position de scroll sauvegardée
-      const savedPosition = sessionStorage.getItem('scrollPosition_home');
-      if (savedPosition) {
-        restoreScrollPosition();
-      }
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+    window.scrollTo(0, 0);
+  }, []);
 
   // Use first popular movie as featured
   const featured = popularMovies[0] ? {
@@ -156,7 +145,8 @@ export default function Home() {
       
       {/* Main Content */}
       <div className="md:ml-64">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        {/* Search Bar - Fixed at top */}
+        <div className="fixed top-0 left-0 right-0 md:left-64 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <div className="flex-1">
@@ -174,6 +164,9 @@ export default function Home() {
             </div>
           </div>
         </div>
+        
+        {/* Content with top padding to account for fixed search bar */}
+        <div className="pt-20">
 
       <div className="space-y-8 md:space-y-12">
         {featured && (
@@ -367,11 +360,11 @@ export default function Home() {
             />
           )}
         </div>
+        </div>
       </div>
       
       {/* Mobile Bottom Navigation */}
       <BottomNav />
-      </div>
     </div>
   );
 }
