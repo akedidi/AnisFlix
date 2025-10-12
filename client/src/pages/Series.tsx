@@ -79,8 +79,6 @@ export default function Series() {
         </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
-        <h1 className="text-3xl md:text-4xl font-bold">{t("series.title")}</h1>
-
         <MediaCarousel
           title={t("series.latest")}
           items={latestSeries.slice(0, 10)}
