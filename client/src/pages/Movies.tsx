@@ -1,14 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import MediaCarousel from "@/components/MediaCarousel";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
+import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Movies() {
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
+  const { restoreScrollPosition } = useScrollPosition('movies');
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -22,18 +24,34 @@ export default function Movies() {
   
   // Fetch data from TMDB
   const { data: latestMoviesData } = useLatestMovies();
-  const { data: actionMovies = [] } = useMoviesByGenre(GENRES.ACTION);
-  const { data: dramaMovies = [] } = useMoviesByGenre(GENRES.DRAMA);
-  const { data: crimeMovies = [] } = useMoviesByGenre(GENRES.CRIME);
-  const { data: mysteryMovies = [] } = useMoviesByGenre(GENRES.MYSTERY);
-  const { data: documentaryMovies = [] } = useMoviesByGenre(GENRES.DOCUMENTARY);
-  const { data: animeMovies = [] } = useMoviesByGenre(GENRES.ANIMATION);
+  const { data: actionMoviesData } = useMoviesByGenre(GENRES.ACTION);
+  const { data: dramaMoviesData } = useMoviesByGenre(GENRES.DRAMA);
+  const { data: crimeMoviesData } = useMoviesByGenre(GENRES.CRIME);
+  const { data: mysteryMoviesData } = useMoviesByGenre(GENRES.MYSTERY);
+  const { data: documentaryMoviesData } = useMoviesByGenre(GENRES.DOCUMENTARY);
+  const { data: animeMoviesData } = useMoviesByGenre(GENRES.ANIMATION);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const latestMovies = latestMoviesData?.results || [];
+  const actionMovies = actionMoviesData?.results || [];
+  const dramaMovies = dramaMoviesData?.results || [];
+  const crimeMovies = crimeMoviesData?.results || [];
+  const mysteryMovies = mysteryMoviesData?.results || [];
+  const documentaryMovies = documentaryMoviesData?.results || [];
+  const animeMovies = animeMoviesData?.results || [];
 
   // Filter only movies from search results
   const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
+
+  // Restaurer la position de scroll au chargement
+  useEffect(() => {
+    // Attendre que les données soient chargées
+    const timer = setTimeout(() => {
+      restoreScrollPosition();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
 
   return (
     <div className="min-h-screen pb-20 md:pb-0">
@@ -67,36 +85,56 @@ export default function Movies() {
           title={t("movies.action")}
           items={actionMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
 
         <MediaCarousel
           title={t("movies.drama")}
           items={dramaMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
 
         <MediaCarousel
           title={t("movies.crime")}
           items={crimeMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
 
         <MediaCarousel
           title={t("movies.mystery")}
           items={mysteryMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
 
         <MediaCarousel
           title={t("movies.documentary")}
           items={documentaryMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
 
         <MediaCarousel
           title={t("movies.animation")}
           items={animeMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
+        />
+
+        <MediaCarousel
+          title="Derniers films anime"
+          items={animeMovies.slice(0, 10)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
+        />
+
+        <MediaCarousel
+          title="Films anime populaires"
+          items={animeMovies.slice(10, 20)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
         />
       </div>
     </div>

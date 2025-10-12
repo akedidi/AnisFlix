@@ -26,6 +26,7 @@ export default {
   // Movies page
   "movies.title": "Movies",
   "movies.action": "Action",
+  "movies.adventure": "Adventure",
   "movies.drama": "Drama",
   "movies.comedy": "Comedy",
   "movies.thriller": "Thriller",
@@ -34,21 +35,24 @@ export default {
   "movies.scifi": "Science Fiction",
   "movies.fantasy": "Fantasy",
   "movies.animation": "Animation",
-  "movies.documentary": "Documentaries",
+  "movies.documentary": "Documentary",
   "movies.crime": "Crime",
   "movies.mystery": "Mystery",
   "movies.latest": "Latest Movies",
   
   // Series page
   "series.title": "Series",
-  "series.actionAdventure": "Action & Adventure",
+  "series.action": "Action",
+  "series.adventure": "Adventure",
   "series.drama": "Drama",
   "series.comedy": "Comedy",
-  "series.crime": "Crime",
-  "series.mystery": "Mystery",
-  "series.scifi": "Sci-Fi & Fantasy",
-  "series.documentary": "Documentaries",
+  "series.thriller": "Thriller",
+  "series.romance": "Romance",
+  "series.scifi": "Science Fiction",
+  "series.fantasy": "Fantasy",
+  "series.documentary": "Documentary",
   "series.animation": "Animation",
+  "series.crime": "Crime",
   "series.anime": "Anime",
   "series.latest": "Latest Series",
   
@@ -96,6 +100,28 @@ export default {
   "settings.privacy": "Privacy",
   "settings.about": "About",
   
+  // Provider pages
+  "provider.latestMovies": "Latest Movies",
+  "provider.latestSeries": "Latest Series",
+  "provider.moviesByCategory": "Movies by Category",
+  "provider.seriesByCategory": "Series by Category",
+  "provider.animeMovies": "Anime Movies",
+  "provider.animeSeries": "Anime Series",
+  "provider.streaming": "Streaming",
+  "provider.contentsAvailable": "contents available",
+  
+  // TopStream
+  "topstream.sources": "Streaming Sources",
+  "topstream.searching": "Searching for sources...",
+  "topstream.match": "Match",
+  "topstream.providedBy": "Source provided by TopStream",
+  "topstream.openNewTab": "Open in new tab",
+  "topstream.watchNow": "Watch now",
+  "topstream.loading": "Loading...",
+  "topstream.otherSources": "Other sources",
+  "topstream.vf": "VF",
+  "topstream.vostfr": "VOSTFR",
+  
   // Common
   "common.loading": "Loading...",
   "common.error": "Error",
@@ -110,6 +136,7 @@ export default {
   "common.previous": "Previous",
   "common.year": "Year",
   "common.watch": "Watch",
+  "common.contents": "contents",
   
   // Pagination
   "pagination.page": "Page",

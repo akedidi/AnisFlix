@@ -3,7 +3,7 @@ import Hls from "hls.js";
 // @ts-ignore - mux.js n'a pas de types TypeScript officiels
 import muxjs from "mux.js";
 import { Button } from "@/components/ui/button";
-import { Download, Upload } from "lucide-react";
+import { Download } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import type { MediaType } from "@shared/schema";
 
@@ -33,7 +33,6 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
@@ -266,25 +265,7 @@ export default function VideoPlayer({
     }
   };
 
-  const handleImportMP4 = () => {
-    if (!isDownloading) {
-      fileInputRef.current?.click();
-    }
-  };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    const fileUrl = URL.createObjectURL(file);
-    if (videoRef.current) {
-      videoRef.current.src = fileUrl;
-      videoRef.current.load();
-      videoRef.current.play().catch(err => console.warn("Autoplay failed:", err));
-    }
-    // Réinitialiser l'input pour permettre de réimporter le même fichier
-    e.target.value = '';
-  };
 
   async function saveBlob(blob: Blob, name: string) {
     if ('showSaveFilePicker' in window) {
@@ -340,16 +321,6 @@ export default function VideoPlayer({
             </Button>
           )}
           
-          <Button
-            onClick={handleImportMP4}
-            variant="secondary"
-            className="gap-2"
-            disabled={isDownloading}
-            data-testid="button-import-mp4"
-          >
-            <Upload className="w-4 h-4" />
-            Importer MP4
-          </Button>
         </div>
 
         {isDownloading && (
@@ -369,18 +340,9 @@ export default function VideoPlayer({
 
         <p className="text-sm text-muted-foreground">
           • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
-          <br />
-          • <strong>Import MP4 :</strong> Lecture native de fichiers MP4 locaux.
         </p>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".mp4,video/mp4"
-        className="hidden"
-        onChange={handleFileChange}
-      />
     </div>
   );
 }

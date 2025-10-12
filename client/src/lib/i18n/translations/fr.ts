@@ -26,29 +26,33 @@ export default {
   // Movies page
   "movies.title": "Films",
   "movies.action": "Action",
+  "movies.adventure": "Aventure",
   "movies.drama": "Drame",
   "movies.comedy": "Comédie",
   "movies.thriller": "Thriller",
   "movies.horror": "Horreur",
   "movies.romance": "Romance",
-  "movies.scifi": "Science-Fiction",
+  "movies.scifi": "Science-fiction",
   "movies.fantasy": "Fantastique",
   "movies.animation": "Animation",
-  "movies.documentary": "Documentaires",
-  "movies.crime": "Crime",
+  "movies.documentary": "Documentaire",
+  "movies.crime": "Policier",
   "movies.mystery": "Mystère",
   "movies.latest": "Derniers films",
   
   // Series page
   "series.title": "Séries",
-  "series.actionAdventure": "Action & Aventure",
+  "series.action": "Action",
+  "series.adventure": "Aventure",
   "series.drama": "Drame",
   "series.comedy": "Comédie",
-  "series.crime": "Crime",
-  "series.mystery": "Mystère",
-  "series.scifi": "Science-Fiction & Fantastique",
-  "series.documentary": "Documentaires",
+  "series.thriller": "Thriller",
+  "series.romance": "Romance",
+  "series.scifi": "Science-fiction",
+  "series.fantasy": "Fantastique",
+  "series.documentary": "Documentaire",
   "series.animation": "Animation",
+  "series.crime": "Policier",
   "series.anime": "Anime",
   "series.latest": "Dernières séries",
   
@@ -96,6 +100,28 @@ export default {
   "settings.privacy": "Confidentialité",
   "settings.about": "À propos",
   
+  // Provider pages
+  "provider.latestMovies": "Derniers films",
+  "provider.latestSeries": "Dernières séries",
+  "provider.moviesByCategory": "Films par catégorie",
+  "provider.seriesByCategory": "Séries par catégorie",
+  "provider.animeMovies": "Films anime",
+  "provider.animeSeries": "Séries anime",
+  "provider.streaming": "Streaming",
+  "provider.contentsAvailable": "contenus disponibles",
+  
+  // TopStream
+  "topstream.sources": "Sources de streaming",
+  "topstream.searching": "Recherche de sources...",
+  "topstream.match": "Correspondance",
+  "topstream.providedBy": "Source fournie par TopStream",
+  "topstream.openNewTab": "Ouvrir dans un nouvel onglet",
+  "topstream.watchNow": "Regarder maintenant",
+  "topstream.loading": "Chargement...",
+  "topstream.otherSources": "Autres sources",
+  "topstream.vf": "VF",
+  "topstream.vostfr": "VOSTFR",
+  
   // Common
   "common.loading": "Chargement...",
   "common.error": "Erreur",
@@ -110,6 +136,7 @@ export default {
   "common.previous": "Précédent",
   "common.year": "Année",
   "common.watch": "Regarder",
+  "common.contents": "contenus",
   
   // Pagination
   "pagination.page": "Page",

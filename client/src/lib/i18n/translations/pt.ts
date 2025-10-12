@@ -26,6 +26,7 @@ export default {
   // Movies page
   "movies.title": "Filmes",
   "movies.action": "Ação",
+  "movies.adventure": "Aventura",
   "movies.drama": "Drama",
   "movies.comedy": "Comédia",
   "movies.thriller": "Suspense",
@@ -34,21 +35,25 @@ export default {
   "movies.scifi": "Ficção Científica",
   "movies.fantasy": "Fantasia",
   "movies.animation": "Animação",
-  "movies.documentary": "Documentários",
-  "movies.crime": "Crime",
+  "movies.documentary": "Documentário",
+  "movies.crime": "Policial",
   "movies.mystery": "Mistério",
   "movies.latest": "Últimos filmes",
   
   // Series page
   "series.title": "Séries",
-  "series.actionAdventure": "Ação e Aventura",
+  "series.action": "Ação",
+  "series.adventure": "Aventura",
   "series.drama": "Drama",
   "series.comedy": "Comédia",
-  "series.crime": "Crime",
+  "series.thriller": "Suspense",
+  "series.romance": "Romance",
   "series.mystery": "Mistério",
-  "series.scifi": "Ficção Científica e Fantasia",
-  "series.documentary": "Documentários",
+  "series.scifi": "Ficção Científica",
+  "series.fantasy": "Fantasia",
+  "series.documentary": "Documentário",
   "series.animation": "Animação",
+  "series.crime": "Policial",
   "series.anime": "Anime",
   "series.latest": "Últimas séries",
   
@@ -96,6 +101,16 @@ export default {
   "settings.privacy": "Privacidade",
   "settings.about": "Sobre",
   
+  // Provider pages
+  "provider.latestMovies": "Últimos Filmes",
+  "provider.latestSeries": "Últimas Séries",
+  "provider.moviesByCategory": "Filmes por Categoria",
+  "provider.seriesByCategory": "Séries por Categoria",
+  "provider.animeMovies": "Filmes Anime",
+  "provider.animeSeries": "Séries Anime",
+  "provider.streaming": "Streaming",
+  "provider.contentsAvailable": "conteúdos disponíveis",
+  
   // Common
   "common.loading": "Carregando...",
   "common.error": "Erro",
@@ -110,6 +125,7 @@ export default {
   "common.previous": "Anterior",
   "common.year": "Ano",
   "common.watch": "Assistir",
+  "common.contents": "conteúdos",
   
   // Pagination
   "pagination.page": "Página",

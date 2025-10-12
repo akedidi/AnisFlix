@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Clock, Star, Calendar, X } from "lucide-react";
@@ -7,6 +7,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import StreamingSources from "@/components/StreamingSources";
+import SearchBar from "@/components/SearchBar";
 import { useMovieDetails, useMovieVideos, useSimilarMovies } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -16,6 +18,7 @@ export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   
@@ -29,46 +32,34 @@ export default function MovieDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate streaming sources - TopStream et Vidzy uniquement
-  const sources = movie ? [
-    { id: 1, name: "TopStream", provider: "topstream" as const },
-    { id: 2, name: "Vidzy", provider: "vidzy" as const },
-  ] : [];
+  // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
+  const sources: any[] = [];
 
-  const handleSourceClick = async (sourceName: string, provider: "topstream" | "vidzy") => {
+  const handleSourceClick = async (source: { 
+    url: string; 
+    type: "m3u8" | "mp4" | "embed"; 
+    name: string;
+    isTopStream?: boolean;
+    isFStream?: boolean;
+    isMovixDownload?: boolean;
+  }) => {
     if (!movie) return;
     
-    setIsLoadingSource(true);
-    try {
-      if (provider === "topstream") {
-        // TopStream retourne directement du MP4
-        const response = await getMovieStream(movie.id, "topstream");
-        
-        if (response?.sources?.[0]?.url) {
-          setSelectedSource({
-            url: response.sources[0].url,
-            type: "mp4",
-            name: sourceName
-          });
-        } else {
-          alert("Impossible de charger la source TopStream");
-        }
-      } else if (provider === "vidzy") {
-        // Vidzy : récupérer l'URL vidzy.org depuis Movix, puis extraire le m3u8
-        const movixResponse = await fetch(`https://api.movix.site/api/vidzy/movie/${movie.id}`);
-        
-        if (!movixResponse.ok) {
-          throw new Error("Impossible de récupérer la source Vidzy depuis Movix");
-        }
-        
-        const movixData = await movixResponse.json();
-        const vidzyUrl = movixData?.sources?.[0]?.url;
-        
-        if (!vidzyUrl) {
-          throw new Error("URL Vidzy introuvable dans la réponse Movix");
-        }
-        
-        const m3u8Url = await extractVidzyM3u8(vidzyUrl);
+    // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload)) {
+      setSelectedSource({
+        url: source.url,
+        type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+        name: source.name
+      });
+      return;
+    }
+    
+    // Pour Vidzy (via FStream), on utilise le scraper
+    if (source.url && source.type === "m3u8" && source.isFStream) {
+      setIsLoadingSource(true);
+      try {
+        const m3u8Url = await extractVidzyM3u8(source.url);
         
         if (!m3u8Url) {
           throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
@@ -77,15 +68,18 @@ export default function MovieDetail() {
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
-          name: sourceName
+          name: source.name
         });
+      } catch (error) {
+        console.error("Erreur lors du chargement de la source:", error);
+        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+      } finally {
+        setIsLoadingSource(false);
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement de la source:", error);
-      alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
-    } finally {
-      setIsLoadingSource(false);
+      return;
     }
+    
+    // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
   
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
@@ -114,8 +108,10 @@ export default function MovieDetail() {
     <div className="min-h-screen pb-20 md:pb-0">
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold">Détail du film</h1>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <SearchBar onNavigate={setLocation} />
+            </div>
             <div className="flex items-center gap-2">
               <LanguageSelect />
               <ThemeToggle />
@@ -124,20 +120,7 @@ export default function MovieDetail() {
         </div>
       </div>
 
-      <div className="relative h-[50vh] md:h-[60vh]">
-        <div className="absolute inset-0">
-          {backdropUrl && (
-            <img
-              src={backdropUrl}
-              alt={movie.title}
-              className="w-full h-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 -mt-32 relative z-10">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
             {movie.poster_path && (
@@ -188,9 +171,9 @@ export default function MovieDetail() {
               </p>
 
               {trailer && (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Bande-annonce</h2>
-                  <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                <div className="space-y-3">
+                  <h3 className="text-lg font-medium">Bande-annonce</h3>
+                  <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-muted">
                     <iframe
                       width="100%"
                       height="100%"
@@ -205,28 +188,16 @@ export default function MovieDetail() {
               )}
 
               {!selectedSource ? (
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Sources de visionnage</h2>
-                  <div className="grid gap-3">
-                    {sources.map((source) => (
-                      <Button
-                        key={source.id}
-                        variant="outline"
-                        className="justify-between h-auto py-3"
-                        onClick={() => handleSourceClick(source.name, source.provider)}
-                        disabled={isLoadingSource}
-                        data-testid={`button-source-${source.name.toLowerCase().replace(/\s+/g, "-")}`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Play className="w-4 h-4" />
-                          {source.name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {isLoadingSource ? "Chargement..." : "Regarder"}
-                        </span>
-                      </Button>
-                    ))}
-                  </div>
+                <div className="space-y-6">
+                  {/* Sources de streaming unifiées */}
+                  <StreamingSources
+                    type="movie"
+                    id={movieId}
+                    title={movie?.title || ''}
+                    sources={sources}
+                    onSourceClick={handleSourceClick}
+                    isLoadingSource={isLoadingSource}
+                  />
                 </div>
               ) : (
                 <div className="space-y-4">

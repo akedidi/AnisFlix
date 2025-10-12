@@ -5,3 +5,24 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
+
+# Fichiers de configuration spécifiques à l'IDE
+.vscode/
+
+# Fichiers de test et de développement
+scripts/test-*.cjs
+scripts/test-*.js
+
+# Fichiers temporaires
+App.tsx
+global.css
+
+# Fichiers de configuration Expo (si pas utilisés)
+app.json
+eas.json
+metro.config.js
+babel.config.js
+
+# Assets temporaires
+assets/
+app/

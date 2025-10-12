@@ -159,7 +159,7 @@ export const tmdb = {
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
-      watch_region: 'FR',
+      watch_region: 'US',
       page: page.toString(),
     });
   },
@@ -167,7 +167,7 @@ export const tmdb = {
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
-      watch_region: 'FR',
+      watch_region: 'US',
       page: page.toString(),
     });
   },

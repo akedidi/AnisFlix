@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import StreamingSources from "@/components/StreamingSources";
+import SearchBar from "@/components/SearchBar";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -16,6 +18,7 @@ import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 
 export default function SeriesDetail() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
@@ -39,46 +42,34 @@ export default function SeriesDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
   
-  // Generate episode sources - TopStream et Vidzy uniquement
-  const episodeSources = series && selectedEpisode ? [
-    { id: 1, name: "TopStream", provider: "topstream" as const },
-    { id: 2, name: "Vidzy", provider: "vidzy" as const },
-  ] : [];
+  // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
+  const episodeSources: any[] = [];
 
-  const handleSourceClick = async (sourceName: string, provider: "topstream" | "vidzy") => {
+  const handleSourceClick = async (source: { 
+    url: string; 
+    type: "m3u8" | "mp4" | "embed"; 
+    name: string;
+    isTopStream?: boolean;
+    isFStream?: boolean;
+    isMovixDownload?: boolean;
+  }) => {
     if (!series || !selectedEpisode) return;
     
-    setIsLoadingSource(true);
-    try {
-      if (provider === "topstream") {
-        // TopStream retourne directement du MP4
-        const response = await getSeriesStream(series.id, selectedSeasonNumber, selectedEpisode, "topstream");
-        
-        if (response?.sources?.[0]?.url) {
-          setSelectedSource({
-            url: response.sources[0].url,
-            type: "mp4",
-            name: sourceName
-          });
-        } else {
-          alert("Impossible de charger la source TopStream");
-        }
-      } else if (provider === "vidzy") {
-        // Vidzy : récupérer l'URL vidzy.org depuis Movix, puis extraire le m3u8
-        const movixResponse = await fetch(`https://api.movix.site/api/vidzy/tv/${series.id}?season=${selectedSeasonNumber}&episode=${selectedEpisode}`);
-        
-        if (!movixResponse.ok) {
-          throw new Error("Impossible de récupérer la source Vidzy depuis Movix");
-        }
-        
-        const movixData = await movixResponse.json();
-        const vidzyUrl = movixData?.sources?.[0]?.url;
-        
-        if (!vidzyUrl) {
-          throw new Error("URL Vidzy introuvable dans la réponse Movix");
-        }
-        
-        const m3u8Url = await extractVidzyM3u8(vidzyUrl);
+    // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload)) {
+      setSelectedSource({
+        url: source.url,
+        type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+        name: source.name
+      });
+      return;
+    }
+    
+    // Pour Vidzy (via FStream), on utilise le scraper
+    if (source.url && source.type === "m3u8" && source.isFStream) {
+      setIsLoadingSource(true);
+      try {
+        const m3u8Url = await extractVidzyM3u8(source.url);
         
         if (!m3u8Url) {
           throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
@@ -87,15 +78,18 @@ export default function SeriesDetail() {
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
-          name: sourceName
+          name: source.name
         });
+      } catch (error) {
+        console.error("Erreur lors du chargement de la source:", error);
+        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+      } finally {
+        setIsLoadingSource(false);
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement de la source:", error);
-      alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
-    } finally {
-      setIsLoadingSource(false);
+      return;
     }
+    
+    // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
   
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
@@ -124,8 +118,10 @@ export default function SeriesDetail() {
     <div className="min-h-screen pb-20 md:pb-0">
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold">Détail de la série</h1>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <SearchBar onNavigate={setLocation} />
+            </div>
             <div className="flex items-center gap-2">
               <LanguageSelect />
               <ThemeToggle />
@@ -134,20 +130,7 @@ export default function SeriesDetail() {
         </div>
       </div>
 
-      <div className="relative h-[50vh] md:h-[60vh]">
-        <div className="absolute inset-0">
-          {backdropUrl && (
-            <img
-              src={backdropUrl}
-              alt={series.name}
-              className="w-full h-full object-cover"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 -mt-32 relative z-10">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
             {series.poster_path && (
@@ -218,9 +201,9 @@ export default function SeriesDetail() {
                   </div>
 
                   {trailer && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">Bande-annonce</h3>
-                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium">Bande-annonce</h3>
+                      <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-muted">
                         <iframe
                           width="100%"
                           height="100%"
@@ -272,31 +255,17 @@ export default function SeriesDetail() {
                             <div className="mt-4 pt-4 border-t space-y-3">
                               {!selectedSource ? (
                                 <>
-                                  <h5 className="font-semibold text-sm">Sources de visionnage</h5>
-                                  <div className="space-y-2">
-                                    {episodeSources.map((source) => (
-                                      <Button
-                                        key={source.id}
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full justify-between"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSourceClick(source.name, source.provider);
-                                        }}
-                                        disabled={isLoadingSource}
-                                        data-testid={`button-episode-source-${source.name.toLowerCase()}`}
-                                      >
-                                        <span className="flex items-center gap-2">
-                                          <Play className="w-3 h-3" />
-                                          {source.name}
-                                        </span>
-                                        <span className="text-xs">
-                                          {isLoadingSource ? "Chargement..." : "Regarder"}
-                                        </span>
-                                      </Button>
-                                    ))}
-                                  </div>
+                                  {/* Sources de streaming unifiées */}
+                                  <StreamingSources
+                                    type="tv"
+                                    id={seriesId}
+                                    title={`${series?.name} - Saison ${selectedSeasonNumber} Épisode ${episode.episode_number}`}
+                                    sources={episodeSources}
+                                    onSourceClick={handleSourceClick}
+                                    isLoadingSource={isLoadingSource}
+                                    season={selectedSeasonNumber}
+                                    episode={episode.episode_number}
+                                  />
                                 </>
                               ) : (
                                 <div className="space-y-3">

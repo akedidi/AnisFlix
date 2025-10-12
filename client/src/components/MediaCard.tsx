@@ -28,7 +28,7 @@ export default function MediaCard({
 
   return (
     <Card
-      className="group relative overflow-hidden cursor-pointer hover-elevate active-elevate-2 transition-transform duration-200"
+      className="group relative overflow-hidden cursor-pointer content-card"
       onClick={onClick}
       data-testid={`card-media-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
@@ -36,7 +36,7 @@ export default function MediaCard({
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover image-zoom"
           loading="lazy"
         />
         

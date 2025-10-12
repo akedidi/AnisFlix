@@ -1,20 +1,15 @@
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 interface ProviderCardProps {
   id: number;
   name: string;
   logoPath: string | null;
-  movieCount?: number;
-  tvCount?: number;
   onClick?: () => void;
 }
 
 export default function ProviderCard({
   name,
   logoPath,
-  movieCount = 0,
-  tvCount = 0,
   onClick,
 }: ProviderCardProps) {
   const imageUrl = logoPath
@@ -38,18 +33,6 @@ export default function ProviderCard({
         
         <div className="space-y-1 w-full">
           <h3 className="font-semibold text-sm line-clamp-1">{name}</h3>
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            {movieCount > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {movieCount} films
-              </Badge>
-            )}
-            {tvCount > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {tvCount} séries
-              </Badge>
-            )}
-          </div>
         </div>
       </div>
     </Card>

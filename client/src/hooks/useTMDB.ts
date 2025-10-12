@@ -21,12 +21,16 @@ const transformSeries = (series: any) => ({
   mediaType: "tv" as const,
 });
 
-export const usePopularMovies = () => {
+export const usePopularMovies = (page = 1) => {
   return useQuery({
-    queryKey: ["movies", "popular"],
+    queryKey: ["movies", "popular", page],
     queryFn: async () => {
-      const data = await tmdb.getPopularMovies();
-      return data.results.map(transformMovie);
+      const data = await tmdb.getPopularMovies(page);
+      return {
+        results: data.results.map(transformMovie),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
   });
 };
@@ -45,12 +49,16 @@ export const useLatestMovies = (page = 1) => {
   });
 };
 
-export const usePopularSeries = () => {
+export const usePopularSeries = (page = 1) => {
   return useQuery({
-    queryKey: ["series", "popular"],
+    queryKey: ["series", "popular", page],
     queryFn: async () => {
-      const data = await tmdb.getPopularSeries();
-      return data.results.map(transformSeries);
+      const data = await tmdb.getPopularSeries(page);
+      return {
+        results: data.results.map(transformSeries),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
   });
 };
@@ -131,45 +139,61 @@ export const useSimilarSeries = (seriesId: number) => {
   });
 };
 
-export const useMoviesByGenre = (genreId: number) => {
+export const useMoviesByGenre = (genreId: number, page = 1) => {
   return useQuery({
-    queryKey: ["movies", "genre", genreId],
+    queryKey: ["movies", "genre", genreId, page],
     queryFn: async () => {
-      const data = await tmdb.getMoviesByGenre(genreId);
-      return data.results.map(transformMovie);
+      const data = await tmdb.getMoviesByGenre(genreId, page);
+      return {
+        results: data.results.map(transformMovie),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
     enabled: !!genreId,
   });
 };
 
-export const useSeriesByGenre = (genreId: number) => {
+export const useSeriesByGenre = (genreId: number, page = 1) => {
   return useQuery({
-    queryKey: ["series", "genre", genreId],
+    queryKey: ["series", "genre", genreId, page],
     queryFn: async () => {
-      const data = await tmdb.getSeriesByGenre(genreId);
-      return data.results.map(transformSeries);
+      const data = await tmdb.getSeriesByGenre(genreId, page);
+      return {
+        results: data.results.map(transformSeries),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
     enabled: !!genreId,
   });
 };
 
-export const useMoviesByProvider = (providerId: number) => {
+export const useMoviesByProvider = (providerId: number, page = 1) => {
   return useQuery({
-    queryKey: ["movies", "provider", providerId],
+    queryKey: ["movies", "provider", providerId, page],
     queryFn: async () => {
-      const data = await tmdb.discoverMoviesByProvider(providerId);
-      return data.results.map(transformMovie);
+      const data = await tmdb.discoverMoviesByProvider(providerId, page);
+      return {
+        results: data.results.map(transformMovie),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
     enabled: !!providerId,
   });
 };
 
-export const useSeriesByProvider = (providerId: number) => {
+export const useSeriesByProvider = (providerId: number, page = 1) => {
   return useQuery({
-    queryKey: ["series", "provider", providerId],
+    queryKey: ["series", "provider", providerId, page],
     queryFn: async () => {
-      const data = await tmdb.discoverSeriesByProvider(providerId);
-      return data.results.map(transformSeries);
+      const data = await tmdb.discoverSeriesByProvider(providerId, page);
+      return {
+        results: data.results.map(transformSeries),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
     },
     enabled: !!providerId,
   });
