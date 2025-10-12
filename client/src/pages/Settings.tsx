@@ -9,6 +9,8 @@ import { Trash2, Settings as SettingsIcon, Download } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import DownloadItem from "@/components/DownloadItem";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 
 export default function Settings() {
   const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to");
@@ -50,18 +52,23 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl md:text-3xl font-bold">Paramètres</h1>
-            <div className="flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl md:text-3xl font-bold">Paramètres</h1>
+              <div className="flex items-center gap-2">
+                <LanguageToggle />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <Tabs defaultValue="downloads" className="space-y-6">
@@ -192,6 +199,10 @@ export default function Settings() {
             </Card>
           </TabsContent>
         </Tabs>
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );

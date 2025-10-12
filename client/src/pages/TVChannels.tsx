@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Tv } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 
@@ -140,21 +142,26 @@ export default function TVChannels() {
   const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Tv className="w-8 h-8" />
-              <h1 className="text-2xl md:text-3xl font-bold">{t('nav.tvChannels')}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSelect />
-              <ThemeToggle />
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Tv className="w-8 h-8" />
+                <h1 className="text-2xl md:text-3xl font-bold">{t('nav.tvChannels')}</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <LanguageSelect />
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">
@@ -257,6 +264,10 @@ export default function TVChannels() {
             </Tabs>
           </div>
         </div>
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );

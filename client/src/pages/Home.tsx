@@ -76,11 +76,15 @@ export default function Home() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
-  // Restaurer la position de scroll au chargement
+  // Restaurer la position de scroll au chargement (seulement si on revient sur la page)
   useEffect(() => {
     // Attendre que les données soient chargées
     const timer = setTimeout(() => {
-      restoreScrollPosition();
+      // Ne restaurer que si on a une position de scroll sauvegardée
+      const savedPosition = sessionStorage.getItem('scrollPosition_home');
+      if (savedPosition) {
+        restoreScrollPosition();
+      }
     }, 500);
     
     return () => clearTimeout(timer);
