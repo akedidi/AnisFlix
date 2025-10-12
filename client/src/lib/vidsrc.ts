@@ -21,7 +21,12 @@ export interface VidSrcResult {
  */
 export async function extractVidSrcStreamingLinks(url: string): Promise<VidSrcResult> {
   try {
-    const response = await fetch('/api/vidsrc/extract', {
+    // Use Netlify Functions in production, local API in development
+    const apiUrl = process.env.NODE_ENV === 'production' 
+      ? '/.netlify/functions/vidsrc-extract'
+      : '/api/vidsrc/extract';
+      
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +54,12 @@ export async function extractVidSrcStreamingLinks(url: string): Promise<VidSrcRe
  */
 export async function extractVidSrcM3u8(url: string): Promise<string | null> {
   try {
-    const response = await fetch('/api/vidsrc/m3u8', {
+    // Use Netlify Functions in production, local API in development
+    const apiUrl = process.env.NODE_ENV === 'production' 
+      ? '/.netlify/functions/vidsrc-m3u8'
+      : '/api/vidsrc/m3u8';
+      
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
