@@ -47,7 +47,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="anisflix-theme">
+      <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
         <LanguageProvider>
           <Router>
             <Route path="/" component={Home} />
@@ -78,8 +78,8 @@ function App() {
             <Route path="/test/movix-download" component={MovixDownloadTest} />
             <Route path="/test/movix-checker" component={MovixDownloadChecker} />
             
-            {/* 404 route */}
-            <Route component={NotFound} />
+            {/* 404 route - only for unmatched paths */}
+            <Route path="*" component={NotFound} />
           </Router>
           <Toaster />
         </LanguageProvider>
