@@ -79,7 +79,7 @@ function App() {
             <Route path="/test/movix-checker" component={MovixDownloadChecker} />
             
             {/* 404 route - only for unmatched paths */}
-            <Route path="*" component={NotFound} />
+            {/* <Route path="*" component={NotFound} /> */}
           </Router>
           <Toaster />
         </LanguageProvider>

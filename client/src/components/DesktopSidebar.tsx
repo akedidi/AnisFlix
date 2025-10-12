@@ -16,7 +16,7 @@ export default function DesktopSidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen fixed left-0 top-0 z-30">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-primary">AnisFlix</h1>
       </div>
