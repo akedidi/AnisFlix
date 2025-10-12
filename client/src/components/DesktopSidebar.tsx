@@ -9,9 +9,9 @@ export default function DesktopSidebar() {
 
   const navItems = [
     { icon: Home, label: t("nav.home"), path: "/" },
-    { icon: Film, label: t("nav.movies"), path: "/films" },
+    { icon: Film, label: t("nav.movies"), path: "/movies" },
     { icon: Tv, label: t("nav.series"), path: "/series" },
-    { icon: Radio, label: t("nav.tvChannels"), path: "/tv" },
+    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
     { icon: Settings, label: t("nav.settings"), path: "/settings" },
   ];
 

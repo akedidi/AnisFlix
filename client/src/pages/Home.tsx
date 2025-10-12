@@ -4,6 +4,8 @@ import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -144,25 +146,30 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 fade-in-up">
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <SearchBar
-                onSearch={setSearchQuery}
-                suggestions={searchQuery ? searchResults : []}
-                onSelect={(item) => {
-                  const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                  window.location.href = path;
-                }}
-              />
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    window.location.href = path;
+                  }}
+                />
+              </div>
+              <LanguageSelect />
+              <ThemeToggle />
             </div>
-            <LanguageSelect />
-            <ThemeToggle />
           </div>
         </div>
-      </div>
 
       <div className="space-y-8 md:space-y-12">
         {featured && (
@@ -357,6 +364,9 @@ export default function Home() {
           )}
         </div>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
     </div>
   );
 }
