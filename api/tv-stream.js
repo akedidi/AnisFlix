@@ -49,37 +49,53 @@ export default async function handler(req, res) {
     const contentType = response.headers.get('content-type') || '';
     console.log(`[TV STREAM] ${response.status} ${contentType}`);
 
-    // Vérifier si c'est bien une playlist m3u8
-    if (!contentType.includes('mpegurl') && !contentType.includes('m3u8')) {
-      return res.status(502).json({ error: 'Not a valid M3U8 playlist' });
+    // Vérifier le type de contenu
+    if (contentType.includes('video/mp4')) {
+      // C'est un fichier MP4 direct, le proxifier
+      console.log(`[TV STREAM] Direct MP4 stream detected`);
+      
+      // Créer une playlist m3u8 simple qui pointe vers notre proxy
+      const playlist = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+/api/tv-proxy-segment?url=${encodeURIComponent(streamUrl)}
+#EXT-X-ENDLIST`;
+
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      res.status(200).send(playlist);
+    } else if (contentType.includes('mpegurl') || contentType.includes('m3u8')) {
+      // C'est une playlist m3u8, la traiter normalement
+      const playlistData = await response.text();
+
+      // Réécrire les URLs dans la playlist pour qu'elles passent par notre proxy
+      const rewrittenPlaylist = playlistData
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) return line;
+          
+          // Si c'est une URL relative, la rendre absolue
+          let absoluteUrl = trimmed;
+          if (!trimmed.startsWith('http')) {
+            absoluteUrl = new URL(trimmed, streamUrl).toString();
+          }
+          
+          // Proxifier l'URL
+          if (absoluteUrl.includes('.m3u8')) {
+            return `/api/tv-proxy-m3u8?url=${encodeURIComponent(absoluteUrl)}`;
+          } else {
+            return `/api/tv-proxy-segment?url=${encodeURIComponent(absoluteUrl)}`;
+          }
+        })
+        .join('\n');
+
+      res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+      res.status(200).send(rewrittenPlaylist);
+    } else {
+      return res.status(502).json({ error: 'Unsupported content type: ' + contentType });
     }
-
-    const playlistData = await response.text();
-
-    // Réécrire les URLs dans la playlist pour qu'elles passent par notre proxy
-    const rewrittenPlaylist = playlistData
-      .split('\n')
-      .map((line) => {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) return line;
-        
-        // Si c'est une URL relative, la rendre absolue
-        let absoluteUrl = trimmed;
-        if (!trimmed.startsWith('http')) {
-          absoluteUrl = new URL(trimmed, streamUrl).toString();
-        }
-        
-        // Proxifier l'URL
-        if (absoluteUrl.includes('.m3u8')) {
-          return `/api/tv-proxy-m3u8?url=${encodeURIComponent(absoluteUrl)}`;
-        } else {
-          return `/api/tv-proxy-segment?url=${encodeURIComponent(absoluteUrl)}`;
-        }
-      })
-      .join('\n');
-
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-    res.status(200).send(rewrittenPlaylist);
 
   } catch (error) {
     console.error('[TV STREAM ERROR]', error.message);
