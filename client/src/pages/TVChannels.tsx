@@ -142,7 +142,7 @@ export default function TVChannels() {
   const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
 
   return (
-    <div className="fade-in-up mobile-bottom-nav-padding">
+    <div className="min-h-screen fade-in-up">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       

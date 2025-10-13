@@ -139,7 +139,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="fade-in-up mobile-bottom-nav-padding">
+    <div className="min-h-screen fade-in-up">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
