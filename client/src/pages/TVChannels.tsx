@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Tv } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
@@ -57,24 +58,12 @@ const TV_CHANNELS: TVChannel[] = [
 ];
 
 export default function TVChannels() {
-  const { t } = useLanguage(    </div>
-  );
-}
-  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null    </div>
-  );
-}
-  const [isLoading, setIsLoading] = useState(false    </div>
-  );
-}
-  const [error, setError] = useState<string | null>(null    </div>
-  );
-}
-  const videoRef = useRef<HTMLVideoElement>(null    </div>
-  );
-}
-  const hlsRef = useRef<Hls | null>(null    </div>
-  );
-}
+  const { t } = useLanguage();
+  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   useEffect(() => {
     if (!selectedChannel || !videoRef.current) return;
@@ -82,137 +71,75 @@ export default function TVChannels() {
     const video = videoRef.current;
     const streamUrl = `/api/tv/stream/${selectedChannel.id}`;
 
-    setIsLoading(true    </div>
-  );
-}
-    setError(null    </div>
-  );
-}
+    setIsLoading(true);
+    setError(null);
 
     if (Hls.isSupported()) {
       if (hlsRef.current) {
-        hlsRef.current.destroy(    </div>
-  );
-}
+        hlsRef.current.destroy();
       }
 
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-      }    </div>
-  );
-}
+      });
       
       hlsRef.current = hls;
-      hls.loadSource(streamUrl    </div>
-  );
-}
-      hls.attachMedia(video    </div>
-  );
-}
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false    </div>
-  );
-}
+        setIsLoading(false);
         video.play().catch(err => {
-          console.error("Erreur de lecture:", err    </div>
-  );
-}
-          setError("Impossible de lire le flux"    </div>
-  );
-}
-        }    </div>
-  );
-}
-      }    </div>
-  );
-}
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
       
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
-        console.error("Erreur HLS:", data    </div>
-  );
-}
-        setIsLoading(false    </div>
-  );
-}
+        console.error("Erreur HLS:", data);
+        setIsLoading(false);
         if (data.fatal) {
-          setError("Erreur fatale lors du chargement du flux"    </div>
-  );
-}
+          setError("Erreur fatale lors du chargement du flux");
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error("Erreur réseau fatale"    </div>
-  );
-}
-              hls.startLoad(    </div>
-  );
-}
+              console.error("Erreur réseau fatale");
+              hls.startLoad();
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error("Erreur média fatale"    </div>
-  );
-}
-              hls.recoverMediaError(    </div>
-  );
-}
+              console.error("Erreur média fatale");
+              hls.recoverMediaError();
               break;
             default:
-              console.error("Erreur fatale non récupérable"    </div>
-  );
-}
-              hls.destroy(    </div>
-  );
-}
+              console.error("Erreur fatale non récupérable");
+              hls.destroy();
               break;
           }
         }
-      }    </div>
-  );
-}
+      });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = streamUrl;
       video.addEventListener('loadedmetadata', () => {
-        setIsLoading(false    </div>
-  );
-}
+        setIsLoading(false);
         video.play().catch(err => {
-          console.error("Erreur de lecture:", err    </div>
-  );
-}
-          setError("Impossible de lire le flux"    </div>
-  );
-}
-        }    </div>
-  );
-}
-      }    </div>
-  );
-}
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
     } else {
-      setError("Votre navigateur ne supporte pas HLS"    </div>
-  );
-}
-      setIsLoading(false    </div>
-  );
-}
+      setError("Votre navigateur ne supporte pas HLS");
+      setIsLoading(false);
     }
 
     return () => {
       if (hlsRef.current) {
-        hlsRef.current.destroy(    </div>
-  );
-}
+        hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel]    </div>
-  );
-}
+  }, [selectedChannel]);
 
-  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category))    </div>
-  );
-}
+  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
 
   return (
     <div className="min-h-screen fade-in-up">
@@ -303,9 +230,7 @@ export default function TVChannels() {
               </TabsList>
 
               {categories.map(category => {
-                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category    </div>
-  );
-}
+                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
                 
                 return (
                   <TabsContent key={category} value={category} className="mt-0">
@@ -334,17 +259,16 @@ export default function TVChannels() {
                       ))}
                     </div>
                   </TabsContent>
-                    </div>
-  );
-}
+                );
               })}
             </Tabs>
           </div>
         </div>
       </div>
       
-    </div>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
+    </div>
   );
-}
 }

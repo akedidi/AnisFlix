@@ -6,19 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Download, Heart, Star, ArrowLeft, Youtube } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
 export default function MediaDetail() {
-  const [, params] = useRoute("/detail/:type/:id"    </div>
-  );
-}
-  const [isFavorite, setIsFavorite] = useState(false    </div>
-  );
-}
-  const { isNative } = useDeviceType(    </div>
-  );
-}
+  const [, params] = useRoute("/detail/:type/:id");
+  const [isFavorite, setIsFavorite] = useState(false);
+  const { isNative } = useDeviceType();
 
   // todo: remove mock functionality
   const mockMedia = {
@@ -196,8 +191,9 @@ export default function MediaDetail() {
         </div>
       </div>
       
-    </div>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
+    </div>
   );
-}
 }

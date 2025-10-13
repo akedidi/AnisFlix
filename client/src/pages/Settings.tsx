@@ -7,8 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Settings as SettingsIcon, Download } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
+import LanguageToggle from "@/components/LanguageToggle";
 import DownloadItem from "@/components/DownloadItem";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
@@ -64,7 +65,7 @@ export default function Settings() {
             <div className="flex items-center justify-between">
               <h1 className="text-2xl md:text-3xl font-bold">Paramètres</h1>
               <div className="flex items-center gap-2">
-                <LanguageSelect />
+                <LanguageToggle />
                 <ThemeToggle />
               </div>
             </div>
@@ -140,7 +141,7 @@ export default function Settings() {
                     <h3 className="font-medium">Langue</h3>
                     <p className="text-sm text-muted-foreground">Changer la langue de l'interface</p>
                   </div>
-                  <LanguageSelect />
+                  <LanguageToggle />
                 </div>
 
                 <Separator />
@@ -217,6 +218,9 @@ export default function Settings() {
         </Tabs>
       </div>
       
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
+      </div>
     </div>
   );
 }

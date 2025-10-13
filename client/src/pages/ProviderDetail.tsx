@@ -8,6 +8,7 @@ import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { 
@@ -68,33 +69,19 @@ const providers: Record<number, Provider> = {
 };
 
 export default function ProviderDetail() {
-  const { t } = useLanguage(    </div>
-  );
-}
-  const [, params] = useRoute("/provider/:id"    </div>
-  );
-}
+  const { t } = useLanguage();
+  const [, params] = useRoute("/provider/:id");
   const providerId = params?.id ? parseInt(params.id) : 0;
   const provider = providers[providerId];
-  const { restoreScrollPosition } = useScrollPosition(`provider-${providerId}`    </div>
-  );
-}
+  const { restoreScrollPosition } = useScrollPosition(`provider-${providerId}`);
 
   // État pour la recherche
-  const [searchQuery, setSearchQuery] = useState(""    </div>
-  );
-}
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch data
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(providerId    </div>
-  );
-}
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(providerId    </div>
-  );
-}
-  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
-  );
-}
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(providerId);
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(providerId);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
@@ -102,37 +89,21 @@ export default function ProviderDetail() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload(    </div>
-  );
-}
+      window.location.reload();
     };
-    window.addEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-  }, []    </div>
-  );
-}
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
 
   // Restaurer la position de scroll au chargement
   useEffect(() => {
     // Attendre que les données soient chargées
     const timer = setTimeout(() => {
-      restoreScrollPosition(    </div>
-  );
-}
-    }, 500    </div>
-  );
-}
+      restoreScrollPosition();
+    }, 500);
     
-    return () => clearTimeout(timer    </div>
-  );
-}
-  }, [restoreScrollPosition]    </div>
-  );
-}
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
 
   // Films par genre pour les catégories
   const { data: actionMoviesData } = useMoviesByGenre(28); // Action
@@ -197,9 +168,7 @@ export default function ProviderDetail() {
           </Button>
         </div>
       </div>
-        </div>
-  );
-}
+    );
   }
 
   const imageUrl = provider.logoPath
@@ -478,8 +447,9 @@ export default function ProviderDetail() {
 
       </div>
       
-    </div>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
+    </div>
   );
-}
 }

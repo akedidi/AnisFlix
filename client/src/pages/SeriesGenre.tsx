@@ -7,6 +7,7 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -51,29 +52,17 @@ const GENRE_IDS: Record<string, number> = {
 };
 
 export default function SeriesGenre() {
-  const { genre } = useParams(    </div>
-  );
-}
-  const { t } = useLanguage(    </div>
-  );
-}
-  const [searchQuery, setSearchQuery] = useState(""    </div>
-  );
-}
-  const [currentPage, setCurrentPage] = useState(1    </div>
-  );
-}
+  const { genre } = useParams();
+  const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const genreId = GENRE_IDS[genre || ""];
   const genreName = GENRE_NAMES[genre || ""] || genre;
 
   // Fetch data from TMDB
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByGenre(genreId, currentPage    </div>
-  );
-}
-  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
-  );
-}
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByGenre(genreId, currentPage);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const series = seriesData?.results || [];
   const totalPages = seriesData?.total_pages || 1;
@@ -81,27 +70,15 @@ export default function SeriesGenre() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload(    </div>
-  );
-}
+      window.location.reload();
     };
-    window.addEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-  }, []    </div>
-  );
-}
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page    </div>
-  );
-}
-    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
-  );
-}
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (!genreId) {
@@ -115,9 +92,7 @@ export default function SeriesGenre() {
           </Button>
         </div>
       </div>
-        </div>
-  );
-}
+    );
   }
 
   return (
@@ -197,8 +172,9 @@ export default function SeriesGenre() {
         )}
       </div>
       
-    </div>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
+    </div>
   );
-}
 }

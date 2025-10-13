@@ -6,28 +6,19 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useMultiSearch } from "@/hooks/useTMDB";
 
 export default function LatestSeries() {
-  const { t } = useLanguage(    </div>
-  );
-}
-  const [searchQuery, setSearchQuery] = useState(""    </div>
-  );
-}
-  const [currentPage, setCurrentPage] = useState(1    </div>
-  );
-}
+  const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch data from TMDB
-  const { data: seriesData, isLoading: seriesLoading } = useLatestSeries(currentPage    </div>
-  );
-}
-  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
-  );
-}
+  const { data: seriesData, isLoading: seriesLoading } = useLatestSeries(currentPage);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const series = seriesData?.results || [];
   const totalPages = seriesData?.total_pages || 1;
@@ -35,27 +26,15 @@ export default function LatestSeries() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload(    </div>
-  );
-}
+      window.location.reload();
     };
-    window.addEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-  }, []    </div>
-  );
-}
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page    </div>
-  );
-}
-    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
-  );
-}
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -133,6 +112,10 @@ export default function LatestSeries() {
             <p className="text-muted-foreground">Aucune série récente disponible</p>
           </div>
         )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );

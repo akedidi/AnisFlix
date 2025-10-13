@@ -6,109 +6,64 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function HBOMaxContent() {
-  const { t } = useLanguage(    </div>
-  );
-}
-  const [searchQuery, setSearchQuery] = useState(''    </div>
-  );
-}
-  const [currentPage, setCurrentPage] = useState(1    </div>
-  );
-}
-  const { restoreScrollPosition } = useScrollPosition('hbo-max-content'    </div>
-  );
-}
+  const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const { restoreScrollPosition } = useScrollPosition('hbo-max-content');
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
-  const urlParams = new URLSearchParams(window.location.search    </div>
-  );
-}
-  const tabParam = urlParams.get('tab'    </div>
-  );
-}
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
   const [activeTab, setActiveTab] = useState<'movies' | 'series'>(
     tabParam === 'series' ? 'series' : 'movies'
-      </div>
   );
-}
 
   // Fetch data from TMDB
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage    </div>
-  );
-}
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage    </div>
-  );
-}
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage);
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage);
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
-  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
-  );
-}
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
-  const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1    </div>
-  );
-}
+  const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload(    </div>
-  );
-}
+      window.location.reload();
     };
-    window.addEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
-  );
-}
-  }, []    </div>
-  );
-}
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
 
   // Restaurer la position de scroll au chargement
   useEffect(() => {
     const timer = setTimeout(() => {
-      restoreScrollPosition(    </div>
-  );
-}
-    }, 500    </div>
-  );
-}
+      restoreScrollPosition();
+    }, 500);
     
-    return () => clearTimeout(timer    </div>
-  );
-}
-  }, [restoreScrollPosition]    </div>
-  );
-}
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page    </div>
-  );
-}
-    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
-  );
-}
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleTabChange = (tab: 'movies' | 'series') => {
-    setActiveTab(tab    </div>
-  );
-}
-    setCurrentPage(1    </div>
-  );
-}
+    setActiveTab(tab);
+    setCurrentPage(1);
   };
 
   return (
@@ -281,8 +236,9 @@ export default function HBOMaxContent() {
         )}
       </div>
       
-    </div>
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
+    </div>
   );
-}
 }

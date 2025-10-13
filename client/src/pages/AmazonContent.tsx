@@ -6,6 +6,7 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -234,6 +235,9 @@ export default function AmazonContent() {
           )
         )}
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );
