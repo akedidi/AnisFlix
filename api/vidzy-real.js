@@ -1,3 +1,38 @@
+/**
+ * Désobfusque le code JavaScript "packed" trouvé sur la page Vidzy.
+ * @param {string} packedCode - Le bloc de code entier commençant par "eval(...)".
+ * @returns {string} Le code désobfusqué.
+ */
+function deobfuscate(packedCode) {
+    // Extrait les arguments de la fonction eval()
+    const matches = packedCode.match(/eval\(function\(p,a,c,k,e,d\)\{.*return p\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)\)\)/s);
+
+    if (!matches) {
+        throw new Error("Le format du code obfusqué n'a pas pu être reconnu.");
+    }
+
+    let p = matches[1];
+    const a = parseInt(matches[2], 10); // radix
+    const c = parseInt(matches[3], 10); // count
+    const k = matches[4].split('|');    // dictionary
+
+    // La fonction de remplacement des identifiants corrigée
+    const getIdentifier = (index) => {
+        return index.toString(a);
+    };
+
+    // Boucle de remplacement
+    for (let i = c - 1; i >= 0; i--) {
+        if (k[i]) {
+            // Crée une expression régulière pour trouver le mot-clé (ex: \b1a\b)
+            const regex = new RegExp('\\b' + getIdentifier(i) + '\\b', 'g');
+            p = p.replace(regex, k[i]);
+        }
+    }
+
+    return p;
+}
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -66,6 +101,47 @@ export default async function handler(req, res) {
     
     // Recherche du lien m3u8 dans le HTML
     let m3u8Link = null;
+
+    // Méthode 0: Désobfuscation du JavaScript Vidzy (priorité absolue)
+    try {
+      // 1. Trouve le bloc de script obfusqué
+      const packedScriptRegex = /<script type='text\/javascript'>\s*(eval\(function\(p,a,c,k,e,d\){.*?}\(.*?\))\s*<\/script>/s;
+      const scriptMatch = html.match(packedScriptRegex);
+
+      if (scriptMatch && scriptMatch[1]) {
+        console.log("Script obfusqué trouvé. Désobfuscation...");
+        
+        // 2. Désobfusque le contenu du script
+        const deobfuscatedCode = deobfuscate(scriptMatch[1]);
+        
+        // 3. Extrait l'URL m3u8 du code résultant
+        const m3u8Regex = /src:"(https?:\/\/[^"]+\.m3u8[^"]*)"/;
+        const m3u8Match = deobfuscatedCode.match(m3u8Regex);
+
+        if (m3u8Match && m3u8Match[1]) {
+          console.log("Lien m3u8 extrait avec succès via désobfuscation !");
+          m3u8Link = m3u8Match[1];
+        } else {
+          // Essayer d'autres patterns dans le code désobfusqué
+          const altPatterns = [
+            /file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+            /url:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+            /source:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+            /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]+\.m3u8[^"'\s]*/g
+          ];
+          
+          for (const pattern of altPatterns) {
+            const match = deobfuscatedCode.match(pattern);
+            if (match) {
+              m3u8Link = match[1] || match[0];
+              break;
+            }
+          }
+        }
+      }
+    } catch (deobfuscateError) {
+      console.log("Erreur lors de la désobfuscation:", deobfuscateError.message);
+    }
     
     // Méthode 1: Recherche spécifique pour master.m3u8 Vidzy v4 (priorité haute)
     const masterPattern = /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]*master\.m3u8[^"'\s]*/gi;
@@ -236,7 +312,9 @@ export default async function handler(req, res) {
         hasVidzyV4: html.includes('v4.vidzy.org'),
         hasHls: html.includes('hls2'),
         hasM3u8: html.includes('.m3u8'),
-        scriptCount: (html.match(/<script/gi) || []).length
+        scriptCount: (html.match(/<script/gi) || []).length,
+        hasObfuscatedScript: html.includes("eval(function(p,a,c,k,e,d)"),
+        hasPackedScript: html.includes("eval(function(p,a,c,k,e,d){")
       };
       
       console.log('Debug Vidzy extraction:', debugInfo);
