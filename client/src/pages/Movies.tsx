@@ -141,7 +141,7 @@ export default function Movies() {
           showSeeAllButton={true}
         />
       </div>
-      
+      </div>
     </div>
   );
 }

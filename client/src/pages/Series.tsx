@@ -141,7 +141,7 @@ export default function Series() {
           showSeeAllButton={true}
         />
       </div>
-      
+      </div>
     </div>
   );
 }
