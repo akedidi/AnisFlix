@@ -2,61 +2,47 @@
 let currentPlaylistText = null;
 let lastPlaylistFetch = 0;
 
-// Headers par défaut
-const defaultHeaders = {
-  "User-Agent": "Mozilla/5.0 (Node HLS Proxy)",
-  "Accept": "*/*",
-  "Referer": "https://fremtv.lol/"
+// Headers exacts de votre code fonctionnel
+const browserHeaders = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  'Origin': 'https://directfr.lat',
+  'Referer': 'https://directfr.lat/',
+  'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, */*',
+  'Accept-Language': 'fr-FR,fr;q=0.7,en;q=0.6',
+  'Connection': 'keep-alive'
 };
 
 // URL de base sera définie dynamiquement
 let baseRemote = null;
 
-// Fetch le token depuis l'URL initiale (comme dans le code fonctionnel)
-async function fetchToken() {
-  console.log("Fetching token from:", baseRemote);
-  const res = await fetch(baseRemote, { method: "GET", headers: defaultHeaders });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch token: ${res.status}`);
-  }
-  
-  // On s'en fout du contenu MP4, on cherche le token dans les headers
-  const token = res.headers.get('x-token') || res.headers.get('token') || res.headers.get('x-auth-token');
-  
-  if (!token) {
-    // Si pas de token dans les headers, peut-être dans l'URL de redirection
-    const location = res.headers.get('location');
-    if (location && location.includes('token=')) {
-      const url = new URL(location);
-      const extractedToken = url.searchParams.get('token');
-      if (extractedToken) {
-        console.log("Token found in location header:", extractedToken);
-        return extractedToken;
-      }
-    }
-    throw new Error("No token found in response");
-  }
-  
-  console.log("Token found:", token);
-  return token;
-}
-
-// Fetch la vraie playlist avec le token
+// Fetch la playlist exactement comme votre code fonctionnel
 async function fetchPlaylist() {
-  const token = await fetchToken();
+  console.log("Fetching playlist from:", baseRemote);
   
-  // Construire l'URL de la vraie playlist avec le token
-  const playlistUrl = `https://fremtv.lol/auth/${baseRemote.split('/').pop()}?token=${token}`;
-  console.log("Fetching real playlist from:", playlistUrl);
+  // Amorcer éventuellement la session (comme votre code)
+  try { 
+    await fetch('https://fremtv.lol/', { headers: browserHeaders }); 
+  } catch {}
   
-  const res = await fetch(playlistUrl, { headers: defaultHeaders });
+  // Laisser suivre la redirection automatiquement (comme votre code)
+  const res = await fetch(baseRemote, { 
+    method: 'GET',
+    headers: browserHeaders,
+    redirect: 'follow' // Suit automatiquement les redirections
+  });
   
   if (!res.ok) {
     throw new Error(`Failed to fetch playlist: ${res.status}`);
   }
   
   const text = await res.text();
+  const contentType = res.headers.get('content-type') || '';
+  
+  console.log(`[ENTRY] ${res.status} ${contentType} ← ${res.url}`);
+  
+  if (typeof text !== 'string') {
+    throw new Error('Pas une playlist M3U8.');
+  }
   
   if (text.includes("#EXTM3U")) {
     currentPlaylistText = text;
@@ -68,22 +54,27 @@ async function fetchPlaylist() {
   throw new Error("Not a valid M3U8 playlist");
 }
 
-// Simple parser -> remplace les lignes qui commencent par "/hls/..." par URLs locales (comme dans le code fonctionnel)
-function makeLocalPlaylist(playlistText) {
-  if (!playlistText) return "";
-  const lines = playlistText.split(/\r?\n/);
-  const out = lines.map(line => {
-    if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
-      // extract filename and keep query if any (we'll ignore remote token and proxy)
-      const u = line.trim();
-      // get basename (e.g. 78_25.ts?token=...)
-      const name = u.split("/").pop();
-      // local proxy path
-      return `/api/seg/${encodeURIComponent(name)}`;
-    }
-    return line;
-  });
-  return out.join("\n");
+// Fonction toAbsolute exactement comme votre code fonctionnel
+function toAbsolute(base, maybeRelative) {
+  try { 
+    return new URL(maybeRelative, base).toString(); 
+  } catch { 
+    return maybeRelative; 
+  }
+}
+
+// Rewrite playlist URLs exactement comme votre code fonctionnel
+function rewritePlaylistUrls(playlistText, baseUrl) {
+  return playlistText
+    .split('\n')
+    .map((line) => {
+      const t = line.trim();
+      if (!t || t.startsWith('#')) return line;
+      const abs = toAbsolute(baseUrl, t);
+      if (/\.m3u8(\?|$)/i.test(abs)) return `/api/proxy-m3u8?url=${encodeURIComponent(abs)}`;
+      return `/api/proxy-segment?url=${encodeURIComponent(abs)}`;
+    })
+    .join('\n');
 }
 
 export default async function handler(req, res) {
@@ -114,9 +105,13 @@ export default async function handler(req, res) {
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
       await fetchPlaylist();
     }
-    const local = makeLocalPlaylist(currentPlaylistText);
+    
+    // Utiliser l'URL finale comme baseUrl (comme votre code fonctionnel)
+    const baseUrl = baseRemote; // L'URL finale après redirection
+    const rewritten = rewritePlaylistUrls(currentPlaylistText, baseUrl);
+    
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-    res.send(local);
+    res.send(rewritten);
   } catch (err) {
     console.error(err);
     res.status(500).send("error fetching playlist");
