@@ -39,10 +39,21 @@ export default async function handler(req, res) {
       });
     }
 
-    // Extraction réelle avec fetch
+    // Extraction réelle avec fetch (simulation navigateur complet)
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
         'Referer': 'https://vidzy.org/'
       }
     });
@@ -121,6 +132,48 @@ export default async function handler(req, res) {
         if (match) {
           m3u8Link = match[1];
           break;
+        }
+      }
+    }
+
+    // Méthode 5: Recherche d'APIs ou endpoints cachés
+    if (!m3u8Link) {
+      const apiPatterns = [
+        /\/api\/[^"'\s]*\.m3u8[^"'\s]*/gi,
+        /\/stream\/[^"'\s]*\.m3u8[^"'\s]*/gi,
+        /\/play\/[^"'\s]*\.m3u8[^"'\s]*/gi,
+        /\/video\/[^"'\s]*\.m3u8[^"'\s]*/gi
+      ];
+      
+      for (const pattern of apiPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          m3u8Link = 'https://vidzy.org' + match[0];
+          break;
+        }
+      }
+    }
+
+    // Méthode 6: Recherche de base64 ou encodage
+    if (!m3u8Link) {
+      const base64Patterns = [
+        /atob\(["']([A-Za-z0-9+/=]+)["']\)/gi,
+        /decodeURIComponent\(["']([^"']+)["']\)/gi
+      ];
+      
+      for (const pattern of base64Patterns) {
+        const match = html.match(pattern);
+        if (match) {
+          try {
+            const decoded = Buffer.from(match[1], 'base64').toString();
+            const m3u8Match = decoded.match(/https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/);
+            if (m3u8Match) {
+              m3u8Link = m3u8Match[0];
+              break;
+            }
+          } catch (e) {
+            // Ignore decoding errors
+          }
         }
       }
     }
