@@ -67,30 +67,55 @@ export default async function handler(req, res) {
     // Recherche du lien m3u8 dans le HTML
     let m3u8Link = null;
     
-    // Méthode 1: Recherche dans les scripts (plus approfondie)
-    const scriptMatches = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi);
-    if (scriptMatches) {
-      for (const script of scriptMatches) {
-        const scriptContent = script;
-        
-        // Recherche de patterns Vidzy spécifiques
-        const vidzyPatterns = [
-          /file:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
-          /source:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
-          /url:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
-          /src:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
-          /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/gi
-        ];
-        
-        for (const pattern of vidzyPatterns) {
-          const match = scriptContent.match(pattern);
-          if (match) {
-            m3u8Link = match[1] || match[0];
-            break;
-          }
+    // Méthode 1: Recherche spécifique pour master.m3u8 Vidzy v4 (priorité haute)
+    const masterPattern = /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]*master\.m3u8[^"'\s]*/gi;
+    const masterMatch = html.match(masterPattern);
+    if (masterMatch) {
+      m3u8Link = masterMatch[0];
+    }
+
+    // Méthode 1b: Recherche générale pour Vidzy v4 (si pas de master trouvé)
+    if (!m3u8Link) {
+      const vidzyV4Pattern = /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]+\.m3u8[^"'\s]*/gi;
+      const vidzyV4Match = html.match(vidzyV4Pattern);
+      if (vidzyV4Match) {
+        // Si on trouve un lien index ou autre, construire le lien master
+        const foundUrl = vidzyV4Match[0];
+        if (foundUrl.includes('index-') || foundUrl.includes('iframes-')) {
+          // Remplacer index-v1-a1.m3u8 par master.m3u8
+          m3u8Link = foundUrl.replace(/index-[^/]*\.m3u8/, 'master.m3u8').replace(/iframes-[^/]*\.m3u8/, 'master.m3u8');
+        } else {
+          m3u8Link = foundUrl;
         }
-        
-        if (m3u8Link) break;
+      }
+    }
+
+    // Méthode 2: Recherche dans les scripts (plus approfondie)
+    if (!m3u8Link) {
+      const scriptMatches = html.match(/<script[^>]*>([\s\S]*?)<\/script>/gi);
+      if (scriptMatches) {
+        for (const script of scriptMatches) {
+          const scriptContent = script;
+          
+          // Recherche de patterns Vidzy spécifiques
+          const vidzyPatterns = [
+            /file:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+            /source:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+            /url:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+            /src:\s*["']([^"']*\.m3u8[^"']*)["']/gi,
+            /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/gi
+          ];
+          
+          for (const pattern of vidzyPatterns) {
+            const match = scriptContent.match(pattern);
+            if (match) {
+              m3u8Link = match[1] || match[0];
+              break;
+            }
+          }
+          
+          if (m3u8Link) break;
+        }
       }
     }
 
@@ -154,7 +179,28 @@ export default async function handler(req, res) {
       }
     }
 
-    // Méthode 6: Recherche de base64 ou encodage
+    // Méthode 6: Recherche de patterns HLS spécifiques
+    if (!m3u8Link) {
+      const hlsPatterns = [
+        /#EXTM3U[\s\S]*?https:\/\/[^"'\s]+\.m3u8[^"'\s]*/gi,
+        /master\.m3u8[^"'\s]*/gi,
+        /index-[^"'\s]*\.m3u8[^"'\s]*/gi
+      ];
+      
+      for (const pattern of hlsPatterns) {
+        const match = html.match(pattern);
+        if (match) {
+          // Extraire l'URL complète du match
+          const urlMatch = match[0].match(/https:\/\/[^"'\s]+\.m3u8[^"'\s]*/);
+          if (urlMatch) {
+            m3u8Link = urlMatch[0];
+            break;
+          }
+        }
+      }
+    }
+
+    // Méthode 7: Recherche de base64 ou encodage
     if (!m3u8Link) {
       const base64Patterns = [
         /atob\(["']([A-Za-z0-9+/=]+)["']\)/gi,
