@@ -49,7 +49,7 @@ async function resolveAuthUrl(channelId) {
 #EXT-X-TARGETDURATION:10
 #EXT-X-MEDIA-SEQUENCE:0
 #EXTINF:10.0,
-${baseRemote}
+/api/tv-proxy?channelId=${channelId}&segment=${encodeURIComponent(`${channelId}.m3u8`)}
 #EXT-X-ENDLIST`;
         return { directPlaylist: playlist, url: baseRemote };
       }
