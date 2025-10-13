@@ -2,7 +2,6 @@
 let currentAuthUrl = null;
 let currentPlaylistText = null;
 let lastPlaylistFetch = 0;
-let baseRemote = null;
 
 // Headers par défaut
 const defaultHeaders = {
@@ -10,6 +9,9 @@ const defaultHeaders = {
   "Accept": "*/*",
   "Referer": "https://fremtv.lol/"
 };
+
+// URL de base sera définie dynamiquement
+let baseRemote = null;
 
 // Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
 async function resolveAuthUrl() {
@@ -59,7 +61,7 @@ function makeLocalPlaylist(playlistText) {
     if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
       // extract filename and keep query if any (we'll ignore remote token and proxy)
       const u = line.trim();
-      // get basename (e.g. 138_914.ts?token=...)
+      // get basename (e.g. 78_25.ts?token=...)
       const name = u.split("/").pop();
       // local proxy path
       return `/api/seg/${encodeURIComponent(name)}`;
@@ -84,6 +86,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { channelId } = req.query;
+
+    if (!channelId) {
+      return res.status(400).json({ error: 'Channel ID required' });
+    }
+
+    // Définir l'URL de base pour cette chaîne
+    baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
+
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
       await fetchPlaylist();

@@ -69,80 +69,67 @@ export default function TVChannels() {
     if (!selectedChannel || !videoRef.current) return;
 
     const video = videoRef.current;
-    const streamUrl = `/api/tv/stream/${selectedChannel.id}`;
+    const streamUrl = `/api/playlist.m3u8?channelId=${selectedChannel.id}`;
 
     setIsLoading(true);
     setError(null);
 
-        // Essayer d'abord la lecture native (pour MP4 directs)
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => {
-          setIsLoading(false);
-          video.play().catch(err => {
-            console.error("Erreur de lecture native:", err);
-            setError("Impossible de lire le flux");
-          });
-        });
-        video.addEventListener('error', (e) => {
-          console.error("Erreur vidéo native:", e);
-          // Si la lecture native échoue, essayer HLS
-          if (Hls.isSupported()) {
-            if (hlsRef.current) {
-              hlsRef.current.destroy();
-            }
-
-            const hls = new Hls({
-              enableWorker: true,
-              lowLatencyMode: false,
-            });
-            
-            hlsRef.current = hls;
-            hls.loadSource(streamUrl);
-            hls.attachMedia(video);
-            
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              setIsLoading(false);
-              video.play().catch(err => {
-                console.error("Erreur de lecture HLS:", err);
-                setError("Impossible de lire le flux");
-              });
-            });
-            
-            hls.on(Hls.Events.ERROR, (_event, data: any) => {
-              console.error("Erreur HLS:", data);
-              setIsLoading(false);
-              if (data.fatal) {
-                setError("Erreur fatale lors du chargement du flux");
-                switch (data.type) {
-                  case Hls.ErrorTypes.NETWORK_ERROR:
-                    console.error("Erreur réseau fatale");
-                    hls.startLoad();
-                    break;
-                  case Hls.ErrorTypes.MEDIA_ERROR:
-                    console.error("Erreur média fatale");
-                    hls.recoverMediaError();
-                    break;
-                  default:
-                    console.error("Erreur fatale non récupérable");
-                    hls.destroy();
-                    break;
-                }
-              }
-            });
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = streamUrl;
-            video.addEventListener('loadedmetadata', () => {
-              setIsLoading(false);
-              video.play().catch(err => {
-                console.error("Erreur de lecture:", err);
-                setError("Impossible de lire le flux");
-              });
-            });
-          } else {
-            setError("Votre navigateur ne supporte pas HLS");
-            setIsLoading(false);
+        if (Hls.isSupported()) {
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
           }
-        });
+
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+          });
+          
+          hlsRef.current = hls;
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+          
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+          
+          hls.on(Hls.Events.ERROR, (_event, data: any) => {
+            console.error("Erreur HLS:", data);
+            setIsLoading(false);
+            if (data.fatal) {
+              setError("Erreur fatale lors du chargement du flux");
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error("Erreur réseau fatale");
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error("Erreur média fatale");
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error("Erreur fatale non récupérable");
+                  hls.destroy();
+                  break;
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.addEventListener('loadedmetadata', () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+        } else {
+          setError("Votre navigateur ne supporte pas HLS");
+          setIsLoading(false);
+        }
 
     return () => {
       if (hlsRef.current) {

@@ -1,8 +1,7 @@
-// État en mémoire (comme dans le code fonctionnel)
+// État en mémoire (partagé avec playlist.m3u8)
 let currentAuthUrl = null;
 let currentPlaylistText = null;
 let lastPlaylistFetch = 0;
-let baseRemote = null;
 
 // Headers par défaut
 const defaultHeaders = {
@@ -10,6 +9,9 @@ const defaultHeaders = {
   "Accept": "*/*",
   "Referer": "https://fremtv.lol/"
 };
+
+// URL de base
+const baseRemote = process.env.REMOTE_MASTER || "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/78.m3u8";
 
 // Suit redirection initiale et stocke auth URL
 async function resolveAuthUrl() {
