@@ -11,7 +11,7 @@ import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import { useMovieDetails, useMovieVideos, useSimilarMovies } from "@/hooks/useTMDB";
+import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -24,12 +24,14 @@ export default function MovieDetail() {
   const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { isFavorite, toggleFavorite } = useFavorites();
   
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
   const { data: videos } = useMovieVideos(movieId);
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Find trailer from videos
   const trailer = videos?.results?.find(
@@ -116,11 +118,18 @@ export default function MovieDetail() {
       
       {/* Main Content */}
       <div className="md:ml-64">
-        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <SearchBar />
+              <div className="flex-1 relative">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    setLocation(path);
+                  }}
+                />
               </div>
               <div className="flex items-center gap-2">
                 <LanguageSelect />

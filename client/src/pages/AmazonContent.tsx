@@ -74,7 +74,7 @@ export default function AmazonContent() {
       {/* Main Content */}
       <div className="md:ml-64">
         {/* Header avec recherche et contrôles */}
-        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <Button
@@ -85,7 +85,7 @@ export default function AmazonContent() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t("common.back")}
             </Button>
-            <div className="flex-1">
+            <div className="flex-1 relative">
               <SearchBar
                 onSearch={setSearchQuery}
                 suggestions={searchQuery ? searchResults : []}

@@ -79,7 +79,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <Card className="absolute top-full mt-2 w-full max-h-96 overflow-y-auto z-50 p-2">
+        <Card className="absolute top-full mt-2 w-full max-h-96 overflow-y-auto z-[9999] p-2 shadow-xl border bg-background/98 backdrop-blur-sm">
           {suggestions.map((item) => (
             <div
               key={`${item.mediaType}-${item.id}`}
