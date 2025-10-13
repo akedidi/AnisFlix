@@ -58,6 +58,12 @@ async function resolveAuthUrl() {
 
 // Fetch playlist text from auth URL and keep it in memory (comme dans le code fonctionnel)
 async function fetchPlaylist() {
+  // Si on a déjà une playlist (cas MP4 direct), pas besoin de refetch
+  if (currentPlaylistText && !currentAuthUrl) {
+    console.log("Using existing playlist (MP4 direct)");
+    return currentPlaylistText;
+  }
+
   if (!currentAuthUrl) await resolveAuthUrl();
 
   const res = await fetch(currentAuthUrl, { headers: defaultHeaders });
@@ -117,9 +123,15 @@ export default async function handler(req, res) {
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
       await fetchPlaylist();
     }
-    const local = makeLocalPlaylist(currentPlaylistText);
-    res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
-    res.send(local);
+    
+    // Si on a une playlist, la servir
+    if (currentPlaylistText) {
+      const local = makeLocalPlaylist(currentPlaylistText);
+      res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
+      res.send(local);
+    } else {
+      res.status(500).send("No playlist available");
+    }
   } catch (err) {
     console.error(err);
     res.status(500).send("error fetching playlist");
