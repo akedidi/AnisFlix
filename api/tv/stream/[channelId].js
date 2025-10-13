@@ -40,6 +40,19 @@ async function resolveAuthUrl(channelId) {
         console.log(`[TV] Master returned playlist directly for ${channelId}`);
         return { directPlaylist: text, url: baseRemote };
       }
+      
+      // Si c'est un MP4, créer une playlist simple
+      if (res.headers.get('content-type')?.includes('video/mp4')) {
+        console.log(`[TV] Master returned MP4 directly for ${channelId}`);
+        const playlist = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+${baseRemote}
+#EXT-X-ENDLIST`;
+        return { directPlaylist: playlist, url: baseRemote };
+      }
     }
     
     throw new Error("Could not resolve auth URL");
