@@ -38,7 +38,7 @@ export default function Favorites() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
+    <div className="min-h-screen fade-in-up mobile-bottom-nav-padding">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       

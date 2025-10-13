@@ -54,7 +54,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
+    <div className="min-h-screen fade-in-up mobile-bottom-nav-padding">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
