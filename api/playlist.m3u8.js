@@ -36,6 +36,12 @@ async function resolveAuthUrl() {
       console.log("Master returned playlist directly");
       return baseRemote;
     }
+    // If it's an MP4, we need to handle it differently
+    const contentType = res.headers.get('content-type');
+    if (contentType?.includes('video/mp4')) {
+      console.log("Master returned MP4 directly, this needs different handling");
+      throw new Error("MP4 direct stream not supported in HLS mode");
+    }
   }
   throw new Error("Could not resolve auth URL");
 }
