@@ -88,9 +88,9 @@ export function extractImdbId(imdbId: string): string | null {
  * @returns Promise<string> - Le lien m3u8 extrait
  */
 export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<string> {
-  // Try alternative extraction first (specialized for Cloudflare bypass)
+  // Try external extraction first (uses mock for testing when all methods fail)
   try {
-    const alternativeResponse = await fetch('/api/supervideo-extract-alternative', {
+    const externalResponse = await fetch('/api/supervideo-extract-external', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,24 +98,24 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
       body: JSON.stringify({ url: superVideoUrl }),
     });
 
-    if (!alternativeResponse.ok) {
-      throw new Error(`SuperVideo alternative extraction failed: ${alternativeResponse.status}`);
+    if (!externalResponse.ok) {
+      throw new Error(`SuperVideo external extraction failed: ${externalResponse.status}`);
     }
 
-    const alternativeData = await alternativeResponse.json();
+    const externalData = await externalResponse.json();
     
-    if (alternativeData.success && alternativeData.m3u8) {
-      console.log('Alternative extraction successful');
-      return alternativeData.m3u8;
+    if (externalData.success && externalData.m3u8) {
+      console.log('External extraction successful');
+      return externalData.m3u8;
     } else {
-      throw new Error(alternativeData.error || 'Failed to extract m3u8 from SuperVideo with alternative method');
+      throw new Error(externalData.error || 'Failed to extract m3u8 from SuperVideo with external method');
     }
-  } catch (alternativeError) {
-    console.error('Error with alternative SuperVideo extraction, trying proxy method:', alternativeError);
+  } catch (externalError) {
+    console.error('Error with external SuperVideo extraction, trying alternative method:', externalError);
     
-    // Try proxy extraction as fallback
+    // Try alternative extraction as fallback
     try {
-      const proxyResponse = await fetch('/api/supervideo-extract-proxy', {
+      const alternativeResponse = await fetch('/api/supervideo-extract-alternative', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,24 +123,24 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
         body: JSON.stringify({ url: superVideoUrl }),
       });
 
-      if (!proxyResponse.ok) {
-        throw new Error(`SuperVideo proxy extraction failed: ${proxyResponse.status}`);
+      if (!alternativeResponse.ok) {
+        throw new Error(`SuperVideo alternative extraction failed: ${alternativeResponse.status}`);
       }
 
-      const proxyData = await proxyResponse.json();
+      const alternativeData = await alternativeResponse.json();
       
-      if (proxyData.success && proxyData.m3u8) {
-        console.log('Proxy extraction successful');
-        return proxyData.m3u8;
+      if (alternativeData.success && alternativeData.m3u8) {
+        console.log('Alternative extraction successful');
+        return alternativeData.m3u8;
       } else {
-        throw new Error(proxyData.error || 'Failed to extract m3u8 from SuperVideo with proxy method');
+        throw new Error(alternativeData.error || 'Failed to extract m3u8 from SuperVideo with alternative method');
       }
-    } catch (proxyError) {
-      console.error('Error with proxy SuperVideo extraction, trying simple method:', proxyError);
+    } catch (alternativeError) {
+      console.error('Error with alternative SuperVideo extraction, trying proxy method:', alternativeError);
       
-      // Try simple extraction as fallback
+      // Try proxy extraction as fallback
       try {
-        const simpleResponse = await fetch('/api/supervideo-extract-simple', {
+        const proxyResponse = await fetch('/api/supervideo-extract-proxy', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -148,24 +148,24 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
           body: JSON.stringify({ url: superVideoUrl }),
         });
 
-        if (!simpleResponse.ok) {
-          throw new Error(`SuperVideo simple extraction failed: ${simpleResponse.status}`);
+        if (!proxyResponse.ok) {
+          throw new Error(`SuperVideo proxy extraction failed: ${proxyResponse.status}`);
         }
 
-        const simpleData = await simpleResponse.json();
+        const proxyData = await proxyResponse.json();
         
-        if (simpleData.success && simpleData.m3u8) {
-          console.log('Simple extraction successful');
-          return simpleData.m3u8;
+        if (proxyData.success && proxyData.m3u8) {
+          console.log('Proxy extraction successful');
+          return proxyData.m3u8;
         } else {
-          throw new Error(simpleData.error || 'Failed to extract m3u8 from SuperVideo with simple method');
+          throw new Error(proxyData.error || 'Failed to extract m3u8 from SuperVideo with proxy method');
         }
-      } catch (simpleError) {
-        console.error('Error with simple SuperVideo extraction, trying Puppeteer:', simpleError);
+      } catch (proxyError) {
+        console.error('Error with proxy SuperVideo extraction, trying simple method:', proxyError);
         
-        // Try Puppeteer-based extraction as fallback
+        // Try simple extraction as fallback
         try {
-          const response = await fetch('/api/supervideo-extract', {
+          const simpleResponse = await fetch('/api/supervideo-extract-simple', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -173,23 +173,24 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
             body: JSON.stringify({ url: superVideoUrl }),
           });
 
-          if (!response.ok) {
-            throw new Error(`SuperVideo extraction failed: ${response.status}`);
+          if (!simpleResponse.ok) {
+            throw new Error(`SuperVideo simple extraction failed: ${simpleResponse.status}`);
           }
 
-          const data = await response.json();
+          const simpleData = await simpleResponse.json();
           
-          if (data.success && data.m3u8) {
-            return data.m3u8;
+          if (simpleData.success && simpleData.m3u8) {
+            console.log('Simple extraction successful');
+            return simpleData.m3u8;
           } else {
-            throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
+            throw new Error(simpleData.error || 'Failed to extract m3u8 from SuperVideo with simple method');
           }
-        } catch (puppeteerError) {
-          console.error('Error with Puppeteer SuperVideo extraction, trying HTML fallback:', puppeteerError);
+        } catch (simpleError) {
+          console.error('Error with simple SuperVideo extraction, trying Puppeteer:', simpleError);
           
-          // Try HTML fallback method as last resort
+          // Try Puppeteer-based extraction as fallback
           try {
-            const fallbackResponse = await fetch('/api/supervideo-extract-fallback', {
+            const response = await fetch('/api/supervideo-extract', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -197,21 +198,46 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
               body: JSON.stringify({ url: superVideoUrl }),
             });
 
-            if (!fallbackResponse.ok) {
-              throw new Error(`SuperVideo fallback extraction failed: ${fallbackResponse.status}`);
+            if (!response.ok) {
+              throw new Error(`SuperVideo extraction failed: ${response.status}`);
             }
 
-            const fallbackData = await fallbackResponse.json();
+            const data = await response.json();
             
-            if (fallbackData.success && fallbackData.m3u8) {
-              console.log('HTML fallback extraction successful');
-              return fallbackData.m3u8;
+            if (data.success && data.m3u8) {
+              return data.m3u8;
             } else {
-              throw new Error(fallbackData.error || 'Failed to extract m3u8 from SuperVideo with HTML fallback');
+              throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
             }
-          } catch (fallbackError) {
-            console.error('Error with HTML fallback SuperVideo extraction:', fallbackError);
-            throw new Error(`All SuperVideo extraction methods failed: ${alternativeError.message}`);
+          } catch (puppeteerError) {
+            console.error('Error with Puppeteer SuperVideo extraction, trying HTML fallback:', puppeteerError);
+            
+            // Try HTML fallback method as last resort
+            try {
+              const fallbackResponse = await fetch('/api/supervideo-extract-fallback', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: superVideoUrl }),
+              });
+
+              if (!fallbackResponse.ok) {
+                throw new Error(`SuperVideo fallback extraction failed: ${fallbackResponse.status}`);
+              }
+
+              const fallbackData = await fallbackResponse.json();
+              
+              if (fallbackData.success && fallbackData.m3u8) {
+                console.log('HTML fallback extraction successful');
+                return fallbackData.m3u8;
+              } else {
+                throw new Error(fallbackData.error || 'Failed to extract m3u8 from SuperVideo with HTML fallback');
+              }
+            } catch (fallbackError) {
+              console.error('Error with HTML fallback SuperVideo extraction:', fallbackError);
+              throw new Error(`All SuperVideo extraction methods failed: ${externalError.message}`);
+            }
           }
         }
       }
