@@ -79,12 +79,17 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <Card className="absolute top-full mt-2 w-full max-h-96 overflow-y-auto z-[999999] p-2 shadow-xl border bg-background/98 backdrop-blur-sm" style={{ zIndex: 999999 }}>
+        <Card className="absolute top-full mt-2 w-full max-h-96 overflow-y-auto p-2 shadow-2xl border-2 border-border/50" style={{ 
+          zIndex: 2147483647,
+          backgroundColor: 'rgba(0, 0, 0, 0.95)',
+          backdropFilter: 'blur(20px)',
+          isolation: 'isolate'
+        }}>
           {suggestions.map((item) => (
             <div
               key={`${item.mediaType}-${item.id}`}
               onClick={() => handleSelectItem(item)}
-              className="flex items-center gap-3 p-2 rounded-md hover-elevate active-elevate-2 cursor-pointer"
+              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
               data-testid={`search-result-${item.id}`}
             >
               <img
@@ -97,13 +102,13 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
                 className="w-12 h-18 object-cover rounded"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate">{item.title}</h4>
+                <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                     {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>
                   {item.year && (
-                    <span className="text-xs text-muted-foreground">{item.year}</span>
+                    <span className="text-xs text-gray-300">{item.year}</span>
                   )}
                 </div>
               </div>
