@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Calendar, X, Heart } from "lucide-react";
+import { Star, Calendar, X, Heart, Play } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -130,7 +130,7 @@ export default function SeriesDetail() {
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <SearchBar onNavigate={setLocation} />
+                <SearchBar />
               </div>
               <div className="flex items-center gap-2">
                 <LanguageSelect />
@@ -328,7 +328,7 @@ export default function SeriesDetail() {
                                     posterPath={series.poster_path}
                                     backdropPath={series.backdrop_path}
                                     seasonNumber={selectedSeasonNumber}
-                                    episodeNumber={selectedEpisode}
+                                    episodeNumber={selectedEpisode || undefined}
                                   />
                                 </div>
                               )}

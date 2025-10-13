@@ -120,7 +120,7 @@ export default function MovieDetail() {
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <SearchBar onNavigate={setLocation} />
+                <SearchBar />
               </div>
               <div className="flex items-center gap-2">
                 <LanguageSelect />
