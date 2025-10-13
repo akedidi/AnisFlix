@@ -59,3 +59,35 @@ export function extractImdbId(imdbId: string): string | null {
   
   return null;
 }
+
+/**
+ * Extrait le lien m3u8 depuis une URL SuperVideo
+ * @param superVideoUrl - L'URL SuperVideo (ex: https://supervideo.cc/e/4sro2m95gamx)
+ * @returns Promise<string> - Le lien m3u8 extrait
+ */
+export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<string> {
+  try {
+    const response = await fetch('/api/supervideo-extract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: superVideoUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`SuperVideo extraction failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success && data.m3u8) {
+      return data.m3u8;
+    } else {
+      throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
+    }
+  } catch (error) {
+    console.error('Error extracting SuperVideo m3u8:', error);
+    throw error;
+  }
+}

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
-import { getMovixPlayerLinks, extractImdbId } from "@/lib/movixPlayer";
+import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8 } from "@/lib/movixPlayer";
 
 // Optimized query options to reduce Fast Origin usage
 const CACHE_OPTIONS = {
@@ -259,5 +259,23 @@ export const useMovixPlayerLinks = (imdbId: string | null, mediaType: 'movie' | 
     },
     enabled: !!imdbId && !!extractImdbId(imdbId),
     ...CACHE_OPTIONS,
+  });
+};
+
+// Hook pour extraire le lien m3u8 depuis SuperVideo
+export const useSuperVideoExtraction = (superVideoUrl: string | null) => {
+  return useQuery({
+    queryKey: ["supervideo-extraction", superVideoUrl],
+    queryFn: async () => {
+      if (!superVideoUrl) return null;
+      
+      return await extractSuperVideoM3u8(superVideoUrl);
+    },
+    enabled: !!superVideoUrl && (superVideoUrl.includes('supervideo.cc/e/') || superVideoUrl.includes('supervideo.my/e/')),
+    staleTime: 1000 * 60 * 5, // 5 minutes (shorter cache for dynamic content)
+    cacheTime: 1000 * 60 * 15, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 };
