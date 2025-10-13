@@ -12,10 +12,45 @@ const defaultHeaders = {
 // URL de base sera définie dynamiquement
 let baseRemote = null;
 
-// Fetch la playlist M3U8 initiale (comme dans le code fonctionnel)
-async function fetchPlaylist() {
-  console.log("Fetching playlist from:", baseRemote);
+// Fetch le token depuis l'URL initiale (comme dans le code fonctionnel)
+async function fetchToken() {
+  console.log("Fetching token from:", baseRemote);
   const res = await fetch(baseRemote, { method: "GET", headers: defaultHeaders });
+  
+  if (!res.ok) {
+    throw new Error(`Failed to fetch token: ${res.status}`);
+  }
+  
+  // On s'en fout du contenu MP4, on cherche le token dans les headers
+  const token = res.headers.get('x-token') || res.headers.get('token') || res.headers.get('x-auth-token');
+  
+  if (!token) {
+    // Si pas de token dans les headers, peut-être dans l'URL de redirection
+    const location = res.headers.get('location');
+    if (location && location.includes('token=')) {
+      const url = new URL(location);
+      const extractedToken = url.searchParams.get('token');
+      if (extractedToken) {
+        console.log("Token found in location header:", extractedToken);
+        return extractedToken;
+      }
+    }
+    throw new Error("No token found in response");
+  }
+  
+  console.log("Token found:", token);
+  return token;
+}
+
+// Fetch la vraie playlist avec le token
+async function fetchPlaylist() {
+  const token = await fetchToken();
+  
+  // Construire l'URL de la vraie playlist avec le token
+  const playlistUrl = `https://fremtv.lol/auth/${baseRemote.split('/').pop()}?token=${token}`;
+  console.log("Fetching real playlist from:", playlistUrl);
+  
+  const res = await fetch(playlistUrl, { headers: defaultHeaders });
   
   if (!res.ok) {
     throw new Error(`Failed to fetch playlist: ${res.status}`);
@@ -23,7 +58,6 @@ async function fetchPlaylist() {
   
   const text = await res.text();
   
-  // L'URL retourne toujours une playlist M3U8 avec des segments
   if (text.includes("#EXTM3U")) {
     currentPlaylistText = text;
     lastPlaylistFetch = Date.now();
