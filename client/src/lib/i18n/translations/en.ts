@@ -50,6 +50,7 @@ export default {
   "series.comedy": "Comedy",
   "series.thriller": "Thriller",
   "series.romance": "Romance",
+  "series.mystery": "Mystery",
   "series.scifi": "Science Fiction",
   "series.fantasy": "Fantasy",
   "series.documentary": "Documentary",
