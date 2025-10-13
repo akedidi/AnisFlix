@@ -16,8 +16,12 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden">
-      <div className="flex items-center justify-around h-16">
+    <>
+      {/* Spacer pour compenser la hauteur du menu fixe sur mobile */}
+      <div className="h-16 md:hidden" />
+      
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden">
+        <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;
@@ -41,7 +45,8 @@ export default function BottomNav() {
             </Link>
           );
         })}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </>
   );
 }
