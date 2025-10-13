@@ -74,20 +74,62 @@ export default function TVChannels() {
     setIsLoading(true);
     setError(null);
 
-        // Lecture native pour MP4 directs
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => {
-          setIsLoading(false);
-          video.play().catch(err => {
-            console.error("Erreur de lecture:", err);
-            setError("Impossible de lire le flux");
+        if (Hls.isSupported()) {
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
+          }
+
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
           });
-        });
-        video.addEventListener('error', (e) => {
-          console.error("Erreur vidéo:", e);
+          
+          hlsRef.current = hls;
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+          
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+          
+          hls.on(Hls.Events.ERROR, (_event, data: any) => {
+            console.error("Erreur HLS:", data);
+            setIsLoading(false);
+            if (data.fatal) {
+              setError("Erreur fatale lors du chargement du flux");
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error("Erreur réseau fatale");
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error("Erreur média fatale");
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error("Erreur fatale non récupérable");
+                  hls.destroy();
+                  break;
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.addEventListener('loadedmetadata', () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+        } else {
+          setError("Votre navigateur ne supporte pas HLS");
           setIsLoading(false);
-          setError("Erreur lors du chargement de la vidéo");
-        });
+        }
 
     return () => {
       if (hlsRef.current) {

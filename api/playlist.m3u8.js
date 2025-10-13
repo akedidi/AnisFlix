@@ -1,5 +1,4 @@
 // État en mémoire (comme dans le code fonctionnel)
-let currentAuthUrl = null;
 let currentPlaylistText = null;
 let lastPlaylistFetch = 0;
 
@@ -13,43 +12,27 @@ const defaultHeaders = {
 // URL de base sera définie dynamiquement
 let baseRemote = null;
 
-// Fetch le contenu initial (comme dans le code fonctionnel)
-async function fetchInitialContent() {
-  console.log("Fetching initial content from:", baseRemote);
+// Fetch la playlist M3U8 initiale (comme dans le code fonctionnel)
+async function fetchPlaylist() {
+  console.log("Fetching playlist from:", baseRemote);
   const res = await fetch(baseRemote, { method: "GET", headers: defaultHeaders });
   
   if (!res.ok) {
-    throw new Error(`Failed to fetch initial content: ${res.status}`);
+    throw new Error(`Failed to fetch playlist: ${res.status}`);
   }
   
-  const contentType = res.headers.get('content-type');
   const text = await res.text();
   
-  // Si c'est une playlist M3U8
+  // L'URL retourne toujours une playlist M3U8 avec des segments
   if (text.includes("#EXTM3U")) {
     currentPlaylistText = text;
-    console.log("Master returned playlist directly");
-    return { type: 'playlist', content: text };
+    lastPlaylistFetch = Date.now();
+    console.log("Playlist fetched, length:", text.length);
+    return text;
   }
   
-  // Si c'est un MP4, créer une playlist simple
-  if (contentType?.includes('video/mp4')) {
-    console.log("Master returned MP4 directly, creating simple playlist");
-    const simplePlaylist = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:10
-#EXT-X-MEDIA-SEQUENCE:0
-#EXTINF:10.0,
-${baseRemote}
-#EXT-X-ENDLIST`;
-    currentPlaylistText = simplePlaylist;
-    return { type: 'mp4', content: simplePlaylist };
-  }
-  
-  throw new Error("Unknown content type");
+  throw new Error("Not a valid M3U8 playlist");
 }
-
-// Pas besoin de fetchPlaylist séparé, on utilise fetchInitialContent
 
 // Simple parser -> remplace les lignes qui commencent par "/hls/..." par URLs locales (comme dans le code fonctionnel)
 function makeLocalPlaylist(playlistText) {
@@ -95,8 +78,7 @@ export default async function handler(req, res) {
 
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
-      await fetchInitialContent();
-      lastPlaylistFetch = Date.now();
+      await fetchPlaylist();
     }
     const local = makeLocalPlaylist(currentPlaylistText);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
