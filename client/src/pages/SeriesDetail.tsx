@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Star, Calendar, X } from "lucide-react";
+import { Play, Star, Calendar, X, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -17,6 +17,7 @@ import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries }
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
+import { useFavorites } from "@/hooks/useFavorites";
 
 export default function SeriesDetail() {
   const { id } = useParams();
@@ -27,6 +28,7 @@ export default function SeriesDetail() {
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Réinitialiser la source quand l'épisode ou la saison change
   useEffect(() => {
@@ -181,6 +183,45 @@ export default function SeriesDetail() {
               <p className="text-muted-foreground leading-relaxed mb-6">
                 {series.overview || "Aucun synopsis disponible."}
               </p>
+
+              {/* Boutons d'action */}
+              <div className="flex gap-3 mb-6">
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    // Scroll vers les sources de streaming
+                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]');
+                    sourcesSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Play className="w-5 h-5" />
+                  Regarder
+                </Button>
+                <Button
+                  variant={isFavorite(seriesId, 'series') ? "default" : "outline"}
+                  size="lg"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    if (series) {
+                      toggleFavorite({
+                        id: seriesId,
+                        title: series.name,
+                        posterPath: series.poster_path,
+                        rating: series.vote_average,
+                        year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : '',
+                        mediaType: 'series'
+                      });
+                    }
+                  }}
+                >
+                  <Heart 
+                    className={`w-5 h-5 ${isFavorite(seriesId, 'series') ? 'fill-current' : ''}`} 
+                  />
+                  {isFavorite(seriesId, 'series') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+                </Button>
+              </div>
             </div>
 
             <Tabs defaultValue="season-1" className="w-full" onValueChange={(value) => {

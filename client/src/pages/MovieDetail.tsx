@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, Star, Calendar, X } from "lucide-react";
+import { Play, Clock, Star, Calendar, X, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -15,6 +15,7 @@ import { useMovieDetails, useMovieVideos, useSimilarMovies } from "@/hooks/useTM
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
+import { useFavorites } from "@/hooks/useFavorites";
 
 export default function MovieDetail() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function MovieDetail() {
   const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
@@ -176,6 +178,45 @@ export default function MovieDetail() {
               <p className="text-muted-foreground leading-relaxed mb-6">
                 {movie.overview || "Aucun synopsis disponible."}
               </p>
+
+              {/* Boutons d'action */}
+              <div className="flex gap-3 mb-6">
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    // Scroll vers les sources de streaming
+                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]');
+                    sourcesSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Play className="w-5 h-5" />
+                  Regarder
+                </Button>
+                <Button
+                  variant={isFavorite(movieId, 'movie') ? "default" : "outline"}
+                  size="lg"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    if (movie) {
+                      toggleFavorite({
+                        id: movieId,
+                        title: movie.title,
+                        posterPath: movie.poster_path,
+                        rating: movie.vote_average,
+                        year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
+                        mediaType: 'movie'
+                      });
+                    }
+                  }}
+                >
+                  <Heart 
+                    className={`w-5 h-5 ${isFavorite(movieId, 'movie') ? 'fill-current' : ''}`} 
+                  />
+                  {isFavorite(movieId, 'movie') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+                </Button>
+              </div>
 
               {trailer && (
                 <div className="space-y-3">
