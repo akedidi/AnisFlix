@@ -23,7 +23,7 @@ export async function extractVidSrcStreamingLinks(url: string): Promise<VidSrcRe
   try {
     // Use Vercel Functions in production, local API in development
     const apiUrl = process.env.NODE_ENV === 'production' 
-      ? '/api/vidsrc/extract'
+      ? '/api/vidsrc-extract'
       : '/api/vidsrc/extract';
       
     const response = await fetch(apiUrl, {
@@ -56,7 +56,7 @@ export async function extractVidSrcM3u8(url: string): Promise<string | null> {
   try {
     // Use Vercel Functions in production, local API in development
     const apiUrl = process.env.NODE_ENV === 'production' 
-      ? '/api/vidsrc/m3u8'
+      ? '/api/vidsrc-m3u8'
       : '/api/vidsrc/m3u8';
       
     const response = await fetch(apiUrl, {
