@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getOptimizedImageUrl } from "@/lib/imageOptimization";
 
 interface SearchSuggestion {
   id: number;
@@ -117,11 +118,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
               data-testid={`search-result-${item.id}`}
             >
               <img
-                src={
-                  item.posterPath
-                    ? `https://image.tmdb.org/t/p/w92${item.posterPath}`
-                    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='92' height='138'%3E%3Crect fill='%23334155' width='92' height='138'/%3E%3C/svg%3E"
-                }
+                src={getOptimizedImageUrl(item.posterPath, 'w92')}
                 alt={item.title}
                 className="w-12 h-18 object-cover rounded"
               />

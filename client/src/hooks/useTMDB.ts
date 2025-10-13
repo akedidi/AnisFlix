@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
+import { getMovixPlayerLinks, extractImdbId } from "@/lib/movixPlayer";
+
+// Optimized query options to reduce Fast Origin usage
+const CACHE_OPTIONS = {
+  staleTime: 1000 * 60 * 30, // 30 minutes
+  cacheTime: 1000 * 60 * 60, // 1 hour
+  refetchOnWindowFocus: false,
+  refetchOnMount: false,
+  refetchOnReconnect: false,
+};
 
 // Transform TMDB movie data to our app format
 const transformMovie = (movie: any) => ({
@@ -32,6 +42,7 @@ export const usePopularMovies = (page = 1) => {
         page: data.page,
       };
     },
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -82,6 +93,7 @@ export const useMovieDetails = (movieId: number) => {
     queryKey: ["movie", movieId],
     queryFn: () => tmdb.getMovieDetails(movieId),
     enabled: !!movieId,
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -90,6 +102,7 @@ export const useSeriesDetails = (seriesId: number) => {
     queryKey: ["series", seriesId],
     queryFn: () => tmdb.getSeriesDetails(seriesId),
     enabled: !!seriesId,
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -98,6 +111,7 @@ export const useMovieVideos = (movieId: number) => {
     queryKey: ["movie", movieId, "videos"],
     queryFn: () => tmdb.getMovieVideos(movieId),
     enabled: !!movieId,
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -106,6 +120,7 @@ export const useSeriesVideos = (seriesId: number) => {
     queryKey: ["series", seriesId, "videos"],
     queryFn: () => tmdb.getSeriesVideos(seriesId),
     enabled: !!seriesId,
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -114,6 +129,7 @@ export const useSeasonDetails = (seriesId: number, seasonNumber: number) => {
     queryKey: ["series", seriesId, "season", seasonNumber],
     queryFn: () => tmdb.getSeasonDetails(seriesId, seasonNumber),
     enabled: !!seriesId && !!seasonNumber,
+    ...CACHE_OPTIONS,
   });
 };
 
@@ -225,4 +241,23 @@ export const useProviderCounts = (providerId: number) => {
     movieCount: movies?.length || 0,
     tvCount: series?.length || 0,
   };
+};
+
+// Hook pour récupérer les liens de lecture Movix
+export const useMovixPlayerLinks = (imdbId: string | null, mediaType: 'movie' | 'tv') => {
+  return useQuery({
+    queryKey: ["movix-player-links", imdbId, mediaType],
+    queryFn: async () => {
+      if (!imdbId) return null;
+      
+      const cleanImdbId = extractImdbId(imdbId);
+      if (!cleanImdbId) {
+        throw new Error('Invalid IMDB ID');
+      }
+      
+      return await getMovixPlayerLinks(cleanImdbId, mediaType);
+    },
+    enabled: !!imdbId && !!extractImdbId(imdbId),
+    ...CACHE_OPTIONS,
+  });
 };

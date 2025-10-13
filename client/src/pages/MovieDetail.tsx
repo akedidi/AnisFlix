@@ -11,7 +11,7 @@ import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch } from "@/hooks/useTMDB";
+import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -32,6 +32,17 @@ export default function MovieDetail() {
   const { data: videos } = useMovieVideos(movieId);
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
+  // Fetch Movix player links
+  const { data: movixLinks, isLoading: isLoadingMovixLinks } = useMovixPlayerLinks(
+    movie?.imdb_id || null, 
+    'movie'
+  );
+  
+  // Log Movix links for debugging (will be removed later)
+  if (movixLinks && !isLoadingMovixLinks) {
+    console.log('Movix player links for movie:', movie?.title, movixLinks);
+  }
 
   // Find trailer from videos
   const trailer = videos?.results?.find(

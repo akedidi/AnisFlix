@@ -13,7 +13,7 @@ import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch } from "@/hooks/useTMDB";
+import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -42,6 +42,17 @@ export default function SeriesDetail() {
   const { data: seasonDetails } = useSeasonDetails(seriesId, selectedSeasonNumber);
   const { data: similarSeries = [] } = useSimilarSeries(seriesId);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
+  // Fetch Movix player links
+  const { data: movixLinks, isLoading: isLoadingMovixLinks } = useMovixPlayerLinks(
+    series?.imdb_id || null, 
+    'tv'
+  );
+  
+  // Log Movix links for debugging (will be removed later)
+  if (movixLinks && !isLoadingMovixLinks) {
+    console.log('Movix player links for series:', series?.name, movixLinks);
+  }
 
   // Find trailer from videos
   const trailer = videos?.results?.find(

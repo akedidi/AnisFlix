@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Info } from "lucide-react";
 import { Star } from "lucide-react";
+import { getOptimizedBackdropUrl } from "@/lib/imageOptimization";
 
 interface HeroSectionProps {
   title: string;
@@ -26,9 +27,7 @@ export default function HeroSection({
   onInfo,
   isFavorite = false,
 }: HeroSectionProps) {
-  const imageUrl = backdropPath
-    ? `https://image.tmdb.org/t/p/original${backdropPath}`
-    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Crect fill='%23334155' width='1920' height='1080'/%3E%3C/svg%3E";
+  const imageUrl = getOptimizedBackdropUrl(backdropPath, 'w1280');
 
   return (
     <div className="relative w-full h-[50vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden" data-testid="hero-section">
