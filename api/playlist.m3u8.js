@@ -1,12 +1,15 @@
-import { 
-  currentAuthUrl, 
-  currentPlaylistText, 
-  lastPlaylistFetch, 
-  baseRemote,
-  defaultHeaders,
-  setAuthUrl,
-  setPlaylistText
-} from './shared-state.js';
+// État en mémoire (comme dans le code fonctionnel)
+let currentAuthUrl = null;
+let currentPlaylistText = null;
+let lastPlaylistFetch = 0;
+let baseRemote = null;
+
+// Headers par défaut
+const defaultHeaders = {
+  "User-Agent": "Mozilla/5.0 (Node HLS Proxy)",
+  "Accept": "*/*",
+  "Referer": "https://fremtv.lol/"
+};
 
 // Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
 async function resolveAuthUrl() {
@@ -18,16 +21,16 @@ async function resolveAuthUrl() {
     if (!loc) throw new Error("Redirect without Location header");
     // if relative, resolve
     const resolved = new URL(loc, baseRemote).toString();
-    setAuthUrl(resolved);
-    console.log("Resolved auth URL:", resolved);
-    return resolved;
+    currentAuthUrl = resolved;
+    console.log("Resolved auth URL:", currentAuthUrl);
+    return currentAuthUrl;
   }
   // sometimes server replies directly with playlist
   if (res.ok) {
     const text = await res.text();
     // If it looks like an M3U8, set as playlist
     if (text.includes("#EXTM3U")) {
-      setPlaylistText(text);
+      currentPlaylistText = text;
       console.log("Master returned playlist directly");
       return baseRemote;
     }
@@ -42,7 +45,8 @@ async function fetchPlaylist() {
   const res = await fetch(currentAuthUrl, { headers: defaultHeaders });
   if (!res.ok) throw new Error("Failed fetching auth playlist: " + res.status);
   const text = await res.text();
-  setPlaylistText(text);
+  currentPlaylistText = text;
+  lastPlaylistFetch = Date.now();
   console.log("Playlist fetched, length:", text.length);
   return text;
 }

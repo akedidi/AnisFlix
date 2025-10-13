@@ -1,13 +1,15 @@
-import { 
-  currentAuthUrl, 
-  currentPlaylistText, 
-  lastPlaylistFetch, 
-  baseRemote,
-  defaultHeaders,
-  setBaseRemote,
-  setAuthUrl,
-  setPlaylistText
-} from '../../shared-state.js';
+// État en mémoire (comme dans le code fonctionnel)
+let currentAuthUrl = null;
+let currentPlaylistText = null;
+let lastPlaylistFetch = 0;
+let baseRemote = null;
+
+// Headers par défaut
+const defaultHeaders = {
+  "User-Agent": "Mozilla/5.0 (Node HLS Proxy)",
+  "Accept": "*/*",
+  "Referer": "https://fremtv.lol/"
+};
 
 // Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
 async function resolveAuthUrl() {
@@ -19,9 +21,9 @@ async function resolveAuthUrl() {
     if (!loc) throw new Error("Redirect without Location header");
     // if relative, resolve
     const resolved = new URL(loc, baseRemote).toString();
-    setAuthUrl(resolved);
-    console.log("Resolved auth URL:", resolved);
-    return resolved;
+    currentAuthUrl = resolved;
+    console.log("Resolved auth URL:", currentAuthUrl);
+    return currentAuthUrl;
   }
   // sometimes server replies directly with playlist or MP4
   if (res.ok) {
@@ -31,13 +33,13 @@ async function resolveAuthUrl() {
     if (contentType?.includes('application/vnd.apple.mpegurl') || contentType?.includes('application/x-mpegurl')) {
       const text = await res.text();
       if (text.includes("#EXTM3U")) {
-        setPlaylistText(text);
+        currentPlaylistText = text;
         console.log("Master returned playlist directly");
         return baseRemote;
       }
     }
     
-    // If it's an MP4, create a simple playlist
+    // If it's an MP4, create a simple playlist that points to our proxy
     if (contentType?.includes('video/mp4')) {
       console.log("Master returned MP4 directly, creating simple playlist");
       const simplePlaylist = `#EXTM3U
@@ -45,9 +47,9 @@ async function resolveAuthUrl() {
 #EXT-X-TARGETDURATION:10
 #EXT-X-MEDIA-SEQUENCE:0
 #EXTINF:10.0,
-${baseRemote}
+/api/tv-proxy?url=${encodeURIComponent(baseRemote)}
 #EXT-X-ENDLIST`;
-      setPlaylistText(simplePlaylist);
+      currentPlaylistText = simplePlaylist;
       return baseRemote;
     }
   }
@@ -61,7 +63,8 @@ async function fetchPlaylist() {
   const res = await fetch(currentAuthUrl, { headers: defaultHeaders });
   if (!res.ok) throw new Error("Failed fetching auth playlist: " + res.status);
   const text = await res.text();
-  setPlaylistText(text);
+  currentPlaylistText = text;
+  lastPlaylistFetch = Date.now();
   console.log("Playlist fetched, length:", text.length);
   return text;
 }
@@ -71,7 +74,6 @@ function makeLocalPlaylist(playlistText) {
   if (!playlistText) return "";
   const lines = playlistText.split(/\r?\n/);
   const out = lines.map(line => {
-    // Handle HLS segments
     if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
       // extract filename and keep query if any (we'll ignore remote token and proxy)
       const u = line.trim();
@@ -79,10 +81,6 @@ function makeLocalPlaylist(playlistText) {
       const name = u.split("/").pop();
       // local proxy path
       return `/api/seg/${encodeURIComponent(name)}`;
-    }
-    // Handle direct MP4 URLs - proxy them
-    if (line.includes('fremtv.lol') && (line.includes('.mp4') || line.includes('.m3u8'))) {
-      return `/api/tv-proxy?url=${encodeURIComponent(line.trim())}`;
     }
     return line;
   });
@@ -113,7 +111,7 @@ export default async function handler(req, res) {
     console.log(`[TV] Setting up HLS proxy for channel ${channelId}`);
 
     // Définir l'URL de base pour cette chaîne
-    setBaseRemote(`https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`);
+    baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
 
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
