@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Info } from "lucide-react";
 import { Star } from "lucide-react";
-import OptimizedImage from "./OptimizedImage";
 
 interface HeroSectionProps {
   title: string;
@@ -32,10 +31,10 @@ export default function HeroSection({
   return (
     <div className="relative w-full h-[35vh] md:h-[50vh] overflow-hidden" data-testid="hero-section">
       <div className="absolute inset-0">
-        <OptimizedImage
+        <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full hero-image"
+          className="w-full h-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />

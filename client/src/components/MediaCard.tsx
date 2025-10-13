@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, Play, Heart } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
-import OptimizedImage from "./OptimizedImage";
 
 interface MediaCardProps {
   id: number;
@@ -43,11 +42,11 @@ export default function MediaCard({
       onClick={onClick}
       data-testid={`card-media-${title.toLowerCase().replace(/\s+/g, "-")}`}
     >
-      <div className="relative aspect-[2/3] sm:aspect-[3/4] md:aspect-[2/3]">
-        <OptimizedImage
+      <div className="relative aspect-[2/3]">
+        <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full media-card-image image-zoom"
+          className="w-full h-full object-cover object-center image-zoom"
           loading="lazy"
         />
         
