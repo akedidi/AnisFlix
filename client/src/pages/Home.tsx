@@ -166,9 +166,8 @@ export default function Home() {
         </div>
         
         {/* Content */}
-        <div>
-
-      <div className="space-y-8 md:space-y-12">
+        <div className="pt-4 sm:pt-6 md:pt-8">
+          <div className="space-y-8 md:space-y-12">
         {featured && (
           <HeroSection
             {...featured}

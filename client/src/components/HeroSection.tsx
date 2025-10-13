@@ -29,7 +29,7 @@ export default function HeroSection({
     : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Crect fill='%23334155' width='1920' height='1080'/%3E%3C/svg%3E";
 
   return (
-    <div className="relative w-full h-[35vh] md:h-[50vh] overflow-hidden" data-testid="hero-section">
+    <div className="relative w-full h-[50vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden" data-testid="hero-section">
       <div className="absolute inset-0">
         <img
           src={imageUrl}
@@ -41,7 +41,7 @@ export default function HeroSection({
       </div>
 
       <div className="relative h-full flex items-end">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 pb-12 md:pb-16">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pb-8 sm:pb-12 md:pb-16">
           <div className="max-w-2xl space-y-4">
             {mediaType && (
               <Badge variant="secondary" className="mb-2">
@@ -49,7 +49,7 @@ export default function HeroSection({
               </Badge>
             )}
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
               {title}
             </h1>
 
