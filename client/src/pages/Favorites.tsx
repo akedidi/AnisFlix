@@ -169,6 +169,6 @@ export default function Favorites() {
           </Tabs>
         </div>
       </div>
-      
+    </div>
   );
 }

@@ -13,10 +13,18 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
 export default function Settings() {
-  const { isNative } = useDeviceType();
-  const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to");
-  const [secondaryHost, setSecondaryHost] = useState("https://vidsrc.me");
-  const [backupHost, setBackupHost] = useState("https://vidsrc.xyz");
+  const { isNative } = useDeviceType(    </div>
+  );
+}
+  const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to"    </div>
+  );
+}
+  const [secondaryHost, setSecondaryHost] = useState("https://vidsrc.me"    </div>
+  );
+}
+  const [backupHost, setBackupHost] = useState("https://vidsrc.xyz"    </div>
+  );
+}
 
   // todo: remove mock functionality
   const mockDownloads = [
@@ -41,15 +49,21 @@ export default function Settings() {
   ];
 
   const handleClearCache = () => {
-    console.log("Clearing cache...");
+    console.log("Clearing cache..."    </div>
+  );
+}
   };
 
   const handleClearProgress = () => {
-    console.log("Clearing watch progress...");
+    console.log("Clearing watch progress..."    </div>
+  );
+}
   };
 
   const handleSaveHosts = () => {
-    console.log("Saving hosts:", { primaryHost, secondaryHost, backupHost });
+    console.log("Saving hosts:", { primaryHost, secondaryHost, backupHost }    </div>
+  );
+}
   };
 
   return (
@@ -218,5 +232,7 @@ export default function Settings() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

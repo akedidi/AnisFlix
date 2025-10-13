@@ -68,19 +68,33 @@ const providers: Record<number, Provider> = {
 };
 
 export default function ProviderDetail() {
-  const { t } = useLanguage();
-  const [, params] = useRoute("/provider/:id");
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [, params] = useRoute("/provider/:id"    </div>
+  );
+}
   const providerId = params?.id ? parseInt(params.id) : 0;
   const provider = providers[providerId];
-  const { restoreScrollPosition } = useScrollPosition(`provider-${providerId}`);
+  const { restoreScrollPosition } = useScrollPosition(`provider-${providerId}`    </div>
+  );
+}
 
   // État pour la recherche
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""    </div>
+  );
+}
 
   // Fetch data
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(providerId);
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(providerId);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(providerId    </div>
+  );
+}
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(providerId    </div>
+  );
+}
+  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
+  );
+}
   
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
@@ -88,21 +102,37 @@ export default function ProviderDetail() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload();
+      window.location.reload(    </div>
+  );
+}
     };
-    window.addEventListener('languageChange', handleLanguageChange);
-    return () => window.removeEventListener('languageChange', handleLanguageChange);
-  }, []);
+    window.addEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+  }, []    </div>
+  );
+}
 
   // Restaurer la position de scroll au chargement
   useEffect(() => {
     // Attendre que les données soient chargées
     const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
+      restoreScrollPosition(    </div>
+  );
+}
+    }, 500    </div>
+  );
+}
     
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+    return () => clearTimeout(timer    </div>
+  );
+}
+  }, [restoreScrollPosition]    </div>
+  );
+}
 
   // Films par genre pour les catégories
   const { data: actionMoviesData } = useMoviesByGenre(28); // Action
@@ -167,7 +197,9 @@ export default function ProviderDetail() {
           </Button>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
 
   const imageUrl = provider.logoPath
@@ -447,5 +479,7 @@ export default function ProviderDetail() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

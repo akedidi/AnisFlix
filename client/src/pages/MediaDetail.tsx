@@ -10,9 +10,15 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
 export default function MediaDetail() {
-  const [, params] = useRoute("/detail/:type/:id");
-  const [isFavorite, setIsFavorite] = useState(false);
-  const { isNative } = useDeviceType();
+  const [, params] = useRoute("/detail/:type/:id"    </div>
+  );
+}
+  const [isFavorite, setIsFavorite] = useState(false    </div>
+  );
+}
+  const { isNative } = useDeviceType(    </div>
+  );
+}
 
   // todo: remove mock functionality
   const mockMedia = {
@@ -191,5 +197,7 @@ export default function MediaDetail() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

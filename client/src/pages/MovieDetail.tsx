@@ -17,23 +17,45 @@ import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 
 export default function MovieDetail() {
-  const { id } = useParams();
-  const movieId = parseInt(id || "0");
-  const { t } = useLanguage();
-  const [, setLocation] = useLocation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
-  const [isLoadingSource, setIsLoadingSource] = useState(false);
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { id } = useParams(    </div>
+  );
+}
+  const movieId = parseInt(id || "0"    </div>
+  );
+}
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [, setLocation] = useLocation(    </div>
+  );
+}
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null    </div>
+  );
+}
+  const [isLoadingSource, setIsLoadingSource] = useState(false    </div>
+  );
+}
+  const { isFavorite, toggleFavorite } = useFavorites(    </div>
+  );
+}
   
   // Fetch data from TMDB
-  const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
-  const { data: videos } = useMovieVideos(movieId);
-  const { data: similarMovies = [] } = useSimilarMovies(movieId);
+  const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId    </div>
+  );
+}
+  const { data: videos } = useMovieVideos(movieId    </div>
+  );
+}
+  const { data: similarMovies = [] } = useSimilarMovies(movieId    </div>
+  );
+}
 
   // Find trailer from videos
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
+      </div>
   );
+}
   
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const sources: any[] = [];
@@ -54,30 +76,46 @@ export default function MovieDetail() {
         url: source.url,
         type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
         name: source.name
-      });
+      }    </div>
+  );
+}
       return;
     }
     
     // Pour Vidzy (via FStream), on utilise le scraper
     if (source.url && source.type === "m3u8" && source.isFStream) {
-      setIsLoadingSource(true);
+      setIsLoadingSource(true    </div>
+  );
+}
       try {
-        const m3u8Url = await extractVidzyM3u8(source.url);
+        const m3u8Url = await extractVidzyM3u8(source.url    </div>
+  );
+}
         
         if (!m3u8Url) {
-          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
+          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy"    </div>
+  );
+}
         }
         
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
           name: source.name
-        });
+        }    </div>
+  );
+}
       } catch (error) {
-        console.error("Erreur lors du chargement de la source:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+        console.error("Erreur lors du chargement de la source:", error    </div>
+  );
+}
+        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source"    </div>
+  );
+}
       } finally {
-        setIsLoadingSource(false);
+        setIsLoadingSource(false    </div>
+  );
+}
       }
       return;
     }
@@ -94,7 +132,9 @@ export default function MovieDetail() {
           <div className="text-2xl">Chargement...</div>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
   
   if (!movie) {
@@ -104,7 +144,9 @@ export default function MovieDetail() {
           <div className="text-2xl">Film non trouvé</div>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
 
   return (
@@ -186,8 +228,12 @@ export default function MovieDetail() {
                   className="flex items-center gap-2"
                   onClick={() => {
                     // Scroll vers les sources de streaming
-                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]');
-                    sourcesSection?.scrollIntoView({ behavior: 'smooth' });
+                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]'    </div>
+  );
+}
+                    sourcesSection?.scrollIntoView({ behavior: 'smooth' }    </div>
+  );
+}
                   }}
                 >
                   <Play className="w-5 h-5" />
@@ -206,7 +252,9 @@ export default function MovieDetail() {
                         rating: movie.vote_average,
                         year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
                         mediaType: 'movie'
-                      });
+                      }    </div>
+  );
+}
                     }
                   }}
                 >
@@ -286,5 +334,7 @@ export default function MovieDetail() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

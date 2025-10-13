@@ -19,31 +19,63 @@ import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 
 export default function SeriesDetail() {
-  const { id } = useParams();
-  const [, setLocation] = useLocation();
-  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
-  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
-  const [isLoadingSource, setIsLoadingSource] = useState(false);
-  const seriesId = parseInt(id || "0");
-  const { t } = useLanguage();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { id } = useParams(    </div>
+  );
+}
+  const [, setLocation] = useLocation(    </div>
+  );
+}
+  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null    </div>
+  );
+}
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1    </div>
+  );
+}
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null    </div>
+  );
+}
+  const [isLoadingSource, setIsLoadingSource] = useState(false    </div>
+  );
+}
+  const seriesId = parseInt(id || "0"    </div>
+  );
+}
+  const { t } = useLanguage(    </div>
+  );
+}
+  const { isFavorite, toggleFavorite } = useFavorites(    </div>
+  );
+}
 
   // Réinitialiser la source quand l'épisode ou la saison change
   useEffect(() => {
-    setSelectedSource(null);
-  }, [selectedEpisode, selectedSeasonNumber]);
+    setSelectedSource(null    </div>
+  );
+}
+  }, [selectedEpisode, selectedSeasonNumber]    </div>
+  );
+}
   
   // Fetch data from TMDB
-  const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
-  const { data: videos } = useSeriesVideos(seriesId);
-  const { data: seasonDetails } = useSeasonDetails(seriesId, selectedSeasonNumber);
-  const { data: similarSeries = [] } = useSimilarSeries(seriesId);
+  const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId    </div>
+  );
+}
+  const { data: videos } = useSeriesVideos(seriesId    </div>
+  );
+}
+  const { data: seasonDetails } = useSeasonDetails(seriesId, selectedSeasonNumber    </div>
+  );
+}
+  const { data: similarSeries = [] } = useSimilarSeries(seriesId    </div>
+  );
+}
 
   // Find trailer from videos
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
+      </div>
   );
+}
   
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [];
@@ -64,30 +96,46 @@ export default function SeriesDetail() {
         url: source.url,
         type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
         name: source.name
-      });
+      }    </div>
+  );
+}
       return;
     }
     
     // Pour Vidzy (via FStream), on utilise le scraper
     if (source.url && source.type === "m3u8" && source.isFStream) {
-      setIsLoadingSource(true);
+      setIsLoadingSource(true    </div>
+  );
+}
       try {
-        const m3u8Url = await extractVidzyM3u8(source.url);
+        const m3u8Url = await extractVidzyM3u8(source.url    </div>
+  );
+}
         
         if (!m3u8Url) {
-          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
+          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy"    </div>
+  );
+}
         }
         
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
           name: source.name
-        });
+        }    </div>
+  );
+}
       } catch (error) {
-        console.error("Erreur lors du chargement de la source:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+        console.error("Erreur lors du chargement de la source:", error    </div>
+  );
+}
+        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source"    </div>
+  );
+}
       } finally {
-        setIsLoadingSource(false);
+        setIsLoadingSource(false    </div>
+  );
+}
       }
       return;
     }
@@ -104,7 +152,9 @@ export default function SeriesDetail() {
           <div className="text-2xl">Chargement...</div>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
   
   if (!series) {
@@ -114,7 +164,9 @@ export default function SeriesDetail() {
           <div className="text-2xl">Série non trouvée</div>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
 
   return (
@@ -191,8 +243,12 @@ export default function SeriesDetail() {
                   className="flex items-center gap-2"
                   onClick={() => {
                     // Scroll vers les sources de streaming
-                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]');
-                    sourcesSection?.scrollIntoView({ behavior: 'smooth' });
+                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]'    </div>
+  );
+}
+                    sourcesSection?.scrollIntoView({ behavior: 'smooth' }    </div>
+  );
+}
                   }}
                 >
                   <Play className="w-5 h-5" />
@@ -211,7 +267,9 @@ export default function SeriesDetail() {
                         rating: series.vote_average,
                         year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : '',
                         mediaType: 'series'
-                      });
+                      }    </div>
+  );
+}
                     }
                   }}
                 >
@@ -224,8 +282,12 @@ export default function SeriesDetail() {
             </div>
 
             <Tabs defaultValue="season-1" className="w-full" onValueChange={(value) => {
-              const seasonNum = parseInt(value.replace('season-', ''));
-              setSelectedSeasonNumber(seasonNum);
+              const seasonNum = parseInt(value.replace('season-', '')    </div>
+  );
+}
+              setSelectedSeasonNumber(seasonNum    </div>
+  );
+}
             }}>
               <TabsList className="flex-wrap h-auto">
                 {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
@@ -290,8 +352,12 @@ export default function SeriesDetail() {
                               size="icon"
                               variant="ghost"
                               onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedEpisode(episode.episode_number);
+                                e.stopPropagation(    </div>
+  );
+}
+                                setSelectedEpisode(episode.episode_number    </div>
+  );
+}
                               }}
                             >
                               <Play className="w-4 h-4" />
@@ -322,8 +388,12 @@ export default function SeriesDetail() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedSource(null);
+                                        e.stopPropagation(    </div>
+  );
+}
+                                        setSelectedSource(null    </div>
+  );
+}
                                       }}
                                       data-testid="button-close-episode-player"
                                     >
@@ -367,5 +437,7 @@ export default function SeriesDetail() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

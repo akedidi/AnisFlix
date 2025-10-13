@@ -11,13 +11,23 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { usePopularMovies, useMultiSearch } from "@/hooks/useTMDB";
 
 export default function PopularMovies() {
-  const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [searchQuery, setSearchQuery] = useState(""    </div>
+  );
+}
+  const [currentPage, setCurrentPage] = useState(1    </div>
+  );
+}
 
   // Fetch data from TMDB
-  const { data: moviesData, isLoading: moviesLoading } = usePopularMovies(currentPage);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { data: moviesData, isLoading: moviesLoading } = usePopularMovies(currentPage    </div>
+  );
+}
+  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
+  );
+}
 
   const movies = moviesData?.results || [];
   const totalPages = moviesData?.total_pages || 1;
@@ -25,15 +35,27 @@ export default function PopularMovies() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload();
+      window.location.reload(    </div>
+  );
+}
     };
-    window.addEventListener('languageChange', handleLanguageChange);
-    return () => window.removeEventListener('languageChange', handleLanguageChange);
-  }, []);
+    window.addEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+  }, []    </div>
+  );
+}
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentPage(page    </div>
+  );
+}
+    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
+  );
+}
   };
 
   return (
@@ -114,5 +136,7 @@ export default function PopularMovies() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

@@ -33,7 +33,7 @@ export default function NotFound() {
             </CardContent>
           </Card>
         </div>
-        
+      </div>
     </div>
   );
 }

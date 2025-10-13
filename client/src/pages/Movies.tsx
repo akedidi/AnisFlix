@@ -9,9 +9,15 @@ import { useLatestMovies, useMoviesByGenre, useMultiSearch } from "@/hooks/useTM
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Movies() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useLanguage();
-  const { restoreScrollPosition } = useScrollPosition('movies');
+  const [searchQuery, setSearchQuery] = useState(""    </div>
+  );
+}
+  const { t } = useLanguage(    </div>
+  );
+}
+  const { restoreScrollPosition } = useScrollPosition('movies'    </div>
+  );
+}
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -24,14 +30,30 @@ export default function Movies() {
   };
   
   // Fetch data from TMDB
-  const { data: latestMoviesData } = useLatestMovies();
-  const { data: actionMoviesData } = useMoviesByGenre(GENRES.ACTION);
-  const { data: dramaMoviesData } = useMoviesByGenre(GENRES.DRAMA);
-  const { data: crimeMoviesData } = useMoviesByGenre(GENRES.CRIME);
-  const { data: mysteryMoviesData } = useMoviesByGenre(GENRES.MYSTERY);
-  const { data: documentaryMoviesData } = useMoviesByGenre(GENRES.DOCUMENTARY);
-  const { data: animeMoviesData } = useMoviesByGenre(GENRES.ANIMATION);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { data: latestMoviesData } = useLatestMovies(    </div>
+  );
+}
+  const { data: actionMoviesData } = useMoviesByGenre(GENRES.ACTION    </div>
+  );
+}
+  const { data: dramaMoviesData } = useMoviesByGenre(GENRES.DRAMA    </div>
+  );
+}
+  const { data: crimeMoviesData } = useMoviesByGenre(GENRES.CRIME    </div>
+  );
+}
+  const { data: mysteryMoviesData } = useMoviesByGenre(GENRES.MYSTERY    </div>
+  );
+}
+  const { data: documentaryMoviesData } = useMoviesByGenre(GENRES.DOCUMENTARY    </div>
+  );
+}
+  const { data: animeMoviesData } = useMoviesByGenre(GENRES.ANIMATION    </div>
+  );
+}
+  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
+  );
+}
   
   const latestMovies = latestMoviesData?.results || [];
   const actionMovies = actionMoviesData?.results || [];
@@ -42,17 +64,27 @@ export default function Movies() {
   const animeMovies = animeMoviesData?.results || [];
 
   // Filter only movies from search results
-  const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
+  const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie'    </div>
+  );
+}
 
   // Restaurer la position de scroll au chargement
   useEffect(() => {
     // Attendre que les données soient chargées
     const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
+      restoreScrollPosition(    </div>
+  );
+}
+    }, 500    </div>
+  );
+}
     
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+    return () => clearTimeout(timer    </div>
+  );
+}
+  }, [restoreScrollPosition]    </div>
+  );
+}
 
   return (
     <div className="min-h-screen fade-in-up">
@@ -143,5 +175,7 @@ export default function Movies() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

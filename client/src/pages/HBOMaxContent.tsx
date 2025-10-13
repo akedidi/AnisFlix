@@ -12,57 +12,103 @@ import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesBy
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function HBOMaxContent() {
-  const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const { restoreScrollPosition } = useScrollPosition('hbo-max-content');
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [searchQuery, setSearchQuery] = useState(''    </div>
+  );
+}
+  const [currentPage, setCurrentPage] = useState(1    </div>
+  );
+}
+  const { restoreScrollPosition } = useScrollPosition('hbo-max-content'    </div>
+  );
+}
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
-  const urlParams = new URLSearchParams(window.location.search);
-  const tabParam = urlParams.get('tab');
+  const urlParams = new URLSearchParams(window.location.search    </div>
+  );
+}
+  const tabParam = urlParams.get('tab'    </div>
+  );
+}
   const [activeTab, setActiveTab] = useState<'movies' | 'series'>(
     tabParam === 'series' ? 'series' : 'movies'
+      </div>
   );
+}
 
   // Fetch data from TMDB
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage);
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage);
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage    </div>
+  );
+}
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage    </div>
+  );
+}
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
+  );
+}
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
-  const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
+  const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1    </div>
+  );
+}
 
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload();
+      window.location.reload(    </div>
+  );
+}
     };
-    window.addEventListener('languageChange', handleLanguageChange);
-    return () => window.removeEventListener('languageChange', handleLanguageChange);
-  }, []);
+    window.addEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+  }, []    </div>
+  );
+}
 
   // Restaurer la position de scroll au chargement
   useEffect(() => {
     const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
+      restoreScrollPosition(    </div>
+  );
+}
+    }, 500    </div>
+  );
+}
     
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+    return () => clearTimeout(timer    </div>
+  );
+}
+  }, [restoreScrollPosition]    </div>
+  );
+}
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentPage(page    </div>
+  );
+}
+    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
+  );
+}
   };
 
   const handleTabChange = (tab: 'movies' | 'series') => {
-    setActiveTab(tab);
-    setCurrentPage(1);
+    setActiveTab(tab    </div>
+  );
+}
+    setCurrentPage(1    </div>
+  );
+}
   };
 
   return (
@@ -236,5 +282,7 @@ export default function HBOMaxContent() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

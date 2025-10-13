@@ -51,17 +51,29 @@ const GENRE_IDS: Record<string, number> = {
 };
 
 export default function MovieGenre() {
-  const { genre } = useParams();
-  const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { genre } = useParams(    </div>
+  );
+}
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [searchQuery, setSearchQuery] = useState(""    </div>
+  );
+}
+  const [currentPage, setCurrentPage] = useState(1    </div>
+  );
+}
 
   const genreId = GENRE_IDS[genre || ""];
   const genreName = GENRE_NAMES[genre || ""] || genre;
 
   // Fetch data from TMDB
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByGenre(genreId, currentPage);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByGenre(genreId, currentPage    </div>
+  );
+}
+  const { data: searchResults = [] } = useMultiSearch(searchQuery    </div>
+  );
+}
 
   const movies = moviesData?.results || [];
   const totalPages = moviesData?.total_pages || 1;
@@ -69,15 +81,27 @@ export default function MovieGenre() {
   // Listen to language changes
   useEffect(() => {
     const handleLanguageChange = () => {
-      window.location.reload();
+      window.location.reload(    </div>
+  );
+}
     };
-    window.addEventListener('languageChange', handleLanguageChange);
-    return () => window.removeEventListener('languageChange', handleLanguageChange);
-  }, []);
+    window.addEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+    return () => window.removeEventListener('languageChange', handleLanguageChange    </div>
+  );
+}
+  }, []    </div>
+  );
+}
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setCurrentPage(page    </div>
+  );
+}
+    window.scrollTo({ top: 0, behavior: 'smooth' }    </div>
+  );
+}
   };
 
   if (!genreId) {
@@ -91,7 +115,9 @@ export default function MovieGenre() {
           </Button>
         </div>
       </div>
-    );
+        </div>
+  );
+}
   }
 
   return (
@@ -172,5 +198,7 @@ export default function MovieGenre() {
       </div>
       
     </div>
+      </div>
   );
+}
 }

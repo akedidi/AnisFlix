@@ -57,12 +57,24 @@ const TV_CHANNELS: TVChannel[] = [
 ];
 
 export default function TVChannels() {
-  const { t } = useLanguage();
-  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
+  const { t } = useLanguage(    </div>
+  );
+}
+  const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null    </div>
+  );
+}
+  const [isLoading, setIsLoading] = useState(false    </div>
+  );
+}
+  const [error, setError] = useState<string | null>(null    </div>
+  );
+}
+  const videoRef = useRef<HTMLVideoElement>(null    </div>
+  );
+}
+  const hlsRef = useRef<Hls | null>(null    </div>
+  );
+}
 
   useEffect(() => {
     if (!selectedChannel || !videoRef.current) return;
@@ -70,75 +82,137 @@ export default function TVChannels() {
     const video = videoRef.current;
     const streamUrl = `/api/tv/stream/${selectedChannel.id}`;
 
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true    </div>
+  );
+}
+    setError(null    </div>
+  );
+}
 
     if (Hls.isSupported()) {
       if (hlsRef.current) {
-        hlsRef.current.destroy();
+        hlsRef.current.destroy(    </div>
+  );
+}
       }
 
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-      });
+      }    </div>
+  );
+}
       
       hlsRef.current = hls;
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
+      hls.loadSource(streamUrl    </div>
+  );
+}
+      hls.attachMedia(video    </div>
+  );
+}
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false);
+        setIsLoading(false    </div>
+  );
+}
         video.play().catch(err => {
-          console.error("Erreur de lecture:", err);
-          setError("Impossible de lire le flux");
-        });
-      });
+          console.error("Erreur de lecture:", err    </div>
+  );
+}
+          setError("Impossible de lire le flux"    </div>
+  );
+}
+        }    </div>
+  );
+}
+      }    </div>
+  );
+}
       
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
-        console.error("Erreur HLS:", data);
-        setIsLoading(false);
+        console.error("Erreur HLS:", data    </div>
+  );
+}
+        setIsLoading(false    </div>
+  );
+}
         if (data.fatal) {
-          setError("Erreur fatale lors du chargement du flux");
+          setError("Erreur fatale lors du chargement du flux"    </div>
+  );
+}
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error("Erreur réseau fatale");
-              hls.startLoad();
+              console.error("Erreur réseau fatale"    </div>
+  );
+}
+              hls.startLoad(    </div>
+  );
+}
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error("Erreur média fatale");
-              hls.recoverMediaError();
+              console.error("Erreur média fatale"    </div>
+  );
+}
+              hls.recoverMediaError(    </div>
+  );
+}
               break;
             default:
-              console.error("Erreur fatale non récupérable");
-              hls.destroy();
+              console.error("Erreur fatale non récupérable"    </div>
+  );
+}
+              hls.destroy(    </div>
+  );
+}
               break;
           }
         }
-      });
+      }    </div>
+  );
+}
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = streamUrl;
       video.addEventListener('loadedmetadata', () => {
-        setIsLoading(false);
+        setIsLoading(false    </div>
+  );
+}
         video.play().catch(err => {
-          console.error("Erreur de lecture:", err);
-          setError("Impossible de lire le flux");
-        });
-      });
+          console.error("Erreur de lecture:", err    </div>
+  );
+}
+          setError("Impossible de lire le flux"    </div>
+  );
+}
+        }    </div>
+  );
+}
+      }    </div>
+  );
+}
     } else {
-      setError("Votre navigateur ne supporte pas HLS");
-      setIsLoading(false);
+      setError("Votre navigateur ne supporte pas HLS"    </div>
+  );
+}
+      setIsLoading(false    </div>
+  );
+}
     }
 
     return () => {
       if (hlsRef.current) {
-        hlsRef.current.destroy();
+        hlsRef.current.destroy(    </div>
+  );
+}
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel]);
+  }, [selectedChannel]    </div>
+  );
+}
 
-  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
+  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category))    </div>
+  );
+}
 
   return (
     <div className="min-h-screen fade-in-up">
@@ -229,7 +303,9 @@ export default function TVChannels() {
               </TabsList>
 
               {categories.map(category => {
-                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
+                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category    </div>
+  );
+}
                 
                 return (
                   <TabsContent key={category} value={category} className="mt-0">
@@ -258,7 +334,9 @@ export default function TVChannels() {
                       ))}
                     </div>
                   </TabsContent>
-                );
+                    </div>
+  );
+}
               })}
             </Tabs>
           </div>
@@ -266,5 +344,7 @@ export default function TVChannels() {
       </div>
       
     </div>
+      </div>
   );
+}
 }
