@@ -7,7 +7,7 @@ import {
   setBaseRemote,
   setAuthUrl,
   setPlaylistText
-} from '../shared-state.js';
+} from '../../shared-state.js';
 
 // Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
 async function resolveAuthUrl() {
