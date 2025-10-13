@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
+import { useSuperVideoLinks } from '@/hooks/useTMDB';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -35,10 +36,12 @@ interface StreamingSourcesProps {
     isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
+    isSuperVideo?: boolean;
   }) => void;
   isLoadingSource: boolean;
   season?: number;
   episode?: number;
+  imdbId?: string;
 }
 
 export default function StreamingSources({ 
@@ -49,12 +52,14 @@ export default function StreamingSources({
   onSourceClick, 
   isLoadingSource,
   season,
-  episode
+  episode,
+  imdbId
 }: StreamingSourcesProps) {
   const { t } = useLanguage();
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
+  const { data: superVideoLinks, isLoading: isLoadingSuperVideo } = useSuperVideoLinks(imdbId || null, type);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
@@ -314,6 +319,27 @@ export default function StreamingSources({
     }
   }
 
+  // Ajouter les liens SuperVideo après les liens Vidzy (VF uniquement)
+  if (superVideoLinks && superVideoLinks.length > 0 && selectedLanguage === 'VF') {
+    let superVideoCounter = 1;
+    
+    superVideoLinks.forEach((link) => {
+      // Vérifier que c'est bien un lien SuperVideo valide
+      if (link.link.includes('supervideo.cc/e/') || link.link.includes('supervideo.my/e/')) {
+        allSources.push({
+          id: `supervideo-${superVideoCounter}`,
+          name: `SuperVideo${superVideoCounter} (${link.is_hd ? 'HD' : 'SD'})`,
+          provider: 'supervideo',
+          url: link.link,
+          type: 'm3u8' as const,
+          player: 'supervideo',
+          isSuperVideo: true
+        });
+        superVideoCounter++;
+      }
+    });
+  }
+
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream et FStream
 
 
@@ -342,10 +368,18 @@ export default function StreamingSources({
         name: source.name,
         isMovixDownload: true
       });
+    } else if (source.isSuperVideo) {
+      // Pour SuperVideo, on utilise le scraper SuperVideo
+      onSourceClick({
+        url: source.url,
+        type: 'm3u8' as const,
+        name: source.name,
+        isSuperVideo: true
+      });
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingSuperVideo) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -426,6 +460,11 @@ export default function StreamingSources({
                 {source.isMovixDownload && (
                   <Badge variant="default" className="text-xs">
                     Darkibox
+                  </Badge>
+                )}
+                {source.isSuperVideo && (
+                  <Badge variant="destructive" className="text-xs">
+                    SuperVideo
                   </Badge>
                 )}
                 {source.quality && (

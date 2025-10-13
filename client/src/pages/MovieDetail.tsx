@@ -60,6 +60,7 @@ export default function MovieDetail() {
     isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
+    isSuperVideo?: boolean;
   }) => {
     if (!movie) return;
     
@@ -92,6 +93,32 @@ export default function MovieDetail() {
         console.error("Erreur lors du chargement de la source:", error);
         const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
         alert(`Erreur Vidzy: ${errorMessage}`);
+      } finally {
+        setIsLoadingSource(false);
+      }
+      return;
+    }
+    
+    // Pour SuperVideo, on utilise le scraper SuperVideo
+    if (source.url && source.type === "m3u8" && source.isSuperVideo) {
+      setIsLoadingSource(true);
+      try {
+        const { extractSuperVideoM3u8 } = await import('@/lib/movixPlayer');
+        const m3u8Url = await extractSuperVideoM3u8(source.url);
+        
+        if (!m3u8Url) {
+          throw new Error("Aucun lien m3u8 trouvé");
+        }
+        
+        setSelectedSource({
+          url: m3u8Url,
+          type: "m3u8",
+          name: source.name
+        });
+      } catch (error) {
+        console.error("Erreur lors du chargement de la source SuperVideo:", error);
+        const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
+        alert(`Erreur SuperVideo: ${errorMessage}`);
       } finally {
         setIsLoadingSource(false);
       }
@@ -254,6 +281,7 @@ export default function MovieDetail() {
                     sources={sources}
                     onSourceClick={handleSourceClick}
                     isLoadingSource={isLoadingSource}
+                    imdbId={movie?.imdb_id}
                   />
                 </div>
               ) : (
