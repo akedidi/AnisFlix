@@ -9,6 +9,7 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useFavorites } from "@/hooks/useFavorites";
 import { 
   usePopularMovies, 
   useLatestMovies, 
@@ -25,6 +26,7 @@ import { getWatchProgress } from "@/lib/watchProgress";
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -171,8 +173,23 @@ export default function Home() {
         {featured && (
           <HeroSection
             {...featured}
-            onFavorite={() => console.log("Favorite")}
-            onInfo={() => console.log("Info")}
+            onFavorite={() => {
+              if (popularMovies[0]) {
+                toggleFavorite({
+                  id: popularMovies[0].id,
+                  title: popularMovies[0].title,
+                  posterPath: popularMovies[0].posterPath,
+                  rating: popularMovies[0].rating,
+                  year: popularMovies[0].year || '',
+                  mediaType: 'movie'
+                });
+              }
+            }}
+            onInfo={() => {
+              if (popularMovies[0]) {
+                window.location.href = `/movie/${popularMovies[0].id}`;
+              }
+            }}
           />
         )}
 

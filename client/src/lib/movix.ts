@@ -134,7 +134,7 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
   try {
     // Use Vercel Functions in production, local API in development
     const apiUrl = process.env.NODE_ENV === 'production' 
-      ? '/api/vidzy-test'
+      ? '/api/vidzy-real'
       : '/api/vidzy/extract';
       
     const response = await fetch(apiUrl, {
