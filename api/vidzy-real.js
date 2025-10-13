@@ -31,13 +31,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // Pour les URLs Vidzy qui n'existent pas, simuler une extraction réussie
-    if (url.includes('vidzy.org') && url.includes('embed-')) {
-      return res.status(200).json({ 
-        m3u8Url: `https://demo-stream.m3u8?vidzy=${Date.now()}`,
-        simulated: true
-      });
-    }
+    // Désactiver la simulation pour forcer l'extraction réelle
+    // if (url.includes('vidzy.org') && url.includes('embed-')) {
+    //   return res.status(200).json({ 
+    //     m3u8Url: `https://demo-stream.m3u8?vidzy=${Date.now()}`,
+    //     simulated: true
+    //   });
+    // }
 
     // Extraction réelle avec fetch (simulation navigateur complet)
     const response = await fetch(url, {
