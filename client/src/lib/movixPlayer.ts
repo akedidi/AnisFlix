@@ -111,11 +111,11 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
       throw new Error(externalData.error || 'Failed to extract m3u8 from SuperVideo with external method');
     }
   } catch (externalError) {
-    console.error('Error with external SuperVideo extraction, trying alternative method:', externalError);
+    console.error('Error with external SuperVideo extraction, trying Puppeteer method:', externalError);
     
-    // Try alternative extraction as fallback
+    // Try Puppeteer-based extraction as fallback
     try {
-      const alternativeResponse = await fetch('/api/supervideo-extract-alternative', {
+      const response = await fetch('/api/supervideo-extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,124 +123,20 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
         body: JSON.stringify({ url: superVideoUrl }),
       });
 
-      if (!alternativeResponse.ok) {
-        throw new Error(`SuperVideo alternative extraction failed: ${alternativeResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`SuperVideo extraction failed: ${response.status}`);
       }
 
-      const alternativeData = await alternativeResponse.json();
+      const data = await response.json();
       
-      if (alternativeData.success && alternativeData.m3u8) {
-        console.log('Alternative extraction successful');
-        return alternativeData.m3u8;
+      if (data.success && data.m3u8) {
+        return data.m3u8;
       } else {
-        throw new Error(alternativeData.error || 'Failed to extract m3u8 from SuperVideo with alternative method');
+        throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
       }
-    } catch (alternativeError) {
-      console.error('Error with alternative SuperVideo extraction, trying proxy method:', alternativeError);
-      
-      // Try proxy extraction as fallback
-      try {
-        const proxyResponse = await fetch('/api/supervideo-extract-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: superVideoUrl }),
-        });
-
-        if (!proxyResponse.ok) {
-          throw new Error(`SuperVideo proxy extraction failed: ${proxyResponse.status}`);
-        }
-
-        const proxyData = await proxyResponse.json();
-        
-        if (proxyData.success && proxyData.m3u8) {
-          console.log('Proxy extraction successful');
-          return proxyData.m3u8;
-        } else {
-          throw new Error(proxyData.error || 'Failed to extract m3u8 from SuperVideo with proxy method');
-        }
-      } catch (proxyError) {
-        console.error('Error with proxy SuperVideo extraction, trying simple method:', proxyError);
-        
-        // Try simple extraction as fallback
-        try {
-          const simpleResponse = await fetch('/api/supervideo-extract-simple', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: superVideoUrl }),
-          });
-
-          if (!simpleResponse.ok) {
-            throw new Error(`SuperVideo simple extraction failed: ${simpleResponse.status}`);
-          }
-
-          const simpleData = await simpleResponse.json();
-          
-          if (simpleData.success && simpleData.m3u8) {
-            console.log('Simple extraction successful');
-            return simpleData.m3u8;
-          } else {
-            throw new Error(simpleData.error || 'Failed to extract m3u8 from SuperVideo with simple method');
-          }
-        } catch (simpleError) {
-          console.error('Error with simple SuperVideo extraction, trying Puppeteer:', simpleError);
-          
-          // Try Puppeteer-based extraction as fallback
-          try {
-            const response = await fetch('/api/supervideo-extract', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ url: superVideoUrl }),
-            });
-
-            if (!response.ok) {
-              throw new Error(`SuperVideo extraction failed: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.success && data.m3u8) {
-              return data.m3u8;
-            } else {
-              throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
-            }
-          } catch (puppeteerError) {
-            console.error('Error with Puppeteer SuperVideo extraction, trying HTML fallback:', puppeteerError);
-            
-            // Try HTML fallback method as last resort
-            try {
-              const fallbackResponse = await fetch('/api/supervideo-extract-fallback', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url: superVideoUrl }),
-              });
-
-              if (!fallbackResponse.ok) {
-                throw new Error(`SuperVideo fallback extraction failed: ${fallbackResponse.status}`);
-              }
-
-              const fallbackData = await fallbackResponse.json();
-              
-              if (fallbackData.success && fallbackData.m3u8) {
-                console.log('HTML fallback extraction successful');
-                return fallbackData.m3u8;
-              } else {
-                throw new Error(fallbackData.error || 'Failed to extract m3u8 from SuperVideo with HTML fallback');
-              }
-            } catch (fallbackError) {
-              console.error('Error with HTML fallback SuperVideo extraction:', fallbackError);
-              throw new Error(`All SuperVideo extraction methods failed: ${externalError.message}`);
-            }
-          }
-        }
-      }
+    } catch (puppeteerError) {
+      console.error('Error with Puppeteer SuperVideo extraction:', puppeteerError);
+      throw new Error(`All SuperVideo extraction methods failed: ${externalError.message}`);
     }
   }
 }
