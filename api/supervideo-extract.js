@@ -1,5 +1,6 @@
-// SuperVideo scraper using Puppeteer
-import puppeteer from 'puppeteer';
+// SuperVideo scraper using Puppeteer with Vercel compatibility
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -30,18 +31,33 @@ export default async function handler(req, res) {
   try {
     console.log(`🚀 Starting SuperVideo extraction for: ${url}`);
 
-    browser = await puppeteer.launch({
-      headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ],
-    });
+    // Configure Chromium for Vercel
+    const isVercel = process.env.VERCEL === '1';
+    
+    if (isVercel) {
+      // Use Chromium for Vercel
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+      });
+    } else {
+      // Use local Puppeteer for development
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ],
+      });
+    }
 
     const page = await browser.newPage();
     

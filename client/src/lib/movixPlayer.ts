@@ -89,6 +89,7 @@ export function extractImdbId(imdbId: string): string | null {
  */
 export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<string> {
   try {
+    // Try the main Puppeteer-based extraction first
     const response = await fetch('/api/supervideo-extract', {
       method: 'POST',
       headers: {
@@ -109,8 +110,34 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
       throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
     }
   } catch (error) {
-    console.error('Error extracting SuperVideo m3u8:', error);
-    throw error;
+    console.error('Error with main SuperVideo extraction, trying fallback:', error);
+    
+    // Try fallback method if main extraction fails
+    try {
+      const fallbackResponse = await fetch('/api/supervideo-extract-fallback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: superVideoUrl }),
+      });
+
+      if (!fallbackResponse.ok) {
+        throw new Error(`SuperVideo fallback extraction failed: ${fallbackResponse.status}`);
+      }
+
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.success && fallbackData.m3u8) {
+        console.log('Fallback extraction successful');
+        return fallbackData.m3u8;
+      } else {
+        throw new Error(fallbackData.error || 'Failed to extract m3u8 from SuperVideo with fallback');
+      }
+    } catch (fallbackError) {
+      console.error('Error with fallback SuperVideo extraction:', fallbackError);
+      throw new Error(`Both main and fallback SuperVideo extraction failed: ${error.message}`);
+    }
   }
 }
 
