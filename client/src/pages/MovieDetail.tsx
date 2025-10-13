@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, Star, Calendar, X, Heart } from "lucide-react";
+import { Clock, Star, Calendar, X, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -182,19 +182,6 @@ export default function MovieDetail() {
 
               {/* Boutons d'action */}
               <div className="flex gap-3 mb-6">
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="flex items-center gap-2"
-                  onClick={() => {
-                    // Scroll vers les sources de streaming
-                    const sourcesSection = document.querySelector('[data-testid="streaming-sources"]');
-                    sourcesSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <Play className="w-5 h-5" />
-                  Regarder
-                </Button>
                 <Button
                   variant={isFavorite(movieId, 'movie') ? "default" : "outline"}
                   size="lg"
