@@ -1,4 +1,4 @@
-// État en mémoire (simulé avec des variables globales)
+// État en mémoire (partagé avec l'API stream)
 let channelStates = {};
 
 // Headers par défaut
@@ -12,7 +12,7 @@ const defaultHeaders = {
 async function resolveAuthUrl(channelId) {
   const baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
   
-  console.log(`[TV] Resolving auth URL for channel ${channelId}:`, baseRemote);
+  console.log(`[TV PROXY] Resolving auth URL for channel ${channelId}:`, baseRemote);
   
   try {
     // Ne pas suivre automatiquement les redirections pour pouvoir lire Location
@@ -28,7 +28,7 @@ async function resolveAuthUrl(channelId) {
       
       // Si relative, résoudre
       const resolved = new URL(loc, baseRemote).toString();
-      console.log(`[TV] Resolved auth URL for ${channelId}:`, resolved);
+      console.log(`[TV PROXY] Resolved auth URL for ${channelId}:`, resolved);
       return resolved;
     }
     
@@ -37,14 +37,14 @@ async function resolveAuthUrl(channelId) {
       const text = await res.text();
       // Si ça ressemble à un M3U8, définir comme playlist
       if (text.includes("#EXTM3U")) {
-        console.log(`[TV] Master returned playlist directly for ${channelId}`);
+        console.log(`[TV PROXY] Master returned playlist directly for ${channelId}`);
         return { directPlaylist: text, url: baseRemote };
       }
     }
     
     throw new Error("Could not resolve auth URL");
   } catch (error) {
-    console.error(`[TV] Error resolving auth URL for ${channelId}:`, error.message);
+    console.error(`[TV PROXY] Error resolving auth URL for ${channelId}:`, error.message);
     throw error;
   }
 }
@@ -56,37 +56,18 @@ async function fetchPlaylist(channelId, authUrl) {
     if (!res.ok) throw new Error(`Failed fetching auth playlist: ${res.status}`);
     
     const text = await res.text();
-    console.log(`[TV] Playlist fetched for ${channelId}, length:`, text.length);
+    console.log(`[TV PROXY] Playlist fetched for ${channelId}, length:`, text.length);
     return text;
   } catch (error) {
-    console.error(`[TV] Error fetching playlist for ${channelId}:`, error.message);
+    console.error(`[TV PROXY] Error fetching playlist for ${channelId}:`, error.message);
     throw error;
   }
-}
-
-// Parseur simple -> remplace les lignes qui commencent par "/hls/..." par URLs locales
-function makeLocalPlaylist(playlistText, channelId) {
-  if (!playlistText) return "";
-  
-  const lines = playlistText.split(/\r?\n/);
-  const out = lines.map(line => {
-    if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
-      // Extraire le nom de fichier et garder la query si nécessaire
-      const u = line.trim();
-      // Obtenir le basename (ex: 138_914.ts?token=...)
-      const name = u.split("/").pop();
-      // Chemin proxy local unifié
-      return `/api/tv-proxy?channelId=${channelId}&segment=${encodeURIComponent(name)}`;
-    }
-    return line;
-  });
-  return out.join("\n");
 }
 
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -98,11 +79,20 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { channelId } = req.query;
+    const { channelId, segment } = req.query;
 
     if (!channelId) {
       return res.status(400).json({ error: 'Channel ID required' });
     }
+
+    // Si pas de segment, c'est une requête de playlist
+    if (!segment) {
+      return res.status(400).json({ error: 'Segment name required' });
+    }
+
+    // Décoder le nom du segment
+    const segmentName = decodeURIComponent(segment);
+    console.log(`[TV PROXY] Fetching segment ${segmentName} for channel ${channelId}`);
 
     // Initialiser l'état du canal s'il n'existe pas
     if (!channelStates[channelId]) {
@@ -115,7 +105,7 @@ export default async function handler(req, res) {
 
     const state = channelStates[channelId];
 
-    // Si playlist trop vieille (>8s), refetch
+    // Si pas de playlist ou trop vieille (>8s), refetch
     if (!state.playlistText || Date.now() - state.lastFetch > 8000) {
       try {
         // Résoudre l'URL d'auth si nécessaire
@@ -136,7 +126,7 @@ export default async function handler(req, res) {
 
         state.lastFetch = Date.now();
       } catch (error) {
-        console.error(`[TV] Error updating playlist for ${channelId}:`, error.message);
+        console.error(`[TV PROXY] Error updating playlist for ${channelId}:`, error.message);
         return res.status(500).json({ 
           error: 'Failed to fetch playlist',
           details: error.message
@@ -148,14 +138,69 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'No playlist available' });
     }
 
-    // Créer la playlist locale
-    const localPlaylist = makeLocalPlaylist(state.playlistText, channelId);
+    // Extraire le token du nom du segment
+    let token = null;
+    if (segmentName.includes('?token=')) {
+      token = segmentName.split('?token=')[1];
+    } else {
+      // Essayer de trouver le token dans la playlist
+      const re = new RegExp(`${segmentName.replace(/\?/g, "\\?").split("\\?")[0]}(?:\\?token=([^\\s]+))?`);
+      const match = state.playlistText.match(re);
+      if (match && match[1]) {
+        token = match[1];
+      }
+    }
 
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-    res.status(200).send(localPlaylist);
+    // Construire l'URL distante
+    const remoteBase = state.authUrl ? new URL(state.authUrl).origin : 'https://fremtv.lol';
+    const remoteUrl = token
+      ? `${remoteBase}/hls/${segmentName.split("?")[0]}?token=${token}`
+      : `${remoteBase}/hls/${segmentName.split("?")[0]}`;
+
+    console.log(`[TV PROXY] Fetching from: ${remoteUrl}`);
+
+    // Headers pour la requête upstream
+    const upstreamHeaders = { ...defaultHeaders };
+    if (req.headers.range) {
+      upstreamHeaders.Range = req.headers.range;
+    }
+
+    // Faire la requête upstream
+    const upstream = await fetch(remoteUrl, { headers: upstreamHeaders });
+
+    if (!upstream.ok) {
+      console.error(`[TV PROXY] Upstream error: ${upstream.status} ${upstream.statusText}`);
+      return res.status(upstream.status).json({ 
+        error: 'Upstream error',
+        status: upstream.status,
+        statusText: upstream.statusText
+      });
+    }
+
+    console.log(`[TV PROXY] Success: ${upstream.status}`);
+
+    // Propager les headers importants
+    const importantHeaders = [
+      'content-type',
+      'content-length', 
+      'accept-ranges',
+      'content-range',
+      'cache-control'
+    ];
+
+    importantHeaders.forEach(header => {
+      const value = upstream.headers.get(header);
+      if (value) {
+        res.setHeader(header, value);
+      }
+    });
+
+    // Streamer le contenu
+    const buffer = await upstream.arrayBuffer();
+    res.status(upstream.status).send(Buffer.from(buffer));
 
   } catch (error) {
-    console.error('[TV STREAM ERROR]', error.message);
+    console.error('[TV PROXY ERROR]', error.message);
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message
