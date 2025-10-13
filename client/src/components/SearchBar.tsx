@@ -109,7 +109,10 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
           {suggestions.map((item) => (
             <div
               key={`${item.mediaType}-${item.id}`}
-              onClick={() => handleSelectItem(item)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelectItem(item);
+              }}
               className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
               data-testid={`search-result-${item.id}`}
             >

@@ -69,7 +69,10 @@ export default function Movies() {
                 <SearchBar
                   onSearch={setSearchQuery}
                   suggestions={searchQuery ? movieSearchResults : []}
-                  onSelect={(item) => window.location.href = `/movie/${item.id}`}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    window.location.href = path;
+                  }}
                 />
               </div>
               <LanguageSelect />
