@@ -39,6 +39,28 @@ export async function getMovixPlayerLinks(imdbId: string, mediaType: 'movie' | '
 }
 
 /**
+ * Récupère les liens SuperVideo spécifiquement depuis l'API Movix
+ * @param imdbId - L'ID IMDB (ex: tt13186306)
+ * @param mediaType - 'movie' ou 'tv'
+ * @returns Promise<PlayerLink[]> - Liste des liens SuperVideo
+ */
+export async function getSuperVideoLinks(imdbId: string, mediaType: 'movie' | 'tv'): Promise<PlayerLink[]> {
+  try {
+    const movixData = await getMovixPlayerLinks(imdbId, mediaType);
+    
+    // Filtrer uniquement les liens SuperVideo
+    const superVideoLinks = movixData.player_links?.filter(link => 
+      link.player === 'supervideo'
+    ) || [];
+    
+    return superVideoLinks;
+  } catch (error) {
+    console.error('Error fetching SuperVideo links:', error);
+    throw error;
+  }
+}
+
+/**
  * Extrait l'ID IMDB depuis une URL ou un ID IMDB
  * @param imdbId - L'ID IMDB ou l'URL complète
  * @returns L'ID IMDB nettoyé (ex: tt13186306)

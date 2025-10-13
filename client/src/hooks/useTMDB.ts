@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
-import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8, getHLSProxyUrl } from "@/lib/movixPlayer";
+import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8, getHLSProxyUrl, getSuperVideoLinks } from "@/lib/movixPlayer";
 
 // Optimized query options to reduce Fast Origin usage
 const CACHE_OPTIONS = {
@@ -295,5 +295,24 @@ export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+  });
+};
+
+// Hook pour récupérer spécifiquement les liens SuperVideo
+export const useSuperVideoLinks = (imdbId: string | null, mediaType: 'movie' | 'tv') => {
+  return useQuery({
+    queryKey: ["supervideo-links", imdbId, mediaType],
+    queryFn: async () => {
+      if (!imdbId) return [];
+      
+      const cleanImdbId = extractImdbId(imdbId);
+      if (!cleanImdbId) {
+        throw new Error('Invalid IMDB ID');
+      }
+      
+      return await getSuperVideoLinks(cleanImdbId, mediaType);
+    },
+    enabled: !!imdbId && !!extractImdbId(imdbId),
+    ...CACHE_OPTIONS,
   });
 };

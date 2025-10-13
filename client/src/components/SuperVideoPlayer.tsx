@@ -1,6 +1,6 @@
 // SuperVideo Player Component
 import React, { useState, useEffect, useRef } from 'react';
-import { useMovixPlayerLinks, useSuperVideoExtraction, useHLSProxyUrl } from '@/hooks/useTMDB';
+import { useSuperVideoLinks, useSuperVideoExtraction, useHLSProxyUrl } from '@/hooks/useTMDB';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +17,8 @@ export default function SuperVideoPlayer({ imdbId, mediaType, title }: SuperVide
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Fetch Movix player links
-  const { data: movixLinks, isLoading: isLoadingLinks } = useMovixPlayerLinks(imdbId, mediaType);
+  // Fetch SuperVideo links specifically
+  const { data: superVideoLinks, isLoading: isLoadingLinks } = useSuperVideoLinks(imdbId, mediaType);
   
   // Extract SuperVideo m3u8 when a SuperVideo link is selected
   const { data: masterM3u8, isLoading: isLoadingM3u8, error: m3u8Error } = useSuperVideoExtraction(
@@ -35,10 +35,9 @@ export default function SuperVideoPlayer({ imdbId, mediaType, title }: SuperVide
     }
   }, [hlsProxyUrl]);
 
-  // Filter SuperVideo links
-  const superVideoLinks = movixLinks?.player_links?.filter(link => 
-    link.player === 'supervideo' && 
-    (link.link.includes('supervideo.cc/e/') || link.link.includes('supervideo.my/e/'))
+  // Filter valid SuperVideo links
+  const validSuperVideoLinks = superVideoLinks?.filter(link => 
+    link.link.includes('supervideo.cc/e/') || link.link.includes('supervideo.my/e/')
   ) || [];
 
   const handlePlayerSelect = (playerUrl: string) => {
@@ -85,9 +84,9 @@ export default function SuperVideoPlayer({ imdbId, mediaType, title }: SuperVide
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Loading player links...</span>
             </div>
-          ) : superVideoLinks.length > 0 ? (
+          ) : validSuperVideoLinks.length > 0 ? (
             <div className="space-y-2">
-              {superVideoLinks.map((link, index) => (
+              {validSuperVideoLinks.map((link, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{link.player}</Badge>
