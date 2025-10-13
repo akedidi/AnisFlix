@@ -231,7 +231,12 @@ export default async function handler(req, res) {
         htmlLength: html.length,
         hasScripts: html.includes('<script'),
         htmlPreview: html.substring(0, 500) + '...',
-        url: url
+        url: url,
+        // Ajouter des informations de debug supplémentaires
+        hasVidzyV4: html.includes('v4.vidzy.org'),
+        hasHls: html.includes('hls2'),
+        hasM3u8: html.includes('.m3u8'),
+        scriptCount: (html.match(/<script/gi) || []).length
       };
       
       console.log('Debug Vidzy extraction:', debugInfo);
