@@ -39,18 +39,11 @@ async function resolveAuthUrl() {
       }
     }
     
-    // If it's an MP4, create a simple playlist that points to our proxy
+    // If it's an MP4, serve it directly via proxy (not as HLS playlist)
     if (contentType?.includes('video/mp4')) {
-      console.log("Master returned MP4 directly, creating simple playlist");
-      const simplePlaylist = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-TARGETDURATION:10
-#EXT-X-MEDIA-SEQUENCE:0
-#EXTINF:10.0,
-/api/tv-proxy?url=${encodeURIComponent(baseRemote)}
-#EXT-X-ENDLIST`;
-      currentPlaylistText = simplePlaylist;
-      return baseRemote;
+      console.log("Master returned MP4 directly, serving via proxy");
+      // For MP4, we'll redirect to the proxy directly
+      return { isMP4: true, url: baseRemote };
     }
   }
   throw new Error("Could not resolve auth URL");
@@ -58,12 +51,6 @@ async function resolveAuthUrl() {
 
 // Fetch playlist text from auth URL and keep it in memory (comme dans le code fonctionnel)
 async function fetchPlaylist() {
-  // Si on a déjà une playlist (cas MP4 direct), pas besoin de refetch
-  if (currentPlaylistText && !currentAuthUrl) {
-    console.log("Using existing playlist (MP4 direct)");
-    return currentPlaylistText;
-  }
-
   if (!currentAuthUrl) await resolveAuthUrl();
 
   const res = await fetch(currentAuthUrl, { headers: defaultHeaders });
@@ -119,6 +106,16 @@ export default async function handler(req, res) {
     // Définir l'URL de base pour cette chaîne
     baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
 
+    // Résoudre l'URL d'auth
+    const authResult = await resolveAuthUrl();
+    
+    // Si c'est un MP4, rediriger vers le proxy
+    if (authResult.isMP4) {
+      console.log("Redirecting to MP4 proxy");
+      res.redirect(`/api/tv-proxy?url=${encodeURIComponent(authResult.url)}`);
+      return;
+    }
+    
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
       await fetchPlaylist();
