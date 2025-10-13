@@ -44,6 +44,7 @@ export default {
   "series.title": "Series",
   "series.action": "Acción",
   "series.adventure": "Aventura",
+  "series.actionAdventure": "Acción y Aventura",
   "series.drama": "Drama",
   "series.comedy": "Comedia",
   "series.thriller": "Suspense",
