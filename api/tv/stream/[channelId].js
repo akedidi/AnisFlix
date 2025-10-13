@@ -1,6 +1,24 @@
 // État en mémoire (simulé avec des variables globales)
 let channelStates = {};
 
+// Fonction pour créer une playlist locale qui pointe vers nos segments
+function makeLocalPlaylist(playlistText, channelId) {
+  if (!playlistText) return "";
+  const lines = playlistText.split(/\r?\n/);
+  const out = lines.map(line => {
+    if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
+      // Extraire le nom de fichier et garder la query si nécessaire
+      const u = line.trim();
+      // Obtenir le basename (ex: 138_914.ts?token=...)
+      const name = u.split("/").pop();
+      // Chemin proxy local
+      return `/api/tv/seg/${channelId}/${encodeURIComponent(name)}`;
+    }
+    return line;
+  });
+  return out.join("\n");
+}
+
 // Headers par défaut
 const defaultHeaders = {
   "User-Agent": "Mozilla/5.0 (Node HLS Proxy)",
