@@ -1,4 +1,4 @@
-import { Home, Film, Tv, Radio, Settings } from "lucide-react";
+import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
@@ -11,6 +11,7 @@ export default function BottomNav() {
     { icon: Film, label: t("nav.movies"), path: "/movies" },
     { icon: Tv, label: t("nav.series"), path: "/series" },
     { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
+    { icon: Heart, label: t("nav.favorites"), path: "/favorites" },
     { icon: Settings, label: t("nav.settings"), path: "/settings" },
   ];
 

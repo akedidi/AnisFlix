@@ -18,6 +18,7 @@ import MovieGenre from "@/pages/MovieGenre";
 import SeriesGenre from "@/pages/SeriesGenre";
 import Settings from "@/pages/Settings";
 import TVChannels from "@/pages/TVChannels";
+import Favorites from "@/pages/Favorites";
 import NotFound from "@/pages/not-found";
 
 // Provider pages
@@ -63,6 +64,7 @@ function App() {
             <Route path="/series/genre/:id" component={SeriesGenre} />
             <Route path="/settings" component={Settings} />
             <Route path="/tv-channels" component={TVChannels} />
+            <Route path="/favorites" component={Favorites} />
             
             {/* Provider routes */}
             <Route path="/netflix" component={NetflixContent} />

@@ -4,6 +4,7 @@ export default {
   "nav.movies": "Films",
   "nav.series": "Séries",
   "nav.tvChannels": "TV Direct",
+  "nav.favorites": "Favoris",
   "nav.settings": "Paramètres",
   
   // Home page
