@@ -8,10 +8,12 @@ import { Play, Download, Heart, Star, ArrowLeft, Youtube } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import { useDeviceType } from "@/hooks/useDeviceType";
 
 export default function MediaDetail() {
   const [, params] = useRoute("/detail/:type/:id");
   const [isFavorite, setIsFavorite] = useState(false);
+  const { isNative } = useDeviceType();
 
   // todo: remove mock functionality
   const mockMedia = {
@@ -135,15 +137,17 @@ export default function MediaDetail() {
                   <Heart className={`w-5 h-5 ${isFavorite ? "fill-primary text-primary" : ""}`} />
                   {isFavorite ? "Favori" : "Ajouter"}
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="gap-2"
-                  data-testid="button-download"
-                >
-                  <Download className="w-5 h-5" />
-                  Télécharger
-                </Button>
+                {isNative && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="gap-2"
+                    data-testid="button-download"
+                  >
+                    <Download className="w-5 h-5" />
+                    Télécharger
+                  </Button>
+                )}
               </div>
             </div>
 

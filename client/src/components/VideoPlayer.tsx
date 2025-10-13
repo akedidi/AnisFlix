@@ -5,6 +5,7 @@ import muxjs from "mux.js";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
+import { useDeviceType } from "@/hooks/useDeviceType";
 import type { MediaType } from "@shared/schema";
 
 interface VideoPlayerProps {
@@ -31,6 +32,7 @@ export default function VideoPlayer({
   seasonNumber,
   episodeNumber
 }: VideoPlayerProps) {
+  const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -309,7 +311,7 @@ export default function VideoPlayer({
       
       <div className="p-4 space-y-4">
         <div className="flex gap-2 flex-wrap">
-          {sourceType === "m3u8" && (
+          {isNative && sourceType === "m3u8" && (
             <Button
               onClick={handleDownloadMP4}
               disabled={isDownloading}
@@ -323,7 +325,7 @@ export default function VideoPlayer({
           
         </div>
 
-        {isDownloading && (
+        {isNative && isDownloading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Téléchargement & Conversion</span>
@@ -338,9 +340,11 @@ export default function VideoPlayer({
           </div>
         )}
 
-        <p className="text-sm text-muted-foreground">
-          • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
-        </p>
+        {isNative && (
+          <p className="text-sm text-muted-foreground">
+            • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
+          </p>
+        )}
       </div>
 
     </div>
