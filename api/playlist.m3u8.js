@@ -1,6 +1,5 @@
-// État en mémoire (comme dans le code fonctionnel)
-let currentPlaylistText = null;
-let lastPlaylistFetch = 0;
+// État en mémoire par chaîne (comme dans le code fonctionnel)
+const channelStates = new Map(); // channelId -> { currentPlaylistText, lastPlaylistFetch }
 
 // Headers exacts de votre code fonctionnel
 const browserHeaders = {
@@ -12,12 +11,11 @@ const browserHeaders = {
   'Connection': 'keep-alive'
 };
 
-// URL de base sera définie dynamiquement
-let baseRemote = null;
+// URL de base sera définie dynamiquement par chaîne
 
 // Fetch la playlist exactement comme votre code fonctionnel
-async function fetchPlaylist() {
-  console.log("Fetching playlist from:", baseRemote);
+async function fetchPlaylist(channelId, baseRemote) {
+  console.log(`[CHANNEL ${channelId}] Fetching playlist from:`, baseRemote);
   
   // Amorcer éventuellement la session (comme votre code)
   try { 
@@ -38,16 +36,19 @@ async function fetchPlaylist() {
   const text = await res.text();
   const contentType = res.headers.get('content-type') || '';
   
-  console.log(`[ENTRY] ${res.status} ${contentType} ← ${res.url}`);
+  console.log(`[CHANNEL ${channelId}] [ENTRY] ${res.status} ${contentType} ← ${res.url}`);
   
   if (typeof text !== 'string') {
     throw new Error('Pas une playlist M3U8.');
   }
   
   if (text.includes("#EXTM3U")) {
-    currentPlaylistText = text;
-    lastPlaylistFetch = Date.now();
-    console.log("Playlist fetched, length:", text.length);
+    // Mettre à jour l'état pour cette chaîne spécifique
+    channelStates.set(channelId, {
+      currentPlaylistText: text,
+      lastPlaylistFetch: Date.now()
+    });
+    console.log(`[CHANNEL ${channelId}] Playlist fetched, length:`, text.length);
     return text;
   }
   
@@ -99,16 +100,26 @@ export default async function handler(req, res) {
     }
 
     // Définir l'URL de base pour cette chaîne
-    baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
+    const baseRemote = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
+
+    // Récupérer l'état pour cette chaîne spécifique
+    const channelState = channelStates.get(channelId);
+    const currentPlaylistText = channelState?.currentPlaylistText;
+    const lastPlaylistFetch = channelState?.lastPlaylistFetch || 0;
 
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
+    // Pour chaque chaîne, on refetch périodiquement pour avoir les nouveaux morceaux
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
-      await fetchPlaylist();
+      await fetchPlaylist(channelId, baseRemote);
     }
+    
+    // Récupérer la playlist mise à jour
+    const updatedState = channelStates.get(channelId);
+    const playlistText = updatedState?.currentPlaylistText || currentPlaylistText;
     
     // Utiliser l'URL finale comme baseUrl (comme votre code fonctionnel)
     const baseUrl = baseRemote; // L'URL finale après redirection
-    const rewritten = rewritePlaylistUrls(currentPlaylistText, baseUrl);
+    const rewritten = rewritePlaylistUrls(playlistText, baseUrl);
     
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
     res.send(rewritten);
