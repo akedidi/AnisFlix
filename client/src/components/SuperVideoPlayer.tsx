@@ -53,16 +53,12 @@ export default function SuperVideoPlayer({ imdbId, mediaType, title }: SuperVide
   };
 
   if (!imdbId) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>SuperVideo Player</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">No IMDB ID provided</p>
-        </CardContent>
-      </Card>
-    );
+    return null;
+  }
+
+  // Don't render if no SuperVideo links are available
+  if (!isLoadingLinks && validSuperVideoLinks.length === 0) {
+    return null;
   }
 
   return (

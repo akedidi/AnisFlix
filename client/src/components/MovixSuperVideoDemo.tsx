@@ -58,6 +58,11 @@ export default function MovixSuperVideoDemo({ className }: MovixSuperVideoDemoPr
     window.open(url, '_blank');
   };
 
+  // Don't render if no SuperVideo links are available
+  if (!isLoadingLinks && (!superVideoLinks || superVideoLinks.length === 0)) {
+    return null;
+  }
+
   return (
     <div className={`space-y-6 ${className}`}>
       <Card>
