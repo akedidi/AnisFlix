@@ -3,7 +3,7 @@ export default {
   "nav.home": "Accueil",
   "nav.movies": "Films",
   "nav.series": "Séries",
-  "nav.tvChannels": "TV Direct",
+  "nav.tvChannels": "TV",
   "nav.favorites": "Favoris",
   "nav.settings": "Paramètres",
   
