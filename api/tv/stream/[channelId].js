@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Channel ID required' });
     }
 
-    // URL de base pour les flux TV (mise à jour si nécessaire)
+    // URL de base pour les flux TV
     const baseUrl = 'https://fremtv.lol';
     const streamUrl = `${baseUrl}/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
 

@@ -69,67 +69,92 @@ export default function TVChannels() {
     if (!selectedChannel || !videoRef.current) return;
 
     const video = videoRef.current;
-    const streamUrl = `/api/tv-stream?channelId=${selectedChannel.id}`;
+    // Essayer d'abord l'URL directe, puis l'API en fallback
+    const directUrl = `https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${selectedChannel.id}.m3u8`;
+    const apiUrl = `/api/tv/stream/${selectedChannel.id}`;
 
     setIsLoading(true);
     setError(null);
 
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-      });
-      
-      hlsRef.current = hls;
-      hls.loadSource(streamUrl);
-      hls.attachMedia(video);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false);
-        video.play().catch(err => {
-          console.error("Erreur de lecture:", err);
-          setError("Impossible de lire le flux");
-        });
-      });
-      
-      hls.on(Hls.Events.ERROR, (_event, data: any) => {
-        console.error("Erreur HLS:", data);
-        setIsLoading(false);
-        if (data.fatal) {
-          setError("Erreur fatale lors du chargement du flux");
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.error("Erreur réseau fatale");
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.error("Erreur média fatale");
-              hls.recoverMediaError();
-              break;
-            default:
-              console.error("Erreur fatale non récupérable");
-              hls.destroy();
-              break;
+    const tryStream = async (url, isDirect = false) => {
+      try {
+        if (Hls.isSupported()) {
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
           }
+
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+          });
+          
+          hlsRef.current = hls;
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+          
+          hls.on(Hls.Events.ERROR, (_event, data: any) => {
+            console.error("Erreur HLS:", data);
+            if (data.fatal) {
+              if (isDirect && !url.includes('/api/')) {
+                // Si l'URL directe échoue, essayer l'API
+                console.log("Tentative avec l'API en fallback...");
+                tryStream(apiUrl, false);
+              } else {
+                setIsLoading(false);
+                setError("Erreur fatale lors du chargement du flux");
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    console.error("Erreur réseau fatale");
+                    hls.startLoad();
+                    break;
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    console.error("Erreur média fatale");
+                    hls.recoverMediaError();
+                    break;
+                  default:
+                    console.error("Erreur fatale non récupérable");
+                    hls.destroy();
+                    break;
+                }
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
+          video.addEventListener('loadedmetadata', () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error("Erreur de lecture:", err);
+              setError("Impossible de lire le flux");
+            });
+          });
+        } else {
+          setError("Votre navigateur ne supporte pas HLS");
+          setIsLoading(false);
         }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
-        setIsLoading(false);
-        video.play().catch(err => {
-          console.error("Erreur de lecture:", err);
-          setError("Impossible de lire le flux");
-        });
-      });
-    } else {
-      setError("Votre navigateur ne supporte pas HLS");
-      setIsLoading(false);
-    }
+      } catch (error) {
+        console.error("Erreur lors du chargement du stream:", error);
+        if (isDirect && !url.includes('/api/')) {
+          // Si l'URL directe échoue, essayer l'API
+          console.log("Tentative avec l'API en fallback...");
+          tryStream(apiUrl, false);
+        } else {
+          setIsLoading(false);
+          setError("Impossible de charger le flux");
+        }
+      }
+    };
+
+    // Commencer par l'URL directe
+    tryStream(directUrl, true);
 
     return () => {
       if (hlsRef.current) {
