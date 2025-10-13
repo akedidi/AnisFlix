@@ -13,51 +13,43 @@ const defaultHeaders = {
 // URL de base sera définie dynamiquement
 let baseRemote = null;
 
-// Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
-async function resolveAuthUrl() {
-  console.log("Resolving auth URL from master:", baseRemote);
-  // Do not auto-follow redirects so we can read Location
-  const res = await fetch(baseRemote, { method: "GET", redirect: "manual", headers: defaultHeaders });
-  if (res.status >= 300 && res.status < 400) {
-    const loc = res.headers.get("location");
-    if (!loc) throw new Error("Redirect without Location header");
-    // if relative, resolve
-    const resolved = new URL(loc, baseRemote).toString();
-    currentAuthUrl = resolved;
-    console.log("Resolved auth URL:", currentAuthUrl);
-    return currentAuthUrl;
+// Fetch le contenu initial (comme dans le code fonctionnel)
+async function fetchInitialContent() {
+  console.log("Fetching initial content from:", baseRemote);
+  const res = await fetch(baseRemote, { method: "GET", headers: defaultHeaders });
+  
+  if (!res.ok) {
+    throw new Error(`Failed to fetch initial content: ${res.status}`);
   }
-  // sometimes server replies directly with playlist
-  if (res.ok) {
-    const text = await res.text();
-    // If it looks like an M3U8, set as playlist
-    if (text.includes("#EXTM3U")) {
-      currentPlaylistText = text;
-      console.log("Master returned playlist directly");
-      return baseRemote;
-    }
-    // If it's an MP4, we need to handle it differently
-    const contentType = res.headers.get('content-type');
-    if (contentType?.includes('video/mp4')) {
-      console.log("Master returned MP4 directly, this needs different handling");
-      throw new Error("MP4 direct stream not supported in HLS mode");
-    }
-  }
-  throw new Error("Could not resolve auth URL");
-}
-
-// Fetch playlist text from auth URL and keep it in memory (comme dans le code fonctionnel)
-async function fetchPlaylist() {
-  if (!currentAuthUrl) await resolveAuthUrl();
-
-  const res = await fetch(currentAuthUrl, { headers: defaultHeaders });
-  if (!res.ok) throw new Error("Failed fetching auth playlist: " + res.status);
+  
+  const contentType = res.headers.get('content-type');
   const text = await res.text();
-  currentPlaylistText = text;
-  lastPlaylistFetch = Date.now();
-  console.log("Playlist fetched, length:", text.length);
-  return text;
+  
+  // Si c'est une playlist M3U8
+  if (text.includes("#EXTM3U")) {
+    currentPlaylistText = text;
+    console.log("Master returned playlist directly");
+    return { type: 'playlist', content: text };
+  }
+  
+  // Si c'est un MP4, créer une playlist simple
+  if (contentType?.includes('video/mp4')) {
+    console.log("Master returned MP4 directly, creating simple playlist");
+    const simplePlaylist = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+${baseRemote}
+#EXT-X-ENDLIST`;
+    currentPlaylistText = simplePlaylist;
+    return { type: 'mp4', content: simplePlaylist };
+  }
+  
+  throw new Error("Unknown content type");
 }
+
+// Pas besoin de fetchPlaylist séparé, on utilise fetchInitialContent
 
 // Simple parser -> remplace les lignes qui commencent par "/hls/..." par URLs locales (comme dans le code fonctionnel)
 function makeLocalPlaylist(playlistText) {
@@ -103,7 +95,8 @@ export default async function handler(req, res) {
 
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
-      await fetchPlaylist();
+      await fetchInitialContent();
+      lastPlaylistFetch = Date.now();
     }
     const local = makeLocalPlaylist(currentPlaylistText);
     res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
