@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import BottomNav from "@/components/BottomNav";
 
 // Pages
 import Home from "@/pages/Home";
@@ -84,6 +85,7 @@ function App() {
             {/* <Route path="*" component={NotFound} /> */}
           </Router>
           <Toaster />
+          <BottomNav />
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Download, Heart, Star, ArrowLeft, Youtube } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
@@ -191,9 +190,6 @@ export default function MediaDetail() {
         </div>
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
-      </div>
     </div>
   );
 }

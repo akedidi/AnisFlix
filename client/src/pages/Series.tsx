@@ -3,7 +3,6 @@ import SearchBar from "@/components/SearchBar";
 import MediaCarousel from "@/components/MediaCarousel";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -143,9 +142,6 @@ export default function Series() {
         />
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
-      </div>
     </div>
   );
 }

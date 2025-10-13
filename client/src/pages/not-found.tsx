@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
 export default function NotFound() {
@@ -35,9 +34,6 @@ export default function NotFound() {
           </Card>
         </div>
         
-        {/* Mobile Bottom Navigation */}
-        <BottomNav />
-      </div>
     </div>
   );
 }
