@@ -41,7 +41,7 @@ async function resolveAuthUrl(channelId) {
         return { directPlaylist: text, url: baseRemote };
       }
       
-      // Si c'est un MP4, créer une playlist simple qui pointe vers notre proxy
+      // Si c'est un MP4, créer une playlist simple qui pointe directement vers l'URL
       if (res.headers.get('content-type')?.includes('video/mp4')) {
         console.log(`[TV] Master returned MP4 directly for ${channelId}`);
         const playlist = `#EXTM3U
@@ -49,7 +49,7 @@ async function resolveAuthUrl(channelId) {
 #EXT-X-TARGETDURATION:10
 #EXT-X-MEDIA-SEQUENCE:0
 #EXTINF:10.0,
-/api/tv-proxy-simple?url=${encodeURIComponent(baseRemote)}
+${baseRemote}
 #EXT-X-ENDLIST`;
         return { directPlaylist: playlist, url: baseRemote };
       }
