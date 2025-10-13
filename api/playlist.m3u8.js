@@ -4,10 +4,9 @@ import {
   lastPlaylistFetch, 
   baseRemote,
   defaultHeaders,
-  setBaseRemote,
   setAuthUrl,
   setPlaylistText
-} from '../shared-state.js';
+} from './shared-state.js';
 
 // Suit redirection initiale et stocke auth URL (comme dans le code fonctionnel)
 async function resolveAuthUrl() {
@@ -81,17 +80,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { channelId } = req.query;
-
-    if (!channelId) {
-      return res.status(400).json({ error: 'Channel ID required' });
-    }
-
-    console.log(`[TV] Setting up HLS proxy for channel ${channelId}`);
-
-    // Définir l'URL de base pour cette chaîne
-    setBaseRemote(`https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`);
-
     // Si playlist trop vieille (>8s ou configurable), refetch (comme dans le code fonctionnel)
     if (!currentPlaylistText || Date.now() - lastPlaylistFetch > 8000) {
       await fetchPlaylist();
