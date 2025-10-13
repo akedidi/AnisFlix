@@ -132,9 +132,9 @@ export async function getAllSeriesStreams(
  */
 export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
   try {
-    // Use Netlify Functions in production, local API in development
+    // Use Vercel Functions in production, local API in development
     const apiUrl = process.env.NODE_ENV === 'production' 
-      ? '/.netlify/functions/vidzy-extract'
+      ? '/api/vidzy/extract'
       : '/api/vidzy/extract';
       
     const response = await fetch(apiUrl, {
