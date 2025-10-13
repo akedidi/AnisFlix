@@ -173,6 +173,7 @@ export default function Home() {
         {featured && (
           <HeroSection
             {...featured}
+            isFavorite={popularMovies[0] ? isFavorite(popularMovies[0].id, 'movie') : false}
             onFavorite={() => {
               if (popularMovies[0]) {
                 toggleFavorite({

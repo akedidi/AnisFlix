@@ -12,6 +12,7 @@ interface HeroSectionProps {
   mediaType?: "movie" | "tv" | "anime" | "documentary";
   onFavorite?: () => void;
   onInfo?: () => void;
+  isFavorite?: boolean;
 }
 
 export default function HeroSection({
@@ -23,6 +24,7 @@ export default function HeroSection({
   mediaType,
   onFavorite,
   onInfo,
+  isFavorite = false,
 }: HeroSectionProps) {
   const imageUrl = backdropPath
     ? `https://image.tmdb.org/t/p/original${backdropPath}`
@@ -70,11 +72,15 @@ export default function HeroSection({
                 size="lg"
                 variant="outline"
                 onClick={onFavorite}
-                className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                className={`gap-2 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
+                  isFavorite 
+                    ? 'bg-red-500/20 border-red-400/40 text-red-100 hover:bg-red-500/30' 
+                    : 'bg-white/10'
+                }`}
                 data-testid="button-favorite"
               >
-                <Heart className="w-5 h-5" />
-                Favoris
+                <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-400 text-red-400' : ''}`} />
+                {isFavorite ? 'Retiré des favoris' : 'Ajouter aux favoris'}
               </Button>
               <Button
                 size="lg"
