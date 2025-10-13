@@ -23,13 +23,31 @@ async function resolveAuthUrl() {
     console.log("Resolved auth URL:", resolved);
     return resolved;
   }
-  // sometimes server replies directly with playlist
+  // sometimes server replies directly with playlist or MP4
   if (res.ok) {
-    const text = await res.text();
-    // If it looks like an M3U8, set as playlist
-    if (text.includes("#EXTM3U")) {
-      setPlaylistText(text);
-      console.log("Master returned playlist directly");
+    const contentType = res.headers.get('content-type');
+    
+    // If it's a playlist M3U8
+    if (contentType?.includes('application/vnd.apple.mpegurl') || contentType?.includes('application/x-mpegurl')) {
+      const text = await res.text();
+      if (text.includes("#EXTM3U")) {
+        setPlaylistText(text);
+        console.log("Master returned playlist directly");
+        return baseRemote;
+      }
+    }
+    
+    // If it's an MP4, create a simple playlist
+    if (contentType?.includes('video/mp4')) {
+      console.log("Master returned MP4 directly, creating simple playlist");
+      const simplePlaylist = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-TARGETDURATION:10
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+${baseRemote}
+#EXT-X-ENDLIST`;
+      setPlaylistText(simplePlaylist);
       return baseRemote;
     }
   }
@@ -53,6 +71,7 @@ function makeLocalPlaylist(playlistText) {
   if (!playlistText) return "";
   const lines = playlistText.split(/\r?\n/);
   const out = lines.map(line => {
+    // Handle HLS segments
     if (line.startsWith("/hls/") || line.match(/\.ts\?/)) {
       // extract filename and keep query if any (we'll ignore remote token and proxy)
       const u = line.trim();
@@ -60,6 +79,10 @@ function makeLocalPlaylist(playlistText) {
       const name = u.split("/").pop();
       // local proxy path
       return `/api/seg/${encodeURIComponent(name)}`;
+    }
+    // Handle direct MP4 URLs - proxy them
+    if (line.includes('fremtv.lol') && (line.includes('.mp4') || line.includes('.m3u8'))) {
+      return `/api/tv-proxy?url=${encodeURIComponent(line.trim())}`;
     }
     return line;
   });
