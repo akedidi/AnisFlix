@@ -76,7 +76,7 @@ export default function SeriesDetail() {
         const m3u8Url = await extractVidzyM3u8(source.url);
         
         if (!m3u8Url) {
-          throw new Error("Impossible d'extraire le lien m3u8 depuis Vidzy");
+          throw new Error("Aucun lien m3u8 trouvé");
         }
         
         setSelectedSource({
@@ -86,7 +86,8 @@ export default function SeriesDetail() {
         });
       } catch (error) {
         console.error("Erreur lors du chargement de la source:", error);
-        alert(error instanceof Error ? error.message : "Erreur lors du chargement de la source");
+        const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
+        alert(`Erreur Vidzy: ${errorMessage}`);
       } finally {
         setIsLoadingSource(false);
       }

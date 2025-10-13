@@ -150,9 +150,16 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
     }
     
     const data = await response.json();
+    
+    // Vérifier si c'est une erreur
+    if (data.error) {
+      console.error('Erreur API Vidzy:', data.error, data.details);
+      throw new Error(data.error);
+    }
+    
     return data.m3u8Url || null;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
-    return null;
+    throw error; // Re-throw pour que l'erreur soit propagée
   }
 }
