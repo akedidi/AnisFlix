@@ -12,6 +12,7 @@ import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
+import SuperVideoPlayer from "@/components/SuperVideoPlayer";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -289,6 +290,17 @@ export default function MovieDetail() {
               title="Films similaires"
               items={similarMovies.slice(0, 10)}
               onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            />
+          </div>
+        )}
+
+        {/* SuperVideo Player Demo */}
+        {movie?.imdb_id && (
+          <div className="mb-8">
+            <SuperVideoPlayer
+              imdbId={movie.imdb_id}
+              mediaType="movie"
+              title={movie.title}
             />
           </div>
         )}

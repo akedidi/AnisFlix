@@ -24,7 +24,8 @@
     "test:movix-download": "node scripts/test-movix-download.cjs",
     "test:movix-conversion": "node scripts/test-movix-conversion.cjs",
     "test:movix-simple": "node scripts/test-movix-simple.cjs",
-    "test:supervideo": "node scripts/test-supervideo.cjs"
+    "test:supervideo": "node scripts/test-supervideo.cjs",
+    "test:hls-flow": "node scripts/test-hls-flow.cjs"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",

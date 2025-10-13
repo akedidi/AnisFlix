@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
-import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8 } from "@/lib/movixPlayer";
+import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8, getHLSProxyUrl } from "@/lib/movixPlayer";
 
 // Optimized query options to reduce Fast Origin usage
 const CACHE_OPTIONS = {
@@ -274,6 +274,24 @@ export const useSuperVideoExtraction = (superVideoUrl: string | null) => {
     enabled: !!superVideoUrl && (superVideoUrl.includes('supervideo.cc/e/') || superVideoUrl.includes('supervideo.my/e/')),
     staleTime: 1000 * 60 * 5, // 5 minutes (shorter cache for dynamic content)
     cacheTime: 1000 * 60 * 15, // 15 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+  });
+};
+
+// Hook pour obtenir l'URL proxy HLS complète
+export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
+  return useQuery({
+    queryKey: ["hls-proxy-url", masterM3u8Url],
+    queryFn: async () => {
+      if (!masterM3u8Url) return null;
+      
+      return await getHLSProxyUrl(masterM3u8Url);
+    },
+    enabled: !!masterM3u8Url && masterM3u8Url.includes('.m3u8'),
+    staleTime: 1000 * 60 * 2, // 2 minutes (very short cache for streaming URLs)
+    cacheTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

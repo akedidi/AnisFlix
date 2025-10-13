@@ -91,3 +91,68 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
     throw error;
   }
 }
+
+/**
+ * Traite un lien master.m3u8 et retourne l'URL de l'index m3u8
+ * @param masterM3u8Url - L'URL du master.m3u8
+ * @returns Promise<string> - L'URL de l'index m3u8
+ */
+export async function getIndexM3u8FromMaster(masterM3u8Url: string): Promise<string> {
+  try {
+    const response = await fetch(`/api/hls-proxy?url=${encodeURIComponent(masterM3u8Url)}&type=master`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch master playlist: ${response.status}`);
+    }
+
+    const playlistText = await response.text();
+    
+    // Parse the master playlist to find the index URL
+    const lines = playlistText.split('\n');
+    let indexUrl = null;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Look for EXT-X-STREAM-INF followed by a URL
+      if (line.startsWith('#EXT-X-STREAM-INF:')) {
+        const nextLine = lines[i + 1]?.trim();
+        if (nextLine && !nextLine.startsWith('#')) {
+          indexUrl = nextLine;
+          break;
+        }
+      }
+    }
+    
+    if (!indexUrl) {
+      throw new Error('No index URL found in master playlist');
+    }
+    
+    // If it's a relative URL, make it absolute
+    if (!indexUrl.startsWith('http')) {
+      const baseUrl = new URL(masterM3u8Url);
+      const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/'));
+      indexUrl = `${baseUrl.origin}${basePath}/${indexUrl}`;
+    }
+    
+    return indexUrl;
+  } catch (error) {
+    console.error('Error getting index m3u8 from master:', error);
+    throw error;
+  }
+}
+
+/**
+ * Obtient l'URL proxy pour un stream HLS complet
+ * @param masterM3u8Url - L'URL du master.m3u8
+ * @returns Promise<string> - L'URL proxy pour le lecteur vidéo
+ */
+export async function getHLSProxyUrl(masterM3u8Url: string): Promise<string> {
+  try {
+    // Le proxy HLS gère automatiquement le master.m3u8 et réécrit les URLs
+    return `/api/hls-proxy?url=${encodeURIComponent(masterM3u8Url)}&type=master`;
+  } catch (error) {
+    console.error('Error getting HLS proxy URL:', error);
+    throw error;
+  }
+}
