@@ -69,7 +69,7 @@ export default function TVChannels() {
     if (!selectedChannel || !videoRef.current) return;
 
     const video = videoRef.current;
-    const streamUrl = `/api/playlist.m3u8?channelId=${selectedChannel.id}`;
+    const streamUrl = `/api/tv/stream/${selectedChannel.id}`;
 
     setIsLoading(true);
     setError(null);
