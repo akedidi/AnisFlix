@@ -123,8 +123,62 @@ export default async function handler(req, res) {
     }
 
     if (!html) {
-      // All browser simulation approaches failed
-      console.log('All browser simulation approaches failed...');
+      // Try specialized Cloudflare bypass services
+      console.log('Trying specialized Cloudflare bypass services...');
+      
+      const specializedServices = [
+        {
+          name: 'ScrapingBee Free',
+          url: `https://app.scrapingbee.com/api/v1/?api_key=free&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=false&country_code=FR`,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          }
+        },
+        {
+          name: 'ScraperAPI Free',
+          url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true&country_code=FR`,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          }
+        },
+        {
+          name: 'ProxyCurl Enhanced',
+          url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}&render=true&wait=5000&viewport=1920x1080`,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          }
+        }
+      ];
+
+      for (const service of specializedServices) {
+        try {
+          console.log(`Trying ${service.name}...`);
+          const response = await fetch(service.url, {
+            method: 'GET',
+            headers: service.headers,
+            timeout: 45000
+          });
+
+          if (response.ok) {
+            let responseText = await response.text();
+            
+            // Check if we got Cloudflare page
+            if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare') || responseText.includes('Just a moment') || responseText.includes('Sorry, you have been blocked')) {
+              console.log(`❌ ${service.name} returned Cloudflare page`);
+              continue;
+            }
+            
+            html = responseText;
+            successfulService = service.name;
+            console.log(`✅ ${service.name} successful`);
+            break;
+          } else {
+            console.log(`❌ ${service.name} failed: ${response.status}`);
+          }
+        } catch (error) {
+          console.log(`❌ ${service.name} error:`, error.message);
+        }
+      }
     }
 
     if (!html) {
