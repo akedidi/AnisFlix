@@ -12,7 +12,6 @@ import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
-import SuperVideoPlayer from "@/components/SuperVideoPlayer";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -322,16 +321,6 @@ export default function MovieDetail() {
           </div>
         )}
 
-        {/* SuperVideo Player Demo */}
-        {movie?.imdb_id && (
-          <div className="mb-8">
-            <SuperVideoPlayer
-              imdbId={movie.imdb_id}
-              mediaType="movie"
-              title={movie.title}
-            />
-          </div>
-        )}
       </div>
       
       {/* Mobile Bottom Navigation */}

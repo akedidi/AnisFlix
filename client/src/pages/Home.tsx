@@ -10,7 +10,6 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useFavorites } from "@/hooks/useFavorites";
-import MovixSuperVideoDemo from "@/components/MovixSuperVideoDemo";
 import { 
   usePopularMovies, 
   useLatestMovies, 
@@ -381,10 +380,6 @@ export default function Home() {
         </div>
         </div>
 
-        {/* Movix + SuperVideo Demo */}
-        <div className="mb-8">
-          <MovixSuperVideoDemo />
-        </div>
       </div>
       
       {/* Mobile Bottom Navigation */}
