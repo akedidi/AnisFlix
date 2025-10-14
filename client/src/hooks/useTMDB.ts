@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
-import { getMovixPlayerLinks, extractImdbId, extractSuperVideoM3u8, getHLSProxyUrl, getSuperVideoLinks } from "@/lib/movixPlayer";
+import { getMovixPlayerLinks, extractImdbId, getHLSProxyUrl } from "@/lib/movixPlayer";
 
 // Optimized query options to reduce Fast Origin usage
 const CACHE_OPTIONS = {
@@ -262,23 +262,6 @@ export const useMovixPlayerLinks = (imdbId: string | null, mediaType: 'movie' | 
   });
 };
 
-// Hook pour extraire le lien m3u8 depuis SuperVideo
-export const useSuperVideoExtraction = (superVideoUrl: string | null) => {
-  return useQuery({
-    queryKey: ["supervideo-extraction", superVideoUrl],
-    queryFn: async () => {
-      if (!superVideoUrl) return null;
-      
-      return await extractSuperVideoM3u8(superVideoUrl);
-    },
-    enabled: !!superVideoUrl && (superVideoUrl.includes('supervideo.cc/e/') || superVideoUrl.includes('supervideo.my/e/')),
-    staleTime: 1000 * 60 * 5, // 5 minutes (shorter cache for dynamic content)
-    cacheTime: 1000 * 60 * 15, // 15 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-  });
-};
 
 // Hook pour obtenir l'URL proxy HLS complète
 export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
@@ -298,21 +281,3 @@ export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
   });
 };
 
-// Hook pour récupérer spécifiquement les liens SuperVideo
-export const useSuperVideoLinks = (imdbId: string | null, mediaType: 'movie' | 'tv') => {
-  return useQuery({
-    queryKey: ["supervideo-links", imdbId, mediaType],
-    queryFn: async () => {
-      if (!imdbId) return [];
-      
-      const cleanImdbId = extractImdbId(imdbId);
-      if (!cleanImdbId) {
-        throw new Error('Invalid IMDB ID');
-      }
-      
-      return await getSuperVideoLinks(cleanImdbId, mediaType);
-    },
-    enabled: !!imdbId && !!extractImdbId(imdbId),
-    ...CACHE_OPTIONS,
-  });
-};
