@@ -51,6 +51,18 @@ const getRegion = (): string => {
   return regionMap[language] || 'FR';
 };
 
+// Get region for specific providers (some have better US catalogs)
+const getRegionForProvider = (providerId: number): string => {
+  // Providers with better US catalogs
+  const usProviders = [9, 1899, 531]; // Amazon Prime (9), HBO Max (1899), Paramount+ (531)
+  
+  if (usProviders.includes(providerId)) {
+    return 'US'; // Use US region for better content
+  }
+  
+  return getRegion(); // Use user's region for others
+};
+
 // Map language codes to TMDB language format
 const getLanguageCode = (lang: string): string => {
   const languageMap: Record<string, string> = {
@@ -173,7 +185,7 @@ export const tmdb = {
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
-      watch_region: getRegion(), // Use user's region based on language
+      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
       page: page.toString(),
     });
   },
@@ -181,7 +193,7 @@ export const tmdb = {
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
-      watch_region: getRegion(), // Use user's region based on language
+      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
       page: page.toString(),
     });
   },
@@ -191,7 +203,7 @@ export const tmdb = {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
-      watch_region: getRegion(), // Use user's region based on language
+      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
       page: page.toString(),
     });
   },
@@ -200,7 +212,7 @@ export const tmdb = {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
-      watch_region: getRegion(), // Use user's region based on language
+      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
       page: page.toString(),
     });
   },
