@@ -320,25 +320,26 @@ export default function StreamingSources({
   }
 
   // Ajouter les liens SuperVideo après les liens Vidzy (VF uniquement)
-  if (superVideoLinks && superVideoLinks.length > 0 && selectedLanguage === 'VF') {
-    let superVideoCounter = 1;
-    
-    superVideoLinks.forEach((link) => {
-      // Vérifier que c'est bien un lien SuperVideo valide
-      if (link.link.includes('supervideo.cc/e/') || link.link.includes('supervideo.my/e/')) {
-        allSources.push({
-          id: `supervideo-${superVideoCounter}`,
-          name: `SuperVideo${superVideoCounter} (${link.is_hd ? 'HD' : 'SD'})`,
-          provider: 'supervideo',
-          url: link.link,
-          type: 'm3u8' as const,
-          player: 'supervideo',
-          isSuperVideo: true
-        });
-        superVideoCounter++;
-      }
-    });
-  }
+  // Note: SuperVideo links are currently disabled due to enhanced Cloudflare protection
+  // if (superVideoLinks && superVideoLinks.length > 0 && selectedLanguage === 'VF') {
+  //   let superVideoCounter = 1;
+  //   
+  //   superVideoLinks.forEach((link) => {
+  //     // Vérifier que c'est bien un lien SuperVideo valide
+  //     if (link.link.includes('supervideo.cc/e/') || link.link.includes('supervideo.my/e/')) {
+  //       allSources.push({
+  //         id: `supervideo-${superVideoCounter}`,
+  //         name: `SuperVideo${superVideoCounter} (${link.is_hd ? 'HD' : 'SD'})`,
+  //         provider: 'supervideo',
+  //         url: link.link,
+  //         type: 'm3u8' as const,
+  //         player: 'supervideo',
+  //         isSuperVideo: true
+  //       });
+  //       superVideoCounter++;
+  //     }
+  //   });
+  // }
 
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream et FStream
 

@@ -208,16 +208,15 @@ export default async function handler(req, res) {
     }
 
     if (!html) {
-      // Final fallback - return a working demo m3u8 for testing
-      console.log('All extraction methods failed, returning demo m3u8 for testing...');
-      const demoM3u8 = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
+      // SuperVideo has enhanced Cloudflare protection that blocks all free proxy services
+      console.log('All extraction methods failed due to enhanced Cloudflare protection...');
       
-      return res.status(200).json({ 
-        success: true, 
-        m3u8: demoM3u8,
-        source: 'supervideo-demo',
-        note: 'All extraction methods failed - using demo m3u8 for testing. SuperVideo has enhanced Cloudflare protection.',
-        originalUrl: url
+      return res.status(500).json({ 
+        error: 'SuperVideo Cloudflare protection too strong',
+        details: 'SuperVideo has enhanced their Cloudflare protection and blocks all free proxy services. This is a known limitation.',
+        suggestion: 'SuperVideo links are currently not accessible due to enhanced security measures. Please try other streaming sources.',
+        originalUrl: url,
+        cloudflareProtection: true
       });
     }
 
