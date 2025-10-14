@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function NetflixContent() {
@@ -25,17 +25,13 @@ export default function NetflixContent() {
     tabParam === 'series' ? 'series' : 'movies'
   );
 
-  // Fetch data from TMDB
+  // Fetch data from TMDB - Only Netflix content
   const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(8, currentPage);
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(8, currentPage);
-  const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
-  const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
-  const animeMovies = animeMoviesData?.results || [];
-  const animeSeries = animeSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -140,37 +136,6 @@ export default function NetflixContent() {
 
       {/* Catégories Anime */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Films anime</h2>
-          {animeMovies.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeMovies.slice(0, 10).map((movie) => (
-                <div key={movie.id} className="w-full">
-                  <MediaCard
-                    {...movie}
-                    onClick={() => window.location.href = `/movie/${movie.id}`}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Séries anime</h2>
-          {animeSeries.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeSeries.slice(0, 10).map((serie) => (
-                <div key={serie.id} className="w-full">
-                  <MediaCard
-                    {...serie}
-                    onClick={() => window.location.href = `/series/${serie.id}`}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Contenu paginé */}
