@@ -154,14 +154,10 @@ export default async function handler(req, res) {
     }
 
     if (!html) {
-      console.log('All proxy approaches failed, using fallback mock m3u8');
-      // Return a working mock m3u8 for testing when all methods fail
-      const mockM3u8 = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
-      return res.status(200).json({ 
-        success: true, 
-        m3u8: mockM3u8,
-        source: 'supervideo-fallback',
-        note: 'All extraction methods failed - using mock m3u8 for testing'
+      console.log('All proxy approaches failed');
+      return res.status(500).json({ 
+        error: 'All extraction methods failed',
+        details: 'Could not fetch SuperVideo page content'
       });
     }
 
@@ -273,7 +269,10 @@ export default async function handler(req, res) {
     } else {
       // Log some debug info
       console.log('HTML preview:', html.substring(0, 1000));
-      throw new Error('No m3u8 link found in page content');
+      return res.status(500).json({ 
+        error: 'No m3u8 link found in page content',
+        details: 'Could not extract m3u8 from SuperVideo page'
+      });
     }
 
   } catch (error) {
