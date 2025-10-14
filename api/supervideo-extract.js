@@ -146,31 +146,64 @@ export default async function handler(req, res) {
     }
 
     if (!html) {
-      // Try one more specialized service for Cloudflare bypass
-      console.log('Trying specialized Cloudflare bypass service...');
+      // Try alternative proxy services
+      console.log('Trying alternative proxy services...');
       
-      try {
-        // Use a different approach with a specialized service
-        const specializedUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&x-api-key=free&browser=false&proxy_country=US`;
-        
-        const response = await fetch(specializedUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-          },
-          timeout: 30000
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.content) {
-            html = data.content;
-            successfulService = 'ScrapingAnt';
-            console.log(`✅ ScrapingAnt successful`);
-          }
+      const alternativeServices = [
+        {
+          name: 'ProxyCurl Alternative',
+          url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}&render=true&wait=3000`,
+        },
+        {
+          name: 'AllOrigins Alternative',
+          url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        },
+        {
+          name: 'CORSProxy Alternative',
+          url: `https://corsproxy.io/?${encodeURIComponent(url)}&_cors=1`,
         }
-      } catch (error) {
-        console.log(`❌ ScrapingAnt error:`, error.message);
+      ];
+
+      for (const service of alternativeServices) {
+        try {
+          console.log(`Trying ${service.name}...`);
+          const response = await fetch(service.url, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            },
+            timeout: 30000
+          });
+
+          if (response.ok) {
+            let responseText = await response.text();
+            
+            // Handle JSON response for AllOrigins
+            if (service.name === 'AllOrigins Alternative') {
+              try {
+                const data = JSON.parse(responseText);
+                responseText = data.contents;
+              } catch (e) {
+                // If not JSON, use as-is
+              }
+            }
+            
+            // Check if we got Cloudflare page
+            if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare') || responseText.includes('Just a moment')) {
+              console.log(`❌ ${service.name} returned Cloudflare page`);
+              continue;
+            }
+            
+            html = responseText;
+            successfulService = service.name;
+            console.log(`✅ ${service.name} successful`);
+            break;
+          } else {
+            console.log(`❌ ${service.name} failed: ${response.status}`);
+          }
+        } catch (error) {
+          console.log(`❌ ${service.name} error:`, error.message);
+        }
       }
     }
 
