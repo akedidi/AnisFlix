@@ -345,6 +345,7 @@ export default function StreamingSources({
         name: source.name,
         isMovixDownload: true
       });
+    }
   };
 
   if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload) {
