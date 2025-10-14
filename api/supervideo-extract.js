@@ -30,20 +30,6 @@ export default async function handler(req, res) {
     // Try multiple proxy services to bypass Cloudflare
     const proxyServices = [
       {
-        name: 'ScraperAPI',
-        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true&country_code=us`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      {
-        name: 'ProxyCurl',
-        url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      {
         name: 'AllOrigins',
         url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         headers: {
@@ -60,6 +46,20 @@ export default async function handler(req, res) {
       {
         name: 'ThingProxy',
         url: `https://thingproxy.freeboard.io/fetch/${url}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'ProxyCurl',
+        url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'ScraperAPI',
+        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true&country_code=us`,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
@@ -107,7 +107,50 @@ export default async function handler(req, res) {
     }
 
     if (!html) {
-      throw new Error('All proxy services failed to bypass Cloudflare');
+      // If all proxy services fail, try one more approach with different headers
+      console.log('All proxy services failed, trying direct approach with advanced headers...');
+      
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'Referer': 'https://supervideo.cc/',
+          },
+          timeout: 30000
+        });
+
+        if (response.ok) {
+          html = await response.text();
+          successfulService = 'Direct Advanced';
+          console.log(`✅ Direct Advanced successful`);
+        } else {
+          throw new Error(`Direct approach failed: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`❌ Direct Advanced error:`, error.message);
+      }
+    }
+
+    if (!html) {
+      return res.status(500).json({ 
+        error: 'All extraction methods failed',
+        details: 'Could not bypass Cloudflare protection. SuperVideo may have enhanced their protection.',
+        suggestion: 'Try again later or contact support if the issue persists.'
+      });
     }
 
     console.log(`Content fetched using: ${successfulService}, length: ${html.length}`);
