@@ -88,9 +88,8 @@ export function extractImdbId(imdbId: string): string | null {
  * @returns Promise<string> - Le lien m3u8 extrait
  */
 export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<string> {
-  // Try external extraction first (uses mock for testing when all methods fail)
   try {
-    const externalResponse = await fetch('/api/supervideo-extract-external', {
+    const response = await fetch('/api/supervideo-extract', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,46 +97,21 @@ export async function extractSuperVideoM3u8(superVideoUrl: string): Promise<stri
       body: JSON.stringify({ url: superVideoUrl }),
     });
 
-    if (!externalResponse.ok) {
-      throw new Error(`SuperVideo external extraction failed: ${externalResponse.status}`);
+    if (!response.ok) {
+      throw new Error(`SuperVideo extraction failed: ${response.status}`);
     }
 
-    const externalData = await externalResponse.json();
+    const data = await response.json();
     
-    if (externalData.success && externalData.m3u8) {
-      console.log('External extraction successful');
-      return externalData.m3u8;
+    if (data.success && data.m3u8) {
+      console.log('SuperVideo extraction successful');
+      return data.m3u8;
     } else {
-      throw new Error(externalData.error || 'Failed to extract m3u8 from SuperVideo with external method');
+      throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
     }
-  } catch (externalError) {
-    console.error('Error with external SuperVideo extraction, trying Puppeteer method:', externalError);
-    
-    // Try Puppeteer-based extraction as fallback
-    try {
-      const response = await fetch('/api/supervideo-extract', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: superVideoUrl }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`SuperVideo extraction failed: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.m3u8) {
-        return data.m3u8;
-      } else {
-        throw new Error(data.error || 'Failed to extract m3u8 from SuperVideo');
-      }
-    } catch (puppeteerError) {
-      console.error('Error with Puppeteer SuperVideo extraction:', puppeteerError);
-      throw new Error(`All SuperVideo extraction methods failed: ${externalError.message}`);
-    }
+  } catch (error) {
+    console.error('Error with SuperVideo extraction:', error);
+    throw error;
   }
 }
 
@@ -198,8 +172,8 @@ export async function getIndexM3u8FromMaster(masterM3u8Url: string): Promise<str
  */
 export async function getHLSProxyUrl(masterM3u8Url: string): Promise<string> {
   try {
-    // Le proxy HLS gère automatiquement le master.m3u8 et réécrit les URLs
-    return `/api/hls-proxy?url=${encodeURIComponent(masterM3u8Url)}&type=master`;
+    // Use our SuperVideo HLS proxy to handle the streaming
+    return `/api/supervideo-proxy?url=${encodeURIComponent(masterM3u8Url)}`;
   } catch (error) {
     console.error('Error getting HLS proxy URL:', error);
     throw error;
