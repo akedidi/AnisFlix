@@ -29,40 +29,47 @@ export default async function handler(req, res) {
 
     // Try multiple approaches to get the page content
     const approaches = [
-      // Approach 1: AllOrigins proxy
-      {
-        name: 'AllOrigins Proxy',
-        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      // Approach 2: CORS-Anywhere proxy
-      {
-        name: 'CORS-Anywhere',
-        url: `https://cors-anywhere.herokuapp.com/${url}`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-          'X-Requested-With': 'XMLHttpRequest',
-        }
-      },
-      // Approach 3: ThingProxy
-      {
-        name: 'ThingProxy',
-        url: `https://thingproxy.freeboard.io/fetch/${url}`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      // Approach 4: ScraperAPI
+      // Approach 1: ScraperAPI (best for Cloudflare bypass)
       {
         name: 'ScraperAPI',
-        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}`,
+        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true`,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
       },
-      // Approach 5: CORSProxy.io
+      // Approach 2: ProxyCurl (Cloudflare bypass)
+      {
+        name: 'ProxyCurl',
+        url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      // Approach 3: ScrapingBee
+      {
+        name: 'ScrapingBee',
+        url: `https://app.scrapingbee.com/api/v1/?api_key=free&url=${encodeURIComponent(url)}&render_js=true`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      // Approach 4: Bright Data (free tier)
+      {
+        name: 'Bright Data',
+        url: `https://api.brightdata.com/dca/trigger?collector=c_1234567890&queue_next=1&url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      // Approach 5: AllOrigins with different endpoint
+      {
+        name: 'AllOrigins Get',
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      // Approach 6: CORSProxy.io with different format
       {
         name: 'CORSProxy.io',
         url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
@@ -70,7 +77,15 @@ export default async function handler(req, res) {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
       },
-      // Approach 6: Direct fetch with advanced headers
+      // Approach 7: ThingProxy with different endpoint
+      {
+        name: 'ThingProxy',
+        url: `https://thingproxy.freeboard.io/fetch/${url}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      // Approach 8: Direct fetch with advanced headers
       {
         name: 'Direct Advanced',
         url: url,
@@ -108,7 +123,25 @@ export default async function handler(req, res) {
         });
         
         if (response.ok) {
-          html = await response.text();
+          let responseText = await response.text();
+          
+          // Handle different proxy response formats
+          if (approach.name === 'AllOrigins Get') {
+            try {
+              const data = JSON.parse(responseText);
+              responseText = data.contents;
+            } catch (e) {
+              // If not JSON, use as-is
+            }
+          }
+          
+          // Check if we got Cloudflare page
+          if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare')) {
+            console.log(`❌ ${approach.name} returned Cloudflare page`);
+            continue;
+          }
+          
+          html = responseText;
           successfulMethod = approach.name;
           console.log(`✅ ${approach.name} successful`);
           break;
@@ -138,27 +171,40 @@ export default async function handler(req, res) {
     const m3u8Patterns = [
       // Direct m3u8 URLs
       /https?:\/\/[^\s"']+\.m3u8[^\s"']*/g,
-      // JWPlayer configuration
+      // JWPlayer configuration (most common for SuperVideo)
       /"file"\s*:\s*"([^"]*\.m3u8[^"]*)"/g,
       /'file'\s*:\s*'([^']*\.m3u8[^']*)'/g,
       /file\s*:\s*["']([^"']*\.m3u8[^"']*)["']/g,
-      // Source attributes
+      // JWPlayer sources array
+      /sources\s*:\s*\[[^\]]*"([^"]*\.m3u8[^"]*)"[^\]]*\]/g,
+      /sources\s*:\s*\[[^\]]*'([^']*\.m3u8[^']*)'[^\]]*\]/g,
+      // Video element sources
       /src\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
       /data-src\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
-      // Video sources
-      /sources\s*:\s*\[[^\]]*"([^"]*\.m3u8[^"]*)"[^\]]*\]/g,
-      // HLS URLs
+      // HLS specific patterns
       /hls\s*:\s*["']([^"']*\.m3u8[^"']*)["']/g,
-      // Base64 encoded URLs
+      /\.loadSource\s*\(\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      // Base64 encoded URLs (common in SuperVideo)
       /"([A-Za-z0-9+/=]{50,})"/g,
-      // Encoded URLs
+      /'([A-Za-z0-9+/=]{50,})'/g,
+      // Encoded URLs with atob
       /atob\s*\(\s*["']([^"']+)["']\s*\)/g,
+      /atob\s*\(\s*'([^']+)'\s*\)/g,
       // JavaScript variables
       /var\s+\w+\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      /const\s+\w+\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      /let\s+\w+\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
       // Object properties
       /\w+\.src\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      /\w+\.file\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
       // Iframe sources
       /iframe[^>]*src\s*=\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      // SuperVideo specific patterns
+      /playerInstance\.load\s*\(\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      /jwplayer\([^)]+\)\.load\s*\(\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      // URL patterns in JavaScript
+      /url\s*:\s*["']([^"']*\.m3u8[^"']*)["']/g,
+      /source\s*:\s*["']([^"']*\.m3u8[^"']*)["']/g,
     ];
 
     let m3u8Link = null;
