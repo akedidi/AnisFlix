@@ -25,6 +25,7 @@ import { getWatchProgress } from "@/lib/watchProgress";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [featuredKey, setFeaturedKey] = useState(0); // Force re-render of featured
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -81,15 +82,29 @@ export default function Home() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Use first popular movie as featured
-  const featured = popularMovies[0] ? {
-    title: popularMovies[0].title,
-    overview: "",
-    backdropPath: popularMovies[0].posterPath,
-    rating: popularMovies[0].rating,
-    year: popularMovies[0].year,
-    mediaType: popularMovies[0].mediaType,
-  } : null;
+  // Use random popular movie as featured (changes on each page load)
+  const getRandomFeatured = () => {
+    if (popularMovies.length === 0) return null;
+    // Use featuredKey to ensure different random selection
+    const seed = featuredKey + Date.now();
+    const randomIndex = Math.floor((Math.sin(seed) * 10000) % Math.min(popularMovies.length, 10));
+    const movie = popularMovies[Math.abs(randomIndex)];
+    return {
+      title: movie.title,
+      overview: "",
+      backdropPath: movie.posterPath,
+      rating: movie.rating,
+      year: movie.year,
+      mediaType: movie.mediaType,
+    };
+  };
+  
+  const featured = getRandomFeatured();
+  
+  // Function to change featured movie
+  const changeFeaturedMovie = () => {
+    setFeaturedKey(prev => prev + 1);
+  };
 
   // Providers
   const providers = [
@@ -191,6 +206,7 @@ export default function Home() {
                 window.location.href = `/movie/${popularMovies[0].id}`;
               }
             }}
+            onChangeFeatured={changeFeaturedMovie}
           />
         )}
 

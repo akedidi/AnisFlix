@@ -13,6 +13,7 @@ interface HeroSectionProps {
   mediaType?: "movie" | "tv" | "anime" | "documentary";
   onFavorite?: () => void;
   onInfo?: () => void;
+  onChangeFeatured?: () => void;
   isFavorite?: boolean;
 }
 
@@ -25,6 +26,7 @@ export default function HeroSection({
   mediaType,
   onFavorite,
   onInfo,
+  onChangeFeatured,
   isFavorite = false,
 }: HeroSectionProps) {
   const imageUrl = getOptimizedBackdropUrl(backdropPath, 'w1280');
@@ -91,6 +93,18 @@ export default function HeroSection({
                 <Info className="w-5 h-5" />
                 Plus d'infos
               </Button>
+              {onChangeFeatured && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={onChangeFeatured}
+                  className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
+                  data-testid="button-change-featured"
+                >
+                  <span className="text-lg">🎲</span>
+                  Changer
+                </Button>
+              )}
             </div>
           </div>
         </div>

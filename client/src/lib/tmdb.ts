@@ -37,6 +37,20 @@ const getLanguage = (): string => {
   return localStorage.getItem('app-language') || 'fr';
 };
 
+// Get region based on language or browser locale
+const getRegion = (): string => {
+  const language = getLanguage();
+  const regionMap: Record<string, string> = {
+    'fr': 'FR',
+    'en': 'US', 
+    'es': 'ES',
+    'de': 'DE',
+    'it': 'IT',
+    'pt': 'PT'
+  };
+  return regionMap[language] || 'FR';
+};
+
 // Map language codes to TMDB language format
 const getLanguageCode = (lang: string): string => {
   const languageMap: Record<string, string> = {
@@ -159,7 +173,7 @@ export const tmdb = {
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
-      watch_region: 'US',
+      watch_region: getRegion(), // Use user's region based on language
       page: page.toString(),
     });
   },
@@ -167,7 +181,7 @@ export const tmdb = {
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
-      watch_region: 'US',
+      watch_region: getRegion(), // Use user's region based on language
       page: page.toString(),
     });
   },
@@ -177,7 +191,7 @@ export const tmdb = {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
-      watch_region: 'US',
+      watch_region: getRegion(), // Use user's region based on language
       page: page.toString(),
     });
   },
@@ -186,7 +200,7 @@ export const tmdb = {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
-      watch_region: 'US',
+      watch_region: getRegion(), // Use user's region based on language
       page: page.toString(),
     });
   },
