@@ -50,14 +50,50 @@ function rewritePlaylistUrls(playlistText: string, baseUrl: string): string {
       if (!t || t.startsWith('#')) return line;
       const abs = toAbsolute(baseUrl, t);
       if (/\.m3u8(\?|$)/i.test(abs)) {
-        return `/api/tv/proxy/m3u8?url=${encodeURIComponent(abs)}`;
+        return `/proxy/m3u8?url=${encodeURIComponent(abs)}`;
       }
-      return `/api/tv/proxy/segment?url=${encodeURIComponent(abs)}`;
+      return `/proxy/segment?url=${encodeURIComponent(abs)}`;
     })
     .join('\n');
 }
 
 export function registerHLSProxyRoutes(app: Express) {
+  // Route compatible avec votre code fonctionnel (pour test)
+  app.get('/stream/playlist.m3u8', async (req: Request, res: Response) => {
+    try {
+      // Utiliser l'ID 102 par défaut comme dans votre code
+      const channelId = '102';
+      const initialUrl = `${ORIGIN_HOST}/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
+
+      // Amorcer la session/cookies
+      try { 
+        await http.get(ORIGIN_HOST + '/', { headers: browserHeaders }); 
+      } catch {}
+
+      // Laisser suivre la 302 vers /auth/...token=...
+      const r = await http.get(initialUrl, { 
+        headers: browserHeaders, 
+        responseType: 'text' 
+      });
+
+      const ctype = (r.headers['content-type'] || '').toLowerCase();
+      console.log(`[ENTRY] ${r.status} ${ctype} ← ${(r as any).request?.res?.responseUrl || initialUrl}`);
+
+      if (typeof r.data !== 'string') {
+        return res.status(502).send('Pas une playlist M3U8.');
+      }
+
+      const baseUrl = (r as any).request?.res?.responseUrl || initialUrl;
+      const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+
+      res.set('Content-Type', 'application/vnd.apple.mpegurl');
+      res.send(rewritten);
+    } catch (e: any) {
+      console.error('[ENTRY ERROR]', e.message);
+      res.status(500).send('Erreur lors de la récupération de la playlist.');
+    }
+  });
+
   // Entrée: fournit une playlist m3u8 (réécrite) au player
   app.get('/api/tv/stream/:channelId', async (req: Request, res: Response) => {
     try {
@@ -96,7 +132,7 @@ export function registerHLSProxyRoutes(app: Express) {
   });
 
   // Proxy générique pour toute playlist (master/media)
-  app.get('/api/tv/proxy/m3u8', async (req: Request, res: Response) => {
+  app.get('/proxy/m3u8', async (req: Request, res: Response) => {
     const target = req.query.url as string;
     if (!target) {
       return res.status(400).send('Paramètre "url" manquant.');
@@ -136,7 +172,7 @@ export function registerHLSProxyRoutes(app: Express) {
   });
 
   // Proxy segments (gère Range + stream)
-  app.get('/api/tv/proxy/segment', async (req: Request, res: Response) => {
+  app.get('/proxy/segment', async (req: Request, res: Response) => {
     const target = req.query.url as string;
     if (!target) {
       return res.status(400).send('Paramètre "url" manquant.');
