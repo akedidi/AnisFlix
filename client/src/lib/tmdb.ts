@@ -186,6 +186,9 @@ export const tmdb = {
     return tmdbFetch('/discover/movie', {
       with_watch_providers: providerId.toString(),
       watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
+      with_watch_monetization_types: 'flatrate', // Only subscription-based content
+      vote_average_gte: '5', // Minimum rating 5/10
+      vote_count_gte: '50', // Minimum 50 votes
       page: page.toString(),
     });
   },
@@ -194,6 +197,9 @@ export const tmdb = {
     return tmdbFetch('/discover/tv', {
       with_watch_providers: providerId.toString(),
       watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
+      with_watch_monetization_types: 'flatrate', // Only subscription-based content
+      vote_average_gte: '5', // Minimum rating 5/10
+      vote_count_gte: '50', // Minimum 50 votes
       page: page.toString(),
     });
   },
@@ -204,6 +210,9 @@ export const tmdb = {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
       watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
+      with_watch_monetization_types: 'flatrate', // Only subscription-based content
+      vote_average_gte: '5', // Minimum rating 5/10
+      vote_count_gte: '50', // Minimum 50 votes
       page: page.toString(),
     });
   },
@@ -213,6 +222,9 @@ export const tmdb = {
       with_watch_providers: providerId.toString(),
       with_genres: genreId.toString(),
       watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
+      with_watch_monetization_types: 'flatrate', // Only subscription-based content
+      vote_average_gte: '5', // Minimum rating 5/10
+      vote_count_gte: '50', // Minimum 50 votes
       page: page.toString(),
     });
   },

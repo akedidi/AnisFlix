@@ -40,6 +40,7 @@ export default function NetflixContent() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Netflix specific genres
+  const { data: actionMoviesData } = useMoviesByProviderAndGenre(8, 28); // Action
   const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(8, 53); // Thriller
   const { data: romanceMoviesData } = useMoviesByProviderAndGenre(8, 10749); // Romance
   const { data: horrorMoviesData } = useMoviesByProviderAndGenre(8, 27); // Horror
@@ -49,6 +50,7 @@ export default function NetflixContent() {
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const actionMovies = actionMoviesData?.results || [];
   const thrillerMovies = thrillerMoviesData?.results || [];
   const romanceMovies = romanceMoviesData?.results || [];
   const horrorMovies = horrorMoviesData?.results || [];
@@ -159,6 +161,22 @@ export default function NetflixContent() {
 
       {/* Catégories Netflix */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Action Netflix</h2>
+          {actionMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {actionMovies.slice(0, 10).map((movie: TransformedMedia) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">Films Thriller Netflix</h2>
           {thrillerMovies.length > 0 && (
