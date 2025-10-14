@@ -27,33 +27,90 @@ export default async function handler(req, res) {
   try {
     console.log(`🚀 Starting SuperVideo extraction for: ${url}`);
 
-    // Use a working proxy service that can handle SuperVideo
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    
-    const response = await fetch(proxyUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
+    // Try multiple proxy services to bypass Cloudflare
+    const proxyServices = [
+      {
+        name: 'ScraperAPI',
+        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true&country_code=us`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
       },
-      timeout: 30000
-    });
+      {
+        name: 'ProxyCurl',
+        url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'AllOrigins',
+        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'CORSProxy',
+        url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'ThingProxy',
+        url: `https://thingproxy.freeboard.io/fetch/${url}`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      },
+      {
+        name: 'ScrapingBee',
+        url: `https://app.scrapingbee.com/api/v1/?api_key=free&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true`,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+      }
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Proxy request failed: ${response.status}`);
+    let html = null;
+    let successfulService = null;
+
+    for (const service of proxyServices) {
+      try {
+        console.log(`Trying ${service.name}...`);
+        const response = await fetch(service.url, {
+          method: 'GET',
+          headers: service.headers,
+          timeout: 30000
+        });
+
+        if (response.ok) {
+          let responseText = await response.text();
+          
+          // Check if we got Cloudflare page
+          if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare') || responseText.includes('Just a moment')) {
+            console.log(`❌ ${service.name} returned Cloudflare page`);
+            continue;
+          }
+          
+          html = responseText;
+          successfulService = service.name;
+          console.log(`✅ ${service.name} successful`);
+          break;
+        } else {
+          console.log(`❌ ${service.name} failed: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`❌ ${service.name} error:`, error.message);
+      }
     }
 
-    const html = await response.text();
-    console.log(`Content fetched, length: ${html.length}`);
-
-    // Check if we got Cloudflare page
-    if (html.includes('Attention Required!') || html.includes('Cloudflare')) {
-      throw new Error('Cloudflare protection detected');
+    if (!html) {
+      throw new Error('All proxy services failed to bypass Cloudflare');
     }
+
+    console.log(`Content fetched using: ${successfulService}, length: ${html.length}`);
 
     // Extract m3u8 using your working patterns
     const m3u8Patterns = [
