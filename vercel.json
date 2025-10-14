@@ -27,13 +27,13 @@
     "api/*.js": {
       "maxDuration": 30
     },
-    "api/tv-stream.js": {
+    "api/tv-stream/index.js": {
       "maxDuration": 30
     },
-    "api/tv-proxy-m3u8.js": {
+    "api/tv-proxy-m3u8/index.js": {
       "maxDuration": 30
     },
-    "api/tv-proxy-segment.js": {
+    "api/tv-proxy-segment/index.js": {
       "maxDuration": 30
     }
   }
