@@ -26,6 +26,15 @@
   "functions": {
     "api/*.js": {
       "maxDuration": 30
+    },
+    "api/tv-stream.js": {
+      "maxDuration": 30
+    },
+    "api/tv-proxy-m3u8.js": {
+      "maxDuration": 30
+    },
+    "api/tv-proxy-segment.js": {
+      "maxDuration": 30
     }
   }
 }
