@@ -27,48 +27,64 @@ export default async function handler(req, res) {
   try {
     console.log(`🚀 Starting SuperVideo extraction for: ${url}`);
 
-    // Try multiple proxy services to bypass Cloudflare
-    const proxyServices = [
+    // Try multiple approaches with enhanced browser simulation
+    const approaches = [
       {
-        name: 'AllOrigins',
+        name: 'Direct Browser Simulation',
+        url: url,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'max-age=0',
+          'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+          'Referer': 'https://supervideo.cc/',
+          'Connection': 'keep-alive',
+          'DNT': '1'
+        }
+      },
+      {
+        name: 'AllOrigins with Browser Headers',
         url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://supervideo.cc/',
+          'Cache-Control': 'max-age=0'
         }
       },
       {
-        name: 'CORSProxy',
+        name: 'CORSProxy with Browser Headers',
         url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://supervideo.cc/',
+          'Cache-Control': 'max-age=0'
         }
       },
       {
-        name: 'ThingProxy',
+        name: 'ThingProxy with Browser Headers',
         url: `https://thingproxy.freeboard.io/fetch/${url}`,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      {
-        name: 'ProxyCurl',
-        url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      {
-        name: 'ScraperAPI',
-        url: `https://api.scraperapi.com/?api_key=free&url=${encodeURIComponent(url)}&render=true&country_code=us`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-        }
-      },
-      {
-        name: 'ScrapingBee',
-        url: `https://app.scrapingbee.com/api/v1/?api_key=free&url=${encodeURIComponent(url)}&render_js=true&premium_proxy=true`,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Referer': 'https://supervideo.cc/',
+          'Cache-Control': 'max-age=0'
         }
       }
     ];
@@ -76,12 +92,12 @@ export default async function handler(req, res) {
     let html = null;
     let successfulService = null;
 
-    for (const service of proxyServices) {
+    for (const approach of approaches) {
       try {
-        console.log(`Trying ${service.name}...`);
-        const response = await fetch(service.url, {
+        console.log(`Trying ${approach.name}...`);
+        const response = await fetch(approach.url, {
           method: 'GET',
-          headers: service.headers,
+          headers: approach.headers,
           timeout: 30000
         });
 
@@ -90,121 +106,25 @@ export default async function handler(req, res) {
           
           // Check if we got Cloudflare page
           if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare') || responseText.includes('Just a moment')) {
-            console.log(`❌ ${service.name} returned Cloudflare page`);
+            console.log(`❌ ${approach.name} returned Cloudflare page`);
             continue;
           }
           
           html = responseText;
-          successfulService = service.name;
-          console.log(`✅ ${service.name} successful`);
+          successfulService = approach.name;
+          console.log(`✅ ${approach.name} successful`);
           break;
         } else {
-          console.log(`❌ ${service.name} failed: ${response.status}`);
+          console.log(`❌ ${approach.name} failed: ${response.status}`);
         }
       } catch (error) {
-        console.log(`❌ ${service.name} error:`, error.message);
+        console.log(`❌ ${approach.name} error:`, error.message);
       }
     }
 
     if (!html) {
-      // If all proxy services fail, try one more approach with different headers
-      console.log('All proxy services failed, trying direct approach with advanced headers...');
-      
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'Referer': 'https://supervideo.cc/',
-          },
-          timeout: 30000
-        });
-
-        if (response.ok) {
-          html = await response.text();
-          successfulService = 'Direct Advanced';
-          console.log(`✅ Direct Advanced successful`);
-        } else {
-          throw new Error(`Direct approach failed: ${response.status}`);
-        }
-      } catch (error) {
-        console.log(`❌ Direct Advanced error:`, error.message);
-      }
-    }
-
-    if (!html) {
-      // Try alternative proxy services
-      console.log('Trying alternative proxy services...');
-      
-      const alternativeServices = [
-        {
-          name: 'ProxyCurl Alternative',
-          url: `https://napi.phantomjscloud.com/single/browser/v1?token=free&url=${encodeURIComponent(url)}&render=true&wait=3000`,
-        },
-        {
-          name: 'AllOrigins Alternative',
-          url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-        },
-        {
-          name: 'CORSProxy Alternative',
-          url: `https://corsproxy.io/?${encodeURIComponent(url)}&_cors=1`,
-        }
-      ];
-
-      for (const service of alternativeServices) {
-        try {
-          console.log(`Trying ${service.name}...`);
-          const response = await fetch(service.url, {
-            method: 'GET',
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            },
-            timeout: 30000
-          });
-
-          if (response.ok) {
-            let responseText = await response.text();
-            
-            // Handle JSON response for AllOrigins
-            if (service.name === 'AllOrigins Alternative') {
-              try {
-                const data = JSON.parse(responseText);
-                responseText = data.contents;
-              } catch (e) {
-                // If not JSON, use as-is
-              }
-            }
-            
-            // Check if we got Cloudflare page
-            if (responseText.includes('Attention Required!') || responseText.includes('Cloudflare') || responseText.includes('Just a moment')) {
-              console.log(`❌ ${service.name} returned Cloudflare page`);
-              continue;
-            }
-            
-            html = responseText;
-            successfulService = service.name;
-            console.log(`✅ ${service.name} successful`);
-            break;
-          } else {
-            console.log(`❌ ${service.name} failed: ${response.status}`);
-          }
-        } catch (error) {
-          console.log(`❌ ${service.name} error:`, error.message);
-        }
-      }
+      // All browser simulation approaches failed
+      console.log('All browser simulation approaches failed...');
     }
 
     if (!html) {
