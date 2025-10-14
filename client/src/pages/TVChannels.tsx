@@ -82,12 +82,14 @@ export default function TVChannels() {
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            liveSyncDurationCount: 3, // Pour les streams live
-            liveMaxLatencyDurationCount: 5, // Latence maximale pour les streams live
-            maxBufferLength: 10, // Buffer plus court pour les streams live
-            maxMaxBufferLength: 20, // Buffer maximum plus court
+            liveSyncDurationCount: 1, // Commencer au live edge immédiatement
+            liveMaxLatencyDurationCount: 2, // Latence maximale très courte
+            maxBufferLength: 5, // Buffer très court pour les streams live
+            maxMaxBufferLength: 10, // Buffer maximum très court
             startLevel: -1, // Auto-select starting level
             capLevelToPlayerSize: true,
+            liveBackBufferLength: 0, // Pas de buffer en arrière pour les streams live
+            maxLiveSyncPlaybackRate: 1.1, // Vitesse de lecture maximale pour rattraper
           });
           
           hlsRef.current = hls;
@@ -109,7 +111,23 @@ export default function TVChannels() {
             if (data.details.live) {
               // Pour les streams live, s'assurer qu'on commence au live edge
               console.log("Stream live détecté, synchronisation au live edge");
+              // Forcer la position au live edge
+              if (video.duration > 0) {
+                video.currentTime = video.duration;
+              }
             }
+          });
+
+          // Forcer le début au live edge après le chargement des métadonnées
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            // Attendre un peu que les métadonnées soient chargées
+            setTimeout(() => {
+              if (video.duration > 0 && video.duration !== Infinity) {
+                // Pour les streams live, commencer à la fin (live edge)
+                video.currentTime = video.duration;
+                console.log("Position forcée au live edge:", video.duration);
+              }
+            }, 100);
           });
           
           hls.on(Hls.Events.ERROR, (_event, data: any) => {
