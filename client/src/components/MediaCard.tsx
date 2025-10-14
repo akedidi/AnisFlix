@@ -5,7 +5,7 @@ import { Star, Play, Heart } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
 
-interface MediaCardProps {
+export interface MediaCardProps {
   id: number;
   title: string;
   posterPath: string | null;

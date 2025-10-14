@@ -10,6 +10,15 @@ import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
+// Type for transformed media data
+type TransformedMedia = {
+  id: number;
+  title: string;
+  posterPath: string | null;
+  rating: number;
+  year?: string;
+  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
+};
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AmazonContent() {
@@ -154,7 +163,7 @@ export default function AmazonContent() {
           <h2 className="text-2xl font-semibold">Films d'Action Amazon Prime</h2>
           {actionMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {actionMovies.slice(0, 10).map((movie) => (
+              {actionMovies.slice(0, 10).map((movie: TransformedMedia) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -170,7 +179,7 @@ export default function AmazonContent() {
           <h2 className="text-2xl font-semibold">Films Comédie Amazon Prime</h2>
           {comedyMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {comedyMovies.slice(0, 10).map((movie) => (
+              {comedyMovies.slice(0, 10).map((movie: TransformedMedia) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -186,7 +195,7 @@ export default function AmazonContent() {
           <h2 className="text-2xl font-semibold">Séries Action & Aventure Amazon Prime</h2>
           {actionSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {actionSeries.slice(0, 10).map((serie) => (
+              {actionSeries.slice(0, 10).map((serie: TransformedMedia) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -202,7 +211,7 @@ export default function AmazonContent() {
           <h2 className="text-2xl font-semibold">Séries Comédie Amazon Prime</h2>
           {comedySeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {comedySeries.slice(0, 10).map((serie) => (
+              {comedySeries.slice(0, 10).map((serie: TransformedMedia) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -225,7 +234,7 @@ export default function AmazonContent() {
           ) : movies.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie) => (
+                {movies.map((movie: TransformedMedia) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -254,7 +263,7 @@ export default function AmazonContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {series.map((serie: TransformedMedia) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}

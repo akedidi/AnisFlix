@@ -10,6 +10,15 @@ import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
+// Type for transformed media data
+type TransformedMedia = {
+  id: number;
+  title: string;
+  posterPath: string | null;
+  rating: number;
+  year?: string;
+  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
+};
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function NetflixContent() {
@@ -154,7 +163,7 @@ export default function NetflixContent() {
           <h2 className="text-2xl font-semibold">Films Thriller Netflix</h2>
           {thrillerMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {thrillerMovies.slice(0, 10).map((movie) => (
+              {thrillerMovies.slice(0, 10).map((movie: TransformedMedia) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -170,7 +179,7 @@ export default function NetflixContent() {
           <h2 className="text-2xl font-semibold">Films Romance Netflix</h2>
           {romanceMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {romanceMovies.slice(0, 10).map((movie) => (
+              {romanceMovies.slice(0, 10).map((movie: TransformedMedia) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -186,7 +195,7 @@ export default function NetflixContent() {
           <h2 className="text-2xl font-semibold">Séries Crime Netflix</h2>
           {thrillerSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {thrillerSeries.slice(0, 10).map((serie) => (
+              {thrillerSeries.slice(0, 10).map((serie: TransformedMedia) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -202,7 +211,7 @@ export default function NetflixContent() {
           <h2 className="text-2xl font-semibold">Séries Mystère Netflix</h2>
           {mysterySeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {mysterySeries.slice(0, 10).map((serie) => (
+              {mysterySeries.slice(0, 10).map((serie: TransformedMedia) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -225,7 +234,7 @@ export default function NetflixContent() {
           ) : movies.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie) => (
+                {movies.map((movie: TransformedMedia) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -254,7 +263,7 @@ export default function NetflixContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {series.map((serie: TransformedMedia) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
