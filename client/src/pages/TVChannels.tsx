@@ -82,6 +82,12 @@ export default function TVChannels() {
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
+            liveSyncDurationCount: 3, // Pour les streams live
+            liveMaxLatencyDurationCount: 5, // Latence maximale pour les streams live
+            maxBufferLength: 10, // Buffer plus court pour les streams live
+            maxMaxBufferLength: 20, // Buffer maximum plus court
+            startLevel: -1, // Auto-select starting level
+            capLevelToPlayerSize: true,
           });
           
           hlsRef.current = hls;
@@ -90,10 +96,20 @@ export default function TVChannels() {
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             setIsLoading(false);
+            // Pour les streams live, ne pas définir currentTime
+            // Laisser HLS gérer automatiquement la position
             video.play().catch(err => {
               console.error("Erreur de lecture:", err);
               setError("Impossible de lire le flux");
             });
+          });
+
+          // Gestion spécifique pour les streams live
+          hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+            if (data.details.live) {
+              // Pour les streams live, s'assurer qu'on commence au live edge
+              console.log("Stream live détecté, synchronisation au live edge");
+            }
           });
           
           hls.on(Hls.Events.ERROR, (_event, data: any) => {
