@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function DisneyContent() {
@@ -30,8 +30,22 @@ export default function DisneyContent() {
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(337, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
+  // Disney+ specific genres
+  const { data: familyMoviesData } = useMoviesByProviderAndGenre(337, 10751); // Family
+  const { data: animationMoviesData } = useMoviesByProviderAndGenre(337, 16); // Animation
+  const { data: adventureMoviesData } = useMoviesByProviderAndGenre(337, 12); // Adventure
+  const { data: familySeriesData } = useSeriesByProviderAndGenre(337, 10751); // Family
+  const { data: animationSeriesData } = useSeriesByProviderAndGenre(337, 16); // Animation
+  const { data: adventureSeriesData } = useSeriesByProviderAndGenre(337, 10759); // Action & Adventure
+
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const familyMovies = familyMoviesData?.results || [];
+  const animationMovies = animationMoviesData?.results || [];
+  const adventureMovies = adventureMoviesData?.results || [];
+  const familySeries = familySeriesData?.results || [];
+  const animationSeries = animationSeriesData?.results || [];
+  const adventureSeries = adventureSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -134,8 +148,71 @@ export default function DisneyContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories Disney+ */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Famille Disney+</h2>
+          {familyMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {familyMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Animation Disney+</h2>
+          {animationMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {animationMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Famille Disney+</h2>
+          {familySeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {familySeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Animation Disney+</h2>
+          {animationSeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {animationSeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenu paginé */}

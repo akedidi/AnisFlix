@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function ParamountContent() {
@@ -30,8 +30,18 @@ export default function ParamountContent() {
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(531, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
+  // Paramount+ specific genres
+  const { data: actionMoviesData } = useMoviesByProviderAndGenre(531, 28); // Action
+  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(531, 35); // Comedy
+  const { data: actionSeriesData } = useSeriesByProviderAndGenre(531, 10759); // Action & Adventure
+  const { data: comedySeriesData } = useSeriesByProviderAndGenre(531, 35); // Comedy
+
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const actionMovies = actionMoviesData?.results || [];
+  const comedyMovies = comedyMoviesData?.results || [];
+  const actionSeries = actionSeriesData?.results || [];
+  const comedySeries = comedySeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -134,8 +144,39 @@ export default function ParamountContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories Paramount+ */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Action Paramount+</h2>
+          {actionMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {actionMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Action & Aventure Paramount+</h2>
+          {actionSeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {actionSeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenu paginé */}

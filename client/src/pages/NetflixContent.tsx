@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function NetflixContent() {
@@ -30,8 +30,22 @@ export default function NetflixContent() {
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(8, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
+  // Netflix specific genres
+  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(8, 53); // Thriller
+  const { data: romanceMoviesData } = useMoviesByProviderAndGenre(8, 10749); // Romance
+  const { data: horrorMoviesData } = useMoviesByProviderAndGenre(8, 27); // Horror
+  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(8, 80); // Crime
+  const { data: romanceSeriesData } = useSeriesByProviderAndGenre(8, 10749); // Romance
+  const { data: mysterySeriesData } = useSeriesByProviderAndGenre(8, 9648); // Mystery
+
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const thrillerMovies = thrillerMoviesData?.results || [];
+  const romanceMovies = romanceMoviesData?.results || [];
+  const horrorMovies = horrorMoviesData?.results || [];
+  const thrillerSeries = thrillerSeriesData?.results || [];
+  const romanceSeries = romanceSeriesData?.results || [];
+  const mysterySeries = mysterySeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -134,8 +148,71 @@ export default function NetflixContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories Netflix */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Thriller Netflix</h2>
+          {thrillerMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {thrillerMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Romance Netflix</h2>
+          {romanceMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {romanceMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Crime Netflix</h2>
+          {thrillerSeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {thrillerSeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Mystère Netflix</h2>
+          {mysterySeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {mysterySeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenu paginé */}

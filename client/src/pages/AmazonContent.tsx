@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AmazonContent() {
@@ -30,8 +30,22 @@ export default function AmazonContent() {
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(9, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
+  // Amazon Prime specific genres
+  const { data: actionMoviesData } = useMoviesByProviderAndGenre(9, 28); // Action
+  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(9, 35); // Comedy
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(9, 18); // Drama
+  const { data: actionSeriesData } = useSeriesByProviderAndGenre(9, 10759); // Action & Adventure
+  const { data: comedySeriesData } = useSeriesByProviderAndGenre(9, 35); // Comedy
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(9, 18); // Drama
+
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const actionMovies = actionMoviesData?.results || [];
+  const comedyMovies = comedyMoviesData?.results || [];
+  const dramaMovies = dramaMoviesData?.results || [];
+  const actionSeries = actionSeriesData?.results || [];
+  const comedySeries = comedySeriesData?.results || [];
+  const dramaSeries = dramaSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -134,8 +148,71 @@ export default function AmazonContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories Amazon Prime */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films d'Action Amazon Prime</h2>
+          {actionMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {actionMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Comédie Amazon Prime</h2>
+          {comedyMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {comedyMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Action & Aventure Amazon Prime</h2>
+          {actionSeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {actionSeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Comédie Amazon Prime</h2>
+          {comedySeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {comedySeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenu paginé */}

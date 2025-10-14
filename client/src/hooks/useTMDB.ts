@@ -215,6 +215,36 @@ export const useSeriesByProvider = (providerId: number, page = 1) => {
   });
 };
 
+export const useMoviesByProviderAndGenre = (providerId: number, genreId: number, page = 1) => {
+  return useQuery({
+    queryKey: ["movies", "provider", providerId, "genre", genreId, page],
+    queryFn: async () => {
+      const data = await tmdb.discoverMoviesByProviderAndGenre(providerId, genreId, page);
+      return {
+        results: data.results.map(transformMovie),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
+    },
+    enabled: !!providerId && !!genreId,
+  });
+};
+
+export const useSeriesByProviderAndGenre = (providerId: number, genreId: number, page = 1) => {
+  return useQuery({
+    queryKey: ["series", "provider", providerId, "genre", genreId, page],
+    queryFn: async () => {
+      const data = await tmdb.discoverSeriesByProviderAndGenre(providerId, genreId, page);
+      return {
+        results: data.results.map(transformSeries),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
+    },
+    enabled: !!providerId && !!genreId,
+  });
+};
+
 export const useMultiSearch = (query: string) => {
   return useQuery({
     queryKey: ["search", query],

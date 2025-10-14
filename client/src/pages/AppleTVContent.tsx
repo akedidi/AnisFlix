@@ -9,7 +9,7 @@ import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AppleTVContent() {
@@ -30,8 +30,18 @@ export default function AppleTVContent() {
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(350, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
+  // Apple TV+ specific genres
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(350, 18); // Drama
+  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(350, 53); // Thriller
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(350, 18); // Drama
+  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(350, 80); // Crime
+
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
+  const dramaMovies = dramaMoviesData?.results || [];
+  const thrillerMovies = thrillerMoviesData?.results || [];
+  const dramaSeries = dramaSeriesData?.results || [];
+  const thrillerSeries = thrillerSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -134,8 +144,39 @@ export default function AppleTVContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories Apple TV+ */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
+          {dramaMovies.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {dramaMovies.slice(0, 10).map((movie) => (
+                <div key={movie.id} className="w-full">
+                  <MediaCard
+                    {...movie}
+                    mediaType="movie"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Séries Drame Apple TV+</h2>
+          {dramaSeries.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {dramaSeries.slice(0, 10).map((serie) => (
+                <div key={serie.id} className="w-full">
+                  <MediaCard
+                    {...serie}
+                    mediaType="tv"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Contenu paginé */}

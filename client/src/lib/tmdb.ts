@@ -171,6 +171,25 @@ export const tmdb = {
       page: page.toString(),
     });
   },
+
+  // Discover by provider + genre
+  discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
+    return tmdbFetch('/discover/movie', {
+      with_watch_providers: providerId.toString(),
+      with_genres: genreId.toString(),
+      watch_region: 'US',
+      page: page.toString(),
+    });
+  },
+
+  discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
+    return tmdbFetch('/discover/tv', {
+      with_watch_providers: providerId.toString(),
+      with_genres: genreId.toString(),
+      watch_region: 'US',
+      page: page.toString(),
+    });
+  },
 };
 
 // Image helpers
