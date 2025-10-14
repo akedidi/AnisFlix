@@ -57,6 +57,9 @@ function rewritePlaylistUrls(playlistText: string, baseUrl: string): string {
     .join('\n');
 }
 
+// État en mémoire par chaîne pour les tokens et playlists
+const channelStates = new Map(); // channelId -> { token, lastFetch, playlist }
+
 export function registerHLSProxyRoutes(app: Express) {
   // Route compatible avec votre code fonctionnel (pour test)
   app.get('/stream/playlist.m3u8', async (req: Request, res: Response) => {
@@ -70,21 +73,71 @@ export function registerHLSProxyRoutes(app: Express) {
         await http.get(ORIGIN_HOST + '/', { headers: browserHeaders }); 
       } catch {}
 
-      // Laisser suivre la 302 vers /auth/...token=...
-      const r = await http.get(initialUrl, { 
-        headers: browserHeaders, 
-        responseType: 'text' 
-      });
+      // Récupérer l'état de la chaîne
+      const channelState = channelStates.get(channelId);
+      const now = Date.now();
+      
+      // Si pas de token ou token expiré (>30s), récupérer un nouveau token
+      if (!channelState?.token || (now - channelState.lastTokenFetch) > 30000) {
+        console.log(`[ENTRY] Récupération nouveau token pour chaîne ${channelId}`);
+        
+        // Première requête pour récupérer l'en-tête Location avec le token
+        const initialResponse = await http.get(initialUrl, { 
+          headers: browserHeaders, 
+          responseType: 'text',
+          maxRedirects: 0, // Ne pas suivre automatiquement les redirections
+          validateStatus: (status) => status < 400 // Accepter les 3xx
+        });
 
-      const ctype = (r.headers['content-type'] || '').toLowerCase();
-      console.log(`[ENTRY] ${r.status} ${ctype} ← ${(r as any).request?.res?.responseUrl || initialUrl}`);
+        console.log(`[ENTRY] ${initialResponse.status} ← ${initialUrl}`);
+        console.log(`[ENTRY] Location header:`, initialResponse.headers.location);
 
-      if (typeof r.data !== 'string') {
-        return res.status(502).send('Pas une playlist M3U8.');
+        // Récupérer le token depuis l'en-tête Location
+        const locationHeader = initialResponse.headers.location;
+        if (!locationHeader) {
+          return res.status(502).send('Pas d\'en-tête Location trouvé.');
+        }
+
+        // Sauvegarder le token
+        channelStates.set(channelId, {
+          token: locationHeader,
+          lastTokenFetch: now,
+          lastPlaylistFetch: 0,
+          playlist: null
+        });
       }
 
-      const baseUrl = (r as any).request?.res?.responseUrl || initialUrl;
-      const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+      // Récupérer le token depuis l'état
+      const currentState = channelStates.get(channelId);
+      const tokenUrl = currentState.token;
+
+      // Si playlist trop vieille (>8s), refetch pour avoir les nouveaux segments
+      if (!currentState.playlist || (now - currentState.lastPlaylistFetch) > 8000) {
+        console.log(`[ENTRY] Récupération nouvelle playlist pour chaîne ${channelId}`);
+        
+        // Faire la requête avec le token pour récupérer les nouveaux segments
+        const r = await http.get(tokenUrl, { 
+          headers: browserHeaders, 
+          responseType: 'text' 
+        });
+
+        const ctype = (r.headers['content-type'] || '').toLowerCase();
+        console.log(`[ENTRY] ${r.status} ${ctype} ← ${tokenUrl}`);
+
+        if (typeof r.data !== 'string') {
+          return res.status(502).send('Pas une playlist M3U8.');
+        }
+
+        // Mettre à jour l'état avec la nouvelle playlist
+        currentState.playlist = r.data;
+        currentState.lastPlaylistFetch = now;
+        channelStates.set(channelId, currentState);
+      }
+
+      // Utiliser la playlist mise à jour
+      const playlist = currentState.playlist;
+      const baseUrl = tokenUrl;
+      const rewritten = rewritePlaylistUrls(playlist, baseUrl);
 
       res.set('Content-Type', 'application/vnd.apple.mpegurl');
       res.send(rewritten);
@@ -107,21 +160,71 @@ export function registerHLSProxyRoutes(app: Express) {
         await http.get(ORIGIN_HOST + '/', { headers: browserHeaders }); 
       } catch {}
 
-      // Laisser suivre la 302 vers /auth/...token=...
-      const r = await http.get(initialUrl, { 
-        headers: browserHeaders, 
-        responseType: 'text' 
-      });
+      // Récupérer l'état de la chaîne
+      const channelState = channelStates.get(channelId);
+      const now = Date.now();
+      
+      // Si pas de token ou token expiré (>30s), récupérer un nouveau token
+      if (!channelState?.token || (now - channelState.lastTokenFetch) > 30000) {
+        console.log(`[TV ENTRY] Récupération nouveau token pour chaîne ${channelId}`);
+        
+        // Première requête pour récupérer l'en-tête Location avec le token
+        const initialResponse = await http.get(initialUrl, { 
+          headers: browserHeaders, 
+          responseType: 'text',
+          maxRedirects: 0, // Ne pas suivre automatiquement les redirections
+          validateStatus: (status) => status < 400 // Accepter les 3xx
+        });
 
-      const ctype = (r.headers['content-type'] || '').toLowerCase();
-      console.log(`[TV ENTRY] ${r.status} ${ctype} ← ${(r as any).request?.res?.responseUrl || initialUrl}`);
+        console.log(`[TV ENTRY] ${initialResponse.status} ← ${initialUrl}`);
+        console.log(`[TV ENTRY] Location header:`, initialResponse.headers.location);
 
-      if (typeof r.data !== 'string') {
-        return res.status(502).send('Pas une playlist M3U8.');
+        // Récupérer le token depuis l'en-tête Location
+        const locationHeader = initialResponse.headers.location;
+        if (!locationHeader) {
+          return res.status(502).send('Pas d\'en-tête Location trouvé.');
+        }
+
+        // Sauvegarder le token
+        channelStates.set(channelId, {
+          token: locationHeader,
+          lastTokenFetch: now,
+          lastPlaylistFetch: 0,
+          playlist: null
+        });
       }
 
-      const baseUrl = (r as any).request?.res?.responseUrl || initialUrl;
-      const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+      // Récupérer le token depuis l'état
+      const currentState = channelStates.get(channelId);
+      const tokenUrl = currentState.token;
+
+      // Si playlist trop vieille (>8s), refetch pour avoir les nouveaux segments
+      if (!currentState.playlist || (now - currentState.lastPlaylistFetch) > 8000) {
+        console.log(`[TV ENTRY] Récupération nouvelle playlist pour chaîne ${channelId}`);
+        
+        // Faire la requête avec le token pour récupérer les nouveaux segments
+        const r = await http.get(tokenUrl, { 
+          headers: browserHeaders, 
+          responseType: 'text' 
+        });
+
+        const ctype = (r.headers['content-type'] || '').toLowerCase();
+        console.log(`[TV ENTRY] ${r.status} ${ctype} ← ${tokenUrl}`);
+
+        if (typeof r.data !== 'string') {
+          return res.status(502).send('Pas une playlist M3U8.');
+        }
+
+        // Mettre à jour l'état avec la nouvelle playlist
+        currentState.playlist = r.data;
+        currentState.lastPlaylistFetch = now;
+        channelStates.set(channelId, currentState);
+      }
+
+      // Utiliser la playlist mise à jour
+      const playlist = currentState.playlist;
+      const baseUrl = tokenUrl;
+      const rewritten = rewritePlaylistUrls(playlist, baseUrl);
 
       res.set('Content-Type', 'application/vnd.apple.mpegurl');
       res.send(rewritten);
