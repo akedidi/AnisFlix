@@ -39,35 +39,18 @@ export default function DarkiboxPlayer({
     setIsLoading(true);
     setError(null);
 
-    // Fonction pour extraire le lien de stream via l'API Darkibox
-    const extractAndPlay = async () => {
+    // Fonction pour traiter le lien m3u8 Darkibox
+    const processAndPlay = async () => {
       try {
-        console.log('🎬 Extraction du lien Darkibox:', m3u8Url);
+        console.log('🎬 Traitement du lien Darkibox:', m3u8Url);
         
-        const response = await fetch('/api/darkibox/scraper', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ m3u8Url }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Erreur lors de l\'extraction du lien Darkibox');
-        }
-
-        const data = await response.json();
-        
-        if (!data.success || !data.streamUrl) {
-          throw new Error(data.error || 'Impossible d\'extraire le lien de streaming Darkibox');
-        }
-
-        console.log('✅ Lien stream Darkibox extrait:', data.streamUrl);
+        // Utiliser directement le lien m3u8 (pas besoin de scraper)
+        const streamUrl = m3u8Url;
+        console.log('✅ Lien stream Darkibox:', streamUrl);
 
         // Construire l'URL du proxy Darkibox
-        const streamUrlParsed = new URL(data.streamUrl);
-        const proxyUrl = streamUrlParsed.pathname;
+        const streamUrlParsed = new URL(streamUrl);
+        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(streamUrl)}`;
         
         console.log('📺 URL proxy Darkibox:', proxyUrl);
 
@@ -123,7 +106,7 @@ export default function DarkiboxPlayer({
       }
     };
 
-    extractAndPlay();
+    processAndPlay();
 
     // Event listeners pour les contrôles
     const handlePlay = () => setIsPlaying(true);

@@ -91,7 +91,7 @@ export default function StreamingSources({
       }
     }
     
-    // Vérifier Darkibox (pour les séries uniquement)
+    // Vérifier Darki (pour les séries uniquement)
     if (type === 'tv' && darkiboxData && darkiboxData.sources) {
       const hasVFSources = darkiboxData.sources.some(source => 
         source.language === 'TrueFrench' || source.language === 'MULTI'
@@ -400,7 +400,7 @@ export default function StreamingSources({
     }
   }
 
-  // Ajouter les sources Darkibox pour les séries si disponibles
+  // Ajouter les sources Darki pour les séries si disponibles
   if (type === 'tv' && darkiboxData && darkiboxData.sources) {
     darkiboxData.sources.forEach((source: any) => {
       // Filtrer par langue sélectionnée
@@ -410,12 +410,12 @@ export default function StreamingSources({
       if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
         allSources.push({
           id: source.id,
-          name: `Darkibox (${source.quality}) - ${source.language}`,
-          provider: 'darkibox',
+          name: `Darki (${source.quality}) - ${source.language}`,
+          provider: 'darki',
           url: source.m3u8,
           type: 'm3u8' as const,
-          player: 'darkibox',
-          isDarkibox: true,
+          player: 'darki',
+          isDarki: true,
           sourceKey: selectedLanguage,
           quality: source.quality,
           language: source.language
@@ -483,16 +483,6 @@ export default function StreamingSources({
         type: 'embed' as const,
         name: source.name,
         isVidMoly: true
-      });
-    } else if (source.isDarkibox) {
-      // Pour Darkibox, on utilise le player dédié
-      onSourceClick({
-        url: source.url,
-        type: 'm3u8' as const,
-        name: source.name,
-        isDarkibox: true,
-        quality: source.quality,
-        language: source.language
       });
     } else if (source.isDarki) {
       // Pour Darki, on utilise le player dédié
@@ -612,13 +602,8 @@ export default function StreamingSources({
                     VidMoly
                   </Badge>
                 )}
-                {source.isDarkibox && (
-                  <Badge variant="secondary" className="text-xs">
-                    Darkibox
-                  </Badge>
-                )}
                 {source.isDarki && (
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="secondary" className="text-xs">
                     Darki
                   </Badge>
                 )}
