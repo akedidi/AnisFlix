@@ -73,17 +73,50 @@ export default function StreamingSources({
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
-  const isAnimeSeries = type === 'tv' && genres && genres.some(genre => 
+  console.log('🔍 StreamingSources - Genres reçus:', genres);
+  console.log('🔍 StreamingSources - Type:', type);
+  console.log('🔍 StreamingSources - Title:', title);
+  
+  // Détection par genres TMDB
+  const isAnimeByGenre = type === 'tv' && genres && genres.some(genre => 
     genre.name.toLowerCase() === 'animation' || 
     genre.name.toLowerCase() === 'anime' ||
     genre.id === 16 // ID du genre Animation dans TMDB
   );
+  
+  // Détection de fallback par titre (pour les cas où les genres ne sont pas disponibles)
+  const isAnimeByTitle = type === 'tv' && title && (
+    title.toLowerCase().includes('one punch man') ||
+    title.toLowerCase().includes('demon slayer') ||
+    title.toLowerCase().includes('naruto') ||
+    title.toLowerCase().includes('dragon ball') ||
+    title.toLowerCase().includes('attack on titan') ||
+    title.toLowerCase().includes('my hero academia') ||
+    title.toLowerCase().includes('tokyo ghoul') ||
+    title.toLowerCase().includes('death note') ||
+    title.toLowerCase().includes('fullmetal alchemist') ||
+    title.toLowerCase().includes('bleach') ||
+    title.toLowerCase().includes('fairy tail') ||
+    title.toLowerCase().includes('one piece') ||
+    title.toLowerCase().includes('hunter x hunter') ||
+    title.toLowerCase().includes('sword art online') ||
+    title.toLowerCase().includes('anime')
+  );
+  
+  const isAnimeSeries = isAnimeByGenre || isAnimeByTitle;
+  
+  console.log('🔍 StreamingSources - isAnimeSeries:', isAnimeSeries);
+  console.log('🔍 StreamingSources - isAnimeByGenre:', isAnimeByGenre);
+  console.log('🔍 StreamingSources - isAnimeByTitle:', isAnimeByTitle);
   
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
     title || '', 
     season || 1, 
     episode || 1
   );
+  
+  console.log('🔍 StreamingSources - animeVidMolyData:', animeVidMolyData);
+  console.log('🔍 StreamingSources - hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
