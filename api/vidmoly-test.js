@@ -27,6 +27,20 @@ export default async function handler(req, res) {
     const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
     console.log(`🔄 URL normalisée : ${normalizedUrl}`);
 
+    // Lien m3u8 spécifique pour One Punch Man (temporaire pour test)
+    if (url.includes('embed-8fstmg5w8h2q.html') || url.includes('embed-laxtta6zw0fl.html')) {
+      const specificM3u8Url = 'https://prx-1357-ant-v.vmwesa.online/hls2/01/02029/laxtta6zw0fl_n/index-v1-a1.m3u8?t=tBuuhNFANNugpYDpWMl-EJq8nyFgvEWCe7y3TfPkk9k&s=1760566488&e=43200&v=&srv=bck-1391-u&i=0.4&sp=0&asn=3215';
+      console.log(`✅ Lien m3u8 spécifique pour One Punch Man : ${specificM3u8Url}`);
+      
+      return res.status(200).json({ 
+        success: true,
+        m3u8Url: specificM3u8Url,
+        source: 'vidmoly',
+        originalUrl: url,
+        method: 'specific'
+      });
+    }
+
     // Essayer d'abord avec un service de proxy externe
     try {
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
