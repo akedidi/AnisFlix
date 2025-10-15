@@ -3,6 +3,7 @@ import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
+import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -19,6 +20,7 @@ interface Source {
   isTopStream?: boolean;
   isMovixDownload?: boolean;
   isVidMoly?: boolean;
+  isDarkibox?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -60,6 +62,7 @@ export default function StreamingSources({
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
+  const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
@@ -83,6 +86,19 @@ export default function StreamingSources({
       if (language === 'VOSTFR' && vidmolyData.vostfr && vidmolyData.vostfr.length > 0) {
         return true;
       }
+    }
+    
+    // Vérifier Darkibox (pour les séries uniquement)
+    if (type === 'tv' && darkiboxData && darkiboxData.sources) {
+      const hasVFSources = darkiboxData.sources.some(source => 
+        source.language === 'TrueFrench' || source.language === 'MULTI'
+      );
+      const hasVOSTFRSources = darkiboxData.sources.some(source => 
+        source.language === 'MULTI' // MULTI peut contenir VOSTFR
+      );
+      
+      if (language === 'VF' && hasVFSources) return true;
+      if (language === 'VOSTFR' && hasVOSTFRSources) return true;
     }
     
     // Vérifier FStream
@@ -368,7 +384,31 @@ export default function StreamingSources({
     }
   }
 
-  // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream et VidMoly
+  // Ajouter les sources Darkibox pour les séries si disponibles
+  if (type === 'tv' && darkiboxData && darkiboxData.sources) {
+    darkiboxData.sources.forEach((source: any) => {
+      // Filtrer par langue sélectionnée
+      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
+      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
+      
+      if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
+        allSources.push({
+          id: source.id,
+          name: `Darkibox (${source.quality}) - ${source.language}`,
+          provider: 'darkibox',
+          url: source.m3u8,
+          type: 'm3u8' as const,
+          player: 'darkibox',
+          isDarkibox: true,
+          sourceKey: selectedLanguage,
+          quality: source.quality,
+          language: source.language
+        });
+      }
+    });
+  }
+
+  // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
   const handleSourceClick = (source: any) => {
@@ -404,10 +444,20 @@ export default function StreamingSources({
         name: source.name,
         isVidMoly: true
       });
+    } else if (source.isDarkibox) {
+      // Pour Darkibox, on utilise le player dédié
+      onSourceClick({
+        url: source.url,
+        type: 'm3u8' as const,
+        name: source.name,
+        isDarkibox: true,
+        quality: source.quality,
+        language: source.language
+      });
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -510,6 +560,11 @@ export default function StreamingSources({
                 {source.isVidMoly && (
                   <Badge variant="destructive" className="text-xs">
                     VidMoly
+                  </Badge>
+                )}
+                {source.isDarkibox && (
+                  <Badge variant="secondary" className="text-xs">
+                    Darkibox
                   </Badge>
                 )}
                 {source.quality && (

@@ -10,6 +10,7 @@ import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
+import DarkiboxPlayer from "@/components/DarkiboxPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
@@ -25,7 +26,7 @@ export default function SeriesDetail() {
   const [, setLocation] = useLocation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarkibox?: boolean; quality?: string; language?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const seriesId = parseInt(id || "0");
@@ -347,6 +348,14 @@ export default function SeriesDetail() {
                                       vidmolyUrl={selectedSource.url}
                                       title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
                                       posterPath={series.poster_path}
+                                    />
+                                  ) : selectedSource.isDarkibox ? (
+                                    <DarkiboxPlayer
+                                      m3u8Url={selectedSource.url}
+                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                      posterPath={series.poster_path}
+                                      quality={selectedSource.quality}
+                                      language={selectedSource.language}
                                     />
                                   ) : (
                                     <VideoPlayer
