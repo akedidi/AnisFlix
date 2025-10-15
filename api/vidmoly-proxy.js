@@ -51,9 +51,13 @@ export default async function handler(req, res) {
           headers: { 'Referer': refererUrl }
         });
 
-        // On remplace le domaine distant par une URL relative vide
-        // pour forcer le lecteur à demander les prochains fichiers à notre proxy
-        const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/]+/g, '');
+        // Réécrire les URLs pour qu'elles passent par notre proxy
+        const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+/g, (match) => {
+          if (match.includes('.m3u8') || match.includes('.ts')) {
+            return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+          }
+          return match;
+        });
 
         res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl' });
         res.end(modifiedPlaylist);
