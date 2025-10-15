@@ -21,7 +21,7 @@ interface DarkiSeriesResponse {
 
 const fetchDarkiSeries = async (seriesId: number, season: number, episode: number): Promise<DarkiSeriesResponse | null> => {
   try {
-    const url = `/api/darki/series?seriesId=${seriesId}&season=${season}&episode=${episode}`;
+    const url = `/api/darkibox/series?seriesId=${seriesId}&season=${season}&episode=${episode}`;
     
     const response = await fetch(url);
     

@@ -44,7 +44,7 @@ export default function DarkiPlayer({
       try {
         console.log('🎬 Traitement du lien Darki:', m3u8Url);
         
-        const response = await fetch('/api/darki/scraper', {
+        const response = await fetch('/api/darkibox/scraper', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export default function DarkiPlayer({
         console.log('✅ Lien stream Darki traité:', data.streamUrl);
 
         // Utiliser le proxy Darki pour servir le stream
-        const proxyUrl = `/api/darki/proxy?url=${encodeURIComponent(data.streamUrl)}`;
+        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(data.streamUrl)}`;
         
         console.log('📺 URL proxy Darki:', proxyUrl);
 
