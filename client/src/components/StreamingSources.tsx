@@ -35,6 +35,7 @@ interface StreamingSourcesProps {
   id: number;
   title: string;
   sources: Source[];
+  genres?: { id: number; name: string }[];
   onSourceClick: (source: { 
     url: string; 
     type: "m3u8" | "mp4"; 
@@ -54,6 +55,7 @@ export default function StreamingSources({
   id, 
   title, 
   sources, 
+  genres,
   onSourceClick, 
   isLoadingSource,
   season,
@@ -70,14 +72,11 @@ export default function StreamingSources({
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
   
-  // Détecter si c'est une série anime et récupérer les liens VidMoly anime
-  const isAnimeSeries = type === 'tv' && title && (
-    title.toLowerCase().includes('anime') || 
-    title.toLowerCase().includes('demon slayer') ||
-    title.toLowerCase().includes('one punch man') ||
-    title.toLowerCase().includes('naruto') ||
-    title.toLowerCase().includes('dragon ball') ||
-    title.toLowerCase().includes('attack on titan')
+  // Détecter si c'est une série anime en utilisant les genres TMDB
+  const isAnimeSeries = type === 'tv' && genres && genres.some(genre => 
+    genre.name.toLowerCase() === 'animation' || 
+    genre.name.toLowerCase() === 'anime' ||
+    genre.id === 16 // ID du genre Animation dans TMDB
   );
   
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(

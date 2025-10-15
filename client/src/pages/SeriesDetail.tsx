@@ -326,6 +326,7 @@ export default function SeriesDetail() {
                                     id={seriesId}
                                     title={`${series?.name} - Saison ${selectedSeasonNumber} Épisode ${episode.episode_number}`}
                                     sources={episodeSources}
+                                    genres={series?.genres}
                                     onSourceClick={handleSourceClick}
                                     isLoadingSource={isLoadingSource}
                                     season={selectedSeasonNumber}

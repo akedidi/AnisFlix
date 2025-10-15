@@ -255,6 +255,7 @@ export default function MovieDetail() {
                     id={movieId}
                     title={movie?.title || ''}
                     sources={sources}
+                    genres={movie?.genres}
                     onSourceClick={handleSourceClick}
                     isLoadingSource={isLoadingSource}
                     imdbId={movie?.imdb_id}
