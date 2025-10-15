@@ -2,33 +2,30 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 interface AnimeEpisode {
-  id: number;
   name: string;
-  episode_number: number;
-  season_number: number;
+  serie_name: string;
+  season_name: string;
+  index: number;
   streaming_links: {
     language: string;
-    quality: string;
-    url: string;
-    player: string;
-  }[];
-  players: {
-    name: string;
-    url: string;
-    language: string;
+    players: string[];
   }[];
 }
 
 interface AnimeSeason {
-  id: number;
   name: string;
-  season_number: number;
   episodes: AnimeEpisode[];
+  episodeCount: number;
+  cacheFile: string;
+  timestamp: number;
 }
 
 interface AnimeSeriesData {
-  id: number;
+  url: string;
   name: string;
+  image: string;
+  alternative_names: string[];
+  alternative_names_string: string;
   seasons: AnimeSeason[];
 }
 
@@ -46,8 +43,9 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
       }
     );
 
-    if (response.data && response.data.seasons) {
-      return response.data;
+    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      // L'API retourne un tableau, prendre le premier élément
+      return response.data[0];
     }
     
     return null;
@@ -77,44 +75,37 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   };
 
   if (animeData?.seasons) {
-    const season = animeData.seasons.find(s => s.season_number === seasonNumber);
+    // Trouver la saison par numéro (les saisons sont nommées "Saison 1", "Saison 2", etc.)
+    const season = animeData.seasons.find(s => 
+      s.name.toLowerCase().includes(`saison ${seasonNumber}`) || 
+      s.name.toLowerCase().includes(`season ${seasonNumber}`)
+    );
+    
     if (season) {
-      const episode = season.episodes.find(e => e.episode_number === episodeNumber);
+      // Trouver l'épisode par index (les épisodes ont un index qui correspond au numéro d'épisode)
+      const episode = season.episodes.find(e => e.index === episodeNumber);
+      
       if (episode) {
         // Extraire les liens VidMoly des streaming_links
         episode.streaming_links?.forEach(link => {
-          if (link.player === 'vidmoly' || link.url.includes('vidmoly')) {
-            if (link.language === 'fr') {
+          // Filtrer les liens VidMoly dans les players
+          const vidmolyPlayers = link.players.filter((playerUrl: string) => 
+            playerUrl.includes('vidmoly')
+          );
+          
+          vidmolyPlayers.forEach((playerUrl: string) => {
+            if (link.language === 'vf') {
               vidmolyLinks.vf.push({
-                url: link.url,
-                quality: link.quality,
+                url: playerUrl,
                 language: link.language
               });
             } else if (link.language === 'vostfr') {
               vidmolyLinks.vostfr.push({
-                url: link.url,
-                quality: link.quality,
+                url: playerUrl,
                 language: link.language
               });
             }
-          }
-        });
-
-        // Extraire les liens VidMoly des players
-        episode.players?.forEach(player => {
-          if (player.name === 'vidmoly' || player.url.includes('vidmoly')) {
-            if (player.language === 'fr') {
-              vidmolyLinks.vf.push({
-                url: player.url,
-                language: player.language
-              });
-            } else if (player.language === 'vostfr') {
-              vidmolyLinks.vostfr.push({
-                url: player.url,
-                language: player.language
-              });
-            }
-          }
+          });
         });
       }
     }
