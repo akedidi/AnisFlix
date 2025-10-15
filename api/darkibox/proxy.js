@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     console.log(`[DARKIBOX PROXY] Demande pour : ${req.url}`);
 
     // **Logique de réécriture pour les playlists .m3u8**
-    if (req.url.endsWith('.m3u8')) {
+    if (targetUrl.includes('.m3u8')) {
       const response = await axios.get(targetUrl, { 
         headers: { 
           'Referer': 'https://darkibox.com/',
@@ -43,12 +43,21 @@ export default async function handler(req, res) {
       });
 
       // Remplacer les domaines distants par des URLs relatives pour forcer le proxy
-      const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+/g, (match) => {
-        // Garder les URLs complètes pour les domaines externes, mais proxy les segments
-        if (match.includes('.ts') || match.includes('.m3u8')) {
-          return `/api/darkibox/proxy?url=${encodeURIComponent(match)}`;
-        }
-        return match;
+      let modifiedPlaylist = response.data;
+      
+      // Remplacer les URLs dans les attributs URI=
+      modifiedPlaylist = modifiedPlaylist.replace(/URI="([^"]*\.m3u8[^"]*)"/g, (match, url) => {
+        return `URI="/api/darkibox/proxy?url=${encodeURIComponent(url)}"`;
+      });
+      
+      // Remplacer les URLs sur des lignes séparées
+      modifiedPlaylist = modifiedPlaylist.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, (match) => {
+        return `/api/darkibox/proxy?url=${encodeURIComponent(match)}`;
+      });
+      
+      // Remplacer les URLs de segments .ts
+      modifiedPlaylist = modifiedPlaylist.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, (match) => {
+        return `/api/darkibox/proxy?url=${encodeURIComponent(match)}`;
       });
 
       res.writeHead(200, { 
