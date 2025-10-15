@@ -23,6 +23,10 @@ export default async function handler(req, res) {
 
     const targetUrl = decodeURIComponent(url);
     const refererUrl = referer ? decodeURIComponent(referer) : 'https://vidmoly.net/';
+    
+    // Log pour debug
+    console.log(`[VIDMOLY PROXY] URL cible: ${targetUrl}`);
+    console.log(`[VIDMOLY PROXY] Referer: ${refererUrl}`);
 
     // Ignorer les requêtes pour le favicon
     if (req.url === '/favicon.ico') {
@@ -39,12 +43,14 @@ export default async function handler(req, res) {
         headers: { 'Referer': refererUrl }
       });
 
-      // On remplace seulement les URLs de segments vidéo par des URLs relatives
-      // pour forcer le lecteur à demander les segments via notre proxy VidMoly
-      const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+\.ts(\?[^\s]*)?/g, (match) => {
-        // Extraire seulement le nom du fichier et les paramètres
-        const url = new URL(match);
-        return url.pathname + (url.search || '');
+      // On remplace les URLs par des URLs relatives vers notre proxy VidMoly
+      // pour forcer le lecteur à demander les prochains fichiers via notre proxy
+      const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+/g, (match) => {
+        // Si c'est une URL complète, la rediriger vers notre proxy VidMoly
+        if (match.includes('.ts') || match.includes('.m3u8')) {
+          return `/api/vidmoly/proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+        }
+        return match;
       });
 
       res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl' });
