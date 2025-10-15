@@ -151,13 +151,14 @@ export default function StreamingSources({
     
     if (selectedLanguage === 'VF') {
       // Pour VF, traiter chaque clé séparément pour distinguer les sources
+      // Default est maintenant considéré comme VF
       const vfKeys = Object.keys(fStreamData.players).filter(key => 
-        key.startsWith('VF') || key === 'VF'
+        key.startsWith('VF') || key === 'VF' || key === 'Default'
       );
       
-      console.log('VF keys found:', vfKeys);
+      console.log('VF keys found (including Default):', vfKeys);
       
-      // Traiter les clés VF (VFF, VFQ, etc.) en premier
+      // Traiter toutes les clés VF (VFF, VFQ, Default, etc.)
       vfKeys.forEach(key => {
         if (fStreamData.players![key]) {
           console.log(`Processing players from ${key}:`, fStreamData.players![key]);
@@ -171,7 +172,7 @@ export default function StreamingSources({
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-vidzy-${key.toLowerCase()}-${vidzyCounter}`,
-              name: `Vidzy${vidzyCounter} (${key}) - ${player.quality}`,
+              name: `Vidzy${vidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'm3u8' as const,
@@ -183,29 +184,6 @@ export default function StreamingSources({
           });
         }
       });
-      
-      // Traiter les sources Default séparément
-      if (fStreamData.players.Default) {
-        console.log('Processing Default players:', fStreamData.players.Default);
-        
-        const defaultVidzyPlayers = fStreamData.players.Default.filter((player: any) => 
-          player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
-        );
-        
-        defaultVidzyPlayers.forEach((player: any) => {
-          allSources.push({
-            id: `fstream-vidzy-default-${vidzyCounter}`,
-            name: `Vidzy${vidzyCounter} (Default) - ${player.quality}`,
-            provider: 'fstream',
-            url: player.url,
-            type: 'm3u8' as const,
-            player: player.player,
-            isFStream: true,
-            sourceKey: 'Default'
-          });
-          vidzyCounter++;
-        });
-      }
     } else {
       // Pour VOSTFR, utiliser la clé VOSTFR
       const vostfrPlayers = fStreamData.players.VOSTFR || [];
@@ -239,11 +217,12 @@ export default function StreamingSources({
       
       if (selectedLanguage === 'VF') {
         // Pour VF, traiter chaque clé séparément pour distinguer les sources
+        // Default est maintenant considéré comme VF
         const vfKeys = Object.keys(episodeData.languages).filter(key => 
-          key.startsWith('VF') || key === 'VF'
+          key.startsWith('VF') || key === 'VF' || key === 'Default'
         );
         
-        // Traiter les clés VF (VFF, VFQ, etc.) en premier
+        // Traiter toutes les clés VF (VFF, VFQ, Default, etc.)
         vfKeys.forEach(key => {
           if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
             // Filtrer seulement Vidzy pour cette clé
@@ -255,7 +234,7 @@ export default function StreamingSources({
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-vidzy-${key.toLowerCase()}-${episodeVidzyCounter}`,
-                name: `Vidzy${episodeVidzyCounter} (${key}) - ${player.quality}`,
+                name: `Vidzy${episodeVidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'm3u8' as const,
@@ -268,28 +247,6 @@ export default function StreamingSources({
             });
           }
         });
-        
-        // Traiter les sources Default séparément
-        if (episodeData.languages && (episodeData.languages as any).Default) {
-          const defaultVidzyPlayers = (episodeData.languages as any).Default.filter((player: any) => 
-            player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
-          );
-          
-          defaultVidzyPlayers.forEach((player: any) => {
-            allSources.push({
-              id: `fstream-episode-vidzy-default-${episodeVidzyCounter}`,
-              name: `Vidzy${episodeVidzyCounter} (Default) - ${player.quality}`,
-              provider: 'fstream',
-              url: player.url,
-              type: 'm3u8' as const,
-              player: player.player,
-              isFStream: true,
-              sourceKey: 'Default',
-              isEpisode: true
-            });
-            episodeVidzyCounter++;
-          });
-        }
       } else {
         // Pour VOSTFR, utiliser la clé VOSTFR
         const vostfrPlayers = episodeData.languages.VOSTFR || [];
