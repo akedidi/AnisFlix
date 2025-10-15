@@ -32,9 +32,13 @@ interface AnimeSeriesData {
 const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> => {
   try {
     // Extraire le titre de la série (enlever "Saison X Épisode Y")
-    const seriesTitle = title.split(' - ')[0];
+    let seriesTitle = title.split(' - ')[0];
     console.log('🔍 fetchAnimeSeries - Titre original:', title);
     console.log('🔍 fetchAnimeSeries - Titre extrait:', seriesTitle);
+    
+    // Remplacer les tirets par des espaces pour l'API anime
+    seriesTitle = seriesTitle.replace(/-/g, ' ');
+    console.log('🔍 fetchAnimeSeries - Titre après remplacement des tirets:', seriesTitle);
     
     const encodedTitle = encodeURIComponent(seriesTitle);
     const response = await axios.get(
