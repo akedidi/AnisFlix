@@ -69,13 +69,23 @@ export default function VidMolyPlayer({
 
         // Configuration HLS exactement comme dans votre code fonctionnel
         if (Hls.isSupported()) {
-          const hls = new Hls();
+          console.log('🎬 HLS supporté, création de l\'instance HLS');
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            startLevel: -1,
+            capLevelToPlayerSize: true,
+          });
           hlsRef.current = hls;
+          
+          console.log('🎬 Chargement de la source:', proxyUrl);
           hls.loadSource(proxyUrl);
           hls.attachMedia(video);
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            console.log('📺 Manifest VidMoly chargé');
+            console.log('📺 Manifest VidMoly chargé avec succès');
             setIsLoading(false);
             video.play().catch(err => {
               console.warn("Autoplay failed:", err);
@@ -86,9 +96,13 @@ export default function VidMolyPlayer({
           hls.on(Hls.Events.ERROR, (_, data) => {
             console.error("Erreur HLS VidMoly:", data);
             if (data.fatal) {
-              setError("Erreur de lecture VidMoly");
+              setError(`Erreur de lecture VidMoly: ${data.details}`);
               setIsLoading(false);
             }
+          });
+          
+          hls.on(Hls.Events.FRAG_LOADED, () => {
+            console.log('📺 Fragment chargé');
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = proxyUrl;

@@ -19,7 +19,11 @@ export default function DesktopSidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen fixed left-0 top-0 z-30">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-primary">AnisFlix</h1>
+        <Link href="/">
+          <h1 className="text-2xl font-bold text-primary cursor-pointer hover:text-primary/80 transition-colors">
+            AnisFlix
+          </h1>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 space-y-1">

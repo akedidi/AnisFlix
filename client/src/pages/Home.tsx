@@ -4,7 +4,6 @@ import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
@@ -184,7 +183,7 @@ export default function Home() {
         </div>
         
         {/* Content */}
-        <div className="pt-4 sm:pt-6 md:pt-8">
+        <div className="pt-4 sm:pt-6 md:pt-8 pb-20 md:pb-8">
           <div className="space-y-8 md:space-y-12">
         {featured && (
           <HeroSection
@@ -398,8 +397,6 @@ export default function Home() {
 
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
     </div>
   );
 }
