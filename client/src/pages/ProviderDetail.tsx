@@ -14,8 +14,8 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { 
   useMoviesByProvider,
   useSeriesByProvider,
-  useMoviesByGenre,
-  useSeriesByGenre,
+  useMoviesByProviderAndGenre,
+  useSeriesByProviderAndGenre,
   useMultiSearch
 } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
@@ -105,19 +105,19 @@ export default function ProviderDetail() {
     return () => clearTimeout(timer);
   }, [restoreScrollPosition]);
 
-  // Films par genre pour les catégories
-  const { data: actionMoviesData } = useMoviesByGenre(28); // Action
-  const { data: adventureMoviesData } = useMoviesByGenre(12); // Aventure
-  const { data: comedyMoviesData } = useMoviesByGenre(35); // Comédie
-  const { data: dramaMoviesData } = useMoviesByGenre(18); // Drame
-  const { data: fantasyMoviesData } = useMoviesByGenre(14); // Fantastique
-  const { data: sciFiMoviesData } = useMoviesByGenre(878); // Science-fiction
-  const { data: horrorMoviesData } = useMoviesByGenre(27); // Horreur
-  const { data: thrillerMoviesData } = useMoviesByGenre(53); // Thriller
-  const { data: crimeMoviesData } = useMoviesByGenre(80); // Policier
-  const { data: romanceMoviesData } = useMoviesByGenre(10749); // Romance
-  const { data: animationMoviesData } = useMoviesByGenre(16); // Animation
-  const { data: documentaryMoviesData } = useMoviesByGenre(99); // Documentaire
+  // Films par genre pour les catégories - Filtrés par provider
+  const { data: actionMoviesData } = useMoviesByProviderAndGenre(providerId, 28); // Action
+  const { data: adventureMoviesData } = useMoviesByProviderAndGenre(providerId, 12); // Aventure
+  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(providerId, 35); // Comédie
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(providerId, 18); // Drame
+  const { data: fantasyMoviesData } = useMoviesByProviderAndGenre(providerId, 14); // Fantastique
+  const { data: sciFiMoviesData } = useMoviesByProviderAndGenre(providerId, 878); // Science-fiction
+  const { data: horrorMoviesData } = useMoviesByProviderAndGenre(providerId, 27); // Horreur
+  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(providerId, 53); // Thriller
+  const { data: crimeMoviesData } = useMoviesByProviderAndGenre(providerId, 80); // Policier
+  const { data: romanceMoviesData } = useMoviesByProviderAndGenre(providerId, 10749); // Romance
+  const { data: animationMoviesData } = useMoviesByProviderAndGenre(providerId, 16); // Animation
+  const { data: documentaryMoviesData } = useMoviesByProviderAndGenre(providerId, 99); // Documentaire
   
   const actionMovies = actionMoviesData?.results || [];
   const adventureMovies = adventureMoviesData?.results || [];
@@ -132,18 +132,18 @@ export default function ProviderDetail() {
   const animationMovies = animationMoviesData?.results || [];
   const documentaryMovies = documentaryMoviesData?.results || [];
 
-  // Séries par genre (IDs différents des films)
-  const { data: actionSeriesData } = useSeriesByGenre(10759); // Action & Adventure
-  const { data: adventureSeriesData } = useSeriesByGenre(10759); // Action & Adventure (même que Action)
-  const { data: comedySeriesData } = useSeriesByGenre(35); // Comédie
-  const { data: dramaSeriesData } = useSeriesByGenre(18); // Drame
-  const { data: fantasySeriesData } = useSeriesByGenre(10765); // Sci-Fi & Fantasy
-  const { data: sciFiSeriesData } = useSeriesByGenre(10765); // Sci-Fi & Fantasy
-  const { data: thrillerSeriesData } = useSeriesByGenre(9648); // Mystery (pas de thriller pour les séries)
-  const { data: crimeSeriesData } = useSeriesByGenre(80); // Crime
-  const { data: romanceSeriesData } = useSeriesByGenre(10749); // Romance
-  const { data: animationSeriesData } = useSeriesByGenre(16); // Animation
-  const { data: documentarySeriesData } = useSeriesByGenre(99); // Documentaire
+  // Séries par genre (IDs différents des films) - Filtrées par provider
+  const { data: actionSeriesData } = useSeriesByProviderAndGenre(providerId, 10759); // Action & Adventure
+  const { data: adventureSeriesData } = useSeriesByProviderAndGenre(providerId, 10759); // Action & Adventure (même que Action)
+  const { data: comedySeriesData } = useSeriesByProviderAndGenre(providerId, 35); // Comédie
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(providerId, 18); // Drame
+  const { data: fantasySeriesData } = useSeriesByProviderAndGenre(providerId, 10765); // Sci-Fi & Fantasy
+  const { data: sciFiSeriesData } = useSeriesByProviderAndGenre(providerId, 10765); // Sci-Fi & Fantasy
+  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(providerId, 9648); // Mystery (pas de thriller pour les séries)
+  const { data: crimeSeriesData } = useSeriesByProviderAndGenre(providerId, 80); // Crime
+  const { data: romanceSeriesData } = useSeriesByProviderAndGenre(providerId, 10749); // Romance
+  const { data: animationSeriesData } = useSeriesByProviderAndGenre(providerId, 16); // Animation
+  const { data: documentarySeriesData } = useSeriesByProviderAndGenre(providerId, 99); // Documentaire
   
   const actionSeries = actionSeriesData?.results || [];
   const adventureSeries = adventureSeriesData?.results || [];
