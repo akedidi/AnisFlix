@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     console.log(`🚀 Extraction du lien VidMoly pour : ${url}`);
 
-    // Utiliser axios pour récupérer le contenu de la page avec headers anti-détection
+    // Utiliser axios pour récupérer le contenu de la page avec headers anti-détection renforcés
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -38,17 +38,35 @@ export default async function handler(req, res) {
         'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
         'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-Site': 'cross-site',
         'Sec-Fetch-User': '?1',
-        'Cache-Control': 'max-age=0',
-        'DNT': '1',
-        'Referer': 'https://www.google.com/',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Referer': 'https://vidmoly.net/',
+        'Origin': 'https://vidmoly.net',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Forwarded-For': '192.168.1.1',
+        'X-Real-IP': '192.168.1.1',
       },
-      timeout: 15000,
-      maxRedirects: 5
+      timeout: 20000,
+      maxRedirects: 5,
+      validateStatus: function (status) {
+        return status >= 200 && status < 400; // Accepter les redirections
+      }
     });
 
     const html = response.data;
+    
+    console.log(`📄 Réponse VidMoly (${html.length} caractères):`, html.substring(0, 500) + '...');
+
+    // Vérifier si on a le message d'erreur AdBlock
+    if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
+      console.log('❌ VidMoly détecte AdBlock, tentative de contournement...');
+      return res.status(403).json({ 
+        error: 'VidMoly détecte un bloqueur de publicités. Impossible d\'extraire le lien.',
+        details: 'Le site VidMoly bloque les requêtes automatisées.'
+      });
+    }
 
     // Extraire le lien m3u8 avec une regex
     const playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
