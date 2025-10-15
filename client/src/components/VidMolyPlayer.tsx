@@ -35,7 +35,7 @@ export default function VidMolyPlayer({
     setIsLoading(true);
     setError(null);
 
-    // Fonction pour extraire le lien m3u8 via l'API VidMoly
+    // Fonction pour extraire le lien m3u8 via l'API VidMoly (comme Vidzy)
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
@@ -61,31 +61,26 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
-        // Utiliser le proxy VidMoly pour servir le stream avec URL absolue
-        const proxyUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+        // Utiliser directement le lien m3u8 comme Vidzy (sans proxy complexe)
+        const m3u8Url = data.m3u8Url;
         
-        console.log('📺 URL proxy VidMoly:', proxyUrl);
+        console.log('📺 URL m3u8 directe VidMoly:', m3u8Url);
 
-        // Configuration HLS exactement comme dans votre code fonctionnel
+        // Configuration HLS simple comme VideoPlayer
         if (Hls.isSupported()) {
           console.log('🎬 HLS supporté, création de l\'instance HLS');
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            startLevel: -1,
-            capLevelToPlayerSize: true,
           });
           hlsRef.current = hls;
           
-          console.log('🎬 Chargement de la source:', proxyUrl);
-          hls.loadSource(proxyUrl);
+          console.log('🎬 Chargement de la source:', m3u8Url);
+          hls.loadSource(m3u8Url);
           hls.attachMedia(video);
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('📺 Manifest VidMoly chargé avec succès');
-            console.log('📺 Niveaux disponibles:', hls.levels);
             setIsLoading(false);
             video.play().catch(err => {
               console.warn("Autoplay failed:", err);
@@ -100,20 +95,8 @@ export default function VidMolyPlayer({
               setIsLoading(false);
             }
           });
-          
-          hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-            console.log('📺 Fragment chargé:', data.frag.url);
-          });
-          
-          hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
-            console.log('📺 Chargement fragment:', data.frag.url);
-          });
-          
-          hls.on(Hls.Events.FRAG_LOAD_ERROR, (_, data) => {
-            console.error('❌ Erreur chargement fragment:', data.frag.url, data.details);
-          });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = proxyUrl;
+          video.src = m3u8Url;
           video.addEventListener('loadedmetadata', () => {
             setIsLoading(false);
             video.play().catch(err => {
