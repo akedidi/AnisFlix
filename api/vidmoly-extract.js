@@ -45,9 +45,24 @@ export default async function handler(req, res) {
         throw new Error('VidMoly détecte un bloqueur de publicités via proxy externe');
       }
       
-      const playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+      // Essayer plusieurs patterns pour trouver le lien m3u8
+      let playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
       
       if (!playerSetupMatch) {
+        // Essayer un pattern plus large
+        playerSetupMatch = html.match(/sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+      }
+      
+      if (!playerSetupMatch) {
+        // Essayer de chercher directement les URLs m3u8
+        playerSetupMatch = html.match(/https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/);
+        if (playerSetupMatch) {
+          playerSetupMatch[1] = playerSetupMatch[0];
+        }
+      }
+      
+      if (!playerSetupMatch) {
+        console.log('❌ Aucun lien m3u8 trouvé dans le HTML:', html.substring(0, 1000));
         throw new Error('Impossible de trouver le lien m3u8 via proxy externe');
       }
       
