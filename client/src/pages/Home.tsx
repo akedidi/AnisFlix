@@ -90,6 +90,7 @@ export default function Home() {
     const randomIndex = Math.floor((Math.sin(seed) * 10000) % Math.min(popularMovies.length, 10));
     const movie = popularMovies[Math.abs(randomIndex)];
     return {
+      id: movie.id,
       title: movie.title,
       overview: "",
       backdropPath: movie.posterPath,
@@ -188,22 +189,22 @@ export default function Home() {
         {featured && (
           <HeroSection
             {...featured}
-            isFavorite={popularMovies[0] ? isFavorite(popularMovies[0].id, 'movie') : false}
+            isFavorite={featured ? isFavorite(featured.id, 'movie') : false}
             onFavorite={() => {
-              if (popularMovies[0]) {
+              if (featured) {
                 toggleFavorite({
-                  id: popularMovies[0].id,
-                  title: popularMovies[0].title,
-                  posterPath: popularMovies[0].posterPath,
-                  rating: popularMovies[0].rating,
-                  year: popularMovies[0].year || '',
+                  id: featured.id,
+                  title: featured.title,
+                  posterPath: featured.backdropPath,
+                  rating: featured.rating,
+                  year: featured.year || '',
                   mediaType: 'movie'
                 });
               }
             }}
             onInfo={() => {
-              if (popularMovies[0]) {
-                window.location.href = `/movie/${popularMovies[0].id}`;
+              if (featured) {
+                window.location.href = `/movie/${featured.id}`;
               }
             }}
           />
