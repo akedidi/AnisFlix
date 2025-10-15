@@ -112,16 +112,20 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
           console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
           
           vidmolyPlayers.forEach((playerUrl: string) => {
+            // Convertir vidmoly.to en vidmoly.net pour une meilleure compatibilité
+            const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
+            console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
+            
             if (link.language === 'vf') {
-              console.log('✅ Ajout lien VF:', playerUrl);
+              console.log('✅ Ajout lien VF:', normalizedUrl);
               vidmolyLinks.vf.push({
-                url: playerUrl,
+                url: normalizedUrl,
                 language: link.language
               });
             } else if (link.language === 'vostfr') {
-              console.log('✅ Ajout lien VOSTFR:', playerUrl);
+              console.log('✅ Ajout lien VOSTFR:', normalizedUrl);
               vidmolyLinks.vostfr.push({
-                url: playerUrl,
+                url: normalizedUrl,
                 language: link.language
               });
             }
