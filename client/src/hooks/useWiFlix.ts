@@ -94,3 +94,4 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
     hasVidMolyLinks: vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0
   };
 };
+

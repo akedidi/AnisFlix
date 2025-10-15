@@ -58,3 +58,4 @@ export const useDarkiboxSeries = (seriesId: number, season: number, episode: num
     cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 };
+

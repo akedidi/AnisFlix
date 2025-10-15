@@ -40,7 +40,7 @@ export default function VidMolyPlayer({
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
         
-        const response = await fetch('/api/vidmoly/extract', {
+        const response = await fetch('/api/vidmoly-extract', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -63,7 +63,7 @@ export default function VidMolyPlayer({
 
         // Utiliser le proxy VidMoly pour servir le stream
         const masterUrlParsed = new URL(data.m3u8Url);
-        const proxyUrl = `/api/vidmoly/proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+        const proxyUrl = `/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
         
         console.log('📺 URL proxy VidMoly:', proxyUrl);
 
