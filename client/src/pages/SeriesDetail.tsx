@@ -39,9 +39,9 @@ export default function SeriesDetail() {
   }, [selectedEpisode, selectedSeasonNumber]);
 
   // Fermer la liste des épisodes quand on change de saison
-  // useEffect(() => {
-  //   setSelectedEpisode(null);
-  // }, [selectedSeasonNumber]);
+  useEffect(() => {
+    setSelectedEpisode(null);
+  }, [selectedSeasonNumber]);
 
   // Debug: Log quand un épisode est sélectionné
   useEffect(() => {
