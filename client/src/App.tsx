@@ -17,6 +17,12 @@ import PopularMovies from "@/pages/PopularMovies";
 import PopularSeries from "@/pages/PopularSeries";
 import MovieGenre from "@/pages/MovieGenre";
 import SeriesGenre from "@/pages/SeriesGenre";
+
+// Anime pages
+import AnimeMoviesLatest from "@/pages/AnimeMoviesLatest";
+import AnimeSeriesLatest from "@/pages/AnimeSeriesLatest";
+import AnimeMoviesPopular from "@/pages/AnimeMoviesPopular";
+import AnimeSeriesPopular from "@/pages/AnimeSeriesPopular";
 import Settings from "@/pages/Settings";
 import TVChannels from "@/pages/TVChannels";
 import Favorites from "@/pages/Favorites";
@@ -63,6 +69,12 @@ function App() {
             <Route path="/popular-series" component={PopularSeries} />
             <Route path="/movies/genre/:id" component={MovieGenre} />
             <Route path="/series/genre/:id" component={SeriesGenre} />
+            
+            {/* Anime routes */}
+            <Route path="/anime-movies-latest" component={AnimeMoviesLatest} />
+            <Route path="/anime-series-latest" component={AnimeSeriesLatest} />
+            <Route path="/anime-movies-popular" component={AnimeMoviesPopular} />
+            <Route path="/anime-series-popular" component={AnimeSeriesPopular} />
             <Route path="/settings" component={Settings} />
             <Route path="/tv-channels" component={TVChannels} />
             <Route path="/favorites" component={Favorites} />

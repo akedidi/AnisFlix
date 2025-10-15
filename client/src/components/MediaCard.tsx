@@ -52,7 +52,7 @@ export default function MediaCard({
         {progress !== undefined && progress > 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
             <div
-              className="h-full bg-chart-2"
+              className="h-full bg-red-500"
               style={{ width: `${progress}%` }}
             />
           </div>

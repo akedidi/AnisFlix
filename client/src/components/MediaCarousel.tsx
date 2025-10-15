@@ -134,6 +134,19 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     const link = title.toLowerCase().includes('film') ? '/latest-movies' : 
                                title.toLowerCase().includes('série') ? '/latest-series' : '/latest-movies';
                     window.location.href = link;
+                  } else if (title.includes('anime')) {
+                    // Gestion spéciale pour les anime
+                    if (title.includes('film') && title.includes('dernier')) {
+                      window.location.href = '/anime-movies-latest';
+                    } else if (title.includes('série') && title.includes('dernier')) {
+                      window.location.href = '/anime-series-latest';
+                    } else if (title.includes('film') && title.includes('populaire')) {
+                      window.location.href = '/anime-movies-popular';
+                    } else if (title.includes('série') && title.includes('populaire')) {
+                      window.location.href = '/anime-series-popular';
+                    } else {
+                      window.location.href = '/anime-movies-latest';
+                    }
                   } else {
                     // Par défaut, rediriger vers la page d'accueil
                     window.location.href = '/';
