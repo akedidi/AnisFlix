@@ -60,15 +60,17 @@ export default function MovieDetail() {
     isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
+    isVidMoly?: boolean;
   }) => {
     if (!movie) return;
     
-    // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload)) {
+    // Si l'URL est déjà fournie (TopStream, MovixDownload, VidMoly ou autres sources directes), on l'utilise directement
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload || source.isVidMoly)) {
       setSelectedSource({
         url: source.url,
         type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
-        name: source.name
+        name: source.name,
+        isVidMoly: source.isVidMoly
       });
       return;
     }
