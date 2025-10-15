@@ -5,6 +5,7 @@ import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
 import { useDarkiSeries } from '@/hooks/useDarkiSeries';
+import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -68,6 +69,22 @@ export default function StreamingSources({
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
+  
+  // Détecter si c'est une série anime et récupérer les liens VidMoly anime
+  const isAnimeSeries = type === 'tv' && title && (
+    title.toLowerCase().includes('anime') || 
+    title.toLowerCase().includes('demon slayer') ||
+    title.toLowerCase().includes('one punch man') ||
+    title.toLowerCase().includes('naruto') ||
+    title.toLowerCase().includes('dragon ball') ||
+    title.toLowerCase().includes('attack on titan')
+  );
+  
+  const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
+    title || '', 
+    season || 1, 
+    episode || 1
+  );
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
@@ -83,12 +100,22 @@ export default function StreamingSources({
       return true;
     }
     
-    // Vérifier VidMoly
+    // Vérifier VidMoly (normal)
     if (vidmolyData) {
       if (language === 'VF' && vidmolyData.vf && vidmolyData.vf.length > 0) {
         return true;
       }
       if (language === 'VOSTFR' && vidmolyData.vostfr && vidmolyData.vostfr.length > 0) {
+        return true;
+      }
+    }
+    
+    // Vérifier VidMoly anime (pour les séries anime)
+    if (isAnimeSeries && animeVidMolyData) {
+      if (language === 'VF' && animeVidMolyData.vf && animeVidMolyData.vf.length > 0) {
+        return true;
+      }
+      if (language === 'VOSTFR' && animeVidMolyData.vostfr && animeVidMolyData.vostfr.length > 0) {
         return true;
       }
     }
@@ -412,6 +439,54 @@ export default function StreamingSources({
     }
   } else {
     console.log('❌ Pas de sources VidMoly - vidmolyData:', vidmolyData, 'hasVidMolyLinks:', hasVidMolyLinks);
+  }
+
+  // Ajouter les sources VidMoly anime si disponibles (pour les séries anime)
+  if (isAnimeSeries && animeVidMolyData && hasAnimeVidMolyLinks) {
+    console.log('🔍 StreamingSources - Anime VidMoly data:', animeVidMolyData);
+    let animeVidmolyCounter = 1;
+    
+    if (selectedLanguage === 'VF' && animeVidMolyData.vf) {
+      console.log('🔍 Ajout des sources VidMoly Anime VF:', animeVidMolyData.vf);
+      animeVidMolyData.vf.forEach((player: any) => {
+        const source = {
+          id: `anime-vidmoly-vf-${animeVidmolyCounter}`,
+          name: `VidMoly Anime${animeVidmolyCounter} (VF)`,
+          provider: 'vidmoly',
+          url: player.url,
+          type: 'embed' as const,
+          player: 'vidmoly',
+          isVidMoly: true,
+          sourceKey: 'VF',
+          quality: player.quality
+        };
+        console.log('✅ Ajout source VidMoly Anime VF:', source);
+        allSources.push(source);
+        animeVidmolyCounter++;
+      });
+    }
+    
+    if (selectedLanguage === 'VOSTFR' && animeVidMolyData.vostfr) {
+      console.log('🔍 Ajout des sources VidMoly Anime VOSTFR:', animeVidMolyData.vostfr);
+      animeVidMolyData.vostfr.forEach((player: any) => {
+        const source = {
+          id: `anime-vidmoly-vostfr-${animeVidmolyCounter}`,
+          name: `VidMoly Anime${animeVidmolyCounter} (VOSTFR)`,
+          provider: 'vidmoly',
+          url: player.url,
+          type: 'embed' as const,
+          player: 'vidmoly',
+          isVidMoly: true,
+          sourceKey: 'VOSTFR',
+          quality: player.quality
+        };
+        console.log('✅ Ajout source VidMoly Anime VOSTFR:', source);
+        allSources.push(source);
+        animeVidmolyCounter++;
+      });
+    }
+  } else if (isAnimeSeries) {
+    console.log('❌ Pas de sources VidMoly Anime - animeVidMolyData:', animeVidMolyData, 'hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
   }
 
   // Ajouter les sources Darki pour les séries si disponibles
