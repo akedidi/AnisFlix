@@ -82,14 +82,14 @@ export default function TVChannels() {
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            liveSyncDurationCount: 1, // Commencer au live edge immédiatement
-            liveMaxLatencyDurationCount: 2, // Latence maximale très courte
-            maxBufferLength: 5, // Buffer très court pour les streams live
-            maxMaxBufferLength: 10, // Buffer maximum très court
+            liveSyncDurationCount: 3, // Buffer plus stable pour les streams live
+            liveMaxLatencyDurationCount: 5, // Latence maximale plus raisonnable
+            maxBufferLength: 30, // Buffer plus long pour éviter les coupures
+            maxMaxBufferLength: 60, // Buffer maximum plus long
             startLevel: -1, // Auto-select starting level
             capLevelToPlayerSize: true,
-            liveBackBufferLength: 0, // Pas de buffer en arrière pour les streams live
-            maxLiveSyncPlaybackRate: 1.1, // Vitesse de lecture maximale pour rattraper
+            liveBackBufferLength: 10, // Buffer en arrière pour la stabilité
+            maxLiveSyncPlaybackRate: 1.05, // Vitesse de rattrapage plus douce
           });
           
           hlsRef.current = hls;
@@ -98,36 +98,19 @@ export default function TVChannels() {
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             setIsLoading(false);
-            // Pour les streams live, ne pas définir currentTime
-            // Laisser HLS gérer automatiquement la position
+            // Pour les streams live, laisser HLS gérer automatiquement la position
             video.play().catch(err => {
               console.error("Erreur de lecture:", err);
               setError("Impossible de lire le flux");
             });
           });
 
-          // Gestion spécifique pour les streams live
+          // Gestion spécifique pour les streams live - plus douce
           hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
             if (data.details.live) {
-              // Pour les streams live, s'assurer qu'on commence au live edge
-              console.log("Stream live détecté, synchronisation au live edge");
-              // Forcer la position au live edge
-              if (video.duration > 0) {
-                video.currentTime = video.duration;
-              }
+              console.log("Stream live détecté");
+              // Ne pas forcer la position, laisser HLS gérer naturellement
             }
-          });
-
-          // Forcer le début au live edge après le chargement des métadonnées
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            // Attendre un peu que les métadonnées soient chargées
-            setTimeout(() => {
-              if (video.duration > 0 && video.duration !== Infinity) {
-                // Pour les streams live, commencer à la fin (live edge)
-                video.currentTime = video.duration;
-                console.log("Position forcée au live edge:", video.duration);
-              }
-            }, 100);
           });
           
           hls.on(Hls.Events.ERROR, (_event, data: any) => {
@@ -137,12 +120,22 @@ export default function TVChannels() {
               setError("Erreur fatale lors du chargement du flux");
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  console.error("Erreur réseau fatale");
-                  hls.startLoad();
+                  console.error("Erreur réseau fatale - tentative de récupération");
+                  // Attendre un peu avant de redémarrer
+                  setTimeout(() => {
+                    if (hlsRef.current) {
+                      hlsRef.current.startLoad();
+                    }
+                  }, 2000);
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
-                  console.error("Erreur média fatale");
-                  hls.recoverMediaError();
+                  console.error("Erreur média fatale - tentative de récupération");
+                  // Attendre un peu avant de récupérer
+                  setTimeout(() => {
+                    if (hlsRef.current) {
+                      hlsRef.current.recoverMediaError();
+                    }
+                  }, 1000);
                   break;
                 default:
                   console.error("Erreur fatale non récupérable");
