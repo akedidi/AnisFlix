@@ -206,7 +206,6 @@ export default function Home() {
                 window.location.href = `/movie/${popularMovies[0].id}`;
               }
             }}
-            onChangeFeatured={changeFeaturedMovie}
           />
         )}
 
