@@ -37,6 +37,11 @@ export default function SeriesDetail() {
   useEffect(() => {
     setSelectedSource(null);
   }, [selectedEpisode, selectedSeasonNumber]);
+
+  // Fermer la liste des épisodes quand on change de saison
+  useEffect(() => {
+    setSelectedEpisode(null);
+  }, [selectedSeasonNumber]);
   
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
