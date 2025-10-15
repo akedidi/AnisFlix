@@ -38,19 +38,28 @@ export default async function handler(req, res) {
     console.log(`[PROXY] Demande pour : ${req.url}`);
 
     // **Logique de réécriture pour les playlists .m3u8** (exactement comme votre code)
-    if (req.url.endsWith('.m3u8')) {
+    if (targetUrl.includes('.m3u8')) {
       const response = await axios.get(targetUrl, { 
         headers: { 'Referer': refererUrl }
       });
 
       // On remplace les URLs par des URLs relatives vers notre proxy VidMoly
       // pour forcer le lecteur à demander les prochains fichiers via notre proxy
-      const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+/g, (match) => {
-        // Si c'est une URL complète, la rediriger vers notre proxy VidMoly
-        if (match.includes('.ts') || match.includes('.m3u8')) {
-          return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
-        }
-        return match;
+      let modifiedPlaylist = response.data;
+      
+      // Remplacer les URLs dans les attributs URI=
+      modifiedPlaylist = modifiedPlaylist.replace(/URI="([^"]*\.m3u8[^"]*)"/g, (match, url) => {
+        return `URI="/api/vidmoly-proxy?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(refererUrl)}"`;
+      });
+      
+      // Remplacer les URLs sur des lignes séparées
+      modifiedPlaylist = modifiedPlaylist.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, (match) => {
+        return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+      });
+      
+      // Remplacer les URLs de segments .ts
+      modifiedPlaylist = modifiedPlaylist.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, (match) => {
+        return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
       });
 
       res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl' });
