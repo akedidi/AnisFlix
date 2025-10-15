@@ -73,19 +73,33 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
   };
 
   if (wiflixData?.players) {
+    console.log('🔍 WiFlix data reçue:', wiflixData);
+    
     // Filtrer les liens VidMoly
     if (wiflixData.players.vf) {
-      vidmolyLinks.vf = wiflixData.players.vf.filter(player => 
-        player.name === 'vidmoly.net'
-      );
+      console.log('🔍 Players VF disponibles:', wiflixData.players.vf.map(p => p.name));
+      vidmolyLinks.vf = wiflixData.players.vf.filter(player => {
+        const isVidMoly = player.name === 'vidmoly.net';
+        if (isVidMoly) {
+          console.log('✅ Lien VidMoly VF trouvé:', player.url);
+        }
+        return isVidMoly;
+      });
     }
     
     if (wiflixData.players.vostfr) {
-      vidmolyLinks.vostfr = wiflixData.players.vostfr.filter(player => 
-        player.name === 'vidmoly.net'
-      );
+      console.log('🔍 Players VOSTFR disponibles:', wiflixData.players.vostfr.map(p => p.name));
+      vidmolyLinks.vostfr = wiflixData.players.vostfr.filter(player => {
+        const isVidMoly = player.name === 'vidmoly.net';
+        if (isVidMoly) {
+          console.log('✅ Lien VidMoly VOSTFR trouvé:', player.url);
+        }
+        return isVidMoly;
+      });
     }
   }
+
+  console.log('🔍 VidMoly links finaux:', vidmolyLinks);
 
   return {
     data: vidmolyLinks,
