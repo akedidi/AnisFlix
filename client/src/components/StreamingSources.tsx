@@ -59,6 +59,8 @@ export default function StreamingSources({
   episode,
   imdbId
 }: StreamingSourcesProps) {
+  console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
+  
   const { t } = useLanguage();
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
@@ -592,14 +594,16 @@ export default function StreamingSources({
             )}
           </div>
         ) : (
-          allSources.map((source) => (
-          <div key={source.id} className="space-y-2">
-            <Button
-              variant="outline"
-              className="w-full justify-between h-auto py-3"
-              onClick={() => handleSourceClick(source)}
-              disabled={isLoadingSource}
-            >
+          allSources.map((source) => {
+            console.log('🎬 Rendu source:', source);
+            return (
+            <div key={source.id} className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-between h-auto py-3"
+                onClick={() => handleSourceClick(source)}
+                disabled={isLoadingSource}
+              >
               <span className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
                 {source.name}
@@ -644,7 +648,8 @@ export default function StreamingSources({
               </span>
             </Button>
           </div>
-          ))
+          );
+          })
         )}
       </div>
     </div>
