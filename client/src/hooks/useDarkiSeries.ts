@@ -1,5 +1,51 @@
 import { useQuery } from '@tanstack/react-query';
 
+interface MovixSearchResult {
+  id: number;
+  tmdb_id: number;
+  type: string;
+  name: string;
+}
+
+interface MovixSearchResponse {
+  results: MovixSearchResult[];
+}
+
+// Fonction pour récupérer l'ID Movix depuis l'ID TMDB
+const getMovixIdFromTmdb = async (tmdbId: number, title?: string): Promise<number | null> => {
+  try {
+    // Si pas de titre fourni, on ne peut pas faire la recherche
+    if (!title) {
+      return null;
+    }
+    
+    // Rechercher dans l'API Movix avec le titre
+    const searchUrl = `https://api.movix.site/api/search?title=${encodeURIComponent(title)}`;
+    
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) {
+      return null;
+    }
+    
+    const searchData: MovixSearchResponse = await searchResponse.json();
+    
+    // Trouver le résultat qui correspond à notre TMDB ID et type 'series'
+    const matchingResult = searchData.results.find(result => 
+      result.tmdb_id === tmdbId && 
+      result.type === 'series'
+    );
+    
+    if (matchingResult) {
+      return matchingResult.id;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[DarkiSeries] Error getting Movix ID:', error);
+    return null;
+  }
+};
+
 interface DarkiSource {
   id: string;
   src: string;
@@ -19,9 +65,19 @@ interface DarkiSeriesResponse {
   total: number;
 }
 
-const fetchDarkiSeries = async (seriesId: number, season: number, episode: number): Promise<DarkiSeriesResponse | null> => {
+const fetchDarkiSeries = async (tmdbId: number, season: number, episode: number, title?: string): Promise<DarkiSeriesResponse | null> => {
   try {
-    const url = `/api/darkibox/series?seriesId=${seriesId}&season=${season}&episode=${episode}`;
+    // Convertir l'ID TMDB en ID Movix
+    const movixId = await getMovixIdFromTmdb(tmdbId, title);
+    
+    if (!movixId) {
+      console.log(`[DarkiSeries] Aucun ID Movix trouvé pour TMDB ID ${tmdbId}`);
+      return null;
+    }
+    
+    console.log(`[DarkiSeries] Conversion TMDB ${tmdbId} → Movix ${movixId}`);
+    
+    const url = `/api/darkibox/series?seriesId=${movixId}&season=${season}&episode=${episode}`;
     
     const response = await fetch(url);
     
@@ -33,6 +89,8 @@ const fetchDarkiSeries = async (seriesId: number, season: number, episode: numbe
     
     console.log('Darki Series API Response:', {
       url,
+      tmdbId,
+      movixId,
       success: data.success,
       sources: data.sources ? data.sources.length : 0,
       data
@@ -49,10 +107,10 @@ const fetchDarkiSeries = async (seriesId: number, season: number, episode: numbe
   }
 };
 
-export const useDarkiSeries = (seriesId: number, season: number, episode: number) => {
+export const useDarkiSeries = (seriesId: number, season: number, episode: number, title?: string) => {
   return useQuery({
-    queryKey: ['darki-series', seriesId, season, episode],
-    queryFn: () => fetchDarkiSeries(seriesId, season, episode),
+    queryKey: ['darki-series', seriesId, season, episode, title],
+    queryFn: () => fetchDarkiSeries(seriesId, season, episode, title),
     enabled: !!seriesId && !!season && !!episode,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
