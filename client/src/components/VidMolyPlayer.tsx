@@ -61,9 +61,8 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
-        // Utiliser le proxy VidMoly pour servir le stream
-        const masterUrlParsed = new URL(data.m3u8Url);
-        const proxyUrl = `/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+        // Utiliser le proxy VidMoly pour servir le stream avec URL absolue
+        const proxyUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
         
         console.log('📺 URL proxy VidMoly:', proxyUrl);
 
@@ -86,6 +85,7 @@ export default function VidMolyPlayer({
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('📺 Manifest VidMoly chargé avec succès');
+            console.log('📺 Niveaux disponibles:', hls.levels);
             setIsLoading(false);
             video.play().catch(err => {
               console.warn("Autoplay failed:", err);
@@ -101,8 +101,16 @@ export default function VidMolyPlayer({
             }
           });
           
-          hls.on(Hls.Events.FRAG_LOADED, () => {
-            console.log('📺 Fragment chargé');
+          hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
+            console.log('📺 Fragment chargé:', data.frag.url);
+          });
+          
+          hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
+            console.log('📺 Chargement fragment:', data.frag.url);
+          });
+          
+          hls.on(Hls.Events.FRAG_LOAD_ERROR, (_, data) => {
+            console.error('❌ Erreur chargement fragment:', data.frag.url, data.details);
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = proxyUrl;
