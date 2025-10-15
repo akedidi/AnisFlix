@@ -25,11 +25,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL VidMoly invalide' });
     }
 
+    // Remplacer vidmoly.to par vidmoly.net pour une meilleure compatibilité
+    const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
     console.log(`🚀 Extraction du lien VidMoly pour : ${url}`);
+    console.log(`🔄 URL normalisée : ${normalizedUrl}`);
 
     // Essayer d'abord avec un service de proxy externe
     try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
       const proxyResponse = await axios.get(proxyUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -84,7 +87,7 @@ export default async function handler(req, res) {
     }
 
     // Fallback: Utiliser axios avec headers ultra-avancés pour contourner la détection VidMoly
-    const response = await axios.get(url, {
+    const response = await axios.get(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
