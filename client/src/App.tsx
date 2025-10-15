@@ -81,11 +81,17 @@ function App() {
             
             {/* Provider routes */}
             <Route path="/netflix" component={NetflixContent} />
+            <Route path="/netflix-content" component={NetflixContent} />
             <Route path="/amazon" component={AmazonContent} />
+            <Route path="/amazon-content" component={AmazonContent} />
             <Route path="/disney" component={DisneyContent} />
+            <Route path="/disney-content" component={DisneyContent} />
             <Route path="/hbo-max" component={HBOMaxContent} />
+            <Route path="/hbo-max-content" component={HBOMaxContent} />
             <Route path="/apple-tv" component={AppleTVContent} />
+            <Route path="/apple-tv-content" component={AppleTVContent} />
             <Route path="/paramount" component={ParamountContent} />
+            <Route path="/paramount-content" component={ParamountContent} />
             <Route path="/provider/:id" component={ProviderDetail} />
             
             {/* Test routes */}
