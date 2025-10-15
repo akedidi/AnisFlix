@@ -61,10 +61,10 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
-        // Utiliser directement le lien m3u8 comme Vidzy (sans proxy complexe)
-        const m3u8Url = data.m3u8Url;
+        // Utiliser le proxy VidMoly car les liens directs sont bloqués (403 Forbidden)
+        const proxyUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
         
-        console.log('📺 URL m3u8 directe VidMoly:', m3u8Url);
+        console.log('📺 URL proxy VidMoly:', proxyUrl);
 
         // Configuration HLS simple comme VideoPlayer
         if (Hls.isSupported()) {
@@ -75,8 +75,8 @@ export default function VidMolyPlayer({
           });
           hlsRef.current = hls;
           
-          console.log('🎬 Chargement de la source:', m3u8Url);
-          hls.loadSource(m3u8Url);
+          console.log('🎬 Chargement de la source:', proxyUrl);
+          hls.loadSource(proxyUrl);
           hls.attachMedia(video);
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -96,7 +96,7 @@ export default function VidMolyPlayer({
             }
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = m3u8Url;
+          video.src = proxyUrl;
           video.addEventListener('loadedmetadata', () => {
             setIsLoading(false);
             video.play().catch(err => {
