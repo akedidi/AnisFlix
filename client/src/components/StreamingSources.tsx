@@ -60,6 +60,51 @@ export default function StreamingSources({
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
+  // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
+  const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR') => {
+    // Vérifier TopStream (VF uniquement)
+    if (language === 'VF' && topStreamData && topStreamData.stream && topStreamData.stream.url) {
+      return true;
+    }
+    
+    // Vérifier MovixDownload (VF uniquement)
+    if (language === 'VF' && movixDownloadData && movixDownloadData.sources && movixDownloadData.sources.length > 0) {
+      return true;
+    }
+    
+    // Vérifier FStream
+    if (fStreamData && fStreamData.players) {
+      if (language === 'VF') {
+        // Vérifier les clés VF (VFF, VFQ, Default)
+        const vfKeys = Object.keys(fStreamData.players).filter(key => 
+          key.startsWith('VF') || key === 'VF' || key === 'Default'
+        );
+        return vfKeys.some(key => fStreamData.players![key] && fStreamData.players![key].length > 0);
+      } else {
+        // Vérifier VOSTFR
+        return fStreamData.players.VOSTFR && fStreamData.players.VOSTFR.length > 0;
+      }
+    }
+    
+    // Vérifier les épisodes pour les séries
+    if (type === 'tv' && fStreamData && fStreamData.episodes && episode) {
+      const episodeData = fStreamData.episodes[episode.toString()];
+      if (episodeData && episodeData.languages) {
+        if (language === 'VF') {
+          const vfKeys = Object.keys(episodeData.languages).filter(key => 
+            key.startsWith('VF') || key === 'VF' || key === 'Default'
+          );
+          return vfKeys.some(key => episodeData.languages![key as keyof typeof episodeData.languages] && 
+            episodeData.languages![key as keyof typeof episodeData.languages]!.length > 0);
+        } else {
+          return episodeData.languages.VOSTFR && episodeData.languages.VOSTFR.length > 0;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   // Créer la liste unifiée des sources
   const allSources = [];
 
@@ -341,13 +386,14 @@ export default function StreamingSources({
         {t("topstream.sources")}
       </h2>
 
-      {/* Sélecteur de langue - seulement si on a des sources FStream */}
-      {fStreamData && (
+      {/* Sélecteur de langue - afficher si on a des sources pour au moins une langue */}
+      {(hasSourcesForLanguage('VF') || hasSourcesForLanguage('VOSTFR')) && (
         <div className="flex gap-2">
           <Button
             variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedLanguage('VF')}
+            disabled={!hasSourcesForLanguage('VF')}
           >
             {t("topstream.vf")}
           </Button>
@@ -355,6 +401,7 @@ export default function StreamingSources({
             variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setSelectedLanguage('VOSTFR')}
+            disabled={!hasSourcesForLanguage('VOSTFR')}
           >
             {t("topstream.vostfr")}
           </Button>
@@ -362,7 +409,22 @@ export default function StreamingSources({
       )}
 
       <div className="space-y-3">
-        {allSources.map((source) => (
+        {allSources.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>
+              {selectedLanguage === 'VF' 
+                ? "Aucune source VF disponible pour ce contenu." 
+                : "Aucune source VOSTFR disponible pour ce contenu."
+              }
+            </p>
+            {selectedLanguage === 'VOSTFR' && hasSourcesForLanguage('VF') && (
+              <p className="text-sm mt-2">
+                Des sources VF sont disponibles. Cliquez sur l'onglet VF pour les voir.
+              </p>
+            )}
+          </div>
+        ) : (
+          allSources.map((source) => (
           <div key={source.id} className="space-y-2">
             <Button
               variant="outline"
@@ -404,7 +466,8 @@ export default function StreamingSources({
               </span>
             </Button>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
