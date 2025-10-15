@@ -1,5 +1,4 @@
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import axios from 'axios';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -15,7 +14,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  let browser;
   try {
     const { url } = req.body;
 
@@ -27,37 +25,35 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL VidMoly invalide' });
     }
 
-    console.log(`🚀 Lancement du scraping pour : ${url}`);
+    console.log(`🚀 Extraction du lien VidMoly pour : ${url}`);
 
-    // Lancer Puppeteer avec Chrome pour Vercel
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
+    // Utiliser axios pour récupérer le contenu de la page
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      timeout: 10000
     });
+
+    const html = response.data;
+
+    // Extraire le lien m3u8 avec une regex
+    const playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
     
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'networkidle2' });
-
-    // Extraction exactement comme dans votre code
-    const brokenUrl = await page.evaluate(() => {
-      const scripts = Array.from(document.querySelectorAll('script'));
-      const playerScript = scripts.find(script => script.textContent.includes('player.setup'));
-      if (playerScript) {
-        const match = playerScript.textContent.match(/sources:\s*\[\s*{\s*file:\s*["']([^"']+)["']/);
-        return match ? match[1] : null;
-      }
-      return null;
-    });
-
-    if (!brokenUrl) {
+    if (!playerSetupMatch) {
       return res.status(404).json({ 
-        error: 'Impossible de trouver le lien m3u8 sur la page.' 
+        error: 'Impossible de trouver le lien m3u8 sur la page VidMoly.' 
       });
     }
     
+    const brokenUrl = playerSetupMatch[1];
     const masterM3u8Url = brokenUrl.replace(/,/g, '');
+    
     console.log(`✅ Lien master.m3u8 trouvé : ${masterM3u8Url}`);
 
     return res.status(200).json({ 
@@ -68,15 +64,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error(`❌ Erreur critique lors du scraping : ${error.message}`);
+    console.error(`❌ Erreur lors de l'extraction VidMoly : ${error.message}`);
     return res.status(500).json({ 
       error: 'Erreur serveur lors de l\'extraction VidMoly',
       details: error.message 
     });
-  } finally {
-    if (browser) {
-      await browser.close();
-      console.log("✅ Navigateur Puppeteer fermé.");
-    }
   }
 }
