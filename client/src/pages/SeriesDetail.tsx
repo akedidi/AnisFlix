@@ -42,6 +42,13 @@ export default function SeriesDetail() {
   useEffect(() => {
     setSelectedEpisode(null);
   }, [selectedSeasonNumber]);
+
+  // Debug: Log quand un épisode est sélectionné
+  useEffect(() => {
+    if (selectedEpisode) {
+      console.log('🔍 Episode sélectionné:', selectedEpisode, 'selectedSource:', selectedSource);
+    }
+  }, [selectedEpisode, selectedSource]);
   
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
@@ -327,7 +334,6 @@ export default function SeriesDetail() {
 
                           {selectedEpisode === episode.episode_number && (
                             <div className="mt-4 pt-4 border-t space-y-3">
-                              {console.log('🔍 Episode déplié:', episode.episode_number, 'selectedSource:', selectedSource)}
                               {!selectedSource ? (
                                 <>
                                   {/* Sources de streaming unifiées */}
