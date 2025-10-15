@@ -294,7 +294,10 @@ export default function SeriesDetail() {
                         <Card
                           key={episode.id}
                           className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-                          onClick={() => setSelectedEpisode(episode.episode_number)}
+                          onClick={() => {
+                            console.log('🔍 Clic sur épisode:', episode.episode_number);
+                            setSelectedEpisode(episode.episode_number);
+                          }}
                           data-testid={`card-episode-${episode.episode_number}`}
                         >
                           <div className="flex justify-between items-start">
@@ -314,6 +317,7 @@ export default function SeriesDetail() {
                               variant="ghost"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
                                 setSelectedEpisode(episode.episode_number);
                               }}
                             >
@@ -323,6 +327,7 @@ export default function SeriesDetail() {
 
                           {selectedEpisode === episode.episode_number && (
                             <div className="mt-4 pt-4 border-t space-y-3">
+                              {console.log('🔍 Episode déplié:', episode.episode_number, 'selectedSource:', selectedSource)}
                               {!selectedSource ? (
                                 <>
                                   {/* Sources de streaming unifiées */}
