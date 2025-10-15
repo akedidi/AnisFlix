@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URL VidMoly requise' });
     }
 
-    if (!url.includes('vidmoly.net')) {
+    if (!url.includes('vidmoly.net') && !url.includes('vidmoly.to')) {
       return res.status(400).json({ error: 'URL VidMoly invalide' });
     }
 
