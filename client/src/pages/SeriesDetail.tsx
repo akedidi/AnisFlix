@@ -71,15 +71,21 @@ export default function SeriesDetail() {
     isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
+    isDarki?: boolean;
+    quality?: string;
+    language?: string;
   }) => {
     if (!series || !selectedEpisode) return;
     
-    // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload)) {
+    // Si l'URL est déjà fournie (TopStream, MovixDownload, Darki ou autres sources directes), on l'utilise directement
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload || source.isDarki)) {
       setSelectedSource({
         url: source.url,
-        type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
-        name: source.name
+        type: source.isMovixDownload || source.isDarki ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+        name: source.name,
+        isDarki: source.isDarki,
+        quality: source.quality,
+        language: source.language
       });
       return;
     }
