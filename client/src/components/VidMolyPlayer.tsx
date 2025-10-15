@@ -49,13 +49,14 @@ export default function VidMolyPlayer({
         });
 
         if (!response.ok) {
-          throw new Error('Erreur lors de l\'extraction du lien VidMoly');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Erreur lors de l\'extraction du lien VidMoly');
         }
 
         const data = await response.json();
         
         if (!data.success || !data.m3u8Url) {
-          throw new Error('Impossible d\'extraire le lien de streaming');
+          throw new Error(data.error || 'Impossible d\'extraire le lien de streaming VidMoly');
         }
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
