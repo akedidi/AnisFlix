@@ -182,13 +182,13 @@ export default function DarkiPlayer({
   }
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-black bg-opacity-50 text-white">
+      <div className="flex items-center justify-between p-4 bg-card border-b">
         <div>
           <h2 className="text-lg font-semibold truncate">{title}</h2>
           {quality && (
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-muted-foreground">
               {quality} • {language}
             </p>
           )}
@@ -198,7 +198,6 @@ export default function DarkiPlayer({
             onClick={onClose}
             variant="ghost"
             size="sm"
-            className="text-white hover:bg-white hover:bg-opacity-20"
           >
             ✕
           </Button>
@@ -206,9 +205,9 @@ export default function DarkiPlayer({
       </div>
 
       {/* Video Container */}
-      <div className="flex-1 relative">
+      <div className="relative">
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="text-white text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
               <p>Chargement Darki...</p>
@@ -218,7 +217,7 @@ export default function DarkiPlayer({
         
         <video
           ref={videoRef}
-          className="w-full h-full object-contain"
+          className="w-full aspect-video bg-black object-contain"
           poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
           controls={!isNative}
           playsInline
