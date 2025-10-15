@@ -364,12 +364,17 @@ export default function StreamingSources({
   }
 
   // Ajouter les sources VidMoly si disponibles
+  console.log('🔍 StreamingSources - VidMoly data:', vidmolyData);
+  console.log('🔍 StreamingSources - hasVidMolyLinks:', hasVidMolyLinks);
+  console.log('🔍 StreamingSources - selectedLanguage:', selectedLanguage);
+  
   if (vidmolyData && hasVidMolyLinks) {
     let vidmolyCounter = 1;
     
     if (selectedLanguage === 'VF' && vidmolyData.vf) {
+      console.log('🔍 Ajout des sources VidMoly VF:', vidmolyData.vf);
       vidmolyData.vf.forEach((player: any) => {
-        allSources.push({
+        const source = {
           id: `vidmoly-vf-${vidmolyCounter}`,
           name: `VidMoly${vidmolyCounter} (VF)`,
           provider: 'vidmoly',
@@ -378,14 +383,17 @@ export default function StreamingSources({
           player: 'vidmoly',
           isVidMoly: true,
           sourceKey: 'VF'
-        });
+        };
+        console.log('✅ Ajout source VidMoly VF:', source);
+        allSources.push(source);
         vidmolyCounter++;
       });
     }
     
     if (selectedLanguage === 'VOSTFR' && vidmolyData.vostfr) {
+      console.log('🔍 Ajout des sources VidMoly VOSTFR:', vidmolyData.vostfr);
       vidmolyData.vostfr.forEach((player: any) => {
-        allSources.push({
+        const source = {
           id: `vidmoly-vostfr-${vidmolyCounter}`,
           name: `VidMoly${vidmolyCounter} (VOSTFR)`,
           provider: 'vidmoly',
@@ -394,10 +402,14 @@ export default function StreamingSources({
           player: 'vidmoly',
           isVidMoly: true,
           sourceKey: 'VOSTFR'
-        });
+        };
+        console.log('✅ Ajout source VidMoly VOSTFR:', source);
+        allSources.push(source);
         vidmolyCounter++;
       });
     }
+  } else {
+    console.log('❌ Pas de sources VidMoly - vidmolyData:', vidmolyData, 'hasVidMolyLinks:', hasVidMolyLinks);
   }
 
   // Ajouter les sources Darki pour les séries si disponibles
@@ -452,7 +464,10 @@ export default function StreamingSources({
 
 
   const handleSourceClick = (source: any) => {
+    console.log('🔍 handleSourceClick appelé avec source:', source);
+    
     if (source.isTopStream) {
+      console.log('✅ Source TopStream détectée');
       // Pour TopStream, on utilise directement l'URL
       onSourceClick({
         url: source.url,
@@ -461,6 +476,7 @@ export default function StreamingSources({
         isTopStream: true
       });
     } else if (source.isFStream) {
+      console.log('✅ Source FStream détectée');
       // Pour Vidzy via FStream, on utilise le scraper existant
       onSourceClick({
         url: source.url,
@@ -469,6 +485,7 @@ export default function StreamingSources({
         isFStream: true
       });
     } else if (source.isMovixDownload) {
+      console.log('✅ Source MovixDownload détectée');
       // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
       onSourceClick({
         url: source.url,
@@ -477,6 +494,7 @@ export default function StreamingSources({
         isMovixDownload: true
       });
     } else if (source.isVidMoly) {
+      console.log('✅ Source VidMoly détectée, appel de onSourceClick');
       // Pour VidMoly, on utilise le player dédié
       onSourceClick({
         url: source.url,
@@ -485,6 +503,7 @@ export default function StreamingSources({
         isVidMoly: true
       });
     } else if (source.isDarki) {
+      console.log('✅ Source Darki détectée');
       // Pour Darki, on utilise le player dédié
       onSourceClick({
         url: source.url,
@@ -494,6 +513,8 @@ export default function StreamingSources({
         quality: source.quality,
         language: source.language
       });
+    } else {
+      console.log('❌ Type de source non reconnu:', source);
     }
   };
 
