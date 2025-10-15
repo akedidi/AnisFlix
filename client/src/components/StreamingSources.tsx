@@ -120,14 +120,6 @@ export default function StreamingSources({
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
-  // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
-  useEffect(() => {
-    if (selectedLanguage === 'VF' && !hasSourcesForLanguage('VF') && hasSourcesForLanguage('VOSTFR')) {
-      console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
-      setSelectedLanguage('VOSTFR');
-    }
-  }, [selectedLanguage, hasSourcesForLanguage]);
-
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
   const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR') => {
     // Vérifier TopStream (VF uniquement)
@@ -227,6 +219,14 @@ export default function StreamingSources({
     
     return false;
   };
+
+  // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
+  useEffect(() => {
+    if (selectedLanguage === 'VF' && !hasSourcesForLanguage('VF') && hasSourcesForLanguage('VOSTFR')) {
+      console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
+      setSelectedLanguage('VOSTFR');
+    }
+  }, [selectedLanguage, hasSourcesForLanguage]);
 
   // Créer la liste unifiée des sources
   const allSources = [];
