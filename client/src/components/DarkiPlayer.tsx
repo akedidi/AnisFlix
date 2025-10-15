@@ -44,29 +44,8 @@ export default function DarkiPlayer({
       try {
         console.log('🎬 Traitement du lien Darki:', m3u8Url);
         
-        const response = await fetch('/api/darkibox/scraper', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ m3u8Url }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Erreur lors du traitement du lien Darki');
-        }
-
-        const data = await response.json();
-        
-        if (!data.success || !data.streamUrl) {
-          throw new Error(data.error || 'Impossible de traiter le lien de streaming Darki');
-        }
-
-        console.log('✅ Lien stream Darki traité:', data.streamUrl);
-
-        // Utiliser le proxy Darki pour servir le stream
-        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(data.streamUrl)}`;
+        // Utiliser directement le lien M3U8 avec le proxy
+        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(m3u8Url)}`;
         
         console.log('📺 URL proxy Darki:', proxyUrl);
 
