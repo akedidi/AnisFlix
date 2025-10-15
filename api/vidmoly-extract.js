@@ -1,4 +1,5 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -28,10 +29,12 @@ export default async function handler(req, res) {
 
     console.log(`🚀 Lancement du scraping pour : ${url}`);
 
-    // Lancer Puppeteer exactement comme dans votre code
-    browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    // Lancer Puppeteer avec Chrome pour Vercel
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
     });
     
     const page = await browser.newPage();
