@@ -39,9 +39,9 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
-        console.log('🎬 Appel API vidmoly-extract...');
+        console.log('🎬 Appel API vidmoly-test...');
         
-        const response = await fetch('/api/vidmoly-extract', {
+        const response = await fetch('/api/vidmoly-test', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -49,16 +49,16 @@ export default function VidMolyPlayer({
           body: JSON.stringify({ url: vidmolyUrl }),
         });
 
-          console.log('🎬 Réponse API vidmoly-extract:', response.status, response.ok);
+          console.log('🎬 Réponse API vidmoly-test:', response.status, response.ok);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.error('❌ Erreur API vidmoly-extract:', errorData);
+          console.error('❌ Erreur API vidmoly-test:', errorData);
           throw new Error(errorData.error || 'Erreur lors de l\'extraction du lien VidMoly');
         }
 
         const data = await response.json();
-        console.log('🎬 Données reçues de vidmoly-extract:', data);
+        console.log('🎬 Données reçues de vidmoly-test:', data);
         
         if (!data.success || !data.m3u8Url) {
           throw new Error(data.error || 'Impossible d\'extraire le lien de streaming VidMoly');
