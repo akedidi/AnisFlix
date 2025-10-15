@@ -27,7 +27,48 @@ export default async function handler(req, res) {
 
     console.log(`🚀 Extraction du lien VidMoly pour : ${url}`);
 
-    // Utiliser axios avec headers ultra-avancés pour contourner la détection VidMoly
+    // Essayer d'abord avec un service de proxy externe
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const proxyResponse = await axios.get(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        timeout: 30000
+      });
+      
+      const html = proxyResponse.data.contents;
+      console.log(`📄 Réponse VidMoly via proxy (${html.length} caractères):`, html.substring(0, 500) + '...');
+      
+      if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
+        console.log('❌ VidMoly détecte AdBlock même via proxy externe.');
+        throw new Error('VidMoly détecte un bloqueur de publicités via proxy externe');
+      }
+      
+      const playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+      
+      if (!playerSetupMatch) {
+        throw new Error('Impossible de trouver le lien m3u8 via proxy externe');
+      }
+      
+      const brokenUrl = playerSetupMatch[1];
+      const masterM3u8Url = brokenUrl.replace(/,/g, '');
+      
+      console.log(`✅ Lien master.m3u8 trouvé via proxy externe : ${masterM3u8Url}`);
+      
+      return res.status(200).json({ 
+        success: true,
+        m3u8Url: masterM3u8Url,
+        source: 'vidmoly',
+        originalUrl: url,
+        method: 'proxy'
+      });
+      
+    } catch (proxyError) {
+      console.log('❌ Proxy externe échoué, tentative directe...');
+    }
+
+    // Fallback: Utiliser axios avec headers ultra-avancés pour contourner la détection VidMoly
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
