@@ -4,6 +4,7 @@ import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
+import { useDarkiSeries } from '@/hooks/useDarkiSeries';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -21,6 +22,7 @@ interface Source {
   isMovixDownload?: boolean;
   isVidMoly?: boolean;
   isDarkibox?: boolean;
+  isDarki?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -63,6 +65,7 @@ export default function StreamingSources({
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
+  const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
@@ -94,6 +97,19 @@ export default function StreamingSources({
         source.language === 'TrueFrench' || source.language === 'MULTI'
       );
       const hasVOSTFRSources = darkiboxData.sources.some(source => 
+        source.language === 'MULTI' // MULTI peut contenir VOSTFR
+      );
+      
+      if (language === 'VF' && hasVFSources) return true;
+      if (language === 'VOSTFR' && hasVOSTFRSources) return true;
+    }
+    
+    // Vérifier Darki (pour les séries uniquement)
+    if (type === 'tv' && darkiData && darkiData.sources) {
+      const hasVFSources = darkiData.sources.some(source => 
+        source.language === 'TrueFrench' || source.language === 'MULTI'
+      );
+      const hasVOSTFRSources = darkiData.sources.some(source => 
         source.language === 'MULTI' // MULTI peut contenir VOSTFR
       );
       
@@ -408,6 +424,30 @@ export default function StreamingSources({
     });
   }
 
+  // Ajouter les sources Darki pour les séries si disponibles
+  if (type === 'tv' && darkiData && darkiData.sources) {
+    darkiData.sources.forEach((source: any) => {
+      // Filtrer par langue sélectionnée
+      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
+      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
+      
+      if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
+        allSources.push({
+          id: source.id,
+          name: `Darki (${source.quality}) - ${source.language}`,
+          provider: 'darki',
+          url: source.m3u8,
+          type: 'm3u8' as const,
+          player: 'darki',
+          isDarki: true,
+          sourceKey: selectedLanguage,
+          quality: source.quality,
+          language: source.language
+        });
+      }
+    });
+  }
+
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
@@ -454,10 +494,20 @@ export default function StreamingSources({
         quality: source.quality,
         language: source.language
       });
+    } else if (source.isDarki) {
+      // Pour Darki, on utilise le player dédié
+      onSourceClick({
+        url: source.url,
+        type: 'm3u8' as const,
+        name: source.name,
+        isDarki: true,
+        quality: source.quality,
+        language: source.language
+      });
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -565,6 +615,11 @@ export default function StreamingSources({
                 {source.isDarkibox && (
                   <Badge variant="secondary" className="text-xs">
                     Darkibox
+                  </Badge>
+                )}
+                {source.isDarki && (
+                  <Badge variant="outline" className="text-xs">
+                    Darki
                   </Badge>
                 )}
                 {source.quality && (
