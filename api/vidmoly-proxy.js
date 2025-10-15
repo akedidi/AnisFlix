@@ -52,11 +52,15 @@ export default async function handler(req, res) {
         });
 
         // Réécrire les URLs pour qu'elles passent par notre proxy
-        const modifiedPlaylist = response.data.replace(/https?:\/\/[^\/\s]+/g, (match) => {
-          if (match.includes('.m3u8') || match.includes('.ts')) {
-            return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
-          }
-          return match;
+        let modifiedPlaylist = response.data;
+        
+        // Remplacer les URLs m3u8 et ts par notre proxy
+        modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.m3u8[^\s\n]*/g, (match) => {
+          return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+        });
+        
+        modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.ts[^\s\n]*/g, (match) => {
+          return `/api/vidmoly-proxy?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
         });
 
         res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl' });
