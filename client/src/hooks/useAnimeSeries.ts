@@ -31,7 +31,12 @@ interface AnimeSeriesData {
 
 const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> => {
   try {
-    const encodedTitle = encodeURIComponent(title);
+    // Extraire le titre de la série (enlever "Saison X Épisode Y")
+    const seriesTitle = title.split(' - ')[0];
+    console.log('🔍 fetchAnimeSeries - Titre original:', title);
+    console.log('🔍 fetchAnimeSeries - Titre extrait:', seriesTitle);
+    
+    const encodedTitle = encodeURIComponent(seriesTitle);
     const response = await axios.get(
       `https://api.movix.site/anime/search/${encodedTitle}?includeSeasons=true&includeEpisodes=true`,
       {
@@ -42,6 +47,8 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
         }
       }
     );
+
+    console.log('🔍 fetchAnimeSeries - Réponse API:', response.data);
 
     if (response.data && Array.isArray(response.data) && response.data.length > 0) {
       // L'API retourne un tableau, prendre le premier élément
