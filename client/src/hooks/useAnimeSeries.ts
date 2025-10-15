@@ -97,20 +97,29 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
       const episode = season.episodes.find(e => e.index === episodeNumber);
       
       if (episode) {
+        console.log('🔍 useAnimeVidMolyLinks - Épisode trouvé:', episode.name, episode.index);
+        console.log('🔍 useAnimeVidMolyLinks - Streaming links:', episode.streaming_links);
+        
         // Extraire les liens VidMoly des streaming_links
         episode.streaming_links?.forEach(link => {
+          console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
+          
           // Filtrer les liens VidMoly dans les players
           const vidmolyPlayers = link.players.filter((playerUrl: string) => 
             playerUrl.includes('vidmoly')
           );
           
+          console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
+          
           vidmolyPlayers.forEach((playerUrl: string) => {
             if (link.language === 'vf') {
+              console.log('✅ Ajout lien VF:', playerUrl);
               vidmolyLinks.vf.push({
                 url: playerUrl,
                 language: link.language
               });
             } else if (link.language === 'vostfr') {
+              console.log('✅ Ajout lien VOSTFR:', playerUrl);
               vidmolyLinks.vostfr.push({
                 url: playerUrl,
                 language: link.language
@@ -121,6 +130,14 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
       }
     }
   }
+
+  console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
+    vf: vidmolyLinks.vf,
+    vostfr: vidmolyLinks.vostfr,
+    vfCount: vidmolyLinks.vf.length,
+    vostfrCount: vidmolyLinks.vostfr.length,
+    hasVidMolyLinks: vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0
+  });
 
   return {
     data: vidmolyLinks,

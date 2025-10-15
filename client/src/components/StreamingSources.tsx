@@ -144,10 +144,19 @@ export default function StreamingSources({
     
     // Vérifier VidMoly anime (pour les séries anime)
     if (isAnimeSeries && animeVidMolyData) {
+      console.log(`🔍 hasSourcesForLanguage - Vérification ${language} pour anime:`, {
+        vf: animeVidMolyData.vf,
+        vostfr: animeVidMolyData.vostfr,
+        vfLength: animeVidMolyData.vf?.length,
+        vostfrLength: animeVidMolyData.vostfr?.length
+      });
+      
       if (language === 'VF' && animeVidMolyData.vf && animeVidMolyData.vf.length > 0) {
+        console.log('✅ Sources VF anime trouvées');
         return true;
       }
       if (language === 'VOSTFR' && animeVidMolyData.vostfr && animeVidMolyData.vostfr.length > 0) {
+        console.log('✅ Sources VOSTFR anime trouvées');
         return true;
       }
     }
