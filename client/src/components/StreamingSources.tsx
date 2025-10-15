@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
@@ -119,6 +119,14 @@ export default function StreamingSources({
   console.log('🔍 StreamingSources - hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
+
+  // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
+  useEffect(() => {
+    if (selectedLanguage === 'VF' && !hasSourcesForLanguage('VF') && hasSourcesForLanguage('VOSTFR')) {
+      console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
+      setSelectedLanguage('VOSTFR');
+    }
+  }, [selectedLanguage, hasSourcesForLanguage]);
 
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
   const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR') => {
