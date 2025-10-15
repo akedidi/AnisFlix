@@ -203,20 +203,6 @@ export default function VidMolyPlayer({
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-card border-b">
-        <h2 className="text-lg font-semibold truncate">{title}</h2>
-        {onClose && (
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-          >
-            ✕
-          </Button>
-        )}
-      </div>
-
       {/* Video Container */}
       <div className="relative">
         {isLoading && (
