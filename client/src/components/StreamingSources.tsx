@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
+import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -17,6 +18,7 @@ interface Source {
   isFStream?: boolean;
   isTopStream?: boolean;
   isMovixDownload?: boolean;
+  isVidMoly?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -57,6 +59,7 @@ export default function StreamingSources({
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
+  const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
@@ -70,6 +73,16 @@ export default function StreamingSources({
     // Vérifier MovixDownload (VF uniquement)
     if (language === 'VF' && movixDownloadData && movixDownloadData.sources && movixDownloadData.sources.length > 0) {
       return true;
+    }
+    
+    // Vérifier VidMoly
+    if (vidmolyData) {
+      if (language === 'VF' && vidmolyData.vf && vidmolyData.vf.length > 0) {
+        return true;
+      }
+      if (language === 'VOSTFR' && vidmolyData.vostfr && vidmolyData.vostfr.length > 0) {
+        return true;
+      }
     }
     
     // Vérifier FStream
@@ -318,8 +331,44 @@ export default function StreamingSources({
     }
   }
 
+  // Ajouter les sources VidMoly si disponibles
+  if (vidmolyData && hasVidMolyLinks) {
+    let vidmolyCounter = 1;
+    
+    if (selectedLanguage === 'VF' && vidmolyData.vf) {
+      vidmolyData.vf.forEach((player: any) => {
+        allSources.push({
+          id: `vidmoly-vf-${vidmolyCounter}`,
+          name: `VidMoly${vidmolyCounter} (VF)`,
+          provider: 'vidmoly',
+          url: player.url,
+          type: 'embed' as const,
+          player: 'vidmoly',
+          isVidMoly: true,
+          sourceKey: 'VF'
+        });
+        vidmolyCounter++;
+      });
+    }
+    
+    if (selectedLanguage === 'VOSTFR' && vidmolyData.vostfr) {
+      vidmolyData.vostfr.forEach((player: any) => {
+        allSources.push({
+          id: `vidmoly-vostfr-${vidmolyCounter}`,
+          name: `VidMoly${vidmolyCounter} (VOSTFR)`,
+          provider: 'vidmoly',
+          url: player.url,
+          type: 'embed' as const,
+          player: 'vidmoly',
+          isVidMoly: true,
+          sourceKey: 'VOSTFR'
+        });
+        vidmolyCounter++;
+      });
+    }
+  }
 
-  // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream et FStream
+  // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream et VidMoly
 
 
   const handleSourceClick = (source: any) => {
@@ -347,10 +396,18 @@ export default function StreamingSources({
         name: source.name,
         isMovixDownload: true
       });
+    } else if (source.isVidMoly) {
+      // Pour VidMoly, on utilise le player dédié
+      onSourceClick({
+        url: source.url,
+        type: 'embed' as const,
+        name: source.name,
+        isVidMoly: true
+      });
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -448,6 +505,11 @@ export default function StreamingSources({
                 {source.isMovixDownload && (
                   <Badge variant="default" className="text-xs">
                     Darkibox
+                  </Badge>
+                )}
+                {source.isVidMoly && (
+                  <Badge variant="destructive" className="text-xs">
+                    VidMoly
                   </Badge>
                 )}
                 {source.quality && (

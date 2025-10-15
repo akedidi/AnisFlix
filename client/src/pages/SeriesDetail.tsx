@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import VidMolyPlayer from "@/components/VidMolyPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
@@ -24,7 +25,7 @@ export default function SeriesDetail() {
   const [, setLocation] = useLocation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const seriesId = parseInt(id || "0");
@@ -341,17 +342,25 @@ export default function SeriesDetail() {
                                       <X className="w-4 h-4" />
                                     </Button>
                                   </div>
-                                  <VideoPlayer
-                                    src={selectedSource.url}
-                                    type={selectedSource.type}
-                                    title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
-                                    mediaId={series.id}
-                                    mediaType="tv"
-                                    posterPath={series.poster_path}
-                                    backdropPath={series.backdrop_path}
-                                    seasonNumber={selectedSeasonNumber}
-                                    episodeNumber={selectedEpisode || undefined}
-                                  />
+                                  {selectedSource.isVidMoly ? (
+                                    <VidMolyPlayer
+                                      vidmolyUrl={selectedSource.url}
+                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                      posterPath={series.poster_path}
+                                    />
+                                  ) : (
+                                    <VideoPlayer
+                                      src={selectedSource.url}
+                                      type={selectedSource.type}
+                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                      mediaId={series.id}
+                                      mediaType="tv"
+                                      posterPath={series.poster_path}
+                                      backdropPath={series.backdrop_path}
+                                      seasonNumber={selectedSeasonNumber}
+                                      episodeNumber={selectedEpisode || undefined}
+                                    />
+                                  )}
                                 </div>
                               )}
                             </div>

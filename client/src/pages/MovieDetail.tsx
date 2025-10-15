@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import VidMolyPlayer from "@/components/VidMolyPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
 import BottomNav from "@/components/BottomNav";
@@ -22,7 +23,7 @@ export default function MovieDetail() {
   const movieId = parseInt(id || "0");
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4"; name: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -270,15 +271,23 @@ export default function MovieDetail() {
                       <X className="w-5 h-5" />
                     </Button>
                   </div>
-                  <VideoPlayer
-                    src={selectedSource.url}
-                    type={selectedSource.type}
-                    title={movie?.title || "Vidéo"}
-                    mediaId={movie.id}
-                    mediaType="movie"
-                    posterPath={movie.poster_path}
-                    backdropPath={movie.backdrop_path}
-                  />
+                  {selectedSource.isVidMoly ? (
+                    <VidMolyPlayer
+                      vidmolyUrl={selectedSource.url}
+                      title={movie?.title || "Vidéo"}
+                      posterPath={movie.poster_path}
+                    />
+                  ) : (
+                    <VideoPlayer
+                      src={selectedSource.url}
+                      type={selectedSource.type}
+                      title={movie?.title || "Vidéo"}
+                      mediaId={movie.id}
+                      mediaType="movie"
+                      posterPath={movie.poster_path}
+                      backdropPath={movie.backdrop_path}
+                    />
+                  )}
                 </div>
               )}
             </div>
