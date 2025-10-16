@@ -88,6 +88,8 @@ export default function MovieDetail() {
         try {
           console.log('🎬 Extraction VidMoly pour:', source.url);
           console.log('🔍 Source complète:', source);
+          console.log('🔍 Type de source.url:', typeof source.url);
+          console.log('🔍 Longueur de source.url:', source.url.length);
           
           const response = await fetch('/api/vidmoly-test', {
             method: 'POST',
