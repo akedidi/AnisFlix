@@ -91,13 +91,15 @@ export default function SeriesDetail() {
     isFStream?: boolean;
     isMovixDownload?: boolean;
     isDarki?: boolean;
+    isVidMoly?: boolean;
     quality?: string;
     language?: string;
   }) => {
     if (!series || !selectedEpisode) return;
     
     // Si l'URL est déjà fournie (TopStream, MovixDownload, Darki ou autres sources directes), on l'utilise directement
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload || source.isDarki)) {
+    // EXCEPTION: VidMoly doit toujours passer par l'API d'extraction
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload || source.isDarki) && !source.isVidMoly) {
       setSelectedSource({
         url: source.url,
         type: source.isMovixDownload || source.isDarki ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
@@ -106,6 +108,48 @@ export default function SeriesDetail() {
         quality: source.quality,
         language: source.language
       });
+      return;
+    }
+    
+    // Pour VidMoly, toujours passer par l'API d'extraction (même si c'est un embed)
+    if (source.isVidMoly) {
+      setIsLoadingSource(true);
+      try {
+        console.log('🎬 Extraction VidMoly pour:', source.url);
+        
+        const response = await fetch('/api/vidmoly-test', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: source.url }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de l\'extraction VidMoly');
+        }
+
+        const data = await response.json();
+        
+        if (!data.success || !data.m3u8Url) {
+          throw new Error('Impossible d\'extraire le lien VidMoly');
+        }
+
+        setSelectedSource({
+          url: data.m3u8Url,
+          type: "m3u8",
+          name: source.name,
+          isVidMoly: true,
+          vidmolyMethod: data.method,
+          quality: source.quality,
+          language: source.language
+        });
+      } catch (error) {
+        console.error("Erreur VidMoly:", error);
+        alert(`Erreur VidMoly: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+      } finally {
+        setIsLoadingSource(false);
+      }
       return;
     }
     
