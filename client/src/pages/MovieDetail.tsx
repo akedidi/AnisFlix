@@ -24,6 +24,11 @@ export default function MovieDetail() {
   const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
+  
+  // Debug: tracer les changements d'état isLoadingSource
+  useEffect(() => {
+    console.log('🔍 isLoadingSource changé:', isLoadingSource);
+  }, [isLoadingSource]);
   const [searchQuery, setSearchQuery] = useState("");
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -69,15 +74,20 @@ export default function MovieDetail() {
   }) => {
     if (!movie) return;
     
+    console.log('🔍 handleSourceClick appelé avec source:', source);
+    console.log('🔍 isLoadingSource au début:', isLoadingSource);
+    
     // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
     // EXCEPTION: VidMoly doit toujours passer par l'API d'extraction
     if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload) && !source.isVidMoly) {
+      console.log('🔍 Source directe détectée, utilisation directe');
       setSelectedSource({
         url: source.url,
         type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
         name: source.name,
         isVidMoly: source.isVidMoly
       });
+      console.log('🔍 setIsLoadingSource(false) pour source directe');
       setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
@@ -91,6 +101,7 @@ export default function MovieDetail() {
           name: source.name,
           isVidMoly: true
         });
+        console.log('🔍 setIsLoadingSource(false) pour VidMoly');
         setIsLoadingSource(false);
         return;
       }
