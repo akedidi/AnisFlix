@@ -16,12 +16,14 @@ export default async function handler(req, res) {
 
   try {
     const { url } = req.body;
+    
+    console.log(`🚀 Test VidMoly - URL reçue:`, url);
+    console.log(`🚀 Test VidMoly - Type:`, typeof url);
 
     if (!url || typeof url !== 'string') {
+      console.log(`❌ URL invalide:`, { url, type: typeof url });
       return res.status(400).json({ error: 'URL VidMoly requise' });
     }
-
-    console.log(`🚀 Test VidMoly pour : ${url}`);
 
     // Remplacer vidmoly.to par vidmoly.net pour une meilleure compatibilité
     const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
@@ -29,7 +31,8 @@ export default async function handler(req, res) {
 
     // Vérifier si l'URL VidMoly est valide
     if (!normalizedUrl.includes('vidmoly')) {
-      throw new Error('URL VidMoly invalide');
+      console.log(`❌ URL ne contient pas 'vidmoly':`, normalizedUrl);
+      throw new Error(`URL VidMoly invalide: ${normalizedUrl}`);
     }
 
     console.log(`🔍 Tentative d'extraction du vrai lien VidMoly pour: ${normalizedUrl}`);
@@ -44,7 +47,8 @@ export default async function handler(req, res) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         },
-        timeout: 15000
+        timeout: 10000, // Réduire le timeout
+        maxRedirects: 3
       });
       
       const html = proxyResponse.data.contents;
@@ -81,6 +85,12 @@ export default async function handler(req, res) {
       
     } catch (extractionError) {
       console.log(`❌ Extraction échouée: ${extractionError.message}`);
+      console.log(`❌ Détails de l'erreur:`, extractionError);
+      
+      // Si c'est un timeout, essayer directement le fallback
+      if (extractionError.code === 'ECONNABORTED' || extractionError.message.includes('timeout')) {
+        console.log(`⏰ Timeout détecté, utilisation directe du fallback`);
+      }
     }
 
     // Fallback: Utiliser un lien de test si l'extraction échoue
@@ -227,10 +237,26 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error(`❌ Erreur lors du test VidMoly : ${error.message}`);
-    return res.status(500).json({ 
-      error: 'Erreur serveur lors du test VidMoly',
-      details: error.message 
+    console.error(`❌ Erreur lors du test VidMoly :`, error);
+    console.error(`❌ Stack trace:`, error.stack);
+    
+    // Déterminer le code d'erreur approprié
+    let statusCode = 500;
+    let errorMessage = 'Erreur serveur lors du test VidMoly';
+    
+    if (error.message.includes('URL VidMoly invalide')) {
+      statusCode = 400;
+      errorMessage = error.message;
+    } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      statusCode = 408;
+      errorMessage = 'Timeout lors de l\'extraction VidMoly';
+    }
+    
+    return res.status(statusCode).json({ 
+      success: false,
+      error: errorMessage,
+      details: error.message,
+      originalUrl: req.body?.url || 'unknown'
     });
   }
 }
