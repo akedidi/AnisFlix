@@ -58,9 +58,8 @@ export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => 
     queryKey: ['wiflix', type, id, season],
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
-    staleTime: 1 * 60 * 1000, // 1 minute (réduit pour éviter le cache)
-    cacheTime: 2 * 60 * 1000, // 2 minutes (réduit pour éviter le cache)
-    refetchOnWindowFocus: true, // Refetch quand on revient sur la page
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 
