@@ -28,6 +28,14 @@ export default function MovieDetail() {
   // Debug: log de l'état initial
   console.log('🔍 État initial isLoadingSource:', isLoadingSource);
   
+  // Corriger l'état initial si il est à true
+  useEffect(() => {
+    if (isLoadingSource && !selectedSource) {
+      console.log('🔧 Correction: isLoadingSource était à true au démarrage, remise à false');
+      setIsLoadingSource(false);
+    }
+  }, [isLoadingSource, selectedSource]);
+  
   // Debug: tracer les changements d'état isLoadingSource
   useEffect(() => {
     console.log('🔍 isLoadingSource changé:', isLoadingSource);
