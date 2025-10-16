@@ -13,7 +13,6 @@ import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
@@ -418,8 +417,6 @@ export default function SeriesDetail() {
         )}
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );

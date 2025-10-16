@@ -10,7 +10,6 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import SearchBar from "@/components/SearchBar";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
@@ -309,8 +308,6 @@ export default function MovieDetail() {
 
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );

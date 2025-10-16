@@ -305,8 +305,6 @@ export default function NetflixContent() {
         )}
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );

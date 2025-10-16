@@ -8,7 +8,6 @@ import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { 
@@ -447,8 +446,6 @@ export default function ProviderDetail() {
 
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );

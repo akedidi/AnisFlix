@@ -7,7 +7,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -127,7 +126,6 @@ export default function AnimeMoviesPopular() {
         </div>
       </div>
       
-      <BottomNav />
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Tv } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
@@ -286,8 +285,6 @@ export default function TVChannels() {
         </div>
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );

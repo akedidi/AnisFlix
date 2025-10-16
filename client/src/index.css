@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Empêcher le bounce horizontal et le débordement */
+html, body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Empêcher le bounce sur tous les éléments */
+* {
+  overscroll-behavior-x: none;
+}
+
 /* Animations personnalisées pour les transitions de page */
 @keyframes pageEnter {
   from {

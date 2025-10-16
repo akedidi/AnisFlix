@@ -236,7 +236,7 @@ export default function StreamingSources({
   if (topStreamData && topStreamData.stream && topStreamData.stream.url && selectedLanguage === 'VF') {
     allSources.push({
       id: 'topstream',
-      name: `TopStream (${topStreamData.stream.label})`,
+      name: topStreamData.stream.label,
       provider: 'topstream',
       url: topStreamData.stream.url,
       type: 'mp4' as const,
@@ -300,7 +300,7 @@ export default function StreamingSources({
 
         allSources.push({
           id: `movix-download-${quality.toLowerCase()}-${index}`,
-          name: `Darkibox ${qualityLabel} (${languageLabel})`,
+          name: `${qualityLabel} (${languageLabel})`,
           provider: 'darkibox',
           url: modifiedUrl,
           type: 'm3u8' as const,
@@ -548,7 +548,7 @@ export default function StreamingSources({
       if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
         allSources.push({
           id: source.id,
-          name: `Darki (${source.quality}) - ${source.language}`,
+          name: `${source.quality} - ${source.language}`,
           provider: 'darki',
           url: source.m3u8,
           type: 'm3u8' as const,
@@ -562,29 +562,6 @@ export default function StreamingSources({
     });
   }
 
-  // Ajouter les sources Darki pour les séries si disponibles
-  if (type === 'tv' && darkiData && darkiData.sources) {
-    darkiData.sources.forEach((source: any) => {
-      // Filtrer par langue sélectionnée
-      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
-      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
-      
-      if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
-        allSources.push({
-          id: source.id,
-          name: `Darki (${source.quality}) - ${source.language}`,
-          provider: 'darki',
-          url: source.m3u8,
-          type: 'm3u8' as const,
-          player: 'darki',
-          isDarki: true,
-          sourceKey: selectedLanguage,
-          quality: source.quality,
-          language: source.language
-        });
-      }
-    });
-  }
 
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 

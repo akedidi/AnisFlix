@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Settings as SettingsIcon, Download } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import DownloadItem from "@/components/DownloadItem";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
@@ -206,8 +205,6 @@ export default function Settings() {
         </Tabs>
       </div>
       
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
     </div>
   );
