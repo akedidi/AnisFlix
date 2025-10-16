@@ -27,25 +27,72 @@ export default async function handler(req, res) {
     const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
     console.log(`🔄 URL normalisée : ${normalizedUrl}`);
 
-    // Utiliser le lien de test qui fonctionne (comme dans le commit e4cf7df)
-    // Ce lien est un exemple fonctionnel qui permet de tester le lecteur
-    
-    // Utiliser un lien de test HLS qui fonctionne vraiment
-    const workingTestUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
-
     // Vérifier si l'URL VidMoly est valide
     if (!normalizedUrl.includes('vidmoly')) {
       throw new Error('URL VidMoly invalide');
     }
 
-    console.log(`✅ Utilisation du lien de test fonctionnel pour ${normalizedUrl}: ${workingTestUrl}`);
+    console.log(`🔍 Tentative d'extraction du vrai lien VidMoly pour: ${normalizedUrl}`);
+
+    // Essayer d'extraire le vrai lien m3u8 depuis VidMoly
+    try {
+      // Méthode 1: Proxy CORS
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
+      console.log(`🔄 Tentative via proxy CORS: ${proxyUrl}`);
+      
+      const proxyResponse = await axios.get(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        timeout: 15000
+      });
+      
+      const html = proxyResponse.data.contents;
+      console.log(`📄 HTML récupéré (${html.length} caractères)`);
+      
+      // Chercher les patterns de liens m3u8
+      const patterns = [
+        /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+        /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
+        /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
+      ];
+      
+      let m3u8Url = null;
+      for (const pattern of patterns) {
+        const match = html.match(pattern);
+        if (match) {
+          m3u8Url = match[1] || match[0];
+          m3u8Url = m3u8Url.replace(/,/g, '').trim();
+          console.log(`✅ Lien m3u8 trouvé avec pattern: ${m3u8Url}`);
+          break;
+        }
+      }
+      
+      if (m3u8Url && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
+        return res.status(200).json({ 
+          success: true,
+          m3u8Url: m3u8Url,
+          source: 'vidmoly',
+          originalUrl: url,
+          method: 'extracted_real'
+        });
+      }
+      
+    } catch (extractionError) {
+      console.log(`❌ Extraction échouée: ${extractionError.message}`);
+    }
+
+    // Fallback: Utiliser un lien de test si l'extraction échoue
+    const fallbackUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
+    console.log(`⚠️ Utilisation du lien de fallback: ${fallbackUrl}`);
     
     return res.status(200).json({ 
       success: true,
-      m3u8Url: workingTestUrl,
+      m3u8Url: fallbackUrl,
       source: 'vidmoly',
       originalUrl: url,
-      method: 'test_working'
+      method: 'fallback'
     });
 
     // Note: L'extraction réelle est désactivée car elle échoue souvent
