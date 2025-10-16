@@ -569,7 +569,10 @@ export default function StreamingSources({
 
 
   const handleSourceClick = (source: any) => {
-    console.log('🔍 handleSourceClick appelé avec source:', source);
+    console.log('🔍 StreamingSources handleSourceClick appelé avec source:', source);
+    console.log('🔍 Source URL complète:', source.url);
+    console.log('🔍 Source type:', source.type);
+    console.log('🔍 Source isVidMoly:', source.isVidMoly);
     
     if (source.isTopStream) {
       console.log('✅ Source TopStream détectée');

@@ -55,7 +55,7 @@ const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): P
 
 export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => {
   return useQuery({
-    queryKey: ['wiflix', type, id, season],
+    queryKey: ['wiflix', type, id, season, 'debug-cache-clear'], // Timestamp pour vider le cache
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
     staleTime: 0, // Pas de cache pour debug
