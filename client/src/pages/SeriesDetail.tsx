@@ -108,6 +108,7 @@ export default function SeriesDetail() {
         quality: source.quality,
         language: source.language
       });
+      setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
     

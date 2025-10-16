@@ -78,6 +78,7 @@ export default function MovieDetail() {
         name: source.name,
         isVidMoly: source.isVidMoly
       });
+      setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
     
