@@ -111,27 +111,11 @@ export default function SeriesDetail() {
       return;
     }
     
-      // Pour VidMoly, vérifier si c'est déjà un lien m3u8 ou un embed
+      // Pour VidMoly, toujours passer par l'API d'extraction
       if (source.isVidMoly) {
-        // Si l'URL contient déjà .m3u8 ou .urlset, c'est déjà un lien extrait
-        if (source.url.includes('.m3u8') || source.url.includes('.urlset')) {
-          console.log('🎬 Lien VidMoly déjà extrait, utilisation directe:', source.url);
-          setSelectedSource({
-            url: source.url,
-            type: "m3u8",
-            name: source.name,
-            isVidMoly: true,
-            vidmolyMethod: 'already_extracted',
-            quality: source.quality,
-            language: source.language
-          });
-          return;
-        }
-        
-        // Sinon, c'est un embed VidMoly, on doit l'extraire
         setIsLoadingSource(true);
         try {
-          console.log('🎬 Extraction VidMoly pour embed:', source.url);
+          console.log('🎬 Extraction VidMoly pour:', source.url);
           
           const response = await fetch('/api/vidmoly-test', {
             method: 'POST',
