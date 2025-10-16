@@ -66,10 +66,18 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
-        // Utiliser directement le lien m3u8 sans proxy pour les liens de test
-        const finalUrl = data.m3u8Url;
-        
-        console.log('📺 URL finale VidMoly:', finalUrl);
+        // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
+        // ou directement pour les liens de démonstration
+        let finalUrl;
+        if (data.method === 'extracted_real') {
+          // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
+          finalUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+          console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
+        } else {
+          // Pour les liens de fallback/démo, utiliser directement
+          finalUrl = data.m3u8Url;
+          console.log('📺 Utilisation directe du lien de démo:', finalUrl);
+        }
 
         // Configuration HLS simple comme VideoPlayer
         if (Hls.isSupported()) {
