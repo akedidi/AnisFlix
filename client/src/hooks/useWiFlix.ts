@@ -58,8 +58,9 @@ export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => 
     queryKey: ['wiflix', type, id, season],
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 1 * 60 * 1000, // 1 minute (réduit pour éviter le cache)
+    cacheTime: 2 * 60 * 1000, // 2 minutes (réduit pour éviter le cache)
+    refetchOnWindowFocus: true, // Refetch quand on revient sur la page
   });
 };
 
@@ -73,33 +74,33 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
   };
 
   if (wiflixData?.players) {
-    console.log('🔍 WiFlix data reçue:', wiflixData);
+    console.log('🔍 WiFlix data reçue pour', type, id, ':', wiflixData);
     
     // Filtrer les liens VidMoly
     if (wiflixData.players.vf) {
-      console.log('🔍 Players VF disponibles:', wiflixData.players.vf.map(p => p.name));
+      console.log('🔍 Players VF disponibles pour', type, id, ':', wiflixData.players.vf.map(p => p.name));
       vidmolyLinks.vf = wiflixData.players.vf.filter(player => {
         const isVidMoly = player.name === 'vidmoly.net';
         if (isVidMoly) {
-          console.log('✅ Lien VidMoly VF trouvé:', player.url);
+          console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
         }
         return isVidMoly;
       });
     }
     
     if (wiflixData.players.vostfr) {
-      console.log('🔍 Players VOSTFR disponibles:', wiflixData.players.vostfr.map(p => p.name));
+      console.log('🔍 Players VOSTFR disponibles pour', type, id, ':', wiflixData.players.vostfr.map(p => p.name));
       vidmolyLinks.vostfr = wiflixData.players.vostfr.filter(player => {
         const isVidMoly = player.name === 'vidmoly.net';
         if (isVidMoly) {
-          console.log('✅ Lien VidMoly VOSTFR trouvé:', player.url);
+          console.log('✅ Lien VidMoly VOSTFR trouvé pour', type, id, ':', player.url);
         }
         return isVidMoly;
       });
     }
   }
 
-  console.log('🔍 VidMoly links finaux:', vidmolyLinks);
+  console.log('🔍 VidMoly links finaux pour', type, id, ':', vidmolyLinks);
 
   return {
     data: vidmolyLinks,

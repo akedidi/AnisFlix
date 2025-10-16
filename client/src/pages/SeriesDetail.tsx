@@ -37,6 +37,14 @@ export default function SeriesDetail() {
     setSelectedSource(null);
   }, [selectedEpisode, selectedSeasonNumber]);
 
+  // Nettoyer l'état quand la série change
+  useEffect(() => {
+    setSelectedSource(null);
+    setIsLoadingSource(false);
+    setSelectedEpisode(null);
+    setSelectedSeasonNumber(1);
+  }, [seriesId]);
+
   // Fermer la liste des épisodes quand on change de saison
   useEffect(() => {
     setSelectedEpisode(null);

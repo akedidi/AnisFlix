@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,12 @@ export default function MovieDetail() {
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for movie:', movie?.title, movixLinks);
   }
+
+  // Nettoyer l'état selectedSource quand le film change
+  useEffect(() => {
+    setSelectedSource(null);
+    setIsLoadingSource(false);
+  }, [movieId]);
 
   // Find trailer from videos
   const trailer = videos?.results?.find(

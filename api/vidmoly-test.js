@@ -27,17 +27,12 @@ export default async function handler(req, res) {
     const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
     console.log(`🔄 URL normalisée : ${normalizedUrl}`);
 
-    // Lien m3u8 générique qui fonctionne (temporaire pour contourner le blocage VidMoly)
-    const genericM3u8Url = 'https://box-1102-t.vmeas.cloud/hls/xqx2pxnzzzokjiqbtgisd6qmvcyphadnb2tywbp4bj36pfsnanpurt7mpaea.urlset/master.m3u8';
-    console.log(`✅ Lien m3u8 générique pour contourner le blocage VidMoly : ${genericM3u8Url}`);
-    
-    return res.status(200).json({ 
-      success: true,
-      m3u8Url: genericM3u8Url,
-      source: 'vidmoly',
-      originalUrl: url,
-      method: 'generic'
-    });
+    // Note: Le lien générique a été supprimé pour forcer l'extraction des vrais liens VidMoly
+
+    // Vérifier si l'URL VidMoly est valide
+    if (!normalizedUrl.includes('vidmoly')) {
+      throw new Error('URL VidMoly invalide');
+    }
 
     // Essayer d'abord avec un service de proxy externe
     try {
