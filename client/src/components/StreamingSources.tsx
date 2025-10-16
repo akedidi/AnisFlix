@@ -453,6 +453,7 @@ export default function StreamingSources({
     if (selectedLanguage === 'VF' && vidmolyData.vf) {
       console.log('🔍 Ajout des sources VidMoly VF:', vidmolyData.vf);
       vidmolyData.vf.forEach((player: any) => {
+        console.log('🔍 Player VidMoly VF original:', player);
         const source = {
           id: `vidmoly-vf-${vidmolyCounter}`,
           name: `VidMoly${vidmolyCounter} (VF)`,
