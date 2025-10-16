@@ -111,47 +111,63 @@ export default function SeriesDetail() {
       return;
     }
     
-    // Pour VidMoly, toujours passer par l'API d'extraction (même si c'est un embed)
-    if (source.isVidMoly) {
-      setIsLoadingSource(true);
-      try {
-        console.log('🎬 Extraction VidMoly pour:', source.url);
-        
-        const response = await fetch('/api/vidmoly-test', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url: source.url }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erreur lors de l\'extraction VidMoly');
+      // Pour VidMoly, vérifier si c'est déjà un lien m3u8 ou un embed
+      if (source.isVidMoly) {
+        // Si l'URL contient déjà .m3u8 ou .urlset, c'est déjà un lien extrait
+        if (source.url.includes('.m3u8') || source.url.includes('.urlset')) {
+          console.log('🎬 Lien VidMoly déjà extrait, utilisation directe:', source.url);
+          setSelectedSource({
+            url: source.url,
+            type: "m3u8",
+            name: source.name,
+            isVidMoly: true,
+            vidmolyMethod: 'already_extracted',
+            quality: source.quality,
+            language: source.language
+          });
+          return;
         }
-
-        const data = await response.json();
         
-        if (!data.success || !data.m3u8Url) {
-          throw new Error('Impossible d\'extraire le lien VidMoly');
+        // Sinon, c'est un embed VidMoly, on doit l'extraire
+        setIsLoadingSource(true);
+        try {
+          console.log('🎬 Extraction VidMoly pour embed:', source.url);
+          
+          const response = await fetch('/api/vidmoly-test', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: source.url }),
+          });
+      
+          if (!response.ok) {
+            throw new Error('Erreur lors de l\'extraction VidMoly');
+          }
+      
+          const data = await response.json();
+          
+          if (!data.success || !data.m3u8Url) {
+            throw new Error('Impossible d\'extraire le lien VidMoly');
+          }
+      
+          setSelectedSource({
+            url: data.m3u8Url,
+            type: "m3u8",
+            name: source.name,
+            isVidMoly: true,
+            vidmolyMethod: data.method,
+            quality: source.quality,
+            language: source.language
+          });
+        } catch (error) {
+          console.error("Erreur VidMoly:", error);
+          alert(`Erreur VidMoly: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        } finally {
+          setIsLoadingSource(false);
         }
-
-        setSelectedSource({
-          url: data.m3u8Url,
-          type: "m3u8",
-          name: source.name,
-          isVidMoly: true,
-          vidmolyMethod: data.method,
-          quality: source.quality,
-          language: source.language
-        });
-      } catch (error) {
-        console.error("Erreur VidMoly:", error);
-        alert(`Erreur VidMoly: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-      } finally {
-        setIsLoadingSource(false);
+        return;
       }
-      return;
-    }
     
     // Pour Vidzy (via FStream), on utilise le scraper
     if (source.url && source.type === "m3u8" && source.isFStream) {
