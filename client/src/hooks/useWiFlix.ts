@@ -55,11 +55,11 @@ const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): P
 
 export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => {
   return useQuery({
-    queryKey: ['wiflix', type, id, season],
+    queryKey: ['wiflix', type, id, season, Date.now()], // Ajouter timestamp pour éviter le cache
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Pas de cache pour debug
+    cacheTime: 0, // Pas de cache pour debug
   });
 };
 
@@ -79,11 +79,12 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
     if (wiflixData.players.vf) {
       console.log('🔍 Players VF disponibles pour', type, id, ':', wiflixData.players.vf.map(p => p.name));
       vidmolyLinks.vf = wiflixData.players.vf.filter(player => {
-        const isVidMoly = player.name === 'vidmoly.net';
-        if (isVidMoly) {
-          console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
-        }
-        return isVidMoly;
+          const isVidMoly = player.name === 'vidmoly.net';
+          if (isVidMoly) {
+            console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
+            console.log('🔍 Player complet VidMoly VF:', player);
+          }
+          return isVidMoly;
       });
     }
     
