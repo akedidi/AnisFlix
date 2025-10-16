@@ -112,45 +112,18 @@ export default function SeriesDetail() {
       return;
     }
     
-      // Pour VidMoly, toujours passer par l'API d'extraction
+      // Pour VidMoly, passer le lien embed original au VidMolyPlayer
       if (source.isVidMoly) {
-        setIsLoadingSource(true);
-        try {
-          console.log('🎬 Extraction VidMoly pour:', source.url);
-          
-          const response = await fetch('/api/vidmoly-test', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: source.url }),
-          });
-      
-          if (!response.ok) {
-            throw new Error('Erreur lors de l\'extraction VidMoly');
-          }
-      
-          const data = await response.json();
-          
-          if (!data.success || !data.m3u8Url) {
-            throw new Error('Impossible d\'extraire le lien VidMoly');
-          }
-      
-          setSelectedSource({
-            url: data.m3u8Url,
-            type: "m3u8",
-            name: source.name,
-            isVidMoly: true,
-            vidmolyMethod: data.method,
-            quality: source.quality,
-            language: source.language
-          });
-        } catch (error) {
-          console.error("Erreur VidMoly:", error);
-          alert(`Erreur VidMoly: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-        } finally {
-          setIsLoadingSource(false);
-        }
+        console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
+        setSelectedSource({
+          url: source.url, // Lien embed original
+          type: "embed",
+          name: source.name,
+          isVidMoly: true,
+          quality: source.quality,
+          language: source.language
+        });
+        setIsLoadingSource(false);
         return;
       }
     
