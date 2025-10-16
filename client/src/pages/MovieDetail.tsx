@@ -25,9 +25,15 @@ export default function MovieDetail() {
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   
+  // Debug: log de l'état initial
+  console.log('🔍 État initial isLoadingSource:', isLoadingSource);
+  
   // Debug: tracer les changements d'état isLoadingSource
   useEffect(() => {
     console.log('🔍 isLoadingSource changé:', isLoadingSource);
+    if (isLoadingSource) {
+      console.log('🔍 isLoadingSource mis à true - stack trace:', new Error().stack);
+    }
   }, [isLoadingSource]);
   const [searchQuery, setSearchQuery] = useState("");
   const { isFavorite, toggleFavorite } = useFavorites();
