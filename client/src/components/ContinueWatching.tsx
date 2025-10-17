@@ -23,6 +23,25 @@ export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProp
     setProgress(watchProgress.slice(0, maxItems));
   }, [maxItems]);
 
+  // Écouter les changements dans le localStorage pour mettre à jour automatiquement
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const watchProgress = getWatchProgress();
+      setProgress(watchProgress.slice(0, maxItems));
+    };
+
+    // Écouter les changements de localStorage
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Écouter les événements personnalisés pour les changements dans le même onglet
+    window.addEventListener('watchProgressUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('watchProgressUpdated', handleStorageChange);
+    };
+  }, [maxItems]);
+
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
       const container = scrollRef.current;
