@@ -8,6 +8,7 @@ import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 // Type for transformed media data
@@ -161,6 +162,9 @@ export default function NetflixContent() {
 
       {/* Catégories Netflix */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        {/* Continuer à regarder */}
+        <ContinueWatching maxItems={8} />
+        
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">Films Action Netflix</h2>
           {actionMovies.length > 0 && (

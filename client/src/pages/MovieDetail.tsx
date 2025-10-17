@@ -324,6 +324,9 @@ export default function MovieDetail() {
                       vidmolyUrl={selectedSource.url}
                       title={movie?.title || "Vidéo"}
                       posterPath={movie.poster_path}
+                      mediaId={movie?.id}
+                      mediaType="movie"
+                      backdropPath={movie?.backdrop_path}
                     />
                   ) : (
                     <VideoPlayer

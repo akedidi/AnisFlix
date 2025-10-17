@@ -3,19 +3,31 @@ import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { saveWatchProgress } from "@/lib/watchProgress";
+import type { MediaType } from "@shared/schema";
 
 interface VidMolyPlayerProps {
   vidmolyUrl: string;
   title?: string;
   onClose?: () => void;
   posterPath?: string | null;
+  mediaId?: number;
+  mediaType?: MediaType;
+  backdropPath?: string | null;
+  seasonNumber?: number;
+  episodeNumber?: number;
 }
 
 export default function VidMolyPlayer({ 
   vidmolyUrl, 
   title = "Vidéo VidMoly",
   onClose,
-  posterPath
+  posterPath,
+  mediaId,
+  mediaType,
+  backdropPath,
+  seasonNumber,
+  episodeNumber
 }: VidMolyPlayerProps) {
   const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,6 +39,37 @@ export default function VidMolyPlayer({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const lastSaveTimeRef = useRef<number>(0);
+
+  // Fonction pour sauvegarder la progression
+  const saveProgress = () => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+    
+    const video = videoRef.current;
+    const now = Date.now();
+    
+    // Sauvegarder au maximum toutes les 5 secondes
+    if (now - lastSaveTimeRef.current < 5000) return;
+    
+    if (video.duration > 0 && video.currentTime > 0) {
+      const progress = Math.round((video.currentTime / video.duration) * 100);
+      
+      saveWatchProgress({
+        mediaId,
+        mediaType,
+        title: title || "Vidéo VidMoly",
+        posterPath: posterPath || null,
+        backdropPath: backdropPath || null,
+        progress,
+        currentTime: video.currentTime,
+        duration: video.duration,
+        seasonNumber,
+        episodeNumber
+      });
+      
+      lastSaveTimeRef.current = now;
+    }
+  };
 
   useEffect(() => {
     if (!videoRef.current || !vidmolyUrl) return;
@@ -139,6 +182,9 @@ export default function VidMolyPlayer({
         setCurrentTime(video.currentTime);
         setDuration(video.duration);
         setProgress((video.currentTime / video.duration) * 100);
+        
+        // Sauvegarder la progression
+        saveProgress();
       }
     };
 

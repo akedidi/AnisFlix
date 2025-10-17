@@ -396,6 +396,11 @@ export default function SeriesDetail() {
                                       vidmolyUrl={selectedSource.url}
                                       title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
                                       posterPath={series.poster_path}
+                                      mediaId={series?.id}
+                                      mediaType="tv"
+                                      backdropPath={series?.backdrop_path}
+                                      seasonNumber={selectedSeasonNumber}
+                                      episodeNumber={selectedEpisode}
                                     />
                                   ) : selectedSource.isDarki ? (
                                     <DarkiPlayer
