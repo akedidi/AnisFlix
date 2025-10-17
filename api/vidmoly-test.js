@@ -1,5 +1,4 @@
 import axios from 'axios';
-import puppeteer from 'puppeteer';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -36,63 +35,104 @@ export default async function handler(req, res) {
       throw new Error(`URL VidMoly invalide: ${normalizedUrl}`);
     }
 
-    console.log(`🔍 Tentative d'extraction du vrai lien VidMoly avec Puppeteer pour: ${normalizedUrl}`);
+    console.log(`🔍 Tentative d'extraction du vrai lien VidMoly pour: ${normalizedUrl}`);
 
-    // Essayer d'extraire le vrai lien m3u8 avec Puppeteer
-    let browser;
+    // Essayer d'extraire le vrai lien m3u8 depuis VidMoly
     try {
-      const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+      // Méthode 1: Proxy CORS
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
+      console.log(`🔄 Tentative via proxy CORS: ${proxyUrl}`);
       
-      browser = await puppeteer.launch({ 
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      const proxyResponse = await axios.get(proxyUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+        timeout: 10000,
+        maxRedirects: 3
       });
-      const page = await browser.newPage();
-      await page.setUserAgent(userAgent);
       
-      console.log(`🚀 Navigation vers: ${normalizedUrl}`);
-      await page.goto(normalizedUrl, { waitUntil: 'networkidle2' });
-
-      console.log(`🔍 Extraction du script player.setup...`);
-      const brokenUrl = await page.evaluate(() => {
-        const scripts = Array.from(document.querySelectorAll('script'));
-        const playerScript = scripts.find(script => script.textContent.includes('player.setup'));
-        if (playerScript) {
-          const match = playerScript.textContent.match(/sources:\s*\[\s*{\s*file:\s*["']([^"']+)["']/);
-          return match ? match[1] : null;
+      const html = proxyResponse.data.contents;
+      console.log(`📄 HTML récupéré (${html.length} caractères)`);
+      
+      // Chercher les patterns de liens m3u8 - patterns améliorés
+      const patterns = [
+        // Pattern exact pour player.setup avec sources
+        /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+        // Pattern pour sources: [{file:"url"}] (guillemets doubles)
+        /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
+        // Pattern pour sources: [{file: 'url'}] (guillemets simples)
+        /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+        // Pattern pour capturer l'URL complète avec paramètres de requête
+        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8[^"']*)["']/,
+        // Pattern général pour URLs m3u8
+        /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
+        // Pattern général pour URLs urlset
+        /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
+      ];
+      
+      let m3u8Url = null;
+      let usedPattern = null;
+      
+      for (let i = 0; i < patterns.length; i++) {
+        const pattern = patterns[i];
+        const match = html.match(pattern);
+        if (match) {
+          const rawUrl = match[1] || match[0];
+          usedPattern = `Pattern ${i + 1}`;
+          console.log(`🔍 Pattern ${i + 1} trouvé - URL brute: "${rawUrl}"`);
+          
+          m3u8Url = rawUrl;
+          
+          // Nettoyer l'URL des caractères parasites (intelligent)
+          m3u8Url = m3u8Url
+            .replace(/\\/g, '') // Supprimer les backslashes
+            .replace(/\s+/g, '') // Supprimer les espaces
+            .trim();
+          
+          // Supprimer les virgules parasites uniquement à la fin (après .m3u8 ou .urlset)
+          if (m3u8Url.endsWith(',')) {
+            m3u8Url = m3u8Url.slice(0, -1);
+          }
+          // Supprimer les virgules parasites au début (avant https://)
+          if (m3u8Url.startsWith(',')) {
+            m3u8Url = m3u8Url.slice(1);
+          }
+          
+          console.log(`🔧 URL finale après nettoyage: "${m3u8Url}"`);
+          
+          // Vérifier que l'URL est valide après nettoyage
+          if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
+            console.log(`✅ Lien m3u8 valide trouvé avec ${usedPattern}: ${m3u8Url}`);
+            break;
+          } else {
+            console.log(`⚠️ URL nettoyée invalide: ${m3u8Url}`);
+            m3u8Url = null; // Reset pour essayer le pattern suivant
+          }
         }
-        return null;
-      });
-
-      if (!brokenUrl) {
-        throw new Error("❌ Impossible de trouver le script de configuration du lecteur ou le lien m3u8 à l'intérieur.");
       }
       
-      console.log(`🔗 Lien "cassé" extrait du script : ${brokenUrl}`);
-
-      const masterM3u8Url = brokenUrl.replace(/,/g, '');
-      console.log(`✅ Lien valide reconstruit : ${masterM3u8Url}`);
+      if (!m3u8Url) {
+        console.log(`❌ Aucun pattern n'a trouvé de lien m3u8`);
+        console.log(`🔍 Extrait HTML (premiers 1000 caractères):`, html.substring(0, 1000));
+      }
       
-      // Vérifier que l'URL est valide
-      if (masterM3u8Url && masterM3u8Url.startsWith('http') && (masterM3u8Url.includes('.m3u8') || masterM3u8Url.includes('.urlset'))) {
+      if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
         return res.status(200).json({ 
           success: true,
-          m3u8Url: masterM3u8Url,
+          m3u8Url: m3u8Url,
           source: 'vidmoly',
           originalUrl: url,
-          method: 'puppeteer_extracted'
+          method: 'extracted_real'
         });
-      } else {
-        throw new Error(`URL extraite invalide: ${masterM3u8Url}`);
       }
       
     } catch (extractionError) {
-      console.log(`❌ Extraction Puppeteer échouée: ${extractionError.message}`);
+      console.log(`❌ Extraction échouée: ${extractionError.message}`);
       console.log(`❌ Détails de l'erreur:`, extractionError);
-    } finally {
-      if (browser) {
-        await browser.close();
-        console.log("🔒 Navigateur Puppeteer fermé.");
+      
+      // Si c'est un timeout, essayer directement le fallback
+      if (extractionError.code === 'ECONNABORTED' || extractionError.message.includes('timeout')) {
+        console.log(`⏰ Timeout détecté, utilisation directe du fallback`);
       }
     }
 
