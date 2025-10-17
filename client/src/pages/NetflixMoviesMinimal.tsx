@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import MediaCard from "@/components/MediaCard";
+import { ArrowLeft, Star } from "lucide-react";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
@@ -131,15 +130,29 @@ export default function NetflixMoviesMinimal() {
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                 {data.results.map((movie: any) => (
                   <div key={movie.id} className="w-full">
-                    <MediaCard
-                      id={movie.id}
-                      title={movie.title}
-                      posterPath={movie.poster_path}
-                      rating={Math.round(movie.vote_average * 10) / 10}
-                      year={movie.release_date ? new Date(movie.release_date).getFullYear().toString() : ""}
-                      mediaType="movie"
+                    <div 
+                      className="group relative overflow-hidden cursor-pointer bg-card rounded-lg shadow-md"
                       onClick={() => window.location.href = `/movie/${movie.id}`}
-                    />
+                    >
+                      <div className="relative aspect-[2/3]">
+                        <img
+                          src={movie.poster_path ? `https://image.tmdb.org/t/p/w342${movie.poster_path}` : '/placeholder-movie.jpg'}
+                          alt={movie.title}
+                          className="w-full h-full object-cover object-center"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h3 className="font-semibold text-sm mb-1 line-clamp-2">{movie.title}</h3>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}</span>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            <span>{Math.round(movie.vote_average * 10) / 10}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
