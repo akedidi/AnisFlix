@@ -135,6 +135,7 @@ export default function Movies() {
           items={animeMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="anime-movies-latest"
         />
 
         <MediaCarousel
@@ -142,6 +143,7 @@ export default function Movies() {
           items={animeMovies.slice(10, 20)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="anime-movies-popular"
         />
       </div>
       

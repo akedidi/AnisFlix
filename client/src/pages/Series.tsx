@@ -135,6 +135,7 @@ export default function Series() {
           items={animeSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="anime-series-latest"
         />
 
         <MediaCarousel
@@ -142,6 +143,7 @@ export default function Series() {
           items={animeSeries.slice(10, 20)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="anime-series-popular"
         />
       </div>
       

@@ -255,6 +255,7 @@ export default function Home() {
             items={animeMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId="anime-movies-latest"
           />
 
           <MediaCarousel
@@ -262,6 +263,7 @@ export default function Home() {
             items={animeSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId="anime-series-latest"
           />
 
           <MediaCarousel
@@ -269,6 +271,7 @@ export default function Home() {
             items={animeMovies.slice(10, 20)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId="anime-movies-popular"
           />
 
           <MediaCarousel
@@ -276,6 +279,7 @@ export default function Home() {
             items={animeSeries.slice(10, 20)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId="anime-series-popular"
           />
 
           {/* Netflix */}
