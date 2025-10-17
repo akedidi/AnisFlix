@@ -29,6 +29,11 @@ export default async function handler(req, res) {
     console.log(`[VIDMOLY PROXY] URL cible décodée: ${targetUrl}`);
     console.log(`[VIDMOLY PROXY] Referer: ${refererUrl}`);
     console.log(`[VIDMOLY PROXY] Type de contenu détecté: ${targetUrl.includes('.m3u8') ? 'M3U8 Playlist' : 'Segment vidéo'}`);
+    
+    // Vérifier si l'URL contient des virgules dans le nom de fichier (problème connu)
+    if (targetUrl.includes(',') && targetUrl.includes('.urlset')) {
+      console.log(`[VIDMOLY PROXY] ⚠️ URL avec virgules détectée - peut causer des problèmes de proxy`);
+    }
 
     // Ignorer les requêtes pour le favicon
     if (req.url === '/favicon.ico') {
