@@ -163,7 +163,7 @@ export default function NetflixContent() {
       {/* Catégories Netflix */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
         {/* Continuer à regarder */}
-        <ContinueWatching maxItems={8} />
+        <ContinueWatching maxItems={20} />
         
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold">Films Action Netflix</h2>
