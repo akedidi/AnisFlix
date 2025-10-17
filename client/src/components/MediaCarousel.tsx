@@ -104,27 +104,16 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                   // Liens généraux
                   if (title.includes('anime')) {
                     // Gestion spéciale pour les anime (priorité sur les autres conditions)
-                    console.log('🎌 ANIME DETECTÉ - Titre:', title);
-                    console.log('🎌 Contient "film":', title.includes('film'));
-                    console.log('🎌 Contient "série":', title.includes('série'));
-                    console.log('🎌 Contient "dernier":', title.includes('dernier'));
-                    console.log('🎌 Contient "dernières":', title.includes('dernières'));
-                    
                     if (title.includes('film') && title.includes('dernier')) {
-                      console.log('🎌 REDIRECTION: /anime-movies-latest');
                       window.location.href = '/anime-movies-latest';
                     } else if ((title.includes('série') || title.includes('séries')) && (title.includes('dernier') || title.includes('dernières'))) {
-                      console.log('🎌 REDIRECTION: /anime-series-latest');
                       window.location.href = '/anime-series-latest';
                     } else if (title.includes('film') && (title.includes('populaire') || title.includes('populaires'))) {
-                      console.log('🎌 REDIRECTION: /anime-movies-popular');
                       window.location.href = '/anime-movies-popular';
                     } else if ((title.includes('série') || title.includes('séries')) && (title.includes('populaire') || title.includes('populaires'))) {
-                      console.log('🎌 REDIRECTION: /anime-series-popular');
                       window.location.href = '/anime-series-popular';
                     } else {
-                      console.log('🎌 REDIRECTION PAR DÉFAUT: /anime-movies-latest');
-                      window.location.href = '/anime-movies-latest';
+                      window.location.href = '/';
                     }
                   } else if (title.includes('populaire') || title.includes('popular')) {
                     const link = title.toLowerCase().includes('film') ? '/popular-movies' : 
