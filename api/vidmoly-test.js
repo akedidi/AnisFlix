@@ -62,6 +62,8 @@ export default async function handler(req, res) {
         /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
         // Pattern pour sources: [{file: 'url'}] (guillemets simples)
         /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+        // Nouvelle regex spécifique pour master.m3u8 (méthode améliorée)
+        /sources:\s*\[\s*{\s*file:\s*"([^"]+master\.m3u8[^"]*)"/s,
         // Pattern général pour URLs m3u8
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
         // Pattern général pour URLs urlset
@@ -145,12 +147,88 @@ export default async function handler(req, res) {
       }
       
     } catch (extractionError) {
-      console.log(`❌ Extraction échouée: ${extractionError.message}`);
+      console.log(`❌ Extraction via proxy CORS échouée: ${extractionError.message}`);
       console.log(`❌ Détails de l'erreur:`, extractionError);
       
-      // Si c'est un timeout, essayer directement le fallback
-      if (extractionError.code === 'ECONNABORTED' || extractionError.message.includes('timeout')) {
-        console.log(`⏰ Timeout détecté, utilisation directe du fallback`);
+      // Méthode de fallback : essayer directement sans proxy CORS
+      console.log(`🔄 Tentative de méthode de fallback directe...`);
+      try {
+        const directResponse = await axios.get(normalizedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          },
+          timeout: 15000,
+          maxRedirects: 5
+        });
+        
+        const directHtml = directResponse.data;
+        console.log(`📄 HTML direct récupéré (${directHtml.length} caractères)`);
+        
+        // Utiliser la nouvelle regex spécifique pour master.m3u8
+        const masterM3u8Regex = /sources:\s*\[\s*{\s*file:\s*"([^"]+master\.m3u8[^"]*)"/s;
+        const masterMatch = directHtml.match(masterM3u8Regex);
+        
+        if (masterMatch && masterMatch[1]) {
+          let m3u8Url = masterMatch[1];
+          console.log(`🎯 Lien master.m3u8 trouvé avec méthode directe: "${m3u8Url}"`);
+          
+          // Nettoyer l'URL
+          m3u8Url = m3u8Url
+            .replace(/\\/g, '')
+            .replace(/\s+/g, '')
+            .trim();
+          
+          if (m3u8Url && m3u8Url.startsWith('http') && m3u8Url.includes('master.m3u8')) {
+            console.log(`✅ Lien master.m3u8 valide trouvé avec méthode directe: ${m3u8Url}`);
+            return res.status(200).json({ 
+              success: true,
+              m3u8Url: m3u8Url,
+              source: 'vidmoly',
+              originalUrl: url,
+              method: 'direct_master_m3u8'
+            });
+          }
+        }
+        
+        // Si la regex spécifique ne fonctionne pas, essayer les patterns généraux
+        const fallbackPatterns = [
+          /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
+          /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+          /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
+        ];
+        
+        for (let i = 0; i < fallbackPatterns.length; i++) {
+          const pattern = fallbackPatterns[i];
+          const match = directHtml.match(pattern);
+          if (match) {
+            const rawUrl = match[1] || match[0];
+            let m3u8Url = rawUrl
+              .replace(/\\/g, '')
+              .replace(/\s+/g, '')
+              .trim();
+            
+            if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
+              console.log(`✅ Lien m3u8 trouvé avec méthode directe (pattern ${i + 1}): ${m3u8Url}`);
+              return res.status(200).json({ 
+                success: true,
+                m3u8Url: m3u8Url,
+                source: 'vidmoly',
+                originalUrl: url,
+                method: `direct_pattern_${i + 1}`
+              });
+            }
+          }
+        }
+        
+        console.log(`❌ Aucun lien m3u8 trouvé avec la méthode directe`);
+        
+      } catch (directError) {
+        console.log(`❌ Méthode directe échouée: ${directError.message}`);
       }
     }
 
