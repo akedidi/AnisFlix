@@ -117,7 +117,7 @@ export default function HeroSection({
             variant="ghost"
             size="icon"
             onClick={goToPrevious}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 hover:bg-black/50 text-white border border-white/20"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 hover:bg-black/60 text-white border border-white/30 rounded-full backdrop-blur-sm hover:scale-110"
           >
             <ChevronLeft className="w-6 h-6" />
           </Button>
@@ -125,7 +125,7 @@ export default function HeroSection({
             variant="ghost"
             size="icon"
             onClick={goToNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30 hover:bg-black/50 text-white border border-white/20"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 hover:bg-black/60 text-white border border-white/30 rounded-full backdrop-blur-sm hover:scale-110"
           >
             <ChevronRight className="w-6 h-6" />
           </Button>
@@ -139,9 +139,9 @@ export default function HeroSection({
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 rounded-full transition-all duration-300 hover:scale-125 ${
                 index === currentIndex 
-                  ? 'bg-white scale-125' 
+                  ? 'bg-white scale-125 shadow-lg' 
                   : 'bg-white/50 hover:bg-white/75'
               }`}
             />
