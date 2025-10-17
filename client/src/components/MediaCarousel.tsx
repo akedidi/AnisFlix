@@ -154,7 +154,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                   }
                 }
               }
-            }}
+            }
             data-testid={`button-see-all-${title.toLowerCase().replace(/\s+/g, "-")}`}
           >
             Voir tout
