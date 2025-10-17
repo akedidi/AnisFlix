@@ -21,10 +21,13 @@ export default function AnimeSeriesLatest() {
   const { scrollY } = useScrollPosition();
   
   // Fetch anime series (genre 16 = Animation)
-  const { data: animeSeriesData } = useSeriesByGenre(16);
+  const { data: animeSeriesData, isLoading, error } = useSeriesByGenre(16);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const animeSeries = animeSeriesData?.results || [];
+  
+  // Debug logs
+  console.log('🎌 AnimeSeriesLatest - Données:', { animeSeriesData, isLoading, error, animeSeries });
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,7 +65,15 @@ export default function AnimeSeriesLatest() {
         </div>
 
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
-          {animeSeries.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chargement des séries anime...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-500">Erreur lors du chargement: {error.message}</p>
+            </div>
+          ) : animeSeries.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {animeSeries.map((series) => (
                 <div key={series.id} className="w-full">
