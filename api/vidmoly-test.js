@@ -54,26 +54,16 @@ export default async function handler(req, res) {
       const html = proxyResponse.data.contents;
       console.log(`📄 HTML récupéré (${html.length} caractères)`);
       
-      // Chercher les patterns de liens m3u8 - patterns améliorés
+      // Chercher les patterns de liens m3u8 - patterns simplifiés et fonctionnels
       const patterns = [
-        // Pattern exact pour player.setup avec sources
+        // Pattern exact pour player.setup avec sources (le plus important)
         /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
         // Pattern pour sources: [{file:"url"}] (guillemets doubles)
         /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
         // Pattern pour sources: [{file: 'url'}] (guillemets simples)
         /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
-        // Pattern très permissif pour capturer tout après file: jusqu'au prochain guillemet
-        /file:\s*["']([^"']+)["']/,
-        // Pattern spécifique pour URLs avec virgules dans le nom de fichier + paramètres
-        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8\?[^"']*)["']/,
-        // Pattern pour capturer l'URL complète avec paramètres de requête
-        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8[^"']*)["']/,
-        // Pattern général pour URLs m3u8 avec paramètres
-        /https?:\/\/[^"'\s]+\.m3u8\?[^"'\s]*/,
         // Pattern général pour URLs m3u8
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
-        // Pattern général pour URLs urlset avec paramètres
-        /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*\?[^"'\s]*/,
         // Pattern général pour URLs urlset
         /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
       ];
@@ -104,6 +94,11 @@ export default async function handler(req, res) {
           // Supprimer les virgules parasites au début (avant https://)
           if (m3u8Url.startsWith(',')) {
             m3u8Url = m3u8Url.slice(1);
+          }
+          
+          // Nettoyer les virgules parasites à la fin après les paramètres de requête
+          if (m3u8Url.includes('?') && m3u8Url.endsWith(',')) {
+            m3u8Url = m3u8Url.slice(0, -1);
           }
           
           console.log(`🔧 URL finale après nettoyage: "${m3u8Url}"`);
