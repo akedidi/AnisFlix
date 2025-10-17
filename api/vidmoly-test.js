@@ -58,14 +58,18 @@ export default async function handler(req, res) {
       const patterns = [
         // Pattern exact pour player.setup avec sources (votre exemple)
         /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
-        // Pattern pour sources: [{file:"url"}] (guillemets doubles)
+        // Pattern pour sources: [{file:"url"}] (guillemets doubles) - plus permissif
         /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
-        // Pattern pour sources: [{file: 'url'}] (guillemets simples)
+        // Pattern pour sources: [{file: 'url'}] (guillemets simples) - plus permissif
         /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+        // Pattern pour capturer l'URL complète avec paramètres de requête
+        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8[^"']*)["']/,
         // Pattern pour sources: [{file:"url"}] (sans espaces)
         /sources:\s*\[\s*\{\s*file:"([^"]+)"\s*\}/,
         // Pattern pour sources: [{file: 'url'}] (sans espaces)
         /sources:\s*\[\s*\{\s*file:'([^']+)'\s*\}/,
+        // Pattern pour URLs avec virgules dans le nom de fichier
+        /https?:\/\/[^"'\s]+\.urlset\/master\.m3u8[^"'\s]*/,
         // Pattern général pour URLs m3u8
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
         // Pattern général pour URLs urlset
@@ -79,8 +83,11 @@ export default async function handler(req, res) {
         const pattern = patterns[i];
         const match = html.match(pattern);
         if (match) {
-          m3u8Url = match[1] || match[0];
+          const rawUrl = match[1] || match[0];
           usedPattern = `Pattern ${i + 1}`;
+          console.log(`🔍 Pattern ${i + 1} trouvé - URL brute: "${rawUrl}"`);
+          
+          m3u8Url = rawUrl;
           
           // Nettoyer l'URL des caractères parasites (intelligent)
           m3u8Url = m3u8Url
@@ -88,14 +95,20 @@ export default async function handler(req, res) {
             .replace(/\s+/g, '') // Supprimer les espaces
             .trim();
           
+          console.log(`🔧 Après nettoyage basique: "${m3u8Url}"`);
+          
           // Supprimer les virgules parasites uniquement à la fin (après .m3u8 ou .urlset)
           if (m3u8Url.endsWith(',')) {
             m3u8Url = m3u8Url.slice(0, -1);
+            console.log(`🔧 Suppression virgule finale: "${m3u8Url}"`);
           }
           // Supprimer les virgules parasites au début (avant https://)
           if (m3u8Url.startsWith(',')) {
             m3u8Url = m3u8Url.slice(1);
+            console.log(`🔧 Suppression virgule initiale: "${m3u8Url}"`);
           }
+          
+          console.log(`🔧 URL finale après nettoyage: "${m3u8Url}"`);
           
           // Vérifier que l'URL est valide après nettoyage
           if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
