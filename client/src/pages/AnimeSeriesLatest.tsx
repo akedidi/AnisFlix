@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Star, Calendar, X, Heart } from "lucide-react";
+import { Clock, Star, Calendar, ArrowLeft, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -42,7 +42,7 @@ export default function AnimeSeriesLatest() {
                   onClick={() => setLocation('/')}
                   className="flex items-center gap-2"
                 >
-                  <X className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" />
                   Retour
                 </Button>
                 <h1 className="text-xl font-semibold">Dernières séries anime</h1>
@@ -72,8 +72,8 @@ export default function AnimeSeriesLatest() {
                   >
                     <div className="relative aspect-[2/3]">
                       <img
-                        src={`https://image.tmdb.org/t/p/w342${series.poster_path}`}
-                        alt={series.name}
+                        src={series.posterPath ? `https://image.tmdb.org/t/p/w342${series.posterPath}` : '/placeholder-series.jpg'}
+                        alt={series.title}
                         className="w-full h-full object-cover object-center image-zoom"
                         loading="lazy"
                       />
@@ -86,31 +86,31 @@ export default function AnimeSeriesLatest() {
                           e.stopPropagation();
                           toggleFavorite({
                             id: series.id,
-                            title: series.name,
-                            posterPath: series.poster_path,
-                            rating: series.vote_average,
-                            year: series.first_air_date?.split('-')[0] || '',
-                            mediaType: 'series'
+                            title: series.title,
+                            posterPath: series.posterPath,
+                            rating: series.rating,
+                            year: series.year,
+                            mediaType: 'tv'
                           });
                         }}
                       >
                         <Heart 
-                          className={`w-4 h-4 ${isFavorite(series.id, 'series') ? 'fill-red-500 text-red-500' : ''}`} 
+                          className={`w-4 h-4 ${isFavorite(series.id, 'tv') ? 'fill-red-500 text-red-500' : ''}`} 
                         />
                       </Button>
                     </div>
                     
                     <div className="p-3">
                       <h3 className="font-semibold text-sm line-clamp-2 mb-1">
-                        {series.name}
+                        {series.title}
                       </h3>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span>{series.vote_average.toFixed(1)}</span>
+                          <span>{series.rating.toFixed(1)}</span>
                         </div>
-                        {series.first_air_date && (
-                          <span>{series.first_air_date.split('-')[0]}</span>
+                        {series.year && (
+                          <span>{series.year}</span>
                         )}
                       </div>
                     </div>

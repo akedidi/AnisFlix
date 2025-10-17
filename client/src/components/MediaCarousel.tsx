@@ -130,12 +130,8 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     const link = title.toLowerCase().includes('film') ? '/movie-genre/animation' : 
                                title.toLowerCase().includes('série') ? '/series-genre/animation' : '/movie-genre/animation';
                     window.location.href = link;
-                  } else if (title.includes('dernier') || title.includes('latest')) {
-                    const link = title.toLowerCase().includes('film') ? '/latest-movies' : 
-                               title.toLowerCase().includes('série') ? '/latest-series' : '/latest-movies';
-                    window.location.href = link;
                   } else if (title.includes('anime')) {
-                    // Gestion spéciale pour les anime
+                    // Gestion spéciale pour les anime (priorité sur les autres conditions)
                     if (title.includes('film') && title.includes('dernier')) {
                       window.location.href = '/anime-movies-latest';
                     } else if (title.includes('série') && title.includes('dernier')) {
@@ -147,6 +143,10 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     } else {
                       window.location.href = '/anime-movies-latest';
                     }
+                  } else if (title.includes('dernier') || title.includes('latest')) {
+                    const link = title.toLowerCase().includes('film') ? '/latest-movies' : 
+                               title.toLowerCase().includes('série') ? '/latest-series' : '/latest-movies';
+                    window.location.href = link;
                   } else {
                     // Par défaut, rediriger vers la page d'accueil
                     window.location.href = '/';
