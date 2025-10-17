@@ -137,22 +137,47 @@ export default async function handler(req, res) {
       }
       
       if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
-        return res.status(200).json({ 
-          success: true,
-          m3u8Url: m3u8Url,
-          source: 'vidmoly',
-          originalUrl: url,
-          method: 'extracted_real'
-        });
+        console.log(`✅ Lien m3u8 valide trouvé avec ${usedPattern}: ${m3u8Url}`);
+        
+        // Tester si le lien extrait fonctionne réellement
+        console.log(`🧪 Test de la validité du lien extrait...`);
+        try {
+          const testResponse = await axios.head(m3u8Url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': normalizedUrl
+            },
+            timeout: 10000,
+            maxRedirects: 3
+          });
+          
+          if (testResponse.status === 200) {
+            console.log(`✅ Lien testé avec succès (status: ${testResponse.status})`);
+            return res.status(200).json({ 
+              success: true,
+              m3u8Url: m3u8Url,
+              source: 'vidmoly',
+              originalUrl: url,
+              method: 'extracted_real'
+            });
+          } else {
+            console.log(`⚠️ Lien extrait retourne un status ${testResponse.status}, passage au fallback`);
+          }
+        } catch (testError) {
+          console.log(`❌ Lien extrait ne fonctionne pas: ${testError.message}`);
+          console.log(`🔄 Passage à la méthode de fallback directe...`);
+        }
       }
       
     } catch (extractionError) {
       console.log(`❌ Extraction via proxy CORS échouée: ${extractionError.message}`);
       console.log(`❌ Détails de l'erreur:`, extractionError);
-      
-      // Méthode de fallback : essayer directement sans proxy CORS
-      console.log(`🔄 Tentative de méthode de fallback directe...`);
-      try {
+    }
+    
+    // Méthode de fallback : essayer directement sans proxy CORS
+    // (appelée si l'extraction échoue OU si le lien extrait ne fonctionne pas)
+    console.log(`🔄 Tentative de méthode de fallback directe...`);
+    try {
         const directResponse = await axios.get(normalizedUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -185,13 +210,34 @@ export default async function handler(req, res) {
           
           if (m3u8Url && m3u8Url.startsWith('http') && m3u8Url.includes('master.m3u8')) {
             console.log(`✅ Lien master.m3u8 valide trouvé avec méthode directe: ${m3u8Url}`);
-            return res.status(200).json({ 
-              success: true,
-              m3u8Url: m3u8Url,
-              source: 'vidmoly',
-              originalUrl: url,
-              method: 'direct_master_m3u8'
-            });
+            
+            // Tester si le lien extrait par la méthode directe fonctionne
+            console.log(`🧪 Test de la validité du lien direct...`);
+            try {
+              const testResponse = await axios.head(m3u8Url, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Referer': normalizedUrl
+                },
+                timeout: 10000,
+                maxRedirects: 3
+              });
+              
+              if (testResponse.status === 200) {
+                console.log(`✅ Lien direct testé avec succès (status: ${testResponse.status})`);
+                return res.status(200).json({ 
+                  success: true,
+                  m3u8Url: m3u8Url,
+                  source: 'vidmoly',
+                  originalUrl: url,
+                  method: 'direct_master_m3u8'
+                });
+              } else {
+                console.log(`⚠️ Lien direct retourne un status ${testResponse.status}`);
+              }
+            } catch (testError) {
+              console.log(`❌ Lien direct ne fonctionne pas: ${testError.message}`);
+            }
           }
         }
         
@@ -214,13 +260,34 @@ export default async function handler(req, res) {
             
             if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
               console.log(`✅ Lien m3u8 trouvé avec méthode directe (pattern ${i + 1}): ${m3u8Url}`);
-              return res.status(200).json({ 
-                success: true,
-                m3u8Url: m3u8Url,
-                source: 'vidmoly',
-                originalUrl: url,
-                method: `direct_pattern_${i + 1}`
-              });
+              
+              // Tester si le lien extrait par la méthode directe fonctionne
+              console.log(`🧪 Test de la validité du lien direct (pattern ${i + 1})...`);
+              try {
+                const testResponse = await axios.head(m3u8Url, {
+                  headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Referer': normalizedUrl
+                  },
+                  timeout: 10000,
+                  maxRedirects: 3
+                });
+                
+                if (testResponse.status === 200) {
+                  console.log(`✅ Lien direct testé avec succès (status: ${testResponse.status})`);
+                  return res.status(200).json({ 
+                    success: true,
+                    m3u8Url: m3u8Url,
+                    source: 'vidmoly',
+                    originalUrl: url,
+                    method: `direct_pattern_${i + 1}`
+                  });
+                } else {
+                  console.log(`⚠️ Lien direct retourne un status ${testResponse.status}`);
+                }
+              } catch (testError) {
+                console.log(`❌ Lien direct ne fonctionne pas: ${testError.message}`);
+              }
             }
           }
         }
@@ -230,7 +297,6 @@ export default async function handler(req, res) {
       } catch (directError) {
         console.log(`❌ Méthode directe échouée: ${directError.message}`);
       }
-    }
 
     // Fallback: Utiliser un lien de test si l'extraction échoue
     const fallbackUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
