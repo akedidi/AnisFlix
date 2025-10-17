@@ -41,6 +41,7 @@ import ProviderDetail from "@/pages/ProviderDetail";
 import NetflixMovies from "@/pages/NetflixMovies";
 import NetflixMoviesTest from "@/pages/NetflixMoviesTest";
 import NetflixMoviesSimple from "@/pages/NetflixMoviesSimple";
+import TestProvider from "@/pages/TestProvider";
 import AmazonMovies from "@/pages/AmazonMovies";
 import DisneyMovies from "@/pages/DisneyMovies";
 import HBOMaxMovies from "@/pages/HBOMaxMovies";
@@ -116,6 +117,7 @@ function App() {
             <Route path="/netflix-movies" component={NetflixMoviesSimple} />
             <Route path="/netflix-movies-original" component={NetflixMovies} />
             <Route path="/netflix-movies-test" component={NetflixMoviesTest} />
+            <Route path="/test-provider" component={TestProvider} />
             <Route path="/amazon-movies" component={AmazonMovies} />
             <Route path="/disney-movies" component={DisneyMovies} />
             <Route path="/hbo-max-movies" component={HBOMaxMovies} />
