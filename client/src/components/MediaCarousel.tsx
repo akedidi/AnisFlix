@@ -100,7 +100,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     // Distinguer entre films et séries Paramount+
                     const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
                     window.location.href = `/paramount-content?tab=${tab}`;
-                } else {
+                  } else {
                   // Liens généraux
                   if (title.includes('populaire') || title.includes('popular')) {
                     const link = title.toLowerCase().includes('film') ? '/popular-movies' : 
