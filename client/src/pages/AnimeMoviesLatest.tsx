@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Star, Calendar, X, Heart } from "lucide-react";
+import { Clock, Star, Calendar, ArrowLeft, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -42,7 +42,7 @@ export default function AnimeMoviesLatest() {
                   onClick={() => setLocation('/')}
                   className="flex items-center gap-2"
                 >
-                  <X className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4" />
                   Retour
                 </Button>
                 <h1 className="text-xl font-semibold">Derniers films anime</h1>
