@@ -93,6 +93,7 @@ export default function Series() {
           items={actionSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/action"
         />
 
         <MediaCarousel
@@ -100,6 +101,7 @@ export default function Series() {
           items={dramaSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/drame"
         />
 
         <MediaCarousel
@@ -107,6 +109,7 @@ export default function Series() {
           items={crimeSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/crime"
         />
 
         <MediaCarousel
@@ -114,6 +117,7 @@ export default function Series() {
           items={mysterySeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/mystere"
         />
 
         <MediaCarousel
@@ -121,6 +125,7 @@ export default function Series() {
           items={documentarySeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/documentaire"
         />
 
         <MediaCarousel
@@ -128,6 +133,7 @@ export default function Series() {
           items={animeSeries.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/series/${item.id}`}
           showSeeAllButton={true}
+          sectionId="series-genre/animation"
         />
 
         <MediaCarousel

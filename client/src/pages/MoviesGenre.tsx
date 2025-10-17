@@ -13,7 +13,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 
 // Mapping des genres avec leurs noms et IDs
 const GENRES = {
-  'action': { id: 10759, name: 'Action & Aventure' },
+  'action': { id: 28, name: 'Action' },
   'aventure': { id: 12, name: 'Aventure' },
   'animation': { id: 16, name: 'Animation' },
   'comedie': { id: 35, name: 'Comédie' },
@@ -31,16 +31,12 @@ const GENRES = {
   'telefilm': { id: 10770, name: 'Téléfilm' },
   'thriller': { id: 53, name: 'Thriller' },
   'guerre': { id: 10752, name: 'Guerre' },
-  'western': { id: 37, name: 'Western' },
-  'policier': { id: 80, name: 'Policier' },
-  'reality': { id: 10764, name: 'Reality' },
-  'talk': { id: 10767, name: 'Talk Show' },
-  'news': { id: 10763, name: 'News' }
+  'western': { id: 37, name: 'Western' }
 };
 
-export default function SeriesGenre() {
+export default function MoviesGenre() {
   const { t } = useLanguage();
-  const [, params] = useRoute("/series-genre/:genre");
+  const [, params] = useRoute("/movies-genre/:genre");
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +52,7 @@ export default function SeriesGenre() {
   const genreId = genreInfo?.id;
   const genreName = genreInfo?.name || genreSlug;
 
-  // Fetch series by genre
+  // Fetch movies by genre
   useEffect(() => {
     if (!genreId) return;
 
@@ -66,7 +62,7 @@ export default function SeriesGenre() {
         setError(null);
         
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
         );
         
         if (!response.ok) {
@@ -86,7 +82,7 @@ export default function SeriesGenre() {
     fetchData();
   }, [genreId, currentPage]);
 
-  const series = data?.results || [];
+  const movies = data?.results || [];
   const totalPages = data?.total_pages || 1;
 
   // Listen to language changes
@@ -167,9 +163,9 @@ export default function SeriesGenre() {
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Séries {genreName}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Films {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez les meilleures séries du genre {genreName.toLowerCase()}.
+            Découvrez les meilleurs films du genre {genreName.toLowerCase()}.
           </p>
         </div>
       </div>
@@ -180,25 +176,25 @@ export default function SeriesGenre() {
           <div className="text-center py-12">
             <p className="text-muted-foreground">Chargement...</p>
           </div>
-        ) : series.length > 0 ? (
+        ) : movies.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {series.map((serie: any) => {
+              {movies.map((movie: any) => {
                 // Transformer les données pour correspondre au format attendu
-                const transformedSerie = {
-                  id: serie.id,
-                  title: serie.name,
-                  posterPath: serie.poster_path,
-                  rating: Math.round(serie.vote_average * 10) / 10,
-                  year: serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : "",
-                  mediaType: "series" as const,
+                const transformedMovie = {
+                  id: movie.id,
+                  title: movie.title,
+                  posterPath: movie.poster_path,
+                  rating: Math.round(movie.vote_average * 10) / 10,
+                  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+                  mediaType: "movie" as const,
                 };
                 
                 return (
-                  <div key={serie.id} className="w-full">
+                  <div key={movie.id} className="w-full">
                     <MediaCard
-                      {...transformedSerie}
-                      onClick={() => window.location.href = `/series/${serie.id}`}
+                      {...transformedMovie}
+                      onClick={() => window.location.href = `/movie/${movie.id}`}
                     />
                   </div>
                 );
@@ -213,7 +209,7 @@ export default function SeriesGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucune série {genreName.toLowerCase()} disponible</p>
+            <p className="text-muted-foreground">Aucun film {genreName.toLowerCase()} disponible</p>
           </div>
         )}
       </div>

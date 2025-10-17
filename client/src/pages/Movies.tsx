@@ -93,6 +93,7 @@ export default function Movies() {
           items={actionMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/action"
         />
 
         <MediaCarousel
@@ -100,6 +101,7 @@ export default function Movies() {
           items={dramaMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/drame"
         />
 
         <MediaCarousel
@@ -107,6 +109,7 @@ export default function Movies() {
           items={crimeMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/crime"
         />
 
         <MediaCarousel
@@ -114,6 +117,7 @@ export default function Movies() {
           items={mysteryMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/mystere"
         />
 
         <MediaCarousel
@@ -121,6 +125,7 @@ export default function Movies() {
           items={documentaryMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/documentaire"
         />
 
         <MediaCarousel
@@ -128,6 +133,7 @@ export default function Movies() {
           items={animeMovies.slice(0, 10)}
           onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
+          sectionId="movies-genre/animation"
         />
 
         <MediaCarousel
