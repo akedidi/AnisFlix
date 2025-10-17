@@ -280,6 +280,14 @@ export default function SeriesDetail() {
 
             <Tabs defaultValue="season-1" className="w-full" onValueChange={(value) => {
               const seasonNum = parseInt(value.replace('season-', ''));
+              
+              // Si on change de saison et qu'un lecteur est ouvert, le fermer
+              if (selectedSeasonNumber !== seasonNum && selectedSource) {
+                console.log('🔄 Fermeture du lecteur actuel pour changer de saison');
+                setSelectedSource(null);
+                setIsLoadingSource(false);
+              }
+              
               setSelectedSeasonNumber(seasonNum);
             }}>
               <TabsList className="flex-wrap h-auto">
@@ -350,6 +358,14 @@ export default function SeriesDetail() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
+                                
+                                // Si un épisode différent est sélectionné, fermer le lecteur actuel
+                                if (selectedEpisode !== episode.episode_number && selectedSource) {
+                                  console.log('🔄 Fermeture du lecteur actuel pour ouvrir un nouvel épisode');
+                                  setSelectedSource(null);
+                                  setIsLoadingSource(false);
+                                }
+                                
                                 setSelectedEpisode(episode.episode_number);
                               }}
                             >
