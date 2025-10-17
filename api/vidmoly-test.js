@@ -54,23 +54,49 @@ export default async function handler(req, res) {
       const html = proxyResponse.data.contents;
       console.log(`📄 HTML récupéré (${html.length} caractères)`);
       
-      // Chercher les patterns de liens m3u8
+      // Chercher les patterns de liens m3u8 - patterns améliorés
       const patterns = [
+        // Pattern exact pour player.setup avec sources (votre exemple)
         /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
-        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+        // Pattern pour sources: [{file:"url"}] (guillemets doubles)
+        /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
+        // Pattern pour sources: [{file: 'url'}] (guillemets simples)
+        /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+        // Pattern pour sources: [{file:"url"}] (sans espaces)
+        /sources:\s*\[\s*\{\s*file:"([^"]+)"\s*\}/,
+        // Pattern pour sources: [{file: 'url'}] (sans espaces)
+        /sources:\s*\[\s*\{\s*file:'([^']+)'\s*\}/,
+        // Pattern général pour URLs m3u8
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
+        // Pattern général pour URLs urlset
         /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
       ];
       
       let m3u8Url = null;
-      for (const pattern of patterns) {
+      let usedPattern = null;
+      
+      for (let i = 0; i < patterns.length; i++) {
+        const pattern = patterns[i];
         const match = html.match(pattern);
         if (match) {
           m3u8Url = match[1] || match[0];
-          m3u8Url = m3u8Url.replace(/,/g, '').trim();
-          console.log(`✅ Lien m3u8 trouvé avec pattern: ${m3u8Url}`);
+          usedPattern = `Pattern ${i + 1}`;
+          
+          // Nettoyer l'URL des caractères parasites
+          m3u8Url = m3u8Url
+            .replace(/,/g, '')  // Supprimer les virgules
+            .replace(/\\/g, '') // Supprimer les backslashes
+            .replace(/\s+/g, '') // Supprimer les espaces
+            .trim();
+          
+          console.log(`✅ Lien m3u8 trouvé avec ${usedPattern}: ${m3u8Url}`);
           break;
         }
+      }
+      
+      if (!m3u8Url) {
+        console.log(`❌ Aucun pattern n'a trouvé de lien m3u8`);
+        console.log(`🔍 Extrait HTML (premiers 1000 caractères):`, html.substring(0, 1000));
       }
       
       if (m3u8Url && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
