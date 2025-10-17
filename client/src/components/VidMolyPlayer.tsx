@@ -113,16 +113,9 @@ export default function VidMolyPlayer({
         // ou directement pour les liens de démonstration
         let finalUrl;
         if (data.method === 'extracted_real') {
-          // Vérifier si l'URL contient des virgules dans le nom de fichier
-          // Ces URLs ne passent pas bien par le proxy, utiliser directement
-          if (data.m3u8Url.includes(',') && data.m3u8Url.includes('.urlset')) {
-            finalUrl = data.m3u8Url;
-            console.log('📺 Utilisation directe du lien VidMoly (avec virgules - bypass proxy):', finalUrl);
-          } else {
-            // Pour les autres vrais liens VidMoly, utiliser le proxy car ils sont protégés
-            finalUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
-            console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
-          }
+          // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
+          finalUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+          console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
         } else {
           // Pour les liens de fallback/démo, utiliser directement
           finalUrl = data.m3u8Url;
