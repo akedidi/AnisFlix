@@ -136,9 +136,9 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                       window.location.href = '/anime-movies-latest';
                     } else if (title.includes('série') && title.includes('dernier')) {
                       window.location.href = '/anime-series-latest';
-                    } else if (title.includes('film') && title.includes('populaire')) {
+                    } else if (title.includes('film') && (title.includes('populaire') || title.includes('populaires'))) {
                       window.location.href = '/anime-movies-popular';
-                    } else if (title.includes('série') && title.includes('populaire')) {
+                    } else if (title.includes('série') && (title.includes('populaire') || title.includes('populaires'))) {
                       window.location.href = '/anime-series-popular';
                     } else {
                       window.location.href = '/anime-movies-latest';
