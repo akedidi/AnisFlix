@@ -72,7 +72,7 @@ export default function AnimeMoviesLatest() {
                   >
                     <div className="relative aspect-[2/3]">
                       <img
-                        src={`https://image.tmdb.org/t/p/w342${movie.poster_path}`}
+                        src={movie.posterPath ? `https://image.tmdb.org/t/p/w342${movie.posterPath}` : '/placeholder-movie.jpg'}
                         alt={movie.title}
                         className="w-full h-full object-cover object-center image-zoom"
                         loading="lazy"
@@ -87,9 +87,9 @@ export default function AnimeMoviesLatest() {
                           toggleFavorite({
                             id: movie.id,
                             title: movie.title,
-                            posterPath: movie.poster_path,
-                            rating: movie.vote_average,
-                            year: movie.release_date?.split('-')[0] || '',
+                            posterPath: movie.posterPath,
+                            rating: movie.rating,
+                            year: movie.year,
                             mediaType: 'movie'
                           });
                         }}
@@ -107,10 +107,10 @@ export default function AnimeMoviesLatest() {
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span>{movie.vote_average.toFixed(1)}</span>
+                          <span>{movie.rating.toFixed(1)}</span>
                         </div>
-                        {movie.release_date && (
-                          <span>{movie.release_date.split('-')[0]}</span>
+                        {movie.year && (
+                          <span>{movie.year}</span>
                         )}
                       </div>
                     </div>
