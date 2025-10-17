@@ -101,8 +101,8 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
                     window.location.href = `/paramount-content?tab=${tab}`;
                   } else {
-                  // Liens généraux
-                  if (title.includes('anime')) {
+                    // Liens généraux
+                    if (title.includes('anime')) {
                     // Gestion spéciale pour les anime (priorité sur les autres conditions)
                     if (title.includes('film') && title.includes('dernier')) {
                       window.location.href = '/anime-movies-latest';
@@ -150,6 +150,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                   } else {
                     // Par défaut, rediriger vers la page d'accueil
                     window.location.href = '/';
+                  }
                   }
                 }
               }
