@@ -6,57 +6,51 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useSeriesByProvider, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
-import { useScrollPosition } from "@/hooks/useScrollPosition";
-
-// Type for transformed media data
-type TransformedMedia = {
-  id: number;
-  title: string;
-  posterPath: string | null;
-  rating: number;
-  year?: string;
-  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
-};
+import { useMultiSearch } from "@/hooks/useTMDB";
 
 export default function AmazonSeries() {
   const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const { restoreScrollPosition } = useScrollPosition('amazon-series');
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch data from TMDB - Only Amazon Prime series
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(9, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
-  // Amazon Prime specific series genres
-  const { data: actionSeriesData } = useSeriesByProviderAndGenre(9, 10759); // Action & Adventure
-  const { data: comedySeriesData } = useSeriesByProviderAndGenre(9, 35); // Comedy
-  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(9, 18); // Drama
-  const { data: crimeSeriesData } = useSeriesByProviderAndGenre(9, 80); // Crime
-  const { data: mysterySeriesData } = useSeriesByProviderAndGenre(9, 9648); // Mystery
-  const { data: sciFiSeriesData } = useSeriesByProviderAndGenre(9, 10765); // Sci-Fi & Fantasy
-  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(9, 53); // Thriller
-  const { data: animationSeriesData } = useSeriesByProviderAndGenre(9, 16); // Animation
-  const { data: documentarySeriesData } = useSeriesByProviderAndGenre(9, 99); // Documentary
-  const { data: realitySeriesData } = useSeriesByProviderAndGenre(9, 10764); // Reality
+  // Fetch Amazon Prime series data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(
+          `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        console.error('❌ Erreur:', err);
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const series = seriesData?.results || [];
-  const actionSeries = actionSeriesData?.results || [];
-  const comedySeries = comedySeriesData?.results || [];
-  const dramaSeries = dramaSeriesData?.results || [];
-  const crimeSeries = crimeSeriesData?.results || [];
-  const mysterySeries = mysterySeriesData?.results || [];
-  const sciFiSeries = sciFiSeriesData?.results || [];
-  const thrillerSeries = thrillerSeriesData?.results || [];
-  const animationSeries = animationSeriesData?.results || [];
-  const documentarySeries = documentarySeriesData?.results || [];
-  const realitySeries = realitySeriesData?.results || [];
-  const totalPages = seriesData?.total_pages || 1;
+    fetchData();
+  }, [currentPage]);
+
+  const series = data?.results || [];
+  const totalPages = data?.total_pages || 1;
 
   // Listen to language changes
   useEffect(() => {
@@ -67,303 +61,101 @@ export default function AmazonSeries() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
-  // Restaurer la position de scroll au chargement
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
-
-  // Reset page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
       <DesktopSidebar />
-      <BottomNav />
       
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      {/* Main Content */}
+      <div className="md:ml-64">
+        {/* Header avec recherche et contrôles */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => window.history.back()}
-                className="flex items-center gap-2"
+                className="flex-shrink-0"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Retour
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t("common.back")}
               </Button>
-              <h1 className="text-xl font-semibold">Séries Amazon Prime</h1>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Rechercher des séries Amazon Prime..."
-              />
+              <div className="flex-1">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    window.location.href = path;
+                  }}
+                />
+              </div>
               <LanguageSelect />
               <ThemeToggle />
             </div>
           </div>
         </div>
+
+      {/* Header */}
+      <div className="relative bg-gradient-to-b from-primary/20 to-background">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Séries Amazon Prime</h1>
+          <p className="text-muted-foreground mb-4 max-w-2xl">
+            Découvrez les séries disponibles sur Amazon Prime Video.
+          </p>
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Continue Watching */}
-        <ContinueWatching maxItems={20} />
-
-        {/* Search Results */}
-        {searchQuery && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Résultats de recherche</h2>
-            {searchResults.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {searchResults
-                  .filter((item: any) => item.media_type === 'tv')
-                  .slice(0, 20)
-                  .map((serie: any) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        id={serie.id}
-                        title={serie.name}
-                        posterPath={serie.poster_path}
-                        rating={Math.round(serie.vote_average * 10) / 10}
-                        year={serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : ""}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">Aucun résultat trouvé pour "{searchQuery}"</p>
-            )}
+      {/* Contenu paginé */}
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        ) : series.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {series.map((serie: any) => {
+                // Transformer les données pour correspondre au format attendu
+                const transformedSerie = {
+                  id: serie.id,
+                  title: serie.name,
+                  posterPath: serie.poster_path,
+                  rating: Math.round(serie.vote_average * 10) / 10,
+                  year: serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : "",
+                  mediaType: "series" as const,
+                };
+                
+                return (
+                  <div key={serie.id} className="w-full">
+                    <MediaCard
+                      {...transformedSerie}
+                      onClick={() => window.location.href = `/series/${serie.id}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Aucune série Amazon Prime disponible</p>
           </div>
         )}
-
-        {/* Main Content - Only show when not searching */}
-        {!searchQuery && (
-          <>
-            {/* Latest Amazon Prime Series */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold">Dernières séries Amazon Prime</h2>
-              {seriesLoading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Chargement des séries Amazon Prime...</p>
-                </div>
-              ) : series.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {series.map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">Aucune série Amazon Prime disponible</p>
-              )}
-            </div>
-
-            {/* Genre Categories */}
-            {actionSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Action Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {actionSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {comedySeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Comédie Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {comedySeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {dramaSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Drame Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {dramaSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {crimeSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Crime Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {crimeSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {mysterySeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Mystère Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {mysterySeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {sciFiSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Science-Fiction Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {sciFiSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {thrillerSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Thriller Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {thrillerSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {animationSeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Animation Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {animationSeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {documentarySeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Documentaires Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {documentarySeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {realitySeries.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Séries Téléréalité Amazon Prime</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {realitySeries.slice(0, 10).map((serie: TransformedMedia) => (
-                    <div key={serie.id} className="w-full">
-                      <MediaCard
-                        {...serie}
-                        mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
-            )}
-          </>
-        )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
       </div>
     </div>
   );

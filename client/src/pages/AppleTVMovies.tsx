@@ -6,57 +6,51 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
-import BottomNav from "@/components/BottomNav";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useMoviesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
-import { useScrollPosition } from "@/hooks/useScrollPosition";
-
-// Type for transformed media data
-type TransformedMedia = {
-  id: number;
-  title: string;
-  posterPath: string | null;
-  rating: number;
-  year?: string;
-  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
-};
+import { useMultiSearch } from "@/hooks/useTMDB";
 
 export default function AppleTVMovies() {
   const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const { restoreScrollPosition } = useScrollPosition('apple-tv-movies');
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch data from TMDB - Only Apple TV+ movies
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(350, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
-  // Apple TV+ specific movie genres
-  const { data: actionMoviesData } = useMoviesByProviderAndGenre(350, 28); // Action
-  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(350, 35); // Comedy
-  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(350, 18); // Drama
-  const { data: romanceMoviesData } = useMoviesByProviderAndGenre(350, 10749); // Romance
-  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(350, 53); // Thriller
-  const { data: horrorMoviesData } = useMoviesByProviderAndGenre(350, 27); // Horror
-  const { data: sciFiMoviesData } = useMoviesByProviderAndGenre(350, 878); // Science Fiction
-  const { data: fantasyMoviesData } = useMoviesByProviderAndGenre(350, 14); // Fantasy
-  const { data: animationMoviesData } = useMoviesByProviderAndGenre(350, 16); // Animation
-  const { data: documentaryMoviesData } = useMoviesByProviderAndGenre(350, 99); // Documentary
+  // Fetch Apple TV+ movies data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(
+          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=350&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        console.error('❌ Erreur:', err);
+        setError(err instanceof Error ? err.message : 'Erreur inconnue');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const movies = moviesData?.results || [];
-  const actionMovies = actionMoviesData?.results || [];
-  const comedyMovies = comedyMoviesData?.results || [];
-  const dramaMovies = dramaMoviesData?.results || [];
-  const romanceMovies = romanceMoviesData?.results || [];
-  const thrillerMovies = thrillerMoviesData?.results || [];
-  const horrorMovies = horrorMoviesData?.results || [];
-  const sciFiMovies = sciFiMoviesData?.results || [];
-  const fantasyMovies = fantasyMoviesData?.results || [];
-  const animationMovies = animationMoviesData?.results || [];
-  const documentaryMovies = documentaryMoviesData?.results || [];
-  const totalPages = moviesData?.total_pages || 1;
+    fetchData();
+  }, [currentPage]);
+
+  const movies = data?.results || [];
+  const totalPages = data?.total_pages || 1;
 
   // Listen to language changes
   useEffect(() => {
@@ -67,303 +61,101 @@ export default function AppleTVMovies() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
-  // Restaurer la position de scroll au chargement
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
-
-  // Reset page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
       <DesktopSidebar />
-      <BottomNav />
       
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      {/* Main Content */}
+      <div className="md:ml-64">
+        {/* Header avec recherche et contrôles */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => window.history.back()}
-                className="flex items-center gap-2"
+                className="flex-shrink-0"
               >
-                <ArrowLeft className="w-4 h-4" />
-                Retour
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t("common.back")}
               </Button>
-              <h1 className="text-xl font-semibold">Films Apple TV+</h1>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Rechercher des films Apple TV+..."
-              />
+              <div className="flex-1">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    window.location.href = path;
+                  }}
+                />
+              </div>
               <LanguageSelect />
               <ThemeToggle />
             </div>
           </div>
         </div>
+
+      {/* Header */}
+      <div className="relative bg-gradient-to-b from-primary/20 to-background">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Films Apple TV+</h1>
+          <p className="text-muted-foreground mb-4 max-w-2xl">
+            Découvrez les films disponibles sur Apple TV+.
+          </p>
+        </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        {/* Continue Watching */}
-        <ContinueWatching maxItems={20} />
-
-        {/* Search Results */}
-        {searchQuery && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Résultats de recherche</h2>
-            {searchResults.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {searchResults
-                  .filter((item: any) => item.media_type === 'movie')
-                  .slice(0, 20)
-                  .map((movie: any) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        id={movie.id}
-                        title={movie.title}
-                        posterPath={movie.poster_path}
-                        rating={Math.round(movie.vote_average * 10) / 10}
-                        year={movie.release_date ? new Date(movie.release_date).getFullYear().toString() : ""}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">Aucun résultat trouvé pour "{searchQuery}"</p>
-            )}
+      {/* Contenu paginé */}
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Chargement...</p>
+          </div>
+        ) : movies.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {movies.map((movie: any) => {
+                // Transformer les données pour correspondre au format attendu
+                const transformedMovie = {
+                  id: movie.id,
+                  title: movie.title,
+                  posterPath: movie.poster_path,
+                  rating: Math.round(movie.vote_average * 10) / 10,
+                  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+                  mediaType: "movie" as const,
+                };
+                
+                return (
+                  <div key={movie.id} className="w-full">
+                    <MediaCard
+                      {...transformedMovie}
+                      onClick={() => window.location.href = `/movie/${movie.id}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Aucun film Apple TV+ disponible</p>
           </div>
         )}
-
-        {/* Main Content - Only show when not searching */}
-        {!searchQuery && (
-          <>
-            {/* Latest Apple TV+ Movies */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold">Derniers films Apple TV+</h2>
-              {moviesLoading ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Chargement des films Apple TV+...</p>
-                </div>
-              ) : movies.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {movies.map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">Aucun film Apple TV+ disponible</p>
-              )}
-            </div>
-
-            {/* Genre Categories */}
-            {actionMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Action Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {actionMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {comedyMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Comédie Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {comedyMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {dramaMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {dramaMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {romanceMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Romance Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {romanceMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {thrillerMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Thriller Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {thrillerMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {horrorMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Horreur Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {horrorMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {sciFiMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Science-Fiction Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {sciFiMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {fantasyMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Fantastique Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {fantasyMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {animationMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Films Animation Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {animationMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {documentaryMovies.length > 0 && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Documentaires Apple TV+</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {documentaryMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                    <div key={movie.id} className="w-full">
-                      <MediaCard
-                        {...movie}
-                        mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-8">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
-            )}
-          </>
-        )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
       </div>
     </div>
   );
