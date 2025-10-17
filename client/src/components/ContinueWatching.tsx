@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { Play, Clock, Tv, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ interface ContinueWatchingProps {
 }
 
 export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProps) {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
   const [progress, setProgress] = useState<WatchProgress[]>([]);
 
   useEffect(() => {
@@ -27,9 +27,9 @@ export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProp
 
   const handlePlay = (item: WatchProgress) => {
     if (item.mediaType === 'movie') {
-      navigate(`/movie/${item.mediaId}`);
+      setLocation(`/movie/${item.mediaId}`);
     } else if (item.mediaType === 'tv') {
-      navigate(`/series/${item.mediaId}`);
+      setLocation(`/series/${item.mediaId}`);
     }
   };
 
