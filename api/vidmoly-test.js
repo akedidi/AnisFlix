@@ -82,15 +82,29 @@ export default async function handler(req, res) {
           m3u8Url = match[1] || match[0];
           usedPattern = `Pattern ${i + 1}`;
           
-          // Nettoyer l'URL des caractères parasites
+          // Nettoyer l'URL des caractères parasites (intelligent)
           m3u8Url = m3u8Url
-            .replace(/,/g, '')  // Supprimer les virgules
             .replace(/\\/g, '') // Supprimer les backslashes
             .replace(/\s+/g, '') // Supprimer les espaces
             .trim();
           
-          console.log(`✅ Lien m3u8 trouvé avec ${usedPattern}: ${m3u8Url}`);
-          break;
+          // Supprimer les virgules parasites uniquement à la fin (après .m3u8 ou .urlset)
+          if (m3u8Url.endsWith(',')) {
+            m3u8Url = m3u8Url.slice(0, -1);
+          }
+          // Supprimer les virgules parasites au début (avant https://)
+          if (m3u8Url.startsWith(',')) {
+            m3u8Url = m3u8Url.slice(1);
+          }
+          
+          // Vérifier que l'URL est valide après nettoyage
+          if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
+            console.log(`✅ Lien m3u8 valide trouvé avec ${usedPattern}: ${m3u8Url}`);
+            break;
+          } else {
+            console.log(`⚠️ URL nettoyée invalide: ${m3u8Url}`);
+            m3u8Url = null; // Reset pour essayer le pattern suivant
+          }
         }
       }
       
@@ -99,7 +113,7 @@ export default async function handler(req, res) {
         console.log(`🔍 Extrait HTML (premiers 1000 caractères):`, html.substring(0, 1000));
       }
       
-      if (m3u8Url && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
+      if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
         return res.status(200).json({ 
           success: true,
           m3u8Url: m3u8Url,
