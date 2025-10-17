@@ -132,6 +132,7 @@ export default async function handler(req, res) {
           const contextEnd = Math.min(html.length, sourcesIndex + 500);
           console.log(`🔍 Contexte autour de 'sources:':`, html.substring(contextStart, contextEnd));
         }
+      }
       
       if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
         return res.status(200).json({ 
