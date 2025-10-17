@@ -132,25 +132,15 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                     window.location.href = link;
                   } else if (title.includes('anime')) {
                     // Gestion spéciale pour les anime (priorité sur les autres conditions)
-                    console.log('🎌 Détection anime - Titre:', title);
-                    console.log('🎌 Contient "série":', title.includes('série'));
-                    console.log('🎌 Contient "populaire":', title.includes('populaire'));
-                    console.log('🎌 Contient "populaires":', title.includes('populaires'));
-                    
                     if (title.includes('film') && title.includes('dernier')) {
-                      console.log('🎌 Redirection vers: /anime-movies-latest');
                       window.location.href = '/anime-movies-latest';
                     } else if (title.includes('série') && title.includes('dernier')) {
-                      console.log('🎌 Redirection vers: /anime-series-latest');
                       window.location.href = '/anime-series-latest';
                     } else if (title.includes('film') && (title.includes('populaire') || title.includes('populaires'))) {
-                      console.log('🎌 Redirection vers: /anime-movies-popular');
                       window.location.href = '/anime-movies-popular';
                     } else if (title.includes('série') && (title.includes('populaire') || title.includes('populaires'))) {
-                      console.log('🎌 Redirection vers: /anime-series-popular');
                       window.location.href = '/anime-series-popular';
                     } else {
-                      console.log('🎌 Redirection par défaut vers: /anime-movies-latest');
                       window.location.href = '/anime-movies-latest';
                     }
                   } else if (title.includes('dernier') || title.includes('latest')) {
