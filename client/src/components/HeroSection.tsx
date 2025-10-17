@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, Info } from "lucide-react";
 import { Star } from "lucide-react";
 import { getOptimizedBackdropUrl } from "@/lib/imageOptimization";
 
@@ -83,15 +83,6 @@ export default function HeroSection({
     return () => clearTimeout(timer);
   }, [currentIndex]);
 
-  const goToPrevious = () => {
-    if (heroItems.length <= 1) return;
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + heroItems.length) % heroItems.length);
-  };
-
-  const goToNext = () => {
-    if (heroItems.length <= 1) return;
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % heroItems.length);
-  };
 
   if (!currentItem) return null;
 
@@ -110,27 +101,6 @@ export default function HeroSection({
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       </div>
 
-      {/* Navigation Arrows */}
-      {heroItems.length > 1 && (
-        <>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goToPrevious}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 hover:bg-black/60 text-white border border-white/30 rounded-full backdrop-blur-sm hover:scale-110"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={goToNext}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/40 hover:bg-black/60 text-white border border-white/30 rounded-full backdrop-blur-sm hover:scale-110"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </Button>
-        </>
-      )}
 
       {/* Dots Indicator */}
       {heroItems.length > 1 && (
