@@ -1,11 +1,25 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import MediaCard from "@/components/MediaCard";
+import SearchBar from "@/components/SearchBar";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import Pagination from "@/components/Pagination";
+import BottomNav from "@/components/BottomNav";
+import DesktopSidebar from "@/components/DesktopSidebar";
+import ContinueWatching from "@/components/ContinueWatching";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function NetflixMoviesMinimal() {
+  const { t } = useLanguage();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { restoreScrollPosition } = useScrollPosition('netflix-movies-minimal');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -15,7 +29,7 @@ export default function NetflixMoviesMinimal() {
         
         // Appel direct à l'API TMDB
         const response = await fetch(
-          'https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=8&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=1'
+          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=8&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
         );
         
         if (!response.ok) {
@@ -34,88 +48,118 @@ export default function NetflixMoviesMinimal() {
     };
 
     fetchData();
+  }, [currentPage]);
+
+  // Listen to language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      window.location.reload();
+    };
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Restaurer la position de scroll au chargement
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      restoreScrollPosition();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="container mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour
-          </Button>
-          <h1 className="text-2xl font-semibold">Netflix Movies (Minimal)</h1>
-        </div>
-        
-        <div className="space-y-6">
-          {/* Status */}
-          <div className="bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded">
-            <strong>Status:</strong> {loading ? 'Chargement...' : error ? 'Erreur' : 'Succès'}
+    <div className="min-h-screen bg-background">
+      <DesktopSidebar />
+      <BottomNav />
+      
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.history.back()}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Retour
+              </Button>
+              <h1 className="text-xl font-semibold">Films Netflix</h1>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Rechercher des films Netflix..."
+              />
+              <LanguageSelect />
+              <ThemeToggle />
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Error */}
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              <strong>Erreur:</strong> {error}
+      <div className="container mx-auto px-4 py-6">
+        {/* Continue Watching */}
+        <ContinueWatching maxItems={20} />
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <strong>Erreur:</strong> {error}
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-semibold">Films Netflix</h2>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chargement des films Netflix...</p>
             </div>
-          )}
-
-          {/* Success */}
-          {data && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-              <strong>Succès!</strong> {data.results?.length || 0} films trouvés
-              <br />
-              <strong>Total pages:</strong> {data.total_pages}
-              <br />
-              <strong>Page actuelle:</strong> {data.page}
-            </div>
-          )}
-
-          {/* Movies List */}
-          {data && data.results && (
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Films Netflix:</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {data.results.slice(0, 12).map((movie: any) => (
-                  <div key={movie.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                    <img
-                      src={movie.poster_path ? `https://image.tmdb.org/t/p/w342${movie.poster_path}` : '/placeholder-movie.jpg'}
-                      alt={movie.title}
-                      className="w-full h-64 object-cover"
+          ) : data && data.results && data.results.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {data.results.map((movie: any) => (
+                  <div key={movie.id} className="w-full">
+                    <MediaCard
+                      id={movie.id}
+                      title={movie.title}
+                      posterPath={movie.poster_path}
+                      rating={Math.round(movie.vote_average * 10) / 10}
+                      year={movie.release_date ? new Date(movie.release_date).getFullYear().toString() : ""}
+                      mediaType="movie"
+                      onClick={() => window.location.href = `/movie/${movie.id}`}
                     />
-                    <div className="p-3">
-                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{movie.title}</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {movie.release_date ? new Date(movie.release_date).getFullYear() : 'N/A'}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        ⭐ {Math.round(movie.vote_average * 10) / 10}
-                      </p>
-                    </div>
                   </div>
                 ))}
               </div>
+
+              {/* Pagination */}
+              {data.total_pages > 1 && (
+                <div className="flex justify-center mt-8">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={data.total_pages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Aucun film Netflix disponible</p>
             </div>
           )}
-
-          {/* Debug Info */}
-          <div className="bg-gray-100 border border-gray-400 text-gray-700 px-4 py-3 rounded">
-            <strong>Debug Info:</strong>
-            <pre className="mt-2 text-xs overflow-auto max-h-40">
-              {JSON.stringify({
-                loading,
-                error,
-                dataLength: data?.results?.length,
-                totalPages: data?.total_pages,
-                page: data?.page
-              }, null, 2)}
-            </pre>
-          </div>
         </div>
       </div>
     </div>
