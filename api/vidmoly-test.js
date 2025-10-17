@@ -62,10 +62,18 @@ export default async function handler(req, res) {
         /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
         // Pattern pour sources: [{file: 'url'}] (guillemets simples)
         /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
+        // Pattern très permissif pour capturer tout après file: jusqu'au prochain guillemet
+        /file:\s*["']([^"']+)["']/,
+        // Pattern spécifique pour URLs avec virgules dans le nom de fichier + paramètres
+        /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8\?[^"']*)["']/,
         // Pattern pour capturer l'URL complète avec paramètres de requête
         /sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.urlset\/master\.m3u8[^"']*)["']/,
+        // Pattern général pour URLs m3u8 avec paramètres
+        /https?:\/\/[^"'\s]+\.m3u8\?[^"'\s]*/,
         // Pattern général pour URLs m3u8
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
+        // Pattern général pour URLs urlset avec paramètres
+        /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*\?[^"'\s]*/,
         // Pattern général pour URLs urlset
         /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
       ];
@@ -113,7 +121,22 @@ export default async function handler(req, res) {
       
       if (!m3u8Url) {
         console.log(`❌ Aucun pattern n'a trouvé de lien m3u8`);
-        console.log(`🔍 Extrait HTML (premiers 1000 caractères):`, html.substring(0, 1000));
+        console.log(`🔍 Extrait HTML (premiers 2000 caractères):`, html.substring(0, 2000));
+        
+        // Chercher spécifiquement les occurrences de "player.setup" et "sources"
+        const playerSetupIndex = html.indexOf('player.setup');
+        if (playerSetupIndex !== -1) {
+          const contextStart = Math.max(0, playerSetupIndex - 200);
+          const contextEnd = Math.min(html.length, playerSetupIndex + 1000);
+          console.log(`🔍 Contexte autour de 'player.setup':`, html.substring(contextStart, contextEnd));
+        }
+        
+        const sourcesIndex = html.indexOf('sources:');
+        if (sourcesIndex !== -1) {
+          const contextStart = Math.max(0, sourcesIndex - 100);
+          const contextEnd = Math.min(html.length, sourcesIndex + 500);
+          console.log(`🔍 Contexte autour de 'sources:':`, html.substring(contextStart, contextEnd));
+        }
       }
       
       if (m3u8Url && m3u8Url.startsWith('http') && (m3u8Url.includes('.m3u8') || m3u8Url.includes('.urlset'))) {
