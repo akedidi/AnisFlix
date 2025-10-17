@@ -37,6 +37,22 @@ import AppleTVContent from "@/pages/AppleTVContent";
 import ParamountContent from "@/pages/ParamountContent";
 import ProviderDetail from "@/pages/ProviderDetail";
 
+// Provider Movies pages
+import NetflixMovies from "@/pages/NetflixMovies";
+import AmazonMovies from "@/pages/AmazonMovies";
+import DisneyMovies from "@/pages/DisneyMovies";
+import HBOMaxMovies from "@/pages/HBOMaxMovies";
+import AppleTVMovies from "@/pages/AppleTVMovies";
+import ParamountMovies from "@/pages/ParamountMovies";
+
+// Provider Series pages
+import NetflixSeries from "@/pages/NetflixSeries";
+import AmazonSeries from "@/pages/AmazonSeries";
+import DisneySeries from "@/pages/DisneySeries";
+import HBOMaxSeries from "@/pages/HBOMaxSeries";
+import AppleTVSeries from "@/pages/AppleTVSeries";
+import ParamountSeries from "@/pages/ParamountSeries";
+
 // Test components
 import VidSrcTest from "@/components/VidSrcTest";
 import MovixDownloadTest from "@/components/MovixDownloadTest";
@@ -93,6 +109,22 @@ function App() {
             <Route path="/paramount" component={ParamountContent} />
             <Route path="/paramount-content" component={ParamountContent} />
             <Route path="/provider/:id" component={ProviderDetail} />
+            
+            {/* Provider Movies routes */}
+            <Route path="/netflix-movies" component={NetflixMovies} />
+            <Route path="/amazon-movies" component={AmazonMovies} />
+            <Route path="/disney-movies" component={DisneyMovies} />
+            <Route path="/hbo-max-movies" component={HBOMaxMovies} />
+            <Route path="/apple-tv-movies" component={AppleTVMovies} />
+            <Route path="/paramount-movies" component={ParamountMovies} />
+            
+            {/* Provider Series routes */}
+            <Route path="/netflix-series" component={NetflixSeries} />
+            <Route path="/amazon-series" component={AmazonSeries} />
+            <Route path="/disney-series" component={DisneySeries} />
+            <Route path="/hbo-max-series" component={HBOMaxSeries} />
+            <Route path="/apple-tv-series" component={AppleTVSeries} />
+            <Route path="/paramount-series" component={ParamountSeries} />
             
             {/* Test routes */}
             <Route path="/test/vidsrc" component={VidSrcTest} />

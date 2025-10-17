@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import Pagination from "@/components/Pagination";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -15,16 +16,37 @@ import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AnimeMoviesPopular() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { scrollY } = useScrollPosition();
   
   // Fetch anime movies (genre 16 = Animation)
-  const { data: animeMoviesData } = useMoviesByGenre(16);
+  const { data: animeMoviesData, isLoading: animeMoviesLoading } = useMoviesByGenre(16, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const animeMovies = animeMoviesData?.results || [];
+  const totalPages = animeMoviesData?.total_pages || 1;
+
+  // Listen to language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      window.location.reload();
+    };
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
+  }, []);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -124,6 +146,17 @@ export default function AnimeMoviesPopular() {
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {!searchQuery && totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
       
     </div>
