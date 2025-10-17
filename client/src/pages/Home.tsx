@@ -24,7 +24,6 @@ import { getWatchProgress } from "@/lib/watchProgress";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [featuredKey, setFeaturedKey] = useState(0); // Force re-render of featured
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -81,30 +80,6 @@ export default function Home() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Use random popular movie as featured (changes on each page load)
-  const getRandomFeatured = () => {
-    if (popularMovies.length === 0) return null;
-    // Use featuredKey to ensure different random selection
-    const seed = featuredKey + Date.now();
-    const randomIndex = Math.floor((Math.sin(seed) * 10000) % Math.min(popularMovies.length, 10));
-    const movie = popularMovies[Math.abs(randomIndex)];
-    return {
-      id: movie.id,
-      title: movie.title,
-      overview: "",
-      backdropPath: movie.posterPath,
-      rating: movie.rating,
-      year: movie.year,
-      mediaType: movie.mediaType,
-    };
-  };
-  
-  const featured = getRandomFeatured();
-  
-  // Function to change featured movie
-  const changeFeaturedMovie = () => {
-    setFeaturedKey(prev => prev + 1);
-  };
 
   // Providers
   const providers = [
@@ -185,27 +160,33 @@ export default function Home() {
         {/* Content */}
         <div className="pt-4 sm:pt-6 md:pt-8 pb-20 md:pb-8">
           <div className="space-y-8 md:space-y-12">
-        {featured && (
+        {popularMovies.length > 0 && (
           <HeroSection
-            {...featured}
-            isFavorite={featured ? isFavorite(featured.id, 'movie') : false}
-            onFavorite={() => {
-              if (featured) {
-                toggleFavorite({
-                  id: featured.id,
-                  title: featured.title,
-                  posterPath: featured.backdropPath,
-                  rating: featured.rating,
-                  year: featured.year || '',
-                  mediaType: 'movie'
-                });
-              }
+            items={popularMovies.slice(0, 5).map(movie => ({
+              id: movie.id,
+              title: movie.title,
+              overview: movie.overview,
+              backdropPath: movie.backdropPath,
+              rating: movie.rating,
+              year: movie.year,
+              mediaType: 'movie' as const,
+            }))}
+            isFavorite={(item) => isFavorite(item.id, 'movie')}
+            onFavorite={(item) => {
+              toggleFavorite({
+                id: item.id,
+                title: item.title,
+                posterPath: item.backdropPath,
+                rating: item.rating,
+                year: item.year || '',
+                mediaType: 'movie'
+              });
             }}
-            onInfo={() => {
-              if (featured) {
-                window.location.href = `/movie/${featured.id}`;
-              }
+            onInfo={(item) => {
+              window.location.href = `/movie/${item.id}`;
             }}
+            autoRotate={true}
+            rotationInterval={6000}
           />
         )}
 
