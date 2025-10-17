@@ -25,8 +25,10 @@ export default async function handler(req, res) {
     const refererUrl = referer ? decodeURIComponent(referer) : 'https://vidmoly.net/';
     
     // Log pour debug
-    console.log(`[VIDMOLY PROXY] URL cible: ${targetUrl}`);
+    console.log(`[VIDMOLY PROXY] URL brute reçue: ${url}`);
+    console.log(`[VIDMOLY PROXY] URL cible décodée: ${targetUrl}`);
     console.log(`[VIDMOLY PROXY] Referer: ${refererUrl}`);
+    console.log(`[VIDMOLY PROXY] Type de contenu détecté: ${targetUrl.includes('.m3u8') ? 'M3U8 Playlist' : 'Segment vidéo'}`);
 
     // Ignorer les requêtes pour le favicon
     if (req.url === '/favicon.ico') {
@@ -90,6 +92,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error(`[PROXY] Erreur pour ${req.query.url}: ${error.message}`);
+    console.error(`[PROXY] Détails de l'erreur:`, error.response ? {
+      status: error.response.status,
+      statusText: error.response.statusText,
+      headers: error.response.headers
+    } : error);
     res.writeHead(error.response ? error.response.status : 500);
     res.end();
   }
