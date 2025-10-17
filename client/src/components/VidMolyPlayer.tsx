@@ -112,7 +112,18 @@ export default function VidMolyPlayer({
         // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
         // ou directement pour les liens de démonstration
         let finalUrl;
-        if (data.method === 'extracted_real') {
+        
+        // Déterminer si c'est un vrai lien VidMoly qui nécessite un proxy
+        const isRealVidMolyLink = data.method === 'extracted_real' || 
+                                 data.method === 'direct_master_m3u8' || 
+                                 data.method?.startsWith('direct_pattern_') ||
+                                 (data.m3u8Url && data.m3u8Url.includes('vmwesa.online'));
+        
+        console.log('🔍 Méthode d\'extraction:', data.method);
+        console.log('🔍 Lien m3u8:', data.m3u8Url);
+        console.log('🔍 Est un vrai lien VidMoly:', isRealVidMolyLink);
+        
+        if (isRealVidMolyLink) {
           // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
           finalUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
           console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
