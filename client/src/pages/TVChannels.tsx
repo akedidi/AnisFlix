@@ -9,6 +9,7 @@ import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
+import ShakaPlayer from "@/components/ShakaPlayer";
 
 interface TVChannel {
   id: string;
@@ -89,6 +90,8 @@ export default function TVChannels() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Généraliste");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -107,98 +110,142 @@ export default function TVChannels() {
     }
   }, [selectedSection, availableCategories, selectedCategory]);
 
-  useEffect(() => {
-    if (!selectedChannel || !videoRef.current) return;
+  // Fonction pour détecter le type de lien et déterminer le player
+  const detectPlayerType = async (channelId: string): Promise<'hls' | 'shaka'> => {
+    try {
+      // Faire une requête HEAD pour analyser le type de contenu
+      const response = await fetch(`/api/tv-stream?channelId=${channelId}`, {
+        method: 'HEAD'
+      });
+      
+      const contentType = response.headers.get('content-type') || '';
+      const url = response.url;
+      
+      console.log('🔍 Analyse du lien TV:', { contentType, url });
+      
+      // Détecter le type de lien
+      if (url.includes('.mpd') || contentType.includes('application/dash+xml')) {
+        console.log('📺 Lien MPD détecté → Shaka Player');
+        return 'shaka';
+      } else if (url.includes('.m3u8') && !url.includes('segments')) {
+        // M3U8 direct (pas de segments) → Shaka Player
+        console.log('📺 Lien M3U8 direct détecté → Shaka Player');
+        return 'shaka';
+      } else {
+        // M3U8 avec segments → HLS Player
+        console.log('📺 Lien M3U8 avec segments détecté → HLS Player');
+        return 'hls';
+      }
+    } catch (error) {
+      console.warn('⚠️ Impossible de détecter le type, utilisation du HLS Player par défaut');
+      return 'hls';
+    }
+  };
+
+  // Fonction pour initialiser le player HLS
+  const initHLSPlayer = async (streamUrl: string) => {
+    if (!videoRef.current) return;
 
     const video = videoRef.current;
-      const streamUrl = `/api/tv-stream?channelId=${selectedChannel.id}`;
+    
+    if (Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
 
-    setIsLoading(true);
-    setError(null);
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        liveSyncDurationCount: 3,
+        liveMaxLatencyDurationCount: 5,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        startLevel: -1,
+        capLevelToPlayerSize: true,
+        liveBackBufferLength: 10,
+        maxLiveSyncPlaybackRate: 1.05,
+      });
+      
+      hlsRef.current = hls;
+      hls.loadSource(streamUrl);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsLoading(false);
+        video.play().catch(err => {
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
 
-        if (Hls.isSupported()) {
-          if (hlsRef.current) {
-            hlsRef.current.destroy();
+      hls.on(Hls.Events.ERROR, (_event, data: any) => {
+        console.error("Erreur HLS:", data);
+        setIsLoading(false);
+        if (data.fatal) {
+          setError("Erreur fatale lors du chargement du flux");
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              setTimeout(() => {
+                if (hlsRef.current) {
+                  hlsRef.current.startLoad();
+                }
+              }, 2000);
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setTimeout(() => {
+                if (hlsRef.current) {
+                  hlsRef.current.recoverMediaError();
+                }
+              }, 1000);
+              break;
+            default:
+              hls.destroy();
+              break;
           }
-
-          const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            liveSyncDurationCount: 3, // Buffer plus stable pour les streams live
-            liveMaxLatencyDurationCount: 5, // Latence maximale plus raisonnable
-            maxBufferLength: 30, // Buffer plus long pour éviter les coupures
-            maxMaxBufferLength: 60, // Buffer maximum plus long
-            startLevel: -1, // Auto-select starting level
-            capLevelToPlayerSize: true,
-            liveBackBufferLength: 10, // Buffer en arrière pour la stabilité
-            maxLiveSyncPlaybackRate: 1.05, // Vitesse de rattrapage plus douce
-          });
-          
-          hlsRef.current = hls;
-          hls.loadSource(streamUrl);
-          hls.attachMedia(video);
-          
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsLoading(false);
-            // Pour les streams live, laisser HLS gérer automatiquement la position
-            video.play().catch(err => {
-              console.error("Erreur de lecture:", err);
-              setError("Impossible de lire le flux");
-            });
-          });
-
-          // Gestion spécifique pour les streams live - plus douce
-          hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
-            if (data.details.live) {
-              console.log("Stream live détecté");
-              // Ne pas forcer la position, laisser HLS gérer naturellement
-            }
-          });
-          
-          hls.on(Hls.Events.ERROR, (_event, data: any) => {
-            console.error("Erreur HLS:", data);
-            setIsLoading(false);
-            if (data.fatal) {
-              setError("Erreur fatale lors du chargement du flux");
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  console.error("Erreur réseau fatale - tentative de récupération");
-                  // Attendre un peu avant de redémarrer
-                  setTimeout(() => {
-                    if (hlsRef.current) {
-                      hlsRef.current.startLoad();
-                    }
-                  }, 2000);
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  console.error("Erreur média fatale - tentative de récupération");
-                  // Attendre un peu avant de récupérer
-                  setTimeout(() => {
-                    if (hlsRef.current) {
-                      hlsRef.current.recoverMediaError();
-                    }
-                  }, 1000);
-                  break;
-                default:
-                  console.error("Erreur fatale non récupérable");
-                  hls.destroy();
-                  break;
-              }
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = streamUrl;
-          video.addEventListener('loadedmetadata', () => {
-            setIsLoading(false);
-            video.play().catch(err => {
-              console.error("Erreur de lecture:", err);
-              setError("Impossible de lire le flux");
-            });
-          });
-        } else {
-          setError("Votre navigateur ne supporte pas HLS");
-          setIsLoading(false);
         }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        setIsLoading(false);
+        video.play().catch(err => {
+          console.error("Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
+      });
+    } else {
+      setError("Votre navigateur ne supporte pas HLS");
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedChannel) {
+      setPlayerType(null);
+      setStreamUrl(null);
+      return;
+    }
+
+    const initializePlayer = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      const streamUrl = `/api/tv-stream?channelId=${selectedChannel.id}`;
+      setStreamUrl(streamUrl);
+      
+      // Détecter le type de player nécessaire
+      const detectedPlayerType = await detectPlayerType(selectedChannel.id);
+      setPlayerType(detectedPlayerType);
+      
+      if (detectedPlayerType === 'hls') {
+        await initHLSPlayer(streamUrl);
+      } else {
+        // Pour Shaka Player, on laisse le composant ShakaPlayer gérer la lecture
+        setIsLoading(false);
+      }
+    };
+
+    initializePlayer();
 
     return () => {
       if (hlsRef.current) {
@@ -247,25 +294,46 @@ export default function TVChannels() {
                       <div className="text-red-500 text-xl">{error}</div>
                     </div>
                   )}
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full"
-                    controls
-                    autoPlay
-                    data-testid="video-player"
-                  />
+                  
+                  {/* Affichage conditionnel du player selon le type détecté */}
+                  {playerType === 'hls' && streamUrl ? (
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full"
+                      controls
+                      autoPlay
+                      data-testid="video-player-hls"
+                    />
+                  ) : playerType === 'shaka' && streamUrl ? (
+                    <ShakaPlayer
+                      url={streamUrl}
+                      title={selectedChannel.name}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <div className="text-center">
+                        <Tv className="w-12 h-12 mx-auto mb-2" />
+                        <p>Initialisation du player...</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">{selectedChannel.category}</Badge>
-                          <Badge variant="outline">{TV_SECTIONS.find(s => s.id === selectedChannel.section)?.name}</Badge>
-                        </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
+                      <div className="flex gap-2">
+                        <Badge variant="secondary">{selectedChannel.category}</Badge>
+                        <Badge variant="outline">{TV_SECTIONS.find(s => s.id === selectedChannel.section)?.name}</Badge>
+                        {playerType && (
+                          <Badge variant="outline" className="text-xs">
+                            {playerType === 'hls' ? 'HLS Player' : 'Shaka Player'}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
+                </div>
               </Card>
             ) : (
               <div className="text-center py-20">
