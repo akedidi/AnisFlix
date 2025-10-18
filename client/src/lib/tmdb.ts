@@ -183,50 +183,160 @@ export const tmdb = {
 
   // Discover by provider
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
-    return tmdbFetch('/discover/movie', {
-      with_watch_providers: providerId.toString(),
-      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
-      with_watch_monetization_types: 'flatrate', // Only subscription-based content
-      vote_average_gte: '5', // Minimum rating 5/10
-      vote_count_gte: '50', // Minimum 50 votes
-      page: page.toString(),
-    });
+    // Essayer plusieurs régions pour avoir plus de contenu
+    const regions = ['US', 'FR', 'GB', 'CA'];
+    
+    for (const region of regions) {
+      try {
+        const data = await tmdbFetch('/discover/movie', {
+          with_watch_providers: providerId.toString(),
+          watch_region: region,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
+          page: page.toString(),
+        });
+        
+        if (data.results && data.results.length > 0) {
+          return data; // Si on trouve du contenu, on s'arrête
+        }
+      } catch (err) {
+        console.log(`Région ${region} échouée pour films provider, essai suivant...`);
+        continue;
+      }
+    }
+    
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
+    try {
+      return await tmdbFetch('/discover/movie', {
+        with_watch_providers: providerId.toString(),
+        with_watch_monetization_types: 'flatrate',
+        vote_average_gte: '5',
+        vote_count_gte: '50',
+        page: page.toString(),
+      });
+    } catch (err) {
+      // Retourner un résultat vide en cas d'échec total
+      return { results: [], total_pages: 0, page: 1 };
+    }
   },
 
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
-    return tmdbFetch('/discover/tv', {
-      with_watch_providers: providerId.toString(),
-      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
-      with_watch_monetization_types: 'flatrate', // Only subscription-based content
-      vote_average_gte: '5', // Minimum rating 5/10
-      vote_count_gte: '50', // Minimum 50 votes
-      page: page.toString(),
-    });
+    // Essayer plusieurs régions pour avoir plus de contenu
+    const regions = ['US', 'FR', 'GB', 'CA'];
+    
+    for (const region of regions) {
+      try {
+        const data = await tmdbFetch('/discover/tv', {
+          with_watch_providers: providerId.toString(),
+          watch_region: region,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
+          page: page.toString(),
+        });
+        
+        if (data.results && data.results.length > 0) {
+          return data; // Si on trouve du contenu, on s'arrête
+        }
+      } catch (err) {
+        console.log(`Région ${region} échouée pour séries provider, essai suivant...`);
+        continue;
+      }
+    }
+    
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
+    try {
+      return await tmdbFetch('/discover/tv', {
+        with_watch_providers: providerId.toString(),
+        with_watch_monetization_types: 'flatrate',
+        vote_average_gte: '5',
+        vote_count_gte: '50',
+        page: page.toString(),
+      });
+    } catch (err) {
+      // Retourner un résultat vide en cas d'échec total
+      return { results: [], total_pages: 0, page: 1 };
+    }
   },
 
-  // Discover by provider + genre
+  // Discover by provider + genre with fallback logic
   discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
-    return tmdbFetch('/discover/movie', {
-      with_watch_providers: providerId.toString(),
-      with_genres: genreId.toString(),
-      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
-      with_watch_monetization_types: 'flatrate', // Only subscription-based content
-      vote_average_gte: '5', // Minimum rating 5/10
-      vote_count_gte: '50', // Minimum 50 votes
-      page: page.toString(),
-    });
+    // Essayer plusieurs régions pour avoir plus de contenu
+    const regions = ['US', 'FR', 'GB', 'CA'];
+    
+    for (const region of regions) {
+      try {
+        const data = await tmdbFetch('/discover/movie', {
+          with_watch_providers: providerId.toString(),
+          with_genres: genreId.toString(),
+          watch_region: region,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
+          page: page.toString(),
+        });
+        
+        if (data.results && data.results.length > 0) {
+          return data; // Si on trouve du contenu, on s'arrête
+        }
+      } catch (err) {
+        console.log(`Région ${region} échouée pour films, essai suivant...`);
+        continue;
+      }
+    }
+    
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
+    try {
+      return await tmdbFetch('/discover/movie', {
+        with_genres: genreId.toString(),
+        vote_average_gte: '5',
+        vote_count_gte: '50',
+        page: page.toString(),
+      });
+    } catch (err) {
+      // Retourner un résultat vide en cas d'échec total
+      return { results: [], total_pages: 0, page: 1 };
+    }
   },
 
   discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
-    return tmdbFetch('/discover/tv', {
-      with_watch_providers: providerId.toString(),
-      with_genres: genreId.toString(),
-      watch_region: getRegionForProvider(providerId), // Use optimal region for each provider
-      with_watch_monetization_types: 'flatrate', // Only subscription-based content
-      vote_average_gte: '5', // Minimum rating 5/10
-      vote_count_gte: '50', // Minimum 50 votes
-      page: page.toString(),
-    });
+    // Essayer plusieurs régions pour avoir plus de contenu
+    const regions = ['US', 'FR', 'GB', 'CA'];
+    
+    for (const region of regions) {
+      try {
+        const data = await tmdbFetch('/discover/tv', {
+          with_watch_providers: providerId.toString(),
+          with_genres: genreId.toString(),
+          watch_region: region,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
+          page: page.toString(),
+        });
+        
+        if (data.results && data.results.length > 0) {
+          return data; // Si on trouve du contenu, on s'arrête
+        }
+      } catch (err) {
+        console.log(`Région ${region} échouée pour séries, essai suivant...`);
+        continue;
+      }
+    }
+    
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
+    try {
+      return await tmdbFetch('/discover/tv', {
+        with_genres: genreId.toString(),
+        vote_average_gte: '5',
+        vote_count_gte: '50',
+        page: page.toString(),
+      });
+    } catch (err) {
+      // Retourner un résultat vide en cas d'échec total
+      return { results: [], total_pages: 0, page: 1 };
+    }
   },
 };
 
