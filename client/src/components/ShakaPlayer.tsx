@@ -129,13 +129,25 @@ export default function ShakaPlayer({ url, onClose, title }: ShakaPlayerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center">
-      <div className="relative w-full h-full max-w-7xl max-h-[90vh] bg-black rounded-lg overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Fermer si on clique sur l'overlay (pas sur le player)
+        if (e.target === e.currentTarget && onClose) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="relative w-full max-w-6xl max-h-[80vh] bg-black rounded-lg overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4">
           <div className="flex items-center justify-between">
             <div className="text-white">
               {title && <h3 className="text-lg font-semibold">{title}</h3>}
+              <p className="text-xs text-gray-300 mt-1">Cliquez en dehors pour fermer</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
