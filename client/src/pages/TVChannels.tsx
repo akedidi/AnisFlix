@@ -232,6 +232,7 @@ export default function TVChannels() {
   const [error, setError] = useState<string | null>(null);
   const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [showShakaPlayer, setShowShakaPlayer] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -371,9 +372,11 @@ export default function TVChannels() {
       
       if (detectedPlayerType === 'hls') {
         await initHLSPlayer(streamUrl);
+        setShowShakaPlayer(false);
       } else {
-        // Pour Shaka Player, on laisse le composant ShakaPlayer gérer la lecture
+        // Pour Shaka Player, on l'affiche en plein écran
         setIsLoading(false);
+        setShowShakaPlayer(true);
       }
     };
 
@@ -387,6 +390,11 @@ export default function TVChannels() {
     };
   }, [selectedChannel]);
 
+  // Fonction pour fermer le ShakaPlayer
+  const closeShakaPlayer = () => {
+    setShowShakaPlayer(false);
+    setSelectedChannel(null);
+  };
 
   return (
     <div className="min-h-screen fade-in-up">
@@ -437,10 +445,13 @@ export default function TVChannels() {
                       data-testid="video-player-hls"
                     />
                   ) : playerType === 'shaka' && streamUrl ? (
-                    <ShakaPlayer
-                      url={streamUrl}
-                      title={selectedChannel.name}
-                    />
+                    <div className="w-full h-full flex items-center justify-center text-white">
+                      <div className="text-center">
+                        <Tv className="w-12 h-12 mx-auto mb-2" />
+                        <p>Lecture avec Shaka Player...</p>
+                        <p className="text-sm text-gray-300 mt-1">Cliquez pour ouvrir en plein écran</p>
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white">
                       <div className="text-center">
@@ -557,6 +568,15 @@ export default function TVChannels() {
           </div>
         </div>
       </div>
+      
+      {/* ShakaPlayer en plein écran */}
+      {showShakaPlayer && streamUrl && selectedChannel && (
+        <ShakaPlayer
+          url={streamUrl}
+          title={selectedChannel.name}
+          onClose={closeShakaPlayer}
+        />
+      )}
       
       </div>
     </div>

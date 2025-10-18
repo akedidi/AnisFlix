@@ -136,7 +136,6 @@ export default function ShakaPlayer({ url, onClose, title }: ShakaPlayerProps) {
           <div className="flex items-center justify-between">
             <div className="text-white">
               {title && <h3 className="text-lg font-semibold">{title}</h3>}
-              <p className="text-sm text-gray-300">Shaka Player (HLS & DASH)</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -174,7 +173,6 @@ export default function ShakaPlayer({ url, onClose, title }: ShakaPlayerProps) {
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
                 <p className="text-lg">Chargement du flux...</p>
-                <p className="text-sm text-gray-300 mt-2">Shaka Player</p>
               </div>
             </div>
           )}
