@@ -15,54 +15,97 @@ interface TVChannel {
   name: string;
   logo?: string;
   category: string;
+  section: string;
 }
 
+interface TVSection {
+  id: string;
+  name: string;
+  categories: string[];
+}
+
+const TV_SECTIONS: TVSection[] = [
+  {
+    id: "france",
+    name: "France",
+    categories: ["Généraliste", "Sport", "Fiction & Série", "Jeunesse", "Découverte", "Cinéma"]
+  },
+  {
+    id: "international",
+    name: "International",
+    categories: ["Généraliste", "Sport", "Fiction & Série", "Jeunesse", "Découverte", "Cinéma"]
+  },
+  {
+    id: "news",
+    name: "Actualités",
+    categories: ["Généraliste", "Sport", "Fiction & Série", "Jeunesse", "Découverte", "Cinéma"]
+  }
+];
+
 const TV_CHANNELS: TVChannel[] = [
-  // Chaînes généralistes
-  { id: "87", name: "TF1", category: "Généraliste" },
-  { id: "137", name: "France 2", category: "Généraliste" },
-  { id: "138", name: "France 3", category: "Généraliste" },
-  { id: "102", name: "M6", category: "Généraliste" },
-  { id: "106", name: "Canal+", category: "Généraliste" },
-  { id: "78", name: "TMC", category: "Généraliste" },
-  { id: "79", name: "W9", category: "Généraliste" },
-  { id: "77", name: "TFX", category: "Généraliste" },
-  { id: "90", name: "RMC Découverte", category: "Généraliste" },
+  // === SECTION FRANCE ===
+  // Généraliste
+  { id: "87", name: "TF1", category: "Généraliste", section: "france" },
+  { id: "137", name: "France 2", category: "Généraliste", section: "france" },
+  { id: "138", name: "France 3", category: "Généraliste", section: "france" },
+  { id: "102", name: "M6", category: "Généraliste", section: "france" },
+  { id: "106", name: "Canal+", category: "Généraliste", section: "france" },
+  { id: "78", name: "TMC", category: "Généraliste", section: "france" },
+  { id: "79", name: "W9", category: "Généraliste", section: "france" },
+  { id: "77", name: "TFX", category: "Généraliste", section: "france" },
+  { id: "90", name: "RMC Découverte", category: "Généraliste", section: "france" },
   
-  // Chaînes de Sport
-  { id: "44", name: "Bein Sports 1", category: "Sport" },
-  { id: "49", name: "Bein Sports 2", category: "Sport" },
-  { id: "50", name: "Bein Sports 3", category: "Sport" },
-  { id: "88", name: "Canal+ Foot", category: "Sport" },
-  { id: "58", name: "Canal+ Sport 360", category: "Sport" },
-  { id: "33", name: "RMC Sport 1", category: "Sport" },
-  { id: "40", name: "RMC Sport 2", category: "Sport" },
-  { id: "42", name: "RMC Sport 3", category: "Sport" },
+  // Sport
+  { id: "44", name: "Bein Sports 1", category: "Sport", section: "france" },
+  { id: "49", name: "Bein Sports 2", category: "Sport", section: "france" },
+  { id: "50", name: "Bein Sports 3", category: "Sport", section: "france" },
+  { id: "88", name: "Canal+ Foot", category: "Sport", section: "france" },
+  { id: "58", name: "Canal+ Sport 360", category: "Sport", section: "france" },
+  { id: "33", name: "RMC Sport 1", category: "Sport", section: "france" },
+  { id: "40", name: "RMC Sport 2", category: "Sport", section: "france" },
+  { id: "42", name: "RMC Sport 3", category: "Sport", section: "france" },
   
   // Fiction & Série
-  { id: "91", name: "Syfy", category: "Fiction & Série" },
+  { id: "91", name: "Syfy", category: "Fiction & Série", section: "france" },
   
   // Jeunesse
-  { id: "104", name: "Game One", category: "Jeunesse" },
-  { id: "97", name: "Mangas", category: "Jeunesse" },
-  { id: "180", name: "Boomerang", category: "Jeunesse" },
-  { id: "76", name: "Cartoon Network", category: "Jeunesse" },
+  { id: "104", name: "Game One", category: "Jeunesse", section: "france" },
+  { id: "97", name: "Mangas", category: "Jeunesse", section: "france" },
+  { id: "180", name: "Boomerang", category: "Jeunesse", section: "france" },
+  { id: "76", name: "Cartoon Network", category: "Jeunesse", section: "france" },
   
   // Découverte
-  { id: "81", name: "National Geographic Channel", category: "Découverte" },
-  { id: "82", name: "National Geographic Wild", category: "Découverte" },
+  { id: "81", name: "National Geographic Channel", category: "Découverte", section: "france" },
+  { id: "82", name: "National Geographic Wild", category: "Découverte", section: "france" },
   
   // Cinéma
-  { id: "95", name: "TCM Cinema", category: "Cinéma" },
+  { id: "95", name: "TCM Cinema", category: "Cinéma", section: "france" },
 ];
 
 export default function TVChannels() {
   const { t } = useLanguage();
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
+  const [selectedSection, setSelectedSection] = useState<string>("france");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Généraliste");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Filtrer les chaînes par section et catégorie
+  const filteredChannels = TV_CHANNELS.filter(
+    channel => channel.section === selectedSection && channel.category === selectedCategory
+  );
+
+  // Obtenir les catégories disponibles pour la section sélectionnée
+  const availableCategories = TV_SECTIONS.find(section => section.id === selectedSection)?.categories || [];
+
+  // Réinitialiser la catégorie quand on change de section
+  useEffect(() => {
+    if (availableCategories.length > 0 && !availableCategories.includes(selectedCategory)) {
+      setSelectedCategory(availableCategories[0]);
+    }
+  }, [selectedSection, availableCategories, selectedCategory]);
 
   useEffect(() => {
     if (!selectedChannel || !videoRef.current) return;
@@ -165,7 +208,6 @@ export default function TVChannels() {
     };
   }, [selectedChannel]);
 
-  const categories = Array.from(new Set(TV_CHANNELS.map(ch => ch.category)));
 
   return (
     <div className="min-h-screen fade-in-up">
@@ -213,74 +255,105 @@ export default function TVChannels() {
                     data-testid="video-player"
                   />
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
-                      <Badge variant="secondary">{selectedChannel.category}</Badge>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
+                        <div className="flex gap-2">
+                          <Badge variant="secondary">{selectedChannel.category}</Badge>
+                          <Badge variant="outline">{TV_SECTIONS.find(s => s.id === selectedChannel.section)?.name}</Badge>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
               </Card>
             ) : (
               <div className="text-center py-20">
                 <Tv className="w-20 h-20 mx-auto mb-6 text-muted-foreground" />
                 <h2 className="text-2xl font-bold mb-2">Sélectionnez une chaîne</h2>
                 <p className="text-muted-foreground">
-                  Choisissez une chaîne dans la liste pour commencer à regarder
+                  Choisissez une section, puis une catégorie et une chaîne pour commencer à regarder
                 </p>
               </div>
             )}
           </div>
 
-          <div>
-            <Tabs defaultValue={categories[0]} className="w-full">
-              <TabsList className="w-full flex-wrap h-auto gap-1 mb-4">
-                {categories.map(category => (
-                  <TabsTrigger
+          {/* Navigation par sections et catégories */}
+          <div className="space-y-6">
+            {/* Sélection de section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Sections</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {TV_SECTIONS.map(section => (
+                  <Button
+                    key={section.id}
+                    variant={selectedSection === section.id ? "default" : "outline"}
+                    onClick={() => setSelectedSection(section.id)}
+                    className="justify-start"
+                    data-testid={`section-${section.id}`}
+                  >
+                    {section.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sélection de catégorie */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Catégories</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {availableCategories.map(category => (
+                  <Button
                     key={category}
-                    value={category}
-                    className="flex-1 min-w-[120px]"
-                    data-testid={`tab-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    onClick={() => setSelectedCategory(category)}
+                    className="text-sm"
+                    data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {category}
-                  </TabsTrigger>
+                  </Button>
                 ))}
-              </TabsList>
+              </div>
+            </div>
 
-              {categories.map(category => {
-                const channelsInCategory = TV_CHANNELS.filter(ch => ch.category === category);
-                
-                return (
-                  <TabsContent key={category} value={category} className="mt-0">
-                    <div className="space-y-2">
-                      {channelsInCategory.map(channel => (
-                        <Card
-                          key={channel.id}
-                          className={`p-4 cursor-pointer transition-colors hover-elevate ${
-                            selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
-                          }`}
-                          onClick={() => setSelectedChannel(channel)}
-                          data-testid={`channel-${channel.id}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Tv className="w-6 h-6 text-primary" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold">{channel.name}</h4>
-                              </div>
-                            </div>
-                            <Play className="w-5 h-5 text-muted-foreground" />
+            {/* Liste des chaînes */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">
+                Chaînes {TV_SECTIONS.find(s => s.id === selectedSection)?.name} - {selectedCategory}
+              </h3>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {filteredChannels.length > 0 ? (
+                  filteredChannels.map(channel => (
+                    <Card
+                      key={channel.id}
+                      className={`p-4 cursor-pointer transition-colors hover-elevate ${
+                        selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => setSelectedChannel(channel)}
+                      data-testid={`channel-${channel.id}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Tv className="w-6 h-6 text-primary" />
                           </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
-                );
-              })}
-            </Tabs>
+                          <div>
+                            <h4 className="font-semibold">{channel.name}</h4>
+                          </div>
+                        </div>
+                        <Play className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Tv className="w-12 h-12 mx-auto mb-2" />
+                    <p>Aucune chaîne disponible</p>
+                    <p className="text-sm">pour cette section et catégorie</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
