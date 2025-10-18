@@ -289,6 +289,7 @@ export default function SeriesDetail() {
               }
               
               setSelectedSeasonNumber(seasonNum);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
               <TabsList className="flex-wrap h-auto">
                 {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (

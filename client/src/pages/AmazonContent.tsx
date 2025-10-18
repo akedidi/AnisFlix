@@ -82,6 +82,7 @@ export default function AmazonContent() {
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
     setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

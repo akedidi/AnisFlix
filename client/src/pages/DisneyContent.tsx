@@ -73,6 +73,7 @@ export default function DisneyContent() {
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
     setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (

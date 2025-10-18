@@ -34,6 +34,7 @@ export default function Favorites() {
 
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
