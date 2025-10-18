@@ -286,27 +286,43 @@ export default function TVChannels() {
 
   // Fonction pour initialiser le player HLS avec la logique de token/manifest
   const initHLSPlayer = async (streamUrl: string, linkType: string) => {
-    if (!videoRef.current) return;
+    console.log(`🎥 [HLS PLAYER] Début de l'initialisation HLS`);
+    console.log(`🎥 [HLS PLAYER] URL originale: ${streamUrl}`);
+    console.log(`🎥 [HLS PLAYER] Type de lien: ${linkType}`);
+    
+    if (!videoRef.current) {
+      console.error(`🎥 [HLS PLAYER] Aucun élément video trouvé`);
+      return;
+    }
 
     const video = videoRef.current;
+    console.log(`🎥 [HLS PLAYER] Élément video trouvé:`, video);
     
     // Pour les liens hls_segments, utiliser l'API de récupération du token/manifest
     let finalStreamUrl = streamUrl;
     if (linkType === 'hls_segments') {
       const channelId = extractChannelId(streamUrl);
+      console.log(`🎥 [HLS PLAYER] ID de chaîne extrait: ${channelId}`);
       if (channelId) {
         finalStreamUrl = `/api/tv/stream/${channelId}`;
-        console.log(`📺 Utilisation de l'API token/manifest pour la chaîne ${channelId}`);
+        console.log(`🎥 [HLS PLAYER] Utilisation de l'API token/manifest: ${finalStreamUrl}`);
       } else {
-        console.warn('⚠️ Impossible d\'extraire l\'ID de chaîne, utilisation de l\'URL directe');
+        console.warn('🎥 [HLS PLAYER] Impossible d\'extraire l\'ID de chaîne, utilisation de l\'URL directe');
       }
+    } else {
+      console.log(`🎥 [HLS PLAYER] Type de lien non-segments, utilisation de l'URL directe`);
     }
     
+    console.log(`🎥 [HLS PLAYER] URL finale pour le player: ${finalStreamUrl}`);
+    
     if (Hls.isSupported()) {
+      console.log(`🎥 [HLS PLAYER] HLS.js est supporté`);
       if (hlsRef.current) {
+        console.log(`🎥 [HLS PLAYER] Destruction de l'instance HLS précédente`);
         hlsRef.current.destroy();
       }
 
+      console.log(`🎥 [HLS PLAYER] Création de la nouvelle instance HLS`);
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -321,24 +337,29 @@ export default function TVChannels() {
       });
       
       hlsRef.current = hls;
+      console.log(`🎥 [HLS PLAYER] Chargement de la source: ${finalStreamUrl}`);
       hls.loadSource(finalStreamUrl);
+      console.log(`🎥 [HLS PLAYER] Attachement au média`);
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log(`🎥 [HLS PLAYER] Manifest parsé avec succès`);
         setIsLoading(false);
         video.play().catch(err => {
-          console.error("Erreur de lecture:", err);
+          console.error("🎥 [HLS PLAYER] Erreur de lecture:", err);
           setError("Impossible de lire le flux");
         });
       });
 
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
-        console.error("Erreur HLS:", data);
+        console.error("🎥 [HLS PLAYER] Erreur HLS:", data);
         setIsLoading(false);
         if (data.fatal) {
+          console.error(`🎥 [HLS PLAYER] Erreur fatale: ${data.type}`);
           setError("Erreur fatale lors du chargement du flux");
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log(`🎥 [HLS PLAYER] Tentative de récupération réseau dans 2s`);
               setTimeout(() => {
                 if (hlsRef.current) {
                   hlsRef.current.startLoad();
@@ -346,6 +367,7 @@ export default function TVChannels() {
               }, 2000);
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log(`🎥 [HLS PLAYER] Tentative de récupération média dans 1s`);
               setTimeout(() => {
                 if (hlsRef.current) {
                   hlsRef.current.recoverMediaError();
@@ -353,6 +375,7 @@ export default function TVChannels() {
               }, 1000);
               break;
             default:
+              console.log(`🎥 [HLS PLAYER] Destruction de l'instance HLS`);
               hls.destroy();
               break;
           }
@@ -381,13 +404,20 @@ export default function TVChannels() {
     }
 
     const initializePlayer = async () => {
+      console.log(`🎬 [TV CHANNELS] Début de l'initialisation du player`);
+      console.log(`🎬 [TV CHANNELS] Chaîne sélectionnée: ${selectedChannel?.name}`);
+      console.log(`🎬 [TV CHANNELS] Index du lien: ${selectedLinkIndex}`);
+      
       setIsLoading(true);
       setError(null);
       
       // Sélectionner le lien par index pour cette chaîne
       const { url: streamUrl, playerType: detectedPlayerType, linkType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
       
+      console.log(`🎬 [TV CHANNELS] Résultat de selectLinkByIndex:`, { streamUrl, detectedPlayerType, linkType });
+      
       if (!streamUrl) {
+        console.error(`🎬 [TV CHANNELS] Aucun lien de streaming disponible`);
         setError("Aucun lien de streaming disponible pour cette chaîne");
         setIsLoading(false);
         return;
@@ -396,9 +426,20 @@ export default function TVChannels() {
       setStreamUrl(streamUrl);
       setPlayerType(detectedPlayerType);
       
+      console.log(`🎬 [TV CHANNELS] Type de player détecté: ${detectedPlayerType}`);
+      
       if (detectedPlayerType === 'hls') {
-        await initHLSPlayer(streamUrl, linkType);
+        console.log(`🎬 [TV CHANNELS] Initialisation du player HLS avec URL: ${streamUrl} et type: ${linkType}`);
+        try {
+          await initHLSPlayer(streamUrl, linkType);
+          console.log(`🎬 [TV CHANNELS] Player HLS initialisé avec succès`);
+        } catch (error) {
+          console.error(`🎬 [TV CHANNELS] Erreur lors de l'initialisation du player HLS:`, error);
+          setError(`Erreur lors de l'initialisation du player: ${error.message}`);
+          setIsLoading(false);
+        }
       } else {
+        console.log(`🎬 [TV CHANNELS] Initialisation du Shaka Player`);
         // Pour Shaka Player, on l'affiche dans la carte
         setIsLoading(false);
       }
