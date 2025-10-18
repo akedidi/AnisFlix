@@ -250,6 +250,14 @@ export default function TVChannels() {
     }
   }, [selectedSection, availableCategories, selectedCategory]);
 
+  // Remonter le scroll quand on change de section ou de catégorie
+  useEffect(() => {
+    const channelsContainer = document.querySelector('.space-y-2.max-h-96.overflow-y-auto');
+    if (channelsContainer) {
+      channelsContainer.scrollTop = 0;
+    }
+  }, [selectedSection, selectedCategory]);
+
   // Fonction pour sélectionner le meilleur lien et déterminer le player
   const selectBestLink = (channel: TVChannel): { url: string; playerType: 'hls' | 'shaka' } => {
     // Priorité des types de liens (du meilleur au moins bon)
