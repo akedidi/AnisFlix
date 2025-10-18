@@ -8,6 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import BottomNav from "@/components/BottomNav";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 
@@ -81,15 +82,44 @@ export default function ProviderMoviesGenre() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(
-          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&with_genres=${genreId}&watch_region=US&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
-        );
+        // Essayer plusieurs régions pour avoir plus de contenu
+        const regions = ['US', 'FR', 'GB', 'CA'];
+        let result = null;
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        for (const region of regions) {
+          try {
+            const response = await fetch(
+              `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&with_genres=${genreId}&watch_region=${region}&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.results && data.results.length > 0) {
+                result = data;
+                break; // Si on trouve du contenu, on s'arrête
+              }
+            }
+          } catch (err) {
+            console.log(`Région ${region} échouée, essai suivant...`);
+            continue;
+          }
         }
         
-        const result = await response.json();
+        // Si aucune région n'a donné de résultats, essayer sans restriction de région
+        if (!result || !result.results || result.results.length === 0) {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+          );
+          
+          if (response.ok) {
+            result = await response.json();
+          }
+        }
+        
+        if (!result) {
+          throw new Error('Aucun contenu trouvé');
+        }
+        
         setData(result);
       } catch (err) {
         console.error('❌ Erreur:', err);
@@ -237,6 +267,7 @@ export default function ProviderMoviesGenre() {
       </div>
       
       {/* Mobile Bottom Navigation */}
+      <BottomNav />
       </div>
     </div>
   );
