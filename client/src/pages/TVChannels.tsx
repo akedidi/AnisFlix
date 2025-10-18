@@ -265,23 +265,42 @@ export default function TVChannels() {
   }, [selectedChannel]);
 
   // Fonction pour sélectionner un lien par index et déterminer le player
-  const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka' } => {
+  const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
     if (channel.links && channel.links.length > linkIndex) {
       const link = channel.links[linkIndex];
       const playerType = (link.type === 'mpd' || link.type === 'hls_direct') ? 'shaka' : 'hls';
       console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { type: link.type, playerType, url: link.url });
-      return { url: link.url, playerType };
+      return { url: link.url, playerType, linkType: link.type };
     }
     
     console.warn(`⚠️ Aucun lien trouvé pour ${channel.name} à l'index ${linkIndex}`);
-    return { url: '', playerType: 'hls' };
+    return { url: '', playerType: 'hls', linkType: 'hls_segments' };
   };
 
-  // Fonction pour initialiser le player HLS
-  const initHLSPlayer = async (streamUrl: string) => {
+  // Fonction pour extraire l'ID de chaîne depuis l'URL M3U8
+  const extractChannelId = (url: string): string | null => {
+    // Pour les URLs comme https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/87.m3u8
+    const match = url.match(/\/(\d+)\.m3u8$/);
+    return match ? match[1] : null;
+  };
+
+  // Fonction pour initialiser le player HLS avec la logique de token/manifest
+  const initHLSPlayer = async (streamUrl: string, linkType: string) => {
     if (!videoRef.current) return;
 
     const video = videoRef.current;
+    
+    // Pour les liens hls_segments, utiliser l'API de récupération du token/manifest
+    let finalStreamUrl = streamUrl;
+    if (linkType === 'hls_segments') {
+      const channelId = extractChannelId(streamUrl);
+      if (channelId) {
+        finalStreamUrl = `/api/tv/stream/${channelId}`;
+        console.log(`📺 Utilisation de l'API token/manifest pour la chaîne ${channelId}`);
+      } else {
+        console.warn('⚠️ Impossible d\'extraire l\'ID de chaîne, utilisation de l\'URL directe');
+      }
+    }
     
     if (Hls.isSupported()) {
       if (hlsRef.current) {
@@ -302,7 +321,7 @@ export default function TVChannels() {
       });
       
       hlsRef.current = hls;
-      hls.loadSource(streamUrl);
+      hls.loadSource(finalStreamUrl);
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -340,7 +359,7 @@ export default function TVChannels() {
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
+      video.src = finalStreamUrl;
       video.addEventListener('loadedmetadata', () => {
         setIsLoading(false);
         video.play().catch(err => {
@@ -366,7 +385,7 @@ export default function TVChannels() {
       setError(null);
       
       // Sélectionner le lien par index pour cette chaîne
-      const { url: streamUrl, playerType: detectedPlayerType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
+      const { url: streamUrl, playerType: detectedPlayerType, linkType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
       
       if (!streamUrl) {
         setError("Aucun lien de streaming disponible pour cette chaîne");
@@ -378,7 +397,7 @@ export default function TVChannels() {
       setPlayerType(detectedPlayerType);
       
       if (detectedPlayerType === 'hls') {
-        await initHLSPlayer(streamUrl);
+        await initHLSPlayer(streamUrl, linkType);
       } else {
         // Pour Shaka Player, on l'affiche dans la carte
         setIsLoading(false);
