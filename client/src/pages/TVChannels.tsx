@@ -396,6 +396,7 @@ export default function TVChannels() {
     }
   };
 
+  // Premier useEffect : Détermine le type de player et l'URL
   useEffect(() => {
     if (!selectedChannel) {
       setPlayerType(null);
@@ -403,34 +404,47 @@ export default function TVChannels() {
       return;
     }
 
-    const initializePlayer = async () => {
-      console.log(`🎬 [TV CHANNELS] Début de l'initialisation du player`);
-      console.log(`🎬 [TV CHANNELS] Chaîne sélectionnée: ${selectedChannel?.name}`);
-      console.log(`🎬 [TV CHANNELS] Index du lien: ${selectedLinkIndex}`);
+    console.log(`🎬 [TV CHANNELS] Début de la sélection du lien`);
+    console.log(`🎬 [TV CHANNELS] Chaîne sélectionnée: ${selectedChannel?.name}`);
+    console.log(`🎬 [TV CHANNELS] Index du lien: ${selectedLinkIndex}`);
+    
+    setIsLoading(true);
+    setError(null);
+    
+    // Sélectionner le lien par index pour cette chaîne
+    const { url: streamUrl, playerType: detectedPlayerType, linkType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
+    
+    console.log(`🎬 [TV CHANNELS] Résultat de selectLinkByIndex:`, { streamUrl, detectedPlayerType, linkType });
+    
+    if (!streamUrl) {
+      console.error(`🎬 [TV CHANNELS] Aucun lien de streaming disponible`);
+      setError("Aucun lien de streaming disponible pour cette chaîne");
+      setIsLoading(false);
+      return;
+    }
+    
+    setStreamUrl(streamUrl);
+    setPlayerType(detectedPlayerType);
+    
+    console.log(`🎬 [TV CHANNELS] Type de player et URL définis: ${detectedPlayerType}`);
+    
+    if (detectedPlayerType === 'shaka') {
+      console.log(`🎬 [TV CHANNELS] Shaka Player - arrêt du loading`);
+      setIsLoading(false);
+    }
+  }, [selectedChannel, selectedLinkIndex]);
+
+  // Deuxième useEffect : Initialise le player HLS APRÈS que l'élément video soit rendu
+  useEffect(() => {
+    if (playerType === 'hls' && streamUrl && videoRef.current) {
+      console.log(`🎬 [TV CHANNELS] Initialisation du player HLS - élément video trouvé`);
       
-      setIsLoading(true);
-      setError(null);
-      
-      // Sélectionner le lien par index pour cette chaîne
-      const { url: streamUrl, playerType: detectedPlayerType, linkType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
-      
-      console.log(`🎬 [TV CHANNELS] Résultat de selectLinkByIndex:`, { streamUrl, detectedPlayerType, linkType });
-      
-      if (!streamUrl) {
-        console.error(`🎬 [TV CHANNELS] Aucun lien de streaming disponible`);
-        setError("Aucun lien de streaming disponible pour cette chaîne");
-        setIsLoading(false);
-        return;
-      }
-      
-      setStreamUrl(streamUrl);
-      setPlayerType(detectedPlayerType);
-      
-      console.log(`🎬 [TV CHANNELS] Type de player détecté: ${detectedPlayerType}`);
-      
-      if (detectedPlayerType === 'hls') {
-        console.log(`🎬 [TV CHANNELS] Initialisation du player HLS avec URL: ${streamUrl} et type: ${linkType}`);
+      const initializeHLS = async () => {
         try {
+          // Récupérer le type de lien depuis la chaîne sélectionnée
+          const { linkType } = selectLinkByIndex(selectedChannel!, selectedLinkIndex);
+          console.log(`🎬 [TV CHANNELS] Initialisation HLS avec URL: ${streamUrl} et type: ${linkType}`);
+          
           await initHLSPlayer(streamUrl, linkType);
           console.log(`🎬 [TV CHANNELS] Player HLS initialisé avec succès`);
         } catch (error) {
@@ -438,14 +452,10 @@ export default function TVChannels() {
           setError(`Erreur lors de l'initialisation du player: ${error.message}`);
           setIsLoading(false);
         }
-      } else {
-        console.log(`🎬 [TV CHANNELS] Initialisation du Shaka Player`);
-        // Pour Shaka Player, on l'affiche dans la carte
-        setIsLoading(false);
-      }
-    };
+      };
 
-    initializePlayer();
+      initializeHLS();
+    }
 
     return () => {
       if (hlsRef.current) {
@@ -453,7 +463,7 @@ export default function TVChannels() {
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel, selectedLinkIndex]);
+  }, [playerType, streamUrl, selectedChannel, selectedLinkIndex]);
 
 
   return (
