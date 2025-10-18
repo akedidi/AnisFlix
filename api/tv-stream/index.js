@@ -84,38 +84,68 @@ export default async function handler(req, res) {
       console.warn(`[TV STREAM] Erreur session (non critique): ${sessionError.message}`);
     }
 
-    // Laisser suivre la 302 vers /auth/...token=...
-    console.log(`[TV STREAM] Appel de l'URL initiale avec redirection automatique`);
+    // Appel initial pour récupérer la redirection avec le token
+    console.log(`[TV STREAM] Appel de l'URL initiale pour récupérer la redirection`);
     const r = await http.get(initialUrl, { 
       headers: browserHeaders, 
       responseType: 'text',
-      maxRedirects: 5 // Permettre les redirections
+      maxRedirects: 0, // Désactiver le suivi automatique des redirections
+      validateStatus: (status) => status < 400 // Accepter les redirections 302
     });
 
-    const finalUrl = r.request?.res?.responseUrl || initialUrl;
     const ctype = (r.headers['content-type'] || '').toLowerCase();
+    const locationHeader = r.headers.location;
     
-    console.log(`[TV STREAM] Réponse reçue:`);
+    console.log(`[TV STREAM] Réponse initiale:`);
     console.log(`[TV STREAM] - Status: ${r.status}`);
     console.log(`[TV STREAM] - Content-Type: ${ctype}`);
-    console.log(`[TV STREAM] - URL finale: ${finalUrl}`);
-    console.log(`[TV STREAM] - Headers Location: ${r.headers.location || 'Aucune'}`);
+    console.log(`[TV STREAM] - Headers Location: ${locationHeader || 'Aucune'}`);
     console.log(`[TV STREAM] - Taille des données: ${r.data?.length || 0} caractères`);
+
+    let finalUrl = initialUrl;
+    let manifestData = r.data;
+
+    // Si on a une redirection, suivre manuellement pour extraire le token
+    if (r.status === 302 && locationHeader) {
+      console.log(`[TV STREAM] Redirection détectée vers: ${locationHeader}`);
+      
+      // Construire l'URL complète de redirection
+      const redirectUrl = locationHeader.startsWith('http') 
+        ? locationHeader 
+        : `${ORIGIN_HOST}${locationHeader}`;
+      
+      console.log(`[TV STREAM] URL de redirection complète: ${redirectUrl}`);
+      
+      // Appel avec l'URL de redirection pour récupérer le manifest
+      const redirectResponse = await http.get(redirectUrl, {
+        headers: browserHeaders,
+        responseType: 'text'
+      });
+      
+      finalUrl = redirectResponse.request?.res?.responseUrl || redirectUrl;
+      manifestData = redirectResponse.data;
+      
+      console.log(`[TV STREAM] Réponse après redirection:`);
+      console.log(`[TV STREAM] - Status: ${redirectResponse.status}`);
+      console.log(`[TV STREAM] - Content-Type: ${redirectResponse.headers['content-type'] || 'Non spécifié'}`);
+      console.log(`[TV STREAM] - URL finale: ${finalUrl}`);
+      console.log(`[TV STREAM] - Taille du manifest: ${manifestData?.length || 0} caractères`);
+    }
 
     if (r.status >= 400) {
       console.error(`[TV STREAM] Erreur HTTP: ${r.status}`);
       return res.status(r.status).send(`Erreur HTTP: ${r.status}`);
     }
 
-    if (typeof r.data !== 'string') {
+    if (typeof manifestData !== 'string') {
       console.error(`[TV STREAM] Données reçues ne sont pas du texte`);
       return res.status(502).send('Pas une playlist M3U8.');
     }
 
     console.log(`[TV STREAM] Premières lignes du manifest:`);
-    console.log(r.data.split('\n').slice(0, 10).join('\n'));
+    console.log(manifestData.split('\n').slice(0, 10).join('\n'));
 
-    const rewritten = rewritePlaylistUrls(r.data, finalUrl);
+    const rewritten = rewritePlaylistUrls(manifestData, finalUrl);
     
     console.log(`[TV STREAM] Manifest réécrit, envoi de la réponse`);
     console.log(`[TV STREAM] Taille du manifest réécrit: ${rewritten.length} caractères`);
