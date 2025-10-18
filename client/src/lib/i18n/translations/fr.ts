@@ -163,10 +163,14 @@ export default {
   
   // Provider pages
   "provider.on": "sur",
-  "provider.discoverMovies": "Découvrez les meilleurs films {genre} disponibles sur {provider}.",
-  "provider.discoverSeries": "Découvrez les meilleures séries {genre} disponibles sur {provider}.",
-  "provider.noMoviesAvailable": "Aucun film {genre} disponible sur {provider}",
-  "provider.noSeriesAvailable": "Aucune série {genre} disponible sur {provider}",
+  "provider.discoverMoviesPrefix": "Découvrez les meilleurs films",
+  "provider.discoverMoviesSuffix": "disponibles sur",
+  "provider.discoverSeriesPrefix": "Découvrez les meilleures séries",
+  "provider.discoverSeriesSuffix": "disponibles sur",
+  "provider.noMoviesAvailablePrefix": "Aucun film",
+  "provider.noMoviesAvailableSuffix": "disponible sur",
+  "provider.noSeriesAvailablePrefix": "Aucune série",
+  "provider.noSeriesAvailableSuffix": "disponible sur",
   
   // Additional movie/series genres
   "movies.family": "Famille",

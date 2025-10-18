@@ -48,17 +48,6 @@ const PROVIDERS = {
   192: 'YouTube',
   7: 'Vudu',
   337: 'Disney Now',
-  531: 'Disney+',
-  386: 'Peacock Premium',
-  387: 'Peacock',
-  531: 'Disney+',
-  2: 'Apple TV',
-  3: 'Google Play Movies',
-  68: 'Microsoft Store',
-  192: 'YouTube',
-  7: 'Vudu',
-  337: 'Disney Now',
-  531: 'Disney+',
   386: 'Peacock Premium',
   387: 'Peacock'
 };
@@ -198,7 +187,7 @@ export default function ProviderMoviesGenre() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName} {t("provider.on")} {providerName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            {t("provider.discoverMovies", { genre: genreName, provider: providerName })}
+            {t("provider.discoverMoviesPrefix")} {genreName} {t("provider.discoverMoviesSuffix")} {providerName}.
           </p>
         </div>
       </div>
@@ -242,7 +231,7 @@ export default function ProviderMoviesGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("provider.noMoviesAvailable", { genre: genreName, provider: providerName })}</p>
+            <p className="text-muted-foreground">{t("provider.noMoviesAvailablePrefix")} {genreName} {t("provider.noMoviesAvailableSuffix")} {providerName}</p>
           </div>
         )}
       </div>
