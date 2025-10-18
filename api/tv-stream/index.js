@@ -60,40 +60,74 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { channelId } = req.query;
+    // Récupérer le channelId depuis les paramètres d'URL (ex: /api/tv/stream/106)
+    const channelId = req.url.split('/').pop();
     
-    if (!channelId) {
-      return res.status(400).json({ error: 'Channel ID required' });
+    console.log(`[TV STREAM] Début du processus pour channelId: ${channelId}`);
+    console.log(`[TV STREAM] URL complète: ${req.url}`);
+    
+    if (!channelId || isNaN(channelId)) {
+      console.error(`[TV STREAM] Channel ID invalide: ${channelId}`);
+      return res.status(400).json({ error: 'Channel ID required and must be numeric' });
     }
     
     // URL initiale avec l'ID de chaîne
     const initialUrl = `${ORIGIN_HOST}/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
+    console.log(`[TV STREAM] URL initiale: ${initialUrl}`);
 
     // Amorcer la session/cookies
+    console.log(`[TV STREAM] Amorce de la session sur ${ORIGIN_HOST}`);
     try { 
-      await http.get(ORIGIN_HOST + '/', { headers: browserHeaders }); 
-    } catch {}
+      const sessionResponse = await http.get(ORIGIN_HOST + '/', { headers: browserHeaders }); 
+      console.log(`[TV STREAM] Session amorcée: ${sessionResponse.status}`);
+    } catch (sessionError) {
+      console.warn(`[TV STREAM] Erreur session (non critique): ${sessionError.message}`);
+    }
 
     // Laisser suivre la 302 vers /auth/...token=...
+    console.log(`[TV STREAM] Appel de l'URL initiale avec redirection automatique`);
     const r = await http.get(initialUrl, { 
       headers: browserHeaders, 
-      responseType: 'text' 
+      responseType: 'text',
+      maxRedirects: 5 // Permettre les redirections
     });
 
+    const finalUrl = r.request?.res?.responseUrl || initialUrl;
     const ctype = (r.headers['content-type'] || '').toLowerCase();
-    console.log(`[TV ENTRY] ${r.status} ${ctype} ← ${r.request?.res?.responseUrl || initialUrl}`);
+    
+    console.log(`[TV STREAM] Réponse reçue:`);
+    console.log(`[TV STREAM] - Status: ${r.status}`);
+    console.log(`[TV STREAM] - Content-Type: ${ctype}`);
+    console.log(`[TV STREAM] - URL finale: ${finalUrl}`);
+    console.log(`[TV STREAM] - Headers Location: ${r.headers.location || 'Aucune'}`);
+    console.log(`[TV STREAM] - Taille des données: ${r.data?.length || 0} caractères`);
+
+    if (r.status >= 400) {
+      console.error(`[TV STREAM] Erreur HTTP: ${r.status}`);
+      return res.status(r.status).send(`Erreur HTTP: ${r.status}`);
+    }
 
     if (typeof r.data !== 'string') {
+      console.error(`[TV STREAM] Données reçues ne sont pas du texte`);
       return res.status(502).send('Pas une playlist M3U8.');
     }
 
-    const baseUrl = r.request?.res?.responseUrl || initialUrl;
-    const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+    console.log(`[TV STREAM] Premières lignes du manifest:`);
+    console.log(r.data.split('\n').slice(0, 10).join('\n'));
+
+    const rewritten = rewritePlaylistUrls(r.data, finalUrl);
+    
+    console.log(`[TV STREAM] Manifest réécrit, envoi de la réponse`);
+    console.log(`[TV STREAM] Taille du manifest réécrit: ${rewritten.length} caractères`);
 
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.send(rewritten);
   } catch (e) {
-    console.error('[TV ENTRY ERROR]', e.message);
-    res.status(500).send('Erreur lors de la récupération de la playlist.');
+    console.error('[TV STREAM ERROR]', e.message);
+    console.error('[TV STREAM ERROR] Stack:', e.stack);
+    res.status(500).send(`Erreur lors de la récupération de la playlist: ${e.message}`);
   }
 }

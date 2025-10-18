@@ -62,17 +62,24 @@ export default async function handler(req, res) {
     const headers = { ...browserHeaders };
     if (req.headers.range) {
       headers.Range = req.headers.range;
+      console.log(`[TV SEG] Range demandé: ${req.headers.range}`);
     }
 
+    console.log(`[TV SEG] Appel de l'URL segment: ${target}`);
     const r = await http.get(target, { 
       headers, 
       responseType: 'stream', 
       validateStatus: () => true 
     });
     
-    console.log(`[TV SEG] ${r.status} ← ${target}`);
+    console.log(`[TV SEG] Réponse reçue:`);
+    console.log(`[TV SEG] - Status: ${r.status}`);
+    console.log(`[TV SEG] - Content-Type: ${r.headers['content-type'] || 'Non spécifié'}`);
+    console.log(`[TV SEG] - Content-Length: ${r.headers['content-length'] || 'Non spécifié'}`);
+    console.log(`[TV SEG] - Accept-Ranges: ${r.headers['accept-ranges'] || 'Non spécifié'}`);
     
     if (r.status >= 400) {
+      console.error(`[TV SEG] Erreur HTTP: ${r.status}`);
       return res.status(r.status).send('Erreur distante segment.');
     }
 
@@ -80,13 +87,16 @@ export default async function handler(req, res) {
     ['content-type','content-length','accept-ranges','content-range','cache-control'].forEach(h => {
       if (r.headers[h]) {
         res.setHeader(h, r.headers[h]);
+        console.log(`[TV SEG] Header propagé: ${h} = ${r.headers[h]}`);
       }
     });
 
+    console.log(`[TV SEG] Streaming du segment vers le client`);
     res.status(r.status);
     r.data.pipe(res);
   } catch (e) {
     console.error('[TV SEG ERROR]', e.message);
-    res.status(500).send('Erreur proxy segment.');
+    console.error('[TV SEG ERROR] Stack:', e.stack);
+    res.status(500).send(`Erreur proxy segment: ${e.message}`);
   }
 }

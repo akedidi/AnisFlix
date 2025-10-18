@@ -82,28 +82,46 @@ export default async function handler(req, res) {
   }
   
   try {
+    console.log(`[TV M3U8] Appel de l'URL: ${target}`);
     const r = await http.get(target, { 
       headers: browserHeaders, 
       responseType: 'text' 
     });
 
     const ctype = (r.headers['content-type'] || '').toLowerCase();
-    console.log(`[TV M3U8] ${r.status} ${ctype} ← ${target}`);
+    const finalUrl = r.request?.res?.responseUrl || target;
+    
+    console.log(`[TV M3U8] Réponse reçue:`);
+    console.log(`[TV M3U8] - Status: ${r.status}`);
+    console.log(`[TV M3U8] - Content-Type: ${ctype}`);
+    console.log(`[TV M3U8] - URL finale: ${finalUrl}`);
+    console.log(`[TV M3U8] - Taille des données: ${r.data?.length || 0} caractères`);
     
     if (r.status >= 400) {
+      console.error(`[TV M3U8] Erreur HTTP: ${r.status}`);
       return res.status(r.status).send('Erreur distante playlist.');
     }
     if (typeof r.data !== 'string') {
+      console.error(`[TV M3U8] Données reçues ne sont pas du texte`);
       return res.status(502).send('Pas une playlist M3U8.');
     }
 
-    const baseUrl = r.request?.res?.responseUrl || target;
-    const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+    console.log(`[TV M3U8] Premières lignes du manifest:`);
+    console.log(r.data.split('\n').slice(0, 10).join('\n'));
+
+    const rewritten = rewritePlaylistUrls(r.data, finalUrl);
+    
+    console.log(`[TV M3U8] Manifest réécrit, envoi de la réponse`);
+    console.log(`[TV M3U8] Taille du manifest réécrit: ${rewritten.length} caractères`);
 
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.send(rewritten);
   } catch (e) {
     console.error('[TV M3U8 ERROR]', e.message);
-    res.status(500).send('Erreur proxy playlist.');
+    console.error('[TV M3U8 ERROR] Stack:', e.stack);
+    res.status(500).send(`Erreur proxy playlist: ${e.message}`);
   }
 }
