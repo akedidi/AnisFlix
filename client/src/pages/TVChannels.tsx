@@ -228,6 +228,7 @@ export default function TVChannels() {
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [selectedSection, setSelectedSection] = useState<string>("france");
   const [selectedCategory, setSelectedCategory] = useState<string>("Généraliste");
+  const [selectedLinkIndex, setSelectedLinkIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
@@ -258,22 +259,21 @@ export default function TVChannels() {
     }
   }, [selectedSection, selectedCategory]);
 
-  // Fonction pour sélectionner le meilleur lien et déterminer le player
-  const selectBestLink = (channel: TVChannel): { url: string; playerType: 'hls' | 'shaka' } => {
-    // Priorité des types de liens (du meilleur au moins bon)
-    const linkPriority = ['mpd', 'hls_direct', 'hls_segments'];
-    
-    for (const priority of linkPriority) {
-      const link = channel.links.find(l => l.type === priority);
-      if (link) {
-        const playerType = (priority === 'mpd' || priority === 'hls_direct') ? 'shaka' : 'hls';
-        console.log(`📺 Lien sélectionné pour ${channel.name}:`, { type: priority, playerType, url: link.url });
-        return { url: link.url, playerType };
-      }
+  // Réinitialiser l'index du lien quand on change de chaîne
+  useEffect(() => {
+    setSelectedLinkIndex(0);
+  }, [selectedChannel]);
+
+  // Fonction pour sélectionner un lien par index et déterminer le player
+  const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka' } => {
+    if (channel.links && channel.links.length > linkIndex) {
+      const link = channel.links[linkIndex];
+      const playerType = (link.type === 'mpd' || link.type === 'hls_direct') ? 'shaka' : 'hls';
+      console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { type: link.type, playerType, url: link.url });
+      return { url: link.url, playerType };
     }
     
-    // Fallback si aucun lien trouvé
-    console.warn(`⚠️ Aucun lien trouvé pour ${channel.name}`);
+    console.warn(`⚠️ Aucun lien trouvé pour ${channel.name} à l'index ${linkIndex}`);
     return { url: '', playerType: 'hls' };
   };
 
@@ -365,8 +365,8 @@ export default function TVChannels() {
       setIsLoading(true);
       setError(null);
       
-      // Sélectionner le meilleur lien pour cette chaîne
-      const { url: streamUrl, playerType: detectedPlayerType } = selectBestLink(selectedChannel);
+      // Sélectionner le lien par index pour cette chaîne
+      const { url: streamUrl, playerType: detectedPlayerType } = selectLinkByIndex(selectedChannel, selectedLinkIndex);
       
       if (!streamUrl) {
         setError("Aucun lien de streaming disponible pour cette chaîne");
@@ -393,7 +393,7 @@ export default function TVChannels() {
         hlsRef.current = null;
       }
     };
-  }, [selectedChannel]);
+  }, [selectedChannel, selectedLinkIndex]);
 
 
   return (
@@ -422,44 +422,65 @@ export default function TVChannels() {
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">
           <div className="space-y-6">
             {selectedChannel ? (
-              <Card className="overflow-hidden">
-                <div className="aspect-video bg-black relative">
-                  {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-white text-xl">Chargement du flux...</div>
+              <div className="space-y-4">
+                {/* Sélecteur de liens */}
+                {selectedChannel.links && selectedChannel.links.length > 1 && (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedChannel.links.map((link, index) => (
+                        <Button
+                          key={index}
+                          variant={selectedLinkIndex === index ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedLinkIndex(index)}
+                          className="text-xs"
+                        >
+                          Lien {index + 1} ({link.type === 'mpd' ? 'MPD' : link.type === 'hls_direct' ? 'HLS Direct' : 'HLS Segments'})
+                        </Button>
+                      ))}
                     </div>
-                  )}
-                  {error && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-red-500 text-xl">{error}</div>
-                    </div>
-                  )}
-                  
-                  {/* Affichage conditionnel du player selon le type détecté */}
-                  {playerType === 'hls' && streamUrl ? (
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full"
-                      controls
-                      autoPlay
-                      data-testid="video-player-hls"
-                    />
-                  ) : playerType === 'shaka' && streamUrl ? (
-                    <ShakaPlayer
-                      url={streamUrl}
-                      title={selectedChannel.name}
-                      onClose={() => setSelectedChannel(null)}
-                      embedded={true}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-white">
-                      <div className="text-center">
-                        <Tv className="w-12 h-12 mx-auto mb-2" />
-                        <p>Initialisation du player...</p>
+                  </Card>
+                )}
+
+                <Card className="overflow-hidden">
+                  <div className="aspect-video bg-black relative">
+                    {isLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-white text-xl">Chargement du flux...</div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                    {error && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-red-500 text-xl">{error}</div>
+                      </div>
+                    )}
+                    
+                    {/* Affichage conditionnel du player selon le type détecté */}
+                    {playerType === 'hls' && streamUrl ? (
+                      <video
+                        ref={videoRef}
+                        className="w-full h-full"
+                        controls
+                        autoPlay
+                        data-testid="video-player-hls"
+                      />
+                    ) : playerType === 'shaka' && streamUrl ? (
+                      <ShakaPlayer
+                        url={streamUrl}
+                        title={selectedChannel.name}
+                        onClose={() => setSelectedChannel(null)}
+                        embedded={true}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white">
+                        <div className="text-center">
+                          <Tv className="w-12 h-12 mx-auto mb-2" />
+                          <p>Initialisation du player...</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -477,6 +498,7 @@ export default function TVChannels() {
                   </div>
                 </div>
               </Card>
+              </div>
             ) : (
               <div className="text-center py-20">
                 <Tv className="w-20 h-20 mx-auto mb-6 text-muted-foreground" />
