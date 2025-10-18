@@ -107,16 +107,26 @@ export default async function handler(req, res) {
 
     // Si on a une redirection, suivre manuellement pour extraire le token
     if (r.status === 302 && locationHeader) {
-      console.log(`[TV STREAM] Redirection détectée vers: ${locationHeader}`);
+      console.log(`🔑 [TOKEN] Redirection 302 détectée !`);
+      console.log(`🔑 [TOKEN] Header Location: ${locationHeader}`);
+      
+      // Extraire le token depuis l'URL de redirection
+      const tokenMatch = locationHeader.match(/token=([^&]+)/);
+      if (tokenMatch) {
+        console.log(`🔑 [TOKEN] Token extrait: ${tokenMatch[1]}`);
+      } else {
+        console.log(`🔑 [TOKEN] ⚠️ Aucun token trouvé dans l'URL de redirection`);
+      }
       
       // Construire l'URL complète de redirection
       const redirectUrl = locationHeader.startsWith('http') 
         ? locationHeader 
         : `${ORIGIN_HOST}${locationHeader}`;
       
-      console.log(`[TV STREAM] URL de redirection complète: ${redirectUrl}`);
+      console.log(`🔑 [TOKEN] URL de redirection complète: ${redirectUrl}`);
       
       // Appel avec l'URL de redirection pour récupérer le manifest
+      console.log(`🔑 [TOKEN] Appel de l'URL avec token...`);
       const redirectResponse = await http.get(redirectUrl, {
         headers: browserHeaders,
         responseType: 'text'
@@ -125,11 +135,31 @@ export default async function handler(req, res) {
       finalUrl = redirectResponse.request?.res?.responseUrl || redirectUrl;
       manifestData = redirectResponse.data;
       
-      console.log(`[TV STREAM] Réponse après redirection:`);
-      console.log(`[TV STREAM] - Status: ${redirectResponse.status}`);
-      console.log(`[TV STREAM] - Content-Type: ${redirectResponse.headers['content-type'] || 'Non spécifié'}`);
-      console.log(`[TV STREAM] - URL finale: ${finalUrl}`);
-      console.log(`[TV STREAM] - Taille du manifest: ${manifestData?.length || 0} caractères`);
+      console.log(`🔑 [TOKEN] Réponse après redirection:`);
+      console.log(`🔑 [TOKEN] - Status: ${redirectResponse.status}`);
+      console.log(`🔑 [TOKEN] - Content-Type: ${redirectResponse.headers['content-type'] || 'Non spécifié'}`);
+      console.log(`🔑 [TOKEN] - URL finale: ${finalUrl}`);
+      console.log(`🔑 [TOKEN] - Taille du manifest: ${manifestData?.length || 0} caractères`);
+      
+      // Vérifier si c'est un manifest M3U8 valide
+      if (manifestData && typeof manifestData === 'string') {
+        const isM3U8 = manifestData.trim().startsWith('#EXTM3U');
+        console.log(`🔑 [TOKEN] Manifest M3U8 valide: ${isM3U8 ? '✅ OUI' : '❌ NON'}`);
+        if (!isM3U8) {
+          console.log(`🔑 [TOKEN] ⚠️ Contenu reçu (premiers 200 caractères):`);
+          console.log(manifestData.substring(0, 200));
+        }
+      }
+    } else {
+      console.log(`🔑 [TOKEN] ❌ Pas de redirection 302 détectée`);
+      console.log(`🔑 [TOKEN] - Status: ${r.status}`);
+      console.log(`🔑 [TOKEN] - Location header: ${locationHeader || 'Aucun'}`);
+      
+      if (r.status === 200) {
+        console.log(`🔑 [TOKEN] ⚠️ Réponse directe 200 - pas de token nécessaire ?`);
+        console.log(`🔑 [TOKEN] Contenu reçu (premiers 200 caractères):`);
+        console.log(manifestData ? manifestData.substring(0, 200) : 'Aucun contenu');
+      }
     }
 
     if (r.status >= 400) {

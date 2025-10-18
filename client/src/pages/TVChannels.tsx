@@ -304,7 +304,7 @@ export default function TVChannels() {
       const channelId = extractChannelId(streamUrl);
       console.log(`🎥 [HLS PLAYER] ID de chaîne extrait: ${channelId}`);
       if (channelId) {
-        finalStreamUrl = `/api/tv/stream/${channelId}`;
+        finalStreamUrl = `/api/tv-stream?channelId=${channelId}`;
         console.log(`🎥 [HLS PLAYER] Utilisation de l'API token/manifest: ${finalStreamUrl}`);
       } else {
         console.warn('🎥 [HLS PLAYER] Impossible d\'extraire l\'ID de chaîne, utilisation de l\'URL directe');
@@ -449,7 +449,7 @@ export default function TVChannels() {
           console.log(`🎬 [TV CHANNELS] Player HLS initialisé avec succès`);
         } catch (error) {
           console.error(`🎬 [TV CHANNELS] Erreur lors de l'initialisation du player HLS:`, error);
-          setError(`Erreur lors de l'initialisation du player: ${error.message}`);
+          setError(`Erreur lors de l'initialisation du player: ${error instanceof Error ? error.message : String(error)}`);
           setIsLoading(false);
         }
       };
