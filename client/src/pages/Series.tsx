@@ -136,21 +136,6 @@ export default function Series() {
           sectionId="series-genre/animation"
         />
 
-        <MediaCarousel
-          title="Dernières séries anime"
-          items={animeSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
-          showSeeAllButton={true}
-          sectionId="anime-series-latest"
-        />
-
-        <MediaCarousel
-          title="Séries anime populaires"
-          items={animeSeries.slice(10, 20)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
-          showSeeAllButton={true}
-          sectionId="anime-series-popular"
-        />
       </div>
       
       </div>

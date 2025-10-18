@@ -136,21 +136,6 @@ export default function Movies() {
           sectionId="movies-genre/animation"
         />
 
-        <MediaCarousel
-          title="Derniers films anime"
-          items={animeMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
-          showSeeAllButton={true}
-          sectionId="anime-movies-latest"
-        />
-
-        <MediaCarousel
-          title="Films anime populaires"
-          items={animeMovies.slice(10, 20)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
-          showSeeAllButton={true}
-          sectionId="anime-movies-popular"
-        />
       </div>
       
       </div>
