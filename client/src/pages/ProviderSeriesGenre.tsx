@@ -11,31 +11,31 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 
-// Mapping des genres avec leurs noms et IDs
+// Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
-  'action': { id: 10759, name: 'Action & Aventure' },
-  'aventure': { id: 12, name: 'Aventure' },
-  'animation': { id: 16, name: 'Animation' },
-  'comedie': { id: 35, name: 'Comédie' },
-  'crime': { id: 80, name: 'Crime' },
-  'documentaire': { id: 99, name: 'Documentaire' },
-  'drame': { id: 18, name: 'Drame' },
-  'famille': { id: 10751, name: 'Famille' },
-  'fantastique': { id: 14, name: 'Fantastique' },
-  'histoire': { id: 36, name: 'Histoire' },
-  'horreur': { id: 27, name: 'Horreur' },
-  'musique': { id: 10402, name: 'Musique' },
-  'mystere': { id: 9648, name: 'Mystère' },
-  'romance': { id: 10749, name: 'Romance' },
-  'science-fiction': { id: 878, name: 'Science-Fiction' },
-  'telefilm': { id: 10770, name: 'Téléfilm' },
-  'thriller': { id: 53, name: 'Thriller' },
-  'guerre': { id: 10752, name: 'Guerre' },
-  'western': { id: 37, name: 'Western' },
-  'policier': { id: 80, name: 'Policier' },
-  'reality': { id: 10764, name: 'Reality' },
-  'talk': { id: 10767, name: 'Talk Show' },
-  'news': { id: 10763, name: 'News' }
+  'action': { id: 10759, translationKey: 'series.actionAdventure' },
+  'aventure': { id: 12, translationKey: 'series.adventure' },
+  'animation': { id: 16, translationKey: 'series.animation' },
+  'comedie': { id: 35, translationKey: 'series.comedy' },
+  'crime': { id: 80, translationKey: 'series.crime' },
+  'documentaire': { id: 99, translationKey: 'series.documentary' },
+  'drame': { id: 18, translationKey: 'series.drama' },
+  'famille': { id: 10751, translationKey: 'series.family' },
+  'fantastique': { id: 14, translationKey: 'series.fantasy' },
+  'histoire': { id: 36, translationKey: 'series.history' },
+  'horreur': { id: 27, translationKey: 'series.horror' },
+  'musique': { id: 10402, translationKey: 'series.music' },
+  'mystere': { id: 9648, translationKey: 'series.mystery' },
+  'romance': { id: 10749, translationKey: 'series.romance' },
+  'science-fiction': { id: 878, translationKey: 'series.scifi' },
+  'telefilm': { id: 10770, translationKey: 'series.telefilm' },
+  'thriller': { id: 53, translationKey: 'series.thriller' },
+  'guerre': { id: 10752, translationKey: 'series.war' },
+  'western': { id: 37, translationKey: 'series.western' },
+  'policier': { id: 80, translationKey: 'series.crime' },
+  'reality': { id: 10764, translationKey: 'series.reality' },
+  'talk': { id: 10767, translationKey: 'series.talk' },
+  'news': { id: 10763, translationKey: 'series.news' }
 };
 
 // Mapping des providers avec leurs noms
@@ -84,7 +84,7 @@ export default function ProviderSeriesGenre() {
   // Get genre and provider info
   const genreInfo = GENRES[genreSlug as keyof typeof GENRES];
   const genreId = genreInfo?.id;
-  const genreName = genreInfo?.name || genreSlug;
+  const genreName = genreInfo ? t(genreInfo.translationKey) : genreSlug;
   const providerName = PROVIDERS[providerId as keyof typeof PROVIDERS] || `Provider ${providerId}`;
 
   // Fetch series by provider and genre
@@ -200,9 +200,9 @@ export default function ProviderSeriesGenre() {
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Séries {genreName} sur {providerName}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("series.title")} {genreName} {t("provider.on")} {providerName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez les meilleures séries {genreName.toLowerCase()} disponibles sur {providerName}.
+            {t("provider.discoverSeries", { genre: genreName, provider: providerName })}
           </p>
         </div>
       </div>
@@ -211,7 +211,7 @@ export default function ProviderSeriesGenre() {
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Chargement...</p>
+            <p className="text-muted-foreground">{t("common.loading")}</p>
           </div>
         ) : series.length > 0 ? (
           <>
@@ -246,7 +246,7 @@ export default function ProviderSeriesGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucune série {genreName.toLowerCase()} disponible sur {providerName}</p>
+            <p className="text-muted-foreground">{t("provider.noSeriesAvailable", { genre: genreName, provider: providerName })}</p>
           </div>
         )}
       </div>

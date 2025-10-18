@@ -154,4 +154,35 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  
+  // Genre pages
+  "genre.discoverMovies": "Découvrez les meilleurs films du genre {genre}.",
+  "genre.discoverSeries": "Découvrez les meilleures séries du genre {genre}.",
+  "genre.noMoviesAvailable": "Aucun film {genre} disponible",
+  "genre.noSeriesAvailable": "Aucune série {genre} disponible",
+  
+  // Provider pages
+  "provider.on": "sur",
+  "provider.discoverMovies": "Découvrez les meilleurs films {genre} disponibles sur {provider}.",
+  "provider.discoverSeries": "Découvrez les meilleures séries {genre} disponibles sur {provider}.",
+  "provider.noMoviesAvailable": "Aucun film {genre} disponible sur {provider}",
+  "provider.noSeriesAvailable": "Aucune série {genre} disponible sur {provider}",
+  
+  // Additional movie/series genres
+  "movies.family": "Famille",
+  "movies.history": "Histoire",
+  "movies.music": "Musique",
+  "movies.telefilm": "Téléfilm",
+  "movies.war": "Guerre",
+  "movies.western": "Western",
+  
+  "series.family": "Famille",
+  "series.history": "Histoire",
+  "series.music": "Musique",
+  "series.telefilm": "Téléfilm",
+  "series.war": "Guerre",
+  "series.western": "Western",
+  "series.reality": "Reality",
+  "series.talk": "Talk Show",
+  "series.news": "News",
 };

@@ -154,4 +154,35 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  
+  // Genre pages
+  "genre.discoverMovies": "Discover the best {genre} movies.",
+  "genre.discoverSeries": "Discover the best {genre} series.",
+  "genre.noMoviesAvailable": "No {genre} movies available",
+  "genre.noSeriesAvailable": "No {genre} series available",
+  
+  // Provider pages
+  "provider.on": "on",
+  "provider.discoverMovies": "Discover the best {genre} movies available on {provider}.",
+  "provider.discoverSeries": "Discover the best {genre} series available on {provider}.",
+  "provider.noMoviesAvailable": "No {genre} movies available on {provider}",
+  "provider.noSeriesAvailable": "No {genre} series available on {provider}",
+  
+  // Additional movie/series genres
+  "movies.family": "Family",
+  "movies.history": "History",
+  "movies.music": "Music",
+  "movies.telefilm": "TV Movie",
+  "movies.war": "War",
+  "movies.western": "Western",
+  
+  "series.family": "Family",
+  "series.history": "History",
+  "series.music": "Music",
+  "series.telefilm": "TV Movie",
+  "series.war": "War",
+  "series.western": "Western",
+  "series.reality": "Reality",
+  "series.talk": "Talk Show",
+  "series.news": "News",
 };

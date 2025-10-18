@@ -11,27 +11,27 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 
-// Mapping des genres avec leurs noms et IDs
+// Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
-  'action': { id: 28, name: 'Action' },
-  'aventure': { id: 12, name: 'Aventure' },
-  'animation': { id: 16, name: 'Animation' },
-  'comedie': { id: 35, name: 'Comédie' },
-  'crime': { id: 80, name: 'Crime' },
-  'documentaire': { id: 99, name: 'Documentaire' },
-  'drame': { id: 18, name: 'Drame' },
-  'famille': { id: 10751, name: 'Famille' },
-  'fantastique': { id: 14, name: 'Fantastique' },
-  'histoire': { id: 36, name: 'Histoire' },
-  'horreur': { id: 27, name: 'Horreur' },
-  'musique': { id: 10402, name: 'Musique' },
-  'mystere': { id: 9648, name: 'Mystère' },
-  'romance': { id: 10749, name: 'Romance' },
-  'science-fiction': { id: 878, name: 'Science-Fiction' },
-  'telefilm': { id: 10770, name: 'Téléfilm' },
-  'thriller': { id: 53, name: 'Thriller' },
-  'guerre': { id: 10752, name: 'Guerre' },
-  'western': { id: 37, name: 'Western' }
+  'action': { id: 28, translationKey: 'movies.action' },
+  'aventure': { id: 12, translationKey: 'movies.adventure' },
+  'animation': { id: 16, translationKey: 'movies.animation' },
+  'comedie': { id: 35, translationKey: 'movies.comedy' },
+  'crime': { id: 80, translationKey: 'movies.crime' },
+  'documentaire': { id: 99, translationKey: 'movies.documentary' },
+  'drame': { id: 18, translationKey: 'movies.drama' },
+  'famille': { id: 10751, translationKey: 'movies.family' },
+  'fantastique': { id: 14, translationKey: 'movies.fantasy' },
+  'histoire': { id: 36, translationKey: 'movies.history' },
+  'horreur': { id: 27, translationKey: 'movies.horror' },
+  'musique': { id: 10402, translationKey: 'movies.music' },
+  'mystere': { id: 9648, translationKey: 'movies.mystery' },
+  'romance': { id: 10749, translationKey: 'movies.romance' },
+  'science-fiction': { id: 878, translationKey: 'movies.scifi' },
+  'telefilm': { id: 10770, translationKey: 'movies.telefilm' },
+  'thriller': { id: 53, translationKey: 'movies.thriller' },
+  'guerre': { id: 10752, translationKey: 'movies.war' },
+  'western': { id: 37, translationKey: 'movies.western' }
 };
 
 export default function MoviesGenre() {
@@ -50,7 +50,7 @@ export default function MoviesGenre() {
   // Get genre info
   const genreInfo = GENRES[genreSlug as keyof typeof GENRES];
   const genreId = genreInfo?.id;
-  const genreName = genreInfo?.name || genreSlug;
+  const genreName = genreInfo ? t(genreInfo.translationKey) : genreSlug;
 
   // Fetch movies by genre
   useEffect(() => {
@@ -163,9 +163,9 @@ export default function MoviesGenre() {
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Films {genreName}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez les meilleurs films du genre {genreName.toLowerCase()}.
+            {t("genre.discoverMovies", { genre: genreName })}
           </p>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function MoviesGenre() {
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Chargement...</p>
+            <p className="text-muted-foreground">{t("common.loading")}</p>
           </div>
         ) : movies.length > 0 ? (
           <>
@@ -209,7 +209,7 @@ export default function MoviesGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun film {genreName.toLowerCase()} disponible</p>
+            <p className="text-muted-foreground">{t("genre.noMoviesAvailable", { genre: genreName })}</p>
           </div>
         )}
       </div>
