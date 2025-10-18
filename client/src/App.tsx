@@ -19,6 +19,8 @@ import MovieGenre from "@/pages/MovieGenre";
 import SeriesGenre from "@/pages/SeriesGenre";
 import MoviesGenre from "@/pages/MoviesGenre";
 import SeriesGenreNew from "@/pages/SeriesGenre";
+import ProviderMoviesGenre from "@/pages/ProviderMoviesGenre";
+import ProviderSeriesGenre from "@/pages/ProviderSeriesGenre";
 
 // Anime pages
 import AnimeMoviesLatest from "@/pages/AnimeMoviesLatest";
@@ -92,6 +94,8 @@ function App() {
             <Route path="/series/genre/:id" component={SeriesGenre} />
             <Route path="/movies-genre/:genre" component={MoviesGenre} />
             <Route path="/series-genre/:genre" component={SeriesGenreNew} />
+            <Route path="/provider/:providerId/films/category/:genre" component={ProviderMoviesGenre} />
+            <Route path="/provider/:providerId/series/category/:genre" component={ProviderSeriesGenre} />
             
             {/* Anime routes */}
             <Route path="/anime-movies-latest" component={AnimeMoviesLatest} />

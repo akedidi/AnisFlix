@@ -282,6 +282,7 @@ export default function ProviderDetail() {
             items={actionMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/action`}
           />
           
           <MediaCarousel
@@ -289,6 +290,7 @@ export default function ProviderDetail() {
             items={adventureMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/aventure`}
           />
           
           <MediaCarousel
@@ -296,6 +298,7 @@ export default function ProviderDetail() {
             items={comedyMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/comedie`}
           />
           
           <MediaCarousel
@@ -303,6 +306,7 @@ export default function ProviderDetail() {
             items={dramaMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/drame`}
           />
           
           <MediaCarousel
@@ -310,6 +314,7 @@ export default function ProviderDetail() {
             items={fantasyMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/fantastique`}
           />
           
           <MediaCarousel
@@ -317,6 +322,7 @@ export default function ProviderDetail() {
             items={sciFiMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/science-fiction`}
           />
           
           <MediaCarousel
@@ -324,6 +330,7 @@ export default function ProviderDetail() {
             items={horrorMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/horreur`}
           />
           
           <MediaCarousel
@@ -331,6 +338,7 @@ export default function ProviderDetail() {
             items={thrillerMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/thriller`}
           />
           
           <MediaCarousel
@@ -338,6 +346,7 @@ export default function ProviderDetail() {
             items={crimeMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/crime`}
           />
           
           <MediaCarousel
@@ -345,6 +354,7 @@ export default function ProviderDetail() {
             items={romanceMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/romance`}
           />
           
           <MediaCarousel
@@ -352,6 +362,7 @@ export default function ProviderDetail() {
             items={animationMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/animation`}
           />
           
           <MediaCarousel
@@ -359,6 +370,7 @@ export default function ProviderDetail() {
             items={documentaryMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/films/category/documentaire`}
           />
         </div>
 
@@ -371,6 +383,7 @@ export default function ProviderDetail() {
             items={actionSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/action`}
           />
           
           <MediaCarousel
@@ -378,6 +391,7 @@ export default function ProviderDetail() {
             items={adventureSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/aventure`}
           />
           
           <MediaCarousel
@@ -385,6 +399,7 @@ export default function ProviderDetail() {
             items={comedySeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/comedie`}
           />
           
           <MediaCarousel
@@ -392,6 +407,7 @@ export default function ProviderDetail() {
             items={dramaSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/drame`}
           />
           
           <MediaCarousel
@@ -399,6 +415,7 @@ export default function ProviderDetail() {
             items={fantasySeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/fantastique`}
           />
           
           <MediaCarousel
@@ -406,6 +423,7 @@ export default function ProviderDetail() {
             items={sciFiSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/science-fiction`}
           />
           
           <MediaCarousel
@@ -413,6 +431,7 @@ export default function ProviderDetail() {
             items={thrillerSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/thriller`}
           />
           
           <MediaCarousel
@@ -420,6 +439,7 @@ export default function ProviderDetail() {
             items={crimeSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/crime`}
           />
           
           <MediaCarousel
@@ -427,6 +447,7 @@ export default function ProviderDetail() {
             items={romanceSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/romance`}
           />
           
           <MediaCarousel
@@ -434,6 +455,7 @@ export default function ProviderDetail() {
             items={animationSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/animation`}
           />
           
           <MediaCarousel
@@ -441,6 +463,7 @@ export default function ProviderDetail() {
             items={documentarySeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
+            sectionId={`provider/${providerId}/series/category/documentaire`}
           />
         </div>
 
