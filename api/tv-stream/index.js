@@ -60,11 +60,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Récupérer le channelId depuis les paramètres d'URL (ex: /api/tv/stream/106)
-    const channelId = req.url.split('/').pop();
+    // Récupérer le channelId depuis les paramètres query ou path
+    let channelId = req.query.channelId;
+    
+    // Si pas de paramètre query, essayer d'extraire depuis l'URL path
+    if (!channelId) {
+      channelId = req.url.split('/').pop();
+    }
     
     console.log(`[TV STREAM] Début du processus pour channelId: ${channelId}`);
     console.log(`[TV STREAM] URL complète: ${req.url}`);
+    console.log(`[TV STREAM] Query params:`, req.query);
     
     if (!channelId || isNaN(channelId)) {
       console.error(`[TV STREAM] Channel ID invalide: ${channelId}`);
