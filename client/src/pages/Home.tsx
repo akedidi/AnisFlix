@@ -185,6 +185,9 @@ export default function Home() {
             onInfo={(item) => {
               window.location.href = `/movie/${item.id}`;
             }}
+            onClick={(item) => {
+              window.location.href = `/movie/${item.id}`;
+            }}
             autoRotate={true}
             rotationInterval={6000}
           />

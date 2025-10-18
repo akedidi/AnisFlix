@@ -19,6 +19,7 @@ interface HeroSectionProps {
   items?: HeroItem[];
   onFavorite?: (item: HeroItem) => void;
   onInfo?: (item: HeroItem) => void;
+  onClick?: (item: HeroItem) => void;
   isFavorite?: (item: HeroItem) => boolean;
   autoRotate?: boolean;
   rotationInterval?: number;
@@ -36,6 +37,7 @@ export default function HeroSection({
   items,
   onFavorite,
   onInfo,
+  onClick,
   isFavorite,
   autoRotate = true,
   rotationInterval = 8000,
@@ -87,7 +89,11 @@ export default function HeroSection({
   if (!currentItem) return null;
 
   return (
-    <div className="relative w-full h-[50vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden group" data-testid="hero-section">
+    <div 
+      className="relative w-full h-[50vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden group cursor-pointer" 
+      data-testid="hero-section"
+      onClick={() => onClick?.(currentItem)}
+    >
       {/* Background Image with Transition */}
       <div className="absolute inset-0">
         <img
@@ -108,7 +114,10 @@ export default function HeroSection({
           {heroItems.map((_, index) => (
             <button
               key={index}
-              onClick={() => setCurrentIndex(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentIndex(index);
+              }}
               className={`w-2 h-2 rounded-full transition-all duration-300 hover:scale-125 ${
                 index === currentIndex 
                   ? 'bg-white scale-125 shadow-lg' 
@@ -152,7 +161,10 @@ export default function HeroSection({
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => onFavorite?.(currentItem)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFavorite?.(currentItem);
+                }}
                 className={`gap-2 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 ${
                   isFavorite?.(currentItem)
                     ? 'bg-red-500/20 border-red-400/40 text-red-100 hover:bg-red-500/30' 
@@ -166,7 +178,10 @@ export default function HeroSection({
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => onInfo?.(currentItem)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInfo?.(currentItem);
+                }}
                 className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20"
                 data-testid="button-info"
               >
