@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       headers: browserHeaders, 
       responseType: 'text',
       maxRedirects: 0, // Désactiver le suivi automatique des redirections
-      validateStatus: (status) => status < 400 // Accepter les redirections 302
+      validateStatus: null // Accepter tous les status codes (y compris 302)
     });
 
     const ctype = (r.headers['content-type'] || '').toLowerCase();
@@ -135,6 +135,12 @@ export default async function handler(req, res) {
     if (r.status >= 400) {
       console.error(`[TV STREAM] Erreur HTTP: ${r.status}`);
       return res.status(r.status).send(`Erreur HTTP: ${r.status}`);
+    }
+
+    // Si pas de redirection et pas de manifest, c'est une erreur
+    if (r.status !== 302 && (!manifestData || typeof manifestData !== 'string')) {
+      console.error(`[TV STREAM] Pas de redirection et pas de manifest valide`);
+      return res.status(502).send('Pas de manifest M3U8 disponible.');
     }
 
     if (typeof manifestData !== 'string') {
