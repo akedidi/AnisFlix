@@ -6,6 +6,7 @@ interface ShakaPlayerProps {
   url: string;
   onClose?: () => void;
   title?: string;
+  embedded?: boolean; // Nouveau prop pour l'affichage dans la carte
 }
 
 declare global {
@@ -14,7 +15,7 @@ declare global {
   }
 }
 
-export default function ShakaPlayer({ url, onClose, title }: ShakaPlayerProps) {
+export default function ShakaPlayer({ url, onClose, title, embedded = false }: ShakaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,6 +129,50 @@ export default function ShakaPlayer({ url, onClose, title }: ShakaPlayerProps) {
     }
   };
 
+  // Version pour l'affichage dans la carte (embedded)
+  if (embedded) {
+    return (
+      <div className="relative w-full h-full bg-black">
+        {/* Video Container */}
+        <div className="relative w-full h-full">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p className="text-sm">Chargement...</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="absolute inset-0 flex items-center justify-center z-20">
+              <div className="text-center text-white">
+                <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                <h3 className="text-lg font-semibold mb-1">Erreur</h3>
+                <p className="text-gray-300 text-sm mb-2">{error}</p>
+                {onClose && (
+                  <Button onClick={onClose} variant="outline" size="sm" className="text-white border-white hover:bg-white/20">
+                    Fermer
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <video
+            ref={videoRef}
+            className="w-full h-full object-contain"
+            controls
+            autoPlay
+            muted={isMuted}
+            data-testid="shaka-video-player-embedded"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Version pour l'affichage plein écran
   return (
     <div 
       className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
