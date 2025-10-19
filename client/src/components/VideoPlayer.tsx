@@ -179,15 +179,24 @@ export default function VideoPlayer({
   const togglePictureInPicture = async () => {
     if (!videoRef.current) return;
     
+    // Vérifier si l'API Picture-in-Picture est supportée
+    if (!document.pictureInPictureEnabled || !videoRef.current.requestPictureInPicture) {
+      console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
+      return;
+    }
+    
     try {
       if (isPictureInPicture) {
-        await document.exitPictureInPicture();
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        }
       } else {
         await videoRef.current.requestPictureInPicture();
       }
     } catch (error) {
       console.error("Error toggling Picture-in-Picture:", error);
-      alert("Impossible d'activer le mode Picture-in-Picture");
+      // Ne pas afficher d'alerte pour éviter de spammer l'utilisateur
+      // L'erreur est déjà loggée dans la console
     }
   };
 
