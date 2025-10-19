@@ -22,13 +22,13 @@ export default function AnimeSeriesLatest() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { scrollY } = useScrollPosition();
   
-  // Fetch latest anime series (genre 16 = Animation) - utilise les 10 premiers de chaque page
-  const { data: animeSeriesData, isLoading, error } = useSeriesByGenre(16, currentPage);
+  // Fetch latest anime series (genre 16 = Animation) - utilise la page 1 pour les "latest"
+  const { data: animeSeriesData, isLoading, error } = useSeriesByGenre(16, currentPage === 1 ? 1 : currentPage + 1);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Pour les "latest", on prend seulement les 10 premiers résultats de chaque page
   const animeSeries = (animeSeriesData?.results || []).slice(0, 10);
-  const totalPages = animeSeriesData?.total_pages || 1;
+  const totalPages = Math.max(1, (animeSeriesData?.total_pages || 1) - 1);
   
   // Debug logs
   console.log('🎌 AnimeSeriesLatest - Données:', { animeSeriesData, isLoading, error, animeSeries });

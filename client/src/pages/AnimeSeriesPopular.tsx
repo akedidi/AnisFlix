@@ -22,8 +22,8 @@ export default function AnimeSeriesPopular() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { scrollY } = useScrollPosition();
   
-  // Fetch anime series (genre 16 = Animation)
-  const { data: animeSeriesData, isLoading: animeSeriesLoading } = useSeriesByGenre(16, currentPage);
+  // Fetch popular anime series (genre 16 = Animation) - utilise la page 2 pour les "popular"
+  const { data: animeSeriesData, isLoading: animeSeriesLoading } = useSeriesByGenre(16, currentPage === 1 ? 2 : currentPage + 1);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const animeSeries = animeSeriesData?.results || [];
