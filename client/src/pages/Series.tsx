@@ -138,6 +138,7 @@ export default function Series() {
           sectionId="series-genre/animation"
         />
 
+        </div>
       </div>
     </div>
   );
