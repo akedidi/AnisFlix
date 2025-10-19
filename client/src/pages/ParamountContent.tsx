@@ -2,19 +2,15 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 ;
 import MediaCard from "@/components/MediaCard";
-import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
+import CommonLayout from "@/components/CommonLayout";
 import Pagination from "@/components/Pagination";
-import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function ParamountContent() {
   const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
   const { restoreScrollPosition } = useScrollPosition('paramount-content');
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
@@ -27,8 +23,7 @@ export default function ParamountContent() {
   // Fetch data from TMDB - Only Paramount+ content
   const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(531, currentPage);
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(531, currentPage);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
-
+  
   // Paramount+ specific genres
   const { data: actionMoviesData } = useMoviesByProviderAndGenre(531, 28); // Action
   const { data: comedyMoviesData } = useMoviesByProviderAndGenre(531, 35); // Comedy
@@ -73,34 +68,11 @@ export default function ParamountContent() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Content with top padding for fixed search bar */}
-        <div className="pt-20 md:pt-0">
-          {/* Header avec recherche et contrôles */}
-          <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
-            <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-              <div className="flex items-center gap-4">
-                
-              <div className="flex-1 relative">
-                <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? searchResults : []}
-                  onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
-                  }}
-                />
-              </div>
-              <LanguageSelect />
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
+    <CommonLayout 
+      title="Paramount+" 
+      icon={<img src="https://image.tmdb.org/t/p/original/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" alt="Paramount+" className="w-12 h-12 rounded-lg" />}
+      showSearch={true}
+    >
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
@@ -236,8 +208,7 @@ export default function ParamountContent() {
           )
         )}
         </div>
-        </div>
-      </div>
-    </div>
+        
+    </CommonLayout>
   );
 }

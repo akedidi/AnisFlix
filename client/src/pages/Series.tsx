@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
-import SearchBar from "@/components/SearchBar";
 import MediaCarousel from "@/components/MediaCarousel";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
-import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Series() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useLanguage();
+    const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('series');
   
   // Genre IDs from TMDB
@@ -31,8 +26,7 @@ export default function Series() {
   const { data: mysterySeriesData } = useSeriesByGenre(GENRES.MYSTERY);
   const { data: documentarySeriesData } = useSeriesByGenre(GENRES.DOCUMENTARY);
   const { data: animeSeriesData } = useSeriesByGenre(GENRES.ANIMATION);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
-  
+    
   const latestSeries = latestSeriesData?.results || [];
   const actionSeries = actionSeriesData?.results || [];
   const dramaSeries = dramaSeriesData?.results || [];
@@ -55,32 +49,7 @@ export default function Series() {
   }, [restoreScrollPosition]);
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Content with top padding for fixed search bar */}
-        <div className="pt-20 md:pt-0">
-          <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
-            <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
-                  <SearchBar
-                    onSearch={setSearchQuery}
-                    suggestions={searchQuery ? seriesSearchResults : []}
-                    onSelect={(item) => {
-                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                      window.location.href = path;
-                    }}
-                  />
-                </div>
-                <LanguageSelect />
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
+    <CommonLayout showSearch={true}>
 
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
         <MediaCarousel
@@ -139,8 +108,7 @@ export default function Series() {
         />
 
           </div>
-        </div>
-      </div>
-    </div>
+        
+    </CommonLayout>
   );
 }

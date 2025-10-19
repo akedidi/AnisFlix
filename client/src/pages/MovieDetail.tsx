@@ -3,20 +3,15 @@ import { useParams, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, X, Heart } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import StreamingSources from "@/components/StreamingSources";
-import SearchBar from "@/components/SearchBar";
-import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
-
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
@@ -43,15 +38,13 @@ export default function MovieDetail() {
       console.log('🔍 isLoadingSource mis à true - stack trace:', new Error().stack);
     }
   }, [isLoadingSource]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const { isFavorite, toggleFavorite } = useFavorites();
+    const { isFavorite, toggleFavorite } = useFavorites();
   
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
   const { data: videos } = useMovieVideos(movieId);
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
-  
+    
   // Fetch Movix player links
   const { data: movixLinks, isLoading: isLoadingMovixLinks } = useMovixPlayerLinks(
     movie?.imdb_id || null, 
@@ -62,13 +55,11 @@ export default function MovieDetail() {
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for movie:', movie?.title, movixLinks);
   }
-
   // Nettoyer l'état selectedSource quand le film change
   useEffect(() => {
     setSelectedSource(null);
     setIsLoadingSource(false);
   }, [movieId]);
-
   // Find trailer from videos
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
@@ -76,7 +67,6 @@ export default function MovieDetail() {
   
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const sources: any[] = [];
-
   const handleSourceClick = async (source: { 
     url: string; 
     type: "m3u8" | "mp4" | "embed"; 
@@ -153,54 +143,7 @@ export default function MovieDetail() {
   
   if (isLoadingMovie) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl">Chargement...</div>
-        </div>
-      </div>
-    );
-  }
-  
-  if (!movie) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl">Film non trouvé</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Content with top padding for fixed search bar */}
-        <div className="pt-20 md:pt-0">
-          <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
-            <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
-                  <SearchBar
-                    onSearch={setSearchQuery}
-                    suggestions={searchQuery ? searchResults : []}
-                    onSelect={(item) => {
-                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                      setLocation(path);
-                    }}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <LanguageSelect />
-                  <ThemeToggle />
-                </div>
-              </div>
-            </div>
-          </div>
-
+    <CommonLayout showSearch={true}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
@@ -212,7 +155,6 @@ export default function MovieDetail() {
               />
             )}
           </div>
-
           <div className="space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
@@ -237,7 +179,6 @@ export default function MovieDetail() {
                   </div>
                 )}
               </div>
-
               <div className="flex flex-wrap gap-2 mb-6">
                 {movie.genres?.map((genre: any) => (
                   <Badge key={genre.id} variant="secondary">
@@ -245,12 +186,10 @@ export default function MovieDetail() {
                   </Badge>
                 ))}
               </div>
-
               <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
               <p className="text-muted-foreground leading-relaxed mb-6">
                 {movie.overview || "Aucun synopsis disponible."}
               </p>
-
               {/* Boutons d'action */}
               <div className="flex gap-3 mb-6">
                 <Button
@@ -276,7 +215,6 @@ export default function MovieDetail() {
                   {isFavorite(movieId, 'movie') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
                 </Button>
               </div>
-
               {trailer && (
                 <div className="space-y-3">
                   <h3 className="text-lg font-medium">Bande-annonce</h3>
@@ -293,7 +231,6 @@ export default function MovieDetail() {
                   </div>
                 </div>
               )}
-
               {!selectedSource ? (
                 <div className="space-y-6">
                   {/* Sources de streaming unifiées */}
@@ -346,7 +283,6 @@ export default function MovieDetail() {
             </div>
           </div>
         </div>
-
         {similarMovies.length > 0 && (
           <div className="mt-16">
             <MediaCarousel
@@ -356,10 +292,7 @@ export default function MovieDetail() {
             />
           </div>
         )}
-
       </div>
-        </div>
-      </div>
-    </div>
+    </CommonLayout>
   );
 }
