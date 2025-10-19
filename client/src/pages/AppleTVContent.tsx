@@ -101,140 +101,139 @@ export default function AppleTVContent() {
           </div>
         </div>
 
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <div className="flex items-center gap-4 mb-4">
-            <img
-              src="https://image.tmdb.org/t/p/original/6uhKBfmtzFqOcLousHwZuzcrScK.jpg"
-              alt="Apple TV+"
-              className="w-12 h-12 rounded-lg"
-            />
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold">Apple TV+</h1>
-              <p className="text-muted-foreground">
-                Découvrez tous les films et séries disponibles sur Apple TV+.
-              </p>
+        {/* Header */}
+        <div className="relative bg-gradient-to-b from-primary/20 to-background">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src="https://image.tmdb.org/t/p/original/6uhKBfmtzFqOcLousHwZuzcrScK.jpg"
+                alt="Apple TV+"
+                className="w-12 h-12 rounded-lg"
+              />
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold">Apple TV+</h1>
+                <p className="text-muted-foreground">
+                  Découvrez tous les films et séries disponibles sur Apple TV+.
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Onglets */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12">
-        <div className="flex gap-2 mb-6">
-          <Button
-            variant={activeTab === 'movies' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('movies')}
-          >
-            Films
-          </Button>
-          <Button
-            variant={activeTab === 'series' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('series')}
-          >
-            Séries
-          </Button>
-        </div>
-      </div>
-
-      {/* Catégories Apple TV+ */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
-          {dramaMovies.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {dramaMovies.slice(0, 10).map((movie) => (
-                <div key={movie.id} className="w-full">
-                  <MediaCard
-                    {...movie}
-                    mediaType="movie"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Onglets */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12">
+          <div className="flex gap-2 mb-6">
+            <Button
+              variant={activeTab === 'movies' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('movies')}
+            >
+              Films
+            </Button>
+            <Button
+              variant={activeTab === 'series' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('series')}
+            >
+              Séries
+            </Button>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Séries Drame Apple TV+</h2>
-          {dramaSeries.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {dramaSeries.slice(0, 10).map((serie) => (
-                <div key={serie.id} className="w-full">
-                  <MediaCard
-                    {...serie}
-                    mediaType="tv"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        {activeTab === 'movies' ? (
-          moviesLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chargement...</p>
-            </div>
-          ) : movies.length > 0 ? (
-            <>
+        {/* Catégories Apple TV+ */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
+            {dramaMovies.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie) => (
+                {dramaMovies.slice(0, 10).map((movie) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
-                      onClick={() => window.location.href = `/movie/${movie.id}`}
+                      mediaType="movie"
                     />
                   </div>
                 ))}
               </div>
-              
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            </>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Aucun film Apple TV+ disponible</p>
-            </div>
-          )
-        ) : (
-          seriesLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chargement...</p>
-            </div>
-          ) : series.length > 0 ? (
-            <>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold">Séries Drame Apple TV+</h2>
+            {dramaSeries.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {dramaSeries.slice(0, 10).map((serie) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
-                      onClick={() => window.location.href = `/series/${serie.id}`}
+                      mediaType="tv"
                     />
                   </div>
                 ))}
               </div>
-              
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
-            </>
+            )}
+          </div>
+        </div>
+
+        {/* Contenu paginé */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          {activeTab === 'movies' ? (
+            moviesLoading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Chargement...</p>
+              </div>
+            ) : movies.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                  {movies.map((movie) => (
+                    <div key={movie.id} className="w-full">
+                      <MediaCard
+                        {...movie}
+                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Aucun film Apple TV+ disponible</p>
+              </div>
+            )
           ) : (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Aucune série Apple TV+ disponible</p>
-            </div>
-          )
-        )}
-      </div>
+            seriesLoading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Chargement...</p>
+              </div>
+            ) : series.length > 0 ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                  {series.map((serie) => (
+                    <div key={serie.id} className="w-full">
+                      <MediaCard
+                        {...serie}
+                        onClick={() => window.location.href = `/series/${serie.id}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Aucune série Apple TV+ disponible</p>
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>
