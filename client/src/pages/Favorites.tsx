@@ -4,10 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Trash2, Play } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
-import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
-import DesktopSidebar from "@/components/DesktopSidebar";
+import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -40,35 +37,8 @@ export default function Favorites() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Header avec recherche et contrôles */}
-        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? (activeTab === 'movies' ? movieSearchResults : seriesSearchResults) : []}
-                  onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    setLocation(path);
-                  }}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <LanguageSelect />
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+    <CommonLayout title="Mes Favoris" showSearch={true}>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="flex items-center gap-3 mb-8">
             <Heart className="w-8 h-8 text-red-500" />
             <h1 className="text-3xl md:text-4xl font-bold">Mes Favoris</h1>
@@ -171,8 +141,6 @@ export default function Favorites() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-      
-    </div>
+    </CommonLayout>
   );
 }

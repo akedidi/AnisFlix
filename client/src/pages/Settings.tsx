@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Settings as SettingsIcon, Download } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import DownloadItem from "@/components/DownloadItem";
-import DesktopSidebar from "@/components/DesktopSidebar";
+import CommonLayout from "@/components/CommonLayout";
 import { useDeviceType } from "@/hooks/useDeviceType";
 
 export default function Settings() {
@@ -52,23 +52,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl md:text-3xl font-bold">Paramètres</h1>
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </div>
-
+    <CommonLayout title="Paramètres" showSearch={true}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <Tabs defaultValue={isNative ? "downloads" : "general"} className="space-y-6">
           <TabsList className={`grid w-full max-w-md ${isNative ? 'grid-cols-3' : 'grid-cols-1'}`}>
@@ -204,8 +188,6 @@ export default function Settings() {
           )}
         </Tabs>
       </div>
-      
-      </div>
-    </div>
+    </CommonLayout>
   );
 }
