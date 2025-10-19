@@ -22,11 +22,12 @@ export default function AnimeSeriesLatest() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { scrollY } = useScrollPosition();
   
-  // Fetch anime series (genre 16 = Animation)
+  // Fetch latest anime series (genre 16 = Animation) - utilise les 10 premiers de chaque page
   const { data: animeSeriesData, isLoading, error } = useSeriesByGenre(16, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
-  const animeSeries = animeSeriesData?.results || [];
+  // Pour les "latest", on prend seulement les 10 premiers résultats de chaque page
+  const animeSeries = (animeSeriesData?.results || []).slice(0, 10);
   const totalPages = animeSeriesData?.total_pages || 1;
   
   // Debug logs
