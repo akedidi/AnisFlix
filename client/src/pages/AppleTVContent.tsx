@@ -235,6 +235,8 @@ export default function AppleTVContent() {
           )
         )}
       </div>
+        </div>
+      </div>
     </div>
   );
 }
