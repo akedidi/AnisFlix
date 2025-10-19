@@ -235,6 +235,7 @@ export default function ParamountContent() {
             </div>
           )
         )}
+        </div>
       </div>
     </div>
   );

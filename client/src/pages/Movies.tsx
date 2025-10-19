@@ -147,6 +147,7 @@ export default function Movies() {
           sectionId="movies-genre/animation"
         />
 
+        </div>
       </div>
     </div>
   );
