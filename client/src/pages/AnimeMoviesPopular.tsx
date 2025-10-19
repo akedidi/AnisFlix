@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Clock, Star, Calendar, ArrowLeft, Heart } from "lucide-react";
+import { Star, ArrowLeft, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
-import MediaCarousel from "@/components/MediaCarousel";
 import SearchBar from "@/components/SearchBar";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import Pagination from "@/components/Pagination";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AnimeMoviesPopular() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,9 +17,15 @@ export default function AnimeMoviesPopular() {
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { scrollY } = useScrollPosition();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
-  // Fetch anime movies (genre 16 = Animation) - même logique que la page d'accueil
+  // Fetch anime movies (genre 16 = Animation)
   const { data: animeMoviesData, isLoading: animeMoviesLoading } = useMoviesByGenre(16, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
@@ -72,9 +75,7 @@ export default function AnimeMoviesPopular() {
               
               <div className="flex items-center gap-2">
                 <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Rechercher des films anime..."
+                  onSearch={setSearchQuery}
                 />
                 <LanguageSelect />
                 <ThemeToggle />
@@ -86,7 +87,7 @@ export default function AnimeMoviesPopular() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
           {animeMovies.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeMovies.map((movie) => (
+              {animeMovies.map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"
