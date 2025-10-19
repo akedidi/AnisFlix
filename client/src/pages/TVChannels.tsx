@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Play, Tv } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
-import DesktopSidebar from "@/components/DesktopSidebar";
+import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
@@ -467,27 +465,11 @@ export default function TVChannels() {
 
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Tv className="w-8 h-8" />
-                <h1 className="text-2xl md:text-3xl font-bold">{t('nav.tvChannels')}</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                <LanguageSelect />
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </div>
-
+    <CommonLayout 
+      title={t('nav.tvChannels')} 
+      icon={<Tv className="w-8 h-8" />}
+      showSearch={false}
+    >
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">
           <div className="space-y-6">
@@ -659,9 +641,6 @@ export default function TVChannels() {
           </div>
         </div>
       </div>
-      
-      
-      </div>
-    </div>
+    </CommonLayout>
   );
 }

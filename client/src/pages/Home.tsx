@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
-import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
-import DesktopSidebar from "@/components/DesktopSidebar";
+import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -23,7 +20,6 @@ import {
 import { getWatchProgress } from "@/lib/watchProgress";
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -68,7 +64,6 @@ export default function Home() {
   const disneySeries = disneySeriesData?.results || [];
   const appleTvMovies = appleTvMoviesData?.results || [];
   const appleTvSeries = appleTvSeriesData?.results || [];
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Listen to language changes
   useEffect(() => {
@@ -135,34 +130,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
-      
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Search Bar - Fixed on mobile */}
-        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-3">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? searchResults : []}
-                  onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
-                  }}
-                />
-              </div>
-              <LanguageSelect />
-              <ThemeToggle />
-            </div>
-          </div>
-        </div>
-        
-        {/* Content */}
-        <div className="pt-20 md:pt-4 sm:pt-6 md:pt-8 pb-20 md:pb-8">
+    <CommonLayout showSearch={true}>
           <div className="space-y-8 md:space-y-12">
         {popularMovies.length > 0 && (
           <HeroSection
@@ -385,10 +353,6 @@ export default function Home() {
           )}
         </div>
         </div>
-        </div>
-
-      </div>
-      
-    </div>
+    </CommonLayout>
   );
 }
