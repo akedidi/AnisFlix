@@ -37,22 +37,23 @@ export default function BottomNav() {
 
   return (
     <nav 
-      className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 border-t border-card-border md:hidden"
+      className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
       style={{ 
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 9999,
+        zIndex: 99999,
         width: '100%',
         maxWidth: '100vw',
         overflow: 'hidden',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)', // Support pour les appareils avec encoche
-        transform: 'translateZ(0)', // Force l'accélération matérielle
-        willChange: 'transform', // Optimise les performances
-        WebkitTransform: 'translateZ(0)', // Support WebKit
-        backfaceVisibility: 'hidden', // Évite les scintillements
-        WebkitBackfaceVisibility: 'hidden'
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        transform: 'translate3d(0, 0, 0)',
+        WebkitTransform: 'translate3d(0, 0, 0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        willChange: 'transform',
+        contain: 'layout style paint'
       }}
     >
       <div className="flex items-center justify-around h-20 w-full max-w-full overflow-hidden pb-4">

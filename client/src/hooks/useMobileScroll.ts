@@ -17,19 +17,6 @@ export const useMobileScroll = () => {
       if (window.scrollX !== 0) {
         window.scrollTo(0, window.scrollY);
       }
-      
-      // S'assurer que le contenu ne dépasse pas les limites
-      const body = document.body;
-      const html = document.documentElement;
-      
-      // Empêcher le dépassement horizontal
-      if (body.scrollWidth > window.innerWidth) {
-        body.style.overflowX = 'hidden';
-      }
-      
-      if (html.scrollWidth > window.innerWidth) {
-        html.style.overflowX = 'hidden';
-      }
     };
 
     // Fonction pour gérer le resize
@@ -42,6 +29,17 @@ export const useMobileScroll = () => {
         document.documentElement.style.overflowX = 'hidden';
         document.body.style.webkitOverflowScrolling = 'touch';
         document.documentElement.style.webkitOverflowScrolling = 'touch';
+        
+        // S'assurer que le tab bar reste fixe
+        const tabBar = document.querySelector('.mobile-bottom-nav');
+        if (tabBar) {
+          (tabBar as HTMLElement).style.position = 'fixed';
+          (tabBar as HTMLElement).style.bottom = '0';
+          (tabBar as HTMLElement).style.left = '0';
+          (tabBar as HTMLElement).style.right = '0';
+          (tabBar as HTMLElement).style.zIndex = '99999';
+          (tabBar as HTMLElement).style.transform = 'translate3d(0, 0, 0)';
+        }
       } else {
         // Restaurer les styles desktop
         document.body.style.overflowX = '';
