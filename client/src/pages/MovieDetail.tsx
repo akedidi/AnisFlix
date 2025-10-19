@@ -14,6 +14,7 @@ import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
+
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
@@ -22,25 +23,7 @@ export default function MovieDetail() {
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
-  // Debug: log de l'état initial
-  console.log('🔍 État initial isLoadingSource:', isLoadingSource);
-
-  // Corriger l'état initial si il est à true
-  useEffect(() => {
-    if (isLoadingSource && !selectedSource) {
-      console.log('🔧 Correction: isLoadingSource était à true au démarrage, remise à false');
-      setIsLoadingSource(false);
-    }
-  }, [isLoadingSource, selectedSource]);
-
-  // Debug: tracer les changements d'état isLoadingSource
-  useEffect(() => {
-    console.log('🔍 isLoadingSource changé:', isLoadingSource);
-    if (isLoadingSource) {
-      console.log('🔍 isLoadingSource mis à true - stack trace:', new Error().stack);
-    }
-  }, [isLoadingSource]);
-    const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
@@ -48,155 +31,169 @@ export default function MovieDetail() {
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
 
   // Fetch Movix player links
-  const { data: movixLinks, isLoading: isLoadingMovixLinks } = useMovixPlayerLinks(
-    movie?.imdb_id || null,
-    'movie'
-  );
+  const { data: movixLinks } = useMovixPlayerLinks(movieId, 'movie');
 
-  // Log Movix links for debugging (will be removed later)
-  if (movixLinks && !isLoadingMovixLinks) {
-    console.log('Movix player links for movie:', movie?.title, movixLinks);
-  }
-  // Nettoyer l'état selectedSource quand le film change
-  useEffect(() => {
+  // Get trailer
+  const trailer = videos?.results?.find(video => video.type === 'Trailer' && video.site === 'YouTube');
+
+  // Generate sources from Movix links
+  const sources = movixLinks ? [
+    ...(movixLinks.fstream || []).map((link: any) => ({
+      id: `fstream-${link.id}`,
+      name: link.name,
+      provider: 'FStream',
+      url: link.url,
+      type: 'm3u8' as const,
+      isTopStream: false,
+      isFStream: true,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      quality: link.quality || 'HD',
+      language: link.language || 'Français'
+    })),
+    ...(movixLinks.topstream || []).map((link: any) => ({
+      id: `topstream-${link.id}`,
+      name: link.name,
+      provider: 'TopStream',
+      url: link.url,
+      type: 'mp4' as const,
+      isTopStream: true,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      quality: link.quality || 'HD',
+      language: link.language || 'Français'
+    })),
+    ...(movixLinks.wiflix || []).map((link: any) => ({
+      id: `wiflix-${link.id}`,
+      name: link.name,
+      provider: 'Wiflix',
+      url: link.url,
+      type: 'm3u8' as const,
+      isTopStream: false,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      quality: link.quality || 'HD',
+      language: link.language || 'Français'
+    }))
+  ] : [];
+
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean }) => {
+    setIsLoadingSource(true);
+    setSelectedSource(source);
+    setIsLoadingSource(false);
+  };
+
+  const handleClosePlayer = () => {
     setSelectedSource(null);
     setIsLoadingSource(false);
-  }, [movieId]);
-  // Find trailer from videos
-  const trailer = videos?.results?.find(
-    (video: any) => video.type === "Trailer" && video.site === "YouTube"
-  );
-
-  // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
-  const sources: any[] = [];
-  const handleSourceClick = async (source: {
-    url: string;
-    type: "m3u8" | "mp4" | "embed";
-    name: string;
-    isTopStream?: boolean;
-    isFStream?: boolean;
-    isMovixDownload?: boolean;
-    isVidMoly?: boolean;
-  }) => {
-    if (!movie) return;
-
-    console.log('🔍 handleSourceClick appelé avec source:', source);
-    console.log('🔍 isLoadingSource au début:', isLoadingSource);
-
-    // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
-    // EXCEPTION: VidMoly doit toujours passer par l'API d'extraction
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload) && !source.isVidMoly) {
-      console.log('🔍 Source directe détectée, utilisation directe');
-      setSelectedSource({
-        url: source.url,
-        type: source.isMovixDownload ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
-        name: source.name,
-        isVidMoly: source.isVidMoly
-      });
-      console.log('🔍 setIsLoadingSource(false) pour source directe');
-      setIsLoadingSource(false); // Remettre à false pour les sources directes
-      return;
-    }
-
-      // Pour VidMoly, passer le lien embed original au VidMolyPlayer
-      if (source.isVidMoly) {
-        console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
-        setSelectedSource({
-          url: source.url, // Lien embed original
-          type: "embed",
-          name: source.name,
-          isVidMoly: true
-        });
-        console.log('🔍 setIsLoadingSource(false) pour VidMoly');
-        setIsLoadingSource(false);
-        return;
-      }
-
-    // Pour Vidzy (via FStream), on utilise le scraper
-    if (source.url && source.type === "m3u8" && source.isFStream) {
-      setIsLoadingSource(true);
-      try {
-        const m3u8Url = await extractVidzyM3u8(source.url);
-
-        if (!m3u8Url) {
-          throw new Error("Aucun lien m3u8 trouvé");
-        }
-
-        setSelectedSource({
-          url: m3u8Url,
-          type: "m3u8",
-          name: source.name
-        });
-      } catch (error) {
-        console.error("Erreur lors du chargement de la source:", error);
-        const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
-        alert(`Erreur Vidzy: ${errorMessage}`);
-      } finally {
-        setIsLoadingSource(false);
-      }
-      return;
-    }
-
-
-    // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
 
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
 
-  if (isLoadingMovie) {
-    const handleRefresh = () => {
-      window.location.reload();
-    };
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
+  // Loading state
+  if (isLoadingMovie) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
         <PullToRefresh onRefresh={handleRefresh}>
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <div className="grid md:grid-cols-[300px_1fr] gap-8">
-          <div className="hidden md:block">
-            {movie.poster_path && (
-              <img
-                src={getImageUrl(movie.poster_path, 'w500')}
-                alt={movie.title}
-                className="w-full rounded-lg shadow-2xl"
-              />
-            )}
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chargement du film...</p>
+            </div>
           </div>
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
+        </PullToRefresh>
+      </CommonLayout>
+    );
+  }
 
-              <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="text-lg font-semibold">
-                    {Math.round(movie.vote_average * 10) / 10}
-                  </span>
+  // No movie found
+  if (!movie) {
+    return (
+      <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Film non trouvé</p>
+            </div>
+          </div>
+        </PullToRefresh>
+      </CommonLayout>
+    );
+  }
+
+  // Main content
+  return (
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="grid md:grid-cols-[300px_1fr] gap-8">
+            <div className="hidden md:block">
+              {movie.poster_path && (
+                <img
+                  src={getImageUrl(movie.poster_path, 'w500')}
+                  alt={movie.title}
+                  className="w-full rounded-lg shadow-2xl"
+                />
+              )}
+            </div>
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
+
+                <div className="flex flex-wrap items-center gap-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <span className="text-lg font-semibold">
+                      {Math.round(movie.vote_average * 10) / 10}
+                    </span>
+                  </div>
+                  {movie.runtime && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      <span>{movie.runtime} min</span>
+                    </div>
+                  )}
+                  {movie.release_date && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      <span>{new Date(movie.release_date).getFullYear()}</span>
+                    </div>
+                  )}
                 </div>
-                {movie.runtime && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    <span>{movie.runtime} min</span>
-                  </div>
-                )}
-                {movie.release_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    <span>{new Date(movie.release_date).getFullYear()}</span>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {movie.genres?.map((genre: any) => (
+                    <Badge key={genre.id} variant="secondary">
+                      {genre.name}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-lg leading-relaxed text-muted-foreground mb-6">
+                  {movie.overview}
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {movie.genres?.map((genre: any) => (
-                  <Badge key={genre.id} variant="secondary">
-                    {genre.name}
-                  </Badge>
-                ))}
+
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => {
+                    if (movie.imdb_id) {
+                      window.open(`https://www.imdb.com/title/${movie.imdb_id}`, '_blank');
+                    }
+                  }}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <span>Voir sur IMDb</span>
+                </Button>
               </div>
-              <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">
-                {movie.overview || "Aucun synopsis disponible."}
-              </p>
+
               {/* Boutons d'action */}
               <div className="flex gap-3 mb-6">
                 <Button
@@ -204,16 +201,14 @@ export default function MovieDetail() {
                   size="lg"
                   className="flex items-center gap-2"
                   onClick={() => {
-                    if (movie) {
-                      toggleFavorite({
-                        id: movieId,
-                        title: movie.title,
-                        posterPath: movie.poster_path,
-                        rating: movie.vote_average,
-                        year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
-                        mediaType: 'movie'
-                      });
-                    }
+                    toggleFavorite({
+                      id: movieId,
+                      title: movie.title,
+                      posterPath: movie.poster_path,
+                      rating: movie.vote_average,
+                      year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
+                      mediaType: 'movie'
+                    });
                   }}
                 >
                   <Heart
@@ -244,42 +239,42 @@ export default function MovieDetail() {
                   <StreamingSources
                     type="movie"
                     id={movieId}
-                    title={movie?.title || ''}
+                    title={movie.title}
                     sources={sources}
-                    genres={movie?.genres}
-                    onSourceClick={handleSourceClick}
-                    isLoadingSource={isLoadingSource}
-                    imdbId={movie?.imdb_id}
+                    genres={movie.genres}
+                    onSourceSelect={handleSourceSelect}
+                    isLoading={isLoadingSource}
                   />
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">Lecture - {selectedSource.name}</h2>
+                    <h3 className="text-lg font-medium">Lecture en cours</h3>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedSource(null)}
-                      data-testid="button-close-player"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClosePlayer}
+                      className="flex items-center gap-2"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4" />
+                      Fermer
                     </Button>
                   </div>
-                  {selectedSource.isVidMoly ? (
+                  {selectedSource.type === 'embed' ? (
                     <VidMolyPlayer
-                      vidmolyUrl={selectedSource.url}
-                      title={movie?.title || "Vidéo"}
-                      posterPath={movie.poster_path}
-                      mediaId={movie?.id}
+                      url={selectedSource.url}
+                      title={movie.title}
+                      mediaId={movieId}
                       mediaType="movie"
-                      backdropPath={movie?.backdrop_path}
+                      posterPath={movie.poster_path}
+                      backdropPath={movie.backdrop_path}
                     />
                   ) : (
                     <VideoPlayer
-                      src={selectedSource.url}
-                      type={selectedSource.type}
-                      title={movie?.title || "Vidéo"}
-                      mediaId={movie.id}
+                      url={selectedSource.url}
+                      type={selectedSource.type as "m3u8" | "mp4"}
+                      title={movie.title}
+                      mediaId={movieId}
                       mediaType="movie"
                       posterPath={movie.poster_path}
                       backdropPath={movie.backdrop_path}
@@ -289,34 +284,16 @@ export default function MovieDetail() {
               )}
             </div>
           </div>
+          {similarMovies.length > 0 && (
+            <div className="mt-16">
+              <MediaCarousel
+                title="Films similaires"
+                items={similarMovies.slice(0, 10)}
+                onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              />
+            </div>
+          )}
         </div>
-        {similarMovies.length > 0 && (
-          <div className="mt-16">
-            <MediaCarousel
-              title="Films similaires"
-              items={similarMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
-            />
-          </div>
-        )}
-      </div>
-        </PullToRefresh>
-    </CommonLayout>
-  );
-  }
-
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  return (
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Chargement du film...</p>
-        </div>
-      </div>
       </PullToRefresh>
     </CommonLayout>
   );

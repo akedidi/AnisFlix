@@ -134,29 +134,53 @@ export default function SeriesDetail() {
     // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
-  if (isLoadingSeries) {
   const handleRefresh = () => {
     window.location.reload();
   };
 
-
+  if (isLoadingSeries) {
     return (
-
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
         <PullToRefresh onRefresh={handleRefresh}>
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        <div className="grid md:grid-cols-[300px_1fr] gap-8">
-          <div className="hidden md:block">
-            {series.poster_path && (
-              <img
-                src={getImageUrl(series.poster_path, 'w500')}
-                alt={series.name}
-                className="w-full rounded-lg shadow-2xl"
-              />
-            )}
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chargement de la série...</p>
+            </div>
           </div>
-          <div className="space-y-6">
+        </PullToRefresh>
+      </CommonLayout>
+    );
+  }
+
+  if (!series) {
+    return (
+      <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+        <PullToRefresh onRefresh={handleRefresh}>
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Série non trouvée</p>
+            </div>
+          </div>
+        </PullToRefresh>
+      </CommonLayout>
+    );
+  }
+
+  return (
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="grid md:grid-cols-[300px_1fr] gap-8">
+            <div className="hidden md:block">
+              {series.poster_path && (
+                <img
+                  src={getImageUrl(series.poster_path, 'w500')}
+                  alt={series.name}
+                  className="w-full rounded-lg shadow-2xl"
+                />
+              )}
+            </div>
+            <div className="space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{series.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -387,12 +411,8 @@ export default function SeriesDetail() {
             />
           </div>
         )}
-      </div>
-        </PullToRefresh>
-
-      </CommonLayout>
-
-    );
-
-    }
+        </div>
+      </PullToRefresh>
+    </CommonLayout>
+  );
 }
