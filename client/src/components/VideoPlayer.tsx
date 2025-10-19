@@ -7,6 +7,7 @@ import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import type { MediaType } from "@shared/schema";
+import { Capacitor } from '@capacitor/core';
 
 interface VideoPlayerProps {
   src: string;
@@ -179,19 +180,39 @@ export default function VideoPlayer({
   const togglePictureInPicture = async () => {
     if (!videoRef.current) return;
     
-    // Vérifier si l'API Picture-in-Picture est supportée
-    if (!document.pictureInPictureEnabled || !videoRef.current.requestPictureInPicture) {
-      console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
-      return;
-    }
-    
     try {
-      if (isPictureInPicture) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
+      if (Capacitor.isNativePlatform()) {
+        // Sur iOS natif, utiliser l'API native
+        const video = videoRef.current;
+        
+        if (isPictureInPicture) {
+          // Sortir du mode PiP
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+          }
+        } else {
+          // Entrer en mode PiP - iOS gère cela automatiquement
+          if (video.requestPictureInPicture) {
+            await video.requestPictureInPicture();
+          } else {
+            // Sur iOS, le PiP peut être activé via les contrôles natifs
+            console.log("PiP sera géré par les contrôles natifs iOS");
+          }
         }
       } else {
-        await videoRef.current.requestPictureInPicture();
+        // Sur le web, utiliser l'API standard
+        if (!document.pictureInPictureEnabled || !videoRef.current.requestPictureInPicture) {
+          console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
+          return;
+        }
+        
+        if (isPictureInPicture) {
+          if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+          }
+        } else {
+          await videoRef.current.requestPictureInPicture();
+        }
       }
     } catch (error) {
       console.error("Error toggling Picture-in-Picture:", error);
