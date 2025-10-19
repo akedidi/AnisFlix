@@ -169,7 +169,6 @@ export default function VideoPlayer({
         onFullscreenUpdate={handleFullscreenUpdate as any}
         posterSource={posterPath ? { uri: posterPath } : undefined}
         usePoster={!!posterPath}
-        allowsPictureInPicture={true}
       />
       
       {/* Contrôles personnalisés */}

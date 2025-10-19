@@ -83,7 +83,7 @@ export default function PopularSeries() {
         ) : series.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {series.map((serie) => (
+                {series.map((serie: any) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
