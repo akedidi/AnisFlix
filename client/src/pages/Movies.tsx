@@ -72,26 +72,26 @@ export default function Movies() {
       <div className="md:ml-64">
         {/* Content with top padding for fixed search bar */}
         <div className="pt-20 md:pt-0">
-        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
-                <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? movieSearchResults : []}
-                  onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
-                  }}
-                />
+          <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border relative md:relative fixed top-0 left-0 right-0 z-40 md:z-auto">
+            <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 relative">
+                  <SearchBar
+                    onSearch={setSearchQuery}
+                    suggestions={searchQuery ? movieSearchResults : []}
+                    onSelect={(item) => {
+                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                      window.location.href = path;
+                    }}
+                  />
+                </div>
+                <LanguageSelect />
+                <ThemeToggle />
               </div>
-              <LanguageSelect />
-              <ThemeToggle />
             </div>
           </div>
-        </div>
 
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
         <MediaCarousel
           title={t("movies.latest")}
           items={latestMovies.slice(0, 10)}
