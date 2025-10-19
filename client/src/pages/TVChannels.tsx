@@ -506,7 +506,7 @@ export default function TVChannels() {
                           onClick={() => setSelectedLinkIndex(index)}
                           className="text-xs"
                         >
-                          Lien {index + 1} ({link.type === 'mpd' ? 'MPD' : link.type === 'hls_direct' ? 'HLS Direct' : 'HLS Segments'})
+                          Lien {index + 1}
                         </Button>
                       ))}
                     </div>
