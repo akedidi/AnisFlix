@@ -128,7 +128,7 @@ export default function DisneyContent() {
           <h2 className="text-2xl font-semibold">Films Famille Disney+</h2>
           {familyMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {familyMovies.slice(0, 10).map((movie) => (
+              {familyMovies.slice(0, 10).map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -144,7 +144,7 @@ export default function DisneyContent() {
           <h2 className="text-2xl font-semibold">Films Animation Disney+</h2>
           {animationMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animationMovies.slice(0, 10).map((movie) => (
+              {animationMovies.slice(0, 10).map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -160,7 +160,7 @@ export default function DisneyContent() {
           <h2 className="text-2xl font-semibold">Séries Famille Disney+</h2>
           {familySeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {familySeries.slice(0, 10).map((serie) => (
+              {familySeries.slice(0, 10).map((serie: any) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -176,7 +176,7 @@ export default function DisneyContent() {
           <h2 className="text-2xl font-semibold">Séries Animation Disney+</h2>
           {animationSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animationSeries.slice(0, 10).map((serie) => (
+              {animationSeries.slice(0, 10).map((serie: any) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -199,7 +199,7 @@ export default function DisneyContent() {
           ) : movies.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie) => (
+                {movies.map((movie: any) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -228,7 +228,7 @@ export default function DisneyContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {series.map((serie: any) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}

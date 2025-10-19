@@ -124,7 +124,7 @@ export default function HBOMaxContent() {
           <h2 className="text-2xl font-semibold">Films Drame HBO Max</h2>
           {dramaMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {dramaMovies.slice(0, 10).map((movie) => (
+                {dramaMovies.slice(0, 10).map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -140,7 +140,7 @@ export default function HBOMaxContent() {
           <h2 className="text-2xl font-semibold">Séries Crime HBO Max</h2>
           {thrillerSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {thrillerSeries.slice(0, 10).map((serie) => (
+              {thrillerSeries.slice(0, 10).map((serie: any) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
@@ -192,7 +192,7 @@ export default function HBOMaxContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {series.map((serie: any) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}

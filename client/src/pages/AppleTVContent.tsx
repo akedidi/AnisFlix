@@ -123,7 +123,7 @@ export default function AppleTVContent() {
             <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
             {dramaMovies.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {dramaMovies.slice(0, 10).map((movie) => (
+                {dramaMovies.slice(0, 10).map((movie: any) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -139,7 +139,7 @@ export default function AppleTVContent() {
             <h2 className="text-2xl font-semibold">Séries Drame Apple TV+</h2>
             {dramaSeries.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {dramaSeries.slice(0, 10).map((serie) => (
+                {dramaSeries.slice(0, 10).map((serie: any) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
@@ -162,7 +162,7 @@ export default function AppleTVContent() {
             ) : movies.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {movies.map((movie) => (
+                  {movies.map((movie: any) => (
                     <div key={movie.id} className="w-full">
                       <MediaCard
                         {...movie}
@@ -191,7 +191,7 @@ export default function AppleTVContent() {
             ) : series.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                  {series.map((serie) => (
+                  {series.map((serie: any) => (
                     <div key={serie.id} className="w-full">
                       <MediaCard
                         {...serie}
