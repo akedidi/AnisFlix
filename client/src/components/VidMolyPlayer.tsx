@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
-import { Download, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture } from "lucide-react";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { saveWatchProgress } from "@/lib/watchProgress";
 import type { MediaType } from "@shared/schema";
@@ -39,6 +39,7 @@ export default function VidMolyPlayer({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
 
   // Fonction pour sauvegarder la progression
@@ -202,11 +203,15 @@ export default function VidMolyPlayer({
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
     video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
+    video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
     return () => {
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
+      video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
       
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -229,6 +234,21 @@ export default function VidMolyPlayer({
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    if (!videoRef.current) return;
+    
+    try {
+      if (isPictureInPicture) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("Error toggling Picture-in-Picture:", error);
+      alert("Impossible d'activer le mode Picture-in-Picture");
     }
   };
 
@@ -327,6 +347,16 @@ export default function VidMolyPlayer({
                 className="text-white hover:bg-white hover:bg-opacity-20"
               >
                 {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              </Button>
+              
+              <Button
+                onClick={togglePictureInPicture}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white hover:bg-opacity-20"
+                title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
+              >
+                <PictureInPicture className="w-6 h-6" />
               </Button>
             </div>
           </div>

@@ -26,6 +26,7 @@ export default function VideoPlayerUniversal(props: VideoPlayerProps) {
       </React.Suspense>
     );
   } else {
+    // Sur React Native, utiliser le lecteur avec support Picture-in-Picture natif
     return (
       <React.Suspense fallback={<div>Chargement du lecteur vidéo...</div>}>
         <NativeVideoPlayer {...props} />

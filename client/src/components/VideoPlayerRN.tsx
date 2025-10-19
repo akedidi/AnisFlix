@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, VideoFullscreenUpdate } from 'expo-av';
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgressRN";
 import { useDeviceType } from "@/hooks/useDeviceTypeRN";
 import type { MediaType } from "@shared/schema";
@@ -37,6 +37,7 @@ export default function VideoPlayer({
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
   const [status, setStatus] = useState<any>({});
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -78,6 +79,29 @@ export default function VideoPlayer({
     
     if (status.isLoaded && status.positionMillis && status.durationMillis) {
       await saveProgress(status.positionMillis / 1000, status.durationMillis / 1000);
+    }
+  };
+
+  const handleFullscreenUpdate = (event: VideoFullscreenUpdate) => {
+    if (event.fullscreenUpdate === VideoFullscreenUpdate.PLAYER_DID_PRESENT) {
+      setIsPictureInPicture(true);
+    } else if (event.fullscreenUpdate === VideoFullscreenUpdate.PLAYER_DID_DISMISS) {
+      setIsPictureInPicture(false);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    if (!videoRef.current) return;
+    
+    try {
+      if (isPictureInPicture) {
+        await videoRef.current.dismissFullscreenPlayer();
+      } else {
+        await videoRef.current.presentFullscreenPlayer();
+      }
+    } catch (error) {
+      console.error("Error toggling Picture-in-Picture:", error);
+      Alert.alert("Erreur", "Impossible d'activer le mode Picture-in-Picture");
     }
   };
 
@@ -138,8 +162,11 @@ export default function VideoPlayer({
         shouldPlay={false}
         isLooping={false}
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+        onFullscreenUpdate={handleFullscreenUpdate}
         posterSource={posterPath ? { uri: posterPath } : undefined}
         usePoster={!!posterPath}
+        allowsFullscreen={true}
+        allowsPictureInPicture={true}
       />
       
       {/* Contrôles personnalisés */}
@@ -156,6 +183,10 @@ export default function VideoPlayer({
       }}>
         <TouchableOpacity onPress={handleDownload}>
           <Download size={24} color="white" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={togglePictureInPicture}>
+          <PictureInPicture size={24} color="white" />
         </TouchableOpacity>
         
         {onClose && (

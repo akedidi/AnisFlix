@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { X, Volume2, VolumeX, Maximize, Minimize } from "lucide-react";
+import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucide-react";
 
 interface ShakaPlayerProps {
   url: string;
@@ -22,6 +22,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
 
   useEffect(() => {
     const initPlayer = async () => {
@@ -77,6 +78,10 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           setIsLoading(false);
         });
 
+        // Gérer Picture-in-Picture
+        videoRef.current.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
+        videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
+
         // Charger le flux
         await player.load(url);
         console.log("Flux chargé avec succès par Shaka Player");
@@ -126,6 +131,21 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
     } else {
       document.exitFullscreen();
       setIsFullscreen(false);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    if (!videoRef.current) return;
+    
+    try {
+      if (isPictureInPicture) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("Error toggling Picture-in-Picture:", error);
+      alert("Impossible d'activer le mode Picture-in-Picture");
     }
   };
 
@@ -210,6 +230,15 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
                 className="text-white hover:bg-white/20"
               >
                 {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePictureInPicture}
+                className="text-white hover:bg-white/20"
+                title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
+              >
+                <PictureInPicture className="w-4 h-4" />
               </Button>
               <Button
                 variant="ghost"

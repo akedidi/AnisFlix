@@ -3,7 +3,7 @@ import Hls from "hls.js";
 // @ts-ignore - mux.js n'a pas de types TypeScript officiels
 import muxjs from "mux.js";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import type { MediaType } from "@shared/schema";
@@ -38,6 +38,7 @@ export default function VideoPlayer({
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -164,12 +165,31 @@ export default function VideoPlayer({
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
+    video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
+      video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
     };
   }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
+
+  const togglePictureInPicture = async () => {
+    if (!videoRef.current) return;
+    
+    try {
+      if (isPictureInPicture) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoRef.current.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.error("Error toggling Picture-in-Picture:", error);
+      alert("Impossible d'activer le mode Picture-in-Picture");
+    }
+  };
 
   const handleDownloadMP4 = async () => {
     if (!hlsRef.current || sourceType !== "m3u8") {
@@ -322,6 +342,16 @@ export default function VideoPlayer({
               {isDownloading ? `Téléchargement... ${downloadProgress}%` : 'Télécharger en MP4'}
             </Button>
           )}
+          
+          <Button
+            onClick={togglePictureInPicture}
+            variant="outline"
+            className="gap-2"
+            title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
+          >
+            <PictureInPicture className="w-4 h-4" />
+            {isPictureInPicture ? "Quitter PiP" : "Picture-in-Picture"}
+          </Button>
           
         </div>
 
