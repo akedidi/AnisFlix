@@ -36,6 +36,7 @@ export default function Home() {
   // Fetch anime data
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
+  const { data: popularAnimeMoviesData } = useMoviesByGenre(16, 2); // Page 2 pour les films anime populaires
   
   const popularMovies = popularMoviesData?.results || [];
   const latestMovies = latestMoviesData?.results || [];
@@ -43,6 +44,7 @@ export default function Home() {
   const latestSeries = latestSeriesData?.results || [];
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
+  const popularAnimeMovies = popularAnimeMoviesData?.results || [];
   const { data: netflixMoviesData } = useMoviesByProvider(8);
   const { data: netflixSeriesData } = useSeriesByProvider(8);
   const { data: amazonSeriesData } = useSeriesByProvider(9);
@@ -271,7 +273,7 @@ export default function Home() {
 
           <MediaCarousel
             title="Films anime populaires"
-            items={animeMovies.slice(10, 20)}
+            items={popularAnimeMovies}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
             sectionId="anime-movies-popular"
