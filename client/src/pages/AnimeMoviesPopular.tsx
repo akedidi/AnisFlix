@@ -22,7 +22,7 @@ export default function AnimeMoviesPopular() {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { scrollY } = useScrollPosition();
   
-  // Fetch anime movies (genre 16 = Animation)
+  // Fetch anime movies (genre 16 = Animation) - même logique que la page d'accueil
   const { data: animeMoviesData, isLoading: animeMoviesLoading } = useMoviesByGenre(16, currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
