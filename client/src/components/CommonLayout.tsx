@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -24,6 +24,7 @@ export default function CommonLayout({
   const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+
 
   return (
     <>

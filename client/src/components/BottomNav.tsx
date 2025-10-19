@@ -2,11 +2,29 @@ import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
+import { useEffect } from "react";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { t } = useLanguage();
   const { isOffline } = useOffline();
+
+  // Reset scroll to top when location changes
+  useEffect(() => {
+    // Clear all saved scroll positions when navigating
+    try {
+      const positions = JSON.parse(localStorage.getItem('scrollPositions') || '{}');
+      Object.keys(positions).forEach(key => {
+        delete positions[key];
+      });
+      localStorage.setItem('scrollPositions', JSON.stringify(positions));
+    } catch (error) {
+      console.error('Erreur lors de l\'effacement des positions de scroll:', error);
+    }
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [location]);
 
   const navItems = [
     { icon: Home, label: t("nav.home"), path: "/", offline: true },

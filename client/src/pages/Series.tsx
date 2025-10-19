@@ -43,15 +43,8 @@ export default function Series() {
   // Filter only series from search results
   const seriesSearchResults = searchResults.filter((item: any) => item.mediaType === 'tv');
 
-  // Restaurer la position de scroll au chargement
-  useEffect(() => {
-    // Attendre que les données soient chargées
-    const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+  // Note: restoreScrollPosition is available but not called automatically
+  // to allow for manual scroll restoration when needed
 
   return (
     <CommonLayout showSearch={true}>

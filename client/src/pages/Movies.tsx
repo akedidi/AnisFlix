@@ -52,15 +52,8 @@ export default function Movies() {
   // Filter only movies from search results
   const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
 
-  // Restaurer la position de scroll au chargement
-  useEffect(() => {
-    // Attendre que les données soient chargées
-    const timer = setTimeout(() => {
-      restoreScrollPosition();
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [restoreScrollPosition]);
+  // Note: restoreScrollPosition is available but not called automatically
+  // to allow for manual scroll restoration when needed
 
   return (
     <CommonLayout showSearch={true}>
