@@ -36,7 +36,7 @@ export default function Home() {
   // Fetch anime data
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
-  const { data: popularAnimeMoviesData } = useMoviesByGenre(16, 2); // Page 2 pour les films anime populaires
+  const { data: popularAnimeMoviesData } = useMoviesByGenre(16, 1); // Page 1 pour les films anime populaires
   
   const popularMovies = popularMoviesData?.results || [];
   const latestMovies = latestMoviesData?.results || [];
