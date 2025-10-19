@@ -7,6 +7,7 @@ import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import StreamingSources from "@/components/StreamingSources";
+import CommonLayout from "@/components/CommonLayout";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";

@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
+import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Series() {
-    const { t } = useLanguage();
+  const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('series');
   const [, setLocation] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Genre IDs from TMDB
   const GENRES = {

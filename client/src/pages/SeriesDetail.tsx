@@ -10,6 +10,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
+import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
