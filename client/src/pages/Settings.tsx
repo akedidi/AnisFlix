@@ -10,9 +10,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DownloadItem from "@/components/DownloadItem";
 import CommonLayout from "@/components/CommonLayout";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { useOffline } from "@/hooks/useOffline";
 
 export default function Settings() {
   const { isNative } = useDeviceType();
+  const { isOffline } = useOffline();
   const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to");
   const [secondaryHost, setSecondaryHost] = useState("https://vidsrc.me");
   const [backupHost, setBackupHost] = useState("https://vidsrc.xyz");
@@ -54,6 +56,14 @@ export default function Settings() {
   return (
     <CommonLayout title="Paramètres" showSearch={true}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+        {isOffline && (
+          <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+            <p className="text-orange-500 text-sm">
+              📱 Mode hors ligne - Les paramètres sont disponibles localement
+            </p>
+          </div>
+        )}
+
         <Tabs defaultValue={isNative ? "downloads" : "general"} className="space-y-6">
           <TabsList className={`grid w-full max-w-md ${isNative ? 'grid-cols-3' : 'grid-cols-1'}`}>
             {isNative && (

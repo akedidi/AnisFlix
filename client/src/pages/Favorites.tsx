@@ -8,12 +8,14 @@ import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useOffline } from "@/hooks/useOffline";
 
 export default function Favorites() {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<'movies' | 'series'>('movies');
   const [, setLocation] = useLocation();
+  const { isOffline } = useOffline();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const {
@@ -43,6 +45,14 @@ export default function Favorites() {
             <Heart className="w-8 h-8 text-red-500" />
             <h1 className="text-3xl md:text-4xl font-bold">Mes Favoris</h1>
           </div>
+
+          {isOffline && (
+            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <p className="text-orange-500 text-sm">
+                📱 Mode hors ligne - Vos favoris sont disponibles localement
+              </p>
+            </div>
+          )}
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">

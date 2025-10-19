@@ -1,18 +1,20 @@
 import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useOffline } from "@/hooks/useOffline";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { t } = useLanguage();
+  const { isOffline } = useOffline();
 
   const navItems = [
-    { icon: Home, label: t("nav.home"), path: "/" },
-    { icon: Film, label: t("nav.movies"), path: "/movies" },
-    { icon: Tv, label: t("nav.series"), path: "/series" },
-    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
-    { icon: Heart, label: t("nav.favorites"), path: "/favorites" },
-    { icon: Settings, label: t("nav.settings"), path: "/settings" },
+    { icon: Home, label: t("nav.home"), path: "/", offline: true },
+    { icon: Film, label: t("nav.movies"), path: "/movies", offline: false },
+    { icon: Tv, label: t("nav.series"), path: "/series", offline: false },
+    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels", offline: true },
+    { icon: Heart, label: t("nav.favorites"), path: "/favorites", offline: true },
+    { icon: Settings, label: t("nav.settings"), path: "/settings", offline: true },
   ];
 
   return (
@@ -34,6 +36,7 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;
+          const isOfflineAvailable = item.offline;
           
           return (
             <Link
@@ -42,15 +45,21 @@ export default function BottomNav() {
               data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <button
-                className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg transition-colors min-w-0 flex-1 ${
+                className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg transition-colors min-w-0 flex-1 relative ${
                   isActive
                     ? "text-primary"
+                    : isOffline && !isOfflineAvailable
+                    ? "text-muted-foreground/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 style={{ maxWidth: 'calc(100vw / 6)', marginBottom: '4px' }}
+                disabled={isOffline && !isOfflineAvailable}
               >
                 <Icon className={`w-5 h-5 ${isActive ? "fill-primary/20" : ""}`} />
                 <span className="text-xs font-medium" style={{ marginBottom: '2px' }}>{item.label}</span>
+                {isOfflineAvailable && isOffline && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                )}
               </button>
             </Link>
           );

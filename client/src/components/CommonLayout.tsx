@@ -5,6 +5,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { useOffline } from "@/hooks/useOffline";
 
 interface CommonLayoutProps {
   title?: string;
@@ -21,6 +22,7 @@ export default function CommonLayout({
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
+  const { isOffline } = useOffline();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   return (
@@ -53,6 +55,12 @@ export default function CommonLayout({
             )}
             
             <div className="flex items-center gap-2">
+              {isOffline && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-500 rounded-md text-xs">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  Hors ligne
+                </div>
+              )}
               <LanguageSelect />
               <ThemeToggle />
             </div>

@@ -4,6 +4,7 @@ import { LanguageProvider } from "@/lib/i18n/LanguageContext";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import BottomNav from "@/components/BottomNav";
+import { useServiceWorker } from "@/hooks/useOffline";
 
 // Pages
 import Home from "@/pages/Home";
@@ -76,6 +77,9 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  // Enregistrer le service worker pour le cache offline
+  useServiceWorker();
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
