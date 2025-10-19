@@ -27,8 +27,8 @@ export const useMobileScroll = () => {
         // Appliquer les styles mobile
         document.body.style.overflowX = 'hidden';
         document.documentElement.style.overflowX = 'hidden';
-        document.body.style.webkitOverflowScrolling = 'touch';
-        document.documentElement.style.webkitOverflowScrolling = 'touch';
+               (document.body.style as any).webkitOverflowScrolling = 'touch';
+               (document.documentElement.style as any).webkitOverflowScrolling = 'touch';
         
         // S'assurer que le tab bar reste fixe
         const tabBar = document.querySelector('.mobile-bottom-nav');
@@ -44,8 +44,8 @@ export const useMobileScroll = () => {
         // Restaurer les styles desktop
         document.body.style.overflowX = '';
         document.documentElement.style.overflowX = '';
-        document.body.style.webkitOverflowScrolling = '';
-        document.documentElement.style.webkitOverflowScrolling = '';
+               (document.body.style as any).webkitOverflowScrolling = '';
+               (document.documentElement.style as any).webkitOverflowScrolling = '';
       }
     };
 
