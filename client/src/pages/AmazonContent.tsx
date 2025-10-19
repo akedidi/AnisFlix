@@ -92,7 +92,7 @@ export default function AmazonContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      <PullToRefresh onRefresh={handleRefresh}>}
+      <PullToRefresh onRefresh={handleRefresh}>
       showSearch={true}
     >
 

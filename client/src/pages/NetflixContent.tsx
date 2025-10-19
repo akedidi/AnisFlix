@@ -95,11 +95,7 @@ export default function NetflixContent() {
 
 
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
-
-      <PullToRefresh onRefresh={handleRefresh}>}
-      showSearch={true}
-    >
+      <PullToRefresh onRefresh={handleRefresh}>
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">

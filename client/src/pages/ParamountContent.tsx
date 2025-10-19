@@ -79,7 +79,7 @@ export default function ParamountContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      <PullToRefresh onRefresh={handleRefresh}>}
+      <PullToRefresh onRefresh={handleRefresh}>
       showSearch={true}
     >
 

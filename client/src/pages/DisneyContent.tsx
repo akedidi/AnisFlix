@@ -83,7 +83,7 @@ export default function DisneyContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      <PullToRefresh onRefresh={handleRefresh}>}
+      <PullToRefresh onRefresh={handleRefresh}>
       showSearch={true}
     >
 

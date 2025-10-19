@@ -78,7 +78,7 @@ export default function AppleTVContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      <PullToRefresh onRefresh={handleRefresh}>}
+      <PullToRefresh onRefresh={handleRefresh}>
       showSearch={true}
     >
 
