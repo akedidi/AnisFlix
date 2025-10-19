@@ -18,9 +18,10 @@ interface SearchBarProps {
   onSearch?: (query: string) => void;
   onSelect?: (item: SearchSuggestion) => void;
   suggestions?: SearchSuggestion[];
+  placeholder?: string;
 }
 
-export default function SearchBar({ onSearch, onSelect, suggestions = [] }: SearchBarProps) {
+export default function SearchBar({ onSearch, onSelect, suggestions = [], placeholder = "Rechercher..." }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -78,7 +79,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
         <Input
           ref={inputRef}
           type="search"
-          placeholder="Rechercher des films, séries, animes..."
+          placeholder={placeholder}
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           className="pl-10 pr-10"

@@ -64,6 +64,7 @@ export default function AnimeSeriesPopular() {
               <div className="flex items-center gap-2">
                 <SearchBar
                   onSearch={setSearchQuery}
+                  placeholder="Rechercher des séries anime..."
                 />
                 <LanguageSelect />
                 <ThemeToggle />

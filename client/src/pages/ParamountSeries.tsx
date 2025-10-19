@@ -102,8 +102,7 @@ export default function ParamountSeries() {
             
             <div className="flex items-center gap-2">
               <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
+                onSearch={setSearchQuery}
                 placeholder="Rechercher des séries Paramount+..."
               />
               <LanguageSelect />

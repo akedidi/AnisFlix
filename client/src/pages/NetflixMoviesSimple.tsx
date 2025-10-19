@@ -81,8 +81,7 @@ export default function NetflixMoviesSimple() {
             
             <div className="flex items-center gap-2">
               <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
+                onSearch={setSearchQuery}
                 placeholder="Rechercher des films Netflix..."
               />
               <LanguageSelect />
