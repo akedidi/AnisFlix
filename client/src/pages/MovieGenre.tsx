@@ -64,6 +64,18 @@ export default function MovieGenre() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const movies = moviesData?.results || [];
+  
+  // Debug logs pour comprendre les différences
+  console.log('🎬 MovieGenre.tsx - moviesData:', {
+    genre: genre,
+    genreId: genreId,
+    currentPage: currentPage,
+    language: localStorage.getItem('app-language'),
+    totalResults: moviesData?.total_results,
+    page: moviesData?.page,
+    totalPages: moviesData?.total_pages,
+    firstMovies: movies.slice(0, 5).map(m => ({ id: m.id, title: m.title, year: m.year }))
+  });
   const totalPages = moviesData?.total_pages || 1;
 
   // Listen to language changes

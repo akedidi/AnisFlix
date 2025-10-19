@@ -36,6 +36,15 @@ export default function Movies() {
   const latestMovies = latestMoviesData?.results || [];
   const actionMovies = actionMoviesData?.results || [];
   const dramaMovies = dramaMoviesData?.results || [];
+  
+  // Debug logs pour comprendre les différences
+  console.log('🎬 Movies.tsx - dramaMoviesData:', {
+    language: localStorage.getItem('app-language'),
+    totalResults: dramaMoviesData?.total_results,
+    page: dramaMoviesData?.page,
+    totalPages: dramaMoviesData?.total_pages,
+    firstMovies: dramaMovies.slice(0, 5).map(m => ({ id: m.id, title: m.title, year: m.year }))
+  });
   const crimeMovies = crimeMoviesData?.results || [];
   const mysteryMovies = mysteryMoviesData?.results || [];
   const documentaryMovies = documentaryMoviesData?.results || [];
