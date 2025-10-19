@@ -38,11 +38,15 @@ interface StreamingSourcesProps {
   genres?: { id: number; name: string }[];
   onSourceClick: (source: { 
     url: string; 
-    type: "m3u8" | "mp4"; 
+    type: "m3u8" | "mp4" | "embed"; 
     name: string;
     isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
+    isVidMoly?: boolean;
+    isDarki?: boolean;
+    quality?: string;
+    language?: string;
   }) => void;
   isLoadingSource: boolean;
   season?: number;
@@ -78,14 +82,14 @@ export default function StreamingSources({
   console.log('🔍 StreamingSources - Title:', title);
   
   // Détection par genres TMDB
-  const isAnimeByGenre = type === 'tv' && genres && genres.some(genre => 
+  const isAnimeByGenre = Boolean(type === 'tv' && genres && genres.some(genre => 
     genre.name.toLowerCase() === 'animation' || 
     genre.name.toLowerCase() === 'anime' ||
     genre.id === 16 // ID du genre Animation dans TMDB
-  );
+  ));
   
   // Détection de fallback par titre (pour les cas où les genres ne sont pas disponibles)
-  const isAnimeByTitle = type === 'tv' && title && (
+  const isAnimeByTitle = Boolean(type === 'tv' && title && (
     title.toLowerCase().includes('one punch man') ||
     title.toLowerCase().includes('demon slayer') ||
     title.toLowerCase().includes('naruto') ||
@@ -101,7 +105,7 @@ export default function StreamingSources({
     title.toLowerCase().includes('hunter x hunter') ||
     title.toLowerCase().includes('sword art online') ||
     title.toLowerCase().includes('anime')
-  );
+  ));
   
   const isAnimeSeries = isAnimeByGenre || isAnimeByTitle;
   
@@ -230,7 +234,7 @@ export default function StreamingSources({
   }, [selectedLanguage, hasSourcesForLanguage]);
 
   // Créer la liste unifiée des sources
-  const allSources = [];
+  const allSources: Source[] = [];
 
 
   // Ajouter TopStream en premier si disponible (VF uniquement)

@@ -77,7 +77,12 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
 };
 
 // Hook pour extraire les liens VidMoly d'une série anime
-export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episodeNumber: number, enabled: boolean = true) => {
+export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episodeNumber: number, enabled: boolean = true): {
+  data: any;
+  isLoading: boolean;
+  error: any;
+  hasVidMolyLinks: boolean;
+} => {
   const { data: animeData, isLoading, error } = useAnimeSeries(title, enabled);
   
   const vidmolyLinks = {
