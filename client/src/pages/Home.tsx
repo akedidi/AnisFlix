@@ -258,7 +258,7 @@ export default function Home() {
 
           {/* Catégories Anime */}
           <MediaCarousel
-            title="Derniers films anime"
+            title={t("anime.latestMovies")}
             items={animeMovies.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
@@ -266,7 +266,7 @@ export default function Home() {
           />
 
           <MediaCarousel
-            title="Dernières séries anime"
+            title={t("anime.latestSeries")}
             items={animeSeries.slice(0, 10)}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
@@ -274,7 +274,7 @@ export default function Home() {
           />
 
           <MediaCarousel
-            title="Films anime populaires"
+            title={t("anime.popularMovies")}
             items={popularAnimeMovies}
             onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
@@ -282,7 +282,7 @@ export default function Home() {
           />
 
           <MediaCarousel
-            title="Séries anime populaires"
+            title={t("anime.popularSeries")}
             items={popularAnimeSeries}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}

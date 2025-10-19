@@ -189,4 +189,43 @@ export default {
   "series.reality": "Reality",
   "series.talk": "Talk Show",
   "series.news": "News",
+  
+  // Anime sections
+  "anime.latestMovies": "Derniers films anime",
+  "anime.latestSeries": "Dernières séries anime",
+  "anime.popularMovies": "Films anime populaires",
+  "anime.popularSeries": "Séries anime populaires",
+  
+  // Search placeholders
+  "search.animeMovies": "Rechercher des films anime...",
+  "search.animeSeries": "Rechercher des séries anime...",
+  "search.netflixMovies": "Rechercher des films Netflix...",
+  "search.paramountMovies": "Rechercher des films Paramount+...",
+  "search.paramountSeries": "Rechercher des séries Paramount+...",
+  
+  // Detail pages
+  "detail.trailer": "Trailer",
+  "detail.similarContent": "Contenu similaire",
+  
+  // TV Channels
+  "tv.sections": "Sections",
+  "tv.categories": "Catégories",
+  "tv.channels": "Chaînes",
+  "tv.france": "France",
+  "tv.arabic": "Arabe",
+  "tv.generalist": "Généraliste",
+  "tv.news": "Info",
+  "tv.sport": "Sport",
+  "tv.fiction": "Fiction & Série",
+  "tv.youth": "Jeunesse",
+  "tv.discovery": "Découverte",
+  "tv.cinema": "Cinéma",
+  "tv.tunisia": "Tunisie",
+  
+  // Common buttons
+  "button.back": "Retour",
+  "button.chooseStreamingLink": "Choisir le lien de streaming :",
+  "button.link": "Lien",
+  "button.remove": "Supprimer",
+  "button.continueWatching": "Continuer à regarder",
 };

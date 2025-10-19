@@ -68,9 +68,9 @@ export default function AnimeMoviesPopular() {
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Retour
+                  {t("common.back")}
                 </Button>
-                <h1 className="text-xl font-semibold">Films anime populaires</h1>
+                <h1 className="text-xl font-semibold">{t("anime.popularMovies")}</h1>
               </div>
               
               <div className="flex items-center gap-2">
