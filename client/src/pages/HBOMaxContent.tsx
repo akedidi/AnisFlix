@@ -235,6 +235,7 @@ export default function HBOMaxContent() {
             </div>
           )
         )}
+          </div>
         </div>
       </div>
     </div>

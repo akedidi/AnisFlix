@@ -459,6 +459,7 @@ export default function ProviderDetail() {
         </div>
 
       </div>
+          </div>
         </div>
       </div>
     </div>

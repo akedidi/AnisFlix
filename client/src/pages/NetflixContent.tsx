@@ -303,6 +303,7 @@ export default function NetflixContent() {
             </div>
           )
         )}
+          </div>
         </div>
       </div>
     </div>
