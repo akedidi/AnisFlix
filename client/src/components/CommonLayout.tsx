@@ -7,6 +7,7 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
+import { useMobileScroll } from "@/hooks/useMobileScroll";
 
 interface CommonLayoutProps {
   title?: string;
@@ -29,6 +30,9 @@ export default function CommonLayout({
   const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
+  // Gérer le scroll sur mobile
+  useMobileScroll();
 
 
   return (
@@ -81,7 +85,7 @@ export default function CommonLayout({
       </div>
 
       {/* Main Content */}
-      <div className="min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20">
+      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
         {children}
       </div>
     </>
