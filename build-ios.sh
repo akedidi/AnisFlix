@@ -4,18 +4,19 @@
 echo "📱 Build iOS - AnisFlix"
 echo "======================"
 
-# Vérifier si EAS CLI est installé
-if ! command -v eas &> /dev/null; then
-    echo "❌ EAS CLI non trouvé. Installation..."
-    npm install -g @expo/cli eas-cli
-fi
+# Utiliser les versions locales de EAS CLI
+echo "📦 Utilisation des versions locales d'EAS CLI..."
 
 # Vérifier la connexion EAS
 echo "🔐 Vérification de la connexion EAS..."
-if ! eas whoami &> /dev/null; then
-    echo "⚠️  Non connecté à EAS. Veuillez vous connecter :"
-    echo "   eas login"
-    exit 1
+if ! npx eas-cli@latest whoami &> /dev/null; then
+    echo "⚠️  Non connecté à EAS. Tentative de connexion..."
+    echo "📝 Veuillez vous connecter avec vos identifiants Expo :"
+    npx eas-cli@latest login
+    if [ $? -ne 0 ]; then
+        echo "❌ Échec de la connexion EAS. Veuillez réessayer."
+        exit 1
+    fi
 fi
 
 # Vérifier les assets
@@ -69,7 +70,7 @@ echo "🚀 Lancement du build iOS avec le profil: $profile"
 echo ""
 
 # Lancer le build
-eas build --platform ios --profile $profile
+npx eas-cli@latest build --platform ios --profile $profile
 
 echo ""
 echo "🎉 Build lancé !"
