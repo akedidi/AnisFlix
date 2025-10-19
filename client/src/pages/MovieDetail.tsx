@@ -31,14 +31,14 @@ export default function MovieDetail() {
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
 
   // Fetch Movix player links
-  const { data: movixLinks } = useMovixPlayerLinks(movieId, 'movie');
+  const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
 
   // Get trailer
-  const trailer = videos?.results?.find(video => video.type === 'Trailer' && video.site === 'YouTube');
+  const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
 
   // Generate sources from Movix links
   const sources = movixLinks ? [
-    ...(movixLinks.fstream || []).map((link: any) => ({
+    ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `fstream-${link.id}`,
       name: link.name,
       provider: 'FStream',
@@ -52,7 +52,7 @@ export default function MovieDetail() {
       quality: link.quality || 'HD',
       language: link.language || 'Français'
     })),
-    ...(movixLinks.topstream || []).map((link: any) => ({
+    ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `topstream-${link.id}`,
       name: link.name,
       provider: 'TopStream',
@@ -66,7 +66,7 @@ export default function MovieDetail() {
       quality: link.quality || 'HD',
       language: link.language || 'Français'
     })),
-    ...(movixLinks.wiflix || []).map((link: any) => ({
+    ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `wiflix-${link.id}`,
       name: link.name,
       provider: 'Wiflix',
@@ -242,7 +242,7 @@ export default function MovieDetail() {
                     title={movie.title}
                     sources={sources}
                     genres={movie.genres}
-                    onSourceSelect={handleSourceSelect}
+                    onSourceClick={handleSourceSelect}
                     isLoading={isLoadingSource}
                   />
                 </div>
@@ -262,7 +262,7 @@ export default function MovieDetail() {
                   </div>
                   {selectedSource.type === 'embed' ? (
                     <VidMolyPlayer
-                      url={selectedSource.url}
+                      vidmolyUrl={selectedSource.url}
                       title={movie.title}
                       mediaId={movieId}
                       mediaType="movie"
@@ -271,7 +271,7 @@ export default function MovieDetail() {
                     />
                   ) : (
                     <VideoPlayer
-                      url={selectedSource.url}
+                      src={selectedSource.url}
                       type={selectedSource.type as "m3u8" | "mp4"}
                       title={movie.title}
                       mediaId={movieId}

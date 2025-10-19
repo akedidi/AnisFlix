@@ -366,7 +366,7 @@ export default function SeriesDetail() {
                                       mediaType="tv"
                                       backdropPath={series?.backdrop_path}
                                       seasonNumber={selectedSeasonNumber}
-                                      episodeNumber={selectedEpisode}
+                                      episodeNumber={selectedEpisode || undefined}
                                     />
                                   ) : selectedSource.isDarki ? (
                                     <DarkiPlayer
@@ -379,7 +379,7 @@ export default function SeriesDetail() {
                                   ) : (
                                     <VideoPlayer
                                       src={selectedSource.url}
-                                      type={selectedSource.type}
+                                      type={selectedSource.type === 'embed' ? 'auto' : selectedSource.type}
                                       title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
                                       mediaId={series.id}
                                       mediaType="tv"
