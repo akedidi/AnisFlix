@@ -84,8 +84,6 @@ export default function DisneyContent() {
 
 
       <PullToRefresh onRefresh={handleRefresh}>
-      showSearch={true}
-    >
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
