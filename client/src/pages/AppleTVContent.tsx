@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -65,11 +66,19 @@ export default function AppleTVContent() {
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+
 
   return (
-    <CommonLayout 
-      title="Apple TV+" 
-      icon={<img src="https://image.tmdb.org/t/p/original/6uhKBfmtzFqOcLousHwZuzcrScK.jpg" alt="Apple TV+" className="w-12 h-12 rounded-lg" />}
+
+
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+
+      <PullToRefresh onRefresh={handleRefresh}>}
       showSearch={true}
     >
 
@@ -207,6 +216,10 @@ export default function AppleTVContent() {
             )
           )}
         </div>
-    </CommonLayout>
-  );
-}
+        </PullToRefresh>
+
+      </CommonLayout>
+
+    );
+
+    }

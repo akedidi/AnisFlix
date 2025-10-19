@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 ;
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -70,11 +71,19 @@ export default function DisneyContent() {
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+
 
   return (
-    <CommonLayout 
-      title="Disney+" 
-      icon={<img src="https://image.tmdb.org/t/p/original/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" alt="Disney+" className="w-12 h-12 rounded-lg" />}
+
+
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+
+      <PullToRefresh onRefresh={handleRefresh}>}
       showSearch={true}
     >
 
@@ -245,6 +254,13 @@ export default function DisneyContent() {
         )}
         </div>
         
-    </CommonLayout>
-  );
-}
+        </PullToRefresh>
+
+        
+      </CommonLayout>
+
+        
+    );
+
+        
+    }

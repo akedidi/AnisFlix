@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 
 // Types
 interface Provider {
@@ -78,17 +79,29 @@ export default function ProviderDetail() {
 
   // Guard: provider inconnu
   if (!provider) {
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+
     return (
-      <CommonLayout showSearch>
+
+      <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-12">
           <h1 className="text-2xl font-semibold mb-2">{t("provider.notFound") || "Fournisseur introuvable"}</h1>
           <p className="text-muted-foreground">
             {t("provider.chooseAnother") || "Veuillez sélectionner un autre fournisseur."}
           </p>
         </div>
-      </CommonLayout>
-    );
-  }
+          </PullToRefresh>
+
+        </CommonLayout>
+
+      );
+
+      }
 
   const imageUrl = provider.logoPath
     ? `https://image.tmdb.org/t/p/w185${provider.logoPath}`

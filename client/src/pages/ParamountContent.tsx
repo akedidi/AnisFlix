@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 ;
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -66,11 +67,19 @@ export default function ParamountContent() {
     setCurrentPage(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+
 
   return (
-    <CommonLayout 
-      title="Paramount+" 
-      icon={<img src="https://image.tmdb.org/t/p/original/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" alt="Paramount+" className="w-12 h-12 rounded-lg" />}
+
+
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+
+      <PullToRefresh onRefresh={handleRefresh}>}
       showSearch={true}
     >
 
@@ -209,6 +218,13 @@ export default function ParamountContent() {
         )}
         </div>
         
-    </CommonLayout>
-  );
-}
+        </PullToRefresh>
+
+        
+      </CommonLayout>
+
+        
+    );
+
+        
+    }

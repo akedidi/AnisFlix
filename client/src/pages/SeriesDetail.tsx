@@ -11,6 +11,7 @@ import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -134,8 +135,16 @@ export default function SeriesDetail() {
   };
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
   if (isLoadingSeries) {
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
+
     return (
-      <CommonLayout showSearch={true}>
+
+      <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+        <PullToRefresh onRefresh={handleRefresh}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
@@ -379,7 +388,11 @@ export default function SeriesDetail() {
           </div>
         )}
       </div>
-    </CommonLayout>
-  );
-  }
+        </PullToRefresh>
+
+      </CommonLayout>
+
+    );
+
+    }
 }
