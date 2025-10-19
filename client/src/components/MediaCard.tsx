@@ -68,7 +68,7 @@ export default function MediaCard({
             toggleFavorite({
               id,
               title,
-              posterPath,
+              posterPath: posterPath || '',
               rating,
               year: year || '',
               mediaType: normalizedMediaType as 'movie' | 'series'

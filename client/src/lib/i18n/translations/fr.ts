@@ -204,7 +204,6 @@ export default {
   "search.paramountSeries": "Rechercher des séries Paramount+...",
   
   // Detail pages
-  "detail.trailer": "Trailer",
   "detail.similarContent": "Contenu similaire",
   
   // TV Channels

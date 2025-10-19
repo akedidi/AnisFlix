@@ -5,7 +5,7 @@ import { getMovixPlayerLinks, extractImdbId, getHLSProxyUrl } from "@/lib/movixP
 // Optimized query options to reduce Fast Origin usage
 const CACHE_OPTIONS = {
   staleTime: 1000 * 60 * 30, // 30 minutes
-  cacheTime: 1000 * 60 * 60, // 1 hour
+  gcTime: 1000 * 60 * 60, // 1 hour
   refetchOnWindowFocus: false,
   refetchOnMount: false,
   refetchOnReconnect: false,
@@ -308,7 +308,7 @@ export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
     },
     enabled: !!masterM3u8Url && masterM3u8Url.includes('.m3u8'),
     staleTime: 1000 * 60 * 2, // 2 minutes (very short cache for streaming URLs)
-    cacheTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,

@@ -33,7 +33,8 @@ export default function Favorites() {
   const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
   const seriesSearchResults = searchResults.filter((item: any) => item.mediaType === 'series');
 
-  const handleTabChange = (tab: 'movies' | 'series') => {
+  const handleTabChange = (value: string) => {
+    const tab = value as 'movies' | 'series';
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

@@ -55,7 +55,7 @@ export const useDarkiboxSeries = (seriesId: number, season: number, episode: num
     queryFn: () => fetchDarkiboxSeries(seriesId, season, episode),
     enabled: !!seriesId && !!season && !!episode,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 

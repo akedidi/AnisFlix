@@ -8,7 +8,7 @@ import { getOptimizedBackdropUrl } from "@/lib/imageOptimization";
 interface HeroItem {
   title: string;
   overview: string;
-  backdropPath: string | null;
+  backdropPath: string | null | undefined;
   rating: number;
   year?: string;
   mediaType?: "movie" | "tv" | "anime" | "documentary";

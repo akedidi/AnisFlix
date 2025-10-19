@@ -59,7 +59,7 @@ export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => 
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
     staleTime: 0, // Pas de cache pour debug
-    cacheTime: 0, // Pas de cache pour debug
+    gcTime: 0, // Pas de cache pour debug
   });
 };
 
