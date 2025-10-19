@@ -7,7 +7,19 @@ import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import type { MediaType } from "@shared/schema";
-import { Capacitor } from '@capacitor/core';
+// Détection de plateforme native (iOS/Android)
+const isNativePlatform = () => {
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
+         (window as any).webkit?.messageHandlers || 
+         (window as any).Android;
+};
+
+// Extension des types pour webkitSetPresentationMode
+declare global {
+  interface HTMLVideoElement {
+    webkitSetPresentationMode?: (mode: string) => void;
+  }
+}
 
 interface VideoPlayerProps {
   src: string;
@@ -190,7 +202,7 @@ export default function VideoPlayer({
         }
       } else {
         // Entrer en mode PiP
-        if (Capacitor.isNativePlatform()) {
+        if (isNativePlatform()) {
           // Sur iOS natif, utiliser webkitSetPresentationMode (méthode native)
           if (video.webkitSetPresentationMode) {
             video.webkitSetPresentationMode('picture-in-picture');
@@ -346,10 +358,10 @@ export default function VideoPlayer({
         ref={videoRef}
         className="w-full aspect-video bg-black"
         controls
-        playsInline={!Capacitor.isNativePlatform()}
+        playsInline={!isNativePlatform()}
         preload="auto"
         data-testid="video-player-main"
-        {...(Capacitor.isNativePlatform() && {
+        {...(isNativePlatform() && {
           'webkit-playsinline': 'false',
           'playsinline': 'false'
         })}

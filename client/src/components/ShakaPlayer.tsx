@@ -1,7 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucide-react";
-import { Capacitor } from '@capacitor/core';
+// Détection de plateforme native (iOS/Android)
+const isNativePlatform = () => {
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
+         (window as any).webkit?.messageHandlers || 
+         (window as any).Android;
+};
+
+// Extension des types pour webkitSetPresentationMode
+declare global {
+  interface HTMLVideoElement {
+    webkitSetPresentationMode?: (mode: string) => void;
+  }
+}
 
 interface ShakaPlayerProps {
   url: string;
@@ -148,7 +160,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         }
       } else {
         // Entrer en mode PiP
-        if (Capacitor.isNativePlatform()) {
+        if (isNativePlatform()) {
           // Sur iOS natif, utiliser webkitSetPresentationMode (méthode native)
           if (video.webkitSetPresentationMode) {
             video.webkitSetPresentationMode('picture-in-picture');
