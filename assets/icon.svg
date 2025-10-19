@@ -1,0 +1,8 @@
+
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1024" height="1024" fill="#000000"/>
+  <rect x="100" y="300" width="824" height="424" fill="#ffffff" rx="20"/>
+  <rect x="150" y="350" width="724" height="324" fill="#000000" rx="10"/>
+  <text x="512" y="550" font-family="Arial, sans-serif" font-size="120" font-weight="bold" fill="#ffffff" text-anchor="middle">ANIS</text>
+  <text x="512" y="700" font-family="Arial, sans-serif" font-size="80" fill="#ffffff" text-anchor="middle">FLIX</text>
+</svg>
