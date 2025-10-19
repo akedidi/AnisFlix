@@ -39,13 +39,8 @@ export default function Favorites() {
   };
 
   return (
-    <CommonLayout title="Mes Favoris" showSearch={true}>
+    <CommonLayout showSearch={true}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <Heart className="w-8 h-8 text-red-500" />
-            <h1 className="text-3xl md:text-4xl font-bold">Mes Favoris</h1>
-          </div>
-
           {isOffline && (
             <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
               <p className="text-orange-500 text-sm">
