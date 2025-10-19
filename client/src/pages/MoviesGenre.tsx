@@ -156,7 +156,7 @@ export default function MoviesGenre() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            {t("genre.discoverMovies", { genre: genreName })}
+            {t("genre.discoverMovies").replace('{genre}', genreName || 'inconnu')}
           </p>
         </div>
       </div>
@@ -200,7 +200,7 @@ export default function MoviesGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("genre.noMoviesAvailable", { genre: genreName })}</p>
+            <p className="text-muted-foreground">{t("genre.noMoviesAvailable").replace('{genre}', genreName || 'inconnu')}</p>
           </div>
         )}
       </div>

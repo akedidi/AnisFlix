@@ -243,6 +243,7 @@ export default function MovieDetail() {
                     sources={sources}
                     genres={movie.genres}
                     onSourceClick={handleSourceSelect}
+                    isLoadingSource={isLoadingSource}
                   />
                 </div>
               ) : (

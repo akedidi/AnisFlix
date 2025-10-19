@@ -136,7 +136,7 @@ export default function MovieGenre() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Films {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez tous les films du genre {genreName.toLowerCase()}.
+            Découvrez tous les films du genre {genreName?.toLowerCase() || 'inconnu'}.
           </p>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function MovieGenre() {
         ) : movies.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {movies.map((movie) => (
+              {movies.map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -168,7 +168,7 @@ export default function MovieGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun film {genreName.toLowerCase()} disponible</p>
+            <p className="text-muted-foreground">Aucun film {genreName?.toLowerCase() || 'inconnu'} disponible</p>
           </div>
         )}
       </div>
