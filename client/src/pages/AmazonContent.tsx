@@ -281,6 +281,7 @@ export default function AmazonContent() {
           )
         )}
         </div>
+        </div>
       </div>
     </div>
   );

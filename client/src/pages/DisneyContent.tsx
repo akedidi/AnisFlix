@@ -272,6 +272,7 @@ export default function DisneyContent() {
           )
         )}
         </div>
+        </div>
       </div>
     </div>
   );
