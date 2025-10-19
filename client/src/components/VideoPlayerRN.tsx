@@ -24,6 +24,7 @@ export default function VideoPlayer({
   src, 
   type = "auto", 
   title = "Vidéo",
+  onClose,
   mediaId,
   mediaType,
   posterPath,
@@ -61,8 +62,11 @@ export default function VideoPlayer({
     
     try {
       await saveWatchProgress({
-        mediaId,
-        mediaType,
+        mediaId: mediaId || 0,
+        mediaType: mediaType || 'movie',
+        title: title || 'Vidéo',
+        posterPath: posterPath || '',
+        backdropPath: backdropPath || '',
         progress: currentTime / duration,
         currentTime,
         duration,
@@ -82,10 +86,10 @@ export default function VideoPlayer({
     }
   };
 
-  const handleFullscreenUpdate = (event: VideoFullscreenUpdate) => {
-    if (event.fullscreenUpdate === VideoFullscreenUpdate.PLAYER_DID_PRESENT) {
+  const handleFullscreenUpdate = (event: any) => {
+    if (event.status === VideoFullscreenUpdate.PLAYER_DID_PRESENT) {
       setIsPictureInPicture(true);
-    } else if (event.fullscreenUpdate === VideoFullscreenUpdate.PLAYER_DID_DISMISS) {
+    } else if (event.status === VideoFullscreenUpdate.PLAYER_DID_DISMISS) {
       setIsPictureInPicture(false);
     }
   };
@@ -162,10 +166,9 @@ export default function VideoPlayer({
         shouldPlay={false}
         isLooping={false}
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onFullscreenUpdate={handleFullscreenUpdate}
+        onFullscreenUpdate={handleFullscreenUpdate as any}
         posterSource={posterPath ? { uri: posterPath } : undefined}
         usePoster={!!posterPath}
-        allowsFullscreen={true}
         allowsPictureInPicture={true}
       />
       
