@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
@@ -19,6 +20,7 @@ export default function CommonLayout({
   children 
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   return (
@@ -44,7 +46,7 @@ export default function CommonLayout({
                   suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
                     const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    setLocation(path);
                   }}
                 />
               </div>

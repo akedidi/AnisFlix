@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -7,6 +8,7 @@ import { useScrollPosition } from "@/hooks/useScrollPosition";
 export default function Movies() {
     const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('movies');
+  const [, setLocation] = useLocation();
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -64,14 +66,14 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.latest")}
           items={latestMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           seeAllLink="/latest-movies"
         />
 
         <MediaCarousel
           title={t("movies.action")}
           items={actionMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/action"
         />
@@ -79,7 +81,7 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.drama")}
           items={dramaMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/drame"
         />
@@ -87,7 +89,7 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.crime")}
           items={crimeMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/crime"
         />
@@ -95,7 +97,7 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.mystery")}
           items={mysteryMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/mystere"
         />
@@ -103,7 +105,7 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.documentary")}
           items={documentaryMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/documentaire"
         />
@@ -111,7 +113,7 @@ export default function Movies() {
         <MediaCarousel
           title={t("movies.animation")}
           items={animeMovies.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
           showSeeAllButton={true}
           sectionId="movies-genre/animation"
         />

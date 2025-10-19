@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
@@ -22,6 +23,7 @@ import { getWatchProgress } from "@/lib/watchProgress";
 export default function Home() {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [, setLocation] = useLocation();
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -155,10 +157,10 @@ export default function Home() {
               });
             }}
             onInfo={(item) => {
-              window.location.href = `/movie/${item.id}`;
+              setLocation(`/movie/${item.id}`);
             }}
             onClick={(item) => {
-              window.location.href = `/movie/${item.id}`;
+              setLocation(`/movie/${item.id}`);
             }}
             autoRotate={true}
             rotationInterval={6000}
@@ -172,7 +174,7 @@ export default function Home() {
               items={continueWatching}
               onItemClick={(item) => {
                 const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                window.location.href = path;
+                setLocation(path);
               }}
             />
           )}
@@ -185,7 +187,7 @@ export default function Home() {
                   <div key={provider.id} className="w-40 flex-shrink-0">
                     <ProviderCard
                       {...provider}
-                      onClick={() => window.location.href = `/provider/${provider.id}`}
+                      onClick={() => setLocation(`/provider/${provider.id}`)}
                     />
                   </div>
                 ))}
@@ -198,14 +200,14 @@ export default function Home() {
           <MediaCarousel
             title={t("home.latestMovies")}
             items={latestMovies.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
             seeAllLink="/latest-movies"
           />
 
           <MediaCarousel
             title={t("home.latestSeries")}
             items={latestSeries.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            onItemClick={(item) => setLocation(`/series/${item.id}`)}
             seeAllLink="/latest-series"
           />
 
@@ -213,14 +215,14 @@ export default function Home() {
           <MediaCarousel
             title={t("home.popularMovies")}
             items={popularMovies.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
             seeAllLink="/popular-movies"
           />
 
           <MediaCarousel
             title={t("home.popularSeries")}
             items={popularSeries.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            onItemClick={(item) => setLocation(`/series/${item.id}`)}
             seeAllLink="/popular-series"
           />
 
@@ -228,7 +230,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.latestMovies")}
             items={animeMovies.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
             showSeeAllButton={true}
             sectionId="anime-movies-latest"
           />
@@ -236,7 +238,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.latestSeries")}
             items={animeSeries.slice(0, 10)}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            onItemClick={(item) => setLocation(`/series/${item.id}`)}
             showSeeAllButton={true}
             sectionId="anime-series-latest"
           />
@@ -244,7 +246,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.popularMovies")}
             items={popularAnimeMovies}
-            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
             showSeeAllButton={true}
             sectionId="anime-movies-popular"
           />
@@ -252,7 +254,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.popularSeries")}
             items={popularAnimeSeries}
-            onItemClick={(item) => window.location.href = `/series/${item.id}`}
+            onItemClick={(item) => setLocation(`/series/${item.id}`)}
             showSeeAllButton={true}
             sectionId="anime-series-popular"
           />
@@ -262,7 +264,7 @@ export default function Home() {
             <MediaCarousel
               title={`Netflix - ${t("home.latestMovies")}`}
               items={netflixMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -271,7 +273,7 @@ export default function Home() {
             <MediaCarousel
               title={`Netflix - ${t("home.latestSeries")}`}
               items={netflixSeries.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+              onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -281,7 +283,7 @@ export default function Home() {
             <MediaCarousel
               title={`Amazon Prime - ${t("home.latestMovies")}`}
               items={amazonMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -290,7 +292,7 @@ export default function Home() {
             <MediaCarousel
               title={`Amazon Prime - ${t("home.latestSeries")}`}
               items={amazonSeries.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+              onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -300,7 +302,7 @@ export default function Home() {
             <MediaCarousel
               title={`Apple TV+ - ${t("home.latestMovies")}`}
               items={appleTvMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -309,7 +311,7 @@ export default function Home() {
             <MediaCarousel
               title={`Apple TV+ - ${t("home.latestSeries")}`}
               items={appleTvSeries.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+              onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -319,7 +321,7 @@ export default function Home() {
             <MediaCarousel
               title={`Disney+ - ${t("home.latestMovies")}`}
               items={disneyMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -328,7 +330,7 @@ export default function Home() {
             <MediaCarousel
               title={`Disney+ - ${t("home.latestSeries")}`}
               items={disneySeries.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+              onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -338,7 +340,7 @@ export default function Home() {
             <MediaCarousel
               title={`HBO Max - ${t("home.latestMovies")}`}
               items={hboMaxMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
             />
           )}
@@ -347,7 +349,7 @@ export default function Home() {
             <MediaCarousel
               title={`HBO Max - ${t("home.latestSeries")}`}
               items={hboMaxSeries.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/series/${item.id}`}
+              onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
             />
           )}

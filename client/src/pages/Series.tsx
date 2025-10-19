@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -7,6 +8,7 @@ import { useScrollPosition } from "@/hooks/useScrollPosition";
 export default function Series() {
     const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('series');
+  const [, setLocation] = useLocation();
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -55,14 +57,14 @@ export default function Series() {
         <MediaCarousel
           title={t("series.latest")}
           items={latestSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           seeAllLink="/latest-series"
         />
 
         <MediaCarousel
           title={t("series.actionAdventure")}
           items={actionSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/action"
         />
@@ -70,7 +72,7 @@ export default function Series() {
         <MediaCarousel
           title={t("series.drama")}
           items={dramaSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/drame"
         />
@@ -78,7 +80,7 @@ export default function Series() {
         <MediaCarousel
           title={t("series.crime")}
           items={crimeSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/crime"
         />
@@ -86,7 +88,7 @@ export default function Series() {
         <MediaCarousel
           title={t("series.mystery")}
           items={mysterySeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/mystere"
         />
@@ -94,7 +96,7 @@ export default function Series() {
         <MediaCarousel
           title={t("series.documentary")}
           items={documentarySeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/documentaire"
         />
@@ -102,7 +104,7 @@ export default function Series() {
         <MediaCarousel
           title={t("series.animation")}
           items={animeSeries.slice(0, 10)}
-          onItemClick={(item) => window.location.href = `/series/${item.id}`}
+          onItemClick={(item) => setLocation(`/series/${item.id}`)}
           showSeeAllButton={true}
           sectionId="series-genre/animation"
         />

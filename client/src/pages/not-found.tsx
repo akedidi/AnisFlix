@@ -2,8 +2,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home } from "lucide-react";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import { useLocation } from "wouter";
 
 export default function NotFound() {
+  const [, setLocation] = useLocation();
+  
   return (
     <div className="min-h-screen fade-in-up">
       {/* Desktop Sidebar */}
@@ -24,7 +27,7 @@ export default function NotFound() {
               </p>
               
               <Button 
-                onClick={() => window.location.href = '/'}
+                onClick={() => setLocation('/')}
                 className="w-full"
               >
                 <Home className="w-4 h-4 mr-2" />

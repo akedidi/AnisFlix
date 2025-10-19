@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Heart, Trash2, Play } from "lucide-react";
@@ -15,6 +16,7 @@ export default function Favorites() {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<'movies' | 'series'>('movies');
+  const [, setLocation] = useLocation();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const {
@@ -54,7 +56,7 @@ export default function Favorites() {
                   suggestions={searchQuery ? (activeTab === 'movies' ? movieSearchResults : seriesSearchResults) : []}
                   onSelect={(item) => {
                     const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    setLocation(path);
                   }}
                 />
               </div>
@@ -96,7 +98,7 @@ export default function Favorites() {
                         rating={movie.rating}
                         year={movie.year}
                         mediaType="movie"
-                        onItemClick={() => window.location.href = `/movie/${movie.id}`}
+                        onItemClick={() => setLocation(`/movie/${movie.id}`)}
                       />
                       <Button
                         variant="destructive"
@@ -119,7 +121,7 @@ export default function Favorites() {
                   <p className="text-muted-foreground mb-4">
                     Ajoutez des films à vos favoris en cliquant sur l'icône cœur
                   </p>
-                  <Button onClick={() => window.location.href = '/movies'}>
+                  <Button onClick={() => setLocation('/movies')}>
                     Découvrir des films
                   </Button>
                 </div>
@@ -138,7 +140,7 @@ export default function Favorites() {
                         rating={series.rating}
                         year={series.year}
                         mediaType="series"
-                        onItemClick={() => window.location.href = `/series/${series.id}`}
+                        onItemClick={() => setLocation(`/series/${series.id}`)}
                       />
                       <Button
                         variant="destructive"
@@ -161,7 +163,7 @@ export default function Favorites() {
                   <p className="text-muted-foreground mb-4">
                     Ajoutez des séries à vos favoris en cliquant sur l'icône cœur
                   </p>
-                  <Button onClick={() => window.location.href = '/series'}>
+                  <Button onClick={() => setLocation('/series')}>
                     Découvrir des séries
                   </Button>
                 </div>

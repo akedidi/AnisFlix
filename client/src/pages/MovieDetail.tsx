@@ -19,10 +19,10 @@ export default function MovieDetail() {
   const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
-  
+
   // Debug: log de l'état initial
   console.log('🔍 État initial isLoadingSource:', isLoadingSource);
-  
+
   // Corriger l'état initial si il est à true
   useEffect(() => {
     if (isLoadingSource && !selectedSource) {
@@ -30,7 +30,7 @@ export default function MovieDetail() {
       setIsLoadingSource(false);
     }
   }, [isLoadingSource, selectedSource]);
-  
+
   // Debug: tracer les changements d'état isLoadingSource
   useEffect(() => {
     console.log('🔍 isLoadingSource changé:', isLoadingSource);
@@ -39,18 +39,18 @@ export default function MovieDetail() {
     }
   }, [isLoadingSource]);
     const { isFavorite, toggleFavorite } = useFavorites();
-  
+
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
   const { data: videos } = useMovieVideos(movieId);
   const { data: similarMovies = [] } = useSimilarMovies(movieId);
-    
+
   // Fetch Movix player links
   const { data: movixLinks, isLoading: isLoadingMovixLinks } = useMovixPlayerLinks(
-    movie?.imdb_id || null, 
+    movie?.imdb_id || null,
     'movie'
   );
-  
+
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for movie:', movie?.title, movixLinks);
@@ -64,12 +64,12 @@ export default function MovieDetail() {
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
-  
+
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const sources: any[] = [];
-  const handleSourceClick = async (source: { 
-    url: string; 
-    type: "m3u8" | "mp4" | "embed"; 
+  const handleSourceClick = async (source: {
+    url: string;
+    type: "m3u8" | "mp4" | "embed";
     name: string;
     isTopStream?: boolean;
     isFStream?: boolean;
@@ -77,10 +77,10 @@ export default function MovieDetail() {
     isVidMoly?: boolean;
   }) => {
     if (!movie) return;
-    
+
     console.log('🔍 handleSourceClick appelé avec source:', source);
     console.log('🔍 isLoadingSource au début:', isLoadingSource);
-    
+
     // Si l'URL est déjà fournie (TopStream, MovixDownload ou autres sources directes), on l'utilise directement
     // EXCEPTION: VidMoly doit toujours passer par l'API d'extraction
     if (source.url && (source.type === "mp4" || source.type === "embed" || source.isTopStream || source.isMovixDownload) && !source.isVidMoly) {
@@ -95,7 +95,7 @@ export default function MovieDetail() {
       setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
-    
+
       // Pour VidMoly, passer le lien embed original au VidMolyPlayer
       if (source.isVidMoly) {
         console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
@@ -109,17 +109,17 @@ export default function MovieDetail() {
         setIsLoadingSource(false);
         return;
       }
-    
+
     // Pour Vidzy (via FStream), on utilise le scraper
     if (source.url && source.type === "m3u8" && source.isFStream) {
       setIsLoadingSource(true);
       try {
         const m3u8Url = await extractVidzyM3u8(source.url);
-        
+
         if (!m3u8Url) {
           throw new Error("Aucun lien m3u8 trouvé");
         }
-        
+
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
@@ -134,16 +134,16 @@ export default function MovieDetail() {
       }
       return;
     }
-    
-    
+
+
     // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
-  
+
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
-  
+
   if (isLoadingMovie) {
     return (
-    <CommonLayout showSearch={true}>
+      <CommonLayout showSearch={true}>
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid md:grid-cols-[300px_1fr] gap-8">
           <div className="hidden md:block">
@@ -158,7 +158,7 @@ export default function MovieDetail() {
           <div className="space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
-              
+
               <div className="flex flex-wrap items-center gap-4 mb-6">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
@@ -209,8 +209,8 @@ export default function MovieDetail() {
                     }
                   }}
                 >
-                  <Heart 
-                    className={`w-5 h-5 ${isFavorite(movieId, 'movie') ? 'fill-current' : ''}`} 
+                  <Heart
+                    className={`w-5 h-5 ${isFavorite(movieId, 'movie') ? 'fill-current' : ''}`}
                   />
                   {isFavorite(movieId, 'movie') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
                 </Button>
@@ -288,10 +288,21 @@ export default function MovieDetail() {
             <MediaCarousel
               title="Films similaires"
               items={similarMovies.slice(0, 10)}
-              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
             />
           </div>
         )}
+      </div>
+    </CommonLayout>
+  );
+  }
+
+  return (
+    <CommonLayout showSearch={true}>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Chargement du film...</p>
+        </div>
       </div>
     </CommonLayout>
   );

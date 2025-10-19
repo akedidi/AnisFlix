@@ -1,6 +1,7 @@
   import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, ArrowLeft, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
+import { useLocation } from "wouter";
 import MediaCard from "./MediaCard";
 
 interface Media {
@@ -26,6 +27,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [, setLocation] = useLocation();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -74,33 +76,33 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
             className="btn-animate gap-1"
             onClick={() => {
               if (seeAllLink) {
-                window.location.href = seeAllLink;
+                setLocation(seeAllLink);
               } else if (sectionId) {
                 // Utiliser l'identifiant de section pour une redirection précise
-                window.location.href = `/${sectionId}`;
+                setLocation(`/${sectionId}`);
               } else {
                 // Fallback basé sur le titre (pour la rétrocompatibilité)
                 if (title.includes('Netflix')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/netflix-series' : '/netflix-movies';
+                  setLocation(isSeries ? '/netflix-series' : '/netflix-movies');
                 } else if (title.includes('Amazon Prime')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/amazon-series' : '/amazon-movies';
+                  setLocation(isSeries ? '/amazon-series' : '/amazon-movies');
                 } else if (title.includes('Apple TV+')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/apple-tv-series' : '/apple-tv-movies';
+                  setLocation(isSeries ? '/apple-tv-series' : '/apple-tv-movies');
                 } else if (title.includes('Disney+')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/disney-series' : '/disney-movies';
+                  setLocation(isSeries ? '/disney-series' : '/disney-movies');
                 } else if (title.includes('HBO Max')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/hbo-max-series' : '/hbo-max-movies';
+                  setLocation(isSeries ? '/hbo-max-series' : '/hbo-max-movies');
                 } else if (title.includes('Paramount+')) {
                   const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  window.location.href = isSeries ? '/paramount-series' : '/paramount-movies';
+                  setLocation(isSeries ? '/paramount-series' : '/paramount-movies');
                 } else {
                   // Par défaut, rediriger vers la page d'accueil
-                  window.location.href = '/';
+                  setLocation('/');
                 }
               }
             }}
