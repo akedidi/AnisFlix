@@ -71,10 +71,10 @@ export default function MovieGenre() {
     genreId: genreId,
     currentPage: currentPage,
     language: localStorage.getItem('app-language'),
-    totalResults: moviesData?.total_results,
+    totalResults: moviesData?.results?.length,
     page: moviesData?.page,
     totalPages: moviesData?.total_pages,
-    firstMovies: movies.slice(0, 5).map(m => ({ id: m.id, title: m.title, year: m.year }))
+    firstMovies: movies.slice(0, 5).map((m: any) => ({ id: m.id, title: m.title, year: m.year }))
   });
   const totalPages = moviesData?.total_pages || 1;
 

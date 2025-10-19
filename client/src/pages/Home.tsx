@@ -142,7 +142,7 @@ export default function Home() {
           <div className="space-y-8 md:space-y-12">
         {popularMovies.length > 0 && (
           <HeroSection
-            items={popularMovies.slice(0, 5).map(movie => ({
+            items={popularMovies.slice(0, 5).map((movie: any) => ({
               id: movie.id,
               title: movie.title,
               overview: movie.overview,
@@ -156,7 +156,7 @@ export default function Home() {
               toggleFavorite({
                 id: item.id,
                 title: item.title,
-                posterPath: item.backdropPath,
+                posterPath: item.backdropPath || '',
                 rating: item.rating,
                 year: item.year || '',
                 mediaType: 'movie'

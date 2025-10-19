@@ -40,10 +40,10 @@ export default function Movies() {
   // Debug logs pour comprendre les différences
   console.log('🎬 Movies.tsx - dramaMoviesData:', {
     language: localStorage.getItem('app-language'),
-    totalResults: dramaMoviesData?.total_results,
+    totalResults: dramaMoviesData?.results?.length,
     page: dramaMoviesData?.page,
     totalPages: dramaMoviesData?.total_pages,
-    firstMovies: dramaMovies.slice(0, 5).map(m => ({ id: m.id, title: m.title, year: m.year }))
+    firstMovies: dramaMovies.slice(0, 5).map((m: any) => ({ id: m.id, title: m.title, year: m.year }))
   });
   const crimeMovies = crimeMoviesData?.results || [];
   const mysteryMovies = mysteryMoviesData?.results || [];

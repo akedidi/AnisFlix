@@ -272,8 +272,8 @@ export const useProviderCounts = (providerId: number) => {
   const { data: series } = useSeriesByProvider(providerId);
   
   return {
-    movieCount: movies?.length || 0,
-    tvCount: series?.length || 0,
+    movieCount: movies?.results?.length || 0,
+    tvCount: series?.results?.length || 0,
   };
 };
 
