@@ -20,7 +20,7 @@ export default function AnimeMoviesLatest() {
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { scrollY } = useScrollPosition();
+  const { restoreScrollPosition } = useScrollPosition('anime-movies');
   
   // Fetch anime movies (genre 16 = Animation)
   const { data: animeMoviesData, isLoading: animeMoviesLoading } = useMoviesByGenre(16, currentPage);
@@ -72,9 +72,7 @@ export default function AnimeMoviesLatest() {
               
               <div className="flex items-center gap-2">
                 <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Rechercher des films anime..."
+                  onSearch={setSearchQuery}
                 />
                 <LanguageSelect />
                 <ThemeToggle />
@@ -86,7 +84,7 @@ export default function AnimeMoviesLatest() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
           {animeMovies.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeMovies.map((movie) => (
+              {animeMovies.map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"

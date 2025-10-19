@@ -20,7 +20,7 @@ export default function AnimeSeriesLatest() {
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { scrollY } = useScrollPosition();
+  const { restoreScrollPosition } = useScrollPosition('anime-series');
   
   // Fetch latest anime series (genre 16 = Animation) - utilise la page 1 pour les "latest"
   const { data: animeSeriesData, isLoading, error } = useSeriesByGenre(16, currentPage === 1 ? 1 : currentPage + 1);
@@ -67,9 +67,7 @@ export default function AnimeSeriesLatest() {
               
               <div className="flex items-center gap-2">
                 <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  placeholder="Rechercher des séries anime..."
+                  onSearch={setSearchQuery}
                 />
                 <LanguageSelect />
                 <ThemeToggle />
@@ -89,7 +87,7 @@ export default function AnimeSeriesLatest() {
             </div>
           ) : animeSeries.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeSeries.map((series) => (
+              {animeSeries.map((series: any) => (
                 <div key={series.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"
@@ -115,12 +113,12 @@ export default function AnimeSeriesLatest() {
                             posterPath: series.posterPath,
                             rating: series.rating,
                             year: series.year,
-                            mediaType: 'tv'
+                            mediaType: 'series'
                           });
                         }}
                       >
                         <Heart 
-                          className={`w-4 h-4 ${isFavorite(series.id, 'tv') ? 'fill-red-500 text-red-500' : ''}`} 
+                          className={`w-4 h-4 ${isFavorite(series.id, 'series') ? 'fill-red-500 text-red-500' : ''}`} 
                         />
                       </Button>
                     </div>
