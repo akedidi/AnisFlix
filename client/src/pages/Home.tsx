@@ -37,6 +37,7 @@ export default function Home() {
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
   const { data: popularAnimeMoviesData } = useMoviesByGenre(16, 1); // Page 1 pour les films anime populaires
+  const { data: popularAnimeSeriesData } = useSeriesByGenre(16, 1); // Page 1 pour les séries anime populaires
   
   const popularMovies = popularMoviesData?.results || [];
   const latestMovies = latestMoviesData?.results || [];
@@ -45,6 +46,7 @@ export default function Home() {
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
   const popularAnimeMovies = popularAnimeMoviesData?.results || [];
+  const popularAnimeSeries = popularAnimeSeriesData?.results || [];
   const { data: netflixMoviesData } = useMoviesByProvider(8);
   const { data: netflixSeriesData } = useSeriesByProvider(8);
   const { data: amazonSeriesData } = useSeriesByProvider(9);
@@ -281,7 +283,7 @@ export default function Home() {
 
           <MediaCarousel
             title="Séries anime populaires"
-            items={animeSeries.slice(10, 20)}
+            items={popularAnimeSeries}
             onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
             sectionId="anime-series-popular"
