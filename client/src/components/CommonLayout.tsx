@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 
@@ -12,13 +13,17 @@ interface CommonLayoutProps {
   showSearch?: boolean;
   icon?: React.ReactNode;
   children: React.ReactNode;
+  onRefresh?: () => void;
+  showRefreshButton?: boolean;
 }
 
 export default function CommonLayout({ 
   title, 
   showSearch = true, 
   icon,
-  children 
+  children,
+  onRefresh,
+  showRefreshButton = true
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
@@ -28,6 +33,12 @@ export default function CommonLayout({
 
   return (
     <>
+      {/* Offline Alert for Native Mobile */}
+      <OfflineAlert 
+        onRefresh={onRefresh} 
+        showRefreshButton={showRefreshButton}
+      />
+      
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
