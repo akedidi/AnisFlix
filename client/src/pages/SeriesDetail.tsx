@@ -466,8 +466,6 @@ export default function SeriesDetail() {
           </div>
         )}
       </div>
-      
-      </div>
     </div>
   );
 }

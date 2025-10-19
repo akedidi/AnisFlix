@@ -139,8 +139,6 @@ export default function Series() {
         />
 
       </div>
-      
-      </div>
     </div>
   );
 }
