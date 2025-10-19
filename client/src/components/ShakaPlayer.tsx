@@ -139,37 +139,29 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
     if (!videoRef.current) return;
     
     try {
-      if (Capacitor.isNativePlatform()) {
-        // Sur iOS natif, utiliser l'API native
-        const video = videoRef.current;
-        
-        if (isPictureInPicture) {
-          // Sortir du mode PiP
-          if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
-          }
-        } else {
-          // Entrer en mode PiP - iOS gère cela automatiquement
-          if (video.requestPictureInPicture) {
-            await video.requestPictureInPicture();
-          } else {
-            // Sur iOS, le PiP peut être activé via les contrôles natifs
-            console.log("PiP sera géré par les contrôles natifs iOS");
-          }
+      const video = videoRef.current;
+      
+      if (isPictureInPicture) {
+        // Sortir du mode PiP
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture?.();
         }
       } else {
-        // Sur le web, utiliser l'API standard
-        if (!document.pictureInPictureEnabled || !videoRef.current.requestPictureInPicture) {
-          console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
-          return;
-        }
-        
-        if (isPictureInPicture) {
-          if (document.pictureInPictureElement) {
-            await document.exitPictureInPicture();
+        // Entrer en mode PiP
+        if (Capacitor.isNativePlatform()) {
+          // Sur iOS natif, utiliser webkitSetPresentationMode (méthode native)
+          if (video.webkitSetPresentationMode) {
+            video.webkitSetPresentationMode('picture-in-picture');
+          } else if (video.requestPictureInPicture) {
+            await video.requestPictureInPicture();
           }
         } else {
-          await videoRef.current.requestPictureInPicture();
+          // Sur le web, utiliser l'API standard
+          if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) {
+            console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
+            return;
+          }
+          await video.requestPictureInPicture();
         }
       }
     } catch (error) {
