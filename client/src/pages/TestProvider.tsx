@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { useMoviesByProvider } from "@/hooks/useTMDB";
 
 export default function TestProvider() {
@@ -22,15 +21,6 @@ export default function TestProvider() {
     <div className="min-h-screen bg-background p-8">
       <div className="container mx-auto">
         <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Retour
-          </Button>
           <h1 className="text-2xl font-semibold">Test Provider API</h1>
         </div>
         

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Star, Calendar, ArrowLeft, Heart } from "lucide-react";
+import { Clock, Star, Calendar, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import MediaCarousel from "@/components/MediaCarousel";
@@ -62,15 +62,6 @@ export default function AnimeSeriesLatest() {
           <div className="container mx-auto px-4 md:px-8 lg:px-12">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation('/')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Retour
-                </Button>
                 <h1 className="text-xl font-semibold">Dernières séries anime</h1>
               </div>
               

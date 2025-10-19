@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+;
 import MediaCard from "@/components/MediaCard";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -170,10 +170,7 @@ export default function ProviderSeriesGenre() {
               <p className="text-muted-foreground mb-4">
                 Le genre "{genreSlug}" ou le provider "{providerId}" n'existe pas.
               </p>
-              <Button onClick={() => window.history.back()}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour
-              </Button>
+              
             </div>
           </div>
         </div>
@@ -192,14 +189,7 @@ export default function ProviderSeriesGenre() {
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => window.history.back()}
-                className="flex-shrink-0"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t("common.back")}
-              </Button>
+              
               <div className="flex-1">
                 <SearchBar
                   onSearch={setSearchQuery}

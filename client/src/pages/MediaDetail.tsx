@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Download, Heart, Star, ArrowLeft, Youtube } from "lucide-react";
+import { Play, Download, Heart, Star, Youtube  } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -61,15 +61,7 @@ export default function MediaDetail() {
 
           <div className="relative h-full">
             <div className="container mx-auto px-4 md:px-8 lg:px-12 py-6">
-              <Button
-                variant="ghost"
-                onClick={() => window.history.back()}
-                className="gap-2 text-white hover:bg-white/10"
-                data-testid="button-back"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour
-              </Button>
+              
             </div>
           </div>
         </div>

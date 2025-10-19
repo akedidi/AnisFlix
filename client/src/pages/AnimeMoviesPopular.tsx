@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Star, ArrowLeft, Heart } from "lucide-react";
+import { Star, Heart } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import SearchBar from "@/components/SearchBar";
@@ -61,15 +61,6 @@ export default function AnimeMoviesPopular() {
           <div className="container mx-auto px-4 md:px-8 lg:px-12">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setLocation('/')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {t("common.back")}
-                </Button>
                 <h1 className="text-xl font-semibold">{t("anime.popularMovies")}</h1>
               </div>
               
