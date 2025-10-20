@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
-import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
+import SearchBar from "@/components/SearchBar";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { useFavorites } from "@/hooks/useFavorites";
 import { 
   usePopularMovies, 
   useLatestMovies, 
@@ -20,11 +19,12 @@ import {
   useMultiSearch 
 } from "@/hooks/useTMDB";
 import { getWatchProgress } from "@/lib/watchProgress";
+import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
-  const { isFavorite, toggleFavorite } = useFavorites();
-  const [, setLocation] = useLocation();
+  const { restoreScrollPosition } = useScrollPosition('home');
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -35,8 +35,6 @@ export default function Home() {
   // Fetch anime data
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
   const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
-  const { data: popularAnimeMoviesData } = useMoviesByGenre(16, 1); // Page 1 pour les films anime populaires
-  const { data: popularAnimeSeriesData } = useSeriesByGenre(16, 2); // Page 2 pour les séries anime populaires
   
   const popularMovies = popularMoviesData?.results || [];
   const latestMovies = latestMoviesData?.results || [];
@@ -44,8 +42,6 @@ export default function Home() {
   const latestSeries = latestSeriesData?.results || [];
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
-  const popularAnimeMovies = popularAnimeMoviesData?.results || [];
-  const popularAnimeSeries = popularAnimeSeriesData?.results || [];
   const { data: netflixMoviesData } = useMoviesByProvider(8);
   const { data: netflixSeriesData } = useSeriesByProvider(8);
   const { data: amazonSeriesData } = useSeriesByProvider(9);
@@ -67,6 +63,7 @@ export default function Home() {
   const disneySeries = disneySeriesData?.results || [];
   const appleTvMovies = appleTvMoviesData?.results || [];
   const appleTvSeries = appleTvSeriesData?.results || [];
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Listen to language changes
   useEffect(() => {
@@ -77,11 +74,25 @@ export default function Home() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
-  // S'assurer que la page commence en haut
+  // Restaurer la position de scroll au chargement
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+    // Attendre que les données soient chargées
+    const timer = setTimeout(() => {
+      restoreScrollPosition();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
 
+  // Use first popular movie as featured
+  const featured = popularMovies[0] ? {
+    title: popularMovies[0].title,
+    overview: "",
+    backdropPath: popularMovies[0].posterPath,
+    rating: popularMovies[0].rating,
+    year: popularMovies[0].year,
+    mediaType: popularMovies[0].mediaType,
+  } : null;
 
   // Providers
   const providers = [
@@ -132,44 +143,33 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
   return (
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
-          <div className="space-y-8 md:space-y-12">
-        {popularMovies.length > 0 && (
+    <div className="min-h-screen pb-20 md:pb-0 fade-in-up">
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <SearchBar
+                onSearch={setSearchQuery}
+                suggestions={searchQuery ? searchResults : []}
+                onSelect={(item) => {
+                  const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                  window.location.href = path;
+                }}
+              />
+            </div>
+            <LanguageSelect />
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-8 md:space-y-12">
+        {featured && (
           <HeroSection
-            items={popularMovies.slice(0, 5).map((movie: any) => ({
-              id: movie.id,
-              title: movie.title,
-              overview: movie.overview,
-              backdropPath: movie.backdropPath,
-              rating: movie.rating,
-              year: movie.year,
-              mediaType: 'movie' as const,
-            }))}
-            isFavorite={(item) => isFavorite(item.id, 'movie')}
-            onFavorite={(item) => {
-              toggleFavorite({
-                id: item.id,
-                title: item.title,
-                posterPath: item.backdropPath || '',
-                rating: item.rating,
-                year: item.year || '',
-                mediaType: 'movie'
-              });
-            }}
-            onInfo={(item) => {
-              setLocation(`/movie/${item.id}`);
-            }}
-            onClick={(item) => {
-              setLocation(`/movie/${item.id}`);
-            }}
-            autoRotate={true}
-            rotationInterval={6000}
+            {...featured}
+            onFavorite={() => console.log("Favorite")}
+            onInfo={() => console.log("Info")}
           />
         )}
 
@@ -180,7 +180,7 @@ export default function Home() {
               items={continueWatching}
               onItemClick={(item) => {
                 const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                setLocation(path);
+                window.location.href = path;
               }}
             />
           )}
@@ -193,7 +193,7 @@ export default function Home() {
                   <div key={provider.id} className="w-40 flex-shrink-0">
                     <ProviderCard
                       {...provider}
-                      onClick={() => setLocation(`/provider/${provider.id}`)}
+                      onClick={() => window.location.href = `/provider/${provider.id}`}
                     />
                   </div>
                 ))}
@@ -206,14 +206,14 @@ export default function Home() {
           <MediaCarousel
             title={t("home.latestMovies")}
             items={latestMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             seeAllLink="/latest-movies"
           />
 
           <MediaCarousel
             title={t("home.latestSeries")}
             items={latestSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
             seeAllLink="/latest-series"
           />
 
@@ -221,48 +221,44 @@ export default function Home() {
           <MediaCarousel
             title={t("home.popularMovies")}
             items={popularMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             seeAllLink="/popular-movies"
           />
 
           <MediaCarousel
             title={t("home.popularSeries")}
             items={popularSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
             seeAllLink="/popular-series"
           />
 
           {/* Catégories Anime */}
           <MediaCarousel
-            title={t("anime.latestMovies")}
+            title="Derniers films anime"
             items={animeMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
-            sectionId="anime-movies-latest"
           />
 
           <MediaCarousel
-            title={t("anime.latestSeries")}
+            title="Dernières séries anime"
             items={animeSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
-            sectionId="anime-series-latest"
           />
 
           <MediaCarousel
-            title={t("anime.popularMovies")}
-            items={popularAnimeMovies}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            title="Films anime populaires"
+            items={animeMovies.slice(10, 20)}
+            onItemClick={(item) => window.location.href = `/movie/${item.id}`}
             showSeeAllButton={true}
-            sectionId="anime-movies-popular"
           />
 
           <MediaCarousel
-            title={t("anime.popularSeries")}
-            items={popularAnimeSeries}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            title="Séries anime populaires"
+            items={animeSeries.slice(10, 20)}
+            onItemClick={(item) => window.location.href = `/series/${item.id}`}
             showSeeAllButton={true}
-            sectionId="anime-series-popular"
           />
 
           {/* Netflix */}
@@ -270,7 +266,7 @@ export default function Home() {
             <MediaCarousel
               title={`Netflix - ${t("home.latestMovies")}`}
               items={netflixMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -279,7 +275,7 @@ export default function Home() {
             <MediaCarousel
               title={`Netflix - ${t("home.latestSeries")}`}
               items={netflixSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -289,7 +285,7 @@ export default function Home() {
             <MediaCarousel
               title={`Amazon Prime - ${t("home.latestMovies")}`}
               items={amazonMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -298,7 +294,7 @@ export default function Home() {
             <MediaCarousel
               title={`Amazon Prime - ${t("home.latestSeries")}`}
               items={amazonSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -308,7 +304,7 @@ export default function Home() {
             <MediaCarousel
               title={`Apple TV+ - ${t("home.latestMovies")}`}
               items={appleTvMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -317,7 +313,7 @@ export default function Home() {
             <MediaCarousel
               title={`Apple TV+ - ${t("home.latestSeries")}`}
               items={appleTvSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -327,7 +323,7 @@ export default function Home() {
             <MediaCarousel
               title={`Disney+ - ${t("home.latestMovies")}`}
               items={disneyMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -336,7 +332,7 @@ export default function Home() {
             <MediaCarousel
               title={`Disney+ - ${t("home.latestSeries")}`}
               items={disneySeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -346,7 +342,7 @@ export default function Home() {
             <MediaCarousel
               title={`HBO Max - ${t("home.latestMovies")}`}
               items={hboMaxMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/movie/${item.id}`}
               showSeeAllButton={true}
             />
           )}
@@ -355,13 +351,12 @@ export default function Home() {
             <MediaCarousel
               title={`HBO Max - ${t("home.latestSeries")}`}
               items={hboMaxSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => window.location.href = `/series/${item.id}`}
               showSeeAllButton={true}
             />
           )}
         </div>
-        </div>
-      </PullToRefresh>
-    </CommonLayout>
+      </div>
+    </div>
   );
 }

@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import SearchBar from "@/components/SearchBar";
 import MediaCarousel from "@/components/MediaCarousel";
-import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function Movies() {
+  const [searchQuery, setSearchQuery] = useState("");
   const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('movies');
-  const [, setLocation] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Genre IDs from TMDB
   const GENRES = {
@@ -32,19 +30,11 @@ export default function Movies() {
   const { data: mysteryMoviesData } = useMoviesByGenre(GENRES.MYSTERY);
   const { data: documentaryMoviesData } = useMoviesByGenre(GENRES.DOCUMENTARY);
   const { data: animeMoviesData } = useMoviesByGenre(GENRES.ANIMATION);
-    
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
   const latestMovies = latestMoviesData?.results || [];
   const actionMovies = actionMoviesData?.results || [];
   const dramaMovies = dramaMoviesData?.results || [];
-  
-  // Debug logs pour comprendre les différences
-  console.log('🎬 Movies.tsx - dramaMoviesData:', {
-    language: localStorage.getItem('app-language'),
-    totalResults: dramaMoviesData?.results?.length,
-    page: dramaMoviesData?.page,
-    totalPages: dramaMoviesData?.total_pages,
-    firstMovies: dramaMovies.slice(0, 5).map((m: any) => ({ id: m.id, title: m.title, year: m.year }))
-  });
   const crimeMovies = crimeMoviesData?.results || [];
   const mysteryMovies = mysteryMoviesData?.results || [];
   const documentaryMovies = documentaryMoviesData?.results || [];
@@ -53,76 +43,100 @@ export default function Movies() {
   // Filter only movies from search results
   const movieSearchResults = searchResults.filter((item: any) => item.mediaType === 'movie');
 
-  // Note: restoreScrollPosition is available but not called automatically
-  // to allow for manual scroll restoration when needed
-
-  const handleRefresh = () => {
-    // Force refresh of all queries
-    window.location.reload();
-  };
+  // Restaurer la position de scroll au chargement
+  useEffect(() => {
+    // Attendre que les données soient chargées
+    const timer = setTimeout(() => {
+      restoreScrollPosition();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [restoreScrollPosition]);
 
   return (
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
+    <div className="min-h-screen pb-20 md:pb-0">
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <SearchBar
+                onSearch={setSearchQuery}
+                suggestions={searchQuery ? movieSearchResults : []}
+                onSelect={(item) => window.location.href = `/movie/${item.id}`}
+              />
+            </div>
+            <LanguageSelect />
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
 
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
+        <h1 className="text-3xl md:text-4xl font-bold">{t("movies.title")}</h1>
+
         <MediaCarousel
           title={t("movies.latest")}
           items={latestMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           seeAllLink="/latest-movies"
         />
 
         <MediaCarousel
           title={t("movies.action")}
           items={actionMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/action"
         />
 
         <MediaCarousel
           title={t("movies.drama")}
           items={dramaMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/drame"
         />
 
         <MediaCarousel
           title={t("movies.crime")}
           items={crimeMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/crime"
         />
 
         <MediaCarousel
           title={t("movies.mystery")}
           items={mysteryMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/mystere"
         />
 
         <MediaCarousel
           title={t("movies.documentary")}
           items={documentaryMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/documentaire"
         />
 
         <MediaCarousel
           title={t("movies.animation")}
           items={animeMovies.slice(0, 10)}
-          onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
           showSeeAllButton={true}
-          sectionId="movies-genre/animation"
         />
 
-          </div>
-      </PullToRefresh>
-    </CommonLayout>
+        <MediaCarousel
+          title="Derniers films anime"
+          items={animeMovies.slice(0, 10)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
+        />
+
+        <MediaCarousel
+          title="Films anime populaires"
+          items={animeMovies.slice(10, 20)}
+          onItemClick={(item) => window.location.href = `/movie/${item.id}`}
+          showSeeAllButton={true}
+        />
+      </div>
+    </div>
   );
 }

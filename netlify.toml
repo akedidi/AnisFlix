@@ -4,6 +4,9 @@
   
   # Dossier de sortie (fichiers statiques)
   publish = "dist/public"
+  
+  # Variables d'environnement pour le build
+  environment = { NODE_VERSION = "18" }
 
 [build.environment]
   NODE_VERSION = "18"

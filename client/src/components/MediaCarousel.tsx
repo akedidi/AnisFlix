@@ -1,7 +1,6 @@
   import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, ArrowLeft, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
-import { useLocation } from "wouter";
 import MediaCard from "./MediaCard";
 
 interface Media {
@@ -20,14 +19,12 @@ interface MediaCarouselProps {
   onItemClick?: (item: Media) => void;
   seeAllLink?: string;
   showSeeAllButton?: boolean;
-  sectionId?: string; // Identifiant unique pour la section (ex: "anime-movies-latest")
 }
 
-export default function MediaCarousel({ title, items, onItemClick, seeAllLink, showSeeAllButton, sectionId }: MediaCarouselProps) {
+export default function MediaCarousel({ title, items, onItemClick, seeAllLink, showSeeAllButton }: MediaCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
-  const [, setLocation] = useLocation();
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -76,33 +73,71 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
             className="btn-animate gap-1"
             onClick={() => {
               if (seeAllLink) {
-                setLocation(seeAllLink);
-              } else if (sectionId) {
-                // Utiliser l'identifiant de section pour une redirection précise
-                setLocation(`/${sectionId}`);
-              } else {
-                // Fallback basé sur le titre (pour la rétrocompatibilité)
-                if (title.includes('Netflix')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/netflix-series' : '/netflix-movies');
-                } else if (title.includes('Amazon Prime')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/amazon-series' : '/amazon-movies');
-                } else if (title.includes('Apple TV+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/apple-tv-series' : '/apple-tv-movies');
-                } else if (title.includes('Disney+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/disney-series' : '/disney-movies');
-                } else if (title.includes('HBO Max')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/hbo-max-series' : '/hbo-max-movies');
-                } else if (title.includes('Paramount+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/paramount-series' : '/paramount-movies');
+                window.location.href = seeAllLink;
                 } else {
-                  // Par défaut, rediriger vers la page d'accueil
-                  setLocation('/');
+                  // Générer un lien basé sur le titre du carrousel
+                  if (title.includes('Netflix')) {
+                    // Distinguer entre films et séries Netflix
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/netflix-content?tab=${tab}`;
+                  } else if (title.includes('Amazon Prime')) {
+                    // Distinguer entre films et séries Amazon Prime
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/amazon-content?tab=${tab}`;
+                  } else if (title.includes('Apple TV+')) {
+                    // Distinguer entre films et séries Apple TV+
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/apple-tv-content?tab=${tab}`;
+                  } else if (title.includes('Disney+')) {
+                    // Distinguer entre films et séries Disney+
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/disney-content?tab=${tab}`;
+                  } else if (title.includes('HBO Max')) {
+                    // Distinguer entre films et séries HBO Max
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/hbo-max-content?tab=${tab}`;
+                  } else if (title.includes('Paramount+')) {
+                    // Distinguer entre films et séries Paramount+
+                    const tab = title.toLowerCase().includes('série') || title.toLowerCase().includes('series') ? 'series' : 'movies';
+                    window.location.href = `/paramount-content?tab=${tab}`;
+                } else {
+                  // Liens généraux
+                  if (title.includes('populaire') || title.includes('popular')) {
+                    const link = title.toLowerCase().includes('film') ? '/popular-movies' : 
+                               title.toLowerCase().includes('série') ? '/popular-series' : '/popular-movies';
+                    window.location.href = link;
+                  } else if (title.includes('Action') || title.includes('action')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/action' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/action-adventure' : '/movie-genre/action';
+                    window.location.href = link;
+                  } else if (title.includes('Drame') || title.includes('drama')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/drama' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/drama' : '/movie-genre/drama';
+                    window.location.href = link;
+                  } else if (title.includes('Crime') || title.includes('crime')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/crime' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/crime' : '/movie-genre/crime';
+                    window.location.href = link;
+                  } else if (title.includes('Mystère') || title.includes('mystery')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/mystery' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/mystery' : '/movie-genre/mystery';
+                    window.location.href = link;
+                  } else if (title.includes('Documentaire') || title.includes('documentary')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/documentary' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/documentary' : '/movie-genre/documentary';
+                    window.location.href = link;
+                  } else if (title.includes('Animation') || title.includes('animation')) {
+                    const link = title.toLowerCase().includes('film') ? '/movie-genre/animation' : 
+                               title.toLowerCase().includes('série') ? '/series-genre/animation' : '/movie-genre/animation';
+                    window.location.href = link;
+                  } else if (title.includes('dernier') || title.includes('latest')) {
+                    const link = title.toLowerCase().includes('film') ? '/latest-movies' : 
+                               title.toLowerCase().includes('série') ? '/latest-series' : '/latest-movies';
+                    window.location.href = link;
+                  } else {
+                    // Par défaut, rediriger vers la page d'accueil
+                    window.location.href = '/';
+                  }
                 }
               }
             }}

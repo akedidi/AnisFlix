@@ -58,20 +58,6 @@ export interface AppSettings {
   theme: "light" | "dark";
 }
 
-// User Types
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface InsertUser {
-  username: string;
-  email: string;
-}
-
 // TMDB API Response Types
 export interface TMDBMovie {
   id: number;

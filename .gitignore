@@ -14,6 +14,7 @@ scripts/test-*.cjs
 scripts/test-*.js
 
 # Fichiers temporaires
+App.tsx
 global.css
 
 # Fichiers de configuration Expo (si pas utilisés)

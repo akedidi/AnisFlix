@@ -1,24 +1,19 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Star, Play, Heart } from "lucide-react";
-import { useFavorites } from "@/hooks/useFavorites";
-import { getOptimizedImageUrl } from "@/lib/imageOptimization";
+import { Star, Play } from "lucide-react";
 
-export interface MediaCardProps {
+interface MediaCardProps {
   id: number;
   title: string;
   posterPath: string | null;
   rating: number;
   year?: string;
   progress?: number;
-  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
+  mediaType?: "movie" | "tv" | "anime" | "documentary";
   onClick?: () => void;
-  onItemClick?: (item: any) => void;
 }
 
 export default function MediaCard({
-  id,
   title,
   posterPath,
   rating,
@@ -26,14 +21,10 @@ export default function MediaCard({
   progress,
   mediaType,
   onClick,
-  onItemClick,
 }: MediaCardProps) {
-  const { isFavorite, toggleFavorite } = useFavorites();
-  
-  // Normaliser le type de média
-  const normalizedMediaType = mediaType === 'tv' ? 'series' : mediaType || 'movie';
-  const isInFavorites = isFavorite(id, normalizedMediaType as 'movie' | 'series');
-  const imageUrl = getOptimizedImageUrl(posterPath, 'w342');
+  const imageUrl = posterPath
+    ? `https://image.tmdb.org/t/p/w500${posterPath}`
+    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='750' viewBox='0 0 500 750'%3E%3Crect width='500' height='750' fill='%23334155'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='24' fill='%23cbd5e1'%3ENo Image%3C/text%3E%3C/svg%3E";
 
   return (
     <Card
@@ -45,40 +36,18 @@ export default function MediaCard({
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-full object-cover object-center image-zoom"
+          className="w-full h-full object-cover image-zoom"
           loading="lazy"
         />
         
         {progress !== undefined && progress > 0 && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted">
             <div
-              className="h-full bg-red-500"
+              className="h-full bg-chart-2"
               style={{ width: `${progress}%` }}
             />
           </div>
         )}
-
-        {/* Bouton favori */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/50 hover:bg-black/70 text-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFavorite({
-              id,
-              title,
-              posterPath: posterPath || '',
-              rating,
-              year: year || '',
-              mediaType: normalizedMediaType as 'movie' | 'series'
-            });
-          }}
-        >
-          <Heart 
-            className={`w-4 h-4 ${isInFavorites ? 'fill-red-500 text-red-500' : ''}`} 
-          />
-        </Button>
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <div className="absolute bottom-0 left-0 right-0 p-4">

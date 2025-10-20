@@ -4,16 +4,12 @@ interface ProviderCardProps {
   id: number;
   name: string;
   logoPath: string | null;
-  movieCount?: number;
-  tvCount?: number;
   onClick?: () => void;
 }
 
 export default function ProviderCard({
   name,
   logoPath,
-  movieCount,
-  tvCount,
   onClick,
 }: ProviderCardProps) {
   const imageUrl = logoPath
@@ -37,19 +33,6 @@ export default function ProviderCard({
         
         <div className="space-y-1 w-full">
           <h3 className="font-semibold text-sm line-clamp-1">{name}</h3>
-          {(movieCount !== undefined || tvCount !== undefined) && (
-            <div className="flex justify-center gap-2 text-xs text-muted-foreground">
-              {movieCount !== undefined && (
-                <span>{movieCount} films</span>
-              )}
-              {movieCount !== undefined && tvCount !== undefined && (
-                <span>•</span>
-              )}
-              {tvCount !== undefined && (
-                <span>{tvCount} séries</span>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </Card>

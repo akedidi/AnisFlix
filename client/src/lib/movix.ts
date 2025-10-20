@@ -132,37 +132,22 @@ export async function getAllSeriesStreams(
  */
 export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
   try {
-    // Utiliser l'API client pour la compatibilité iOS/Web
-    const { apiClient } = await import('./apiClient');
-    const { getVidzyProxyUrl } = await import('../utils/urlUtils');
+    const response = await fetch('/api/vidzy/extract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: vidzyUrl }),
+    });
     
-    console.log('🔍 Vidzy extraction avec API client pour:', vidzyUrl);
-    
-    const data = await apiClient.extractVidzy(vidzyUrl);
-    console.log('✅ Vidzy API Response:', data);
-    
-    // Vérifier si c'est une erreur
-    if (data.error) {
-      console.error('Erreur API Vidzy:', data.error, data.details);
-      throw new Error(data.error);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    if (!data.m3u8Url) {
-      return null;
-    }
-    
-    // Pour iOS, utiliser le proxy Vidzy pour éviter les problèmes CORS
-    const { Capacitor } = await import('@capacitor/core');
-    if (Capacitor.isNativePlatform()) {
-      const proxyUrl = getVidzyProxyUrl(data.m3u8Url, vidzyUrl);
-      console.log('📺 Vidzy proxy URL pour iOS:', proxyUrl);
-      return proxyUrl;
-    }
-    
-    return data.m3u8Url;
+    const data = await response.json();
+    return data.m3u8Url || null;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
-    // Ne pas re-throw pour éviter les crashes, retourner null à la place
     return null;
   }
 }

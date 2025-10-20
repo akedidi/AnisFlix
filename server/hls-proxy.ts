@@ -47,15 +47,7 @@ function rewritePlaylistUrls(playlistText: string, baseUrl: string): string {
     .split('\n')
     .map((line) => {
       const t = line.trim();
-      if (!t || t.startsWith('#')) {
-        // Pour les streams live, s'assurer que les directives live sont préservées
-        if (t.startsWith('#EXT-X-VERSION:')) return line;
-        if (t.startsWith('#EXT-X-TARGETDURATION:')) return line;
-        if (t.startsWith('#EXT-X-MEDIA-SEQUENCE:')) return line;
-        if (t.startsWith('#EXT-X-PLAYLIST-TYPE:')) return line;
-        if (t.startsWith('#EXT-X-ENDLIST')) return line;
-        return line;
-      }
+      if (!t || t.startsWith('#')) return line;
       const abs = toAbsolute(baseUrl, t);
       if (/\.m3u8(\?|$)/i.test(abs)) {
         return `/api/tv/proxy/m3u8?url=${encodeURIComponent(abs)}`;
@@ -95,14 +87,7 @@ export function registerHLSProxyRoutes(app: Express) {
       const baseUrl = (r as any).request?.res?.responseUrl || initialUrl;
       const rewritten = rewritePlaylistUrls(r.data, baseUrl);
 
-      // Headers spécifiques pour les streams live
       res.set('Content-Type', 'application/vnd.apple.mpegurl');
-      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.set('Pragma', 'no-cache');
-      res.set('Expires', '0');
-      res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      res.set('Access-Control-Allow-Headers', 'Range, Content-Type');
       res.send(rewritten);
     } catch (e: any) {
       console.error('[TV ENTRY ERROR]', e.message);

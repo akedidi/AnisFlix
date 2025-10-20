@@ -3,7 +3,7 @@ export default {
   "nav.home": "Startseite",
   "nav.movies": "Filme",
   "nav.series": "Serien",
-  "nav.tvChannels": "TV",
+  "nav.tvChannels": "Live-TV",
   "nav.settings": "Einstellungen",
   
   // Home page
@@ -44,7 +44,6 @@ export default {
   "series.title": "Serien",
   "series.action": "Action",
   "series.adventure": "Abenteuer",
-  "series.actionAdventure": "Action & Abenteuer",
   "series.drama": "Drama",
   "series.comedy": "Komödie",
   "series.thriller": "Thriller",

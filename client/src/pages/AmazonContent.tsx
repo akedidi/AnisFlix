@@ -1,26 +1,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-;
+import { ArrowLeft } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
-import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
+import SearchBar from "@/components/SearchBar";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
-// Type for transformed media data
-type TransformedMedia = {
-  id: number;
-  title: string;
-  posterPath: string | null;
-  rating: number;
-  year?: string;
-  mediaType?: "movie" | "tv" | "anime" | "documentary" | "series";
-};
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AmazonContent() {
   const { t } = useLanguage();
-    const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { restoreScrollPosition } = useScrollPosition('amazon-content');
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
@@ -30,26 +23,17 @@ export default function AmazonContent() {
     tabParam === 'series' ? 'series' : 'movies'
   );
 
-  // Fetch data from TMDB - Only Amazon Prime content
+  // Fetch data from TMDB
   const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(9, currentPage);
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(9, currentPage);
-  
-  // Amazon Prime specific genres
-  const { data: actionMoviesData } = useMoviesByProviderAndGenre(9, 28); // Action
-  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(9, 35); // Comedy
-  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(9, 18); // Drama
-  const { data: actionSeriesData } = useSeriesByProviderAndGenre(9, 10759); // Action & Adventure
-  const { data: comedySeriesData } = useSeriesByProviderAndGenre(9, 35); // Comedy
-  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(9, 18); // Drama
+  const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
+  const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
-  const actionMovies = actionMoviesData?.results || [];
-  const comedyMovies = comedyMoviesData?.results || [];
-  const dramaMovies = dramaMoviesData?.results || [];
-  const actionSeries = actionSeriesData?.results || [];
-  const comedySeries = comedySeriesData?.results || [];
-  const dramaSeries = dramaSeriesData?.results || [];
+  const animeMovies = animeMoviesData?.results || [];
+  const animeSeries = animeSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -78,21 +62,37 @@ export default function AmazonContent() {
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
     setCurrentPage(1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-
 
   return (
-
-
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
-
-      <PullToRefresh onRefresh={handleRefresh}>
+    <div className="min-h-screen pb-20 md:pb-0">
+      {/* Header avec recherche et contrôles */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => window.history.back()}
+              className="flex-shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t("common.back")}
+            </Button>
+            <div className="flex-1">
+              <SearchBar
+                onSearch={setSearchQuery}
+                suggestions={searchQuery ? searchResults : []}
+                onSelect={(item) => {
+                  const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                  window.location.href = path;
+                }}
+              />
+            </div>
+            <LanguageSelect />
+            <ThemeToggle />
+          </div>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
@@ -131,17 +131,17 @@ export default function AmazonContent() {
         </div>
       </div>
 
-      {/* Catégories Amazon Prime */}
+      {/* Catégories Anime */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Films d'Action Amazon Prime</h2>
-          {actionMovies.length > 0 && (
+          <h2 className="text-2xl font-semibold">Films anime</h2>
+          {animeMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {actionMovies.slice(0, 10).map((movie: TransformedMedia) => (
+              {animeMovies.slice(0, 10).map((movie) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
-                    mediaType="movie"
+                    onClick={() => window.location.href = `/movie/${movie.id}`}
                   />
                 </div>
               ))}
@@ -150,46 +150,14 @@ export default function AmazonContent() {
         </div>
 
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Films Comédie Amazon Prime</h2>
-          {comedyMovies.length > 0 && (
+          <h2 className="text-2xl font-semibold">Séries anime</h2>
+          {animeSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {comedyMovies.slice(0, 10).map((movie: TransformedMedia) => (
-                <div key={movie.id} className="w-full">
-                  <MediaCard
-                    {...movie}
-                    mediaType="movie"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Séries Action & Aventure Amazon Prime</h2>
-          {actionSeries.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {actionSeries.slice(0, 10).map((serie: TransformedMedia) => (
+              {animeSeries.slice(0, 10).map((serie) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
-                    mediaType="tv"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Séries Comédie Amazon Prime</h2>
-          {comedySeries.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {comedySeries.slice(0, 10).map((serie: TransformedMedia) => (
-                <div key={serie.id} className="w-full">
-                  <MediaCard
-                    {...serie}
-                    mediaType="tv"
+                    onClick={() => window.location.href = `/series/${serie.id}`}
                   />
                 </div>
               ))}
@@ -208,7 +176,7 @@ export default function AmazonContent() {
           ) : movies.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie: TransformedMedia) => (
+                {movies.map((movie) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -237,7 +205,7 @@ export default function AmazonContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie: TransformedMedia) => (
+                {series.map((serie) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
@@ -259,15 +227,7 @@ export default function AmazonContent() {
             </div>
           )
         )}
-        </div>
-        
-        </PullToRefresh>
-
-        
-      </CommonLayout>
-
-        
-    );
-
-        
-    }
+      </div>
+    </div>
+  );
+}

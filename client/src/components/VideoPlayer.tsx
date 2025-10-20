@@ -3,23 +3,9 @@ import Hls from "hls.js";
 // @ts-ignore - mux.js n'a pas de types TypeScript officiels
 import muxjs from "mux.js";
 import { Button } from "@/components/ui/button";
-import { Download, PictureInPicture } from "lucide-react";
+import { Download } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
-import { useDeviceType } from "@/hooks/useDeviceType";
 import type { MediaType } from "@shared/schema";
-// Détection de plateforme native (iOS/Android)
-const isNativePlatform = () => {
-  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
-         (window as any).webkit?.messageHandlers || 
-         (window as any).Android;
-};
-
-// Extension des types pour webkitSetPresentationMode
-declare global {
-  interface HTMLVideoElement {
-    webkitSetPresentationMode?: (mode: string) => void;
-  }
-}
 
 interface VideoPlayerProps {
   src: string;
@@ -45,13 +31,11 @@ export default function VideoPlayer({
   seasonNumber,
   episodeNumber
 }: VideoPlayerProps) {
-  const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
-  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -178,52 +162,12 @@ export default function VideoPlayer({
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('ended', handleEnded);
-    video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
-    video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('ended', handleEnded);
-      video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
-      video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
     };
   }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
-
-  const togglePictureInPicture = async () => {
-    if (!videoRef.current) return;
-    
-    try {
-      const video = videoRef.current;
-      
-      if (isPictureInPicture) {
-        // Sortir du mode PiP
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture?.();
-        }
-      } else {
-        // Entrer en mode PiP
-        if (isNativePlatform()) {
-          // Sur iOS natif, utiliser webkitSetPresentationMode (méthode native)
-          if (video.webkitSetPresentationMode) {
-            video.webkitSetPresentationMode('picture-in-picture');
-          } else if (video.requestPictureInPicture) {
-            await video.requestPictureInPicture();
-          }
-        } else {
-          // Sur le web, utiliser l'API standard
-          if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) {
-            console.warn("Picture-in-Picture n'est pas supporté par ce navigateur");
-            return;
-          }
-          await video.requestPictureInPicture();
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling Picture-in-Picture:", error);
-      // Ne pas afficher d'alerte pour éviter de spammer l'utilisateur
-      // L'erreur est déjà loggée dans la console
-    }
-  };
 
   const handleDownloadMP4 = async () => {
     if (!hlsRef.current || sourceType !== "m3u8") {
@@ -358,18 +302,14 @@ export default function VideoPlayer({
         ref={videoRef}
         className="w-full aspect-video bg-black"
         controls
-        playsInline={!isNativePlatform()}
+        playsInline
         preload="auto"
         data-testid="video-player-main"
-        {...(isNativePlatform() && {
-          'webkit-playsinline': 'false',
-          'playsinline': 'false'
-        })}
       />
       
       <div className="p-4 space-y-4">
         <div className="flex gap-2 flex-wrap">
-          {isNative && sourceType === "m3u8" && (
+          {sourceType === "m3u8" && (
             <Button
               onClick={handleDownloadMP4}
               disabled={isDownloading}
@@ -381,19 +321,9 @@ export default function VideoPlayer({
             </Button>
           )}
           
-          <Button
-            onClick={togglePictureInPicture}
-            variant="outline"
-            className="gap-2"
-            title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
-          >
-            <PictureInPicture className="w-4 h-4" />
-            {isPictureInPicture ? "Quitter PiP" : "Picture-in-Picture"}
-          </Button>
-          
         </div>
 
-        {isNative && isDownloading && (
+        {isDownloading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Téléchargement & Conversion</span>
@@ -408,11 +338,9 @@ export default function VideoPlayer({
           </div>
         )}
 
-        {isNative && (
-          <p className="text-sm text-muted-foreground">
-            • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
+        </p>
       </div>
 
     </div>

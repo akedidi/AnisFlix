@@ -21,7 +21,7 @@ export const useScrollPosition = (pageKey: string) => {
     }
   }, [pageKey]);
 
-  // Restaurer la position de scroll (manuellement)
+  // Restaurer la position de scroll
   const restoreScrollPosition = useCallback(() => {
     try {
       const positions: ScrollPosition = JSON.parse(
@@ -46,20 +46,6 @@ export const useScrollPosition = (pageKey: string) => {
       }
     } catch (error) {
       console.error('Erreur lors de la restauration de la position:', error);
-    }
-  }, [pageKey]);
-
-  // Clear scroll position for this page (useful when navigating away)
-  const clearScrollPosition = useCallback(() => {
-    try {
-      const positions: ScrollPosition = JSON.parse(
-        localStorage.getItem(SCROLL_POSITIONS_KEY) || '{}'
-      );
-      delete positions[pageKey];
-      localStorage.setItem(SCROLL_POSITIONS_KEY, JSON.stringify(positions));
-      console.log(`Position effacée pour ${pageKey}`);
-    } catch (error) {
-      console.error('Erreur lors de l\'effacement de la position:', error);
     }
   }, [pageKey]);
 
@@ -90,5 +76,5 @@ export const useScrollPosition = (pageKey: string) => {
     };
   }, [saveScrollPosition]);
 
-  return { restoreScrollPosition, clearScrollPosition };
+  return { restoreScrollPosition };
 };
