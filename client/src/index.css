@@ -20,11 +20,28 @@ html, body {
     /* Empêcher tout mouvement */
     transform: none !important;
     -webkit-transform: none !important;
+    /* Empêcher le bounce et les animations */
+    overscroll-behavior: none !important;
+    -webkit-overscroll-behavior: none !important;
+    /* Forcer la stabilité */
+    will-change: auto !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
   }
   
   /* Padding pour éviter que le contenu passe sous le tab bar */
   .main-content {
     padding-bottom: 100px !important;
+  }
+  
+  /* Empêcher le bounce sur le body */
+  body {
+    overscroll-behavior: none !important;
+    -webkit-overscroll-behavior: none !important;
+    /* Empêcher le bounce iOS */
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: none !important;
+    -webkit-overscroll-behavior-y: none !important;
   }
 }
 

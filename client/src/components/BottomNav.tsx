@@ -3,11 +3,15 @@ import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
 import { useEffect } from "react";
+import { useTabBarDiagnostic } from "@/hooks/useTabBarDiagnostic";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { t } = useLanguage();
   const { isOffline } = useOffline();
+  
+  // Diagnostic de la tab bar
+  const { navRef } = useTabBarDiagnostic(true);
 
   // Reset scroll to top when location changes
   useEffect(() => {
@@ -26,6 +30,7 @@ export default function BottomNav() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location]);
 
+
   const navItems = [
     { icon: Home, label: t("nav.home"), path: "/", offline: true },
     { icon: Film, label: t("nav.movies"), path: "/movies", offline: false },
@@ -37,6 +42,7 @@ export default function BottomNav() {
 
   return (
     <nav 
+      ref={navRef}
       className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
       style={{
         position: 'fixed',
