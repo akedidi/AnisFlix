@@ -132,10 +132,17 @@ export async function getAllSeriesStreams(
  */
 export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
   try {
+    // Détection d'environnement plus robuste
+    const isProduction = typeof window !== 'undefined' 
+      ? window.location.hostname.includes('vercel.app') || window.location.hostname.includes('anisflix')
+      : process.env.NODE_ENV === 'production';
+    
     // Use Vercel Functions in production, local API in development
-    const apiUrl = process.env.NODE_ENV === 'production' 
+    const apiUrl = isProduction 
       ? '/api/vidzy-real'
       : '/api/vidzy/extract';
+    
+    console.log('🔍 Vidzy API URL:', apiUrl, 'Production:', isProduction);
       
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -146,10 +153,13 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('❌ Vidzy API Error Response:', response.status, errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
+    console.log('✅ Vidzy API Response:', data);
     
     // Vérifier si c'est une erreur
     if (data.error) {
@@ -160,6 +170,7 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
     return data.m3u8Url || null;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
-    throw error; // Re-throw pour que l'erreur soit propagée
+    // Ne pas re-throw pour éviter les crashes, retourner null à la place
+    return null;
   }
 }

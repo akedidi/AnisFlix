@@ -113,15 +113,22 @@ export default function SeriesDetail() {
     if (source.url && source.type === "m3u8" && source.isFStream) {
       setIsLoadingSource(true);
       try {
+        console.log("🎬 Extraction Vidzy pour:", source.url);
         const m3u8Url = await extractVidzyM3u8(source.url);
+        console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
+        
         if (!m3u8Url) {
-          throw new Error("Aucun lien m3u8 trouvé");
+          console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
+          alert("Aucun lien de streaming trouvé pour cette source Vidzy");
+          return;
         }
+        
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
           name: source.name
         });
+        console.log("✅ Source Vidzy chargée avec succès:", m3u8Url);
       } catch (error) {
         console.error("Erreur lors du chargement de la source:", error);
         const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
