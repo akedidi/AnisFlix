@@ -2,6 +2,11 @@
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist/public",
   "framework": "vite",
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
