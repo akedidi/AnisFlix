@@ -15,24 +15,41 @@ html, body {
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  z-index: 99999 !important;
-  transform: translateZ(0) !important;
-  -webkit-transform: translateZ(0) !important;
-  backface-visibility: hidden !important;
-  -webkit-backface-visibility: hidden !important;
-  will-change: transform !important;
-  contain: layout style paint !important;
+  z-index: 999999 !important;
+  /* Supprimer toutes les transformations qui peuvent causer le problème */
+  transform: none !important;
+  -webkit-transform: none !important;
+  /* Empêcher le tab bar de bouger */
+  will-change: auto !important;
+  contain: none !important;
+  /* Forcer la position fixe sur iOS */
+  -webkit-position: fixed !important;
 }
 
 /* Empêcher le body de bouger sous le tab bar */
 @media (max-width: 767px) {
   body {
     padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    /* Empêcher le scroll iOS qui cause le problème du tab bar */
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: none !important;
+    -webkit-overscroll-behavior-y: none !important;
   }
   
   /* S'assurer que le contenu ne dépasse pas sous le tab bar */
   .main-content {
     padding-bottom: 80px !important;
+  }
+  
+  /* Empêcher le tab bar de bouger sur iOS */
+  @supports (-webkit-touch-callout: none) {
+    .mobile-bottom-nav {
+      position: fixed !important;
+      bottom: 0 !important;
+      transform: none !important;
+      -webkit-transform: none !important;
+      -webkit-position: fixed !important;
+    }
   }
 }
 

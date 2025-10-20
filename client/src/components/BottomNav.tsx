@@ -43,23 +43,23 @@ export default function BottomNav() {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         width: '100%',
         maxWidth: '100vw',
         overflow: 'hidden',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        // Utiliser translateZ(0) pour forcer l'accélération matérielle et éviter les bugs de position
-        transform: 'translateZ(0)',
-        WebkitTransform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-        WebkitBackfaceVisibility: 'hidden',
-        willChange: 'transform',
-        contain: 'layout style paint',
-        // Empêcher le tab bar de bouger lors du scroll
+        // Empêcher complètement les transformations qui peuvent causer le problème
+        transform: 'none',
+        WebkitTransform: 'none',
+        // Forcer la position sur iOS
         WebkitPosition: 'fixed',
-        // Assurer que le tab bar reste vraiment en bas
+        position: '-webkit-sticky',
+        // Empêcher tout mouvement
         top: 'auto',
-        marginTop: 'auto'
+        marginTop: 'auto',
+        // Assurer que le tab bar reste vraiment fixe
+        willChange: 'auto',
+        contain: 'none'
       }}
     >
       <div className="flex items-center justify-around h-20 w-full max-w-full overflow-hidden pb-4">
