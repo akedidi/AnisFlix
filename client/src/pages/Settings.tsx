@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Settings as SettingsIcon, Download } from "lucide-react";
+import { Trash2, Settings as SettingsIcon, Download, TestTube } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import DownloadItem from "@/components/DownloadItem";
 import CommonLayout from "@/components/CommonLayout";
+import IOSTestPanel from "@/components/IOSTestPanel";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useOffline } from "@/hooks/useOffline";
+import { Capacitor } from '@capacitor/core';
 
 export default function Settings() {
   const { isNative } = useDeviceType();
@@ -65,7 +67,7 @@ export default function Settings() {
         )}
 
         <Tabs defaultValue={isNative ? "downloads" : "general"} className="space-y-6">
-          <TabsList className={`grid w-full max-w-md ${isNative ? 'grid-cols-3' : 'grid-cols-1'}`}>
+          <TabsList className={`grid w-full max-w-md ${isNative ? 'grid-cols-4' : 'grid-cols-1'}`}>
             {isNative && (
               <TabsTrigger value="downloads" data-testid="tab-downloads">
                 Téléchargements
@@ -77,6 +79,12 @@ export default function Settings() {
             {isNative && (
               <TabsTrigger value="sources" data-testid="tab-sources">
                 Sources
+              </TabsTrigger>
+            )}
+            {Capacitor.isNativePlatform() && (
+              <TabsTrigger value="tests" data-testid="tab-tests">
+                <TestTube className="w-4 h-4 mr-1" />
+                Tests
               </TabsTrigger>
             )}
           </TabsList>
@@ -194,6 +202,12 @@ export default function Settings() {
                   </Button>
                 </div>
               </Card>
+            </TabsContent>
+          )}
+
+          {Capacitor.isNativePlatform() && (
+            <TabsContent value="tests" className="space-y-6">
+              <IOSTestPanel />
             </TabsContent>
           )}
         </Tabs>
