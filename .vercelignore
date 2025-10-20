@@ -1,20 +1,23 @@
-# Ignorer les fichiers non nécessaires pour Vercel
-.git
+# Fichiers à ignorer pour Vercel
 node_modules
-ios
-android
+.git
+.vercel
 *.log
-.DS_Store
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-dist
-build
-coverage
-.nyc_output
-.cache
-.temp
-.tmp
-*.tgz
-*.tar.gz
+
+# Fichiers de développement
+client/src/components/TabBarDebugPanel.tsx
+client/src/components/LogTest.tsx
+client/src/hooks/useTabBarDiagnostic.ts
+scripts/
+*.cjs
+*.sh
+
+# Fichiers temporaires
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
