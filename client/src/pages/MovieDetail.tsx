@@ -82,10 +82,32 @@ export default function MovieDetail() {
     }))
   ] : [];
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean }) => {
     setIsLoadingSource(true);
-    setSelectedSource(source);
-    setIsLoadingSource(false);
+    try {
+      // Si c'est une source Vidzy via FStream (type marqué m3u8 mais url = page embed), extraire d'abord le vrai m3u8
+      if (source.url && source.type === "m3u8" && source.isFStream) {
+        console.log("🎬 Extraction Vidzy pour:", source.url);
+        const m3u8Url = await extractVidzyM3u8(source.url);
+        console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
+        if (!m3u8Url) {
+          console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
+          alert("Aucun lien de streaming trouvé pour cette source Vidzy");
+          return;
+        }
+        setSelectedSource({ url: m3u8Url, type: "m3u8", name: source.name });
+        return;
+      }
+
+      // Cas général
+      setSelectedSource(source);
+    } catch (error) {
+      console.error("Erreur lors du chargement de la source:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
+      alert(`Erreur Vidzy: ${errorMessage}`);
+    } finally {
+      setIsLoadingSource(false);
+    }
   };
 
   const handleClosePlayer = () => {

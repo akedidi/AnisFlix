@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.anisflix.app',
   appName: 'AnisFlix',
   webDir: 'dist/public',
+  server: {
+    androidScheme: 'https',
+    iosScheme: 'https'
+  },
   ios: {
     contentInset: 'automatic',
     scrollEnabled: true,
@@ -13,7 +17,37 @@ const config: CapacitorConfig = {
     allowsInlineMediaPlayback: true,
     mediaPlaybackRequiresUserAction: false,
     allowsAirPlayForMediaPlayback: true,
-    allowsPictureInPictureMediaPlayback: true
+    allowsPictureInPictureMediaPlayback: true,
+    preferredContentMode: 'mobile',
+    overrideUserInterfaceStyle: 'dark'
+  },
+  android: {
+    backgroundColor: '#000000',
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+    overrideUserInterfaceStyle: 'dark'
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: "#000000",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      androidSpinnerStyle: "large",
+      iosSpinnerStyle: "small",
+      spinnerColor: "#ffffff",
+      splashFullScreen: true,
+      splashImmersive: true,
+      layoutName: "launch_screen",
+      useDialog: true,
+    },
+    StatusBar: {
+      style: 'dark',
+      backgroundColor: '#000000'
+    }
   }
 };
 

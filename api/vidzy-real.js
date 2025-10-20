@@ -54,6 +54,8 @@ function deobfuscate(packedCode) {
     }
 }
 
+import axios from 'axios';
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -95,30 +97,23 @@ export default async function handler(req, res) {
     //   });
     // }
 
-    // Extraction réelle avec fetch (simulation navigateur complet)
-    const response = await fetch(url, {
+    // Extraction réelle avec axios (headers réalistes)
+    const axiosResponse = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
         'Cache-Control': 'max-age=0',
         'Referer': 'https://vidzy.org/'
-      }
+      },
+      timeout: 15000,
+      maxRedirects: 5
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const html = await response.text();
+    const html = axiosResponse.data;
     
     // Recherche du lien m3u8 dans le HTML
     let m3u8Link = null;
@@ -143,6 +138,8 @@ export default async function handler(req, res) {
           if (m3u8Match && m3u8Match[1]) {
             console.log("Lien m3u8 extrait avec succès via désobfuscation !");
             m3u8Link = m3u8Match[1];
+            // Retour immédiat si trouvé par la méthode prioritaire (plus fiable)
+            return res.status(200).json({ m3u8Url: m3u8Link, method: 'deobfuscation' });
           } else {
             // Essayer d'autres patterns dans le code désobfusqué
             const altPatterns = [
@@ -157,7 +154,7 @@ export default async function handler(req, res) {
                 const match = deobfuscatedCode.match(pattern);
                 if (match) {
                   m3u8Link = match[1] || match[0];
-                  break;
+                  return res.status(200).json({ m3u8Url: m3u8Link, method: 'deobfuscation_alt' });
                 }
               } catch (patternError) {
                 console.log("Erreur pattern:", patternError.message);

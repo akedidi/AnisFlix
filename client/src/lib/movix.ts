@@ -132,15 +132,12 @@ export async function getAllSeriesStreams(
  */
 export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
   try {
-    // Détection d'environnement plus robuste
-    const isProduction = typeof window !== 'undefined' 
-      ? window.location.hostname.includes('vercel.app') || window.location.hostname.includes('anisflix')
-      : process.env.NODE_ENV === 'production';
+    // Détection d'environnement et sélection d'endpoint
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const apiUrl = isLocalhost ? '/api/vidzy/extract' : '/api/vidzy-real';
     
-    // Use vidzy-real for both production and development since it's more robust
-    const apiUrl = '/api/vidzy-real';
-    
-    console.log('🔍 Vidzy API URL:', apiUrl, 'Production:', isProduction);
+    console.log('🔍 Vidzy API URL:', apiUrl, 'Localhost:', isLocalhost);
       
     const response = await fetch(apiUrl, {
       method: 'POST',
