@@ -19,7 +19,19 @@ export function useTabBarDiagnostic(enableLogging: boolean = true) {
   const lastPositionRef = useRef<TabBarPosition | null>(null);
 
   useEffect(() => {
-    if (!enableLogging || !navRef.current) return;
+    console.log('=== TABBAR DIAGNOSTIC HOOK STARTED ===');
+    console.log('enableLogging:', enableLogging);
+    console.log('navRef.current:', navRef.current);
+    
+    if (!enableLogging) {
+      console.log('Logging disabled, exiting');
+      return;
+    }
+    
+    if (!navRef.current) {
+      console.log('navRef.current is null, waiting...');
+      return;
+    }
 
     const logPosition = () => {
       if (!navRef.current) return;

@@ -5,6 +5,7 @@ import { useOffline } from "@/hooks/useOffline";
 import { useEffect } from "react";
 import { useTabBarDiagnostic } from "@/hooks/useTabBarDiagnostic";
 import TabBarDebugPanel from "./TabBarDebugPanel";
+import LogTest from "./LogTest";
 
 export default function BottomNav() {
   const [location] = useLocation();
@@ -17,6 +18,12 @@ export default function BottomNav() {
   // Log du rendu pour debug
   console.log('[ANISFLIX-BOTTOMNAV] Rendering BottomNav component');
   console.log('BOTTOMNAV_RENDER: location=' + location);
+  
+  // Log plus basique pour s'assurer qu'on voit quelque chose
+  console.log('=== BOTTOMNAV LOADED ===');
+  console.log('Current time:', new Date().toISOString());
+  console.log('Window height:', window.innerHeight);
+  console.log('Window width:', window.innerWidth);
 
   // Reset scroll to top when location changes
   useEffect(() => {
@@ -100,6 +107,9 @@ export default function BottomNav() {
       
       {/* Panel de debug visible à l'écran */}
       <TabBarDebugPanel />
+      
+      {/* Test de logs */}
+      <LogTest />
     </>
   );
 }

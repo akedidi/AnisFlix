@@ -28,6 +28,8 @@ export default function TabBarDebugPanel() {
   };
 
   useEffect(() => {
+    console.log('=== TABBAR DEBUG PANEL STARTED ===');
+    
     const updateInfo = () => {
       if (navRef.current) {
         const rect = navRef.current.getBoundingClientRect();
