@@ -53,7 +53,6 @@ export default function BottomNav() {
         WebkitTransform: 'none',
         // Forcer la position sur iOS
         WebkitPosition: 'fixed',
-        position: '-webkit-sticky',
         // Empêcher tout mouvement
         top: 'auto',
         marginTop: 'auto',
