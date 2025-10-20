@@ -1,5 +1,3 @@
-import { Capacitor } from '@capacitor/core';
-
 /**
  * Utilitaires pour la gestion des URLs compatibles iOS et web
  */
@@ -8,12 +6,16 @@ import { Capacitor } from '@capacitor/core';
  * Obtient l'URL de base appropriée selon la plateforme
  */
 export function getBaseUrl(): string {
-  if (Capacitor.isNativePlatform()) {
+  // Vérifier si nous sommes dans un environnement Capacitor
+  const isCapacitor = typeof window !== 'undefined' && 
+    (window as any).Capacitor !== undefined;
+  
+  if (isCapacitor) {
     // En mode natif, utiliser l'URL de production Vercel
     return 'https://anisflix.vercel.app';
   } else {
     // En mode web, utiliser l'origine actuelle
-    return typeof window !== 'undefined' ? window.location.origin : '';
+    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
   }
 }
 
@@ -72,8 +74,10 @@ export function convertCapacitorUrl(url: string): string {
  */
 export function debugUrlInfo(): void {
   console.log('🔍 Debug URL Info:');
-  console.log('  - Platform:', Capacitor.getPlatform());
-  console.log('  - Is Native:', Capacitor.isNativePlatform());
+  const isCapacitor = typeof window !== 'undefined' && 
+    (window as any).Capacitor !== undefined;
+  
+  console.log('  - Is Capacitor:', isCapacitor);
   console.log('  - Base URL:', getBaseUrl());
   
   if (typeof window !== 'undefined') {

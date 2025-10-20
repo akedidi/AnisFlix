@@ -1,5 +1,3 @@
-import { Capacitor } from '@capacitor/core';
-
 /**
  * Client API adaptatif pour Capacitor et web
  */
@@ -8,12 +6,15 @@ export class ApiClient {
 
   constructor() {
     // Déterminer l'URL de base selon la plateforme
-    if (Capacitor.isNativePlatform()) {
+    const isCapacitor = typeof window !== 'undefined' && 
+      (window as any).Capacitor !== undefined;
+    
+    if (isCapacitor) {
       // En mode natif, utiliser l'URL de production Vercel
       this.baseUrl = 'https://anisflix.vercel.app';
     } else {
       // En mode web, utiliser l'origine actuelle
-      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
     }
   }
 

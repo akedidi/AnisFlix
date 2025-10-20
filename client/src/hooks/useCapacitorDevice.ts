@@ -14,48 +14,47 @@ export function useCapacitorDevice(): CapacitorDeviceInfo {
     isWeb: true,
     platform: 'web',
     isCapacitor: false,
-    baseUrl: ''
+    baseUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000'
   });
 
   useEffect(() => {
-    // Import dynamique de Capacitor pour éviter les problèmes de build
-    const initCapacitor = async () => {
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        
-        const isCapacitor = Capacitor.isNativePlatform();
-        const platform = Capacitor.getPlatform() as 'ios' | 'android' | 'web';
-        
-        // Déterminer l'URL de base pour les APIs
-        let baseUrl = '';
-        if (isCapacitor && platform !== 'web') {
-          // En mode natif, utiliser l'URL de production Vercel
-          baseUrl = 'https://anisflix.vercel.app';
-        } else {
-          // En mode web, utiliser l'origine actuelle
-          baseUrl = window.location.origin;
+    // Détection simple basée sur l'environnement
+    const detectEnvironment = () => {
+      // Vérifier si nous sommes dans un environnement Capacitor
+      const isCapacitor = typeof window !== 'undefined' && 
+        (window as any).Capacitor !== undefined;
+      
+      // Détecter la plateforme
+      let platform: 'ios' | 'android' | 'web' = 'web';
+      if (isCapacitor) {
+        const userAgent = navigator.userAgent.toLowerCase();
+        if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+          platform = 'ios';
+        } else if (userAgent.includes('android')) {
+          platform = 'android';
         }
-
-        setDeviceInfo({
-          isNative: isCapacitor && platform !== 'web',
-          isWeb: !isCapacitor || platform === 'web',
-          platform,
-          isCapacitor,
-          baseUrl
-        });
-      } catch (error) {
-        // Fallback si Capacitor n'est pas disponible
-        setDeviceInfo({
-          isNative: false,
-          isWeb: true,
-          platform: 'web',
-          isCapacitor: false,
-          baseUrl: window.location.origin
-        });
       }
+      
+      // Déterminer l'URL de base pour les APIs
+      let baseUrl = '';
+      if (isCapacitor && platform !== 'web') {
+        // En mode natif, utiliser l'URL de production Vercel
+        baseUrl = 'https://anisflix.vercel.app';
+      } else {
+        // En mode web, utiliser l'origine actuelle
+        baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+      }
+
+      setDeviceInfo({
+        isNative: isCapacitor && platform !== 'web',
+        isWeb: !isCapacitor || platform === 'web',
+        platform,
+        isCapacitor,
+        baseUrl
+      });
     };
 
-    initCapacitor();
+    detectEnvironment();
   }, []);
 
   return deviceInfo;
