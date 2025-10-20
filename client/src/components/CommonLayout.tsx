@@ -8,7 +8,6 @@ import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
-import { useIOSScrollFix } from "@/hooks/useIOSScrollFix";
 
 interface CommonLayoutProps {
   title?: string;
@@ -34,9 +33,6 @@ export default function CommonLayout({
   
   // Gérer le scroll sur mobile
   useMobileScroll();
-  
-  // Corriger les problèmes de scroll iOS
-  useIOSScrollFix();
 
 
   return (
@@ -51,7 +47,7 @@ export default function CommonLayout({
       <DesktopSidebar />
       
       {/* Header - Fixed on all devices */}
-      <div className="fixed-header bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
+      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
           <div className="flex items-center gap-4">
             {title && (
@@ -89,7 +85,7 @@ export default function CommonLayout({
       </div>
 
       {/* Main Content */}
-      <div className="main-content scrollable-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
+      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
         {children}
       </div>
     </>
