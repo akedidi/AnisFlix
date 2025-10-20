@@ -3,7 +3,8 @@ export default {
   "nav.home": "Home",
   "nav.movies": "Movies",
   "nav.series": "Series",
-  "nav.tvChannels": "Live TV",
+  "nav.tvChannels": "TV",
+  "nav.favorites": "Favorites",
   "nav.settings": "Settings",
   
   // Home page
@@ -44,10 +45,12 @@ export default {
   "series.title": "Series",
   "series.action": "Action",
   "series.adventure": "Adventure",
+  "series.actionAdventure": "Action & Adventure",
   "series.drama": "Drama",
   "series.comedy": "Comedy",
   "series.thriller": "Thriller",
   "series.romance": "Romance",
+  "series.mystery": "Mystery",
   "series.scifi": "Science Fiction",
   "series.fantasy": "Fantasy",
   "series.documentary": "Documentary",
@@ -151,4 +154,39 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  
+  // Genre pages
+  "genre.discoverMovies": "Discover the best {genre} movies.",
+  "genre.discoverSeries": "Discover the best {genre} series.",
+  "genre.noMoviesAvailable": "No {genre} movies available",
+  "genre.noSeriesAvailable": "No {genre} series available",
+  
+  // Provider pages
+  "provider.on": "on",
+  "provider.discoverMoviesPrefix": "Discover the best",
+  "provider.discoverMoviesSuffix": "movies available on",
+  "provider.discoverSeriesPrefix": "Discover the best",
+  "provider.discoverSeriesSuffix": "series available on",
+  "provider.noMoviesAvailablePrefix": "No",
+  "provider.noMoviesAvailableSuffix": "movies available on",
+  "provider.noSeriesAvailablePrefix": "No",
+  "provider.noSeriesAvailableSuffix": "series available on",
+  
+  // Additional movie/series genres
+  "movies.family": "Family",
+  "movies.history": "History",
+  "movies.music": "Music",
+  "movies.telefilm": "TV Movie",
+  "movies.war": "War",
+  "movies.western": "Western",
+  
+  "series.family": "Family",
+  "series.history": "History",
+  "series.music": "Music",
+  "series.telefilm": "TV Movie",
+  "series.war": "War",
+  "series.western": "Western",
+  "series.reality": "Reality",
+  "series.talk": "Talk Show",
+  "series.news": "News",
 };

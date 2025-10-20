@@ -1,4 +1,4 @@
-import { Home, Film, Tv, Radio, Settings } from "lucide-react";
+import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -9,16 +9,21 @@ export default function DesktopSidebar() {
 
   const navItems = [
     { icon: Home, label: t("nav.home"), path: "/" },
-    { icon: Film, label: t("nav.movies"), path: "/films" },
+    { icon: Film, label: t("nav.movies"), path: "/movies" },
     { icon: Tv, label: t("nav.series"), path: "/series" },
-    { icon: Radio, label: t("nav.tvChannels"), path: "/tv" },
+    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
+    { icon: Heart, label: t("nav.favorites"), path: "/favorites" },
     { icon: Settings, label: t("nav.settings"), path: "/settings" },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-64 border-r border-sidebar-border bg-sidebar h-screen fixed left-0 top-0 z-30">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-primary">AnisFlix</h1>
+        <Link href="/">
+          <h1 className="text-2xl font-bold text-primary cursor-pointer hover:text-primary/80 transition-colors">
+            AnisFlix
+          </h1>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 space-y-1">

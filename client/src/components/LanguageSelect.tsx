@@ -20,11 +20,13 @@ const languages: { value: Language; label: string; flag: string }[] = [
 export default function LanguageSelect() {
   const { language, setLanguage, t } = useLanguage();
 
+  // Trouver la langue actuelle pour afficher son drapeau
+  const currentLanguage = languages.find(lang => lang.value === language);
+
   return (
     <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
-      <SelectTrigger className="w-[140px]" data-testid="select-language">
-        <Globe className="w-4 h-4 mr-2" />
-        <SelectValue />
+      <SelectTrigger className="w-[50px]" data-testid="select-language">
+        <span className="text-lg">{currentLanguage?.flag}</span>
       </SelectTrigger>
       <SelectContent>
         {languages.map((lang) => (
@@ -33,10 +35,7 @@ export default function LanguageSelect() {
             value={lang.value}
             data-testid={`option-language-${lang.value}`}
           >
-            <span className="flex items-center gap-2">
-              <span>{lang.flag}</span>
-              <span>{t(`language.${lang.value}`)}</span>
-            </span>
+            <span className="text-lg">{lang.flag}</span>
           </SelectItem>
         ))}
       </SelectContent>

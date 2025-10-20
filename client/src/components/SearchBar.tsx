@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { getOptimizedImageUrl } from "@/lib/imageOptimization";
 
 interface SearchSuggestion {
   id: number;
@@ -16,12 +18,15 @@ interface SearchBarProps {
   onSearch?: (query: string) => void;
   onSelect?: (item: SearchSuggestion) => void;
   suggestions?: SearchSuggestion[];
+  placeholder?: string;
 }
 
-export default function SearchBar({ onSearch, onSelect, suggestions = [] }: SearchBarProps) {
+export default function SearchBar({ onSearch, onSelect, suggestions = [], placeholder = "Rechercher..." }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,9 +39,21 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const updateDropdownPosition = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
   const handleChange = (value: string) => {
     setQuery(value);
     if (value.trim()) {
+      updateDropdownPosition();
       setShowSuggestions(true);
       onSearch?.(value);
     } else {
@@ -60,8 +77,9 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
+          ref={inputRef}
           type="search"
-          placeholder="Rechercher des films, séries, animes..."
+          placeholder={placeholder}
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           className="pl-10 pr-10"
@@ -78,38 +96,48 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [] }: Sear
         )}
       </div>
 
-      {showSuggestions && suggestions.length > 0 && (
-        <Card className="absolute top-full mt-2 w-full max-h-96 overflow-y-auto z-50 p-2">
+      {showSuggestions && suggestions.length > 0 && createPortal(
+        <Card 
+          className="fixed max-h-96 overflow-y-auto p-2 shadow-2xl border-2 border-border/50" 
+          style={{ 
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            zIndex: 2147483647,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            backdropFilter: 'blur(20px)'
+          }}
+        >
           {suggestions.map((item) => (
             <div
               key={`${item.mediaType}-${item.id}`}
-              onClick={() => handleSelectItem(item)}
-              className="flex items-center gap-3 p-2 rounded-md hover-elevate active-elevate-2 cursor-pointer"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelectItem(item);
+              }}
+              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
               data-testid={`search-result-${item.id}`}
             >
               <img
-                src={
-                  item.posterPath
-                    ? `https://image.tmdb.org/t/p/w92${item.posterPath}`
-                    : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='92' height='138'%3E%3Crect fill='%23334155' width='92' height='138'/%3E%3C/svg%3E"
-                }
+                src={getOptimizedImageUrl(item.posterPath, 'w92')}
                 alt={item.title}
                 className="w-12 h-18 object-cover rounded"
               />
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate">{item.title}</h4>
+                <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                     {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>
                   {item.year && (
-                    <span className="text-xs text-muted-foreground">{item.year}</span>
+                    <span className="text-xs text-gray-300">{item.year}</span>
                   )}
                 </div>
               </div>
             </div>
           ))}
-        </Card>
+        </Card>,
+        document.body
       )}
     </div>
   );

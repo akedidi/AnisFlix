@@ -50,7 +50,7 @@ export function usePreloadTransition() {
     if (!preloadedPages.has(path)) {
       // Ici vous pouvez ajouter la logique de préchargement
       // Par exemple, précharger les données ou les composants
-      setPreloadedPages(prev => new Set([...prev, path]));
+      setPreloadedPages(prev => new Set(Array.from(prev).concat(path)));
     }
   }, [preloadedPages]);
   

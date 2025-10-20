@@ -3,7 +3,8 @@ export default {
   "nav.home": "Accueil",
   "nav.movies": "Films",
   "nav.series": "Séries",
-  "nav.tvChannels": "TV Direct",
+  "nav.tvChannels": "TV",
+  "nav.favorites": "Favoris",
   "nav.settings": "Paramètres",
   
   // Home page
@@ -44,10 +45,12 @@ export default {
   "series.title": "Séries",
   "series.action": "Action",
   "series.adventure": "Aventure",
+  "series.actionAdventure": "Action & Aventure",
   "series.drama": "Drame",
   "series.comedy": "Comédie",
   "series.thriller": "Thriller",
   "series.romance": "Romance",
+  "series.mystery": "Mystère",
   "series.scifi": "Science-fiction",
   "series.fantasy": "Fantastique",
   "series.documentary": "Documentaire",
@@ -151,4 +154,77 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  
+  // Genre pages
+  "genre.discoverMovies": "Découvrez les meilleurs films du genre {genre}.",
+  "genre.discoverSeries": "Découvrez les meilleures séries du genre {genre}.",
+  "genre.noMoviesAvailable": "Aucun film {genre} disponible",
+  "genre.noSeriesAvailable": "Aucune série {genre} disponible",
+  
+  // Provider pages
+  "provider.on": "sur",
+  "provider.discoverMoviesPrefix": "Découvrez les meilleurs films",
+  "provider.discoverMoviesSuffix": "disponibles sur",
+  "provider.discoverSeriesPrefix": "Découvrez les meilleures séries",
+  "provider.discoverSeriesSuffix": "disponibles sur",
+  "provider.noMoviesAvailablePrefix": "Aucun film",
+  "provider.noMoviesAvailableSuffix": "disponible sur",
+  "provider.noSeriesAvailablePrefix": "Aucune série",
+  "provider.noSeriesAvailableSuffix": "disponible sur",
+  
+  // Additional movie/series genres
+  "movies.family": "Famille",
+  "movies.history": "Histoire",
+  "movies.music": "Musique",
+  "movies.telefilm": "Téléfilm",
+  "movies.war": "Guerre",
+  "movies.western": "Western",
+  
+  "series.family": "Famille",
+  "series.history": "Histoire",
+  "series.music": "Musique",
+  "series.telefilm": "Téléfilm",
+  "series.war": "Guerre",
+  "series.western": "Western",
+  "series.reality": "Reality",
+  "series.talk": "Talk Show",
+  "series.news": "News",
+  
+  // Anime sections
+  "anime.latestMovies": "Derniers films anime",
+  "anime.latestSeries": "Dernières séries anime",
+  "anime.popularMovies": "Films anime populaires",
+  "anime.popularSeries": "Séries anime populaires",
+  
+  // Search placeholders
+  "search.animeMovies": "Rechercher des films anime...",
+  "search.animeSeries": "Rechercher des séries anime...",
+  "search.netflixMovies": "Rechercher des films Netflix...",
+  "search.paramountMovies": "Rechercher des films Paramount+...",
+  "search.paramountSeries": "Rechercher des séries Paramount+...",
+  
+  // Detail pages
+  "detail.similarContent": "Contenu similaire",
+  
+  // TV Channels
+  "tv.sections": "Sections",
+  "tv.categories": "Catégories",
+  "tv.channels": "Chaînes",
+  "tv.france": "France",
+  "tv.arabic": "Arabe",
+  "tv.generalist": "Généraliste",
+  "tv.news": "Info",
+  "tv.sport": "Sport",
+  "tv.fiction": "Fiction & Série",
+  "tv.youth": "Jeunesse",
+  "tv.discovery": "Découverte",
+  "tv.cinema": "Cinéma",
+  "tv.tunisia": "Tunisie",
+  
+  // Common buttons
+  "button.back": "Retour",
+  "button.chooseStreamingLink": "Choisir le lien de streaming :",
+  "button.link": "Lien",
+  "button.remove": "Supprimer",
+  "button.continueWatching": "Continuer à regarder",
 };

@@ -46,6 +46,9 @@ export function saveWatchProgress(progress: Omit<WatchProgress, "id" | "lastWatc
     const trimmed = allProgress.slice(0, 20);
     
     localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(trimmed));
+    
+    // Déclencher un événement personnalisé pour notifier les composants
+    window.dispatchEvent(new CustomEvent('watchProgressUpdated'));
   } catch (error) {
     console.error("Error saving watch progress:", error);
   }
@@ -58,6 +61,9 @@ export function removeWatchProgress(mediaId: number, mediaType: string): void {
       p => !(p.mediaId === mediaId && p.mediaType === mediaType)
     );
     localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(filtered));
+    
+    // Déclencher un événement personnalisé pour notifier les composants
+    window.dispatchEvent(new CustomEvent('watchProgressUpdated'));
   } catch (error) {
     console.error("Error removing watch progress:", error);
   }

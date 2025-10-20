@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+;
 import MediaCard from "@/components/MediaCard";
-import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
+import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useMoviesByProvider, useSeriesByProvider, useMoviesByGenre, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
+import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function HBOMaxContent() {
   const { t } = useLanguage();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(1);
   const { restoreScrollPosition } = useScrollPosition('hbo-max-content');
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
@@ -23,17 +21,22 @@ export default function HBOMaxContent() {
     tabParam === 'series' ? 'series' : 'movies'
   );
 
-  // Fetch data from TMDB
+  // Fetch data from TMDB - Only HBO Max content
   const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage);
   const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage);
-  const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
-  const { data: animeSeriesData } = useSeriesByGenre(16); // Animation genre
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
+  // HBO Max specific genres
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(1899, 18); // Drama
+  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(1899, 53); // Thriller
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(1899, 18); // Drama
+  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(1899, 80); // Crime
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];
-  const animeMovies = animeMoviesData?.results || [];
-  const animeSeries = animeSeriesData?.results || [];
+  const dramaMovies = dramaMoviesData?.results || [];
+  const thrillerMovies = thrillerMoviesData?.results || [];
+  const dramaSeries = dramaSeriesData?.results || [];
+  const thrillerSeries = thrillerSeriesData?.results || [];
   const totalPages = activeTab === 'movies' ? (moviesData?.total_pages || 1) : (seriesData?.total_pages || 1);
 
   // Listen to language changes
@@ -62,37 +65,21 @@ export default function HBOMaxContent() {
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
     setCurrentPage(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
+
+
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      {/* Header avec recherche et contrôles */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => window.history.back()}
-              className="flex-shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("common.back")}
-            </Button>
-            <div className="flex-1">
-              <SearchBar
-                onSearch={setSearchQuery}
-                suggestions={searchQuery ? searchResults : []}
-                onSelect={(item) => {
-                  const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                  window.location.href = path;
-                }}
-              />
-            </div>
-            <LanguageSelect />
-            <ThemeToggle />
-          </div>
-        </div>
-      </div>
+
+
+    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+
+
+      <PullToRefresh onRefresh={handleRefresh}>
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
@@ -131,17 +118,17 @@ export default function HBOMaxContent() {
         </div>
       </div>
 
-      {/* Catégories Anime */}
+      {/* Catégories HBO Max */}
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Films anime</h2>
-          {animeMovies.length > 0 && (
+          <h2 className="text-2xl font-semibold">Films Drame HBO Max</h2>
+          {dramaMovies.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeMovies.slice(0, 10).map((movie) => (
+                {dramaMovies.slice(0, 10).map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
-                    onClick={() => window.location.href = `/movie/${movie.id}`}
+                    mediaType="movie"
                   />
                 </div>
               ))}
@@ -150,14 +137,14 @@ export default function HBOMaxContent() {
         </div>
 
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Séries anime</h2>
-          {animeSeries.length > 0 && (
+          <h2 className="text-2xl font-semibold">Séries Crime HBO Max</h2>
+          {thrillerSeries.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {animeSeries.slice(0, 10).map((serie) => (
+              {thrillerSeries.slice(0, 10).map((serie: any) => (
                 <div key={serie.id} className="w-full">
                   <MediaCard
                     {...serie}
-                    onClick={() => window.location.href = `/series/${serie.id}`}
+                    mediaType="tv"
                   />
                 </div>
               ))}
@@ -176,7 +163,7 @@ export default function HBOMaxContent() {
           ) : movies.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {movies.map((movie) => (
+                {movies.map((movie: any) => (
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
@@ -205,7 +192,7 @@ export default function HBOMaxContent() {
           ) : series.length > 0 ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {series.map((serie) => (
+                {series.map((serie: any) => (
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
@@ -227,7 +214,15 @@ export default function HBOMaxContent() {
             </div>
           )
         )}
-      </div>
-    </div>
-  );
-}
+        </div>
+        
+        </PullToRefresh>
+
+        
+      </CommonLayout>
+
+        
+    );
+
+        
+    }

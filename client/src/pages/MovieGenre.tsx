@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+;
 import MediaCard from "@/components/MediaCard";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 
@@ -63,6 +64,18 @@ export default function MovieGenre() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   const movies = moviesData?.results || [];
+  
+  // Debug logs pour comprendre les différences
+  console.log('🎬 MovieGenre.tsx - moviesData:', {
+    genre: genre,
+    genreId: genreId,
+    currentPage: currentPage,
+    language: localStorage.getItem('app-language'),
+    totalResults: moviesData?.results?.length,
+    page: moviesData?.page,
+    totalPages: moviesData?.total_pages,
+    firstMovies: movies.slice(0, 5).map((m: any) => ({ id: m.id, title: m.title, year: m.year }))
+  });
   const totalPages = moviesData?.total_pages || 1;
 
   // Listen to language changes
@@ -84,30 +97,25 @@ export default function MovieGenre() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Genre non trouvé</h1>
-          <Button onClick={() => window.history.back()}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour
-          </Button>
+          
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0">
-      {/* Header avec recherche et contrôles */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => window.history.back()}
-              className="flex-shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("common.back")}
-            </Button>
-            <div className="flex-1">
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        {/* Header avec recherche et contrôles */}
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center gap-4">
+              
+              <div className="flex-1">
               <SearchBar
                 onSearch={setSearchQuery}
                 suggestions={searchQuery ? searchResults : []}
@@ -128,7 +136,7 @@ export default function MovieGenre() {
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Films {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez tous les films du genre {genreName.toLowerCase()}.
+            Découvrez tous les films du genre {genreName?.toLowerCase() || 'inconnu'}.
           </p>
         </div>
       </div>
@@ -142,7 +150,7 @@ export default function MovieGenre() {
         ) : movies.length > 0 ? (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {movies.map((movie) => (
+              {movies.map((movie: any) => (
                 <div key={movie.id} className="w-full">
                   <MediaCard
                     {...movie}
@@ -160,9 +168,12 @@ export default function MovieGenre() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun film {genreName.toLowerCase()} disponible</p>
+            <p className="text-muted-foreground">Aucun film {genreName?.toLowerCase() || 'inconnu'} disponible</p>
           </div>
         )}
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
       </div>
     </div>
   );
