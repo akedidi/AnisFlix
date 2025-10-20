@@ -4,10 +4,6 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -39,13 +35,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30
-    },
-    "api/vidmoly-proxy.js": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
