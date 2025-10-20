@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture } from "lucide-react";
-import { useDeviceType } from "@/hooks/useDeviceType";
+import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
+import { apiClient } from "@/lib/apiClient";
 import { saveWatchProgress } from "@/lib/watchProgress";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
@@ -42,7 +43,7 @@ export default function VidMolyPlayer({
   seasonNumber,
   episodeNumber
 }: VidMolyPlayerProps) {
-  const { isNative } = useDeviceType();
+  const { isNative, platform } = useCapacitorDevice();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,30 +99,8 @@ export default function VidMolyPlayer({
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
         console.log('🎬 Appel API vidmoly-test...');
         
-        const endpoint = `${window.location.origin}/api/vidmoly-test`;
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({ url: vidmolyUrl }),
-        });
+        const data = await apiClient.extractVidMoly(vidmolyUrl);
         
-        console.log('🎬 Réponse API vidmoly-test:', endpoint, response.status, response.ok, response.headers.get('content-type'));
-        
-        const raw = await response.text();
-        let data: any = null;
-        try {
-          data = JSON.parse(raw);
-        } catch (e) {
-          console.error('❌ Réponse non-JSON de vidmoly-test. Corps brut:', raw?.slice(0, 400));
-          if (!response.ok) {
-            throw new Error('Réponse non valide de l\'API VidMoly');
-          } else {
-            throw new Error('Réponse non JSON de l\'API VidMoly');
-          }
-        }
         console.log('🎬 Données JSON reçues de vidmoly-test:', data);
         
         if (!data.success || !data.m3u8Url) {

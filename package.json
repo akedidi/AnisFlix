@@ -30,9 +30,12 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
+    "@capacitor/app": "^7.1.0",
     "@capacitor/cli": "^7.4.3",
     "@capacitor/core": "^7.4.3",
     "@capacitor/ios": "^7.4.3",
+    "@capacitor/splash-screen": "^7.0.3",
+    "@capacitor/status-bar": "^7.0.3",
     "@expo/vector-icons": "~14.0.4",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
