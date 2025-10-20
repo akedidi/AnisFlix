@@ -117,6 +117,13 @@ export class ApiClient {
     
     return `${this.baseUrl}/api/vidmoly-proxy?${params.toString()}`;
   }
+
+  /**
+   * Obtient l'URL de base appropriée pour les requêtes
+   */
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
 }
 
 // Instance singleton

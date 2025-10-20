@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test iOS Ultra Simple</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: red;
+            color: white;
+            font-size: 24px;
+            font-family: Arial, sans-serif;
+        }
+        .test {
+            margin: 20px 0;
+            padding: 20px;
+            background: black;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚨 TEST ULTRA SIMPLE iOS</h1>
+    
+    <div class="test">
+        <h2>✅ Si vous voyez ce texte, HTML fonctionne</h2>
+        <p>Timestamp: <span id="time"></span></p>
+    </div>
+    
+    <div class="test">
+        <h2>🧪 Test JavaScript</h2>
+        <p id="js-result">JavaScript ne fonctionne pas</p>
+    </div>
+    
+    <div class="test">
+        <h2>📱 Informations iOS</h2>
+        <p id="ios-info">Chargement...</p>
+    </div>
+
+    <script>
+        // Test JavaScript ultra simple
+        document.getElementById('js-result').innerHTML = '✅ JavaScript fonctionne !';
+        
+        // Mise à jour de l'heure
+        function updateTime() {
+            document.getElementById('time').innerHTML = new Date().toLocaleTimeString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Test iOS
+        const iosInfo = document.getElementById('ios-info');
+        iosInfo.innerHTML = `
+            <strong>User Agent:</strong> ${navigator.userAgent}<br>
+            <strong>Plateforme:</strong> ${navigator.platform}<br>
+            <strong>Écran:</strong> ${screen.width}x${screen.height}<br>
+            <strong>URL:</strong> ${window.location.href}
+        `;
+        
+        // Test Capacitor
+        if (window.Capacitor) {
+            iosInfo.innerHTML += '<br><strong>Capacitor:</strong> ✅ Disponible';
+        } else {
+            iosInfo.innerHTML += '<br><strong>Capacitor:</strong> ❌ Non disponible';
+        }
+        
+        // Log pour debug
+        console.log('🚀 Test ultra simple démarré');
+        console.log('User Agent:', navigator.userAgent);
+        console.log('URL:', window.location.href);
+    </script>
+</body>
+</html>

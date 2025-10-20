@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture } from "lucide-react";
 import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
 import { apiClient } from "@/lib/apiClient";
+import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
 import { saveWatchProgress } from "@/lib/watchProgress";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
@@ -125,17 +126,38 @@ export default function VidMolyPlayer({
         
         if (isRealVidMolyLink) {
           // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
-          finalUrl = `${window.location.origin}/api/vidmoly-proxy?url=${encodeURIComponent(data.m3u8Url)}&referer=${encodeURIComponent(vidmolyUrl)}`;
+          finalUrl = getVidMolyProxyUrl(data.m3u8Url, vidmolyUrl);
           console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
+          
+          // Debug des URLs pour diagnostic
+          debugUrlInfo();
         } else {
           // Pour les liens de fallback/démo, utiliser directement
           finalUrl = data.m3u8Url;
           console.log('📺 Utilisation directe du lien de démo:', finalUrl);
         }
 
-        // Configuration HLS simple comme VideoPlayer
-        if (Hls.isSupported()) {
-          console.log('🎬 HLS supporté, création de l\'instance HLS');
+        // Configuration HLS avec gestion iOS native
+        if (isNative) {
+          // Sur iOS natif, utiliser le support HLS natif
+          console.log('📱 Mode iOS natif - Support HLS natif');
+          if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = finalUrl;
+            video.addEventListener('loadedmetadata', () => {
+              setIsLoading(false);
+              video.play().catch(err => {
+                console.warn("Autoplay failed iOS:", err);
+                setIsLoading(false);
+              });
+            });
+          } else {
+            console.error('❌ HLS natif non supporté sur iOS');
+            setError('Format HLS non supporté sur iOS');
+            setIsLoading(false);
+          }
+        } else if (Hls.isSupported()) {
+          // Sur web, utiliser HLS.js
+          console.log('🌐 Mode web - HLS.js supporté');
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
@@ -163,6 +185,8 @@ export default function VidMolyPlayer({
             }
           });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Support natif HLS (Safari web)
+          console.log('🍎 Support HLS natif détecté (Safari web)');
           video.src = finalUrl;
           video.addEventListener('loadedmetadata', () => {
             setIsLoading(false);
