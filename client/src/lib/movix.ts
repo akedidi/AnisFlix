@@ -132,28 +132,13 @@ export async function getAllSeriesStreams(
  */
 export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null> {
   try {
-    // Détection d'environnement et sélection d'endpoint
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-    const apiUrl = isLocalhost ? '/api/vidzy/extract' : '/api/vidzy-real';
+    // Utiliser l'API client pour la compatibilité iOS/Web
+    const { apiClient } = await import('./apiClient');
+    const { getVidzyProxyUrl } = await import('../utils/urlUtils');
     
-    console.log('🔍 Vidzy API URL:', apiUrl, 'Localhost:', isLocalhost);
-      
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url: vidzyUrl }),
-    });
+    console.log('🔍 Vidzy extraction avec API client pour:', vidzyUrl);
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Vidzy API Error Response:', response.status, errorText);
-      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-    }
-    
-    const data = await response.json();
+    const data = await apiClient.extractVidzy(vidzyUrl);
     console.log('✅ Vidzy API Response:', data);
     
     // Vérifier si c'est une erreur
@@ -162,7 +147,19 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
       throw new Error(data.error);
     }
     
-    return data.m3u8Url || null;
+    if (!data.m3u8Url) {
+      return null;
+    }
+    
+    // Pour iOS, utiliser le proxy Vidzy pour éviter les problèmes CORS
+    const { Capacitor } = await import('@capacitor/core');
+    if (Capacitor.isNativePlatform()) {
+      const proxyUrl = getVidzyProxyUrl(data.m3u8Url, vidzyUrl);
+      console.log('📺 Vidzy proxy URL pour iOS:', proxyUrl);
+      return proxyUrl;
+    }
+    
+    return data.m3u8Url;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
     // Ne pas re-throw pour éviter les crashes, retourner null à la place
