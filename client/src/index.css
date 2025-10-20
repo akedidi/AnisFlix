@@ -36,9 +36,15 @@ html, body {
     -webkit-overscroll-behavior-y: none !important;
   }
   
-  /* S'assurer que le contenu ne dépasse pas sous le tab bar */
+  /* S'assurer que le contenu ne dépasse pas sous le tab bar - correction iOS */
   .main-content {
-    padding-bottom: 80px !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+  
+  /* Empêcher le bounce/rebond iOS sur tous les scrollables */
+  * {
+    overscroll-behavior: none !important;
+    -webkit-overscroll-behavior: none !important;
   }
   
   /* Empêcher le tab bar de bouger sur iOS */
@@ -50,12 +56,44 @@ html, body {
       -webkit-transform: none !important;
       -webkit-position: fixed !important;
     }
+    
+    /* Empêcher le bounce sur iOS */
+    html, body {
+      overscroll-behavior: none !important;
+      -webkit-overscroll-behavior: none !important;
+      bounces: false !important;
+      -webkit-bounces: false !important;
+    }
   }
 }
 
 /* Empêcher le bounce sur tous les éléments */
 * {
   overscroll-behavior-x: none;
+}
+
+/* Empêcher le bounce sur les éléments scrollables spécifiques */
+.scrollable-content,
+[data-scrollable],
+.scroll-container {
+  overscroll-behavior: none !important;
+  -webkit-overscroll-behavior: none !important;
+  bounces: false !important;
+  -webkit-bounces: false !important;
+}
+
+/* Correction spécifique pour les listes et conteneurs de scroll */
+@media (max-width: 767px) {
+  .scrollable-content,
+  [data-scrollable],
+  .scroll-container,
+  .main-content {
+    /* Empêcher le bounce iOS */
+    overscroll-behavior: none !important;
+    -webkit-overscroll-behavior: none !important;
+    /* Assurer que le contenu a assez de padding en bas */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
 }
 
 /* Animations personnalisées pour les transitions de page */

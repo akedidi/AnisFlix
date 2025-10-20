@@ -8,6 +8,7 @@ import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
+import { useIOSScrollFix } from "@/hooks/useIOSScrollFix";
 
 interface CommonLayoutProps {
   title?: string;
@@ -33,6 +34,9 @@ export default function CommonLayout({
   
   // Gérer le scroll sur mobile
   useMobileScroll();
+  
+  // Corriger les problèmes de scroll iOS
+  useIOSScrollFix();
 
 
   return (
@@ -85,7 +89,7 @@ export default function CommonLayout({
       </div>
 
       {/* Main Content */}
-      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
+      <div className="main-content scrollable-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
         {children}
       </div>
     </>
