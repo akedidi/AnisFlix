@@ -49,7 +49,7 @@ export const useIOSScrollFix = () => {
     document.addEventListener('touchmove', handleBodyScroll, { passive: false });
     document.addEventListener('scroll', handleBodyScroll, { passive: false });
     
-    // Ajouter les styles CSS pour empêcher le bounce
+    // Ajouter les styles CSS pour empêcher le bounce et gérer l'encoche
     const style = document.createElement('style');
     style.textContent = `
       body {
@@ -62,6 +62,25 @@ export const useIOSScrollFix = () => {
       .main-content {
         overscroll-behavior: none !important;
         -webkit-overscroll-behavior: none !important;
+        /* Empêcher le contenu de passer sous l'encoche */
+        padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+      }
+      
+      .fixed-header {
+        /* Assurer que le header couvre l'encoche */
+        padding-top: env(safe-area-inset-top, 0px) !important;
+        background-color: hsl(var(--background)) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+      }
+      
+      /* Empêcher le scroll automatique sous l'encoche */
+      .scrollable-content,
+      [data-scrollable],
+      .scroll-container {
+        content-inset-adjustment-behavior: never !important;
+        -webkit-content-inset-adjustment-behavior: never !important;
       }
     `;
     document.head.appendChild(style);

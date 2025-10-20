@@ -51,7 +51,7 @@ export default function CommonLayout({
       <DesktopSidebar />
       
       {/* Header - Fixed on all devices */}
-      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
+      <div className="fixed-header bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
           <div className="flex items-center gap-4">
             {title && (

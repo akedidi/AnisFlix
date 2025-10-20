@@ -9,6 +9,33 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Gérer l'encoche et la barre de recherche iOS */
+@media (max-width: 767px) {
+  /* Empêcher le contenu de passer sous l'encoche */
+  html {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  /* Header fixe avec fond pour masquer le contenu derrière */
+  .fixed-header {
+    background-color: hsl(var(--background)) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    /* Assurer que le header couvre bien l'encoche */
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    /* Z-index élevé pour être au-dessus du contenu */
+    z-index: 1000 !important;
+  }
+  
+  /* Main content avec padding pour éviter l'encoche */
+  .main-content {
+    /* Padding top pour éviter l'encoche + header height */
+    padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
+    /* Padding bottom pour le tab bar */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+}
+
 /* Fixer le tab bar mobile pour éviter qu'il remonte lors du scroll */
 .mobile-bottom-nav {
   position: fixed !important;
@@ -93,6 +120,16 @@ html, body {
     -webkit-overscroll-behavior: none !important;
     /* Assurer que le contenu a assez de padding en bas */
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+    /* Empêcher que le contenu passe sous l'encoche */
+    padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
+  }
+  
+  /* Empêcher le scroll automatique sous l'encoche */
+  .scrollable-content,
+  [data-scrollable],
+  .scroll-container {
+    content-inset-adjustment-behavior: never !important;
+    -webkit-content-inset-adjustment-behavior: never !important;
   }
 }
 
