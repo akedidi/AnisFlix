@@ -13,8 +13,13 @@ export default function BottomNav() {
   // Diagnostic de la tab bar
   const { navRef } = useTabBarDiagnostic(true);
 
+  // Log du rendu pour debug
+  console.log('[ANISFLIX-BOTTOMNAV] Rendering BottomNav component');
+
   // Reset scroll to top when location changes
   useEffect(() => {
+    console.log('[ANISFLIX-BOTTOMNAV] Location changed to:', location);
+    
     // Clear all saved scroll positions when navigating
     try {
       const positions = JSON.parse(localStorage.getItem('scrollPositions') || '{}');
@@ -23,11 +28,12 @@ export default function BottomNav() {
       });
       localStorage.setItem('scrollPositions', JSON.stringify(positions));
     } catch (error) {
-      console.error('Erreur lors de l\'effacement des positions de scroll:', error);
+      console.error('[ANISFLIX-BOTTOMNAV] Erreur lors de l\'effacement des positions de scroll:', error);
     }
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    console.log('[ANISFLIX-BOTTOMNAV] Scrolled to top');
   }, [location]);
 
 

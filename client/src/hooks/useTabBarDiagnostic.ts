@@ -47,7 +47,8 @@ export function useTabBarDiagnostic(enableLogging: boolean = true) {
         lastPositionRef.current.top !== currentPosition.top;
 
       if (hasChanged) {
-        console.log('📱 Tab Bar Position Changed:', {
+        // Log détaillé pour Xcode
+        console.log('[ANISFLIX-TABBAR] Position Changed:', {
           current: currentPosition,
           previous: lastPositionRef.current,
           windowHeight: window.innerHeight,
@@ -61,7 +62,7 @@ export function useTabBarDiagnostic(enableLogging: boolean = true) {
         // Alerte si la tab bar bouge de sa position fixe
         if (currentPosition.bottom !== window.innerHeight && 
             currentPosition.position === 'fixed') {
-          console.warn('⚠️ Tab Bar moved from fixed position!', {
+          console.warn('[ANISFLIX-TABBAR-ERROR] Tab Bar moved from fixed position!', {
             expectedBottom: window.innerHeight,
             actualBottom: currentPosition.bottom,
             difference: window.innerHeight - currentPosition.bottom
@@ -87,7 +88,7 @@ export function useTabBarDiagnostic(enableLogging: boolean = true) {
 
     // Log on touch events
     const handleTouchStart = () => {
-      console.log('📱 Touch Start - Tab Bar Check');
+      console.log('[ANISFLIX-TABBAR] Touch Start - Tab Bar Check');
       logPosition();
     };
 
@@ -96,13 +97,13 @@ export function useTabBarDiagnostic(enableLogging: boolean = true) {
     };
 
     const handleTouchEnd = () => {
-      console.log('📱 Touch End - Tab Bar Check');
+      console.log('[ANISFLIX-TABBAR] Touch End - Tab Bar Check');
       logPosition();
     };
 
     // Log on orientation change
     const handleOrientationChange = () => {
-      console.log('📱 Orientation Change - Tab Bar Check');
+      console.log('[ANISFLIX-TABBAR] Orientation Change - Tab Bar Check');
       setTimeout(logPosition, 100); // Délai pour laisser le temps à l'orientation de se stabiliser
     };
 
