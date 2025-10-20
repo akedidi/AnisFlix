@@ -4,8 +4,6 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
 import { useEffect } from "react";
 import { useTabBarDiagnostic } from "@/hooks/useTabBarDiagnostic";
-import TabBarDebugPanel from "./TabBarDebugPanel";
-import LogTest from "./LogTest";
 
 export default function BottomNav() {
   const [location] = useLocation();
@@ -15,21 +13,9 @@ export default function BottomNav() {
   // Diagnostic de la tab bar
   const { navRef } = useTabBarDiagnostic(true);
 
-  // Log du rendu pour debug
-  console.log('[ANISFLIX-BOTTOMNAV] Rendering BottomNav component');
-  console.log('BOTTOMNAV_RENDER: location=' + location);
-  
-  // Log plus basique pour s'assurer qu'on voit quelque chose
-  console.log('=== BOTTOMNAV LOADED ===');
-  console.log('Current time:', new Date().toISOString());
-  console.log('Window height:', window.innerHeight);
-  console.log('Window width:', window.innerWidth);
 
   // Reset scroll to top when location changes
   useEffect(() => {
-    console.log('[ANISFLIX-BOTTOMNAV] Location changed to:', location);
-    console.log('BOTTOMNAV_LOCATION: ' + location);
-    
     // Clear all saved scroll positions when navigating
     try {
       const positions = JSON.parse(localStorage.getItem('scrollPositions') || '{}');
@@ -38,13 +24,11 @@ export default function BottomNav() {
       });
       localStorage.setItem('scrollPositions', JSON.stringify(positions));
     } catch (error) {
-      console.error('[ANISFLIX-BOTTOMNAV] Erreur lors de l\'effacement des positions de scroll:', error);
+      console.error('Erreur lors de l\'effacement des positions de scroll:', error);
     }
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    console.log('[ANISFLIX-BOTTOMNAV] Scrolled to top');
-    console.log('BOTTOMNAV_SCROLL: to top');
   }, [location]);
 
 
@@ -105,11 +89,6 @@ export default function BottomNav() {
         </div>
       </nav>
       
-      {/* Panel de debug visible à l'écran */}
-      <TabBarDebugPanel />
-      
-      {/* Test de logs */}
-      <LogTest />
     </>
   );
 }

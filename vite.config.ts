@@ -32,14 +32,42 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['wouter'],
-          ui: ['lucide-react'],
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('wouter')) {
+              return 'vendor-router';
+            }
+            if (id.includes('@tanstack')) {
+              return 'vendor-query';
+            }
+            // Autres dépendances
+            return 'vendor-misc';
+          }
+          
+          // Chunks de l'application
+          if (id.includes('components')) {
+            return 'app-components';
+          }
+          if (id.includes('pages')) {
+            return 'app-pages';
+          }
+          if (id.includes('hooks')) {
+            return 'app-hooks';
+          }
+          if (id.includes('lib')) {
+            return 'app-lib';
+          }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
   },
   server: {
     fs: {
