@@ -137,10 +137,8 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
       ? window.location.hostname.includes('vercel.app') || window.location.hostname.includes('anisflix')
       : process.env.NODE_ENV === 'production';
     
-    // Use Vercel Functions in production, local API in development
-    const apiUrl = isProduction 
-      ? '/api/vidzy-real'
-      : '/api/vidzy/extract';
+    // Use vidzy-real for both production and development since it's more robust
+    const apiUrl = '/api/vidzy-real';
     
     console.log('🔍 Vidzy API URL:', apiUrl, 'Production:', isProduction);
       
