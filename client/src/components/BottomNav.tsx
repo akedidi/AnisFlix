@@ -43,22 +43,12 @@ export default function BottomNav() {
         bottom: 0,
         left: 0,
         right: 0,
-        zIndex: 999999,
         width: '100%',
-        maxWidth: '100vw',
-        overflow: 'hidden',
+        height: '80px',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        // Empêcher complètement les transformations qui peuvent causer le problème
-        transform: 'none',
-        WebkitTransform: 'none',
-        // Forcer la position sur iOS
-        WebkitPosition: 'fixed',
-        // Empêcher tout mouvement
-        top: 'auto',
-        marginTop: 'auto',
-        // Assurer que le tab bar reste vraiment fixe
-        willChange: 'auto',
-        contain: 'none'
+        backgroundColor: 'hsl(var(--card))',
+        borderTop: '1px solid hsl(var(--border))',
+        zIndex: 999999
       }}
     >
       <div className="flex items-center justify-around h-20 w-full max-w-full overflow-hidden pb-4">

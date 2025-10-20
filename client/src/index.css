@@ -11,47 +11,31 @@ html, body {
 
 /* Gérer l'encoche et la barre de recherche iOS */
 @media (max-width: 767px) {
-  /* Empêcher le contenu de passer sous l'encoche */
-  html {
-    padding-top: env(safe-area-inset-top, 0px);
-  }
-  
   /* Header fixe avec fond pour masquer le contenu derrière */
   .fixed-header {
     background-color: hsl(var(--background)) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    /* Assurer que le header couvre bien l'encoche */
     padding-top: env(safe-area-inset-top, 0px) !important;
-    /* Z-index élevé pour être au-dessus du contenu */
     z-index: 1000 !important;
   }
   
-  /* Main content avec padding pour éviter l'encoche */
+  /* Main content avec padding simple */
   .main-content {
-    /* Padding top pour éviter l'encoche + header height */
     padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
-    /* Padding bottom pour le tab bar */
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  
+  /* Tab bar fixe simple */
+  .mobile-bottom-nav {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 80px !important;
+    z-index: 999999 !important;
+    background-color: hsl(var(--card)) !important;
   }
 }
 
-/* Fixer le tab bar mobile pour éviter qu'il remonte lors du scroll */
-.mobile-bottom-nav {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 999999 !important;
-  /* Supprimer toutes les transformations qui peuvent causer le problème */
-  transform: none !important;
-  -webkit-transform: none !important;
-  /* Empêcher le tab bar de bouger */
-  will-change: auto !important;
-  contain: none !important;
-  /* Forcer la position fixe sur iOS */
-  -webkit-position: fixed !important;
-}
 
 /* Empêcher le body de bouger sous le tab bar */
 @media (max-width: 767px) {
