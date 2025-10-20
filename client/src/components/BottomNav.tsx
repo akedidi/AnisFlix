@@ -48,12 +48,18 @@ export default function BottomNav() {
         maxWidth: '100vw',
         overflow: 'hidden',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        transform: 'translate3d(0, 0, 0)',
-        WebkitTransform: 'translate3d(0, 0, 0)',
+        // Utiliser translateZ(0) pour forcer l'accélération matérielle et éviter les bugs de position
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
         willChange: 'transform',
-        contain: 'layout style paint'
+        contain: 'layout style paint',
+        // Empêcher le tab bar de bouger lors du scroll
+        WebkitPosition: 'fixed',
+        // Assurer que le tab bar reste vraiment en bas
+        top: 'auto',
+        marginTop: 'auto'
       }}
     >
       <div className="flex items-center justify-around h-20 w-full max-w-full overflow-hidden pb-4">

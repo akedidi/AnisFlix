@@ -9,6 +9,33 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Fixer le tab bar mobile pour éviter qu'il remonte lors du scroll */
+.mobile-bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 99999 !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  will-change: transform !important;
+  contain: layout style paint !important;
+}
+
+/* Empêcher le body de bouger sous le tab bar */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  }
+  
+  /* S'assurer que le contenu ne dépasse pas sous le tab bar */
+  .main-content {
+    padding-bottom: 80px !important;
+  }
+}
+
 /* Empêcher le bounce sur tous les éléments */
 * {
   overscroll-behavior-x: none;
