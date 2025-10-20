@@ -4,33 +4,54 @@
  * @returns {string} Le code désobfusqué.
  */
 function deobfuscate(packedCode) {
-    // Extrait les arguments de la fonction eval()
-    const matches = packedCode.match(/eval\(function\(p,a,c,k,e,d\)\{.*return p\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)\)\)/s);
+    try {
+        // Extrait les arguments de la fonction eval()
+        const matches = packedCode.match(/eval\(function\(p,a,c,k,e,d\)\{.*return p\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)\)\)/s);
 
-    if (!matches) {
-        throw new Error("Le format du code obfusqué n'a pas pu être reconnu.");
-    }
-
-    let p = matches[1];
-    const a = parseInt(matches[2], 10); // radix
-    const c = parseInt(matches[3], 10); // count
-    const k = matches[4].split('|');    // dictionary
-
-    // La fonction de remplacement des identifiants corrigée
-    const getIdentifier = (index) => {
-        return index.toString(a);
-    };
-
-    // Boucle de remplacement
-    for (let i = c - 1; i >= 0; i--) {
-        if (k[i]) {
-            // Crée une expression régulière pour trouver le mot-clé (ex: \b1a\b)
-            const regex = new RegExp('\\b' + getIdentifier(i) + '\\b', 'g');
-            p = p.replace(regex, k[i]);
+        if (!matches) {
+            throw new Error("Le format du code obfusqué n'a pas pu être reconnu.");
         }
-    }
 
-    return p;
+        let p = matches[1];
+        const a = parseInt(matches[2], 10); // radix
+        const c = parseInt(matches[3], 10); // count
+        const k = matches[4].split('|');    // dictionary
+
+        // Validation des paramètres
+        if (isNaN(a) || isNaN(c) || !Array.isArray(k)) {
+            throw new Error("Paramètres de désobfuscation invalides.");
+        }
+
+        // La fonction de remplacement des identifiants corrigée
+        const getIdentifier = (index) => {
+            try {
+                return index.toString(a);
+            } catch (e) {
+                console.log("Erreur conversion base:", e.message);
+                return index.toString();
+            }
+        };
+
+        // Boucle de remplacement avec gestion d'erreur
+        for (let i = c - 1; i >= 0; i--) {
+            try {
+                if (k[i]) {
+                    // Crée une expression régulière pour trouver le mot-clé (ex: \b1a\b)
+                    const identifier = getIdentifier(i);
+                    const regex = new RegExp('\\b' + identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+                    p = p.replace(regex, k[i]);
+                }
+            } catch (replaceError) {
+                console.log("Erreur remplacement pour i=" + i + ":", replaceError.message);
+                continue;
+            }
+        }
+
+        return p;
+    } catch (error) {
+        console.log("Erreur dans deobfuscate:", error.message);
+        throw error;
+    }
 }
 
 export default async function handler(req, res) {
@@ -111,32 +132,41 @@ export default async function handler(req, res) {
       if (scriptMatch && scriptMatch[1]) {
         console.log("Script obfusqué trouvé. Désobfuscation...");
         
-        // 2. Désobfusque le contenu du script
-        const deobfuscatedCode = deobfuscate(scriptMatch[1]);
-        
-        // 3. Extrait l'URL m3u8 du code résultant
-        const m3u8Regex = /src:"(https?:\/\/[^"]+\.m3u8[^"]*)"/;
-        const m3u8Match = deobfuscatedCode.match(m3u8Regex);
-
-        if (m3u8Match && m3u8Match[1]) {
-          console.log("Lien m3u8 extrait avec succès via désobfuscation !");
-          m3u8Link = m3u8Match[1];
-        } else {
-          // Essayer d'autres patterns dans le code désobfusqué
-          const altPatterns = [
-            /file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
-            /url:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
-            /source:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
-            /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]+\.m3u8[^"'\s]*/g
-          ];
+        try {
+          // 2. Désobfusque le contenu du script
+          const deobfuscatedCode = deobfuscate(scriptMatch[1]);
           
-          for (const pattern of altPatterns) {
-            const match = deobfuscatedCode.match(pattern);
-            if (match) {
-              m3u8Link = match[1] || match[0];
-              break;
+          // 3. Extrait l'URL m3u8 du code résultant
+          const m3u8Regex = /src:"(https?:\/\/[^"]+\.m3u8[^"]*)"/;
+          const m3u8Match = deobfuscatedCode.match(m3u8Regex);
+
+          if (m3u8Match && m3u8Match[1]) {
+            console.log("Lien m3u8 extrait avec succès via désobfuscation !");
+            m3u8Link = m3u8Match[1];
+          } else {
+            // Essayer d'autres patterns dans le code désobfusqué
+            const altPatterns = [
+              /file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+              /url:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+              /source:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+              /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]+\.m3u8[^"'\s]*/g
+            ];
+            
+            for (const pattern of altPatterns) {
+              try {
+                const match = deobfuscatedCode.match(pattern);
+                if (match) {
+                  m3u8Link = match[1] || match[0];
+                  break;
+                }
+              } catch (patternError) {
+                console.log("Erreur pattern:", patternError.message);
+                continue;
+              }
             }
           }
+        } catch (deobfuscateInnerError) {
+          console.log("Erreur lors de la désobfuscation interne:", deobfuscateInnerError.message);
         }
       }
     } catch (deobfuscateError) {
@@ -297,6 +327,19 @@ export default async function handler(req, res) {
             // Ignore decoding errors
           }
         }
+      }
+    }
+
+    if (!m3u8Link) {
+      // Dernière tentative : recherche simple sans regex complexe
+      try {
+        const simpleM3u8Match = html.match(/https:\/\/[^"'\s]+\.m3u8[^"'\s]*/);
+        if (simpleM3u8Match) {
+          m3u8Link = simpleM3u8Match[0];
+          console.log("Lien m3u8 trouvé via recherche simple:", m3u8Link);
+        }
+      } catch (simpleError) {
+        console.log("Erreur recherche simple:", simpleError.message);
       }
     }
 
