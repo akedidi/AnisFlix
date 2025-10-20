@@ -41,26 +41,11 @@
     }
   ],
   "functions": {
-    "api/*.js": {
-      "maxDuration": 30
-    },
-    "api/tv-stream/index.js": {
-      "maxDuration": 30
-    },
-    "api/tv-proxy-m3u8/index.js": {
-      "maxDuration": 30
-    },
-    "api/tv-proxy-segment/index.js": {
-      "maxDuration": 30
-    },
-    "api/vidmoly-extract.js": {
+    "api/**/*.js": {
       "maxDuration": 30
     },
     "api/vidmoly-proxy.js": {
       "maxDuration": 60
-    },
-    "api/vidzy-real.js": {
-      "maxDuration": 30
     }
   }
 }
