@@ -6,6 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
 
+// Fonction pour détecter si on est sur mobile natif (Capacitor)
+const isCapacitor = () => {
+  return typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+};
+
 interface SearchSuggestion {
   id: number;
   title: string;
@@ -72,6 +77,16 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
     onSelect?.(item);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.trim()) {
+      // Sur iOS natif, déclencher la recherche quand on appuie sur Entrée
+      if (isCapacitor()) {
+        setShowSuggestions(false);
+        onSearch?.(query.trim());
+      }
+    }
+  };
+
   return (
     <div ref={searchRef} className="relative w-full" data-testid="search-bar-container">
       <div className="relative">
@@ -82,8 +97,18 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           placeholder={placeholder}
           value={query}
           onChange={(e) => handleChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="pl-10 pr-10"
           data-testid="input-search"
+          // Attributs pour iOS natif
+          {...(isCapacitor() && {
+            inputMode: "search",
+            enterKeyHint: "search",
+            autoComplete: "off",
+            autoCorrect: "off",
+            autoCapitalize: "off",
+            spellCheck: false
+          })}
         />
         {query && (
           <button
