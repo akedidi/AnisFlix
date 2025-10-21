@@ -52,7 +52,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Type hls_direct détecté`);
     // Pour les autres URLs HLS, utiliser le proxy générique
     const encodedUrl = encodeURIComponent(originalUrl);
-    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    const finalUrl = `${baseUrl}/api/tv-proxy?url=${encodedUrl}`;
     console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
     console.log(`[PROXY URL] URL finale: ${finalUrl}`);
     return finalUrl;
@@ -62,7 +62,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Type mpd détecté`);
     // Pour les URLs MPD, utiliser le proxy générique
     const encodedUrl = encodeURIComponent(originalUrl);
-    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    const finalUrl = `${baseUrl}/api/tv-proxy?url=${encodedUrl}`;
     console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
     console.log(`[PROXY URL] URL finale: ${finalUrl}`);
     return finalUrl;

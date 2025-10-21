@@ -16,7 +16,7 @@ const browserHeaders = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
   'Origin': EMBED_HOST,
   'Referer': EMBED_HOST + '/',
-  'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, */*',
+  'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/dash+xml, */*',
   'Accept-Language': 'fr-FR,fr;q=0.7,en;q=0.6',
   'Connection': 'keep-alive'
 };
@@ -48,7 +48,7 @@ function rewritePlaylistUrls(playlistText, baseUrl) {
       if (!t || t.startsWith('#')) return line;
       const abs = toAbsolute(baseUrl, t);
       if (/\.m3u8(\?|$)/i.test(abs)) {
-        return `/api/tv-proxy-m3u8?url=${encodeURIComponent(abs)}`;
+        return `/api/tv-proxy?url=${encodeURIComponent(abs)}`;
       }
       return `/api/tv-proxy-segment?url=${encodeURIComponent(abs)}`;
     })
@@ -62,66 +62,60 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const target = req.query.url;
-  if (!target) {
-    return res.status(400).send('Paramètre "url" manquant.');
+  const { url } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL parameter is required' });
   }
-  
-  // Validation SSRF: vérifier que l'URL est autorisée
-  if (!isAllowedUrl(target)) {
-    console.error(`[TV M3U8] URL non autorisée: ${target}`);
+
+  if (!isAllowedUrl(url)) {
     return res.status(403).send('URL non autorisée.');
   }
-  
+
   try {
-    console.log(`[TV M3U8] Appel de l'URL: ${target}`);
-    const r = await http.get(target, { 
-      headers: browserHeaders, 
-      responseType: 'text' 
+    console.log(`[TV PROXY] Proxying URL: ${url}`);
+    
+    const response = await http.get(url, {
+      headers: browserHeaders,
+      responseType: 'text'
     });
 
-    const ctype = (r.headers['content-type'] || '').toLowerCase();
-    const finalUrl = r.request?.res?.responseUrl || target;
+    console.log(`[TV PROXY] Response received, status: ${response.status}`);
+
+    const data = response.data;
     
-    console.log(`[TV M3U8] Réponse reçue:`);
-    console.log(`[TV M3U8] - Status: ${r.status}`);
-    console.log(`[TV M3U8] - Content-Type: ${ctype}`);
-    console.log(`[TV M3U8] - URL finale: ${finalUrl}`);
-    console.log(`[TV M3U8] - Taille des données: ${r.data?.length || 0} caractères`);
-    
-    if (r.status >= 400) {
-      console.error(`[TV M3U8] Erreur HTTP: ${r.status}`);
-      return res.status(r.status).send('Erreur distante playlist.');
-    }
-    if (typeof r.data !== 'string') {
-      console.error(`[TV M3U8] Données reçues ne sont pas du texte`);
-      return res.status(502).send('Pas une playlist M3U8.');
+    if (typeof data !== 'string') {
+      console.error(`[TV PROXY] Data received is not text`);
+      return res.status(502).send('Pas un manifest valide.');
     }
 
-    console.log(`[TV M3U8] Premières lignes du manifest:`);
-    console.log(r.data.split('\n').slice(0, 10).join('\n'));
+    // Determine content type based on URL
+    let contentType = 'application/vnd.apple.mpegurl';
+    if (url.includes('.mpd')) {
+      contentType = 'application/dash+xml';
+    }
 
-    const rewritten = rewritePlaylistUrls(r.data, finalUrl);
-    
-    console.log(`[TV M3U8] Manifest réécrit, envoi de la réponse`);
-    console.log(`[TV M3U8] Taille du manifest réécrit: ${rewritten.length} caractères`);
+    // For M3U8 playlists, rewrite URLs
+    let finalData = data;
+    if (url.includes('.m3u8')) {
+      const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+      finalData = rewritePlaylistUrls(data, baseUrl);
+    }
 
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.send(rewritten);
+    res.send(finalData);
   } catch (e) {
-    console.error('[TV M3U8 ERROR]', e.message);
-    console.error('[TV M3U8 ERROR] Stack:', e.stack);
-    res.status(500).send(`Erreur proxy playlist: ${e.message}`);
+    console.error('[TV PROXY ERROR]', e.message);
+    res.status(500).send(`Erreur lors de la récupération: ${e.message}`);
   }
 }
