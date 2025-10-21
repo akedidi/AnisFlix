@@ -14,6 +14,7 @@ import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useWatchProgress } from "@/hooks/useWatchProgress";
 
 export default function MovieDetail() {
   const { id } = useParams();
@@ -24,6 +25,7 @@ export default function MovieDetail() {
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { getMediaProgress } = useWatchProgress();
 
   // Fetch data from TMDB
   const { data: movie, isLoading: isLoadingMovie } = useMovieDetails(movieId);
@@ -116,6 +118,9 @@ export default function MovieDetail() {
   };
 
   const backdropUrl = movie?.backdrop_path ? getImageUrl(movie.backdrop_path, 'original') : "";
+
+  // Récupérer la progression du film
+  const movieProgress = movie ? getMediaProgress(movie.id, 'movie') : null;
 
   const handleRefresh = () => {
     window.location.reload();
@@ -257,6 +262,21 @@ export default function MovieDetail() {
               )}
               {!selectedSource ? (
                 <div className="space-y-6">
+                  {/* Barre de progression du film */}
+                  {movieProgress && movieProgress.progress > 0 && (
+                    <div className="space-y-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${movieProgress.progress}%` }}
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {Math.round(movieProgress.progress)}% regardé
+                      </p>
+                    </div>
+                  )}
+                  
                   {/* Sources de streaming unifiées */}
                   <StreamingSources
                     type="movie"
