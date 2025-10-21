@@ -337,7 +337,8 @@ export default function TVChannels() {
       const link = channel.links[linkIndex];
       console.log(`[SELECT LINK] Link sélectionné:`, link);
       
-      const playerType: 'hls' | 'shaka' = (link.type === 'mpd') ? 'shaka' : 'hls';
+      // Forcer HLS.js pour tous les streams (même MPD) car Shaka Player ne gère pas les tokens JWT
+      const playerType: 'hls' | 'shaka' = 'hls';
       console.log(`[SELECT LINK] Player type déterminé: ${playerType}`);
       
       // Utiliser l'URL proxy pour mobile natif
