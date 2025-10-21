@@ -17,6 +17,7 @@ import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useWatchProgress } from "@/hooks/useWatchProgress";
 export default function SeriesDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
@@ -27,6 +28,7 @@ export default function SeriesDetail() {
     const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { getMediaProgress } = useWatchProgress();
   // Réinitialiser la source quand l'épisode ou la saison change
   useEffect(() => {
     setSelectedSource(null);
@@ -290,46 +292,63 @@ export default function SeriesDetail() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Épisodes</h3>
                     <div className="space-y-3">
-                      {seasonDetails?.episodes?.map((episode: any) => (
-                        <Card
-                          key={episode.id}
-                          className="p-4 hover-elevate active-elevate-2 cursor-pointer"
-                          onClick={() => {
-                            console.log('🔍 Clic sur épisode:', episode.episode_number);
-                            setSelectedEpisode(episode.episode_number);
-                          }}
-                          data-testid={`card-episode-${episode.episode_number}`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-semibold mb-1">
-                                {episode.episode_number}. {episode.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {episode.overview || "Aucune description disponible."}
-                              </p>
-                              {episode.runtime && (
-                                <p className="text-xs text-muted-foreground">{episode.runtime} min</p>
-                              )}
+                      {seasonDetails?.episodes?.map((episode: any) => {
+                        // Récupérer la progression de l'épisode
+                        const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
+                        
+                        return (
+                          <Card
+                            key={episode.id}
+                            className="p-4 hover-elevate active-elevate-2 cursor-pointer relative"
+                            onClick={() => {
+                              console.log('🔍 Clic sur épisode:', episode.episode_number);
+                              setSelectedEpisode(episode.episode_number);
+                            }}
+                            data-testid={`card-episode-${episode.episode_number}`}
+                          >
+                            {/* Barre de progression rouge */}
+                            {episodeProgress && episodeProgress.progress > 0 && (
+                              <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 rounded-t-lg" 
+                                   style={{ width: `${episodeProgress.progress}%` }} />
+                            )}
+                            
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="font-semibold mb-1">
+                                  {episode.episode_number}. {episode.name}
+                                </h4>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {episode.overview || "Aucune description disponible."}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  {episode.runtime && (
+                                    <span>{episode.runtime} min</span>
+                                  )}
+                                  {episodeProgress && episodeProgress.progress > 0 && (
+                                    <span className="text-red-500 font-medium">
+                                      {Math.round(episodeProgress.progress)}% regardé
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
+                                  // Si un épisode différent est sélectionné, fermer le lecteur actuel
+                                  if (selectedEpisode !== episode.episode_number && selectedSource) {
+                                    console.log('🔄 Fermeture du lecteur actuel pour ouvrir un nouvel épisode');
+                                    setSelectedSource(null);
+                                    setIsLoadingSource(false);
+                                  }
+                                  setSelectedEpisode(episode.episode_number);
+                                }}
+                              >
+                                <Play className="w-4 h-4" />
+                              </Button>
                             </div>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
-                                // Si un épisode différent est sélectionné, fermer le lecteur actuel
-                                if (selectedEpisode !== episode.episode_number && selectedSource) {
-                                  console.log('🔄 Fermeture du lecteur actuel pour ouvrir un nouvel épisode');
-                                  setSelectedSource(null);
-                                  setIsLoadingSource(false);
-                                }
-                                setSelectedEpisode(episode.episode_number);
-                              }}
-                            >
-                              <Play className="w-4 h-4" />
-                            </Button>
-                          </div>
                           {selectedEpisode === episode.episode_number && (
                             <div className="mt-4 pt-4 border-t space-y-3">
                               {!selectedSource ? (
@@ -401,7 +420,8 @@ export default function SeriesDetail() {
                             </div>
                           )}
                         </Card>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </TabsContent>
