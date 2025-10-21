@@ -264,16 +264,11 @@ export default function MovieDetail() {
                 <div className="space-y-6">
                   {/* Barre de progression du film */}
                   {movieProgress && movieProgress.progress > 0 && (
-                    <div className="space-y-1">
-                      <div className="w-full bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-red-500 h-1 rounded-full transition-all duration-300"
-                          style={{ width: `${movieProgress.progress}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {Math.round(movieProgress.progress)}% regardé
-                      </p>
+                    <div className="w-full bg-gray-200 rounded-full h-1">
+                      <div 
+                        className="bg-red-500 h-1 rounded-full transition-all duration-300"
+                        style={{ width: `${movieProgress.progress}%` }}
+                      />
                     </div>
                   )}
                   

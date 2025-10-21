@@ -324,11 +324,6 @@ export default function SeriesDetail() {
                                   {episode.runtime && (
                                     <span>{episode.runtime} min</span>
                                   )}
-                                  {episodeProgress && episodeProgress.progress > 0 && (
-                                    <span className="text-red-500 font-medium">
-                                      {Math.round(episodeProgress.progress)}% regardé
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                               <Button
