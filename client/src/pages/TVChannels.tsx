@@ -337,7 +337,7 @@ export default function TVChannels() {
       const link = channel.links[linkIndex];
       console.log(`[SELECT LINK] Link sélectionné:`, link);
       
-      const playerType = (link.type === 'mpd' || link.type === 'hls_direct') ? 'shaka' : 'hls';
+      const playerType = (link.type === 'mpd') ? 'shaka' : 'hls';
       console.log(`[SELECT LINK] Player type déterminé: ${playerType}`);
       
       // Utiliser l'URL proxy pour mobile natif
