@@ -8,6 +8,7 @@ import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
+import { apiClient } from "@/lib/apiClient";
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
@@ -21,7 +22,8 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   }
 
   // Sur mobile natif, utiliser les proxies
-  const baseUrl = window.location.origin;
+  // Utiliser l'API client pour obtenir la bonne URL de base (Vercel en mode natif)
+  const baseUrl = apiClient.getBaseUrl();
   
   if (type === 'hls_segments') {
     // Pour les URLs fremtv.lol, extraire l'ID de chaîne
