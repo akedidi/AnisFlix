@@ -32,42 +32,10 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
-            }
-            if (id.includes('lucide-react')) {
-              return 'vendor-ui';
-            }
-            if (id.includes('wouter')) {
-              return 'vendor-router';
-            }
-            if (id.includes('@tanstack')) {
-              return 'vendor-query';
-            }
-            // Autres dépendances
-            return 'vendor-misc';
-          }
-          
-          // Chunks de l'application
-          if (id.includes('components')) {
-            return 'app-components';
-          }
-          if (id.includes('pages')) {
-            return 'app-pages';
-          }
-          if (id.includes('hooks')) {
-            return 'app-hooks';
-          }
-          if (id.includes('lib')) {
-            return 'app-lib';
-          }
-        },
+        manualChunks: undefined, // Désactiver le chunking manuel pour éviter les problèmes de chargement
       },
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     fs: {

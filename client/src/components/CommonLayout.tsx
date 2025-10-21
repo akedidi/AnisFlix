@@ -85,7 +85,7 @@ export default function CommonLayout({
       </div>
 
       {/* Main Content */}
-      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0">
+      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0 overflow-y-auto">
         {children}
       </div>
     </>

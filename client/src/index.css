@@ -7,6 +7,11 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
+  /* Solution iOS : fixer la hauteur du viewport */
+  height: 100vh;
+  height: 100dvh;
+  position: fixed;
+  width: 100%;
 }
 
 /* Tab bar fixe sur mobile - ne doit jamais bouger */
@@ -17,21 +22,36 @@ html, body {
     left: 0 !important;
     right: 0 !important;
     z-index: 999999 !important;
-    /* Empêcher tout mouvement */
-    transform: none !important;
-    -webkit-transform: none !important;
+    /* Solution définitive : dimensions fixes */
+    width: 100% !important;
+    height: 70px !important;
+    top: auto !important;
+    /* Hardware acceleration maximale */
+    transform: translate3d(0, 0, 0) !important;
+    -webkit-transform: translate3d(0, 0, 0) !important;
     /* Empêcher le bounce et les animations */
     overscroll-behavior: none !important;
     -webkit-overscroll-behavior: none !important;
-    /* Forcer la stabilité */
-    will-change: auto !important;
+    /* Optimiser les performances */
+    will-change: transform !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
+    /* Isolation complète */
+    isolation: isolate !important;
+    contain: layout style paint !important;
+    /* Forcer la stabilité */
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
   /* Padding pour éviter que le contenu passe sous le tab bar */
   .main-content {
-    padding-bottom: 100px !important;
+    padding-bottom: 90px !important;
+    /* Gérer le scroll dans le conteneur principal */
+    overflow-y: auto;
+    height: 100vh;
+    height: 100dvh;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Empêcher le bounce sur le body */

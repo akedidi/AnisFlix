@@ -14,7 +14,7 @@ export class ApiClient {
       this.baseUrl = 'https://anisflix.vercel.app';
     } else {
       // En mode web, utiliser l'origine actuelle
-      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
     }
   }
 

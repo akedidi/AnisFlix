@@ -10,7 +10,7 @@ export default function BottomNav() {
   const { t } = useLanguage();
   const { isOffline } = useOffline();
   
-  // Diagnostic de la tab bar
+  // Diagnostic de la tab bar (activé temporairement pour debug)
   const { navRef } = useTabBarDiagnostic(true);
 
 
@@ -51,10 +51,27 @@ export default function BottomNav() {
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: 999999
+          zIndex: 999999,
+          width: '100%',
+          height: '70px',
+          // Solution définitive : utiliser une position fixe absolue
+          top: 'auto',
+          // Hardware acceleration maximale
+          transform: 'translate3d(0, 0, 0)',
+          WebkitTransform: 'translate3d(0, 0, 0)',
+          // Empêcher tout mouvement
+          margin: 0,
+          padding: 0,
+          // Isolation complète
+          isolation: 'isolate',
+          contain: 'layout style paint',
+          // Optimisations
+          willChange: 'transform',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
         }}
       >
-        <div className="flex items-center justify-around h-20 w-full max-w-full overflow-hidden pb-4">
+        <div className="flex items-center justify-around h-16 w-full max-w-full overflow-hidden pb-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
@@ -67,18 +84,18 @@ export default function BottomNav() {
                 data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <button
-                  className={`flex flex-col items-center justify-center gap-1 px-2 py-3 rounded-lg transition-colors min-w-0 flex-1 relative ${
+                  className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${
                     isActive
                       ? "text-primary"
                       : isOffline && !isOfflineAvailable
                       ? "text-muted-foreground/50"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
-                  style={{ maxWidth: 'calc(100vw / 6)', marginBottom: '4px' }}
+                  style={{ maxWidth: 'calc(100vw / 6)' }}
                   disabled={isOffline && !isOfflineAvailable}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? "fill-primary/20" : ""}`} />
-                  <span className="text-xs font-medium" style={{ marginBottom: '2px' }}>{item.label}</span>
+                  <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
                   {isOfflineAvailable && isOffline && (
                     <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
                   )}
