@@ -30,7 +30,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     const match = originalUrl.match(/\/live\/[^\/]+\/(\d+)\.m3u8/);
     if (match) {
       const channelId = match[1];
-      return `${baseUrl}/api/tv/stream/${channelId}`;
+      return `${baseUrl}/api/tv-stream/${channelId}`;
     }
   }
   
