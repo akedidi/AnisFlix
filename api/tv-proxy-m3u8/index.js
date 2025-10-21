@@ -16,7 +16,7 @@ const browserHeaders = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
   'Origin': EMBED_HOST,
   'Referer': EMBED_HOST + '/',
-  'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, */*',
+  'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/dash+xml, */*',
   'Accept-Language': 'fr-FR,fr;q=0.7,en;q=0.6',
   'Connection': 'keep-alive'
 };
@@ -103,22 +103,34 @@ export default async function handler(req, res) {
     }
     if (typeof r.data !== 'string') {
       console.error(`[TV M3U8] Données reçues ne sont pas du texte`);
-      return res.status(502).send('Pas une playlist M3U8.');
+      return res.status(502).send('Pas un manifest valide.');
     }
 
     console.log(`[TV M3U8] Premières lignes du manifest:`);
     console.log(r.data.split('\n').slice(0, 10).join('\n'));
 
-    const rewritten = rewritePlaylistUrls(r.data, finalUrl);
+    // Déterminer le type de contenu et traiter en conséquence
+    let finalData = r.data;
+    let contentType = 'application/vnd.apple.mpegurl';
     
-    console.log(`[TV M3U8] Manifest réécrit, envoi de la réponse`);
-    console.log(`[TV M3U8] Taille du manifest réécrit: ${rewritten.length} caractères`);
+    if (target.includes('.mpd')) {
+      // Pour les streams MPD, ne pas réécrire les URLs
+      contentType = 'application/dash+xml';
+      console.log(`[TV M3U8] Stream MPD détecté, pas de réécriture d'URLs`);
+    } else {
+      // Pour les streams M3U8, réécrire les URLs
+      finalData = rewritePlaylistUrls(r.data, finalUrl);
+      console.log(`[TV M3U8] Stream M3U8 détecté, URLs réécrites`);
+    }
+    
+    console.log(`[TV M3U8] Manifest traité, envoi de la réponse`);
+    console.log(`[TV M3U8] Taille du manifest final: ${finalData.length} caractères`);
 
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.send(rewritten);
+    res.send(finalData);
   } catch (e) {
     console.error('[TV M3U8 ERROR]', e.message);
     console.error('[TV M3U8 ERROR] Stack:', e.stack);
