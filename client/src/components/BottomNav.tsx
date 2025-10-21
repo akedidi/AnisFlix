@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
 import { useEffect } from "react";
-import { useTabBarDiagnostic } from "@/hooks/useTabBarDiagnostic";
+import { useTabBarDiagnostic } from "../hooks/useTabBarDiagnostic";
 
 export default function BottomNav() {
   const [location] = useLocation();
