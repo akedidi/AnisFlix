@@ -47,49 +47,76 @@ function rewritePlaylistUrls(playlist, baseUrl) {
 }
 
 export default async function handler(req, res) {
+  console.log(`[TV STREAM] ===== NOUVELLE REQUÊTE =====`);
+  console.log(`[TV STREAM] Method: ${req.method}`);
+  console.log(`[TV STREAM] URL: ${req.url}`);
+  console.log(`[TV STREAM] Headers:`, req.headers);
+  console.log(`[TV STREAM] Query:`, req.query);
+  
   const { channelId } = req.query;
   
   if (!channelId) {
+    console.error(`[TV STREAM] ERREUR: Channel ID manquant`);
     return res.status(400).json({ error: 'Channel ID is required' });
   }
 
-  console.log(`[TV STREAM] Début de la requête pour le channel ${channelId}`);
+  console.log(`[TV STREAM] Channel ID reçu: ${channelId}`);
+  console.log(`[TV STREAM] Type de channelId: ${typeof channelId}`);
   
   try {
     const originalUrl = `${ORIGIN_HOST}/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
-    console.log(`[TV STREAM] URL originale: ${originalUrl}`);
+    console.log(`[TV STREAM] URL originale construite: ${originalUrl}`);
+    console.log(`[TV STREAM] Headers de requête:`, browserHeaders);
     
+    console.log(`[TV STREAM] Début de la requête HTTP...`);
     const response = await http.get(originalUrl, {
       headers: browserHeaders,
       responseType: 'text'
     });
 
-    console.log(`[TV STREAM] Réponse reçue, status: ${response.status}`);
+    console.log(`[TV STREAM] Réponse HTTP reçue!`);
+    console.log(`[TV STREAM] Status: ${response.status}`);
+    console.log(`[TV STREAM] Status Text: ${response.statusText}`);
     console.log(`[TV STREAM] Headers de réponse:`, response.headers);
+    console.log(`[TV STREAM] Taille des données: ${response.data ? response.data.length : 'undefined'}`);
     
     const manifestData = response.data;
     const finalUrl = `${ORIGIN_HOST}/live/5A24C0D16059EDCC6A20E0CE234C7A25/`;
 
     if (typeof manifestData !== 'string') {
-      console.error(`[TV STREAM] Données reçues ne sont pas du texte`);
+      console.error(`[TV STREAM] ERREUR: Données reçues ne sont pas du texte`);
+      console.error(`[TV STREAM] Type des données: ${typeof manifestData}`);
+      console.error(`[TV STREAM] Contenu:`, manifestData);
       return res.status(502).send('Pas une playlist M3U8.');
     }
 
+    console.log(`[TV STREAM] Données valides reçues (${manifestData.length} caractères)`);
     console.log(`[TV STREAM] Premières lignes du manifest:`);
     console.log(manifestData.split('\n').slice(0, 10).join('\n'));
 
+    console.log(`[TV STREAM] Début de la réécriture des URLs...`);
     const rewritten = rewritePlaylistUrls(manifestData, finalUrl);
     
-    console.log(`[TV STREAM] Manifest réécrit, envoi de la réponse`);
+    console.log(`[TV STREAM] URLs réécrites avec succès`);
     console.log(`[TV STREAM] Taille du manifest réécrit: ${rewritten.length} caractères`);
+    console.log(`[TV STREAM] Premières lignes du manifest réécrit:`);
+    console.log(rewritten.split('\n').slice(0, 10).join('\n'));
 
+    console.log(`[TV STREAM] Envoi de la réponse...`);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     res.send(rewritten);
+    console.log(`[TV STREAM] Réponse envoyée avec succès!`);
   } catch (e) {
-    console.error('[TV STREAM ERROR]', e.message);
+    console.error('[TV STREAM ERROR] ===== ERREUR DÉTECTÉE =====');
+    console.error('[TV STREAM ERROR] Message:', e.message);
+    console.error('[TV STREAM ERROR] Code:', e.code);
+    console.error('[TV STREAM ERROR] Status:', e.response?.status);
+    console.error('[TV STREAM ERROR] Status Text:', e.response?.statusText);
+    console.error('[TV STREAM ERROR] Response Headers:', e.response?.headers);
+    console.error('[TV STREAM ERROR] Response Data:', e.response?.data);
     console.error('[TV STREAM ERROR] Stack:', e.stack);
     res.status(500).send(`Erreur lors de la récupération de la playlist: ${e.message}`);
   }

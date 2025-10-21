@@ -17,35 +17,58 @@ const isCapacitor = () => {
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
 const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 'mpd'): string => {
+  console.log(`[PROXY URL] ===== DÉBUT getProxyUrl =====`);
+  console.log(`[PROXY URL] originalUrl: ${originalUrl}`);
+  console.log(`[PROXY URL] type: ${type}`);
+  console.log(`[PROXY URL] isCapacitor(): ${isCapacitor()}`);
+  
   if (!isCapacitor()) {
+    console.log(`[PROXY URL] Mode web - URL directe: ${originalUrl}`);
     return originalUrl; // Sur web, utiliser l'URL directe
   }
 
   // Sur mobile natif, utiliser les proxies
   // Utiliser l'API client pour obtenir la bonne URL de base (Vercel en mode natif)
   const baseUrl = apiClient.getBaseUrl();
+  console.log(`[PROXY URL] baseUrl (API client): ${baseUrl}`);
   
   if (type === 'hls_segments') {
+    console.log(`[PROXY URL] Type hls_segments détecté`);
     // Pour les URLs fremtv.lol, extraire l'ID de chaîne
     const match = originalUrl.match(/\/live\/[^\/]+\/(\d+)\.m3u8/);
+    console.log(`[PROXY URL] Regex match:`, match);
     if (match) {
       const channelId = match[1];
-      return `${baseUrl}/api/tv-stream/${channelId}`;
+      const finalUrl = `${baseUrl}/api/tv-stream/${channelId}`;
+      console.log(`[PROXY URL] Channel ID extrait: ${channelId}`);
+      console.log(`[PROXY URL] URL finale: ${finalUrl}`);
+      return finalUrl;
+    } else {
+      console.error(`[PROXY URL] ERREUR: Impossible d'extraire le channel ID de: ${originalUrl}`);
     }
   }
   
   if (type === 'hls_direct') {
+    console.log(`[PROXY URL] Type hls_direct détecté`);
     // Pour les autres URLs HLS, utiliser le proxy générique
     const encodedUrl = encodeURIComponent(originalUrl);
-    return `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
+    console.log(`[PROXY URL] URL finale: ${finalUrl}`);
+    return finalUrl;
   }
   
   if (type === 'mpd') {
+    console.log(`[PROXY URL] Type mpd détecté`);
     // Pour les URLs MPD, utiliser le proxy générique
     const encodedUrl = encodeURIComponent(originalUrl);
-    return `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+    console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
+    console.log(`[PROXY URL] URL finale: ${finalUrl}`);
+    return finalUrl;
   }
   
+  console.log(`[PROXY URL] Type non reconnu, retour URL originale: ${originalUrl}`);
   return originalUrl;
 };
 
@@ -304,12 +327,23 @@ export default function TVChannels() {
 
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
+    console.log(`[SELECT LINK] ===== DÉBUT selectLinkByIndex =====`);
+    console.log(`[SELECT LINK] Channel: ${channel.name}`);
+    console.log(`[SELECT LINK] Link index: ${linkIndex}`);
+    console.log(`[SELECT LINK] Channel links:`, channel.links);
+    console.log(`[SELECT LINK] Links length: ${channel.links?.length || 0}`);
+    
     if (channel.links && channel.links.length > linkIndex) {
       const link = channel.links[linkIndex];
+      console.log(`[SELECT LINK] Link sélectionné:`, link);
+      
       const playerType = (link.type === 'mpd' || link.type === 'hls_direct') ? 'shaka' : 'hls';
+      console.log(`[SELECT LINK] Player type déterminé: ${playerType}`);
       
       // Utiliser l'URL proxy pour mobile natif
+      console.log(`[SELECT LINK] Appel de getProxyUrl...`);
       const finalUrl = getProxyUrl(link.url, link.type);
+      console.log(`[SELECT LINK] URL finale reçue: ${finalUrl}`);
       
       console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { 
         type: link.type, 
@@ -319,10 +353,12 @@ export default function TVChannels() {
         isCapacitor: isCapacitor()
       });
       
-      return { url: finalUrl, playerType, linkType: link.type };
+      const result = { url: finalUrl, playerType, linkType: link.type };
+      console.log(`[SELECT LINK] Résultat final:`, result);
+      return result;
     }
     
-    console.warn(`⚠️ Aucun lien trouvé pour ${channel.name} à l'index ${linkIndex}`);
+    console.error(`[SELECT LINK] ERREUR: Pas de lien disponible pour l'index ${linkIndex}`);
     return { url: '', playerType: 'hls', linkType: 'hls_segments' };
   };
 
