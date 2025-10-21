@@ -9,6 +9,44 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
 
+// Fonction pour détecter si on est sur mobile natif (Capacitor)
+const isCapacitor = () => {
+  return typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+};
+
+// Fonction pour convertir une URL en URL proxy pour mobile natif
+const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 'mpd'): string => {
+  if (!isCapacitor()) {
+    return originalUrl; // Sur web, utiliser l'URL directe
+  }
+
+  // Sur mobile natif, utiliser les proxies
+  const baseUrl = window.location.origin;
+  
+  if (type === 'hls_segments') {
+    // Pour les URLs fremtv.lol, extraire l'ID de chaîne
+    const match = originalUrl.match(/\/live\/[^\/]+\/(\d+)\.m3u8/);
+    if (match) {
+      const channelId = match[1];
+      return `${baseUrl}/api/tv-stream/${channelId}`;
+    }
+  }
+  
+  if (type === 'hls_direct') {
+    // Pour les autres URLs HLS, utiliser le proxy générique
+    const encodedUrl = encodeURIComponent(originalUrl);
+    return `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+  }
+  
+  if (type === 'mpd') {
+    // Pour les URLs MPD, utiliser le proxy générique
+    const encodedUrl = encodeURIComponent(originalUrl);
+    return `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+  }
+  
+  return originalUrl;
+};
+
 interface TVChannelLink {
   type: 'mpd' | 'hls_direct' | 'hls_segments';
   url: string;
@@ -267,8 +305,19 @@ export default function TVChannels() {
     if (channel.links && channel.links.length > linkIndex) {
       const link = channel.links[linkIndex];
       const playerType = (link.type === 'mpd' || link.type === 'hls_direct') ? 'shaka' : 'hls';
-      console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { type: link.type, playerType, url: link.url });
-      return { url: link.url, playerType, linkType: link.type };
+      
+      // Utiliser l'URL proxy pour mobile natif
+      const finalUrl = getProxyUrl(link.url, link.type);
+      
+      console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { 
+        type: link.type, 
+        playerType, 
+        originalUrl: link.url,
+        finalUrl: finalUrl,
+        isCapacitor: isCapacitor()
+      });
+      
+      return { url: finalUrl, playerType, linkType: link.type };
     }
     
     console.warn(`⚠️ Aucun lien trouvé pour ${channel.name} à l'index ${linkIndex}`);
@@ -296,21 +345,8 @@ export default function TVChannels() {
     const video = videoRef.current;
     console.log(`🎥 [HLS PLAYER] Élément video trouvé:`, video);
     
-    // Pour les liens hls_segments, utiliser l'API de récupération du token/manifest
-    let finalStreamUrl = streamUrl;
-    if (linkType === 'hls_segments') {
-      const channelId = extractChannelId(streamUrl);
-      console.log(`🎥 [HLS PLAYER] ID de chaîne extrait: ${channelId}`);
-      if (channelId) {
-        finalStreamUrl = `/api/tv-stream?channelId=${channelId}`;
-        console.log(`🎥 [HLS PLAYER] Utilisation de l'API token/manifest: ${finalStreamUrl}`);
-      } else {
-        console.warn('🎥 [HLS PLAYER] Impossible d\'extraire l\'ID de chaîne, utilisation de l\'URL directe');
-      }
-    } else {
-      console.log(`🎥 [HLS PLAYER] Type de lien non-segments, utilisation de l'URL directe`);
-    }
-    
+    // L'URL est déjà convertie en URL proxy par selectLinkByIndex si nécessaire
+    const finalStreamUrl = streamUrl;
     console.log(`🎥 [HLS PLAYER] URL finale pour le player: ${finalStreamUrl}`);
     
     if (Hls.isSupported()) {
