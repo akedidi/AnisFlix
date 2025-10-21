@@ -4,6 +4,7 @@ interface TabBarDiagnosticOptions {
   enableLogging?: boolean;
 }
 
+// Hook for monitoring tab bar position and detecting movement issues
 export function useTabBarDiagnostic(options: TabBarDiagnosticOptions = {}) {
   const { enableLogging = false } = options;
   const navRef = useRef<HTMLElement>(null);
