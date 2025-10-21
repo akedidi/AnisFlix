@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, Home } from "lucide-react";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLocation } from "wouter";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function NotFound() {
+  const { t } = useLanguage();
   const [, setLocation] = useLocation();
   
   return (
@@ -19,11 +21,11 @@ export default function NotFound() {
             <CardContent className="pt-6">
               <div className="flex mb-4 gap-2">
                 <AlertCircle className="h-8 w-8 text-red-500" />
-                <h1 className="text-2xl font-bold">404 Page Not Found</h1>
+                <h1 className="text-2xl font-bold">{t("notFound.title")}</h1>
               </div>
 
               <p className="mt-4 text-sm text-muted-foreground mb-6">
-                La page que vous recherchez n'existe pas ou a été déplacée.
+                {t("notFound.description")}
               </p>
               
               <Button 
@@ -31,7 +33,7 @@ export default function NotFound() {
                 className="w-full"
               >
                 <Home className="w-4 h-4 mr-2" />
-                Retour à l'accueil
+                {t("notFound.backToHome")}
               </Button>
             </CardContent>
           </Card>

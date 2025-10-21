@@ -11,8 +11,10 @@ import DownloadItem from "@/components/DownloadItem";
 import CommonLayout from "@/components/CommonLayout";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useOffline } from "@/hooks/useOffline";
+import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function Settings() {
+  const { t } = useLanguage();
   const { isNative } = useDeviceType();
   const { isOffline } = useOffline();
   const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to");
@@ -59,7 +61,7 @@ export default function Settings() {
         {isOffline && (
           <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
             <p className="text-orange-500 text-sm">
-              📱 Mode hors ligne - Les paramètres sont disponibles localement
+              📱 {t("settings.offlineMode")}
             </p>
           </div>
         )}
@@ -68,15 +70,15 @@ export default function Settings() {
           <TabsList className={`grid w-full max-w-md ${isNative ? 'grid-cols-4' : 'grid-cols-1'}`}>
             {isNative && (
               <TabsTrigger value="downloads" data-testid="tab-downloads">
-                Téléchargements
+                {t("settings.downloads")}
               </TabsTrigger>
             )}
             <TabsTrigger value="general" data-testid="tab-general">
-              Général
+              {t("settings.general")}
             </TabsTrigger>
             {isNative && (
               <TabsTrigger value="sources" data-testid="tab-sources">
-                Sources
+                {t("settings.sources")}
               </TabsTrigger>
             )}
           </TabsList>
@@ -85,7 +87,7 @@ export default function Settings() {
             <TabsContent value="downloads" className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <Download className="w-5 h-5" />
-                <h2 className="text-xl font-semibold">Mes téléchargements</h2>
+                <h2 className="text-xl font-semibold">{t("settings.myDownloads")}</h2>
               </div>
 
               {mockDownloads.length > 0 ? (
@@ -103,7 +105,7 @@ export default function Settings() {
               ) : (
                 <Card className="p-12 text-center">
                   <Download className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">Aucun téléchargement en cours</p>
+                  <p className="text-muted-foreground">{t("settings.noDownloads")}</p>
                 </Card>
               )}
             </TabsContent>
@@ -113,14 +115,14 @@ export default function Settings() {
             <Card className="p-6">
               <div className="flex items-center gap-2 mb-6">
                 <SettingsIcon className="w-5 h-5" />
-                <h2 className="text-xl font-semibold">Paramètres généraux</h2>
+                <h2 className="text-xl font-semibold">{t("settings.generalSettings")}</h2>
               </div>
 
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium">Thème</h3>
-                    <p className="text-sm text-muted-foreground">Changer l'apparence de l'application</p>
+                    <h3 className="font-medium">{t("settings.theme")}</h3>
+                    <p className="text-sm text-muted-foreground">{t("settings.themeDescription")}</p>
                   </div>
                   <ThemeToggle />
                 </div>
@@ -128,15 +130,15 @@ export default function Settings() {
                 <Separator />
 
                 <div className="space-y-3">
-                  <h3 className="font-medium">Données</h3>
+                  <h3 className="font-medium">{t("settings.data")}</h3>
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={handleClearCache} className="flex items-center gap-2">
                       <Trash2 className="w-4 h-4" />
-                      Vider le cache
+                      {t("settings.clearCache")}
                     </Button>
                     <Button variant="outline" onClick={handleClearProgress} className="flex items-center gap-2">
                       <Trash2 className="w-4 h-4" />
-                      Effacer l'historique
+                      {t("settings.clearHistory")}
                     </Button>
                   </div>
                 </div>
@@ -149,12 +151,12 @@ export default function Settings() {
               <Card className="p-6">
                 <div className="flex items-center gap-2 mb-6">
                   <SettingsIcon className="w-5 h-5" />
-                  <h2 className="text-xl font-semibold">Configuration des sources</h2>
+                  <h2 className="text-xl font-semibold">{t("settings.sourcesConfiguration")}</h2>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="primary-host">Host Principal</Label>
+                    <Label htmlFor="primary-host">{t("settings.primaryHost")}</Label>
                     <Input
                       id="primary-host"
                       type="url"
@@ -166,7 +168,7 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="secondary-host">Host Secondaire</Label>
+                    <Label htmlFor="secondary-host">{t("settings.secondaryHost")}</Label>
                     <Input
                       id="secondary-host"
                       type="url"
@@ -178,7 +180,7 @@ export default function Settings() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="backup-host">Host de Secours</Label>
+                    <Label htmlFor="backup-host">{t("settings.backupHost")}</Label>
                     <Input
                       id="backup-host"
                       type="url"
@@ -190,7 +192,7 @@ export default function Settings() {
                   </div>
 
                   <Button onClick={handleSaveHosts} className="w-full" data-testid="button-save-hosts">
-                    Enregistrer les sources
+                    {t("settings.saveSources")}
                   </Button>
                 </div>
               </Card>

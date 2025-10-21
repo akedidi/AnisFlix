@@ -268,7 +268,7 @@ export default function Home() {
           {/* Netflix */}
           {netflixMovies.length > 0 && (
             <MediaCarousel
-              title={`Netflix - ${t("home.latestMovies")}`}
+              title={`${t("platform.netflix")} - ${t("home.latestMovies")}`}
               items={netflixMovies.slice(0, 10)}
               onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
@@ -277,7 +277,7 @@ export default function Home() {
 
           {netflixSeries.length > 0 && (
             <MediaCarousel
-              title={`Netflix - ${t("home.latestSeries")}`}
+              title={`${t("platform.netflix")} - ${t("home.latestSeries")}`}
               items={netflixSeries.slice(0, 10)}
               onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
@@ -287,7 +287,7 @@ export default function Home() {
           {/* Amazon Prime */}
           {amazonMovies.length > 0 && (
             <MediaCarousel
-              title={`Amazon Prime - ${t("home.latestMovies")}`}
+              title={`${t("platform.amazonPrime")} - ${t("home.latestMovies")}`}
               items={amazonMovies.slice(0, 10)}
               onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
@@ -296,7 +296,7 @@ export default function Home() {
 
           {amazonSeries.length > 0 && (
             <MediaCarousel
-              title={`Amazon Prime - ${t("home.latestSeries")}`}
+              title={`${t("platform.amazonPrime")} - ${t("home.latestSeries")}`}
               items={amazonSeries.slice(0, 10)}
               onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
@@ -306,7 +306,7 @@ export default function Home() {
           {/* Apple TV+ */}
           {appleTvMovies.length > 0 && (
             <MediaCarousel
-              title={`Apple TV+ - ${t("home.latestMovies")}`}
+              title={`${t("platform.appleTV")} - ${t("home.latestMovies")}`}
               items={appleTvMovies.slice(0, 10)}
               onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
@@ -315,7 +315,7 @@ export default function Home() {
 
           {appleTvSeries.length > 0 && (
             <MediaCarousel
-              title={`Apple TV+ - ${t("home.latestSeries")}`}
+              title={`${t("platform.appleTV")} - ${t("home.latestSeries")}`}
               items={appleTvSeries.slice(0, 10)}
               onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
@@ -325,7 +325,7 @@ export default function Home() {
           {/* Disney+ */}
           {disneyMovies.length > 0 && (
             <MediaCarousel
-              title={`Disney+ - ${t("home.latestMovies")}`}
+              title={`${t("platform.disney")} - ${t("home.latestMovies")}`}
               items={disneyMovies.slice(0, 10)}
               onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
@@ -334,7 +334,7 @@ export default function Home() {
 
           {disneySeries.length > 0 && (
             <MediaCarousel
-              title={`Disney+ - ${t("home.latestSeries")}`}
+              title={`${t("platform.disney")} - ${t("home.latestSeries")}`}
               items={disneySeries.slice(0, 10)}
               onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}
@@ -344,7 +344,7 @@ export default function Home() {
           {/* HBO Max */}
           {hboMaxMovies.length > 0 && (
             <MediaCarousel
-              title={`HBO Max - ${t("home.latestMovies")}`}
+              title={`${t("platform.hboMax")} - ${t("home.latestMovies")}`}
               items={hboMaxMovies.slice(0, 10)}
               onItemClick={(item) => setLocation(`/movie/${item.id}`)}
               showSeeAllButton={true}
@@ -353,7 +353,7 @@ export default function Home() {
 
           {hboMaxSeries.length > 0 && (
             <MediaCarousel
-              title={`HBO Max - ${t("home.latestSeries")}`}
+              title={`${t("platform.hboMax")} - ${t("home.latestSeries")}`}
               items={hboMaxSeries.slice(0, 10)}
               onItemClick={(item) => setLocation(`/series/${item.id}`)}
               showSeeAllButton={true}

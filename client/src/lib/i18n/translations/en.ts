@@ -94,7 +94,6 @@ export default {
   // Settings
   "settings.title": "Settings",
   "settings.language": "Language",
-  "settings.theme": "Theme",
   "settings.streamingQuality": "Streaming Quality",
   "settings.autoplay": "Autoplay",
   "settings.subtitles": "Subtitles",
@@ -189,4 +188,36 @@ export default {
   "series.reality": "Reality",
   "series.talk": "Talk Show",
   "series.news": "News",
+  
+  // Settings page
+  "settings.offlineMode": "Offline mode - Settings are available locally",
+  "settings.downloads": "Downloads",
+  "settings.general": "General",
+  "settings.sources": "Sources",
+  "settings.myDownloads": "My Downloads",
+  "settings.noDownloads": "No downloads in progress",
+  "settings.generalSettings": "General Settings",
+  "settings.theme": "Theme",
+  "settings.themeDescription": "Change the appearance of the application",
+  "settings.data": "Data",
+  "settings.clearCache": "Clear Cache",
+  "settings.clearHistory": "Clear History",
+  "settings.sourcesConfiguration": "Sources Configuration",
+  "settings.primaryHost": "Primary Host",
+  "settings.secondaryHost": "Secondary Host",
+  "settings.backupHost": "Backup Host",
+  "settings.saveSources": "Save Sources",
+  
+  // Home page - Platform names
+  "platform.netflix": "Netflix",
+  "platform.amazonPrime": "Amazon Prime",
+  "platform.appleTV": "Apple TV+",
+  "platform.paramount": "Paramount+",
+  "platform.disney": "Disney+",
+  "platform.hboMax": "HBO Max",
+  
+  // 404 page
+  "notFound.title": "404 Page Not Found",
+  "notFound.description": "The page you are looking for does not exist or has been moved.",
+  "notFound.backToHome": "Back to Home",
 };

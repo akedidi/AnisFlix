@@ -94,7 +94,6 @@ export default {
   // Settings
   "settings.title": "Paramètres",
   "settings.language": "Langue",
-  "settings.theme": "Thème",
   "settings.streamingQuality": "Qualité de streaming",
   "settings.autoplay": "Lecture automatique",
   "settings.subtitles": "Sous-titres",
@@ -227,4 +226,36 @@ export default {
   "button.link": "Lien",
   "button.remove": "Supprimer",
   "button.continueWatching": "Continuer à regarder",
+  
+  // Settings page
+  "settings.offlineMode": "Mode hors ligne - Les paramètres sont disponibles localement",
+  "settings.downloads": "Téléchargements",
+  "settings.general": "Général",
+  "settings.sources": "Sources",
+  "settings.myDownloads": "Mes téléchargements",
+  "settings.noDownloads": "Aucun téléchargement en cours",
+  "settings.generalSettings": "Paramètres généraux",
+  "settings.theme": "Thème",
+  "settings.themeDescription": "Changer l'apparence de l'application",
+  "settings.data": "Données",
+  "settings.clearCache": "Vider le cache",
+  "settings.clearHistory": "Effacer l'historique",
+  "settings.sourcesConfiguration": "Configuration des sources",
+  "settings.primaryHost": "Host Principal",
+  "settings.secondaryHost": "Host Secondaire",
+  "settings.backupHost": "Host de Secours",
+  "settings.saveSources": "Enregistrer les sources",
+  
+  // Home page - Platform names
+  "platform.netflix": "Netflix",
+  "platform.amazonPrime": "Amazon Prime",
+  "platform.appleTV": "Apple TV+",
+  "platform.paramount": "Paramount+",
+  "platform.disney": "Disney+",
+  "platform.hboMax": "HBO Max",
+  
+  // 404 page
+  "notFound.title": "404 Page Not Found",
+  "notFound.description": "La page que vous recherchez n'existe pas ou a été déplacée.",
+  "notFound.backToHome": "Retour à l'accueil",
 };
