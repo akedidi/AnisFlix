@@ -1,140 +1,83 @@
-import { useEffect, useRef } from 'react';
+import { useRef, useEffect } from 'react';
 
-export interface TabBarPosition {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-  width: number;
-  height: number;
-  position: string;
-  bottomValue: string;
-  zIndex: string;
-  transform: string;
-  overscrollBehavior: string;
+interface TabBarDiagnosticOptions {
+  enableLogging?: boolean;
 }
 
-export function useTabBarDiagnostic(enableLogging: boolean = true) {
+export function useTabBarDiagnostic(options: TabBarDiagnosticOptions = {}) {
+  const { enableLogging = false } = options;
   const navRef = useRef<HTMLElement>(null);
-  const lastPositionRef = useRef<TabBarPosition | null>(null);
+  const lastPosition = useRef<number>(0);
+  const lastWindowHeight = useRef<number>(0);
 
   useEffect(() => {
-    console.log('=== TABBAR DIAGNOSTIC HOOK STARTED ===');
-    console.log('enableLogging:', enableLogging);
-    console.log('navRef.current:', navRef.current);
-    
-    if (!enableLogging) {
-      console.log('Logging disabled, exiting');
-      return;
-    }
-    
-    if (!navRef.current) {
-      console.log('navRef.current is null, waiting...');
+    if (!enableLogging || !navRef.current) {
       return;
     }
 
-    const logPosition = () => {
+    const checkPosition = () => {
       if (!navRef.current) return;
 
       const rect = navRef.current.getBoundingClientRect();
-      const computedStyle = window.getComputedStyle(navRef.current);
-      
-      const currentPosition: TabBarPosition = {
-        top: rect.top,
-        bottom: rect.bottom,
-        left: rect.left,
-        right: rect.right,
-        width: rect.width,
-        height: rect.height,
-        position: computedStyle.position,
-        bottomValue: computedStyle.bottom,
-        zIndex: computedStyle.zIndex,
-        transform: computedStyle.transform,
-        overscrollBehavior: computedStyle.overscrollBehavior
-      };
+      const currentPosition = rect.bottom;
+      const currentWindowHeight = window.innerHeight;
+      const scrollY = window.scrollY;
+      const isAtBottom = scrollY + window.innerHeight >= document.documentElement.scrollHeight - 1;
 
-      // Vérifier si la position a changé
-      const hasChanged = !lastPositionRef.current || 
-        lastPositionRef.current.bottom !== currentPosition.bottom ||
-        lastPositionRef.current.top !== currentPosition.top;
+      // Log position changes
+      console.log(`[ANISFLIX-TABBAR] Position Changed - Bottom: ${currentPosition} Window: ${currentWindowHeight}`);
+      console.log(`[ANISFLIX-TABBAR] Scroll Y: ${scrollY} Is At Bottom: ${isAtBottom}`);
+      console.log(`TABBAR_DEBUG: bottom=${currentPosition}, window=${currentWindowHeight}, scroll=${scrollY}`);
 
-      if (hasChanged) {
-        // Log détaillé pour Xcode - version simplifiée
-        console.log('[ANISFLIX-TABBAR] Position Changed - Bottom:', currentPosition.bottom, 'Window:', window.innerHeight);
-        console.log('[ANISFLIX-TABBAR] Scroll Y:', window.scrollY, 'Is At Bottom:', currentPosition.bottom === window.innerHeight);
-        
-        // Log simple pour debug
-        console.log('TABBAR_DEBUG: bottom=' + currentPosition.bottom + ', window=' + window.innerHeight + ', scroll=' + window.scrollY);
-
-        // Alerte si la tab bar bouge de sa position fixe
-        if (currentPosition.bottom !== window.innerHeight && 
-            currentPosition.position === 'fixed') {
-          console.warn('[ANISFLIX-TABBAR-ERROR] Tab Bar moved! Expected:', window.innerHeight, 'Actual:', currentPosition.bottom);
-          console.error('TABBAR_ERROR: moved from fixed position');
-        }
+      // Check if position changed significantly
+      if (Math.abs(currentPosition - lastPosition.current) > 0.1) {
+        console.warn(`[ANISFLIX-TABBAR-ERROR] Tab Bar moved! Expected: ${lastPosition.current} Actual: ${currentPosition}`);
+        console.error('TABBAR_ERROR: moved from fixed position');
       }
 
-      lastPositionRef.current = currentPosition;
+      lastPosition.current = currentPosition;
+      lastWindowHeight.current = currentWindowHeight;
     };
 
-    // Log initial position
-    logPosition();
-
-    // Log on scroll
-    const handleScroll = () => {
-      logPosition();
-    };
-
-    // Log on resize
-    const handleResize = () => {
-      logPosition();
-    };
-
-    // Log on touch events
     const handleTouchStart = () => {
+      if (!enableLogging) return;
       console.log('[ANISFLIX-TABBAR] Touch Start - Tab Bar Check');
       console.log('TABBAR_TOUCH: start');
-      logPosition();
-    };
-
-    const handleTouchMove = () => {
-      logPosition();
     };
 
     const handleTouchEnd = () => {
+      if (!enableLogging) return;
       console.log('[ANISFLIX-TABBAR] Touch End - Tab Bar Check');
       console.log('TABBAR_TOUCH: end');
-      logPosition();
     };
 
-    // Log on orientation change
-    const handleOrientationChange = () => {
-      console.log('[ANISFLIX-TABBAR] Orientation Change - Tab Bar Check');
-      console.log('TABBAR_ORIENTATION: changed');
-      setTimeout(logPosition, 100); // Délai pour laisser le temps à l'orientation de se stabiliser
-    };
+    // Initial position check
+    checkPosition();
 
-    // Event listeners
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
-    window.addEventListener('orientationchange', handleOrientationChange);
+    // Set up event listeners
+    window.addEventListener('scroll', checkPosition, { passive: true });
+    window.addEventListener('resize', checkPosition, { passive: true });
+    window.addEventListener('orientationchange', checkPosition, { passive: true });
+    
+    if (navRef.current) {
+      navRef.current.addEventListener('touchstart', handleTouchStart, { passive: true });
+      navRef.current.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
 
-    // Log périodique pour détecter les changements
-    const interval = setInterval(logPosition, 1000);
-
+    // Cleanup
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('orientationchange', handleOrientationChange);
-      clearInterval(interval);
+      window.removeEventListener('scroll', checkPosition);
+      window.removeEventListener('resize', checkPosition);
+      window.removeEventListener('orientationchange', checkPosition);
+      
+      if (navRef.current) {
+        navRef.current.removeEventListener('touchstart', handleTouchStart);
+        navRef.current.removeEventListener('touchend', handleTouchEnd);
+      }
     };
   }, [enableLogging]);
 
-  return { navRef };
+  return {
+    navRef,
+  };
 }
