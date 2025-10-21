@@ -2,16 +2,17 @@ import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
-import { useEffect } from "react";
-import { useTabBarDiagnostic } from "../hooks/useTabBarDiagnostic";
+import { useEffect, useRef } from "react";
+// import { useTabBarDiagnostic } from "../hooks/useTabBarDiagnostic";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { t } = useLanguage();
   const { isOffline } = useOffline();
   
-  // Diagnostic de la tab bar (activé temporairement pour debug)
-  const { navRef } = useTabBarDiagnostic(true);
+  // Diagnostic de la tab bar (désactivé temporairement pour Vercel)
+  // const { navRef } = useTabBarDiagnostic(true);
+  const navRef = useRef<HTMLElement>(null);
 
 
   // Reset scroll to top when location changes
