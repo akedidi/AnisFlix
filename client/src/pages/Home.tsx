@@ -79,7 +79,9 @@ export default function Home() {
 
   // S'assurer que la page commence en haut
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Désactivé pour éviter les conflits avec le scroll automatique des autres pages
+    // window.scrollTo(0, 0);
+    console.log('📱 [HOME] Scroll automatique désactivé pour éviter les conflits');
   }, []);
 
 
