@@ -10,6 +10,55 @@ import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
 import { apiClient } from "@/lib/apiClient";
 
+// Extension des types pour window.scrollTimeout
+declare global {
+  interface Window {
+    scrollTimeout?: NodeJS.Timeout;
+  }
+}
+
+// Fonction pour détecter si on est sur mobile
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// Fonction pour scroll simple et direct
+const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
+  console.log('📱 [SCROLL] Début du scroll vers le haut');
+  console.log('📱 [SCROLL] Position actuelle:', window.scrollY);
+  console.log('📱 [SCROLL] Is mobile:', isMobile());
+  
+  setIsScrolling(true);
+  
+  // Méthode 1: Scroll immédiat
+  window.scrollTo(0, 0);
+  console.log('📱 [SCROLL] Scroll immédiat effectué');
+  
+  // Méthode 2: Essayer avec document.documentElement
+  setTimeout(() => {
+    document.documentElement.scrollTop = 0;
+    console.log('📱 [SCROLL] documentElement.scrollTop = 0');
+  }, 50);
+  
+  // Méthode 3: Essayer avec document.body
+  setTimeout(() => {
+    document.body.scrollTop = 0;
+    console.log('📱 [SCROLL] body.scrollTop = 0');
+  }, 100);
+  
+  // Méthode 4: Scroll avec smooth behavior
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    console.log('📱 [SCROLL] Scroll smooth lancé');
+  }, 150);
+  
+  // Vérification finale
+  setTimeout(() => {
+    console.log('📱 [SCROLL] Position finale:', window.scrollY);
+    setIsScrolling(false);
+  }, 300);
+};
+
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
   return typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
@@ -294,6 +343,7 @@ export default function TVChannels() {
   const [error, setError] = useState<string | null>(null);
   const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -327,36 +377,55 @@ export default function TVChannels() {
 
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
-    console.log(`[SELECT LINK] ===== DÉBUT selectLinkByIndex =====`);
-    console.log(`[SELECT LINK] Channel: ${channel.name}`);
-    console.log(`[SELECT LINK] Link index: ${linkIndex}`);
-    console.log(`[SELECT LINK] Channel links:`, channel.links);
-    console.log(`[SELECT LINK] Links length: ${channel.links?.length || 0}`);
+    console.log(`[SELECT LINK] Channel: ${channel.name}, Link index: ${linkIndex}`);
+    console.log(`[SELECT LINK] Is mobile: ${isMobile()}, Is Capacitor: ${isCapacitor()}`);
     
     if (channel.links && channel.links.length > linkIndex) {
       const link = channel.links[linkIndex];
       console.log(`[SELECT LINK] Link sélectionné:`, link);
       
-      // Utiliser le bon player selon le type de stream - VERSION 2.0
-      const playerType: 'hls' | 'shaka' = link.type === 'mpd' ? 'shaka' : 'hls';
-      console.log(`[SELECT LINK] Player type déterminé: ${playerType}`);
+      // Utiliser le bon player selon le type de stream et la plateforme
+      let playerType: 'hls' | 'shaka';
       
-      // Utiliser l'URL proxy pour mobile natif
-      console.log(`[SELECT LINK] Appel de getProxyUrl...`);
-      const finalUrl = getProxyUrl(link.url, link.type);
-      console.log(`[SELECT LINK] URL finale reçue: ${finalUrl}`);
+      if (link.type === 'mpd') {
+        // Sur mobile web, Shaka Player ne fonctionne pas - utiliser un message d'erreur
+        if (isMobile() && !isCapacitor()) {
+          console.log(`[SELECT LINK] Mobile web détecté - Shaka Player non supporté`);
+          // Retourner une URL vide pour déclencher l'affichage du message d'erreur
+          return { url: '', playerType: 'hls', linkType: 'mpd_mobile_unsupported' };
+        } else {
+          playerType = 'shaka';
+          console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour MPD`);
+        }
+      } else {
+        playerType = 'hls';
+        console.log(`[SELECT LINK] Type HLS - Utilisation HLS`);
+      }
       
-      console.log(`📺 Lien sélectionné pour ${channel.name} (index ${linkIndex}):`, { 
+      console.log(`[SELECT LINK] Player type final: ${playerType}`);
+      
+      // Sur mobile web, utiliser les URLs directes (pas de proxy)
+      let finalUrl = link.url;
+      
+      if (isMobile() && !isCapacitor()) {
+        console.log(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
+      } else if (isCapacitor()) {
+        console.log(`[SELECT LINK] Mode Capacitor - URL proxy`);
+        finalUrl = getProxyUrl(link.url, link.type);
+      } else {
+        console.log(`[SELECT LINK] Mode desktop - URL directe: ${finalUrl}`);
+      }
+      
+      console.log(`📺 Lien sélectionné pour ${channel.name}:`, { 
         type: link.type, 
         playerType, 
         originalUrl: link.url,
         finalUrl: finalUrl,
+        isMobile: isMobile(),
         isCapacitor: isCapacitor()
       });
       
-      const result = { url: finalUrl, playerType, linkType: link.type };
-      console.log(`[SELECT LINK] Résultat final:`, result);
-      return result;
+      return { url: finalUrl, playerType, linkType: link.type };
     }
     
     console.error(`[SELECT LINK] ERREUR: Pas de lien disponible pour l'index ${linkIndex}`);
@@ -375,6 +444,7 @@ export default function TVChannels() {
     console.log(`🎥 [HLS PLAYER] Début de l'initialisation HLS`);
     console.log(`🎥 [HLS PLAYER] URL originale: ${streamUrl}`);
     console.log(`🎥 [HLS PLAYER] Type de lien: ${linkType}`);
+    console.log(`🎥 [HLS PLAYER] Is mobile: ${isMobile()}, Is Capacitor: ${isCapacitor()}`);
     
     if (!videoRef.current) {
       console.error(`🎥 [HLS PLAYER] Aucun élément video trouvé`);
@@ -426,10 +496,35 @@ export default function TVChannels() {
 
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
         console.error("🎥 [HLS PLAYER] Erreur HLS:", data);
+        console.error("🎥 [HLS PLAYER] Détails erreur:", {
+          type: data.type,
+          details: data.details,
+          fatal: data.fatal,
+          url: data.url,
+          isMobile: isMobile(),
+          isCapacitor: isCapacitor()
+        });
+        
         setIsLoading(false);
         if (data.fatal) {
           console.error(`🎥 [HLS PLAYER] Erreur fatale: ${data.type}`);
-          setError("Erreur fatale lors du chargement du flux");
+          
+          // Messages d'erreur spécifiques selon le type
+          let errorMessage = "Erreur fatale lors du chargement du flux";
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            errorMessage = "Erreur réseau - Vérifiez votre connexion";
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            errorMessage = "Erreur média - Format non supporté";
+          } else if (data.details === "manifestLoadError") {
+            if (isMobile() && !isCapacitor()) {
+              errorMessage = "Format MPD non supporté sur mobile web - Essayez un autre lien";
+            } else {
+              errorMessage = "Impossible de charger le manifest - Problème CORS possible";
+            }
+          }
+          
+          setError(errorMessage);
+          
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.log(`🎥 [HLS PLAYER] Tentative de récupération réseau dans 2s`);
@@ -491,7 +586,14 @@ export default function TVChannels() {
     
     if (!streamUrl) {
       console.error(`🎬 [TV CHANNELS] Aucun lien de streaming disponible`);
-      setError("Aucun lien de streaming disponible pour cette chaîne");
+      
+      // Message spécifique pour les chaînes MPD sur mobile web
+      if (linkType === 'mpd_mobile_unsupported') {
+        setError("Cette chaîne utilise un format non supporté sur mobile web. Utilisez l'application native ou un navigateur desktop.");
+      } else {
+        setError("Aucun lien de streaming disponible pour cette chaîne");
+      }
+      
       setIsLoading(false);
       return;
     }
@@ -689,9 +791,18 @@ export default function TVChannels() {
                         selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
                       }`}
                       onClick={() => {
+                        // Éviter les clics multiples pendant le scroll
+                        if (isScrolling) {
+                          console.log('📱 [TV CHANNELS] Scroll en cours, clic ignoré');
+                          return;
+                        }
+                        
+                        console.log('📱 [TV CHANNELS] Clic sur chaîne:', channel.name);
                         setSelectedChannel(channel);
-                        // Scroll automatique vers le haut
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        
+                        // Scroll automatique vers le haut optimisé mobile
+                        scrollToTop(setIsScrolling);
+                        
                       }}
                       data-testid={`channel-${channel.id}`}
                     >
