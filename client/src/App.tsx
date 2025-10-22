@@ -10,9 +10,24 @@ import { useState } from "react";
 // Fonction pour détecter si on est dans une app Capacitor native
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
+  
+  // TEMPORAIRE: Forcer false pour mobile web (à retirer après test)
+  const userAgent = navigator.userAgent.toLowerCase();
+  const isMobileWeb = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+  
+  if (isMobileWeb) {
+    console.log(`[CAPACITOR DETECTION] Mobile web détecté - Forçage false`);
+    return false;
+  }
+  
+  // Vérifier si on est dans une app Capacitor native
   const hasCapacitor = (window as any).Capacitor !== undefined;
   const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
-  return hasCapacitor && hasCapacitorPlugins;
+  const isNativeApp = hasCapacitor && hasCapacitorPlugins;
+  
+  console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}, hasPlugins: ${hasCapacitorPlugins}, isNativeApp: ${isNativeApp}`);
+  
+  return isNativeApp;
 };
 
 // Pages
