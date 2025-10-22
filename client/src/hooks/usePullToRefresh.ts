@@ -28,20 +28,30 @@ export function usePullToRefresh({
       
       console.log('🔄 [PULL] Touch start - scrollTop:', scrollTop, 'isAtTop:', isAtTop.current);
       
+      // Seulement si on est vraiment en haut de l'écran
       if (isAtTop.current) {
         startY.current = e.touches[0].clientY;
         setIsPulling(true);
         console.log('🔄 [PULL] Début du pull - startY:', startY.current);
+      } else {
+        // Si on n'est pas en haut, ne pas activer le pull
+        setIsPulling(false);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling || !isAtTop.current) return;
+      // Vérifier à nouveau qu'on est en haut avant de traiter le mouvement
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      if (!isPulling || scrollTop > 0) {
+        console.log('🔄 [PULL] Touch move ignoré - pas en haut ou pas en pull');
+        return;
+      }
 
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
       
-      console.log('🔄 [PULL] Touch move - distance:', distance);
+      console.log('🔄 [PULL] Touch move - distance:', distance, 'scrollTop:', scrollTop);
       
       setPullDistance(distance);
       
@@ -54,9 +64,18 @@ export function usePullToRefresh({
     const handleTouchEnd = () => {
       if (!isPulling) return;
 
+      // Vérifier une dernière fois qu'on est en haut
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (scrollTop > 0) {
+        console.log('🔄 [PULL] Touch end ignoré - pas en haut');
+        setIsPulling(false);
+        setPullDistance(0);
+        return;
+      }
+
       const distance = Math.max(0, currentY.current - startY.current);
       
-      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold);
+      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold, 'scrollTop:', scrollTop);
       
       if (distance >= threshold) {
         console.log('🔄 [PULL] Refresh déclenché !');
