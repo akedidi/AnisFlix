@@ -45,7 +45,7 @@ export default function DarkiPlayer({
         console.log('🎬 Traitement du lien Darki:', m3u8Url);
         
         // Utiliser directement le lien M3U8 avec le proxy
-        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(m3u8Url)}`;
+        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(m3u8Url)}`;
         
         console.log('📺 URL proxy Darki:', proxyUrl);
 

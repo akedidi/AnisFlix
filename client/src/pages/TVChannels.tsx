@@ -137,7 +137,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Regex match:`, match);
     if (match) {
       const channelId = match[1];
-      const finalUrl = `${baseUrl}/api/tv-stream/${channelId}`;
+      const finalUrl = `${baseUrl}/api/tv?channelId=${channelId}`;
       console.log(`[PROXY URL] Channel ID extrait: ${channelId}`);
       console.log(`[PROXY URL] URL finale: ${finalUrl}`);
       return finalUrl;
@@ -154,7 +154,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     } else {
       console.log(`[PROXY URL] Mode natif - hls_direct via proxy`);
       const encodedUrl = encodeURIComponent(originalUrl);
-      const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+      const finalUrl = `${baseUrl}/api/tv?url=${encodedUrl}`;
       console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
       console.log(`[PROXY URL] URL finale: ${finalUrl}`);
       return finalUrl;

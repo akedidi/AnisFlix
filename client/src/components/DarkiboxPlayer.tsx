@@ -50,7 +50,7 @@ export default function DarkiboxPlayer({
 
         // Construire l'URL du proxy Darkibox
         const streamUrlParsed = new URL(streamUrl);
-        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(streamUrl)}`;
+        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(streamUrl)}`;
         
         console.log('📺 URL proxy Darkibox:', proxyUrl);
 

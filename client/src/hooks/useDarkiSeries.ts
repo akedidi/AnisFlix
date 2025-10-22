@@ -71,7 +71,7 @@ const fetchDarkiSeries = async (tmdbId: number, season: number, episode: number,
     
     console.log(`[DarkiSeries] Conversion TMDB ${tmdbId} → Movix ${movixId}`);
     
-    const url = `/api/darkibox/series?seriesId=${movixId}&season=${season}&episode=${episode}`;
+    const url = `/api/darkibox?seriesId=${movixId}&season=${season}&episode=${episode}`;
     
     const response = await fetch(url);
     
