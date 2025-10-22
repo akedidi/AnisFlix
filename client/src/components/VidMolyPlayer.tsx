@@ -98,11 +98,11 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
-        console.log('🎬 Appel API vidmoly-test...');
+        console.log('🎬 Appel API vidmoly...');
         
         const data = await apiClient.extractVidMoly(vidmolyUrl);
         
-        console.log('🎬 Données JSON reçues de vidmoly-test:', data);
+        console.log('🎬 Données JSON reçues de vidmoly:', data);
         
         if (!data.success || !data.m3u8Url) {
           throw new Error(data.error || 'Impossible d\'extraire le lien de streaming VidMoly');

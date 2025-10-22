@@ -36,7 +36,7 @@ export function getVidMolyProxyUrl(m3u8Url: string, referer?: string): string {
     referer: encodeURIComponent(referer || 'https://vidmoly.net/')
   });
   
-  return getApiUrl(`/api/vidmoly-proxy?${params.toString()}`);
+  return getApiUrl(`/api/vidmoly?${params.toString()}`);
 }
 
 /**

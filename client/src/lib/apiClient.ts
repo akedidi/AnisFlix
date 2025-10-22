@@ -71,8 +71,8 @@ export class ApiClient {
   /**
    * Extrait VidMoly avec gestion Capacitor
    */
-  async extractVidMoly(url: string): Promise<any> {
-    const response = await this.post('/api/vidmoly-test', { url });
+  async extractVidMoly(url: string, method: string = 'auto'): Promise<any> {
+    const response = await this.post('/api/vidmoly', { url, method });
     
     if (!response.ok) {
       throw new Error(`VidMoly extraction failed: ${response.status}`);
@@ -116,7 +116,7 @@ export class ApiClient {
       referer: encodeURIComponent(referer || 'https://vidmoly.net/')
     });
     
-    return `${this.baseUrl}/api/vidmoly-proxy?${params.toString()}`;
+    return `${this.baseUrl}/api/vidmoly?${params.toString()}`;
   }
 
   /**
