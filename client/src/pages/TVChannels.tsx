@@ -427,16 +427,13 @@ export default function TVChannels() {
       console.log('📱 [TV CHANNELS] Chaîne sélectionnée:', selectedChannel.name);
       console.log('📱 [TV CHANNELS] Position actuelle:', window.scrollY);
       
-      // TEMPORAIRE: Désactiver le scroll pour debug
-      console.log('📱 [TV CHANNELS] ⚠️ SCROLL DÉSACTIVÉ POUR DEBUG');
-      
       // Attendre que la page se positionne, puis scroll vers le haut
-      // console.log('📱 [TV CHANNELS] Attente de 200ms avant scroll...');
-      // setTimeout(() => {
-      //   console.log('📱 [TV CHANNELS] Position après délai:', window.scrollY);
-      //   console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
-      //   scrollToTop(setIsScrolling);
-      // }, 200);
+      console.log('📱 [TV CHANNELS] Attente de 200ms avant scroll...');
+      setTimeout(() => {
+        console.log('📱 [TV CHANNELS] Position après délai:', window.scrollY);
+        console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
+        scrollToTop(setIsScrolling);
+      }, 200);
     }
   }, [selectedChannel]);
 
