@@ -109,8 +109,8 @@ function App() {
     setShowSplash(false);
   };
 
-  // Afficher le splash screen seulement sur web (pas sur natif)
-  if (showSplash && !isCapacitor()) {
+  // Afficher le splash screen seulement sur web (pas sur natif) et seulement une fois
+  if (showSplash) {
     return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
