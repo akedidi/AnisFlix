@@ -103,14 +103,14 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
-  const [showSplash, setShowSplash] = useState(isCapacitor());
+  const [showSplash, setShowSplash] = useState(!isCapacitor());
 
   const handleSplashFinish = () => {
     setShowSplash(false);
   };
 
-  // Afficher le splash screen seulement sur l'app native mobile
-  if (showSplash && isCapacitor()) {
+  // Afficher le splash screen seulement sur web (pas sur natif)
+  if (showSplash && !isCapacitor()) {
     return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
