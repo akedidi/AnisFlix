@@ -749,6 +749,7 @@ export default function TVChannels() {
       title={t('nav.tvChannels')} 
       icon={<Tv className="w-8 h-8" />}
       showSearch={false}
+      enablePullToRefresh={false}
     >
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">

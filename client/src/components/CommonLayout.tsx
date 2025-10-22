@@ -5,9 +5,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import OfflineAlert from "@/components/OfflineAlert";
+import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 
 interface CommonLayoutProps {
   title?: string;
@@ -16,6 +18,7 @@ interface CommonLayoutProps {
   children: React.ReactNode;
   onRefresh?: () => void;
   showRefreshButton?: boolean;
+  enablePullToRefresh?: boolean;
 }
 
 export default function CommonLayout({ 
@@ -24,7 +27,8 @@ export default function CommonLayout({
   icon,
   children,
   onRefresh,
-  showRefreshButton = true
+  showRefreshButton = true,
+  enablePullToRefresh = true
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
@@ -34,6 +38,12 @@ export default function CommonLayout({
   // Gérer le scroll sur mobile
   useMobileScroll();
 
+  // Gérer le pull-to-refresh
+  const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
+    onRefresh: onRefresh || (() => window.location.reload()),
+    disabled: !enablePullToRefresh
+  });
+
 
   return (
     <>
@@ -41,6 +51,14 @@ export default function CommonLayout({
       <OfflineAlert 
         onRefresh={onRefresh} 
         showRefreshButton={showRefreshButton}
+      />
+      
+      {/* Pull to Refresh Indicator */}
+      <PullToRefreshIndicator
+        isRefreshing={isRefreshing}
+        pullDistance={pullDistance}
+        isPulling={isPulling}
+        threshold={80}
       />
       
       {/* Desktop Sidebar */}

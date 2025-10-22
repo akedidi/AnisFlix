@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useDeviceType } from './useDeviceType';
 
-interface UsePullToRefreshOptions {
+interface PullToRefreshOptions {
   onRefresh: () => void;
   threshold?: number;
   resistance?: number;
@@ -11,76 +10,86 @@ interface UsePullToRefreshOptions {
 export function usePullToRefresh({
   onRefresh,
   threshold = 80,
-  resistance = 2.5,
+  resistance = 0.5,
   disabled = false
-}: UsePullToRefreshOptions) {
-  const { isNative } = useDeviceType();
+}: PullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  
   const startY = useRef(0);
   const currentY = useRef(0);
-  const isPulling = useRef(false);
+  const isAtTop = useRef(false);
+  const pullStartTime = useRef(0);
 
   useEffect(() => {
-    if (!isNative || disabled) return;
+    if (disabled) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (window.scrollY === 0) {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      isAtTop.current = scrollTop === 0;
+      
+      if (isAtTop.current) {
         startY.current = e.touches[0].clientY;
-        isPulling.current = true;
+        pullStartTime.current = Date.now();
+        setIsPulling(true);
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!isPulling.current) return;
+      if (!isPulling || !isAtTop.current) return;
 
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
+      const resistanceDistance = distance * resistance;
       
+      setPullDistance(resistanceDistance);
+      
+      // Empêcher le scroll normal pendant le pull
       if (distance > 0) {
         e.preventDefault();
-        setPullDistance(distance);
       }
     };
 
     const handleTouchEnd = () => {
-      if (!isPulling.current) return;
+      if (!isPulling) return;
 
-      if (pullDistance >= threshold && !isRefreshing) {
+      const distance = Math.max(0, currentY.current - startY.current);
+      const pullDuration = Date.now() - pullStartTime.current;
+      
+      // Déclencher le refresh si on dépasse le seuil et que le pull est assez rapide
+      if (distance >= threshold && pullDuration < 1000) {
         setIsRefreshing(true);
         onRefresh();
         
-        // Reset after refresh
+        // Reset après le refresh
         setTimeout(() => {
           setIsRefreshing(false);
           setPullDistance(0);
         }, 1000);
       } else {
+        // Animation de retour
         setPullDistance(0);
       }
-
-      isPulling.current = false;
+      
+      setIsPulling(false);
     };
 
+    // Ajouter les event listeners
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [isNative, disabled, onRefresh, pullDistance, threshold, isRefreshing]);
-
-  const pullProgress = Math.min(pullDistance / threshold, 1);
-  const shouldTrigger = pullDistance >= threshold;
+  }, [onRefresh, threshold, resistance, disabled]);
 
   return {
     isRefreshing,
     pullDistance,
-    pullProgress,
-    shouldTrigger,
-    isPulling: isPulling.current
+    isPulling
   };
 }
