@@ -29,10 +29,13 @@ export function usePullToRefresh({
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       isAtTop.current = scrollTop === 0;
       
+      console.log('🔄 [PULL] Touch start - scrollTop:', scrollTop, 'isAtTop:', isAtTop.current);
+      
       if (isAtTop.current) {
         startY.current = e.touches[0].clientY;
         pullStartTime.current = Date.now();
         setIsPulling(true);
+        console.log('🔄 [PULL] Début du pull - startY:', startY.current);
       }
     };
 
@@ -42,6 +45,8 @@ export function usePullToRefresh({
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
       const resistanceDistance = distance * resistance;
+      
+      console.log('🔄 [PULL] Touch move - distance:', distance, 'resistanceDistance:', resistanceDistance);
       
       setPullDistance(resistanceDistance);
       
@@ -57,8 +62,11 @@ export function usePullToRefresh({
       const distance = Math.max(0, currentY.current - startY.current);
       const pullDuration = Date.now() - pullStartTime.current;
       
+      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold, 'duration:', pullDuration);
+      
       // Déclencher le refresh si on dépasse le seuil et que le pull est assez rapide
       if (distance >= threshold && pullDuration < 1000) {
+        console.log('🔄 [PULL] Refresh déclenché !');
         setIsRefreshing(true);
         onRefresh();
         
@@ -68,6 +76,7 @@ export function usePullToRefresh({
           setPullDistance(0);
         }, 1000);
       } else {
+        console.log('🔄 [PULL] Pas assez de distance ou trop lent');
         // Animation de retour
         setPullDistance(0);
       }

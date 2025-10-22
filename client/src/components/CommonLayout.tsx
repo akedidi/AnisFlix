@@ -40,8 +40,13 @@ export default function CommonLayout({
 
   // Gérer le pull-to-refresh
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
-    onRefresh: onRefresh || (() => window.location.reload()),
-    disabled: !enablePullToRefresh
+    onRefresh: onRefresh || (() => {
+      console.log('🔄 [PULL] Refresh de la page...');
+      window.location.reload();
+    }),
+    disabled: !enablePullToRefresh,
+    threshold: 60, // Seuil plus bas pour faciliter le déclenchement
+    resistance: 0.8 // Moins de résistance
   });
 
 
