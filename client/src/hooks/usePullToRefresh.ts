@@ -68,12 +68,16 @@ export function usePullToRefresh({
       if (distance >= threshold && pullDuration < 1000) {
         console.log('🔄 [PULL] Refresh déclenché !');
         setIsRefreshing(true);
-        onRefresh();
+        setPullDistance(0);
+        
+        // Déclencher le refresh après un petit délai pour voir l'animation
+        setTimeout(() => {
+          onRefresh();
+        }, 200);
         
         // Reset après le refresh
         setTimeout(() => {
           setIsRefreshing(false);
-          setPullDistance(0);
         }, 1000);
       } else {
         console.log('🔄 [PULL] Pas assez de distance ou trop lent');
