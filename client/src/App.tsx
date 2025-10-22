@@ -109,10 +109,19 @@ function App() {
     
     console.log('🎬 [SPLASH DEBUG] isCapacitor:', isCapacitorApp);
     console.log('🎬 [SPLASH DEBUG] splash-shown:', splashShown);
-    console.log('🎬 [SPLASH DEBUG] should show splash:', isCapacitorApp && !splashShown);
+    console.log('🎬 [SPLASH DEBUG] userAgent:', navigator.userAgent);
+    console.log('🎬 [SPLASH DEBUG] window.Capacitor:', (window as any).Capacitor);
+    console.log('🎬 [SPLASH DEBUG] location.href:', window.location.href);
+    console.log('🎬 [SPLASH DEBUG] location.protocol:', window.location.protocol);
     
-    // Afficher le splash seulement sur mobile natif (Capacitor) et si pas déjà affiché
-    if (!isCapacitorApp) return false;
+    // Afficher le splash SEULEMENT sur mobile natif (Capacitor)
+    // Pas sur web (http/https)
+    if (!isCapacitorApp) {
+      console.log('🎬 [SPLASH DEBUG] Pas sur Capacitor - Pas de splash');
+      return false;
+    }
+    
+    console.log('🎬 [SPLASH DEBUG] Sur Capacitor - Vérifier si déjà affiché');
     return !splashShown;
   });
 
