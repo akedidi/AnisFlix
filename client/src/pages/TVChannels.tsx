@@ -426,8 +426,13 @@ export default function TVChannels() {
       let finalUrl = link.url;
       
       if (isMobile() && !isCapacitor()) {
-        // Mobile web : URLs directes pour tous les types
-        console.log(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
+        // Mobile web : proxy pour hls_segments, direct pour hls_direct
+        if (link.type === 'hls_segments') {
+          console.log(`[SELECT LINK] Mode mobile web - hls_segments nécessite proxy`);
+          finalUrl = getProxyUrl(link.url, link.type);
+        } else {
+          console.log(`[SELECT LINK] Mode mobile web - ${link.type} en URL directe: ${finalUrl}`);
+        }
       } else if (isCapacitor()) {
         // App native : proxy pour hls_segments, direct pour hls_direct
         if (link.type === 'hls_segments') {
@@ -641,11 +646,11 @@ export default function TVChannels() {
       
       const initializeHLS = async () => {
         try {
-          // Récupérer le type de lien depuis la chaîne sélectionnée
-          const { linkType } = selectLinkByIndex(selectedChannel!, selectedLinkIndex);
-          console.log(`🎬 [TV CHANNELS] Initialisation HLS avec URL: ${streamUrl} et type: ${linkType}`);
+          // Récupérer les informations complètes du lien sélectionné
+          const { url: finalStreamUrl, linkType } = selectLinkByIndex(selectedChannel!, selectedLinkIndex);
+          console.log(`🎬 [TV CHANNELS] Initialisation HLS avec URL: ${finalStreamUrl} et type: ${linkType}`);
           
-          await initHLSPlayer(streamUrl, linkType);
+          await initHLSPlayer(finalStreamUrl, linkType);
           console.log(`🎬 [TV CHANNELS] Player HLS initialisé avec succès`);
         } catch (error) {
           console.error(`🎬 [TV CHANNELS] Erreur lors de l'initialisation du player HLS:`, error);
