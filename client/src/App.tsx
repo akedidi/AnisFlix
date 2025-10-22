@@ -103,10 +103,16 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
-  const [showSplash, setShowSplash] = useState(!isCapacitor());
+  const [showSplash, setShowSplash] = useState(() => {
+    // Ne pas afficher le splash si on est sur natif ou si déjà affiché dans cette session
+    if (isCapacitor()) return false;
+    return !sessionStorage.getItem('splash-shown');
+  });
 
   const handleSplashFinish = () => {
     setShowSplash(false);
+    // Marquer que le splash a été affiché dans cette session
+    sessionStorage.setItem('splash-shown', 'true');
   };
 
   // Afficher le splash screen seulement sur web (pas sur natif) et seulement une fois
