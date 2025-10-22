@@ -61,7 +61,16 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
-  return typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+  if (typeof window === 'undefined') return false;
+  
+  // Vérifier si on est dans une app Capacitor native
+  const hasCapacitor = (window as any).Capacitor !== undefined;
+  const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
+  const isNativeApp = hasCapacitor && hasCapacitorPlugins;
+  
+  console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}, hasPlugins: ${hasCapacitorPlugins}, isNativeApp: ${isNativeApp}`);
+  
+  return isNativeApp;
 };
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
