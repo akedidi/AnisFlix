@@ -422,15 +422,22 @@ export default function TVChannels() {
       
       console.log(`[SELECT LINK] Player type final: ${playerType}`);
       
-      // Utiliser les URLs directes partout (proxy ne fonctionne pas)
+      // Logique conditionnelle : proxy seulement pour certains types de liens
       let finalUrl = link.url;
       
       if (isMobile() && !isCapacitor()) {
+        // Mobile web : URLs directes pour tous les types
         console.log(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
       } else if (isCapacitor()) {
-        console.log(`[SELECT LINK] Mode Capacitor - URL directe (proxy désactivé): ${finalUrl}`);
-        // finalUrl = getProxyUrl(link.url, link.type); // Désactivé car ne fonctionne pas
+        // App native : proxy pour hls_segments, direct pour hls_direct
+        if (link.type === 'hls_segments') {
+          console.log(`[SELECT LINK] Mode Capacitor - hls_segments nécessite proxy`);
+          finalUrl = getProxyUrl(link.url, link.type);
+        } else {
+          console.log(`[SELECT LINK] Mode Capacitor - ${link.type} en URL directe: ${finalUrl}`);
+        }
       } else {
+        // Desktop : URLs directes pour tous les types
         console.log(`[SELECT LINK] Mode desktop - URL directe: ${finalUrl}`);
       }
       
