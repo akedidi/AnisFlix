@@ -11,20 +11,27 @@ interface OfflineAlertProps {
 }
 
 export default function OfflineAlert({ onRefresh, showRefreshButton = true }: OfflineAlertProps) {
-  const { isOffline } = useOffline();
+  const { isOffline, isCheckingConnection } = useOffline();
   const { isNative } = useDeviceType();
   const [showAlert, setShowAlert] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
+  const [reconnectionMessage, setReconnectionMessage] = useState(false);
 
   useEffect(() => {
     if (isNative && isOffline) {
       setShowAlert(true);
       setWasOffline(true);
+      setReconnectionMessage(false);
     } else if (isNative && !isOffline && wasOffline) {
-      // Auto-hide alert when coming back online
+      // Afficher un message de reconnexion
+      setReconnectionMessage(true);
+      setShowAlert(false);
+      
+      // Masquer le message de reconnexion après 3 secondes
       setTimeout(() => {
-        setShowAlert(false);
-      }, 2000);
+        setReconnectionMessage(false);
+        setWasOffline(false);
+      }, 3000);
     }
   }, [isOffline, isNative, wasOffline]);
 
@@ -40,6 +47,40 @@ export default function OfflineAlert({ onRefresh, showRefreshButton = true }: Of
     }
     setShowAlert(false);
   };
+
+  // Message de reconnexion
+  if (isNative && reconnectionMessage) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-[100] p-4">
+        <Alert className="border-green-500 bg-green-500/10">
+          <Wifi className="h-4 w-4 text-green-500" />
+          <AlertDescription className="text-green-500">
+            <div className="flex items-center gap-2">
+              <Wifi className="h-4 w-4" />
+              <span className="font-medium">Connexion rétablie !</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Indicateur de vérification de connexion
+  if (isNative && isCheckingConnection && !isOffline) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-[100] p-4">
+        <Alert className="border-blue-500 bg-blue-500/10">
+          <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
+          <AlertDescription className="text-blue-500">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="font-medium">Vérification de la connexion...</span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   if (!isNative || !showAlert) {
     return null;
