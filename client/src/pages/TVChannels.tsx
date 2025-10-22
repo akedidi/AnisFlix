@@ -31,6 +31,17 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
   
   setIsScrolling(true);
   
+  // Si on est déjà en haut, forcer un scroll visible
+  if (window.scrollY === 0) {
+    console.log('📱 [SCROLL] ⚠️ Déjà en haut, scroll vers le bas puis vers le haut...');
+    // Scroll vers le bas puis vers le haut pour créer un effet visible
+    window.scrollTo(0, 10);
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      console.log('📱 [SCROLL] ✅ Scroll de 10px vers le bas puis vers le haut');
+    }, 50);
+  }
+  
   // Méthode 1: Scroll immédiat (le plus fiable)
   try {
     window.scrollTo(0, 0);
@@ -850,9 +861,13 @@ export default function TVChannels() {
                         // Sélectionner la chaîne
                         setSelectedChannel(channel);
                         
-                        // Scroll automatique vers le haut
-                        console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
-                        scrollToTop(setIsScrolling);
+                        // Attendre que la page se positionne, puis scroll vers le haut
+                        console.log('📱 [TV CHANNELS] Attente de 100ms avant scroll...');
+                        setTimeout(() => {
+                          console.log('📱 [TV CHANNELS] Position après délai:', window.scrollY);
+                          console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
+                          scrollToTop(setIsScrolling);
+                        }, 100);
                         
                         console.log('📱 [TV CHANNELS] ===== FIN CLIC SUR CHAÎNE =====');
                       }}
