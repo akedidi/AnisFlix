@@ -1,0 +1,13 @@
+{
+  "icon": {
+    "iconBackgroundColor": "#000000",
+    "iconBackgroundColorDark": "#000000",
+    "iconForegroundColor": "#E50914",
+    "iconForegroundColorDark": "#E50914"
+  },
+  "splash": {
+    "splashBackgroundColor": "#000000",
+    "splashBackgroundColorDark": "#000000",
+    "splashImage": "splash.html"
+  }
+}

@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import BottomNav from "@/components/BottomNav";
 import { useServiceWorker } from "@/hooks/useOffline";
+import CustomSplashScreen from "@/components/CustomSplashScreen";
+import { useState } from "react";
 
 // Pages
 import Home from "@/pages/Home";
@@ -79,6 +81,15 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
+  const [showSplash, setShowSplash] = useState(true);
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <CustomSplashScreen onFinish={handleSplashFinish} />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
