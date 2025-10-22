@@ -69,6 +69,7 @@ const isCapacitor = () => {
   
   if (isMobileWeb) {
     console.log(`[CAPACITOR DETECTION] Mobile web détecté - Forçage false`);
+    alert(`[CAPACITOR DETECTION] Mobile web détecté - Forçage false`);
     return false;
   }
   
@@ -427,6 +428,7 @@ export default function TVChannels() {
       
       if (isMobile() && !isCapacitor()) {
         console.log(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
+        alert(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
       } else if (isCapacitor()) {
         console.log(`[SELECT LINK] Mode Capacitor - URL proxy`);
         finalUrl = getProxyUrl(link.url, link.type);
