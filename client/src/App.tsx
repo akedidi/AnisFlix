@@ -114,14 +114,20 @@ function App() {
     console.log('🎬 [SPLASH DEBUG] location.href:', window.location.href);
     console.log('🎬 [SPLASH DEBUG] location.protocol:', window.location.protocol);
     
-    // Afficher le splash SEULEMENT sur mobile natif (Capacitor)
-    // Pas sur web (http/https)
-    if (!isCapacitorApp) {
-      console.log('🎬 [SPLASH DEBUG] Pas sur Capacitor - Pas de splash');
+    // Détection plus robuste pour mobile natif
+    const isWeb = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+    const isNative = !isWeb || (window as any).Capacitor !== undefined;
+    
+    console.log('🎬 [SPLASH DEBUG] isWeb:', isWeb);
+    console.log('🎬 [SPLASH DEBUG] isNative:', isNative);
+    
+    // Afficher le splash SEULEMENT sur mobile natif
+    if (!isNative) {
+      console.log('🎬 [SPLASH DEBUG] Pas sur natif - Pas de splash');
       return false;
     }
     
-    console.log('🎬 [SPLASH DEBUG] Sur Capacitor - Vérifier si déjà affiché');
+    console.log('🎬 [SPLASH DEBUG] Sur natif - Vérifier si déjà affiché');
     return !splashShown;
   });
 
