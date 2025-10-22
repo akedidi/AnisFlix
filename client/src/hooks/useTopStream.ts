@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface TopStreamResponse {
   success: boolean;
@@ -30,13 +31,7 @@ interface TopStreamResponse {
 
 const fetchTopStream = async (type: 'movie' | 'tv', id: number): Promise<TopStreamResponse | null> => {
   try {
-    const response = await fetch(`https://api.movix.site/api/topstream/${type}/${id}`);
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
+    const data = await movixProxy.getTopStream(type, id);
     
     // Vérifier si on a un stream disponible
     if (data.success && data.stream && data.stream.url) {

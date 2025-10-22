@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface WiFlixPlayer {
   name: string;
@@ -22,21 +23,12 @@ interface WiFlixResponse {
 
 const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): Promise<WiFlixResponse | null> => {
   try {
-    let url = `https://api.movix.site/api/wiflix/${type}/${id}`;
-    if (type === 'tv' && season) {
-      url += `/season/${season}`;
-    }
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
+    const data = await movixProxy.getWiFlix(type, id, season);
     
     console.log('WiFlix API Response:', {
-      url,
+      type,
+      id,
+      season,
       success: data.success,
       players: data.players ? Object.keys(data.players) : 'No players',
       data

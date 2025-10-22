@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface MovixDownloadSource {
   src: string;
@@ -33,14 +34,7 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
     }
     
     // Rechercher dans l'API Movix avec le titre
-    const searchUrl = `https://api.movix.site/api/search?title=${encodeURIComponent(title)}`;
-    
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      return null;
-    }
-    
-    const searchData: MovixSearchResponse = await searchResponse.json();
+    const searchData: MovixSearchResponse = await movixProxy.search(title);
     
     // Trouver le résultat qui correspond à notre TMDB ID et type
     const matchingResult = searchData.results.find(result => 
@@ -74,24 +68,16 @@ const fetchMovixDownload = async (
       return null;
     }
     
-    let url: string;
+    let data: MovixDownloadResponse;
     
     if (type === 'movie') {
-      url = `https://api.movix.site/api/films/download/${movixId}`;
+      data = await movixProxy.getMovieDownload(movixId);
     } else {
       if (!season || !episode) {
         throw new Error('Season and episode are required for TV shows');
       }
-      url = `https://api.movix.site/api/series/download/${movixId}/season/${season}/episode/${episode}`;
+      data = await movixProxy.getSeriesDownload(movixId, season, episode);
     }
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
     
     // Vérifier si on a des sources disponibles
     if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {

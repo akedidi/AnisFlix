@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface AnimeEpisode {
   name: string;
@@ -40,23 +40,13 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
     seriesTitle = seriesTitle.replace(/-/g, ' ');
     console.log('🔍 fetchAnimeSeries - Titre après remplacement des tirets:', seriesTitle);
     
-    const encodedTitle = encodeURIComponent(seriesTitle);
-    const response = await axios.get(
-      `https://api.movix.site/anime/search/${encodedTitle}?includeSeasons=true&includeEpisodes=true`,
-      {
-        timeout: 10000,
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      }
-    );
+    const data = await movixProxy.searchAnime(seriesTitle, true, true);
 
-    console.log('🔍 fetchAnimeSeries - Réponse API:', response.data);
+    console.log('🔍 fetchAnimeSeries - Réponse API:', data);
 
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+    if (data && Array.isArray(data) && data.length > 0) {
       // L'API retourne un tableau, prendre le premier élément
-      return response.data[0];
+      return data[0];
     }
     
     return null;
