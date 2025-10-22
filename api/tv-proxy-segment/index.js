@@ -21,7 +21,7 @@ const browserHeaders = {
   'Connection': 'keep-alive'
 };
 
-const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat'];
+const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch'];
 
 function isAllowedUrl(urlString) {
   try {

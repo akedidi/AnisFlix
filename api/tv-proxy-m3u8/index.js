@@ -55,6 +55,14 @@ function rewritePlaylistUrls(playlistText, baseUrl) {
     .join('\n');
 }
 
+function rewriteMpdUrls(mpdText, baseUrl) {
+  // Réécrire les URLs relatives dans le manifest MPD
+  return mpdText.replace(/<BaseURL>([^<]+)<\/BaseURL>/g, (match, relativeUrl) => {
+    const absoluteUrl = toAbsolute(baseUrl, relativeUrl);
+    return `<BaseURL>/api/tv-proxy-segment?url=${encodeURIComponent(absoluteUrl)}</BaseURL>`;
+  });
+}
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -114,9 +122,10 @@ export default async function handler(req, res) {
     let contentType = 'application/vnd.apple.mpegurl';
     
     if (target.includes('.mpd')) {
-      // Pour les streams MPD, ne pas réécrire les URLs
+      // Pour les streams MPD, réécrire les URLs relatives
       contentType = 'application/dash+xml';
-      console.log(`[TV M3U8] Stream MPD détecté, pas de réécriture d'URLs`);
+      finalData = rewriteMpdUrls(r.data, finalUrl);
+      console.log(`[TV M3U8] Stream MPD détecté, URLs relatives réécrites`);
     } else {
       // Pour les streams M3U8, réécrire les URLs
       finalData = rewritePlaylistUrls(r.data, finalUrl);
