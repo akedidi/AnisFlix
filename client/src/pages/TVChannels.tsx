@@ -89,18 +89,13 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   console.log(`[PROXY URL] type: ${type}`);
   console.log(`[PROXY URL] isCapacitor(): ${isCapacitor()}`);
   
-  if (!isCapacitor()) {
-    console.log(`[PROXY URL] Mode web - URL directe: ${originalUrl}`);
-    return originalUrl; // Sur web, utiliser l'URL directe
-  }
-
-  // Sur mobile natif, utiliser les proxies
-  // Utiliser l'API client pour obtenir la bonne URL de base (Vercel en mode natif)
+  // Utiliser l'API client pour obtenir la bonne URL de base
   const baseUrl = apiClient.getBaseUrl();
   console.log(`[PROXY URL] baseUrl (API client): ${baseUrl}`);
   
+  // Pour hls_segments, TOUJOURS utiliser le proxy (même sur mobile web)
   if (type === 'hls_segments') {
-    console.log(`[PROXY URL] Type hls_segments détecté`);
+    console.log(`[PROXY URL] Type hls_segments détecté - Utilisation du proxy`);
     // Pour les URLs fremtv.lol, extraire l'ID de chaîne
     const match = originalUrl.match(/\/live\/[^\/]+\/(\d+)\.m3u8/);
     console.log(`[PROXY URL] Regex match:`, match);
@@ -115,27 +110,23 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     }
   }
   
+  // Pour hls_direct, utiliser l'URL directe sur web, proxy sur natif
   if (type === 'hls_direct') {
-    console.log(`[PROXY URL] Type hls_direct détecté`);
-    // Pour les autres URLs HLS, utiliser le proxy générique
-    const encodedUrl = encodeURIComponent(originalUrl);
-    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
-    console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
-    console.log(`[PROXY URL] URL finale: ${finalUrl}`);
-    return finalUrl;
+    if (!isCapacitor()) {
+      console.log(`[PROXY URL] Mode web - hls_direct en URL directe: ${originalUrl}`);
+      return originalUrl;
+    } else {
+      console.log(`[PROXY URL] Mode natif - hls_direct via proxy`);
+      const encodedUrl = encodeURIComponent(originalUrl);
+      const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
+      console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
+      console.log(`[PROXY URL] URL finale: ${finalUrl}`);
+      return finalUrl;
+    }
   }
   
-  if (type === 'mpd') {
-    console.log(`[PROXY URL] Type mpd détecté`);
-    // Pour les URLs MPD, utiliser le proxy m3u8 (qui gère aussi MPD)
-    const encodedUrl = encodeURIComponent(originalUrl);
-    const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
-    console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
-    console.log(`[PROXY URL] URL finale: ${finalUrl}`);
-    return finalUrl;
-  }
-  
-  console.log(`[PROXY URL] Type non reconnu, retour URL originale: ${originalUrl}`);
+  // Fallback pour les autres types
+  console.log(`[PROXY URL] Type non géré: ${type} - URL directe: ${originalUrl}`);
   return originalUrl;
 };
 
