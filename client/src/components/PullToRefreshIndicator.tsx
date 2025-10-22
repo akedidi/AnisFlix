@@ -24,16 +24,16 @@ export default function PullToRefreshIndicator({
 
   return (
     <div 
-      className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[100] transition-all duration-200"
+      className="fixed top-4 left-1/2 z-[100] transition-all duration-200"
       style={{
         transform: `translateX(-50%) translateY(${Math.max(0, pullDistance - 40)}px)`,
         opacity: shouldShow ? 1 : 0
       }}
     >
-      <div className="bg-background/95 backdrop-blur-sm border border-border rounded-full p-3 shadow-lg">
-        <div className="flex items-center justify-center">
+      <div className="bg-background/95 backdrop-blur-sm border border-border rounded-full p-2 shadow-lg min-w-[120px]">
+        <div className="flex flex-col items-center justify-center space-y-1">
           <RefreshCw 
-            className={`w-6 h-6 text-primary transition-all duration-200 ${
+            className={`w-5 h-5 text-primary transition-all duration-200 ${
               isRefreshing ? 'animate-spin' : ''
             }`}
             style={{
@@ -41,17 +41,17 @@ export default function PullToRefreshIndicator({
               opacity: Math.max(0.3, progress)
             }}
           />
+          {isRefreshing && (
+            <div className="text-xs text-muted-foreground text-center whitespace-nowrap">
+              Actualisation...
+            </div>
+          )}
+          {isPulling && !isRefreshing && (
+            <div className="text-xs text-muted-foreground text-center whitespace-nowrap">
+              Relâchez pour actualiser
+            </div>
+          )}
         </div>
-        {isRefreshing && (
-          <div className="text-xs text-muted-foreground text-center mt-1">
-            Actualisation...
-          </div>
-        )}
-        {isPulling && !isRefreshing && (
-          <div className="text-xs text-muted-foreground text-center mt-1">
-            Relâchez pour actualiser
-          </div>
-        )}
       </div>
     </div>
   );

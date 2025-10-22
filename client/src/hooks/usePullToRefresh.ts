@@ -89,16 +89,34 @@ export function usePullToRefresh({
       setIsPulling(false);
     };
 
-    // Ajouter les event listeners
+    // Ajouter les event listeners sur le conteneur principal
     console.log('🔄 [PULL] Ajout des event listeners');
-    document.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    const mainContent = document.querySelector('.main-content');
+    
+    if (mainContent) {
+      console.log('🔄 [PULL] Event listeners sur main-content');
+      mainContent.addEventListener('touchstart', handleTouchStart, { passive: false });
+      mainContent.addEventListener('touchmove', handleTouchMove, { passive: false });
+      mainContent.addEventListener('touchend', handleTouchEnd, { passive: false });
+    } else {
+      console.log('🔄 [PULL] Event listeners sur document (fallback)');
+      document.addEventListener('touchstart', handleTouchStart, { passive: false });
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    }
 
     return () => {
-      document.removeEventListener('touchstart', handleTouchStart);
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
+      const mainContent = document.querySelector('.main-content');
+      
+      if (mainContent) {
+        mainContent.removeEventListener('touchstart', handleTouchStart);
+        mainContent.removeEventListener('touchmove', handleTouchMove);
+        mainContent.removeEventListener('touchend', handleTouchEnd);
+      } else {
+        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+      }
     };
   }, [onRefresh, threshold, resistance, disabled]);
 
