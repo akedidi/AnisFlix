@@ -22,40 +22,65 @@ const isMobile = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Fonction pour scroll simple et direct
+// Fonction pour scroll vers le haut optimisée
 const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
-  console.log('📱 [SCROLL] Début du scroll vers le haut');
+  console.log('📱 [SCROLL] ===== DÉBUT SCROLL VERS LE HAUT =====');
   console.log('📱 [SCROLL] Position actuelle:', window.scrollY);
   console.log('📱 [SCROLL] Is mobile:', isMobile());
+  console.log('📱 [SCROLL] User agent:', navigator.userAgent);
   
   setIsScrolling(true);
   
-  // Méthode 1: Scroll immédiat
-  window.scrollTo(0, 0);
-  console.log('📱 [SCROLL] Scroll immédiat effectué');
+  // Méthode 1: Scroll immédiat (le plus fiable)
+  try {
+    window.scrollTo(0, 0);
+    console.log('📱 [SCROLL] ✅ Scroll immédiat effectué');
+  } catch (error) {
+    console.error('📱 [SCROLL] ❌ Erreur scroll immédiat:', error);
+  }
   
   // Méthode 2: Essayer avec document.documentElement
   setTimeout(() => {
-    document.documentElement.scrollTop = 0;
-    console.log('📱 [SCROLL] documentElement.scrollTop = 0');
+    try {
+      document.documentElement.scrollTop = 0;
+      console.log('📱 [SCROLL] ✅ documentElement.scrollTop = 0');
+    } catch (error) {
+      console.error('📱 [SCROLL] ❌ Erreur documentElement:', error);
+    }
   }, 50);
   
   // Méthode 3: Essayer avec document.body
   setTimeout(() => {
-    document.body.scrollTop = 0;
-    console.log('📱 [SCROLL] body.scrollTop = 0');
+    try {
+      document.body.scrollTop = 0;
+      console.log('📱 [SCROLL] ✅ body.scrollTop = 0');
+    } catch (error) {
+      console.error('📱 [SCROLL] ❌ Erreur body:', error);
+    }
   }, 100);
   
-  // Méthode 4: Scroll avec smooth behavior
+  // Méthode 4: Scroll avec smooth behavior (pour l'effet visuel)
   setTimeout(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    console.log('📱 [SCROLL] Scroll smooth lancé');
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      console.log('📱 [SCROLL] ✅ Scroll smooth lancé');
+    } catch (error) {
+      console.error('📱 [SCROLL] ❌ Erreur scroll smooth:', error);
+    }
   }, 150);
   
-  // Vérification finale
+  // Vérification finale et reset
   setTimeout(() => {
-    console.log('📱 [SCROLL] Position finale:', window.scrollY);
+    const finalPosition = window.scrollY;
+    console.log('📱 [SCROLL] Position finale:', finalPosition);
+    console.log('📱 [SCROLL] ===== FIN SCROLL =====');
     setIsScrolling(false);
+    
+    // Si on n'est toujours pas en haut, essayer une dernière fois
+    if (finalPosition > 10) {
+      console.log('📱 [SCROLL] ⚠️ Position > 10, tentative finale...');
+      window.scrollTo(0, 0);
+    }
   }, 300);
 };
 
@@ -818,12 +843,18 @@ export default function TVChannels() {
                           return;
                         }
                         
-                        console.log('📱 [TV CHANNELS] Clic sur chaîne:', channel.name);
+                        console.log('📱 [TV CHANNELS] ===== CLIC SUR CHAÎNE =====');
+                        console.log('📱 [TV CHANNELS] Chaîne sélectionnée:', channel.name);
+                        console.log('📱 [TV CHANNELS] Position avant scroll:', window.scrollY);
+                        
+                        // Sélectionner la chaîne
                         setSelectedChannel(channel);
                         
-                        // Scroll automatique vers le haut optimisé mobile
+                        // Scroll automatique vers le haut
+                        console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
                         scrollToTop(setIsScrolling);
                         
+                        console.log('📱 [TV CHANNELS] ===== FIN CLIC SUR CHAÎNE =====');
                       }}
                       data-testid={`channel-${channel.id}`}
                     >
