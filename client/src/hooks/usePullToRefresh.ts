@@ -1,26 +1,23 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-interface PullToRefreshOptions {
+interface UsePullToRefreshOptions {
   onRefresh: () => void;
   threshold?: number;
-  resistance?: number;
   disabled?: boolean;
 }
 
 export function usePullToRefresh({
   onRefresh,
   threshold = 80,
-  resistance = 0.5,
   disabled = false
-}: PullToRefreshOptions) {
+}: UsePullToRefreshOptions) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
   
   const startY = useRef(0);
   const currentY = useRef(0);
   const isAtTop = useRef(false);
-  const pullStartTime = useRef(0);
 
   useEffect(() => {
     if (disabled) return;
@@ -33,7 +30,6 @@ export function usePullToRefresh({
       
       if (isAtTop.current) {
         startY.current = e.touches[0].clientY;
-        pullStartTime.current = Date.now();
         setIsPulling(true);
         console.log('🔄 [PULL] Début du pull - startY:', startY.current);
       }
@@ -44,16 +40,14 @@ export function usePullToRefresh({
 
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
-      const resistanceDistance = distance * resistance;
       
-      console.log('🔄 [PULL] Touch move - distance:', distance, 'resistanceDistance:', resistanceDistance, 'currentY:', currentY.current, 'startY:', startY.current);
+      console.log('🔄 [PULL] Touch move - distance:', distance);
       
-      setPullDistance(resistanceDistance);
+      setPullDistance(distance);
       
-      // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
-      if (distance > 10) {
+      // Empêcher le scroll normal pendant le pull
+      if (distance > 0) {
         e.preventDefault();
-        e.stopPropagation();
       }
     };
 
@@ -61,64 +55,39 @@ export function usePullToRefresh({
       if (!isPulling) return;
 
       const distance = Math.max(0, currentY.current - startY.current);
-      const pullDuration = Date.now() - pullStartTime.current;
       
-      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold, 'duration:', pullDuration);
+      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold);
       
-      // Déclencher le refresh si on dépasse le seuil et que le pull est assez rapide
-      if (distance >= threshold && pullDuration < 1000) {
+      if (distance >= threshold) {
         console.log('🔄 [PULL] Refresh déclenché !');
         setIsRefreshing(true);
         setPullDistance(0);
         
-        // Déclencher le refresh après un petit délai pour voir l'animation
+        // Déclencher le refresh
         setTimeout(() => {
           onRefresh();
-        }, 200);
-        
-        // Reset après le refresh
-        setTimeout(() => {
           setIsRefreshing(false);
         }, 1000);
       } else {
-        console.log('🔄 [PULL] Pas assez de distance ou trop lent');
-        // Animation de retour
+        console.log('🔄 [PULL] Pas assez de distance');
         setPullDistance(0);
       }
       
       setIsPulling(false);
     };
 
-    // Ajouter les event listeners sur le conteneur principal
+    // Ajouter les event listeners
     console.log('🔄 [PULL] Ajout des event listeners');
-    const mainContent = document.querySelector('.main-content');
-    
-    if (mainContent) {
-      console.log('🔄 [PULL] Event listeners sur main-content');
-      mainContent.addEventListener('touchstart', handleTouchStart, { passive: false });
-      mainContent.addEventListener('touchmove', handleTouchMove, { passive: false });
-      mainContent.addEventListener('touchend', handleTouchEnd, { passive: false });
-    } else {
-      console.log('🔄 [PULL] Event listeners sur document (fallback)');
-      document.addEventListener('touchstart', handleTouchStart, { passive: false });
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd, { passive: false });
-    }
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     return () => {
-      const mainContent = document.querySelector('.main-content');
-      
-      if (mainContent) {
-        mainContent.removeEventListener('touchstart', handleTouchStart);
-        mainContent.removeEventListener('touchmove', handleTouchMove);
-        mainContent.removeEventListener('touchend', handleTouchEnd);
-      } else {
-        document.removeEventListener('touchstart', handleTouchStart);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      }
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [onRefresh, threshold, resistance, disabled]);
+  }, [onRefresh, threshold, disabled, isPulling]);
 
   return {
     isRefreshing,
