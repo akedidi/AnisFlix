@@ -46,13 +46,14 @@ export function usePullToRefresh({
       const distance = Math.max(0, currentY.current - startY.current);
       const resistanceDistance = distance * resistance;
       
-      console.log('🔄 [PULL] Touch move - distance:', distance, 'resistanceDistance:', resistanceDistance);
+      console.log('🔄 [PULL] Touch move - distance:', distance, 'resistanceDistance:', resistanceDistance, 'currentY:', currentY.current, 'startY:', startY.current);
       
       setPullDistance(resistanceDistance);
       
-      // Empêcher le scroll normal pendant le pull
-      if (distance > 0) {
+      // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
+      if (distance > 10) {
         e.preventDefault();
+        e.stopPropagation();
       }
     };
 
@@ -89,6 +90,7 @@ export function usePullToRefresh({
     };
 
     // Ajouter les event listeners
+    console.log('🔄 [PULL] Ajout des event listeners');
     document.addEventListener('touchstart', handleTouchStart, { passive: false });
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleTouchEnd, { passive: false });
