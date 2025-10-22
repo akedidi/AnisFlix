@@ -43,20 +43,26 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
     console.log('📱 [SCROLL] Position main-content avant:', mainContent.scrollTop);
   }
   
-  // Méthode principale : scroll fluide sur le bon conteneur
+  // Méthode principale : scroll hybride (smooth + instant)
   const forceScrollToTop = () => {
-    // Méthode 1: Scroll fluide sur window (fallback)
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Méthode 1: Scroll immédiat sur window (garantit le scroll)
+    window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
     
-    // Méthode 2: Scroll fluide sur le conteneur principal
+    // Méthode 2: Scroll sur le conteneur principal (immédiat + smooth)
     if (mainContent) {
-      // Scroll fluide avec smooth behavior
-      mainContent.scrollTo({ top: 0, behavior: 'smooth' });
-      console.log('📱 [SCROLL] Scroll main-content vers le haut (smooth)');
+      // Scroll immédiat d'abord
+      mainContent.scrollTop = 0;
+      console.log('📱 [SCROLL] Scroll main-content vers le haut (immédiat)');
       
-      // Méthode alternative avec scrollIntoView (plus douce)
+      // Puis scroll smooth pour l'effet visuel
+      setTimeout(() => {
+        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+        console.log('📱 [SCROLL] Scroll main-content smooth appliqué');
+      }, 10);
+      
+      // Méthode alternative avec scrollIntoView
       try {
         mainContent.scrollIntoView({ 
           behavior: 'smooth', 
@@ -69,34 +75,34 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
       }
     }
     
-    // Méthode 3: Scroll fluide sur tous les éléments scrollables
+    // Méthode 3: Scroll sur tous les éléments scrollables (immédiat)
     const scrollableElements = document.querySelectorAll('[data-scrollable], .scrollable-content, .scroll-container');
     scrollableElements.forEach((element) => {
       if (element instanceof HTMLElement) {
-        element.scrollTo({ top: 0, behavior: 'smooth' });
-        console.log('📱 [SCROLL] Scroll élément scrollable (smooth):', element.className);
+        element.scrollTop = 0;
+        console.log('📱 [SCROLL] Scroll élément scrollable:', element.className);
       }
     });
     
-    // Méthode 4: Effet visuel plus doux (seulement si nécessaire)
+    // Méthode 4: Effet visuel doux (seulement si déjà en haut)
     if (window.scrollY === 0 && (!mainContent || mainContent.scrollTop === 0)) {
       // Scroll très léger vers le bas puis vers le haut pour créer un effet visible
-      window.scrollTo({ top: 2, behavior: 'smooth' });
-      if (mainContent) mainContent.scrollTo({ top: 2, behavior: 'smooth' });
+      window.scrollTo(0, 3);
+      if (mainContent) mainContent.scrollTop = 3;
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'smooth' });
         console.log('📱 [SCROLL] Scroll avec effet visuel doux effectué');
-      }, 50);
+      }, 100);
     } else {
-      console.log('📱 [SCROLL] Scroll smooth effectué');
+      console.log('📱 [SCROLL] Scroll immédiat effectué');
     }
   };
   
   // Exécuter immédiatement
   forceScrollToTop();
   
-  // Vérification et reset après un délai plus long pour le smooth
+  // Vérification et reset après un délai
   window.scrollTimeout = setTimeout(() => {
     const windowPosition = window.scrollY;
     const mainPosition = mainContent ? mainContent.scrollTop : 0;
@@ -104,18 +110,18 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
     console.log('📱 [SCROLL] Position finale main-content:', mainPosition);
     setIsScrolling(false);
     
-    // Si on n'est toujours pas en haut, forcer une dernière fois (plus doucement)
-    if (windowPosition > 10 || mainPosition > 10) {
-      console.log('📱 [SCROLL] Position > 10, tentative finale smooth...');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Si on n'est toujours pas en haut, forcer une dernière fois (immédiat)
+    if (windowPosition > 5 || mainPosition > 5) {
+      console.log('📱 [SCROLL] Position > 5, tentative finale immédiate...');
+      window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       if (mainContent) {
-        mainContent.scrollTo({ top: 0, behavior: 'smooth' });
-        mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        mainContent.scrollTop = 0;
+        mainContent.scrollIntoView({ behavior: 'instant', block: 'start' });
       }
     }
-  }, 300);
+  }, 200);
 };
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
