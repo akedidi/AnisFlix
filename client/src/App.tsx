@@ -7,6 +7,13 @@ import BottomNav from "@/components/BottomNav";
 import { useServiceWorker } from "@/hooks/useOffline";
 import CustomSplashScreen from "@/components/CustomSplashScreen";
 import { useState } from "react";
+// Fonction pour détecter si on est dans une app Capacitor native
+const isCapacitor = () => {
+  if (typeof window === 'undefined') return false;
+  const hasCapacitor = (window as any).Capacitor !== undefined;
+  const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
+  return hasCapacitor && hasCapacitorPlugins;
+};
 
 // Pages
 import Home from "@/pages/Home";
@@ -81,13 +88,14 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(isCapacitor());
 
   const handleSplashFinish = () => {
     setShowSplash(false);
   };
 
-  if (showSplash) {
+  // Afficher le splash screen seulement sur l'app native mobile
+  if (showSplash && isCapacitor()) {
     return <CustomSplashScreen onFinish={handleSplashFinish} />;
   }
 
