@@ -33,6 +33,19 @@ export const useScrollPosition = (pageKey: string) => {
       if (savedPosition !== undefined && savedPosition > 0) {
         // Attendre que le DOM soit prêt
         setTimeout(() => {
+          // Vérifier si on est déjà en haut (éviter les conflits avec scroll automatique)
+          const currentPosition = window.scrollY;
+          console.log(`Position actuelle: ${currentPosition}, Position sauvegardée: ${savedPosition}`);
+          
+          // Ne restaurer que si on n'est pas déjà en haut
+          if (currentPosition === 0) {
+            console.log(`Position déjà en haut, restauration ignorée pour ${pageKey}`);
+            // Supprimer la position sauvegardée même si on ne la restaure pas
+            delete positions[pageKey];
+            localStorage.setItem(SCROLL_POSITIONS_KEY, JSON.stringify(positions));
+            return;
+          }
+          
           window.scrollTo({
             top: savedPosition,
             behavior: 'instant'
