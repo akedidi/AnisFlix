@@ -60,7 +60,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   
   if (type === 'mpd') {
     console.log(`[PROXY URL] Type mpd détecté`);
-    // Pour les URLs MPD, utiliser le proxy générique
+    // Pour les URLs MPD, utiliser le proxy m3u8 (qui gère aussi MPD)
     const encodedUrl = encodeURIComponent(originalUrl);
     const finalUrl = `${baseUrl}/api/tv-proxy-m3u8?url=${encodedUrl}`;
     console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
