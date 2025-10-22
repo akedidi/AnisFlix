@@ -72,6 +72,12 @@ html, body {
   overscroll-behavior-x: none;
 }
 
+/* Permettre le scroll programmatique sur le body et html */
+html, body {
+  overscroll-behavior: auto !important;
+  -webkit-overscroll-behavior: auto !important;
+}
+
 /* Empêcher le bounce sur les éléments scrollables spécifiques */
 .scrollable-content,
 [data-scrollable],
@@ -84,6 +90,12 @@ html, body {
 
 /* Correction spécifique pour les listes et conteneurs de scroll */
 @media (max-width: 767px) {
+  /* Permettre le scroll programmatique sur mobile */
+  html, body {
+    overscroll-behavior: auto !important;
+    -webkit-overscroll-behavior: auto !important;
+  }
+  
   .scrollable-content,
   [data-scrollable],
   .scroll-container,

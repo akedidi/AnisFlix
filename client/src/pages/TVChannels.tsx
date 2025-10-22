@@ -22,77 +22,99 @@ const isMobile = () => {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 };
 
-// Fonction pour scroll vers le haut optimisée
+// Fonction pour scroll vers le haut optimisée - cible le bon conteneur
 const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
-  console.log('📱 [SCROLL] ===== DÉBUT SCROLL VERS LE HAUT =====');
-  console.log('📱 [SCROLL] Position actuelle:', window.scrollY);
+  console.log('📱 [SCROLL] Début du scroll vers le haut');
+  console.log('📱 [SCROLL] Position window:', window.scrollY);
   console.log('📱 [SCROLL] Is mobile:', isMobile());
-  console.log('📱 [SCROLL] User agent:', navigator.userAgent);
   
   setIsScrolling(true);
   
-  // Si on est déjà en haut, forcer un scroll visible
-  if (window.scrollY === 0) {
-    console.log('📱 [SCROLL] ⚠️ Déjà en haut, scroll vers le bas puis vers le haut...');
-    // Scroll vers le bas puis vers le haut pour créer un effet visible
-    window.scrollTo(0, 10);
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      console.log('📱 [SCROLL] ✅ Scroll de 10px vers le bas puis vers le haut');
-    }, 50);
+  // Nettoyer les timeouts précédents
+  if (window.scrollTimeout) {
+    clearTimeout(window.scrollTimeout);
   }
   
-  // Méthode 1: Scroll immédiat (le plus fiable)
-  try {
+  // Trouver le conteneur de scroll principal (main-content)
+  const mainContent = document.querySelector('.main-content') as HTMLElement;
+  console.log('📱 [SCROLL] Conteneur main-content trouvé:', !!mainContent);
+  
+  if (mainContent) {
+    console.log('📱 [SCROLL] Position main-content avant:', mainContent.scrollTop);
+  }
+  
+  // Méthode principale : scroll sur le bon conteneur
+  const forceScrollToTop = () => {
+    // Méthode 1: Scroll sur window (fallback)
     window.scrollTo(0, 0);
-    console.log('📱 [SCROLL] ✅ Scroll immédiat effectué');
-  } catch (error) {
-    console.error('📱 [SCROLL] ❌ Erreur scroll immédiat:', error);
-  }
-  
-  // Méthode 2: Essayer avec document.documentElement
-  setTimeout(() => {
-    try {
-      document.documentElement.scrollTop = 0;
-      console.log('📱 [SCROLL] ✅ documentElement.scrollTop = 0');
-    } catch (error) {
-      console.error('📱 [SCROLL] ❌ Erreur documentElement:', error);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Méthode 2: Scroll sur le conteneur principal
+    if (mainContent) {
+      mainContent.scrollTop = 0;
+      console.log('📱 [SCROLL] Scroll main-content vers le haut');
+      
+      // Méthode alternative avec scrollIntoView
+      try {
+        mainContent.scrollIntoView({ 
+          behavior: 'instant', 
+          block: 'start', 
+          inline: 'nearest' 
+        });
+        console.log('📱 [SCROLL] scrollIntoView sur main-content');
+      } catch (error) {
+        console.log('📱 [SCROLL] scrollIntoView non supporté sur main-content');
+      }
     }
-  }, 50);
-  
-  // Méthode 3: Essayer avec document.body
-  setTimeout(() => {
-    try {
-      document.body.scrollTop = 0;
-      console.log('📱 [SCROLL] ✅ body.scrollTop = 0');
-    } catch (error) {
-      console.error('📱 [SCROLL] ❌ Erreur body:', error);
+    
+    // Méthode 3: Scroll sur tous les éléments scrollables
+    const scrollableElements = document.querySelectorAll('[data-scrollable], .scrollable-content, .scroll-container');
+    scrollableElements.forEach((element) => {
+      if (element instanceof HTMLElement) {
+        element.scrollTop = 0;
+        console.log('📱 [SCROLL] Scroll élément scrollable:', element.className);
+      }
+    });
+    
+    // Méthode 4: Forcer le scroll même si on est déjà en haut (pour l'effet visuel)
+    if (window.scrollY === 0 && (!mainContent || mainContent.scrollTop === 0)) {
+      // Scroll vers le bas puis vers le haut pour créer un effet visible
+      window.scrollTo(0, 1);
+      if (mainContent) mainContent.scrollTop = 1;
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        if (mainContent) mainContent.scrollTop = 0;
+        console.log('📱 [SCROLL] Scroll avec effet visuel effectué');
+      }, 10);
+    } else {
+      console.log('📱 [SCROLL] Scroll immédiat effectué');
     }
-  }, 100);
+  };
   
-  // Méthode 4: Scroll avec smooth behavior (pour l'effet visuel)
-  setTimeout(() => {
-    try {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      console.log('📱 [SCROLL] ✅ Scroll smooth lancé');
-    } catch (error) {
-      console.error('📱 [SCROLL] ❌ Erreur scroll smooth:', error);
-    }
-  }, 150);
+  // Exécuter immédiatement
+  forceScrollToTop();
   
-  // Vérification finale et reset
-  setTimeout(() => {
-    const finalPosition = window.scrollY;
-    console.log('📱 [SCROLL] Position finale:', finalPosition);
-    console.log('📱 [SCROLL] ===== FIN SCROLL =====');
+  // Vérification et reset après un délai
+  window.scrollTimeout = setTimeout(() => {
+    const windowPosition = window.scrollY;
+    const mainPosition = mainContent ? mainContent.scrollTop : 0;
+    console.log('📱 [SCROLL] Position finale window:', windowPosition);
+    console.log('📱 [SCROLL] Position finale main-content:', mainPosition);
     setIsScrolling(false);
     
-    // Si on n'est toujours pas en haut, essayer une dernière fois
-    if (finalPosition > 10) {
-      console.log('📱 [SCROLL] ⚠️ Position > 10, tentative finale...');
+    // Si on n'est toujours pas en haut, forcer une dernière fois
+    if (windowPosition > 5 || mainPosition > 5) {
+      console.log('📱 [SCROLL] Position > 5, tentative finale...');
       window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (mainContent) {
+        mainContent.scrollTop = 0;
+        mainContent.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
     }
-  }, 300);
+  }, 100);
 };
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
