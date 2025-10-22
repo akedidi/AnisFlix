@@ -422,14 +422,14 @@ export default function TVChannels() {
       
       console.log(`[SELECT LINK] Player type final: ${playerType}`);
       
-      // Sur mobile web, utiliser les URLs directes (pas de proxy)
+      // Utiliser les URLs directes partout (proxy ne fonctionne pas)
       let finalUrl = link.url;
       
       if (isMobile() && !isCapacitor()) {
         console.log(`[SELECT LINK] Mode mobile web - URL directe: ${finalUrl}`);
       } else if (isCapacitor()) {
-        console.log(`[SELECT LINK] Mode Capacitor - URL proxy`);
-        finalUrl = getProxyUrl(link.url, link.type);
+        console.log(`[SELECT LINK] Mode Capacitor - URL directe (proxy désactivé): ${finalUrl}`);
+        // finalUrl = getProxyUrl(link.url, link.type); // Désactivé car ne fonctionne pas
       } else {
         console.log(`[SELECT LINK] Mode desktop - URL directe: ${finalUrl}`);
       }
