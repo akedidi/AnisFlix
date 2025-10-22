@@ -104,9 +104,16 @@ function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
   const [showSplash, setShowSplash] = useState(() => {
-    // Ne pas afficher le splash si on est sur natif ou si déjà affiché dans cette session
-    if (isCapacitor()) return false;
-    return !sessionStorage.getItem('splash-shown');
+    const isCapacitorApp = isCapacitor();
+    const splashShown = sessionStorage.getItem('splash-shown');
+    
+    console.log('🎬 [SPLASH DEBUG] isCapacitor:', isCapacitorApp);
+    console.log('🎬 [SPLASH DEBUG] splash-shown:', splashShown);
+    console.log('🎬 [SPLASH DEBUG] should show splash:', isCapacitorApp && !splashShown);
+    
+    // Afficher le splash seulement sur mobile natif (Capacitor) et si pas déjà affiché
+    if (!isCapacitorApp) return false;
+    return !splashShown;
   });
 
   const handleSplashFinish = () => {
