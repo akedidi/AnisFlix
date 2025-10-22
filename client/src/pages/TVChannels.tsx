@@ -420,6 +420,23 @@ export default function TVChannels() {
     setSelectedLinkIndex(0);
   }, [selectedChannel]);
 
+  // Scroll automatique vers le haut quand on sélectionne une chaîne
+  useEffect(() => {
+    if (selectedChannel) {
+      console.log('📱 [TV CHANNELS] ===== USEEFFECT SCROLL =====');
+      console.log('📱 [TV CHANNELS] Chaîne sélectionnée:', selectedChannel.name);
+      console.log('📱 [TV CHANNELS] Position actuelle:', window.scrollY);
+      
+      // Attendre que la page se positionne, puis scroll vers le haut
+      console.log('📱 [TV CHANNELS] Attente de 200ms avant scroll...');
+      setTimeout(() => {
+        console.log('📱 [TV CHANNELS] Position après délai:', window.scrollY);
+        console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
+        scrollToTop(setIsScrolling);
+      }, 200);
+    }
+  }, [selectedChannel]);
+
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
     console.log(`[SELECT LINK] Channel: ${channel.name}, Link index: ${linkIndex}`);
@@ -860,14 +877,6 @@ export default function TVChannels() {
                         
                         // Sélectionner la chaîne
                         setSelectedChannel(channel);
-                        
-                        // Attendre que la page se positionne, puis scroll vers le haut
-                        console.log('📱 [TV CHANNELS] Attente de 100ms avant scroll...');
-                        setTimeout(() => {
-                          console.log('📱 [TV CHANNELS] Position après délai:', window.scrollY);
-                          console.log('📱 [TV CHANNELS] Lancement du scroll vers le haut...');
-                          scrollToTop(setIsScrolling);
-                        }, 100);
                         
                         console.log('📱 [TV CHANNELS] ===== FIN CLIC SUR CHAÎNE =====');
                       }}
