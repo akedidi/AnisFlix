@@ -87,6 +87,18 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
           console.error('Erreur Shaka Player:', event.detail);
+          console.error('Erreur de chargement du flux:', event.detail);
+          
+          // Logs détaillés pour debugger l'erreur 3016
+          if (event.detail?.code === 3016) {
+            console.error('🔍 [DEBUG 3016] Erreur de réseau détectée:');
+            console.error('🔍 [DEBUG 3016] URL demandée:', url);
+            console.error('🔍 [DEBUG 3016] Détails complets:', event.detail);
+            console.error('🔍 [DEBUG 3016] Data:', event.detail.data);
+            console.error('🔍 [DEBUG 3016] Severity:', event.detail.severity);
+            console.error('🔍 [DEBUG 3016] Category:', event.detail.category);
+          }
+          
           setError(`Erreur Shaka: ${event.detail.message || 'Erreur inconnue'}`);
           setIsLoading(false);
         });
@@ -96,6 +108,17 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
         // Charger le flux
+        console.log('🔍 [DEBUG] URL Shaka:', url);
+        
+        // Test de l'URL avant de la charger
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          console.log('🔍 [DEBUG] Test URL - Status:', response.status);
+          console.log('🔍 [DEBUG] Test URL - Headers:', Object.fromEntries(response.headers.entries()));
+        } catch (fetchError) {
+          console.error('🔍 [DEBUG] Erreur test URL:', fetchError);
+        }
+        
         await player.load(url);
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);

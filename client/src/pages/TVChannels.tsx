@@ -688,7 +688,11 @@ export default function TVChannels() {
                       className={`p-4 cursor-pointer transition-colors hover-elevate ${
                         selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => setSelectedChannel(channel)}
+                      onClick={() => {
+                        setSelectedChannel(channel);
+                        // Scroll automatique vers le haut
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                       data-testid={`channel-${channel.id}`}
                     >
                       <div className="flex items-center justify-between">
