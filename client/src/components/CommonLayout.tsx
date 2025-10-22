@@ -70,6 +70,9 @@ export default function CommonLayout({
               </div>
             )}
             
+            {/* Spacer pour pousser les boutons vers la droite quand pas de search */}
+            {!showSearch && <div className="flex-1"></div>}
+            
             <div className="flex items-center gap-2">
               {isOffline && (
                 <div className="flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-500 rounded-md text-xs">
