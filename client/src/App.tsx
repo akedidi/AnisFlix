@@ -116,12 +116,14 @@ function App() {
     
     // Détection plus robuste pour mobile natif
     const isWeb = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-    const isNative = !isWeb || (window as any).Capacitor !== undefined;
+    const hasCapacitor = (window as any).Capacitor !== undefined;
+    const isNative = !isWeb && hasCapacitor;
     
     console.log('🎬 [SPLASH DEBUG] isWeb:', isWeb);
+    console.log('🎬 [SPLASH DEBUG] hasCapacitor:', hasCapacitor);
     console.log('🎬 [SPLASH DEBUG] isNative:', isNative);
     
-    // Afficher le splash SEULEMENT sur mobile natif
+    // Afficher le splash SEULEMENT sur mobile natif (pas web ET avec Capacitor)
     if (!isNative) {
       console.log('🎬 [SPLASH DEBUG] Pas sur natif - Pas de splash');
       return false;
