@@ -1132,11 +1132,11 @@ export default function TVChannels() {
                         <div className="flex items-center gap-3">
                           {channelLogos[channel.id] ? (
                             // Logo officiel avec fond blanc pour gérer la transparence
-                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
+                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
                               <img 
                                 src={channelLogos[channel.id]} 
                                 alt={`Logo ${channel.name}`}
-                                className="w-full h-full object-contain"
+                                className="w-full h-full object-contain scale-110"
                                 onError={(e) => {
                                   console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
                                   // Fallback vers l'icône TV avec cadre si le logo ne charge pas
