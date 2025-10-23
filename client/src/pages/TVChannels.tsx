@@ -231,17 +231,17 @@ interface TVSection {
   categories: string[];
 }
 
-// Mapping des noms de chaînes vers les noms dans l'API jaruba
+// Mapping des noms de chaînes vers les noms dans l'API jaruba (basé sur le contenu réel de l'API)
 const CHANNEL_NAME_MAPPING: Record<string, string> = {
-  // Généraliste
+  // Généraliste - correspondances exactes trouvées dans l'API
   "tf1": "tf1",
-  "tf1-serie": "tf1",
+  "tf1-serie": "tf1", 
   "france2": "france 2",
-  "france3": "france 3", 
-  "france4": "france 4",
+  "france3": "france 3",
+  "france4": "france 4", 
   "france5": "france 5",
   "m6": "m6",
-  "arte": "arte",
+  "arte": "arte.tv", // Exact match dans l'API
   "tfx": "tfx",
   "canal-plus": "canal+",
   "tmc": "tmc",
@@ -249,9 +249,9 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "rmc-decouverte": "rmc découverte",
   "gulli": "gulli",
   
-  // Info
+  // Info - correspondances exactes
   "bfmtv": "bfm tv",
-  "bfm-business": "bfm business",
+  "bfm-business": "bfm business", 
   "bfm-paris": "bfm paris",
   "bfm-lyon": "bfm lyon",
   "bfm-litoral": "bfm grand littoral",
@@ -259,10 +259,10 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "bfm-grand-lille": "bfm grand lille",
   "rt-france": "rt france",
   
-  // Sport
+  // Sport - correspondances exactes
   "bein-sports-1": "bein sports 1",
-  "bein-sports-2": "bein sports 2", 
-  "bein-sports-3": "bein sports 3",
+  "bein-sports-2": "bein sports 2",
+  "bein-sports-3": "bein sports 3", 
   "canal-plus-foot": "canal+ foot",
   "canal-plus-sport-360": "canal+ sport 360",
   "rmc-sport-1": "rmc sport 1",
@@ -270,17 +270,17 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "rmc-sport-3": "rmc sport 3",
   "lequipe-tv": "l'équipe tv",
   
-  // Fiction & Série
-  "syfy": "syfy",
+  // Fiction & Série - correspondances exactes
+  "syfy": "syfy", // Exact match dans l'API
   
-  // Jeunesse
+  // Jeunesse - correspondances exactes
   "game-one": "game one",
   "mangas": "mangas",
-  "boomerang": "boomerang",
-  "cartoon-network": "cartoon network",
+  "boomerang": "boomerang", // Exact match dans l'API
+  "cartoon-network": "cartoon network", // Exact match dans l'API
   
-  // Découverte
-  "natgeo": "national geographic",
+  // Découverte - correspondances exactes
+  "natgeo": "national geographic", // Exact match dans l'API
   "natgeo-wild": "national geographic wild",
   
   // Cinéma
@@ -288,8 +288,8 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   
   // Arabe - Sport
   "elkass-1": "elkass 1",
-  "elkass-2": "elkass 2",
-  "elkass-3": "elkass 3", 
+  "elkass-2": "elkass 2", 
+  "elkass-3": "elkass 3",
   "elkass-4": "elkass 4",
   
   // Arabe - Tunisie
@@ -298,7 +298,7 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   
   // Arabe - Info
   "eljazira": "al jazeera",
-  "eljazira-english": "al jazeera english",
+  "eljazira-english": "al jazeera english", 
   "rt-arabe": "rt arabic",
   "elarabiya": "al arabiya",
 };
