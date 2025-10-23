@@ -90,7 +90,13 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   error: any;
   hasVidMolyLinks: boolean;
 } => {
+  console.log('🔍 useAnimeVidMolyLinks - Appelé avec:', { title, seasonNumber, episodeNumber, enabled });
+  
   const { data: animeData, isLoading, error } = useAnimeSeries(title, enabled);
+  
+  console.log('🔍 useAnimeVidMolyLinks - animeData:', animeData);
+  console.log('🔍 useAnimeVidMolyLinks - isLoading:', isLoading);
+  console.log('🔍 useAnimeVidMolyLinks - error:', error);
   
   const vidmolyLinks = {
     vf: [] as any[],

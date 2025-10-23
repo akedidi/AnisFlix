@@ -112,6 +112,8 @@ export default function StreamingSources({
   console.log('🔍 StreamingSources - isAnimeSeries:', isAnimeSeries);
   console.log('🔍 StreamingSources - isAnimeByGenre:', isAnimeByGenre);
   console.log('🔍 StreamingSources - isAnimeByTitle:', isAnimeByTitle);
+  console.log('🔍 StreamingSources - Title pour détection:', title);
+  console.log('🔍 StreamingSources - Genres pour détection:', genres);
   
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
     title || '', 
