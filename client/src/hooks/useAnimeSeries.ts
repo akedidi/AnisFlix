@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { movixProxy } from '@/lib/movixProxy';
 
@@ -112,101 +112,112 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   console.log('🔍 useAnimeVidMolyLinks - animeData existe?', !!animeData);
   console.log('🔍 useAnimeVidMolyLinks - animeData.seasons existe?', !!animeData?.seasons);
   
-  const vidmolyLinks = {
+  const [vidmolyLinks, setVidmolyLinks] = useState({
     vf: [] as any[],
     vostfr: [] as any[]
-  };
-
-  if (animeData?.seasons) {
-    console.log('🔍 useAnimeVidMolyLinks - Saisons trouvées:', animeData.seasons);
-    console.log('🔍 useAnimeVidMolyLinks - Recherche saison numéro:', seasonNumber);
-    console.log('🔍 useAnimeVidMolyLinks - Noms des saisons:', animeData.seasons.map(s => s.name));
-    
-    // Trouver la saison par numéro
-    const season = animeData.seasons.find(s => 
-      s.name.toLowerCase().includes(`saison ${seasonNumber}`) || 
-      s.name.toLowerCase().includes(`season ${seasonNumber}`)
-    );
-    
-    console.log('🔍 useAnimeVidMolyLinks - Saison trouvée:', season);
-    
-    if (season) {
-      console.log('🔍 useAnimeVidMolyLinks - Saison trouvée:', season);
-      
-      // Trouver l'épisode par index
-      const episode = season.episodes.find(e => e.index === episodeNumber);
-      
-      if (episode) {
-        console.log('🔍 useAnimeVidMolyLinks - Épisode trouvé:', episode);
-        console.log('🔍 useAnimeVidMolyLinks - Streaming links:', episode.streaming_links);
-        
-        // Extraire les liens VidMoly des streaming_links
-        console.log('🔍 useAnimeVidMolyLinks - Épisode streaming_links:', episode.streaming_links);
-        
-        episode.streaming_links?.forEach(link => {
-          console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
-          console.log('🔍 useAnimeVidMolyLinks - Link language:', link.language);
-          console.log('🔍 useAnimeVidMolyLinks - Link players:', link.players);
-          
-          // Filtrer les liens VidMoly dans les players
-          const vidmolyPlayers = link.players.filter((playerUrl: string) => 
-            playerUrl.includes('vidmoly')
-          );
-          
-          console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
-          console.log('🔍 useAnimeVidMolyLinks - Nombre de players VidMoly:', vidmolyPlayers.length);
-          
-          vidmolyPlayers.forEach(async (playerUrl: string) => {
-            // Convertir vidmoly.to en vidmoly.net pour une meilleure compatibilité
-            const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
-            console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
-            
-            // Extraire le m3u8 via l'API VidMoly
-            try {
-              console.log('🎬 Extraction m3u8 pour VidMoly:', normalizedUrl);
-              const { apiClient } = await import('../lib/apiClient');
-              const data = await apiClient.extractVidMoly(normalizedUrl);
-              
-              if (data.success && data.m3u8Url) {
-                console.log('✅ M3U8 extrait:', data.m3u8Url);
-                
-                if (link.language === 'vf') {
-                  console.log('✅ Ajout lien VF:', data.m3u8Url);
-                  vidmolyLinks.vf.push({
-                    url: data.m3u8Url,
-                    language: link.language
-                  });
-                } else if (link.language === 'vostfr') {
-                  console.log('✅ Ajout lien VOSTFR:', data.m3u8Url);
-                  vidmolyLinks.vostfr.push({
-                    url: data.m3u8Url,
-                    language: link.language
-                  });
-                }
-              } else {
-                console.log('❌ Échec extraction m3u8:', data.error);
-              }
-            } catch (error) {
-              console.error('❌ Erreur extraction VidMoly:', error);
-            }
-          });
-        });
-      }
-    }
-  }
-
-  console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
-    vf: vidmolyLinks.vf,
-    vostfr: vidmolyLinks.vostfr,
-    vfCount: vidmolyLinks.vf.length,
-    vostfrCount: vidmolyLinks.vostfr.length,
-    hasVidMolyLinks: vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0
   });
+
+  useEffect(() => {
+    if (!animeData?.seasons) return;
+
+    const processVidMolyLinks = async () => {
+      console.log('🔍 useAnimeVidMolyLinks - Saisons trouvées:', animeData.seasons);
+      console.log('🔍 useAnimeVidMolyLinks - Recherche saison numéro:', seasonNumber);
+      console.log('🔍 useAnimeVidMolyLinks - Noms des saisons:', animeData.seasons.map(s => s.name));
+
+      const season = animeData.seasons.find(s =>
+        s.name.toLowerCase().includes(`saison ${seasonNumber}`) ||
+        s.name.toLowerCase().includes(`season ${seasonNumber}`)
+      );
+
+      console.log('🔍 useAnimeVidMolyLinks - Saison trouvée:', season);
+
+      if (season) {
+        const episode = season.episodes.find(e => e.index === episodeNumber);
+
+        if (episode) {
+          console.log('🔍 useAnimeVidMolyLinks - Épisode trouvé:', episode);
+          console.log('🔍 useAnimeVidMolyLinks - Streaming links:', episode.streaming_links);
+
+          const newVidmolyLinks = {
+            vf: [] as any[],
+            vostfr: [] as any[]
+          };
+
+          // Traiter tous les liens en parallèle
+          const allPromises = episode.streaming_links?.map(async (link) => {
+            console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
+
+            const vidmolyPlayers = link.players.filter((playerUrl: string) =>
+              playerUrl.includes('vidmoly')
+            );
+
+            console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
+
+            // Traiter tous les liens VidMoly en parallèle
+            const vidmolyPromises = vidmolyPlayers.map(async (playerUrl: string) => {
+              const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
+              console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
+              
+              try {
+                console.log('🎬 Extraction m3u8 pour VidMoly:', normalizedUrl);
+                const { apiClient } = await import('../lib/apiClient');
+                const data = await apiClient.extractVidMoly(normalizedUrl);
+                
+                if (data.success && data.m3u8Url) {
+                  console.log('✅ M3U8 extrait:', data.m3u8Url);
+                  return {
+                    url: data.m3u8Url,
+                    language: link.language
+                  };
+                } else {
+                  console.log('❌ Échec extraction m3u8:', data.error);
+                  return null;
+                }
+              } catch (error) {
+                console.error('❌ Erreur extraction VidMoly:', error);
+                return null;
+              }
+            });
+            
+            const results = await Promise.all(vidmolyPromises);
+            
+            results.forEach(result => {
+              if (result) {
+                if (result.language === 'vf') {
+                  console.log('✅ Ajout lien VF:', result.url);
+                  newVidmolyLinks.vf.push(result);
+                } else if (result.language === 'vostfr') {
+                  console.log('✅ Ajout lien VOSTFR:', result.url);
+                  newVidmolyLinks.vostfr.push(result);
+                }
+              }
+            });
+          }) || [];
+
+          await Promise.all(allPromises);
+          
+          console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
+            vf: newVidmolyLinks.vf,
+            vostfr: newVidmolyLinks.vostfr,
+            vfCount: newVidmolyLinks.vf.length,
+            vostfrCount: newVidmolyLinks.vostfr.length
+          });
+
+          setVidmolyLinks(newVidmolyLinks);
+        }
+      }
+    };
+
+    processVidMolyLinks();
+  }, [animeData, seasonNumber, episodeNumber]);
+
+  const hasVidMolyLinks = vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0;
   
   return {
     data: vidmolyLinks,
     isLoading,
     error,
-    hasVidMolyLinks: vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0
+    hasVidMolyLinks
   };
 };
