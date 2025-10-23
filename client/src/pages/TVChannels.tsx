@@ -808,7 +808,11 @@ export default function TVChannels() {
                   console.log(`[UI LINKS] Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
                   console.log(`[UI LINKS] Show selector: ${filteredLinks && filteredLinks.length > 1}`);
                   
-                  return filteredLinks && filteredLinks.length > 1 && (
+                  // TEMPORAIRE: Forcer l'affichage pour test
+                  const forceShow = true;
+                  console.log(`[UI LINKS] FORCE SHOW: ${forceShow}`);
+                  
+                  return (filteredLinks && filteredLinks.length > 1) || forceShow ? (
                     <Card className="p-4">
                       <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
                       <div className="flex flex-wrap gap-2">
@@ -825,7 +829,7 @@ export default function TVChannels() {
                         ))}
                       </div>
                     </Card>
-                  );
+                  ) : null;
                 })()}
 
                 <Card className="overflow-hidden">
