@@ -79,22 +79,23 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
   console.log('🔍 useAnimeSeries - enabled:', enabled);
   
   const query = useQuery({
-    queryKey: ['anime-series', title],
+    queryKey: ['anime-series', title, Date.now()], // Ajouter timestamp pour forcer un nouveau cache
     queryFn: () => fetchAnimeSeries(title),
     enabled: enabled && !!title,
     staleTime: 0, // Pas de cache pour forcer le refetch
+    cacheTime: 0, // Pas de cache du tout
     retry: 1,
     refetchOnMount: true, // Forcer le refetch au montage
     refetchOnWindowFocus: true, // Forcer le refetch au focus
   });
   
-  // Forcer le refetch si les données sont périmées (une seule fois)
+  // Forcer le refetch immédiatement
   React.useEffect(() => {
-    if (query.isStale && !query.isFetching && !query.data) {
-      console.log('🔄 useAnimeSeries - Forcer refetch car isStale et pas de données:', query.isStale);
+    if (enabled && title && !query.isFetching) {
+      console.log('🔄 useAnimeSeries - Forcer refetch immédiat pour:', title);
       query.refetch();
     }
-  }, [query.isStale, query.isFetching, query.data, query.refetch]);
+  }, [enabled, title, query.isFetching, query.refetch]);
   
   return query;
 };
