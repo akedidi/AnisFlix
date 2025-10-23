@@ -19,12 +19,25 @@ export function usePullToRefresh({
   const currentY = useRef(0);
   const isAtTop = useRef(false);
 
-  console.log('🔄 [PULL HOOK] Initialisation - disabled:', disabled, 'threshold:', threshold);
+  console.log('🔄 [PULL HOOK] Initialisation - disabled:', disabled, 'threshold:', threshold, 'stack:', new Error().stack?.split('\n')[2]);
 
   useEffect(() => {
     if (disabled) {
       console.log('🔄 [PULL] Hook désactivé - pas d\'event listeners');
       // Réinitialiser tous les états quand désactivé
+      setIsPulling(false);
+      setPullDistance(0);
+      setIsRefreshing(false);
+      // NE PAS ajouter d'event listeners du tout
+      return;
+    }
+
+    // Vérifier si on est sur la page TVChannels (désactiver complètement)
+    const isTVChannelsPage = window.location.pathname.includes('/tv-channels') || 
+                            window.location.pathname.includes('/channels');
+    
+    if (isTVChannelsPage) {
+      console.log('🔄 [PULL] Page TVChannels détectée - désactivation complète');
       setIsPulling(false);
       setPullDistance(0);
       setIsRefreshing(false);

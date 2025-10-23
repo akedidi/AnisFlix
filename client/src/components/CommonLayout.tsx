@@ -38,18 +38,16 @@ export default function CommonLayout({
   // Gérer le scroll sur mobile
   useMobileScroll();
 
-  // Gérer le pull-to-refresh - seulement si activé
-  const pullToRefreshResult = enablePullToRefresh ? usePullToRefresh({
+  // Gérer le pull-to-refresh
+  const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
     onRefresh: onRefresh || (() => {
       console.log('🔄 [PULL] Refresh de la page...');
       window.location.reload();
     }),
-    disabled: false,
+    disabled: !enablePullToRefresh,
     threshold: 60, // Seuil plus bas pour faciliter le déclenchement
     resistance: 0.8 // Moins de résistance
-  }) : { isRefreshing: false, pullDistance: 0, isPulling: false };
-  
-  const { isRefreshing, pullDistance, isPulling } = pullToRefreshResult;
+  });
 
 
   return (
