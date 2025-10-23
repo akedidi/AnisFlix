@@ -38,7 +38,13 @@ export default async function handler(req, res) {
     }
 
     // Construire l'URL Movix
-    const movixUrl = `https://api.movix.site/api/${path}`;
+    // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
+    let movixUrl;
+    if (path.startsWith('anime/search/')) {
+      movixUrl = `https://api.movix.site/${path}`;
+    } else {
+      movixUrl = `https://api.movix.site/api/${path}`;
+    }
     const url = new URL(movixUrl);
     
     // Ajouter les query parameters
