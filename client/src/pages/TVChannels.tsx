@@ -1131,22 +1131,24 @@ export default function TVChannels() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           {channelLogos[channel.id] ? (
-                            // Logo officiel sans cadre - agrandi
-                            <img 
-                              src={channelLogos[channel.id]} 
-                              alt={`Logo ${channel.name}`}
-                              className="w-12 h-12 object-contain"
-                              onError={(e) => {
-                                console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
-                                // Fallback vers l'icône TV avec cadre si le logo ne charge pas
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'block';
-                              }}
-                              onLoad={() => {
-                                console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
-                              }}
-                            />
+                            // Logo officiel avec fond blanc pour gérer la transparence
+                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
+                              <img 
+                                src={channelLogos[channel.id]} 
+                                alt={`Logo ${channel.name}`}
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
+                                  // Fallback vers l'icône TV avec cadre si le logo ne charge pas
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'block';
+                                }}
+                                onLoad={() => {
+                                  console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
+                                }}
+                              />
+                            </div>
                           ) : null}
                           {/* Fallback avec cadre seulement si pas de logo */}
                           <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
