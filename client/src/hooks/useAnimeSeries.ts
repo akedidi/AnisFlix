@@ -156,23 +156,38 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
           console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
           console.log('🔍 useAnimeVidMolyLinks - Nombre de players VidMoly:', vidmolyPlayers.length);
           
-          vidmolyPlayers.forEach((playerUrl: string) => {
+          vidmolyPlayers.forEach(async (playerUrl: string) => {
             // Convertir vidmoly.to en vidmoly.net pour une meilleure compatibilité
             const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
             console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
             
-            if (link.language === 'vf') {
-              console.log('✅ Ajout lien VF:', normalizedUrl);
-              vidmolyLinks.vf.push({
-                url: normalizedUrl,
-                language: link.language
-              });
-            } else if (link.language === 'vostfr') {
-              console.log('✅ Ajout lien VOSTFR:', normalizedUrl);
-              vidmolyLinks.vostfr.push({
-                url: normalizedUrl,
-                language: link.language
-              });
+            // Extraire le m3u8 via l'API VidMoly
+            try {
+              console.log('🎬 Extraction m3u8 pour VidMoly:', normalizedUrl);
+              const { apiClient } = await import('../lib/apiClient');
+              const data = await apiClient.extractVidMoly(normalizedUrl);
+              
+              if (data.success && data.m3u8Url) {
+                console.log('✅ M3U8 extrait:', data.m3u8Url);
+                
+                if (link.language === 'vf') {
+                  console.log('✅ Ajout lien VF:', data.m3u8Url);
+                  vidmolyLinks.vf.push({
+                    url: data.m3u8Url,
+                    language: link.language
+                  });
+                } else if (link.language === 'vostfr') {
+                  console.log('✅ Ajout lien VOSTFR:', data.m3u8Url);
+                  vidmolyLinks.vostfr.push({
+                    url: data.m3u8Url,
+                    language: link.language
+                  });
+                }
+              } else {
+                console.log('❌ Échec extraction m3u8:', data.error);
+              }
+            } catch (error) {
+              console.error('❌ Erreur extraction VidMoly:', error);
             }
           });
         });

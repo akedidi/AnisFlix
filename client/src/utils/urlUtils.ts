@@ -31,10 +31,18 @@ export function getApiUrl(endpoint: string): string {
  * Obtient l'URL du proxy VidMoly
  */
 export function getVidMolyProxyUrl(m3u8Url: string, referer?: string): string {
+  // Vérifier si l'URL est déjà encodée pour éviter le double encodage
+  const isAlreadyEncoded = m3u8Url.includes('%');
+  const encodedUrl = isAlreadyEncoded ? m3u8Url : encodeURIComponent(m3u8Url);
+  
   const params = new URLSearchParams({
-    url: encodeURIComponent(m3u8Url),
+    url: encodedUrl,
     referer: encodeURIComponent(referer || 'https://vidmoly.net/')
   });
+  
+  console.log('🔍 getVidMolyProxyUrl - URL originale:', m3u8Url);
+  console.log('🔍 getVidMolyProxyUrl - URL déjà encodée?', isAlreadyEncoded);
+  console.log('🔍 getVidMolyProxyUrl - URL finale:', encodedUrl);
   
   return getApiUrl(`/api/vidmoly?${params.toString()}`);
 }
