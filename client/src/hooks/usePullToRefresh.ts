@@ -97,6 +97,8 @@ export function usePullToRefresh({
         setIsPulling(false);
         setPullDistance(0); // Réinitialiser la distance
         console.log('🔄 [PULL] ❌ PULL DÉSACTIVÉ - pas en haut');
+        // IMPORTANT: Ne pas stocker startY si on n'est pas en haut
+        startY.current = 0;
       }
     };
 
@@ -104,6 +106,12 @@ export function usePullToRefresh({
       // Vérifier d'abord si le hook est désactivé
       if (disabled) {
         console.log('🔄 [PULL] Touch move ignoré - hook désactivé');
+        return;
+      }
+      
+      // Vérifier que startY n'est pas 0 (signifie qu'on n'était pas en haut au début)
+      if (startY.current === 0) {
+        console.log('🔄 [PULL] ❌ Touch move ignoré - startY est 0 (pas en haut au début)');
         return;
       }
       
@@ -128,6 +136,7 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] isStillAtTop:', isStillAtTop);
       console.log('🔄 [PULL] scrollTop:', scrollTop);
       console.log('🔄 [PULL] bodyScrollTop:', bodyScrollTop);
+      console.log('🔄 [PULL] startY:', startY.current);
       
       if (!isStillAtTop) {
         console.log('🔄 [PULL] ❌ Touch move ignoré - pas en haut');
@@ -170,6 +179,12 @@ export function usePullToRefresh({
       // Vérifier d'abord si le hook est désactivé
       if (disabled) {
         console.log('🔄 [PULL] Touch end ignoré - hook désactivé');
+        return;
+      }
+      
+      // Vérifier que startY n'est pas 0 (signifie qu'on n'était pas en haut au début)
+      if (startY.current === 0) {
+        console.log('🔄 [PULL] ❌ Touch end ignoré - startY est 0 (pas en haut au début)');
         return;
       }
       
