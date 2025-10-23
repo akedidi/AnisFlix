@@ -28,19 +28,34 @@ export function usePullToRefresh({
     }
 
     const handleTouchStart = (e: TouchEvent) => {
+      // Vérifications multiples pour s'assurer qu'on est vraiment en haut
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const bodyScrollTop = document.body.scrollTop || 0;
-      const isReallyAtTop = scrollTop <= 5 && bodyScrollTop <= 5; // Tolérance de 5px
+      const documentElementScrollTop = document.documentElement.scrollTop || 0;
+      const windowScrollY = window.scrollY || 0;
+      
+      // Vérifier aussi la position de l'élément de contenu principal
+      const mainContent = document.querySelector('main') || document.querySelector('[data-testid="main-content"]');
+      const mainScrollTop = mainContent ? mainContent.scrollTop || 0 : 0;
+      
+      const isReallyAtTop = scrollTop <= 2 && 
+                          bodyScrollTop <= 2 && 
+                          documentElementScrollTop <= 2 && 
+                          windowScrollY <= 2 &&
+                          mainScrollTop <= 2;
       
       isAtTop.current = isReallyAtTop;
       
       console.log('🔄 [PULL] ===== TOUCH START =====');
       console.log('🔄 [PULL] scrollTop:', scrollTop);
       console.log('🔄 [PULL] bodyScrollTop:', bodyScrollTop);
+      console.log('🔄 [PULL] documentElementScrollTop:', documentElementScrollTop);
+      console.log('🔄 [PULL] windowScrollY:', windowScrollY);
+      console.log('🔄 [PULL] mainScrollTop:', mainScrollTop);
       console.log('🔄 [PULL] isReallyAtTop:', isReallyAtTop);
       console.log('🔄 [PULL] touchY:', e.touches[0].clientY);
       
-      // Seulement si on est vraiment en haut de l'écran (avec tolérance)
+      // Seulement si on est vraiment en haut de l'écran (avec tolérance très stricte)
       if (isReallyAtTop) {
         startY.current = e.touches[0].clientY;
         // NE PAS activer isPulling immédiatement - attendre un mouvement
@@ -58,7 +73,18 @@ export function usePullToRefresh({
       // Vérifier à nouveau qu'on est en haut avant de traiter le mouvement
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const bodyScrollTop = document.body.scrollTop || 0;
-      const isStillAtTop = scrollTop <= 5 && bodyScrollTop <= 5;
+      const documentElementScrollTop = document.documentElement.scrollTop || 0;
+      const windowScrollY = window.scrollY || 0;
+      
+      // Vérifier aussi la position de l'élément de contenu principal
+      const mainContent = document.querySelector('main') || document.querySelector('[data-testid="main-content"]');
+      const mainScrollTop = mainContent ? mainContent.scrollTop || 0 : 0;
+      
+      const isStillAtTop = scrollTop <= 2 && 
+                         bodyScrollTop <= 2 && 
+                         documentElementScrollTop <= 2 && 
+                         windowScrollY <= 2 &&
+                         mainScrollTop <= 2;
       
       console.log('🔄 [PULL] ===== TOUCH MOVE =====');
       console.log('🔄 [PULL] isPulling:', isPulling);
@@ -114,10 +140,24 @@ export function usePullToRefresh({
       // Vérifier une dernière fois qu'on est en haut
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const bodyScrollTop = document.body.scrollTop || 0;
-      const isStillAtTop = scrollTop <= 5 && bodyScrollTop <= 5;
+      const documentElementScrollTop = document.documentElement.scrollTop || 0;
+      const windowScrollY = window.scrollY || 0;
+      
+      // Vérifier aussi la position de l'élément de contenu principal
+      const mainContent = document.querySelector('main') || document.querySelector('[data-testid="main-content"]');
+      const mainScrollTop = mainContent ? mainContent.scrollTop || 0 : 0;
+      
+      const isStillAtTop = scrollTop <= 2 && 
+                         bodyScrollTop <= 2 && 
+                         documentElementScrollTop <= 2 && 
+                         windowScrollY <= 2 &&
+                         mainScrollTop <= 2;
       
       console.log('🔄 [PULL] scrollTop:', scrollTop);
       console.log('🔄 [PULL] bodyScrollTop:', bodyScrollTop);
+      console.log('🔄 [PULL] documentElementScrollTop:', documentElementScrollTop);
+      console.log('🔄 [PULL] windowScrollY:', windowScrollY);
+      console.log('🔄 [PULL] mainScrollTop:', mainScrollTop);
       console.log('🔄 [PULL] isStillAtTop:', isStillAtTop);
       
       if (!isStillAtTop) {
