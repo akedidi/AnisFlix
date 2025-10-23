@@ -137,23 +137,23 @@ const scrollToTop = (setIsScrolling: (value: boolean) => void) => {
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
   
-  // TEMPORAIRE: Forcer false pour mobile web (à retirer après test)
-  const userAgent = navigator.userAgent.toLowerCase();
-  const isMobileWeb = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
-  
-  if (isMobileWeb) {
-    console.log(`[CAPACITOR DETECTION] Mobile web détecté - Forçage false`);
-    return false;
-  }
+  console.log(`[CAPACITOR DETECTION] ===== DÉTECTION CAPACITOR =====`);
+  console.log(`[CAPACITOR DETECTION] UserAgent: ${navigator.userAgent}`);
   
   // Vérifier si on est dans une app Capacitor native
   const hasCapacitor = (window as any).Capacitor !== undefined;
   const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
   const isNativeApp = hasCapacitor && hasCapacitorPlugins;
   
-  console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}, hasPlugins: ${hasCapacitorPlugins}, isNativeApp: ${isNativeApp}`);
+  console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}`);
+  console.log(`[CAPACITOR DETECTION] hasPlugins: ${hasCapacitorPlugins}`);
+  console.log(`[CAPACITOR DETECTION] isNativeApp: ${isNativeApp}`);
   
-  return isNativeApp;
+  // TEMPORAIRE: Forcer false pour tous les cas (test)
+  const forceWeb = true;
+  console.log(`[CAPACITOR DETECTION] FORCE WEB: ${forceWeb}`);
+  
+  return forceWeb ? false : isNativeApp;
 };
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
