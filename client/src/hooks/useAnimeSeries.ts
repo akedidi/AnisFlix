@@ -81,8 +81,10 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
     queryKey: ['anime-series', title],
     queryFn: () => fetchAnimeSeries(title),
     enabled: enabled && !!title,
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 0, // Pas de cache pour forcer le refetch
     retry: 1,
+    refetchOnMount: true, // Forcer le refetch au montage
+    refetchOnWindowFocus: true, // Forcer le refetch au focus
   });
 };
 
