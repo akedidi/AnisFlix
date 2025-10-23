@@ -1130,7 +1130,7 @@ export default function TVChannels() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center p-1 shadow-sm border">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border">
                             {channelLogos[channel.id] ? (
                               <img 
                                 src={channelLogos[channel.id]} 
