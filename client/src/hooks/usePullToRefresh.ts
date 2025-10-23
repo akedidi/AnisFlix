@@ -75,6 +75,15 @@ export function usePullToRefresh({
                           windowScrollY <= 2 &&
                           mainScrollTop <= 2;
       
+      // Vérification ULTRA-STRICTE: on doit être vraiment en haut
+      if (scrollTop > 2) {
+        console.log('🔄 [PULL] ❌ Touch start ignoré - scrollTop > 2:', scrollTop);
+        setIsPulling(false);
+        setPullDistance(0);
+        startY.current = 0;
+        return;
+      }
+      
       isAtTop.current = isReallyAtTop;
       
       console.log('🔄 [PULL] ===== TOUCH START =====');
@@ -112,6 +121,13 @@ export function usePullToRefresh({
       // Vérifier que startY n'est pas 0 (signifie qu'on n'était pas en haut au début)
       if (startY.current === 0) {
         console.log('🔄 [PULL] ❌ Touch move ignoré - startY est 0 (pas en haut au début)');
+        return;
+      }
+      
+      // Vérification CRITIQUE: on doit être en haut ET avoir un startY valide
+      const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (currentScrollTop > 5) {
+        console.log('🔄 [PULL] ❌ Touch move ignoré - pas en haut (scrollTop > 5)');
         return;
       }
       
@@ -185,6 +201,13 @@ export function usePullToRefresh({
       // Vérifier que startY n'est pas 0 (signifie qu'on n'était pas en haut au début)
       if (startY.current === 0) {
         console.log('🔄 [PULL] ❌ Touch end ignoré - startY est 0 (pas en haut au début)');
+        return;
+      }
+      
+      // Vérification CRITIQUE: on doit être en haut ET avoir un startY valide
+      const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      if (currentScrollTop > 5) {
+        console.log('🔄 [PULL] ❌ Touch end ignoré - pas en haut (scrollTop > 5)');
         return;
       }
       
