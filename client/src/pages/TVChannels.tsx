@@ -477,18 +477,24 @@ export default function TVChannels() {
     const isMobileDevice = isMobile();
     const isNativeApp = isCapacitor();
     
-    console.log(`[FILTER LINKS] isMobileDevice: ${isMobileDevice}, isNativeApp: ${isNativeApp}`);
-    console.log(`[FILTER LINKS] Original links:`, channel.links);
+    console.log(`[FILTER LINKS] ===== DÉBUT FILTRAGE =====`);
+    console.log(`[FILTER LINKS] Channel: ${channel.name}`);
+    console.log(`[FILTER LINKS] isMobileDevice: ${isMobileDevice}`);
+    console.log(`[FILTER LINKS] isNativeApp: ${isNativeApp}`);
+    console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
+    console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     
     // Sur mobile web et natif, supprimer les liens MPD
     if (isMobileDevice || isNativeApp) {
       const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
-      console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks);
+      console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
+      console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
       return filteredLinks;
     }
     
     // Sur desktop, garder tous les liens (y compris MPD)
-    console.log(`[FILTER LINKS] Desktop - All links kept:`, channel.links);
+    console.log(`[FILTER LINKS] Desktop - All links kept: ${channel.links.length}`);
+    console.log(`[FILTER LINKS] Desktop - All links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     return channel.links;
   };
 
@@ -789,6 +795,12 @@ export default function TVChannels() {
                 {/* Sélecteur de liens */}
                 {(() => {
                   const filteredLinks = getFilteredLinks(selectedChannel);
+                  console.log(`[UI LINKS] ===== AFFICHAGE UI =====`);
+                  console.log(`[UI LINKS] Channel: ${selectedChannel.name}`);
+                  console.log(`[UI LINKS] Filtered links count: ${filteredLinks.length}`);
+                  console.log(`[UI LINKS] Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
+                  console.log(`[UI LINKS] Show selector: ${filteredLinks && filteredLinks.length > 1}`);
+                  
                   return filteredLinks && filteredLinks.length > 1 && (
                     <Card className="p-4">
                       <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
