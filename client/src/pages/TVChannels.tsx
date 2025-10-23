@@ -951,13 +951,15 @@ export default function TVChannels() {
               <h3 className="text-lg font-semibold mb-3">
                 Chaînes {TV_SECTIONS.find(s => s.id === selectedSection)?.name} - {selectedCategory}
               </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {filteredChannels.length > 0 ? (
                   filteredChannels.map(channel => (
                     <Card
                       key={channel.id}
-                      className={`p-4 cursor-pointer transition-colors hover-elevate ${
-                        selectedChannel?.id === channel.id ? 'ring-2 ring-primary' : ''
+                      className={`p-3 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                        selectedChannel?.id === channel.id 
+                          ? 'ring-2 ring-primary border-primary shadow-lg' 
+                          : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => {
                         // Éviter les clics multiples pendant le scroll
@@ -979,14 +981,14 @@ export default function TVChannels() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Tv className="w-6 h-6 text-primary" />
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Tv className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <h4 className="font-semibold">{channel.name}</h4>
+                            <h4 className="font-semibold text-sm">{channel.name}</h4>
                           </div>
                         </div>
-                        <Play className="w-5 h-5 text-muted-foreground" />
+                        <Play className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </Card>
                   ))
