@@ -1130,28 +1130,27 @@ export default function TVChannels() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border">
-                            {channelLogos[channel.id] ? (
-                              <img 
-                                src={channelLogos[channel.id]} 
-                                alt={`Logo ${channel.name}`}
-                                className="w-full h-full object-contain"
-                                onError={(e) => {
-                                  console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
-                                  // Fallback vers l'icône TV si le logo ne charge pas
-                                  e.currentTarget.style.display = 'none';
-                                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'block';
-                                }}
-                                onLoad={() => {
-                                  console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
-                                }}
-                              />
-                            ) : null}
-                            <Tv 
-                              className={`w-5 h-5 text-primary ${channelLogos[channel.id] ? 'hidden' : ''}`}
-                              style={{ display: channelLogos[channel.id] ? 'none' : 'block' }}
+                          {channelLogos[channel.id] ? (
+                            // Logo officiel sans cadre - agrandi
+                            <img 
+                              src={channelLogos[channel.id]} 
+                              alt={`Logo ${channel.name}`}
+                              className="w-12 h-12 object-contain"
+                              onError={(e) => {
+                                console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
+                                // Fallback vers l'icône TV avec cadre si le logo ne charge pas
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
+                              onLoad={() => {
+                                console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
+                              }}
                             />
+                          ) : null}
+                          {/* Fallback avec cadre seulement si pas de logo */}
+                          <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
+                            <Tv className="w-5 h-5 text-primary" />
                           </div>
                           <div>
                             <h4 className="font-semibold text-sm">{channel.name}</h4>
