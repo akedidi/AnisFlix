@@ -22,8 +22,11 @@ const isMobile = () => {
   const userAgent = navigator.userAgent;
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   
+  console.log(`[MOBILE DETECTION] ===== DÉTECTION MOBILE =====`);
   console.log(`[MOBILE DETECTION] UserAgent: ${userAgent}`);
   console.log(`[MOBILE DETECTION] isMobileDevice: ${isMobileDevice}`);
+  console.log(`[MOBILE DETECTION] window.innerWidth: ${window.innerWidth}`);
+  console.log(`[MOBILE DETECTION] window.innerHeight: ${window.innerHeight}`);
   
   return isMobileDevice;
 };
@@ -484,8 +487,12 @@ export default function TVChannels() {
     console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
     console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     
+    // TEMPORAIRE: Forcer desktop pour test
+    const forceDesktop = true;
+    console.log(`[FILTER LINKS] FORCE DESKTOP: ${forceDesktop}`);
+    
     // Sur mobile web et natif, supprimer les liens MPD
-    if (isMobileDevice || isNativeApp) {
+    if ((isMobileDevice || isNativeApp) && !forceDesktop) {
       const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
