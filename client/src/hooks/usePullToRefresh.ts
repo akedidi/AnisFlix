@@ -24,26 +24,32 @@ export function usePullToRefresh({
 
     const handleTouchStart = (e: TouchEvent) => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      isAtTop.current = scrollTop === 0;
+      const bodyScrollTop = document.body.scrollTop || 0;
+      const isReallyAtTop = scrollTop <= 5 && bodyScrollTop <= 5; // Tolérance de 5px
       
-      console.log('🔄 [PULL] Touch start - scrollTop:', scrollTop, 'isAtTop:', isAtTop.current);
+      isAtTop.current = isReallyAtTop;
       
-      // Seulement si on est vraiment en haut de l'écran
-      if (isAtTop.current) {
+      console.log('🔄 [PULL] Touch start - scrollTop:', scrollTop, 'bodyScrollTop:', bodyScrollTop, 'isAtTop:', isAtTop.current);
+      
+      // Seulement si on est vraiment en haut de l'écran (avec tolérance)
+      if (isReallyAtTop) {
         startY.current = e.touches[0].clientY;
         setIsPulling(true);
         console.log('🔄 [PULL] Début du pull - startY:', startY.current);
       } else {
         // Si on n'est pas en haut, ne pas activer le pull
         setIsPulling(false);
+        console.log('🔄 [PULL] Pas en haut - pull désactivé');
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       // Vérifier à nouveau qu'on est en haut avant de traiter le mouvement
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const bodyScrollTop = document.body.scrollTop || 0;
+      const isStillAtTop = scrollTop <= 5 && bodyScrollTop <= 5;
       
-      if (!isPulling || scrollTop > 0) {
+      if (!isPulling || !isStillAtTop) {
         console.log('🔄 [PULL] Touch move ignoré - pas en haut ou pas en pull');
         return;
       }
@@ -51,12 +57,12 @@ export function usePullToRefresh({
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
       
-      console.log('🔄 [PULL] Touch move - distance:', distance, 'scrollTop:', scrollTop);
+      console.log('🔄 [PULL] Touch move - distance:', distance, 'scrollTop:', scrollTop, 'isStillAtTop:', isStillAtTop);
       
       setPullDistance(distance);
       
-      // Empêcher le scroll normal pendant le pull
-      if (distance > 0) {
+      // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
+      if (distance > 10) { // Seuil plus élevé pour éviter les faux positifs
         e.preventDefault();
       }
     };
@@ -66,7 +72,10 @@ export function usePullToRefresh({
 
       // Vérifier une dernière fois qu'on est en haut
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      if (scrollTop > 0) {
+      const bodyScrollTop = document.body.scrollTop || 0;
+      const isStillAtTop = scrollTop <= 5 && bodyScrollTop <= 5;
+      
+      if (!isStillAtTop) {
         console.log('🔄 [PULL] Touch end ignoré - pas en haut');
         setIsPulling(false);
         setPullDistance(0);
@@ -75,7 +84,7 @@ export function usePullToRefresh({
 
       const distance = Math.max(0, currentY.current - startY.current);
       
-      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold, 'scrollTop:', scrollTop);
+      console.log('🔄 [PULL] Touch end - distance:', distance, 'threshold:', threshold, 'scrollTop:', scrollTop, 'isStillAtTop:', isStillAtTop);
       
       if (distance >= threshold) {
         console.log('🔄 [PULL] Refresh déclenché !');
