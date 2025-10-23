@@ -49,6 +49,7 @@ export function usePullToRefresh({
       } else {
         // Si on n'est pas en haut, ne pas activer le pull
         setIsPulling(false);
+        setPullDistance(0); // Réinitialiser la distance
         console.log('🔄 [PULL] ❌ PULL DÉSACTIVÉ - pas en haut');
       }
     };
@@ -76,15 +77,19 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] distance calculée:', distance);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
+      // Vérifier que le mouvement est vers le bas (pull down) et pas vers le haut
+      const isMovingDown = currentY.current > startY.current;
+      console.log('🔄 [PULL] isMovingDown:', isMovingDown);
+      
       // Activer isPulling seulement si on tire vraiment vers le bas (distance > 5px)
-      if (distance > 5 && !isPulling) {
-        console.log('🔄 [PULL] ✅ ACTIVATION DU PULL - distance > 5px');
+      if (distance > 5 && !isPulling && isMovingDown) {
+        console.log('🔄 [PULL] ✅ ACTIVATION DU PULL - distance > 5px ET mouvement vers le bas');
         setIsPulling(true);
       }
       
-      // Seulement traiter le mouvement si on est en pull
-      if (isPulling || distance > 5) {
-        console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance);
+      // Seulement traiter le mouvement si on est en pull ET qu'on tire vers le bas
+      if ((isPulling || distance > 5) && isMovingDown) {
+        console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance, 'isMovingDown:', isMovingDown);
         setPullDistance(distance);
         
         // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
@@ -93,7 +98,7 @@ export function usePullToRefresh({
           e.preventDefault();
         }
       } else {
-        console.log('🔄 [PULL] ❌ Touch move ignoré - pas assez de distance');
+        console.log('🔄 [PULL] ❌ Touch move ignoré - pas assez de distance ou mouvement vers le haut');
       }
     };
 
@@ -124,12 +129,16 @@ export function usePullToRefresh({
 
       const distance = Math.max(0, currentY.current - startY.current);
       
+      // Vérifier que le mouvement final était vers le bas
+      const isMovingDown = currentY.current > startY.current;
+      console.log('🔄 [PULL] isMovingDown:', isMovingDown);
+      
       console.log('🔄 [PULL] ✅ Touch end traité');
       console.log('🔄 [PULL] distance:', distance);
       console.log('🔄 [PULL] threshold:', threshold);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
-      if (distance >= threshold) {
+      if (distance >= threshold && isMovingDown) {
         console.log('🔄 [PULL] 🎉 REFRESH DÉCLENCHÉ !');
         setIsRefreshing(true);
         setPullDistance(0);
@@ -140,7 +149,7 @@ export function usePullToRefresh({
           setIsRefreshing(false);
         }, 1000);
       } else {
-        console.log('🔄 [PULL] ❌ Pas assez de distance pour déclencher');
+        console.log('🔄 [PULL] ❌ Pas assez de distance pour déclencher ou mouvement vers le haut');
         setPullDistance(0);
       }
       
