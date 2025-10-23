@@ -231,76 +231,98 @@ interface TVSection {
   categories: string[];
 }
 
-// Mapping des logos officiels par chaîne
-const CHANNEL_LOGOS: Record<string, string> = {
+// Mapping des noms de chaînes vers les noms dans l'API jaruba
+const CHANNEL_NAME_MAPPING: Record<string, string> = {
   // Généraliste
-  "tf1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/TF1_logo_2013.svg/120px-TF1_logo_2013.svg.png",
-  "tf1-serie": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/TF1_logo_2013.svg/120px-TF1_logo_2013.svg.png",
-  "france2": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/France_2_2018.svg/120px-France_2_2018.svg.png",
-  "france3": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/France_3_2018.svg/120px-France_3_2018.svg.png",
-  "france4": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/France_4_2018.svg/120px-France_4_2018.svg.png",
-  "france5": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/France_5_2018.svg/120px-France_5_2018.svg.png",
-  "m6": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/M6_2018.svg/120px-M6_2018.svg.png",
-  "arte": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Arte_2018.svg/120px-Arte_2018.svg.png",
-  "tfx": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/TFX_2018.svg/120px-TFX_2018.svg.png",
-  "canal-plus": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Canal%2B_2018.svg/120px-Canal%2B_2018.svg.png",
-  "tmc": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/TMC_2018.svg/120px-TMC_2018.svg.png",
-  "w9": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/W9_2018.svg/120px-W9_2018.svg.png",
-  "rmc-decouverte": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RMC_D%C3%A9couverte_2018.svg/120px-RMC_D%C3%A9couverte_2018.svg.png",
-  "gulli": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Gulli_2018.svg/120px-Gulli_2018.svg.png",
+  "tf1": "tf1",
+  "tf1-serie": "tf1",
+  "france2": "france 2",
+  "france3": "france 3", 
+  "france4": "france 4",
+  "france5": "france 5",
+  "m6": "m6",
+  "arte": "arte",
+  "tfx": "tfx",
+  "canal-plus": "canal+",
+  "tmc": "tmc",
+  "w9": "w9",
+  "rmc-decouverte": "rmc découverte",
+  "gulli": "gulli",
   
   // Info
-  "bfmtv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_TV_2018.svg/120px-BFM_TV_2018.svg.png",
-  "bfm-business": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Business_2018.svg/120px-BFM_Business_2018.svg.png",
-  "bfm-paris": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Paris_2018.svg/120px-BFM_Paris_2018.svg.png",
-  "bfm-lyon": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Lyon_2018.svg/120px-BFM_Lyon_2018.svg.png",
-  "bfm-litoral": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Grand_Littoral_2018.svg/120px-BFM_Grand_Littoral_2018.svg.png",
-  "bfm-alsace": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Alsace_2018.svg/120px-BFM_Alsace_2018.svg.png",
-  "bfm-grand-lille": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BFM_Grand_Lille_2018.svg/120px-BFM_Grand_Lille_2018.svg.png",
-  "rt-france": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RT_France_2018.svg/120px-RT_France_2018.svg.png",
+  "bfmtv": "bfm tv",
+  "bfm-business": "bfm business",
+  "bfm-paris": "bfm paris",
+  "bfm-lyon": "bfm lyon",
+  "bfm-litoral": "bfm grand littoral",
+  "bfm-alsace": "bfm alsace",
+  "bfm-grand-lille": "bfm grand lille",
+  "rt-france": "rt france",
   
   // Sport
-  "bein-sports-1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BeIN_Sports_1_2018.svg/120px-BeIN_Sports_1_2018.svg.png",
-  "bein-sports-2": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BeIN_Sports_2_2018.svg/120px-BeIN_Sports_2_2018.svg.png",
-  "bein-sports-3": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/BeIN_Sports_3_2018.svg/120px-BeIN_Sports_3_2018.svg.png",
-  "canal-plus-foot": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Canal%2B_Foot_2018.svg/120px-Canal%2B_Foot_2018.svg.png",
-  "canal-plus-sport-360": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Canal%2B_Sport_360_2018.svg/120px-Canal%2B_Sport_360_2018.svg.png",
-  "rmc-sport-1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RMC_Sport_1_2018.svg/120px-RMC_Sport_1_2018.svg.png",
-  "rmc-sport-2": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RMC_Sport_2_2018.svg/120px-RMC_Sport_2_2018.svg.png",
-  "rmc-sport-3": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RMC_Sport_3_2018.svg/120px-RMC_Sport_3_2018.svg.png",
-  "lequipe-tv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/L%27%C3%89quipe_TV_2018.svg/120px-L%27%C3%89quipe_TV_2018.svg.png",
+  "bein-sports-1": "bein sports 1",
+  "bein-sports-2": "bein sports 2", 
+  "bein-sports-3": "bein sports 3",
+  "canal-plus-foot": "canal+ foot",
+  "canal-plus-sport-360": "canal+ sport 360",
+  "rmc-sport-1": "rmc sport 1",
+  "rmc-sport-2": "rmc sport 2",
+  "rmc-sport-3": "rmc sport 3",
+  "lequipe-tv": "l'équipe tv",
   
   // Fiction & Série
-  "syfy": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Syfy_2018.svg/120px-Syfy_2018.svg.png",
+  "syfy": "syfy",
   
   // Jeunesse
-  "game-one": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Game_One_2018.svg/120px-Game_One_2018.svg.png",
-  "mangas": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Mangas_2018.svg/120px-Mangas_2018.svg.png",
-  "boomerang": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Boomerang_2018.svg/120px-Boomerang_2018.svg.png",
-  "cartoon-network": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Cartoon_Network_2018.svg/120px-Cartoon_Network_2018.svg.png",
+  "game-one": "game one",
+  "mangas": "mangas",
+  "boomerang": "boomerang",
+  "cartoon-network": "cartoon network",
   
   // Découverte
-  "natgeo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/National_Geographic_2018.svg/120px-National_Geographic_2018.svg.png",
-  "natgeo-wild": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/National_Geographic_Wild_2018.svg/120px-National_Geographic_Wild_2018.svg.png",
+  "natgeo": "national geographic",
+  "natgeo-wild": "national geographic wild",
   
   // Cinéma
-  "tcm-cinema": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/TCM_Cinema_2018.svg/120px-TCM_Cinema_2018.svg.png",
+  "tcm-cinema": "tcm cinema",
   
   // Arabe - Sport
-  "elkass-1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/ElKass_1_2018.svg/120px-ElKass_1_2018.svg.png",
-  "elkass-2": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/ElKass_2_2018.svg/120px-ElKass_2_2018.svg.png",
-  "elkass-3": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/ElKass_3_2018.svg/120px-ElKass_3_2018.svg.png",
-  "elkass-4": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/ElKass_4_2018.svg/120px-ElKass_4_2018.svg.png",
+  "elkass-1": "elkass 1",
+  "elkass-2": "elkass 2",
+  "elkass-3": "elkass 3", 
+  "elkass-4": "elkass 4",
   
   // Arabe - Tunisie
-  "watania-1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Watania_1_2018.svg/120px-Watania_1_2018.svg.png",
-  "hiwar-tounsi": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Hiwar_Tounsi_2018.svg/120px-Hiwar_Tounsi_2018.svg.png",
+  "watania-1": "watania 1",
+  "hiwar-tounsi": "hiwar tounsi",
   
   // Arabe - Info
-  "eljazira": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Al_Jazeera_2018.svg/120px-Al_Jazeera_2018.svg.png",
-  "eljazira-english": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Al_Jazeera_English_2018.svg/120px-Al_Jazeera_English_2018.svg.png",
-  "rt-arabe": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/RT_Arabic_2018.svg/120px-RT_Arabic_2018.svg.png",
-  "elarabiya": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Al_Arabiya_2018.svg/120px-Al_Arabiya_2018.svg.png",
+  "eljazira": "al jazeera",
+  "eljazira-english": "al jazeera english",
+  "rt-arabe": "rt arabic",
+  "elarabiya": "al arabiya",
+};
+
+// Fonction pour obtenir l'URL du logo depuis l'API jaruba
+const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
+  try {
+    const channelName = CHANNEL_NAME_MAPPING[channelId];
+    if (!channelName) return null;
+    
+    const response = await fetch('https://jaruba.github.io/channel-logos/logo_paths.json');
+    const logos = await response.json();
+    
+    // Chercher le logo correspondant (insensible à la casse)
+    const logoPath = logos[channelName.toLowerCase()];
+    if (logoPath) {
+      return `https://jaruba.github.io/channel-logos${logoPath}`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`[LOGO API] Erreur lors du chargement des logos:`, error);
+    return null;
+  }
 };
 
 const TV_SECTIONS: TVSection[] = [
@@ -506,6 +528,7 @@ export default function TVChannels() {
   const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [channelLogos, setChannelLogos] = useState<Record<string, string>>({});
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
@@ -536,6 +559,33 @@ export default function TVChannels() {
   useEffect(() => {
     setSelectedLinkIndex(0);
   }, [selectedChannel]);
+
+  // Charger les logos des chaînes au démarrage
+  useEffect(() => {
+    const loadChannelLogos = async () => {
+      console.log('[LOGO LOADER] Début du chargement des logos...');
+      const logos: Record<string, string> = {};
+      
+      for (const channel of TV_CHANNELS) {
+        try {
+          const logoUrl = await getChannelLogoUrl(channel.id);
+          if (logoUrl) {
+            logos[channel.id] = logoUrl;
+            console.log(`[LOGO LOADER] Logo trouvé pour ${channel.name}: ${logoUrl}`);
+          } else {
+            console.log(`[LOGO LOADER] Aucun logo trouvé pour ${channel.name}`);
+          }
+        } catch (error) {
+          console.error(`[LOGO LOADER] Erreur pour ${channel.name}:`, error);
+        }
+      }
+      
+      setChannelLogos(logos);
+      console.log(`[LOGO LOADER] ${Object.keys(logos).length} logos chargés sur ${TV_CHANNELS.length} chaînes`);
+    };
+    
+    loadChannelLogos();
+  }, []);
 
   // Scroll automatique vers le haut quand on sélectionne une chaîne
   useEffect(() => {
@@ -1053,18 +1103,14 @@ export default function TVChannels() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          {(() => {
-                            console.log(`[LOGO DEBUG] Channel: ${channel.name} (${channel.id}), Logo URL:`, CHANNEL_LOGOS[channel.id]);
-                            return null;
-                          })()}
                           <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center p-1 shadow-sm border">
-                            {CHANNEL_LOGOS[channel.id] ? (
+                            {channelLogos[channel.id] ? (
                               <img 
-                                src={CHANNEL_LOGOS[channel.id]} 
+                                src={channelLogos[channel.id]} 
                                 alt={`Logo ${channel.name}`}
                                 className="w-full h-full object-contain"
                                 onError={(e) => {
-                                  console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, CHANNEL_LOGOS[channel.id]);
+                                  console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
                                   // Fallback vers l'icône TV si le logo ne charge pas
                                   e.currentTarget.style.display = 'none';
                                   const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -1076,8 +1122,8 @@ export default function TVChannels() {
                               />
                             ) : null}
                             <Tv 
-                              className={`w-5 h-5 text-primary ${CHANNEL_LOGOS[channel.id] ? 'hidden' : ''}`}
-                              style={{ display: CHANNEL_LOGOS[channel.id] ? 'none' : 'block' }}
+                              className={`w-5 h-5 text-primary ${channelLogos[channel.id] ? 'hidden' : ''}`}
+                              style={{ display: channelLogos[channel.id] ? 'none' : 'block' }}
                             />
                           </div>
                           <div>
