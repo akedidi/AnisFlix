@@ -911,7 +911,11 @@ export default function TVChannels() {
                     key={section.id}
                     variant={selectedSection === section.id ? "default" : "outline"}
                     onClick={() => setSelectedSection(section.id)}
-                    className="justify-start"
+                    className={`justify-start ${
+                      selectedSection === section.id 
+                        ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                        : "border-blue-200 text-blue-600 hover:bg-blue-50"
+                    }`}
                     data-testid={`section-${section.id}`}
                   >
                     {section.name}
@@ -929,7 +933,11 @@ export default function TVChannels() {
                     key={category}
                     variant={selectedCategory === category ? "default" : "outline"}
                     onClick={() => setSelectedCategory(category)}
-                    className="text-sm"
+                    className={`text-sm ${
+                      selectedCategory === category 
+                        ? "bg-green-600 hover:bg-green-700 text-white" 
+                        : "border-green-200 text-green-600 hover:bg-green-50"
+                    }`}
                     data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     {category}
