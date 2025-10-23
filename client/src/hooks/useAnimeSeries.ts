@@ -36,19 +36,36 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
     console.log('🔍 fetchAnimeSeries - Titre original:', title);
     console.log('🔍 fetchAnimeSeries - Titre extrait:', seriesTitle);
     
-    // Remplacer les tirets par des espaces pour l'API anime
+    // Remplacer les tirets par des espaces pour l'API TMDB
     seriesTitle = seriesTitle.replace(/-/g, ' ');
     console.log('🔍 fetchAnimeSeries - Titre après remplacement des tirets:', seriesTitle);
     
+    // Utiliser l'API Movix avec le bon endpoint
     const data = await movixProxy.searchAnime(seriesTitle, true, true);
+    console.log('🔍 fetchAnimeSeries - Réponse API Movix:', data);
 
-    console.log('🔍 fetchAnimeSeries - Réponse API:', data);
-
-    if (data && Array.isArray(data) && data.length > 0) {
-      // L'API retourne un tableau, prendre le premier élément
-      return data[0];
+    if (data && data.results && Array.isArray(data.results)) {
+      // Chercher une série anime dans les résultats
+      const animeSeries = data.results.find(result => 
+        result.type === 'animes' && 
+        result.name.toLowerCase().includes(seriesTitle.toLowerCase())
+      );
+      
+      if (animeSeries) {
+        console.log('🔍 fetchAnimeSeries - Série anime trouvée:', animeSeries);
+        
+        // Simuler la structure attendue par l'interface AnimeSeriesData
+        const animeData: AnimeSeriesData = {
+          name: animeSeries.name,
+          seasons: [] // Pour l'instant, on retourne une structure vide
+        };
+        
+        return animeData;
+      }
     }
     
+    // Si aucun résultat trouvé, retourner null
+    console.log('🔍 fetchAnimeSeries - Aucune série anime trouvée pour:', seriesTitle);
     return null;
   } catch (error) {
     console.error('Erreur lors de la récupération des données anime:', error);
@@ -80,64 +97,10 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
     vostfr: [] as any[]
   };
 
-  if (animeData?.seasons) {
-    // Trouver la saison par numéro (les saisons sont nommées "Saison 1", "Saison 2", etc.)
-    const season = animeData.seasons.find(s => 
-      s.name.toLowerCase().includes(`saison ${seasonNumber}`) || 
-      s.name.toLowerCase().includes(`season ${seasonNumber}`)
-    );
-    
-    if (season) {
-      // Trouver l'épisode par index (les épisodes ont un index qui correspond au numéro d'épisode)
-      const episode = season.episodes.find(e => e.index === episodeNumber);
-      
-      if (episode) {
-        console.log('🔍 useAnimeVidMolyLinks - Épisode trouvé:', episode.name, episode.index);
-        console.log('🔍 useAnimeVidMolyLinks - Streaming links:', episode.streaming_links);
-        
-        // Extraire les liens VidMoly des streaming_links
-        episode.streaming_links?.forEach(link => {
-          console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
-          
-          // Filtrer les liens VidMoly dans les players
-          const vidmolyPlayers = link.players.filter((playerUrl: string) => 
-            playerUrl.includes('vidmoly')
-          );
-          
-          console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
-          
-          vidmolyPlayers.forEach((playerUrl: string) => {
-            // Convertir vidmoly.to en vidmoly.net pour une meilleure compatibilité
-            const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
-            console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
-            
-            if (link.language === 'vf') {
-              console.log('✅ Ajout lien VF:', normalizedUrl);
-              vidmolyLinks.vf.push({
-                url: normalizedUrl,
-                language: link.language
-              });
-            } else if (link.language === 'vostfr') {
-              console.log('✅ Ajout lien VOSTFR:', normalizedUrl);
-              vidmolyLinks.vostfr.push({
-                url: normalizedUrl,
-                language: link.language
-              });
-            }
-          });
-        });
-      }
-    }
-  }
-
-  console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
-    vf: vidmolyLinks.vf,
-    vostfr: vidmolyLinks.vostfr,
-    vfCount: vidmolyLinks.vf.length,
-    vostfrCount: vidmolyLinks.vostfr.length,
-    hasVidMolyLinks: vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0
-  });
-
+  // Pour l'instant, retourner des données vides car la structure des saisons/épisodes
+  // n'est pas encore implémentée avec le nouvel endpoint
+  console.log('🔍 useAnimeVidMolyLinks - Fonctionnalité en cours de développement avec le nouvel endpoint Movix');
+  
   return {
     data: vidmolyLinks,
     isLoading,

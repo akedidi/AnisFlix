@@ -7,17 +7,11 @@ export class MovixProxyClient {
   private baseUrl: string;
 
   constructor() {
-    // Déterminer l'URL de base selon la plateforme
-    const isCapacitor = typeof window !== 'undefined' && 
-      (window as any).Capacitor !== undefined;
+    // Toujours utiliser le proxy Vercel pour éviter les blocages FAI
+    this.baseUrl = 'https://anisflix.vercel.app';
     
-    if (isCapacitor) {
-      // En mode natif, utiliser l'URL de production Vercel
-      this.baseUrl = 'https://anisflix.vercel.app';
-    } else {
-      // En mode web, utiliser l'origine actuelle
-      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
-    }
+    console.log('🔍 MovixProxyClient - baseUrl:', this.baseUrl);
+    console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel pour éviter les blocages FAI');
   }
 
   /**
@@ -113,9 +107,8 @@ export class MovixProxyClient {
    * Recherche d'anime
    */
   async searchAnime(title: string, includeSeasons = true, includeEpisodes = true): Promise<any> {
-    return this.request(`anime/search/${encodeURIComponent(title)}`, {
-      includeSeasons: includeSeasons.toString(),
-      includeEpisodes: includeEpisodes.toString()
+    return this.request('search', {
+      title: title
     });
   }
 }
