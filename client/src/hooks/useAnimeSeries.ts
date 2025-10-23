@@ -67,6 +67,8 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
 };
 
 export const useAnimeSeries = (title: string, enabled: boolean = true) => {
+  console.log('🔍 useAnimeSeries - Appelé avec:', { title, enabled });
+  
   return useQuery({
     queryKey: ['anime-series', title],
     queryFn: () => fetchAnimeSeries(title),
@@ -90,6 +92,8 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   console.log('🔍 useAnimeVidMolyLinks - animeData:', animeData);
   console.log('🔍 useAnimeVidMolyLinks - isLoading:', isLoading);
   console.log('🔍 useAnimeVidMolyLinks - error:', error);
+  console.log('🔍 useAnimeVidMolyLinks - animeData existe?', !!animeData);
+  console.log('🔍 useAnimeVidMolyLinks - animeData.seasons existe?', !!animeData?.seasons);
   
   const vidmolyLinks = {
     vf: [] as any[],
