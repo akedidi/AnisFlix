@@ -1,3 +1,4 @@
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { movixProxy } from '@/lib/movixProxy';
 
@@ -77,7 +78,7 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
   console.log('🔍 useAnimeSeries - title existe?', !!title);
   console.log('🔍 useAnimeSeries - enabled:', enabled);
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['anime-series', title],
     queryFn: () => fetchAnimeSeries(title),
     enabled: enabled && !!title,
@@ -86,6 +87,16 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
     refetchOnMount: true, // Forcer le refetch au montage
     refetchOnWindowFocus: true, // Forcer le refetch au focus
   });
+  
+  // Forcer le refetch si les données sont périmées
+  React.useEffect(() => {
+    if (query.isStale && !query.isFetching) {
+      console.log('🔄 useAnimeSeries - Forcer refetch car isStale:', query.isStale);
+      query.refetch();
+    }
+  }, [query.isStale, query.isFetching, query.refetch]);
+  
+  return query;
 };
 
 // Hook pour extraire les liens VidMoly d'une série anime
