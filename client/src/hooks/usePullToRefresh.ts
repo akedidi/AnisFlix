@@ -43,8 +43,9 @@ export function usePullToRefresh({
       // Seulement si on est vraiment en haut de l'écran (avec tolérance)
       if (isReallyAtTop) {
         startY.current = e.touches[0].clientY;
-        setIsPulling(true);
-        console.log('🔄 [PULL] ✅ PULL ACTIVÉ - startY:', startY.current);
+        // NE PAS activer isPulling immédiatement - attendre un mouvement
+        setIsPulling(false);
+        console.log('🔄 [PULL] ✅ PULL PRÉPARÉ - startY:', startY.current, 'mais isPulling reste false');
       } else {
         // Si on n'est pas en haut, ne pas activer le pull
         setIsPulling(false);
@@ -64,23 +65,35 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] scrollTop:', scrollTop);
       console.log('🔄 [PULL] bodyScrollTop:', bodyScrollTop);
       
-      if (!isPulling || !isStillAtTop) {
-        console.log('🔄 [PULL] ❌ Touch move ignoré - pas en haut ou pas en pull');
+      if (!isStillAtTop) {
+        console.log('🔄 [PULL] ❌ Touch move ignoré - pas en haut');
         return;
       }
 
       currentY.current = e.touches[0].clientY;
       const distance = Math.max(0, currentY.current - startY.current);
       
-      console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance);
+      console.log('🔄 [PULL] distance calculée:', distance);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
-      setPullDistance(distance);
+      // Activer isPulling seulement si on tire vraiment vers le bas (distance > 5px)
+      if (distance > 5 && !isPulling) {
+        console.log('🔄 [PULL] ✅ ACTIVATION DU PULL - distance > 5px');
+        setIsPulling(true);
+      }
       
-      // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
-      if (distance > 10) { // Seuil plus élevé pour éviter les faux positifs
-        console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 10');
-        e.preventDefault();
+      // Seulement traiter le mouvement si on est en pull
+      if (isPulling || distance > 5) {
+        console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance);
+        setPullDistance(distance);
+        
+        // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
+        if (distance > 10) { // Seuil plus élevé pour éviter les faux positifs
+          console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 10');
+          e.preventDefault();
+        }
+      } else {
+        console.log('🔄 [PULL] ❌ Touch move ignoré - pas assez de distance');
       }
     };
 
