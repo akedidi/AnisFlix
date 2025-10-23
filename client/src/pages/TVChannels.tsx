@@ -483,15 +483,17 @@ export default function TVChannels() {
     console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
     console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     
-    // Sur mobile web et natif, supprimer les liens MPD
+    // Sur mobile web et natif, supprimer le Lien 1 (MPD), garder seulement Lien 2 (HLS)
     if (isMobileDevice || isNativeApp) {
       const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
+      console.log(`[FILTER LINKS] Mobile/Native - Suppression Lien 1 (MPD), garde Lien 2 (HLS)`);
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
       return filteredLinks;
     }
     
-    // Sur desktop, garder tous les liens (y compris MPD)
+    // Sur desktop, garder tous les liens (Lien 1 MPD + Lien 2 HLS)
+    console.log(`[FILTER LINKS] Desktop - Garde Lien 1 (MPD) + Lien 2 (HLS)`);
     console.log(`[FILTER LINKS] Desktop - All links kept: ${channel.links.length}`);
     console.log(`[FILTER LINKS] Desktop - All links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     return channel.links;
