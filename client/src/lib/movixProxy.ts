@@ -113,7 +113,8 @@ export class MovixProxyClient {
     
     // Essayer d'abord l'endpoint anime/search
     try {
-      const animeResult = await this.request(`anime/search/${encodeURIComponent(cleanTitle)}`, {
+      // Ne pas encoder le titre car il sera encodé par l'URL
+      const animeResult = await this.request(`anime/search/${cleanTitle}`, {
         includeSeasons: includeSeasons.toString(),
         includeEpisodes: includeEpisodes.toString()
       });

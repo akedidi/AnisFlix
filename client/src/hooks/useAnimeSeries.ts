@@ -88,13 +88,13 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
     refetchOnWindowFocus: true, // Forcer le refetch au focus
   });
   
-  // Forcer le refetch si les données sont périmées
+  // Forcer le refetch si les données sont périmées (une seule fois)
   React.useEffect(() => {
-    if (query.isStale && !query.isFetching) {
-      console.log('🔄 useAnimeSeries - Forcer refetch car isStale:', query.isStale);
+    if (query.isStale && !query.isFetching && !query.data) {
+      console.log('🔄 useAnimeSeries - Forcer refetch car isStale et pas de données:', query.isStale);
       query.refetch();
     }
-  }, [query.isStale, query.isFetching, query.refetch]);
+  }, [query.isStale, query.isFetching, query.data, query.refetch]);
   
   return query;
 };

@@ -38,12 +38,17 @@ export default async function handler(req, res) {
     }
 
     // Construire l'URL Movix
+    // Décoder le path pour éviter le double encodage
+    const decodedPath = decodeURIComponent(path);
+    console.log(`[MOVIX PROXY] Path original: ${path}`);
+    console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
+    
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
-    if (path.startsWith('anime/search/')) {
-      movixUrl = `https://api.movix.site/${path}`;
+    if (decodedPath.startsWith('anime/search/')) {
+      movixUrl = `https://api.movix.site/${decodedPath}`;
     } else {
-      movixUrl = `https://api.movix.site/api/${path}`;
+      movixUrl = `https://api.movix.site/api/${decodedPath}`;
     }
     const url = new URL(movixUrl);
     
