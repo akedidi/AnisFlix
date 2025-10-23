@@ -145,11 +145,22 @@ const isCapacitor = () => {
   const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
   const isNativeApp = hasCapacitor && hasCapacitorPlugins;
   
+  // Vérifier si on est sur un navigateur web (même avec Capacitor)
+  const isWebBrowser = navigator.userAgent.includes('Chrome') || 
+                       navigator.userAgent.includes('Safari') || 
+                       navigator.userAgent.includes('Firefox') ||
+                       navigator.userAgent.includes('Edge');
+  
+  // Si c'est un navigateur web, ce n'est pas une vraie app native
+  const isRealNativeApp = isNativeApp && !isWebBrowser;
+  
   console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}`);
   console.log(`[CAPACITOR DETECTION] hasPlugins: ${hasCapacitorPlugins}`);
   console.log(`[CAPACITOR DETECTION] isNativeApp: ${isNativeApp}`);
+  console.log(`[CAPACITOR DETECTION] isWebBrowser: ${isWebBrowser}`);
+  console.log(`[CAPACITOR DETECTION] isRealNativeApp: ${isRealNativeApp}`);
   
-  return isNativeApp;
+  return isRealNativeApp;
 };
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
