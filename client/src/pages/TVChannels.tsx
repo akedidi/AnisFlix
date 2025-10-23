@@ -307,17 +307,44 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
 const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
   try {
     const channelName = CHANNEL_NAME_MAPPING[channelId];
-    if (!channelName) return null;
+    console.log(`[LOGO API] Recherche logo pour ${channelId} -> ${channelName}`);
+    
+    if (!channelName) {
+      console.log(`[LOGO API] Aucun mapping trouvé pour ${channelId}`);
+      return null;
+    }
     
     const response = await fetch('https://jaruba.github.io/channel-logos/logo_paths.json');
     const logos = await response.json();
+    console.log(`[LOGO API] API chargée, ${Object.keys(logos).length} logos disponibles`);
     
     // Chercher le logo correspondant (insensible à la casse)
     const logoPath = logos[channelName.toLowerCase()];
+    console.log(`[LOGO API] Recherche "${channelName.toLowerCase()}" -> ${logoPath ? 'TROUVÉ' : 'NON TROUVÉ'}`);
+    
     if (logoPath) {
-      return `https://jaruba.github.io/channel-logos${logoPath}`;
+      const fullUrl = `https://jaruba.github.io/channel-logos/export/transparent-color${logoPath}`;
+      console.log(`[LOGO API] URL complète: ${fullUrl}`);
+      return fullUrl;
     }
     
+    // Essayer des variations du nom
+    const variations = [
+      channelName.toLowerCase(),
+      channelName.toLowerCase().replace(/\s+/g, ''),
+      channelName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+      channelName.toLowerCase().replace(/\s+/g, '-'),
+    ];
+    
+    for (const variation of variations) {
+      if (logos[variation]) {
+        const fullUrl = `https://jaruba.github.io/channel-logos/export/transparent-color${logos[variation]}`;
+        console.log(`[LOGO API] Trouvé avec variation "${variation}": ${fullUrl}`);
+        return fullUrl;
+      }
+    }
+    
+    console.log(`[LOGO API] Aucun logo trouvé pour ${channelName} (essayé: ${variations.join(', ')})`);
     return null;
   } catch (error) {
     console.error(`[LOGO API] Erreur lors du chargement des logos:`, error);
