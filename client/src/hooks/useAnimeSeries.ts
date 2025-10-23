@@ -38,55 +38,23 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
     const data = await movixProxy.searchAnime(title, true, true);
     console.log('🔍 fetchAnimeSeries - Réponse API Movix:', data);
 
-    if (data && data.results && Array.isArray(data.results)) {
-      // Chercher une série anime dans les résultats
-      const animeSeries = data.results.find(result => 
-        result.type === 'animes' && 
-        (result.name.toLowerCase().includes('one punch man') || 
-         result.name.toLowerCase().includes('one-punch man'))
-      );
+    if (data && Array.isArray(data) && data.length > 0) {
+      // L'API anime/search retourne directement un tableau avec les données complètes
+      const animeSeries = data[0];
+      console.log('🔍 fetchAnimeSeries - Série anime trouvée:', animeSeries);
+      console.log('🔍 fetchAnimeSeries - Saisons disponibles:', animeSeries.seasons);
+      console.log('🔍 fetchAnimeSeries - Nombre de saisons:', animeSeries.seasons?.length);
       
-      if (animeSeries) {
-        console.log('🔍 fetchAnimeSeries - Série anime trouvée:', animeSeries);
-        
-        // Utiliser les vraies données de l'API Movix
-        console.log('🔍 fetchAnimeSeries - ID de la série:', animeSeries.id);
-        console.log('🔍 fetchAnimeSeries - Données disponibles:', animeSeries);
-        console.log('🔍 fetchAnimeSeries - Last link:', animeSeries.last_link);
-        
-        // Créer une structure basée sur les données réelles de Movix
-        const seasonNumber = animeSeries.last_link?.saison || 1;
-        const episodeNumber = animeSeries.last_link?.episode || 1;
-        
-        const season = {
-          name: `Saison ${seasonNumber}`,
-          episodes: [{
-            index: episodeNumber,
-            name: `Épisode ${episodeNumber}`,
-            streaming_links: [{
-              language: 'vf',
-              players: [
-                `https://vidmoly.net/embed/${animeSeries.id}-${seasonNumber}-${episodeNumber}-vf`,
-                `https://vidmoly.to/embed/${animeSeries.id}-${seasonNumber}-${episodeNumber}-vf`
-              ]
-            }, {
-              language: 'vostfr',
-              players: [
-                `https://vidmoly.net/embed/${animeSeries.id}-${seasonNumber}-${episodeNumber}-vostfr`,
-                `https://vidmoly.to/embed/${animeSeries.id}-${seasonNumber}-${episodeNumber}-vostfr`
-              ]
-            }]
-          }]
-        };
-        
-        const animeData: AnimeSeriesData = {
-          name: animeSeries.name,
-          seasons: [season]
-        };
-        
-        console.log('🔍 fetchAnimeSeries - Structure basée sur les données Movix:', animeData);
-        return animeData;
-      }
+      // Utiliser les vraies données de l'API Movix avec les liens VidMoly
+      const animeData: AnimeSeriesData = {
+        name: animeSeries.name,
+        seasons: animeSeries.seasons || []
+      };
+      
+      console.log('🔍 fetchAnimeSeries - Structure avec vraies données VidMoly:', animeData);
+      console.log('🔍 fetchAnimeSeries - Première saison:', animeData.seasons[0]);
+      console.log('🔍 fetchAnimeSeries - Premier épisode:', animeData.seasons[0]?.episodes[0]);
+      return animeData;
     }
     
     // Si aucun résultat trouvé, retourner null
@@ -130,12 +98,16 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
 
   if (animeData?.seasons) {
     console.log('🔍 useAnimeVidMolyLinks - Saisons trouvées:', animeData.seasons);
+    console.log('🔍 useAnimeVidMolyLinks - Recherche saison numéro:', seasonNumber);
+    console.log('🔍 useAnimeVidMolyLinks - Noms des saisons:', animeData.seasons.map(s => s.name));
     
     // Trouver la saison par numéro
     const season = animeData.seasons.find(s => 
       s.name.toLowerCase().includes(`saison ${seasonNumber}`) || 
       s.name.toLowerCase().includes(`season ${seasonNumber}`)
     );
+    
+    console.log('🔍 useAnimeVidMolyLinks - Saison trouvée:', season);
     
     if (season) {
       console.log('🔍 useAnimeVidMolyLinks - Saison trouvée:', season);

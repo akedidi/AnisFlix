@@ -107,9 +107,25 @@ export class MovixProxyClient {
    * Recherche d'anime
    */
   async searchAnime(title: string, includeSeasons = true, includeEpisodes = true): Promise<any> {
-    return this.request('search', {
-      title: title
-    });
+    // Utiliser l'endpoint search avec une recherche spécifique pour anime
+    const cleanTitle = title.replace(/ - Saison \d+ Épisode \d+/, '').trim();
+    console.log('🔍 MovixProxy - Recherche anime avec titre:', cleanTitle);
+    
+    // Essayer d'abord l'endpoint anime/search
+    try {
+      const animeResult = await this.request(`anime/search/${encodeURIComponent(cleanTitle)}`, {
+        includeSeasons: includeSeasons.toString(),
+        includeEpisodes: includeEpisodes.toString()
+      });
+      console.log('✅ MovixProxy - Endpoint anime/search fonctionne');
+      return animeResult;
+    } catch (error) {
+      console.log('⚠️ MovixProxy - Endpoint anime/search échoué, utilisation de search');
+      // Fallback vers l'endpoint search
+      return this.request('search', {
+        title: cleanTitle
+      });
+    }
   }
 
   /**
