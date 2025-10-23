@@ -20,7 +20,10 @@ export function usePullToRefresh({
   const isAtTop = useRef(false);
 
   useEffect(() => {
-    if (disabled) return;
+    if (disabled) {
+      console.log('🔄 [PULL] Hook désactivé - pas d\'event listeners');
+      return;
+    }
 
     const handleTouchStart = (e: TouchEvent) => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;

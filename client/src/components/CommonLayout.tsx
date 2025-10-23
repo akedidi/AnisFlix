@@ -58,13 +58,15 @@ export default function CommonLayout({
         showRefreshButton={showRefreshButton}
       />
       
-      {/* Pull to Refresh Indicator */}
-      <PullToRefreshIndicator
-        isRefreshing={isRefreshing}
-        pullDistance={pullDistance}
-        isPulling={isPulling}
-        threshold={80}
-      />
+      {/* Pull to Refresh Indicator - seulement si activé */}
+      {enablePullToRefresh && (
+        <PullToRefreshIndicator
+          isRefreshing={isRefreshing}
+          pullDistance={pullDistance}
+          isPulling={isPulling}
+          threshold={80}
+        />
+      )}
       
       {/* Desktop Sidebar */}
       <DesktopSidebar />
