@@ -149,11 +149,7 @@ const isCapacitor = () => {
   console.log(`[CAPACITOR DETECTION] hasPlugins: ${hasCapacitorPlugins}`);
   console.log(`[CAPACITOR DETECTION] isNativeApp: ${isNativeApp}`);
   
-  // TEMPORAIRE: Forcer false pour tous les cas (test)
-  const forceWeb = true;
-  console.log(`[CAPACITOR DETECTION] FORCE WEB: ${forceWeb}`);
-  
-  return forceWeb ? false : isNativeApp;
+  return isNativeApp;
 };
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
@@ -487,12 +483,8 @@ export default function TVChannels() {
     console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
     console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     
-    // TEMPORAIRE: Forcer desktop pour test
-    const forceDesktop = true;
-    console.log(`[FILTER LINKS] FORCE DESKTOP: ${forceDesktop}`);
-    
     // Sur mobile web et natif, supprimer les liens MPD
-    if ((isMobileDevice || isNativeApp) && !forceDesktop) {
+    if (isMobileDevice || isNativeApp) {
       const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
       console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
@@ -808,11 +800,7 @@ export default function TVChannels() {
                   console.log(`[UI LINKS] Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
                   console.log(`[UI LINKS] Show selector: ${filteredLinks && filteredLinks.length > 1}`);
                   
-                  // TEMPORAIRE: Forcer l'affichage pour test
-                  const forceShow = true;
-                  console.log(`[UI LINKS] FORCE SHOW: ${forceShow}`);
-                  
-                  return (filteredLinks && filteredLinks.length > 1) || forceShow ? (
+                  return filteredLinks && filteredLinks.length > 1 ? (
                     <Card className="p-4">
                       <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
                       <div className="flex flex-wrap gap-2">
