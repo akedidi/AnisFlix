@@ -466,13 +466,31 @@ export default function TVChannels() {
     }
   }, [selectedChannel]);
 
+  // Fonction pour filtrer les liens selon la plateforme
+  const getFilteredLinks = (channel: TVChannel): TVChannelLink[] => {
+    const isMobileDevice = isMobile();
+    const isNativeApp = isCapacitor();
+    
+    // Sur mobile web et natif, supprimer les liens MPD
+    if (isMobileDevice || isNativeApp) {
+      return channel.links.filter(link => link.type !== 'mpd');
+    }
+    
+    // Sur desktop, garder tous les liens
+    return channel.links;
+  };
+
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
     console.log(`[SELECT LINK] Channel: ${channel.name}, Link index: ${linkIndex}`);
     console.log(`[SELECT LINK] Is mobile: ${isMobile()}, Is Capacitor: ${isCapacitor()}`);
     
-    if (channel.links && channel.links.length > linkIndex) {
-      const link = channel.links[linkIndex];
+    // Obtenir les liens filtrés selon la plateforme
+    const filteredLinks = getFilteredLinks(channel);
+    console.log(`[SELECT LINK] Liens filtrés:`, filteredLinks);
+    
+    if (filteredLinks && filteredLinks.length > linkIndex) {
+      const link = filteredLinks[linkIndex];
       console.log(`[SELECT LINK] Link sélectionné:`, link);
       
       // Utiliser le bon player selon le type de stream et la plateforme
@@ -757,24 +775,27 @@ export default function TVChannels() {
             {selectedChannel ? (
               <div className="space-y-4">
                 {/* Sélecteur de liens */}
-                {selectedChannel.links && selectedChannel.links.length > 1 && (
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedChannel.links.map((link, index) => (
-                        <Button
-                          key={index}
-                          variant={selectedLinkIndex === index ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedLinkIndex(index)}
-                          className="text-xs"
-                        >
-                          Lien {index + 1}
-                        </Button>
-                      ))}
-                    </div>
-                  </Card>
-                )}
+                {(() => {
+                  const filteredLinks = getFilteredLinks(selectedChannel);
+                  return filteredLinks && filteredLinks.length > 1 && (
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {filteredLinks.map((link, index) => (
+                          <Button
+                            key={index}
+                            variant={selectedLinkIndex === index ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedLinkIndex(index)}
+                            className="text-xs"
+                          >
+                            Lien {index + 1}
+                          </Button>
+                        ))}
+                      </div>
+                    </Card>
+                  );
+                })()}
 
                 <Card className="overflow-hidden">
                   <div className="aspect-video bg-black relative">
