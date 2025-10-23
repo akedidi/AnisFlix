@@ -109,12 +109,14 @@ export class MovixProxyClient {
   async searchAnime(title: string, includeSeasons = true, includeEpisodes = true): Promise<any> {
     // Utiliser l'endpoint search avec une recherche spécifique pour anime
     const cleanTitle = title.replace(/ - Saison \d+ Épisode \d+/, '').trim();
-    console.log('🔍 MovixProxy - Recherche anime avec titre:', cleanTitle);
+    // Remplacer les tirets par des espaces pour correspondre à l'API
+    const finalTitle = cleanTitle.replace(/-/g, ' ');
+    console.log('🔍 MovixProxy - Recherche anime avec titre:', finalTitle);
     
     // Essayer d'abord l'endpoint anime/search
     try {
       // Ne pas encoder le titre car il sera encodé par l'URL
-      const animeResult = await this.request(`anime/search/${cleanTitle}`, {
+      const animeResult = await this.request(`anime/search/${finalTitle}`, {
         includeSeasons: includeSeasons.toString(),
         includeEpisodes: includeEpisodes.toString()
       });
@@ -124,7 +126,7 @@ export class MovixProxyClient {
       console.log('⚠️ MovixProxy - Endpoint anime/search échoué, utilisation de search');
       // Fallback vers l'endpoint search
       return this.request('search', {
-        title: cleanTitle
+        title: finalTitle
       });
     }
   }

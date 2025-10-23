@@ -79,23 +79,16 @@ export const useAnimeSeries = (title: string, enabled: boolean = true) => {
   console.log('🔍 useAnimeSeries - enabled:', enabled);
   
   const query = useQuery({
-    queryKey: ['anime-series', title, Date.now()], // Ajouter timestamp pour forcer un nouveau cache
+    queryKey: ['anime-series', title],
     queryFn: () => fetchAnimeSeries(title),
     enabled: enabled && !!title,
-    staleTime: 0, // Pas de cache pour forcer le refetch
-    cacheTime: 0, // Pas de cache du tout
+    staleTime: 1000 * 60 * 60, // 1 heure de cache
+    cacheTime: 1000 * 60 * 60, // 1 heure de cache
     retry: 1,
-    refetchOnMount: true, // Forcer le refetch au montage
-    refetchOnWindowFocus: true, // Forcer le refetch au focus
+    refetchOnMount: false, // Pas de refetch au montage
+    refetchOnWindowFocus: false, // Pas de refetch au focus
+    refetchOnReconnect: false, // Pas de refetch sur reconnexion
   });
-  
-  // Forcer le refetch immédiatement
-  React.useEffect(() => {
-    if (enabled && title && !query.isFetching) {
-      console.log('🔄 useAnimeSeries - Forcer refetch immédiat pour:', title);
-      query.refetch();
-    }
-  }, [enabled, title, query.isFetching, query.refetch]);
   
   return query;
 };
@@ -148,8 +141,12 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
         console.log('🔍 useAnimeVidMolyLinks - Streaming links:', episode.streaming_links);
         
         // Extraire les liens VidMoly des streaming_links
+        console.log('🔍 useAnimeVidMolyLinks - Épisode streaming_links:', episode.streaming_links);
+        
         episode.streaming_links?.forEach(link => {
           console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
+          console.log('🔍 useAnimeVidMolyLinks - Link language:', link.language);
+          console.log('🔍 useAnimeVidMolyLinks - Link players:', link.players);
           
           // Filtrer les liens VidMoly dans les players
           const vidmolyPlayers = link.players.filter((playerUrl: string) => 
@@ -157,6 +154,7 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
           );
           
           console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
+          console.log('🔍 useAnimeVidMolyLinks - Nombre de players VidMoly:', vidmolyPlayers.length);
           
           vidmolyPlayers.forEach((playerUrl: string) => {
             // Convertir vidmoly.to en vidmoly.net pour une meilleure compatibilité
