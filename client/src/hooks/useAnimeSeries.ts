@@ -30,11 +30,14 @@ interface AnimeSeriesData {
 }
 
 const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> => {
+  console.log('🚀 fetchAnimeSeries - DÉBUT avec titre:', title);
+  
   try {
     // Utiliser le titre complet pour la recherche Movix
     console.log('🔍 fetchAnimeSeries - Titre complet pour recherche:', title);
     
     // Utiliser l'API Movix avec le titre complet
+    console.log('🔍 fetchAnimeSeries - Appel API Movix...');
     const data = await movixProxy.searchAnime(title, true, true);
     console.log('🔍 fetchAnimeSeries - Réponse API Movix:', data);
 
@@ -61,7 +64,9 @@ const fetchAnimeSeries = async (title: string): Promise<AnimeSeriesData | null> 
     console.log('🔍 fetchAnimeSeries - Aucune série anime trouvée pour:', title);
     return null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des données anime:', error);
+    console.error('❌ fetchAnimeSeries - ERREUR lors de la récupération des données anime:', error);
+    console.error('❌ fetchAnimeSeries - Type d\'erreur:', typeof error);
+    console.error('❌ fetchAnimeSeries - Message d\'erreur:', error?.message);
     return null;
   }
 };
