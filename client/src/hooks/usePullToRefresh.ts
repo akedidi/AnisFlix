@@ -24,10 +24,20 @@ export function usePullToRefresh({
   useEffect(() => {
     if (disabled) {
       console.log('🔄 [PULL] Hook désactivé - pas d\'event listeners');
+      // Réinitialiser tous les états quand désactivé
+      setIsPulling(false);
+      setPullDistance(0);
+      setIsRefreshing(false);
       return;
     }
 
     const handleTouchStart = (e: TouchEvent) => {
+      // Vérifier d'abord si le hook est désactivé
+      if (disabled) {
+        console.log('🔄 [PULL] Touch start ignoré - hook désactivé');
+        return;
+      }
+      
       // Vérifications multiples pour s'assurer qu'on est vraiment en haut
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const bodyScrollTop = document.body.scrollTop || 0;
@@ -70,6 +80,12 @@ export function usePullToRefresh({
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      // Vérifier d'abord si le hook est désactivé
+      if (disabled) {
+        console.log('🔄 [PULL] Touch move ignoré - hook désactivé');
+        return;
+      }
+      
       // Vérifier à nouveau qu'on est en haut avant de traiter le mouvement
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const bodyScrollTop = document.body.scrollTop || 0;
@@ -129,6 +145,12 @@ export function usePullToRefresh({
     };
 
     const handleTouchEnd = () => {
+      // Vérifier d'abord si le hook est désactivé
+      if (disabled) {
+        console.log('🔄 [PULL] Touch end ignoré - hook désactivé');
+        return;
+      }
+      
       console.log('🔄 [PULL] ===== TOUCH END =====');
       console.log('🔄 [PULL] isPulling:', isPulling);
       
