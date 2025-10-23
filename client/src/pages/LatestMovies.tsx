@@ -9,6 +9,7 @@ import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMultiSearch } from "@/hooks/useTMDB";
+import { useNativeDetection } from "@/hooks/useNativeDetection";
 
 export default function LatestMovies() {
   const { t } = useLanguage();
@@ -18,6 +19,7 @@ export default function LatestMovies() {
   // Fetch data from TMDB
   const { data: moviesData, isLoading: moviesLoading } = useLatestMovies(currentPage);
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  const { getFadeClass } = useNativeDetection();
 
   const movies = moviesData?.results || [];
   const totalPages = moviesData?.total_pages || 1;
@@ -37,7 +39,7 @@ export default function LatestMovies() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
+    <div className={getFadeClass("min-h-screen fade-in-up")}>
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       

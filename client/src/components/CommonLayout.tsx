@@ -10,6 +10,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useNativeDetection } from "@/hooks/useNativeDetection";
 
 interface CommonLayoutProps {
   title?: string;
@@ -37,6 +38,9 @@ export default function CommonLayout({
   
   // Gérer le scroll sur mobile
   useMobileScroll();
+  
+  // Détecter l'environnement natif
+  const { isNativeMobile, getContainerClass } = useNativeDetection();
 
   // Gérer le pull-to-refresh
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
@@ -113,7 +117,7 @@ export default function CommonLayout({
       </div>
 
       {/* Main Content */}
-      <div className="main-content min-h-screen md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0 overflow-y-auto">
+      <div className={getContainerClass("main-content min-h-screen md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0 overflow-y-auto")}>
         {children}
       </div>
     </>

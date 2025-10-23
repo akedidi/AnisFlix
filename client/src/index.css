@@ -217,13 +217,11 @@ html, body {
   animation: fadeInUp 0.3s ease-out forwards;
 }
 
-/* Désactiver l'animation fade-in-up sur mobile natif (Capacitor) */
-@media (max-width: 768px) {
-  .fade-in-up {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
+/* Désactiver l'animation fade-in-up sur mobile natif (Capacitor) uniquement */
+.no-fade-animation .fade-in-up {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .fade-in-down {
