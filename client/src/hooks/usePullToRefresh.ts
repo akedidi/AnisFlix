@@ -32,15 +32,17 @@ export function usePullToRefresh({
       return;
     }
 
-    // Vérifier si on est sur la page TVChannels (désactiver complètement)
+    // Vérifier si on est sur la page TVChannels (désactiver seulement les event listeners de pull-to-refresh)
     const isTVChannelsPage = window.location.pathname.includes('/tv-channels') || 
                             window.location.pathname.includes('/channels');
     
     if (isTVChannelsPage) {
-      console.log('🔄 [PULL] Page TVChannels détectée - désactivation complète');
+      console.log('🔄 [PULL] Page TVChannels détectée - désactivation des event listeners de pull-to-refresh');
+      console.log('🔄 [PULL] Note: Le scroll vers le haut lors de la sélection de chaîne reste actif');
       setIsPulling(false);
       setPullDistance(0);
       setIsRefreshing(false);
+      // NE PAS ajouter d'event listeners de pull-to-refresh
       return;
     }
 
