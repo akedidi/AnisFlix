@@ -19,7 +19,13 @@ declare global {
 
 // Fonction pour détecter si on est sur mobile
 const isMobile = () => {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const userAgent = navigator.userAgent;
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  
+  console.log(`[MOBILE DETECTION] UserAgent: ${userAgent}`);
+  console.log(`[MOBILE DETECTION] isMobileDevice: ${isMobileDevice}`);
+  
+  return isMobileDevice;
 };
 
 // Fonction pour scroll vers le haut optimisée - cible le bon conteneur
@@ -471,12 +477,18 @@ export default function TVChannels() {
     const isMobileDevice = isMobile();
     const isNativeApp = isCapacitor();
     
+    console.log(`[FILTER LINKS] isMobileDevice: ${isMobileDevice}, isNativeApp: ${isNativeApp}`);
+    console.log(`[FILTER LINKS] Original links:`, channel.links);
+    
     // Sur mobile web et natif, supprimer les liens MPD
     if (isMobileDevice || isNativeApp) {
-      return channel.links.filter(link => link.type !== 'mpd');
+      const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
+      console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks);
+      return filteredLinks;
     }
     
-    // Sur desktop, garder tous les liens
+    // Sur desktop, garder tous les liens (y compris MPD)
+    console.log(`[FILTER LINKS] Desktop - All links kept:`, channel.links);
     return channel.links;
   };
 
