@@ -111,6 +111,13 @@ export class MovixProxyClient {
       title: title
     });
   }
+
+  /**
+   * Récupère les détails d'une série anime
+   */
+  async getSeriesDetails(seriesId: number): Promise<any> {
+    return this.request(`anime/${seriesId}`);
+  }
 }
 
 // Instance singleton
