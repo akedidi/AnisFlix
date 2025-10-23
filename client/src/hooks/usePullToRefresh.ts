@@ -33,8 +33,14 @@ export function usePullToRefresh({
     }
 
     // Vérifier si on est sur la page TVChannels (désactiver seulement les event listeners de pull-to-refresh)
-    const isTVChannelsPage = window.location.pathname.includes('/tv-channels') || 
-                            window.location.pathname.includes('/channels');
+    const currentPath = window.location.pathname;
+    const currentHref = window.location.href;
+    const isTVChannelsPage = currentPath.includes('/tv-channels') || 
+                            currentPath.includes('/channels') ||
+                            currentHref.includes('/tv-channels') ||
+                            currentHref.includes('/channels');
+    
+    console.log('🔄 [PULL] Détection de page - pathname:', currentPath, 'href:', currentHref, 'isTVChannelsPage:', isTVChannelsPage);
     
     if (isTVChannelsPage) {
       console.log('🔄 [PULL] Page TVChannels détectée - désactivation des event listeners de pull-to-refresh');
@@ -145,13 +151,14 @@ export function usePullToRefresh({
       }
       
       // Seulement traiter le mouvement si on est en pull ET qu'on tire vers le bas
-      if ((isPulling || distance > 5) && isMovingDown) {
+      // ET que la distance est significative (éviter les micro-mouvements)
+      if ((isPulling || distance > 5) && isMovingDown && distance > 15) {
         console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance, 'isMovingDown:', isMovingDown);
         setPullDistance(distance);
         
         // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
-        if (distance > 10) { // Seuil plus élevé pour éviter les faux positifs
-          console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 10');
+        if (distance > 20) { // Seuil plus élevé pour éviter les faux positifs
+          console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 20');
           e.preventDefault();
         }
       } else {
@@ -215,7 +222,10 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] threshold:', threshold);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
-      if (distance >= threshold && isMovingDown) {
+      // Seuil plus élevé pour déclencher le refresh (éviter les faux positifs)
+      const refreshThreshold = Math.max(threshold, 100); // Au moins 100px
+      
+      if (distance >= refreshThreshold && isMovingDown) {
         console.log('🔄 [PULL] 🎉 REFRESH DÉCLENCHÉ !');
         setIsRefreshing(true);
         setPullDistance(0);
