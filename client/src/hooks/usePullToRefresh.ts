@@ -176,14 +176,14 @@ export function usePullToRefresh({
       }
       
       // Seulement traiter le mouvement si on est en pull ET qu'on tire vers le bas
-      // ET que la distance est significative (éviter les micro-mouvements)
-      if ((isPulling || distance > 5) && isMovingDown && distance > 15) {
+      // ET que la distance est TRÈS significative (éviter les micro-mouvements)
+      if ((isPulling || distance > 5) && isMovingDown && distance > 50) {
         console.log('🔄 [PULL] ✅ Touch move traité - distance:', distance, 'isMovingDown:', isMovingDown);
         setPullDistance(distance);
         
         // Empêcher le scroll normal pendant le pull seulement si on tire vers le bas
-        if (distance > 20) { // Seuil plus élevé pour éviter les faux positifs
-          console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 20');
+        if (distance > 100) { // Seuil très élevé pour éviter les faux positifs
+          console.log('🔄 [PULL] 🚫 preventDefault appelé - distance > 100');
           e.preventDefault();
         }
       } else {
@@ -260,8 +260,8 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] threshold:', threshold);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
-      // Seuil plus élevé pour déclencher le refresh (éviter les faux positifs)
-      const refreshThreshold = Math.max(threshold, 100); // Au moins 100px
+      // Seuil ULTRA-ÉLEVÉ pour déclencher le refresh (éviter les faux positifs)
+      const refreshThreshold = Math.max(threshold, 200); // Au moins 200px - très difficile
       
       if (distance >= refreshThreshold && isMovingDown) {
         console.log('🔄 [PULL] 🎉 REFRESH DÉCLENCHÉ !');
@@ -275,6 +275,7 @@ export function usePullToRefresh({
         }, 1000);
       } else {
         console.log('🔄 [PULL] ❌ Pas assez de distance pour déclencher ou mouvement vers le haut');
+        console.log('🔄 [PULL] Distance:', distance, 'Threshold requis:', refreshThreshold);
         setPullDistance(0);
       }
       
