@@ -99,43 +99,47 @@ export default function VidMolyPlayer({
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
         
-        // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
-        if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com')) {
-          console.log('🎬 URL déjà extraite (m3u8), utilisation directe:', vidmolyUrl);
-          
-          // Utiliser directement le m3u8 sans proxy (car c'est déjà un lien HLS valide)
-          if (Hls.isSupported()) {
-            console.log('📺 Utilisation de HLS.js pour le m3u8 direct');
-            const hls = new Hls();
-            hls.loadSource(vidmolyUrl);
-            hls.attachMedia(video);
+          // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
+          if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com')) {
+            console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
             
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              console.log('✅ Manifeste HLS parsé avec succès');
-              setIsLoading(false);
-              video.play().catch(console.error);
-            });
+            // Utiliser le proxy VidMoly pour éviter les problèmes CORS
+            const { getVidMolyProxyUrl } = await import('../utils/urlUtils');
+            const proxyUrl = getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
+            console.log('🔗 URL proxy VidMoly:', proxyUrl);
             
-            hls.on(Hls.Events.ERROR, (event, data) => {
-              console.error('❌ Erreur HLS:', data);
-              if (data.fatal) {
-                setError('Erreur de lecture HLS: ' + data.details);
+            if (Hls.isSupported()) {
+              console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
+              const hls = new Hls();
+              hls.loadSource(proxyUrl);
+              hls.attachMedia(video);
+              
+              hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                console.log('✅ Manifeste HLS parsé avec succès via proxy');
                 setIsLoading(false);
-              }
-            });
-          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            console.log('📺 Utilisation de la lecture native HLS');
-            video.src = vidmolyUrl;
-            video.addEventListener('loadedmetadata', () => {
-              console.log('✅ Métadonnées HLS chargées');
-              setIsLoading(false);
-              video.play().catch(console.error);
-            });
-          } else {
-            throw new Error('HLS non supporté sur ce navigateur');
+                video.play().catch(console.error);
+              });
+              
+              hls.on(Hls.Events.ERROR, (event, data) => {
+                console.error('❌ Erreur HLS via proxy:', data);
+                if (data.fatal) {
+                  setError('Erreur de lecture HLS: ' + data.details);
+                  setIsLoading(false);
+                }
+              });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              console.log('📺 Utilisation de la lecture native HLS avec proxy');
+              video.src = proxyUrl;
+              video.addEventListener('loadedmetadata', () => {
+                console.log('✅ Métadonnées HLS chargées via proxy');
+                setIsLoading(false);
+                video.play().catch(console.error);
+              });
+            } else {
+              throw new Error('HLS non supporté sur ce navigateur');
+            }
+            return;
           }
-          return;
-        }
         
         console.log('🎬 Appel API vidmoly...');
         
