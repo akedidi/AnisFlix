@@ -103,10 +103,26 @@ const fetchMovixDownload = async (type: 'movie' | 'tv', tmdbId: number, season?:
 };
 
 export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: number, episode?: number, title?: string) => {
+  const enabled = !!tmdbId && (type === 'movie' || (type === 'tv' && !!season && !!episode));
+  
+  console.log('🔍 [MOVIX DOWNLOAD HOOK] Hook called with:', {
+    type,
+    tmdbId,
+    season,
+    episode,
+    title,
+    enabled,
+    condition: {
+      hasTmdbId: !!tmdbId,
+      isMovie: type === 'movie',
+      isTvWithSeasonEpisode: type === 'tv' && !!season && !!episode
+    }
+  });
+  
   return useQuery({
     queryKey: ['movix-download', type, tmdbId, season, episode, title],
     queryFn: () => fetchMovixDownload(type, tmdbId, season, episode, title),
-    enabled: !!tmdbId && (type === 'movie' || (type === 'tv' && !!season && !!episode)),
+    enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   });

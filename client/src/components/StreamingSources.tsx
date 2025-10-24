@@ -78,6 +78,18 @@ export default function StreamingSources({
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
   const { data: movixDownloadNewData, isLoading: isLoadingMovixDownloadNew } = useMovixDownloadNew(type, id, season, episode, title);
   
+  // Debug logs pour MovixDownloadNew
+  console.log('🔍 [STREAMING SOURCES] MovixDownloadNew Debug:', {
+    type,
+    id,
+    season,
+    episode,
+    title,
+    isLoading: isLoadingMovixDownloadNew,
+    hasData: !!movixDownloadNewData,
+    sourcesCount: movixDownloadNewData?.sources?.length || 0
+  });
+  
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
   console.log('🔍 StreamingSources - Type:', type);
