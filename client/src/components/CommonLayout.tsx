@@ -45,12 +45,22 @@ export default function CommonLayout({
   const { isOffline } = useOffline();
   
   // Utiliser la recherche personnalisée si fournie, sinon utiliser la recherche TMDB
-  const isCustomSearch = !!customSearchQuery;
+  const isCustomSearch = !!customSearchQuery || !!customSearchResults;
   const finalSearchQuery = isCustomSearch ? customSearchQuery : searchQuery;
+  
+  console.log('🔍 [COMMON LAYOUT] ===== RECHERCHE LAYOUT =====');
+  console.log('🔍 [COMMON LAYOUT] customSearchQuery:', `"${customSearchQuery}"`);
+  console.log('🔍 [COMMON LAYOUT] isCustomSearch:', isCustomSearch);
+  console.log('🔍 [COMMON LAYOUT] finalSearchQuery:', `"${finalSearchQuery}"`);
+  console.log('🔍 [COMMON LAYOUT] customSearchResults:', customSearchResults?.length || 0);
   
   // Seulement utiliser useMultiSearch si ce n'est pas une recherche personnalisée
   const { data: tmdbSearchResults = [] } = useMultiSearch(isCustomSearch ? "" : searchQuery);
   const finalSearchResults = isCustomSearch ? (customSearchResults || []) : tmdbSearchResults;
+  
+  console.log('🔍 [COMMON LAYOUT] tmdbSearchResults:', tmdbSearchResults?.length || 0);
+  console.log('🔍 [COMMON LAYOUT] finalSearchResults:', finalSearchResults?.length || 0);
+  console.log('🔍 [COMMON LAYOUT] ===== FIN RECHERCHE LAYOUT =====');
   
   // Gérer le scroll sur mobile
   useMobileScroll();

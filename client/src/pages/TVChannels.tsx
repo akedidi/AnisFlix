@@ -570,20 +570,36 @@ export default function TVChannels() {
 
   // Fonction de recherche de chaînes
   const searchChannels = (query: string) => {
-    console.log('🔍 [TV SEARCH] Recherche de chaînes avec query:', query);
+    console.log('🔍 [TV SEARCH] ===== DÉBUT RECHERCHE CHAÎNES =====');
+    console.log('🔍 [TV SEARCH] Query reçue:', `"${query}"`);
+    console.log('🔍 [TV SEARCH] Query trim:', `"${query.trim()}"`);
+    console.log('🔍 [TV SEARCH] Query vide?', !query.trim());
     
     if (!query.trim()) {
+      console.log('🔍 [TV SEARCH] Query vide - vidage des résultats');
       setSearchResults([]);
       return;
     }
 
-    const results = TV_CHANNELS.filter(channel =>
-      channel.name.toLowerCase().includes(query.toLowerCase()) ||
-      channel.category.toLowerCase().includes(query.toLowerCase()) ||
-      TV_SECTIONS.find(s => s.id === channel.section)?.name.toLowerCase().includes(query.toLowerCase())
-    );
+    console.log('🔍 [TV SEARCH] Recherche dans', TV_CHANNELS.length, 'chaînes');
+    
+    const results = TV_CHANNELS.filter(channel => {
+      const nameMatch = channel.name.toLowerCase().includes(query.toLowerCase());
+      const categoryMatch = channel.category.toLowerCase().includes(query.toLowerCase());
+      const sectionMatch = TV_SECTIONS.find(s => s.id === channel.section)?.name.toLowerCase().includes(query.toLowerCase());
+      
+      console.log(`🔍 [TV SEARCH] ${channel.name}:`, {
+        nameMatch,
+        categoryMatch, 
+        sectionMatch,
+        matches: nameMatch || categoryMatch || sectionMatch
+      });
+      
+      return nameMatch || categoryMatch || sectionMatch;
+    });
 
-    console.log('🔍 [TV SEARCH] Résultats trouvés:', results.length, results.map(r => r.name));
+    console.log('🔍 [TV SEARCH] Résultats trouvés:', results.length);
+    console.log('🔍 [TV SEARCH] Noms des résultats:', results.map(r => r.name));
 
     // Convertir en format compatible avec SearchBar
     const searchSuggestions = results.map((channel, index) => ({
@@ -598,16 +614,26 @@ export default function TVChannels() {
     }));
 
     console.log('🔍 [TV SEARCH] Suggestions formatées:', searchSuggestions.length);
+    console.log('🔍 [TV SEARCH] Suggestions:', searchSuggestions.map(s => ({ id: s.id, title: s.title, channelId: s.channelId })));
     setSearchResults(searchSuggestions);
+    console.log('🔍 [TV SEARCH] ===== FIN RECHERCHE CHAÎNES =====');
   };
 
   // Effet pour la recherche
   useEffect(() => {
+    console.log('🔍 [TV SEARCH EFFECT] ===== DÉCLENCHEMENT EFFECT =====');
+    console.log('🔍 [TV SEARCH EFFECT] searchQuery:', `"${searchQuery}"`);
+    console.log('🔍 [TV SEARCH EFFECT] channelLogos chargés:', Object.keys(channelLogos).length);
+    
     const timeoutId = setTimeout(() => {
+      console.log('🔍 [TV SEARCH EFFECT] Timeout déclenché - appel de searchChannels');
       searchChannels(searchQuery);
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      console.log('🔍 [TV SEARCH EFFECT] Cleanup - clearTimeout');
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery, channelLogos]);
 
   // Fonction pour sélectionner une chaîne depuis la recherche
@@ -1014,7 +1040,7 @@ export default function TVChannels() {
       icon={null}
       showSearch={true}
       enablePullToRefresh={false}
-      customSearchQuery={searchQuery}
+      customSearchQuery={searchQuery || ""} // Toujours utiliser la recherche personnalisée
       customSearchResults={searchResults}
       onCustomSearch={setSearchQuery}
       onCustomSearchSelect={selectChannelFromSearch}
