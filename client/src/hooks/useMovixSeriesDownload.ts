@@ -142,8 +142,11 @@ export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: 
       return fetchMovixDownload(type, tmdbId, season, episode, title);
     },
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Pas de cache pour forcer l'exécution
+    gcTime: 0, // Pas de cache pour forcer l'exécution
     retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 };
 
