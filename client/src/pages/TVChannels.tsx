@@ -585,17 +585,14 @@ export default function TVChannels() {
     
     const results = TV_CHANNELS.filter(channel => {
       const nameMatch = channel.name.toLowerCase().includes(query.toLowerCase());
-      const categoryMatch = channel.category.toLowerCase().includes(query.toLowerCase());
-      const sectionMatch = TV_SECTIONS.find(s => s.id === channel.section)?.name.toLowerCase().includes(query.toLowerCase());
       
       console.log(`🔍 [TV SEARCH] ${channel.name}:`, {
         nameMatch,
-        categoryMatch, 
-        sectionMatch,
-        matches: nameMatch || categoryMatch || sectionMatch
+        query: query.toLowerCase(),
+        channelName: channel.name.toLowerCase()
       });
       
-      return nameMatch || categoryMatch || sectionMatch;
+      return nameMatch;
     });
 
     console.log('🔍 [TV SEARCH] Résultats trouvés:', results.length);

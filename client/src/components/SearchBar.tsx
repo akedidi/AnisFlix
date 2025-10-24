@@ -144,19 +144,36 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               data-testid={`search-result-${item.id}`}
             >
               {item.posterPath ? (
-                <img
-                  src={item.mediaType === 'tv' && item.posterPath.startsWith('http') 
-                    ? item.posterPath 
-                    : getOptimizedImageUrl(item.posterPath, 'w92')
-                  }
-                  alt={item.title}
-                  className="w-12 h-18 object-cover rounded"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
+                item.mediaType === 'tv' ? (
+                  // Pour les chaînes TV, utiliser le même style que dans la liste des chaînes
+                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
+                    <img
+                      src={item.posterPath}
+                      alt={item.title}
+                      className="w-full h-full object-contain scale-110"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border hidden">
+                      <Tv className="w-4 h-4 text-gray-600" />
+                    </div>
+                  </div>
+                ) : (
+                  // Pour les autres types (films, séries), garder le style original
+                  <img
+                    src={getOptimizedImageUrl(item.posterPath, 'w92')}
+                    alt={item.title}
+                    className="w-12 h-18 object-cover rounded"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                )
               ) : null}
               <div className="w-12 h-18 bg-white/10 rounded flex items-center justify-center" style={{ display: item.posterPath ? 'none' : 'flex' }}>
                 <Tv className="w-6 h-6 text-white/70" />
