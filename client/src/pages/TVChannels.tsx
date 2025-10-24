@@ -884,13 +884,20 @@ export default function TVChannels() {
                             (document as any).msFullscreenElement;
         
         if (!isFullscreen) {
-          console.log('🎥 [FULLSCREEN] Sortie du fullscreen - reprise de la lecture');
-          // Reprendre la lecture quand on sort du fullscreen
-          if (video.paused) {
-            video.play().catch(err => {
-              console.error('🎥 [FULLSCREEN] Erreur lors de la reprise:', err);
-            });
-          }
+          console.log('🎥 [FULLSCREEN] Sortie du fullscreen - maintien de la lecture');
+          // S'assurer que la lecture continue quand on sort du fullscreen
+          setTimeout(() => {
+            if (video.paused || video.ended) {
+              console.log('🎥 [FULLSCREEN] Vidéo en pause/arrêtée - reprise de la lecture');
+              video.play().catch(err => {
+                console.error('🎥 [FULLSCREEN] Erreur lors de la reprise:', err);
+              });
+            } else {
+              console.log('🎥 [FULLSCREEN] Lecture déjà en cours - pas d\'action nécessaire');
+            }
+          }, 100); // Petit délai pour s'assurer que l'état est stable
+        } else {
+          console.log('🎥 [FULLSCREEN] Entrée en fullscreen détectée');
         }
       };
       
@@ -907,11 +914,22 @@ export default function TVChannels() {
         console.log('🎥 [VIDEO] Lecture en pause');
       };
       
+      const handleEnded = () => {
+        console.log('🎥 [VIDEO] Lecture terminée - redémarrage automatique');
+        // Redémarrer automatiquement la lecture si elle se termine
+        setTimeout(() => {
+          video.play().catch(err => {
+            console.error('🎥 [VIDEO] Erreur lors du redémarrage:', err);
+          });
+        }, 100);
+      };
+      
       // Ajouter les listeners
       document.addEventListener('fullscreenchange', handleFullscreenChange);
       document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
       video.addEventListener('play', handlePlay);
       video.addEventListener('pause', handlePause);
+      video.addEventListener('ended', handleEnded);
       
       // Nettoyer les listeners lors de la destruction
       const cleanup = () => {
@@ -919,6 +937,7 @@ export default function TVChannels() {
         document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
         video.removeEventListener('play', handlePlay);
         video.removeEventListener('pause', handlePause);
+        video.removeEventListener('ended', handleEnded);
       };
       
       // Stocker la fonction de nettoyage pour l'utiliser plus tard
