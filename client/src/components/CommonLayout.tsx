@@ -43,12 +43,14 @@ export default function CommonLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
-  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
-  // Utiliser la recherche personnalisée si fournie
+  // Utiliser la recherche personnalisée si fournie, sinon utiliser la recherche TMDB
   const isCustomSearch = !!customSearchQuery;
   const finalSearchQuery = isCustomSearch ? customSearchQuery : searchQuery;
-  const finalSearchResults = isCustomSearch ? (customSearchResults || []) : searchResults;
+  
+  // Seulement utiliser useMultiSearch si ce n'est pas une recherche personnalisée
+  const { data: tmdbSearchResults = [] } = useMultiSearch(isCustomSearch ? "" : searchQuery);
+  const finalSearchResults = isCustomSearch ? (customSearchResults || []) : tmdbSearchResults;
   
   // Gérer le scroll sur mobile
   useMobileScroll();
