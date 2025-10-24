@@ -98,6 +98,47 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
+        
+        // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
+        if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com')) {
+          console.log('🎬 URL déjà extraite (m3u8), utilisation directe:', vidmolyUrl);
+          const finalUrl = vidmolyUrl;
+          console.log('✅ Utilisation directe du m3u8:', finalUrl);
+          
+          // Utiliser directement le m3u8
+          if (Hls.isSupported()) {
+            console.log('📺 Utilisation de HLS.js pour le m3u8 direct');
+            const hls = new Hls();
+            hls.loadSource(finalUrl);
+            hls.attachMedia(video);
+            
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              console.log('✅ Manifeste HLS parsé avec succès');
+              setIsLoading(false);
+              video.play().catch(console.error);
+            });
+            
+            hls.on(Hls.Events.ERROR, (event, data) => {
+              console.error('❌ Erreur HLS:', data);
+              if (data.fatal) {
+                setError('Erreur de lecture HLS: ' + data.details);
+                setIsLoading(false);
+              }
+            });
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            console.log('📺 Utilisation de la lecture native HLS');
+            video.src = finalUrl;
+            video.addEventListener('loadedmetadata', () => {
+              console.log('✅ Métadonnées HLS chargées');
+              setIsLoading(false);
+              video.play().catch(console.error);
+            });
+          } else {
+            throw new Error('HLS non supporté sur ce navigateur');
+          }
+          return;
+        }
+        
         console.log('🎬 Appel API vidmoly...');
         
         const data = await apiClient.extractVidMoly(vidmolyUrl);
