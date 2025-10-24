@@ -21,8 +21,8 @@ input[type="search"]::-webkit-search-results-decoration {
 /* Configuration spécifique pour les apps natives Capacitor */
 .native-app input[type="search"] {
   /* Forcer le type de clavier "search" */
-  inputmode: search;
-  enterkeyhint: search;
+  inputmode: search !important;
+  enterkeyhint: search !important;
   
   /* Masquer complètement la barre "Done" */
   -webkit-appearance: none;
@@ -39,6 +39,12 @@ input[type="search"]::-webkit-search-results-decoration {
   -webkit-search-cancel-button: none;
   -webkit-search-results-button: none;
   -webkit-search-results-decoration: none;
+}
+
+/* Forcer les attributs sur tous les inputs de recherche natifs */
+.native-app input[type="search"] {
+  inputmode: search !important;
+  enterkeyhint: search !important;
 }
 
 /* Styles spécifiques pour iOS natif */

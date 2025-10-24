@@ -44,6 +44,49 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Forcer les attributs de clavier sur mobile natif
+  useEffect(() => {
+    if (isCapacitor() && inputRef.current) {
+      const input = inputRef.current;
+      
+      // Fonction pour forcer les attributs
+      const forceSearchAttributes = () => {
+        input.setAttribute('inputmode', 'search');
+        input.setAttribute('enterkeyhint', 'search');
+        input.inputMode = 'search';
+        input.enterKeyHint = 'search';
+        
+        // Forcer également via le style
+        input.style.setProperty('inputmode', 'search');
+        input.style.setProperty('enterkeyhint', 'search');
+        
+        console.log('🔍 [SEARCH KEYBOARD] Attributs de clavier appliqués:', {
+          inputMode: input.inputMode,
+          enterKeyHint: input.enterKeyHint,
+          type: input.type,
+          attributes: {
+            inputmode: input.getAttribute('inputmode'),
+            enterkeyhint: input.getAttribute('enterkeyhint')
+          }
+        });
+      };
+      
+      // Appliquer immédiatement
+      forceSearchAttributes();
+      
+      // Observer les changements pour maintenir les attributs
+      const observer = new MutationObserver(() => {
+        if (input.getAttribute('inputmode') !== 'search' || input.getAttribute('enterkeyhint') !== 'search') {
+          forceSearchAttributes();
+        }
+      });
+      
+      observer.observe(input, { attributes: true, attributeFilter: ['inputmode', 'enterkeyhint'] });
+      
+      return () => observer.disconnect();
+    }
+  }, []);
+
   const updateDropdownPosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
@@ -116,6 +159,14 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             // Attributs supplémentaires pour forcer le clavier de recherche
             onFocus: (e) => {
               // Forcer le type de clavier sur focus
+              e.target.setAttribute('inputmode', 'search');
+              e.target.setAttribute('enterkeyhint', 'search');
+              // Forcer également les attributs sur l'élément
+              e.target.inputMode = 'search';
+              e.target.enterKeyHint = 'search';
+            },
+            onInput: (e) => {
+              // S'assurer que les attributs restent appliqués
               e.target.setAttribute('inputmode', 'search');
               e.target.setAttribute('enterkeyhint', 'search');
             }

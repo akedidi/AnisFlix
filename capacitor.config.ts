@@ -20,9 +20,7 @@ const config: CapacitorConfig = {
     backgroundColor: '#000000',
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: false,
-    // Configuration pour le clavier de recherche Android
-    keyboardDisplayRequiresUserAction: false
+    webContentsDebuggingEnabled: false
   },
   plugins: {
     SplashScreen: {
