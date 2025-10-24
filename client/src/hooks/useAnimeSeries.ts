@@ -144,58 +144,68 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
             vostfr: [] as any[]
           };
 
-          // Traiter tous les liens en parallèle
-          const allPromises = episode.streaming_links?.map(async (link) => {
+          // Collecter tous les liens VidMoly de tous les streaming_links
+          const allVidMolyPlayers: { url: string; language: string }[] = [];
+          
+          episode.streaming_links?.forEach(link => {
             console.log('🔍 useAnimeVidMolyLinks - Traitement link:', link.language, link.players);
-
+            
             const vidmolyPlayers = link.players.filter((playerUrl: string) =>
               playerUrl.includes('vidmoly')
             );
-
+            
             console.log('🔍 useAnimeVidMolyLinks - Players VidMoly trouvés:', vidmolyPlayers);
-
-            // Traiter tous les liens VidMoly en parallèle
-            const vidmolyPromises = vidmolyPlayers.map(async (playerUrl: string) => {
-              const normalizedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
-              console.log('🔄 URL normalisée:', playerUrl, '→', normalizedUrl);
+            
+            vidmolyPlayers.forEach(playerUrl => {
+              allVidMolyPlayers.push({
+                url: playerUrl.replace('vidmoly.to', 'vidmoly.net'),
+                language: link.language
+              });
+            });
+          });
+          
+          console.log('🔍 useAnimeVidMolyLinks - Total liens VidMoly à traiter:', allVidMolyPlayers.length);
+          
+          // Traiter TOUS les liens VidMoly en parallèle d'un coup
+          const allVidMolyPromises = allVidMolyPlayers.map(async (player) => {
+            console.log('🔄 URL normalisée:', player.url);
+            
+            try {
+              console.log('🎬 Extraction m3u8 pour VidMoly:', player.url);
+              const { apiClient } = await import('../lib/apiClient');
+              const data = await apiClient.extractVidMoly(player.url);
               
-              try {
-                console.log('🎬 Extraction m3u8 pour VidMoly:', normalizedUrl);
-                const { apiClient } = await import('../lib/apiClient');
-                const data = await apiClient.extractVidMoly(normalizedUrl);
-                
-                if (data.success && data.m3u8Url) {
-                  console.log('✅ M3U8 extrait:', data.m3u8Url);
-                  return {
-                    url: data.m3u8Url,
-                    language: link.language
-                  };
-                } else {
-                  console.log('❌ Échec extraction m3u8:', data.error);
-                  return null;
-                }
-              } catch (error) {
-                console.error('❌ Erreur extraction VidMoly:', error);
+              if (data.success && data.m3u8Url) {
+                console.log('✅ M3U8 extrait:', data.m3u8Url);
+                return {
+                  url: data.m3u8Url,
+                  language: player.language
+                };
+              } else {
+                console.log('❌ Échec extraction m3u8:', data.error);
                 return null;
               }
-            });
-            
-            const results = await Promise.all(vidmolyPromises);
-            
-            results.forEach(result => {
-              if (result) {
-                if (result.language === 'vf') {
-                  console.log('✅ Ajout lien VF:', result.url);
-                  newVidmolyLinks.vf.push(result);
-                } else if (result.language === 'vostfr') {
-                  console.log('✅ Ajout lien VOSTFR:', result.url);
-                  newVidmolyLinks.vostfr.push(result);
-                }
+            } catch (error) {
+              console.error('❌ Erreur extraction VidMoly:', error);
+              return null;
+            }
+          });
+          
+          // Attendre TOUS les résultats d'un coup
+          const allResults = await Promise.all(allVidMolyPromises);
+          
+          // Ajouter tous les résultats valides d'un coup
+          allResults.forEach(result => {
+            if (result) {
+              if (result.language === 'vf') {
+                console.log('✅ Ajout lien VF:', result.url);
+                newVidmolyLinks.vf.push(result);
+              } else if (result.language === 'vostfr') {
+                console.log('✅ Ajout lien VOSTFR:', result.url);
+                newVidmolyLinks.vostfr.push(result);
               }
-            });
-          }) || [];
-
-          await Promise.all(allPromises);
+            }
+          });
           
           console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
             vf: newVidmolyLinks.vf,
