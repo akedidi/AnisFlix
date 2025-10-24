@@ -632,7 +632,7 @@ export default function StreamingSources({
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
