@@ -73,6 +73,13 @@ export const useNativeNavigation = () => {
       let isSwipeBack = false;
       
       const handleTouchStart = (e: TouchEvent) => {
+        // Ignorer les touches sur les éléments de navigation
+        const target = e.target as HTMLElement;
+        if (target.closest('nav') || target.closest('button') || target.closest('a')) {
+          console.log(`[NATIVE NAV] Touch ignoré - élément de navigation`);
+          return;
+        }
+        
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         isSwipeBack = false;
@@ -110,8 +117,8 @@ export const useNativeNavigation = () => {
           e.stopPropagation();
         }
         
-        // Détection précoce pour bloquer le pull-to-refresh
-        if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 5 && !isSwipeBack) {
+        // Détection précoce pour bloquer le pull-to-refresh - SEULEMENT si c'est vraiment un swipe
+        if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 10 && !isSwipeBack) {
           console.log(`[NATIVE NAV] Préparation swipe back - Blocage pull-to-refresh`);
           e.preventDefault();
           e.stopPropagation();
@@ -184,6 +191,13 @@ export const useNativeNavigation = () => {
     let fallbackIsSwipeBack = false;
     
     const fallbackHandleTouchStart = (e: TouchEvent) => {
+      // Ignorer les touches sur les éléments de navigation
+      const target = e.target as HTMLElement;
+      if (target.closest('nav') || target.closest('button') || target.closest('a')) {
+        console.log(`[NATIVE NAV FALLBACK] Touch ignoré - élément de navigation`);
+        return;
+      }
+      
       fallbackStartX = e.touches[0].clientX;
       fallbackStartY = e.touches[0].clientY;
       fallbackIsSwipeBack = false;
@@ -222,8 +236,8 @@ export const useNativeNavigation = () => {
         e.stopPropagation();
       }
       
-      // Détection précoce pour bloquer le pull-to-refresh
-      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 5 && !fallbackIsSwipeBack) {
+      // Détection précoce pour bloquer le pull-to-refresh - SEULEMENT si c'est vraiment un swipe
+      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 10 && !fallbackIsSwipeBack) {
         console.log(`[NATIVE NAV FALLBACK] Préparation swipe back - Blocage pull-to-refresh`);
         e.preventDefault();
         e.stopPropagation();

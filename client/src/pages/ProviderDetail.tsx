@@ -174,11 +174,12 @@ export default function ProviderDetail() {
         {/* Movies Section */}
         {movies.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-6">Films</h2>
             <MediaCarousel
               title="Films"
               items={movies}
               onItemClick={(item) => navigate(`/movie/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/movies`}
             />
           </div>
         )}
@@ -186,11 +187,12 @@ export default function ProviderDetail() {
         {/* Series Section */}
         {series.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold mb-6">Séries</h2>
             <MediaCarousel
               title="Séries"
               items={series}
               onItemClick={(item) => navigate(`/series/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/series`}
             />
           </div>
         )}
@@ -198,33 +200,36 @@ export default function ProviderDetail() {
         {/* Movies by Genre */}
         {actionMoviesData?.results && actionMoviesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Films d'Action</h3>
             <MediaCarousel
               title="Films d'Action"
               items={actionMoviesData.results}
               onItemClick={(item) => navigate(`/movie/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/movies/action`}
             />
           </div>
         )}
 
         {dramaMoviesData?.results && dramaMoviesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Films de Drame</h3>
             <MediaCarousel
               title="Films de Drame"
               items={dramaMoviesData.results}
               onItemClick={(item) => navigate(`/movie/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/movies/drama`}
             />
           </div>
         )}
 
         {comedyMoviesData?.results && comedyMoviesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Films de Comédie</h3>
             <MediaCarousel
               title="Films de Comédie"
               items={comedyMoviesData.results}
               onItemClick={(item) => navigate(`/movie/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/movies/comedy`}
             />
           </div>
         )}
@@ -232,33 +237,36 @@ export default function ProviderDetail() {
         {/* Series by Genre */}
         {actionSeriesData?.results && actionSeriesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Séries d'Action</h3>
             <MediaCarousel
               title="Séries d'Action"
               items={actionSeriesData.results}
               onItemClick={(item) => navigate(`/series/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/series/action`}
             />
           </div>
         )}
 
         {dramaSeriesData?.results && dramaSeriesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Séries de Drame</h3>
             <MediaCarousel
               title="Séries de Drame"
               items={dramaSeriesData.results}
               onItemClick={(item) => navigate(`/series/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/series/drama`}
             />
           </div>
         )}
 
         {comedySeriesData?.results && comedySeriesData.results.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-xl font-semibold mb-4">Séries de Comédie</h3>
             <MediaCarousel
               title="Séries de Comédie"
               items={comedySeriesData.results}
               onItemClick={(item) => navigate(`/series/${item.id}`)}
+              showSeeAllButton={true}
+              sectionId={`provider/${provider.id}/series/comedy`}
             />
           </div>
         )}
