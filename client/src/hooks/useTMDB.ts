@@ -255,9 +255,12 @@ export const useMultiSearch = (query: string) => {
     queryFn: async () => {
       const data = await tmdb.searchMulti(query);
       return data.results.map((item: any) => {
+        // Filtrer les films
         if (item.media_type === "movie") {
           return transformMovie(item);
-        } else if (item.media_type === "tv") {
+        } 
+        // Filtrer les séries TV (pas les chaînes TV)
+        else if (item.media_type === "tv" && item.first_air_date) {
           return transformSeries(item);
         }
         return null;

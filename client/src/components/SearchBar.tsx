@@ -212,25 +212,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               data-testid={`search-result-${item.id}`}
             >
               {item.posterPath ? (
-                item.mediaType === 'tv' ? (
-                  // Pour les chaînes TV, utiliser le même style que dans la liste des chaînes
-                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
-                    <img
-                      src={item.posterPath}
-                      alt={item.title}
-                      className="w-full h-full object-contain scale-110"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'flex';
-                      }}
-                    />
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border hidden">
-                      <Tv className="w-4 h-4 text-gray-600" />
-                    </div>
-                  </div>
-                ) : (
-                  // Pour les autres types (films, séries), garder le style original
+                  // Afficher les posters normalement pour tous les types de contenu
                   <img
                     src={getOptimizedImageUrl(item.posterPath, 'w92')}
                     alt={item.title}
@@ -241,7 +223,6 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                       if (fallback) fallback.style.display = 'flex';
                     }}
                   />
-                )
               ) : null}
               <div className="w-12 h-18 bg-white/10 rounded flex items-center justify-center" style={{ display: item.posterPath ? 'none' : 'flex' }}>
                 <Tv className="w-6 h-6 text-white/70" />
@@ -250,7 +231,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                    {item.mediaType === "tv" ? "Chaîne TV" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
+                    {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>
                   {item.year && (
                     <span className="text-xs text-gray-300">{item.year}</span>
