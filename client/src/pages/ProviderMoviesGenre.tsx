@@ -75,12 +75,20 @@ export default function ProviderMoviesGenre() {
 
   // Fetch movies by provider and genre
   useEffect(() => {
-    if (!genreId || !providerId) return;
+    if (!providerId) return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Construire l'URL selon qu'il y a un genre ou non
+        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&watch_region=US&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+        
+        // Ajouter le genre si spécifié
+        if (genreId) {
+          baseUrl += `&with_genres=${genreId}`;
+        }
         
         // Essayer plusieurs régions pour avoir plus de contenu
         const regions = ['US', 'FR', 'GB', 'CA'];
@@ -88,9 +96,8 @@ export default function ProviderMoviesGenre() {
         
         for (const region of regions) {
           try {
-            const response = await fetch(
-              `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&with_genres=${genreId}&watch_region=${region}&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
-            );
+            const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
+            const response = await fetch(url);
             
             if (response.ok) {
               const data = await response.json();
@@ -107,9 +114,13 @@ export default function ProviderMoviesGenre() {
         
         // Si aucune région n'a donné de résultats, essayer sans restriction de région
         if (!result || !result.results || result.results.length === 0) {
-          const response = await fetch(
-            `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
-          );
+          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+          
+          if (genreId) {
+            fallbackUrl += `&with_genres=${genreId}`;
+          }
+          
+          const response = await fetch(fallbackUrl);
           
           if (response.ok) {
             result = await response.json();
@@ -154,17 +165,17 @@ export default function ProviderMoviesGenre() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If genre or provider not found, show error
-  if (!genreInfo || !providerId) {
+  // If provider not found, show error
+  if (!providerId) {
     return (
       <div className="min-h-screen fade-in-up">
         <DesktopSidebar />
         <div className="md:ml-64">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
-              <h1 className="text-2xl font-bold mb-4">Genre ou Provider non trouvé</h1>
+              <h1 className="text-2xl font-bold mb-4">Provider non trouvé</h1>
               <p className="text-muted-foreground mb-4">
-                Le genre "{genreSlug}" ou le provider "{providerId}" n'existe pas.
+                Le provider "{providerId}" n'existe pas.
               </p>
               
             </div>
@@ -205,7 +216,9 @@ export default function ProviderMoviesGenre() {
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName} {t("provider.on")} {providerName}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
+            {genreName ? `${t("movies.title")} ${genreName} ${t("provider.on")} ${providerName}` : `${t("movies.title")} ${t("provider.on")} ${providerName}`}
+          </h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
             {t("provider.discoverMoviesPrefix")} {genreName} {t("provider.discoverMoviesSuffix")} {providerName}.
           </p>

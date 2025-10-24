@@ -79,7 +79,7 @@ export default function ProviderSeriesGenre() {
 
   // Fetch series by provider and genre
   useEffect(() => {
-    if (!genreId || !providerId) return;
+    if (!providerId) return;
 
     const fetchData = async () => {
       try {
@@ -158,8 +158,8 @@ export default function ProviderSeriesGenre() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If genre or provider not found, show error
-  if (!genreInfo || !providerId) {
+  // If provider not found, show error
+  if (!providerId) {
     return (
       <div className="min-h-screen fade-in-up">
         <DesktopSidebar />
