@@ -76,7 +76,7 @@ export default function StreamingSources({
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
-  const { data: movixDownloadNewData, isLoading: isLoadingMovixDownloadNew } = useMovixDownloadNew(type, id, season, episode);
+  const { data: movixDownloadNewData, isLoading: isLoadingMovixDownloadNew } = useMovixDownloadNew(type, id, season, episode, title);
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
