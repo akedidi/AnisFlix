@@ -875,13 +875,61 @@ export default function TVChannels() {
       console.log(`🎥 [HLS PLAYER] Attachement au média`);
       hls.attachMedia(video);
       
+      // Ajouter des gestionnaires d'événements pour le fullscreen
+      const handleFullscreenChange = () => {
+        console.log('🎥 [FULLSCREEN] Changement de fullscreen détecté');
+        const isFullscreen = document.fullscreenElement || 
+                            (document as any).webkitFullscreenElement || 
+                            (document as any).mozFullScreenElement || 
+                            (document as any).msFullscreenElement;
+        
+        if (!isFullscreen) {
+          console.log('🎥 [FULLSCREEN] Sortie du fullscreen - reprise de la lecture');
+          // Reprendre la lecture quand on sort du fullscreen
+          if (video.paused) {
+            video.play().catch(err => {
+              console.error('🎥 [FULLSCREEN] Erreur lors de la reprise:', err);
+            });
+          }
+        }
+      };
+      
+      const handlePlay = () => {
+        console.log('🎥 [VIDEO] Lecture démarrée');
+      };
+      
+      const handlePause = () => {
+        console.log('🎥 [VIDEO] Lecture en pause');
+      };
+      
+      // Ajouter les listeners
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+      video.addEventListener('play', handlePlay);
+      video.addEventListener('pause', handlePause);
+      
+      // Nettoyer les listeners lors de la destruction
+      const cleanup = () => {
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        video.removeEventListener('play', handlePlay);
+        video.removeEventListener('pause', handlePause);
+      };
+      
+      // Stocker la fonction de nettoyage pour l'utiliser plus tard
+      (video as any)._fullscreenCleanup = cleanup;
+      
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log(`🎥 [HLS PLAYER] Manifest parsé avec succès`);
         setIsLoading(false);
-        video.play().catch(err => {
-          console.error("🎥 [HLS PLAYER] Erreur de lecture:", err);
-          setError("Impossible de lire le flux");
-        });
+        
+        // Sur mobile, ne pas démarrer automatiquement la lecture pour éviter le fullscreen
+        if (!isMobile()) {
+          video.play().catch(err => {
+            console.error("🎥 [HLS PLAYER] Erreur de lecture:", err);
+            setError("Impossible de lire le flux");
+          });
+        }
       });
 
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
@@ -1027,6 +1075,11 @@ export default function TVChannels() {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      
+      // Nettoyer les listeners de fullscreen
+      if (videoRef.current && (videoRef.current as any)._fullscreenCleanup) {
+        (videoRef.current as any)._fullscreenCleanup();
+      }
     };
   }, [playerType, streamUrl, selectedChannel, selectedLinkIndex]);
 
@@ -1095,7 +1148,8 @@ export default function TVChannels() {
                         ref={videoRef}
                         className="w-full h-full"
                         controls
-                        autoPlay
+                        autoPlay={!isMobile()} // Désactiver autoPlay sur mobile pour éviter le fullscreen automatique
+                        playsInline // Forcer la lecture inline sur mobile
                         data-testid="video-player-hls"
                       />
                     ) : playerType === 'shaka' && streamUrl ? (
