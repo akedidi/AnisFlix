@@ -54,6 +54,7 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
 };
 
 const fetchMovixDownload = async (type: 'movie' | 'tv', tmdbId: number, season?: number, episode?: number, title?: string): Promise<MovixDownloadResponse | null> => {
+  console.log('🚀 [MOVIX DOWNLOAD] FUNCTION CALLED!', { type, tmdbId, season, episode, title });
   try {
     console.log('🔍 [MOVIX DOWNLOAD] Fetching data for:', { type, tmdbId, season, episode, title });
     
