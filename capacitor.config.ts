@@ -47,6 +47,12 @@ const config: CapacitorConfig = {
     // Configuration pour l'app
     App: {
       launchUrl: "https://anisflix.vercel.app"
+    },
+    // Configuration pour le clavier
+    Keyboard: {
+      resize: 'body',
+      style: 'dark',
+      resizeOnFullScreen: true
     }
   }
 };

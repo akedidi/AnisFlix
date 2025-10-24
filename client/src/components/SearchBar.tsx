@@ -34,8 +34,8 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Hook pour forcer le clavier de recherche
-  const keyboardSearchRef = useKeyboardSearch();
+  // Hook pour configurer le clavier de recherche
+  useKeyboardSearch();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -139,7 +139,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
-          ref={isCapacitor() ? keyboardSearchRef : inputRef}
+          ref={inputRef}
           type="search"
           placeholder={placeholder}
           value={query}
@@ -147,60 +147,18 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           onKeyDown={handleKeyDown}
           className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : ''}`}
           data-testid="input-search"
-          // Attributs pour iOS natif et Android - FORCER le clavier de recherche
-          {...(isCapacitor() && {
-            inputMode: "search",
-            enterKeyHint: "search",
-            autoComplete: "off",
-            autoCorrect: "off",
-            autoCapitalize: "off",
-            spellCheck: false,
-            // Attributs spécifiques pour masquer la barre "Done" sur iOS
-            style: {
-              WebkitAppearance: 'none',
-              appearance: 'none'
-            },
-            // Forcer les attributs HTML directement
-            'data-inputmode': 'search',
-            'data-enterkeyhint': 'search',
-            // Attributs supplémentaires pour forcer le clavier de recherche
-            onFocus: (e) => {
-              const input = e.target as HTMLInputElement;
-              // Forcer le type de clavier sur focus avec plusieurs méthodes
-              input.setAttribute('inputmode', 'search');
-              input.setAttribute('enterkeyhint', 'search');
-              input.setAttribute('data-inputmode', 'search');
-              input.setAttribute('data-enterkeyhint', 'search');
-              // Forcer également les attributs sur l'élément
-              input.inputMode = 'search';
-              input.enterKeyHint = 'search';
-              // Forcer le type de clavier via le DOM
-              input.setAttribute('type', 'search');
-              // Délai pour s'assurer que les attributs sont appliqués
-              setTimeout(() => {
-                input.setAttribute('inputmode', 'search');
-                input.setAttribute('enterkeyhint', 'search');
-                input.inputMode = 'search';
-                input.enterKeyHint = 'search';
-              }, 10);
-            },
-            onInput: (e) => {
-              const input = e.target as HTMLInputElement;
-              // S'assurer que les attributs restent appliqués
-              input.setAttribute('inputmode', 'search');
-              input.setAttribute('enterkeyhint', 'search');
-              input.setAttribute('data-inputmode', 'search');
-              input.setAttribute('data-enterkeyhint', 'search');
-              input.inputMode = 'search';
-              input.enterKeyHint = 'search';
-            },
-            onBlur: (e) => {
-              const input = e.target as HTMLInputElement;
-              // Maintenir les attributs même après blur
-              input.setAttribute('inputmode', 'search');
-              input.setAttribute('enterkeyhint', 'search');
-            }
-          })}
+          // Attributs recommandés pour le clavier de recherche
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          // Attributs spécifiques pour masquer la barre "Done" sur iOS
+          style={{
+            WebkitAppearance: 'none',
+            appearance: 'none'
+          }}
         />
         {query && (
           <button

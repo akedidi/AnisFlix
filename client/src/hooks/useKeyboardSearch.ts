@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { Keyboard } from '@capacitor/keyboard';
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
@@ -6,89 +7,38 @@ const isCapacitor = () => {
 };
 
 /**
- * Hook pour forcer le clavier de recherche sur les plateformes mobiles
- * Résout le problème du clavier qui affiche "Accéder" au lieu de "Rechercher"
+ * Hook pour configurer le clavier de recherche sur les plateformes mobiles
+ * Utilise le plugin @capacitor/keyboard pour masquer la barre "Done"
  */
 export function useKeyboardSearch() {
-  const inputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
-    if (!isCapacitor() || !inputRef.current) return;
+    if (!isCapacitor()) return;
 
-    const input = inputRef.current;
-    
-    // Fonction pour forcer le clavier de recherche
-    const forceSearchKeyboard = () => {
-      // Méthode 1: Attributs HTML
-      input.setAttribute('inputmode', 'search');
-      input.setAttribute('enterkeyhint', 'search');
-      input.setAttribute('data-inputmode', 'search');
-      input.setAttribute('data-enterkeyhint', 'search');
-      
-      // Méthode 2: Propriétés JavaScript
-      input.inputMode = 'search';
-      input.enterKeyHint = 'search';
-      
-      // Méthode 3: Forcer le type
-      input.setAttribute('type', 'search');
-      
-      // Méthode 4: Attributs WebKit pour iOS
-      input.setAttribute('webkit-input-mode', 'search');
-      input.setAttribute('webkit-enter-key-hint', 'search');
-      
-      // Méthode 5: Style CSS inline
-      input.style.setProperty('inputmode', 'search');
-      input.style.setProperty('enterkeyhint', 'search');
+    // Masquer la barre "Done" (accessory bar) sur iOS
+    const hideAccessoryBar = async () => {
+      try {
+        await Keyboard.setAccessoryBarVisible({ isVisible: false });
+        console.log('🔍 [KEYBOARD] Barre "Done" masquée');
+      } catch (error) {
+        console.warn('🔍 [KEYBOARD] Erreur lors du masquage de la barre:', error);
+      }
     };
 
-    // Appliquer immédiatement
-    forceSearchKeyboard();
+    // Configurer le clavier au démarrage
+    hideAccessoryBar();
 
-    // Événements pour maintenir le clavier de recherche
-    const handleFocus = () => {
-      forceSearchKeyboard();
-      // Délai pour s'assurer que les attributs sont appliqués
-      setTimeout(forceSearchKeyboard, 10);
+    // Réappliquer la configuration si nécessaire
+    const handleKeyboardShow = async () => {
+      await hideAccessoryBar();
     };
 
-    const handleInput = () => {
-      forceSearchKeyboard();
-    };
-
-    const handleBlur = () => {
-      // Maintenir les attributs même après blur
-      setTimeout(forceSearchKeyboard, 10);
-    };
-
-    // Ajouter les écouteurs d'événements
-    input.addEventListener('focus', handleFocus);
-    input.addEventListener('input', handleInput);
-    input.addEventListener('blur', handleBlur);
-
-    // Observer les changements d'attributs
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && 
-            (mutation.attributeName === 'inputmode' || 
-             mutation.attributeName === 'enterkeyhint')) {
-          forceSearchKeyboard();
-        }
-      });
-    });
-
-    observer.observe(input, { 
-      attributes: true, 
-      attributeFilter: ['inputmode', 'enterkeyhint', 'type'] 
-    });
+    // Écouter les événements du clavier
+    Keyboard.addListener('keyboardWillShow', handleKeyboardShow);
+    Keyboard.addListener('keyboardDidShow', handleKeyboardShow);
 
     // Nettoyage
     return () => {
-      input.removeEventListener('focus', handleFocus);
-      input.removeEventListener('input', handleInput);
-      input.removeEventListener('blur', handleBlur);
-      observer.disconnect();
+      Keyboard.removeAllListeners();
     };
   }, []);
-
-  return inputRef;
 }
