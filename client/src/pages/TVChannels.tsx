@@ -570,6 +570,8 @@ export default function TVChannels() {
 
   // Fonction de recherche de chaînes
   const searchChannels = (query: string) => {
+    console.log('🔍 [TV SEARCH] Recherche de chaînes avec query:', query);
+    
     if (!query.trim()) {
       setSearchResults([]);
       return;
@@ -581,17 +583,21 @@ export default function TVChannels() {
       TV_SECTIONS.find(s => s.id === channel.section)?.name.toLowerCase().includes(query.toLowerCase())
     );
 
+    console.log('🔍 [TV SEARCH] Résultats trouvés:', results.length, results.map(r => r.name));
+
     // Convertir en format compatible avec SearchBar
-    const searchSuggestions = results.map(channel => ({
-      id: channel.id,
+    const searchSuggestions = results.map((channel, index) => ({
+      id: index + 1, // Utiliser un ID numérique pour la compatibilité
       title: channel.name,
-      mediaType: 'tv',
+      mediaType: 'tv' as const,
       posterPath: channelLogos[channel.id] || '',
       year: '',
       section: channel.section,
-      category: channel.category
+      category: channel.category,
+      channelId: channel.id // Garder l'ID original pour la sélection
     }));
 
+    console.log('🔍 [TV SEARCH] Suggestions formatées:', searchSuggestions.length);
     setSearchResults(searchSuggestions);
   };
 
@@ -606,8 +612,11 @@ export default function TVChannels() {
 
   // Fonction pour sélectionner une chaîne depuis la recherche
   const selectChannelFromSearch = (item: any) => {
-    console.log('🔍 [SEARCH] Sélection de chaîne depuis la recherche:', item.title);
-    const channel = TV_CHANNELS.find(c => c.id === item.id);
+    console.log('🔍 [TV SEARCH] Sélection de chaîne depuis la recherche:', item.title);
+    console.log('🔍 [TV SEARCH] Item complet:', item);
+    // Utiliser channelId au lieu de id pour trouver la chaîne
+    const channel = TV_CHANNELS.find(c => c.id === item.channelId);
+    console.log('🔍 [TV SEARCH] Chaîne trouvée:', channel?.name);
     if (channel) {
       setSelectedChannel(channel);
       setSearchQuery("");
@@ -616,6 +625,9 @@ export default function TVChannels() {
       // Mettre à jour la section et catégorie selon la chaîne sélectionnée
       setSelectedSection(channel.section);
       setSelectedCategory(channel.category);
+      console.log('🔍 [TV SEARCH] Chaîne sélectionnée avec succès:', channel.name);
+    } else {
+      console.error('🔍 [TV SEARCH] Chaîne non trouvée pour channelId:', item.channelId);
     }
   };
 
