@@ -20,9 +20,13 @@ input[type="search"]::-webkit-search-results-decoration {
 
 /* Configuration spécifique pour les apps natives Capacitor */
 .native-app input[type="search"] {
-  /* Forcer le type de clavier "search" */
+  /* Forcer le type de clavier "search" avec plus d'agressivité */
   inputmode: search !important;
   enterkeyhint: search !important;
+  
+  /* Forcer les attributs via CSS */
+  -webkit-input-mode: search !important;
+  -webkit-enter-key-hint: search !important;
   
   /* Masquer complètement la barre "Done" */
   -webkit-appearance: none;
@@ -39,6 +43,10 @@ input[type="search"]::-webkit-search-results-decoration {
   -webkit-search-cancel-button: none;
   -webkit-search-results-button: none;
   -webkit-search-results-decoration: none;
+  
+  /* Forcer le clavier de recherche sur iOS */
+  -webkit-text-security: none;
+  -webkit-user-select: text;
 }
 
 /* Forcer les attributs sur tous les inputs de recherche natifs */
@@ -54,9 +62,20 @@ input[type="search"]::-webkit-search-results-decoration {
     -webkit-appearance: none;
     appearance: none;
     
-    /* Forcer le clavier de recherche */
-    inputmode: search;
-    enterkeyhint: search;
+    /* Forcer le clavier de recherche avec plus d'agressivité */
+    inputmode: search !important;
+    enterkeyhint: search !important;
+    
+    /* Forcer les attributs WebKit */
+    -webkit-input-mode: search !important;
+    -webkit-enter-key-hint: search !important;
+    
+    /* Désactiver complètement la barre d'outils iOS */
+    -webkit-user-select: text;
+    -webkit-touch-callout: none;
+    
+    /* Forcer le type de clavier sur iOS */
+    -webkit-text-security: none;
   }
 }
 

@@ -20,7 +20,9 @@ const config: CapacitorConfig = {
     backgroundColor: '#000000',
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: false
+    webContentsDebuggingEnabled: false,
+    // Configuration pour les permissions Android
+    appendUserAgent: 'AnisFlix'
   },
   plugins: {
     SplashScreen: {
@@ -41,6 +43,10 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'dark',
       backgroundColor: '#000000'
+    },
+    // Configuration pour l'app
+    App: {
+      launchUrl: "https://anisflix.vercel.app"
     }
   }
 };

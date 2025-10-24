@@ -5,6 +5,7 @@ import { Search, X, Tv } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
+import { useKeyboardSearch } from "@/hooks/useKeyboardSearch";
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
@@ -32,6 +33,9 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Hook pour forcer le clavier de recherche
+  const keyboardSearchRef = useKeyboardSearch();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -135,7 +139,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
-          ref={inputRef}
+          ref={isCapacitor() ? keyboardSearchRef : inputRef}
           type="search"
           placeholder={placeholder}
           value={query}
@@ -143,7 +147,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           onKeyDown={handleKeyDown}
           className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : ''}`}
           data-testid="input-search"
-          // Attributs pour iOS natif et Android
+          // Attributs pour iOS natif et Android - FORCER le clavier de recherche
           {...(isCapacitor() && {
             inputMode: "search",
             enterKeyHint: "search",
@@ -156,19 +160,45 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               WebkitAppearance: 'none',
               appearance: 'none'
             },
+            // Forcer les attributs HTML directement
+            'data-inputmode': 'search',
+            'data-enterkeyhint': 'search',
             // Attributs supplémentaires pour forcer le clavier de recherche
             onFocus: (e) => {
-              // Forcer le type de clavier sur focus
-              e.target.setAttribute('inputmode', 'search');
-              e.target.setAttribute('enterkeyhint', 'search');
+              const input = e.target as HTMLInputElement;
+              // Forcer le type de clavier sur focus avec plusieurs méthodes
+              input.setAttribute('inputmode', 'search');
+              input.setAttribute('enterkeyhint', 'search');
+              input.setAttribute('data-inputmode', 'search');
+              input.setAttribute('data-enterkeyhint', 'search');
               // Forcer également les attributs sur l'élément
-              e.target.inputMode = 'search';
-              e.target.enterKeyHint = 'search';
+              input.inputMode = 'search';
+              input.enterKeyHint = 'search';
+              // Forcer le type de clavier via le DOM
+              input.setAttribute('type', 'search');
+              // Délai pour s'assurer que les attributs sont appliqués
+              setTimeout(() => {
+                input.setAttribute('inputmode', 'search');
+                input.setAttribute('enterkeyhint', 'search');
+                input.inputMode = 'search';
+                input.enterKeyHint = 'search';
+              }, 10);
             },
             onInput: (e) => {
+              const input = e.target as HTMLInputElement;
               // S'assurer que les attributs restent appliqués
-              e.target.setAttribute('inputmode', 'search');
-              e.target.setAttribute('enterkeyhint', 'search');
+              input.setAttribute('inputmode', 'search');
+              input.setAttribute('enterkeyhint', 'search');
+              input.setAttribute('data-inputmode', 'search');
+              input.setAttribute('data-enterkeyhint', 'search');
+              input.inputMode = 'search';
+              input.enterKeyHint = 'search';
+            },
+            onBlur: (e) => {
+              const input = e.target as HTMLInputElement;
+              // Maintenir les attributs même après blur
+              input.setAttribute('inputmode', 'search');
+              input.setAttribute('enterkeyhint', 'search');
             }
           })}
         />
