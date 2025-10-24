@@ -104,6 +104,8 @@ const fetchMovixDownload = async (type: 'movie' | 'tv', tmdbId: number, season?:
 };
 
 export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: number, episode?: number, title?: string) => {
+  console.log('🚀 [MOVIX DOWNLOAD] HOOK FUNCTION CALLED!', { type, tmdbId, season, episode, title });
+  
   const [data, setData] = useState<MovixDownloadResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
