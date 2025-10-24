@@ -14,19 +14,13 @@ const config: CapacitorConfig = {
     backgroundColor: '#000000',
     allowsLinkPreview: false,
     handleApplicationNotifications: true,
-    allowsInlineMediaPlayback: true,
-    mediaPlaybackRequiresUserAction: false,
-    allowsAirPlayForMediaPlayback: true,
-    allowsPictureInPictureMediaPlayback: true,
-    preferredContentMode: 'mobile',
-    overrideUserInterfaceStyle: 'dark'
+    preferredContentMode: 'mobile'
   },
   android: {
     backgroundColor: '#000000',
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: false,
-    overrideUserInterfaceStyle: 'dark'
+    webContentsDebuggingEnabled: false
   },
   plugins: {
     SplashScreen: {

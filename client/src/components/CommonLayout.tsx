@@ -11,6 +11,7 @@ import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
+import { useNativeNavigation } from "@/hooks/useNativeNavigation";
 
 interface CommonLayoutProps {
   title?: string;
@@ -67,6 +68,9 @@ export default function CommonLayout({
   
   // Détecter l'environnement natif
   const { isNativeMobile, getContainerClass } = useNativeDetection();
+  
+  // Gérer la navigation native (swipe back iOS / bouton back Android)
+  useNativeNavigation();
 
   // Gérer le pull-to-refresh
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
