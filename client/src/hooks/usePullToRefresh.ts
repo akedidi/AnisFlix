@@ -311,8 +311,8 @@ export function usePullToRefresh({
       console.log('🔄 [PULL] threshold:', threshold);
       console.log('🔄 [PULL] startY:', startY.current, 'currentY:', currentY.current);
       
-      // Seuil ULTRA-ÉLEVÉ pour déclencher le refresh (éviter les faux positifs)
-      const refreshThreshold = Math.max(threshold, 200); // Au moins 200px - très difficile
+      // Utiliser le seuil configuré (par défaut 60px, plus facile à déclencher)
+      const refreshThreshold = threshold; // Utiliser le threshold configuré
       
       if (distance >= refreshThreshold && isMovingDown) {
         console.log('🔄 [PULL] 🎉 REFRESH DÉCLENCHÉ !');

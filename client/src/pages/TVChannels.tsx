@@ -199,7 +199,7 @@ const setupNativeNavigation = (onBack: () => void) => {
       console.log(`[NATIVE NAV] Touch start - X: ${startX}, Y: ${startY}`);
       
       // Si on commence près du bord gauche, on a la priorité sur le pull
-      if (startX < 50) {
+      if (startX < 100) {
         console.log(`[NATIVE NAV] Début de geste près du bord gauche - priorité navigation`);
         e.stopPropagation();
       }
@@ -216,10 +216,17 @@ const setupNativeNavigation = (onBack: () => void) => {
       console.log(`[NATIVE NAV] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
       
       // Détecter un swipe horizontal de gauche à droite (seuils plus permissifs)
-      if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
+      if (diffX > 20 && Math.abs(diffY) < 200 && startX < 150) {
         isSwipeBack = true;
         console.log(`[NATIVE NAV] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
         // Empêcher le pull to refresh si on fait un swipe back
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      // Détection précoce : si on commence un mouvement horizontal, marquer comme potentiel swipe back
+      if (diffX > 10 && Math.abs(diffY) < 100 && startX < 150 && !isSwipeBack) {
+        console.log(`[NATIVE NAV] Mouvement horizontal détecté - préparation swipe back`);
         e.preventDefault();
         e.stopPropagation();
       }
@@ -858,7 +865,7 @@ export default function TVChannels() {
       isSwipeBack = false;
       console.log(`[NATIVE NAV FALLBACK] Touch start - X: ${startX}, Y: ${startY}`);
       
-      if (startX < 50) {
+      if (startX < 100) {
         console.log(`[NATIVE NAV FALLBACK] Début de geste près du bord gauche`);
         e.stopPropagation();
       }
@@ -874,9 +881,16 @@ export default function TVChannels() {
       
       console.log(`[NATIVE NAV FALLBACK] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
       
-      if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
+      if (diffX > 20 && Math.abs(diffY) < 200 && startX < 150) {
         isSwipeBack = true;
         console.log(`[NATIVE NAV FALLBACK] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      // Détection précoce : si on commence un mouvement horizontal, marquer comme potentiel swipe back
+      if (diffX > 10 && Math.abs(diffY) < 100 && startX < 150 && !isSwipeBack) {
+        console.log(`[NATIVE NAV FALLBACK] Mouvement horizontal détecté - préparation swipe back`);
         e.preventDefault();
         e.stopPropagation();
       }
