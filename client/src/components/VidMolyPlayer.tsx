@@ -359,7 +359,27 @@ export default function VidMolyPlayer({
               Réessayer
             </Button>
             {onClose && (
-              <Button onClick={onClose} variant="default">
+              <Button onClick={() => {
+                console.log('🎬 Bouton Fermer cliqué');
+                console.log('🔍 État avant fermeture - isLoading:', isLoading);
+                console.log('🔍 État avant fermeture - error:', error);
+                console.log('🔍 État avant fermeture - vidmolyUrl:', vidmolyUrl);
+                
+                // Arrêter la vidéo et nettoyer les ressources
+                if (videoRef.current) {
+                  console.log('🔄 Arrêt de la vidéo');
+                  videoRef.current.pause();
+                  videoRef.current.src = '';
+                  videoRef.current.load();
+                }
+                
+                // Nettoyer l'état
+                setIsLoading(false);
+                setError(null);
+                
+                console.log('✅ VidMolyPlayer fermé et nettoyé');
+                onClose();
+              }} variant="default">
                 Fermer
               </Button>
             )}

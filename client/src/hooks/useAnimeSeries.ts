@@ -177,22 +177,55 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
             
             try {
               console.log('🎬 Extraction m3u8 pour VidMoly:', player.url);
+              console.log('🔍 URL VidMoly originale:', player.url);
+              console.log('🔍 Language:', player.language);
+              
               const { apiClient } = await import('../lib/apiClient');
               const data = await apiClient.extractVidMoly(player.url);
               
+              console.log('🔍 Réponse complète API VidMoly:', data);
+              console.log('🔍 data.success:', data.success);
+              console.log('🔍 data.m3u8Url:', data.m3u8Url);
+              console.log('🔍 data.method:', data.method);
+              console.log('🔍 data.source:', data.source);
+              console.log('🔍 data.originalUrl:', data.originalUrl);
+              
               if (data.success && data.m3u8Url) {
                 console.log('✅ M3U8 extrait:', data.m3u8Url);
+                console.log('🔍 Méthode d\'extraction:', data.method);
+                console.log('🔍 Source:', data.source);
+                
+                // Vérifier si c'est un lien de démonstration
+                if (data.m3u8Url.includes('demo.unified-streaming.com') || data.method === 'fallback') {
+                  console.log('⚠️ Lien de démonstration détecté, utilisation du lien VidMoly original');
+                  console.log('🔄 Utilisation URL VidMoly originale:', player.url);
+                  // Utiliser le lien VidMoly original au lieu du m3u8 extrait
+                  return {
+                    url: player.url, // Utiliser l'URL VidMoly originale
+                    language: player.language
+                  };
+                }
+                
+                console.log('✅ Utilisation du m3u8 extrait:', data.m3u8Url);
                 return {
                   url: data.m3u8Url,
                   language: player.language
                 };
               } else {
                 console.log('❌ Échec extraction m3u8:', data.error);
-                return null;
+                console.log('🔄 Fallback vers URL VidMoly originale:', player.url);
+                return {
+                  url: player.url, // Fallback vers l'URL originale
+                  language: player.language
+                };
               }
             } catch (error) {
               console.error('❌ Erreur extraction VidMoly:', error);
-              return null;
+              console.log('🔄 Fallback vers URL VidMoly originale après erreur:', player.url);
+              return {
+                url: player.url, // Fallback vers l'URL originale
+                language: player.language
+              };
             }
           });
           
