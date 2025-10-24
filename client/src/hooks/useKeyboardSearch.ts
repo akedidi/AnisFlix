@@ -29,20 +29,26 @@ export function useKeyboardSearch() {
     const forceSearchKeyboard = () => {
       const searchInputs = document.querySelectorAll('input[type="search"]');
       searchInputs.forEach((input: any) => {
-        // Attributs HTML natifs (minuscules)
-        input.setAttribute('inputmode', 'search');
-        input.setAttribute('enterkeyhint', 'search');
-        input.setAttribute('type', 'search');
+        // Vérifier si les attributs sont déjà corrects pour éviter la boucle
+        const currentInputmode = input.getAttribute('inputmode');
+        const currentEnterkeyhint = input.getAttribute('enterkeyhint');
         
-        // Propriétés JavaScript
-        input.inputMode = 'search';
-        input.enterKeyHint = 'search';
-        
-        console.log('🔍 [KEYBOARD] Attributs de recherche appliqués:', {
-          inputmode: input.getAttribute('inputmode'),
-          enterkeyhint: input.getAttribute('enterkeyhint'),
-          type: input.type
-        });
+        if (currentInputmode !== 'search' || currentEnterkeyhint !== 'search') {
+          // Attributs HTML natifs (minuscules)
+          input.setAttribute('inputmode', 'search');
+          input.setAttribute('enterkeyhint', 'search');
+          input.setAttribute('type', 'search');
+          
+          // Propriétés JavaScript
+          input.inputMode = 'search';
+          input.enterKeyHint = 'search';
+          
+          console.log('🔍 [KEYBOARD] Attributs de recherche appliqués:', {
+            inputmode: input.getAttribute('inputmode'),
+            enterkeyhint: input.getAttribute('enterkeyhint'),
+            type: input.type
+          });
+        }
       });
     };
 
@@ -56,16 +62,27 @@ export function useKeyboardSearch() {
       forceSearchKeyboard();
     };
 
-    // Observer les nouveaux inputs de recherche
-    const observer = new MutationObserver(() => {
-      forceSearchKeyboard();
+    // Observer les nouveaux inputs de recherche (avec debounce)
+    let timeoutId: NodeJS.Timeout;
+    const debouncedForceSearch = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(forceSearchKeyboard, 100);
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      // Ne traiter que les mutations qui ajoutent de nouveaux éléments
+      const hasNewElements = mutations.some(mutation => 
+        mutation.type === 'childList' && mutation.addedNodes.length > 0
+      );
+      
+      if (hasNewElements) {
+        debouncedForceSearch();
+      }
     });
 
     observer.observe(document.body, {
       childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['type', 'inputmode', 'enterkeyhint']
+      subtree: true
     });
 
     // Écouter les événements du clavier
