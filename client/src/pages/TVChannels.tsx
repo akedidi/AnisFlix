@@ -196,6 +196,7 @@ const setupNativeNavigation = (onBack: () => void) => {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       isSwipeBack = false;
+      console.log(`[NATIVE NAV] Touch start - X: ${startX}, Y: ${startY}`);
     };
     
     const handleTouchMove = (e: TouchEvent) => {
@@ -206,14 +207,17 @@ const setupNativeNavigation = (onBack: () => void) => {
       const diffX = currentX - startX;
       const diffY = currentY - startY;
       
-      // Détecter un swipe horizontal de gauche à droite
-      if (diffX > 50 && Math.abs(diffY) < 100 && startX < 50) {
+      console.log(`[NATIVE NAV] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
+      
+      // Détecter un swipe horizontal de gauche à droite (seuils plus permissifs)
+      if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
         isSwipeBack = true;
-        console.log(`[NATIVE NAV] Swipe back détecté`);
+        console.log(`[NATIVE NAV] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
       }
     };
     
     const handleTouchEnd = (e: TouchEvent) => {
+      console.log(`[NATIVE NAV] Touch end - isSwipeBack: ${isSwipeBack}`);
       if (isSwipeBack) {
         console.log(`[NATIVE NAV] Exécution du swipe back`);
         onBack();
@@ -227,10 +231,22 @@ const setupNativeNavigation = (onBack: () => void) => {
     document.addEventListener('touchmove', handleTouchMove, { passive: true });
     document.addEventListener('touchend', handleTouchEnd, { passive: true });
     
+    // Méthode alternative pour simulateur iOS avec clavier
+    const handleKeyDown = (e: KeyboardEvent) => {
+      console.log(`[NATIVE NAV] Key pressed: ${e.key}`);
+      if (e.key === 'Escape' || e.key === 'Backspace') {
+        console.log(`[NATIVE NAV] Touche de retour détectée`);
+        onBack();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('keydown', handleKeyDown);
     };
     
   } else if (platform === 'android') {
