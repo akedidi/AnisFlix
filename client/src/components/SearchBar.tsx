@@ -150,6 +150,9 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           // Attributs recommandés pour le clavier de recherche
           inputMode="search"
           enterKeyHint="search"
+          // Attributs HTML natifs (minuscules)
+          inputmode="search"
+          enterkeyhint="search"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
