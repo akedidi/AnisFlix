@@ -69,7 +69,7 @@ export default function StreamingSources({
   console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
   
   const { t } = useLanguage();
-  const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id);
+  const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);

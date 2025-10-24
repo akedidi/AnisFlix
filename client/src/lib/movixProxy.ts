@@ -62,8 +62,14 @@ export class MovixProxyClient {
   /**
    * Récupère les liens TopStream
    */
-  async getTopStream(type: 'movie' | 'tv', id: number): Promise<any> {
-    return this.request(`topstream/${type}/${id}`);
+  async getTopStream(type: 'movie' | 'tv', id: number, season?: number, episode?: number): Promise<any> {
+    if (type === 'tv' && season && episode) {
+      return this.request(`topstream/${type}/${id}?season=${season}&episode=${episode}`);
+    } else if (type === 'tv' && season) {
+      return this.request(`topstream/${type}/${id}?season=${season}`);
+    } else {
+      return this.request(`topstream/${type}/${id}`);
+    }
   }
 
   /**
