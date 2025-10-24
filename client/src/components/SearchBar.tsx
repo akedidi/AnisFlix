@@ -98,16 +98,27 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-10 pr-10"
+          className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : ''}`}
           data-testid="input-search"
-          // Attributs pour iOS natif
+          // Attributs pour iOS natif et Android
           {...(isCapacitor() && {
             inputMode: "search",
             enterKeyHint: "search",
             autoComplete: "off",
             autoCorrect: "off",
             autoCapitalize: "off",
-            spellCheck: false
+            spellCheck: false,
+            // Attributs spécifiques pour masquer la barre "Done" sur iOS
+            style: {
+              WebkitAppearance: 'none',
+              appearance: 'none'
+            },
+            // Attributs supplémentaires pour forcer le clavier de recherche
+            onFocus: (e) => {
+              // Forcer le type de clavier sur focus
+              e.target.setAttribute('inputmode', 'search');
+              e.target.setAttribute('enterkeyhint', 'search');
+            }
           })}
         />
         {query && (

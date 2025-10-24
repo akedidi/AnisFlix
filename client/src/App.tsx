@@ -7,6 +7,8 @@ import BottomNav from "@/components/BottomNav";
 import { useServiceWorker } from "@/hooks/useOffline";
 import CustomSplashScreen from "@/components/CustomSplashScreen";
 import { useState } from "react";
+// Import des styles pour le clavier natif
+import "@/styles/native-keyboard.css";
 // Fonction pour détecter si on est dans une app Capacitor native
 const isCapacitor = () => {
   if (typeof window === 'undefined') return false;
