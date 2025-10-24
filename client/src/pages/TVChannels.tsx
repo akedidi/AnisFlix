@@ -877,25 +877,37 @@ export default function TVChannels() {
       
       // Ajouter des gestionnaires d'événements pour le fullscreen
       const handleFullscreenChange = () => {
-        console.log('🎥 [FULLSCREEN] Changement de fullscreen détecté');
+        console.log('🎥 [FULLSCREEN] ===== CHANGEMENT FULLSCREEN =====');
+        console.log('🎥 [FULLSCREEN] document.fullscreenElement:', document.fullscreenElement);
+        console.log('🎥 [FULLSCREEN] webkitFullscreenElement:', (document as any).webkitFullscreenElement);
+        console.log('🎥 [FULLSCREEN] mozFullScreenElement:', (document as any).mozFullScreenElement);
+        console.log('🎥 [FULLSCREEN] msFullscreenElement:', (document as any).msFullscreenElement);
+        
         const isFullscreen = document.fullscreenElement || 
                             (document as any).webkitFullscreenElement || 
                             (document as any).mozFullScreenElement || 
                             (document as any).msFullscreenElement;
         
+        console.log('🎥 [FULLSCREEN] isFullscreen:', isFullscreen);
+        console.log('🎥 [FULLSCREEN] video.paused:', video.paused);
+        console.log('🎥 [FULLSCREEN] video.ended:', video.ended);
+        
         if (!isFullscreen) {
-          console.log('🎥 [FULLSCREEN] Sortie du fullscreen - maintien de la lecture');
+          console.log('🎥 [FULLSCREEN] Sortie du fullscreen détectée - maintien de la lecture');
           // S'assurer que la lecture continue quand on sort du fullscreen
           setTimeout(() => {
+            console.log('🎥 [FULLSCREEN] Vérification après délai - paused:', video.paused, 'ended:', video.ended);
             if (video.paused || video.ended) {
               console.log('🎥 [FULLSCREEN] Vidéo en pause/arrêtée - reprise de la lecture');
-              video.play().catch(err => {
+              video.play().then(() => {
+                console.log('🎥 [FULLSCREEN] Lecture reprise avec succès');
+              }).catch(err => {
                 console.error('🎥 [FULLSCREEN] Erreur lors de la reprise:', err);
               });
             } else {
               console.log('🎥 [FULLSCREEN] Lecture déjà en cours - pas d\'action nécessaire');
             }
-          }, 100); // Petit délai pour s'assurer que l'état est stable
+          }, 200); // Délai augmenté pour plus de stabilité
         } else {
           console.log('🎥 [FULLSCREEN] Entrée en fullscreen détectée');
         }
@@ -931,6 +943,37 @@ export default function TVChannels() {
       video.addEventListener('pause', handlePause);
       video.addEventListener('ended', handleEnded);
       
+      // Méthode alternative : vérification périodique de l'état
+      let fullscreenCheckInterval: NodeJS.Timeout | null = null;
+      const startFullscreenCheck = () => {
+        if (fullscreenCheckInterval) return;
+        console.log('🎥 [FULLSCREEN CHECK] Démarrage de la vérification périodique');
+        fullscreenCheckInterval = setInterval(() => {
+          const isFullscreen = document.fullscreenElement || 
+                              (document as any).webkitFullscreenElement || 
+                              (document as any).mozFullScreenElement || 
+                              (document as any).msFullscreenElement;
+          
+          if (!isFullscreen && (video.paused || video.ended)) {
+            console.log('🎥 [FULLSCREEN CHECK] Détection de pause en mode normal - reprise');
+            video.play().catch(err => {
+              console.error('🎥 [FULLSCREEN CHECK] Erreur reprise:', err);
+            });
+          }
+        }, 1000); // Vérifier toutes les secondes
+      };
+      
+      const stopFullscreenCheck = () => {
+        if (fullscreenCheckInterval) {
+          console.log('🎥 [FULLSCREEN CHECK] Arrêt de la vérification périodique');
+          clearInterval(fullscreenCheckInterval);
+          fullscreenCheckInterval = null;
+        }
+      };
+      
+      // Démarrer la vérification
+      startFullscreenCheck();
+      
       // Nettoyer les listeners lors de la destruction
       const cleanup = () => {
         document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -938,6 +981,7 @@ export default function TVChannels() {
         video.removeEventListener('play', handlePlay);
         video.removeEventListener('pause', handlePause);
         video.removeEventListener('ended', handleEnded);
+        stopFullscreenCheck();
       };
       
       // Stocker la fonction de nettoyage pour l'utiliser plus tard
