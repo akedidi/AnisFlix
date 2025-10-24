@@ -6,7 +6,7 @@ import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
 import { useDarkiSeries } from '@/hooks/useDarkiSeries';
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
-import { useMovixSeriesDownload } from '@/hooks/useMovixSeriesDownload';
+import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -76,7 +76,7 @@ export default function StreamingSources({
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
-  const { data: movixSeriesDownloadData, isLoading: isLoadingMovixSeriesDownload } = useMovixSeriesDownload(id, season || 1, episode || 1);
+  const { data: movixDownloadNewData, isLoading: isLoadingMovixDownloadNew } = useMovixDownloadNew(type, id, season, episode);
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
@@ -321,14 +321,14 @@ export default function StreamingSources({
     });
   }
 
-  // Ajouter les sources MovixSeriesDownload si disponibles
-  if (movixSeriesDownloadData && movixSeriesDownloadData.sources && selectedLanguage === 'VF') {
-    console.log('🔍 [MOVIX SERIES DOWNLOAD] Processing sources:', movixSeriesDownloadData.sources);
+  // Ajouter les sources MovixDownload (nouvelle API) si disponibles
+  if (movixDownloadNewData && movixDownloadNewData.sources && selectedLanguage === 'VF') {
+    console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadNewData.sources);
     
     // Trier les sources par qualité (du meilleur au moins bon)
     const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
     
-    const sortedSources = movixSeriesDownloadData.sources.sort((a: any, b: any) => {
+    const sortedSources = movixDownloadNewData.sources.sort((a: any, b: any) => {
       const qualityA = a.quality || 'Unknown';
       const qualityB = b.quality || 'Unknown';
       
@@ -378,9 +378,9 @@ export default function StreamingSources({
         }
 
         allSources.push({
-          id: `movix-series-download-${quality.toLowerCase()}-${index}`,
+          id: `movix-download-new-${quality.toLowerCase()}-${index}`,
           name: `${qualityLabel} (${languageLabel})`,
-          provider: 'movix-series-download',
+          provider: 'movix-download-new',
           url: modifiedUrl,
           type: 'm3u8' as const,
           isMovixDownload: true,
@@ -704,7 +704,7 @@ export default function StreamingSources({
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingMovixSeriesDownload) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingMovixDownloadNew) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
