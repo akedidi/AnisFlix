@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
@@ -47,6 +47,8 @@ const getNativePlatform = () => {
 // Hook pour la navigation native
 export const useNativeNavigation = () => {
   const [, setLocation] = useLocation();
+  const [swipeProgress, setSwipeProgress] = useState(0);
+  const [isSwipeActive, setIsSwipeActive] = useState(false);
 
   useEffect(() => {
     console.log('[NATIVE NAV] ===== CONFIGURATION NAVIGATION NATIVE =====');
@@ -117,6 +119,13 @@ export const useNativeNavigation = () => {
           e.stopPropagation();
         }
         
+        // Calculer le progrès de l'animation (0 à 1)
+        if (isHorizontalMovement && isMovingRight && isInLeftZone) {
+          const progress = Math.min(diffX / 100, 1); // 100px = 100% de progression
+          setSwipeProgress(progress);
+          setIsSwipeActive(progress > 0.1); // Activer l'animation dès 10% de progression
+        }
+        
         // Détection précoce pour bloquer le pull-to-refresh - SEULEMENT si c'est vraiment un swipe
         if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 10 && !isSwipeBack) {
           console.log(`[NATIVE NAV] Préparation swipe back - Blocage pull-to-refresh`);
@@ -131,7 +140,17 @@ export const useNativeNavigation = () => {
           console.log(`[NATIVE NAV] Exécution du swipe back`);
           e.preventDefault();
           e.stopPropagation();
-          handleBack();
+          // Déclencher l'animation finale
+          setSwipeProgress(1);
+          setTimeout(() => {
+            handleBack();
+            setIsSwipeActive(false);
+            setSwipeProgress(0);
+          }, 200);
+        } else {
+          // Annuler l'animation si pas de swipe back
+          setIsSwipeActive(false);
+          setSwipeProgress(0);
         }
         startX = 0;
         startY = 0;
@@ -236,6 +255,13 @@ export const useNativeNavigation = () => {
         e.stopPropagation();
       }
       
+      // Calculer le progrès de l'animation (0 à 1)
+      if (isHorizontalMovement && isMovingRight && isInLeftZone) {
+        const progress = Math.min(diffX / 100, 1); // 100px = 100% de progression
+        setSwipeProgress(progress);
+        setIsSwipeActive(progress > 0.1); // Activer l'animation dès 10% de progression
+      }
+      
       // Détection précoce pour bloquer le pull-to-refresh - SEULEMENT si c'est vraiment un swipe
       if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 10 && !fallbackIsSwipeBack) {
         console.log(`[NATIVE NAV FALLBACK] Préparation swipe back - Blocage pull-to-refresh`);
@@ -250,7 +276,17 @@ export const useNativeNavigation = () => {
         console.log(`[NATIVE NAV FALLBACK] Exécution du swipe back`);
         e.preventDefault();
         e.stopPropagation();
-        handleBack();
+        // Déclencher l'animation finale
+        setSwipeProgress(1);
+        setTimeout(() => {
+          handleBack();
+          setIsSwipeActive(false);
+          setSwipeProgress(0);
+        }, 200);
+      } else {
+        // Annuler l'animation si pas de swipe back
+        setIsSwipeActive(false);
+        setSwipeProgress(0);
       }
       fallbackStartX = 0;
       fallbackStartY = 0;
@@ -285,4 +321,10 @@ export const useNativeNavigation = () => {
 
     return cleanup;
   }, [setLocation]);
+
+  // Retourner les valeurs d'animation pour l'utilisation dans les composants
+  return {
+    swipeProgress,
+    isSwipeActive
+  };
 };

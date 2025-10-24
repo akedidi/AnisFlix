@@ -12,6 +12,7 @@ import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useNativeNavigation } from "@/hooks/useNativeNavigation";
+import SwipeBackAnimation from "@/components/SwipeBackAnimation";
 
 interface CommonLayoutProps {
   title?: string;
@@ -70,7 +71,7 @@ export default function CommonLayout({
   const { isNativeMobile, getContainerClass } = useNativeDetection();
   
   // Gérer la navigation native (swipe back iOS / bouton back Android)
-  useNativeNavigation();
+  const { swipeProgress, isSwipeActive } = useNativeNavigation();
 
   // Gérer le pull-to-refresh
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
@@ -101,6 +102,16 @@ export default function CommonLayout({
           threshold={80}
         />
       )}
+      
+      {/* Animation de swipe back */}
+      <SwipeBackAnimation 
+        isActive={isSwipeActive}
+        progress={swipeProgress}
+        onComplete={() => {
+          // La navigation est déjà gérée dans useNativeNavigation
+          console.log('[SWIPE ANIMATION] Animation terminée');
+        }}
+      />
       
       {/* Desktop Sidebar */}
       <DesktopSidebar />
