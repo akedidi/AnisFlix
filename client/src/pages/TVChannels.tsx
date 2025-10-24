@@ -197,6 +197,12 @@ const setupNativeNavigation = (onBack: () => void) => {
       startY = e.touches[0].clientY;
       isSwipeBack = false;
       console.log(`[NATIVE NAV] Touch start - X: ${startX}, Y: ${startY}`);
+      
+      // Si on commence près du bord gauche, on a la priorité sur le pull
+      if (startX < 50) {
+        console.log(`[NATIVE NAV] Début de geste près du bord gauche - priorité navigation`);
+        e.stopPropagation();
+      }
     };
     
     const handleTouchMove = (e: TouchEvent) => {
@@ -213,6 +219,9 @@ const setupNativeNavigation = (onBack: () => void) => {
       if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
         isSwipeBack = true;
         console.log(`[NATIVE NAV] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
+        // Empêcher le pull to refresh si on fait un swipe back
+        e.preventDefault();
+        e.stopPropagation();
       }
     };
     
@@ -220,6 +229,8 @@ const setupNativeNavigation = (onBack: () => void) => {
       console.log(`[NATIVE NAV] Touch end - isSwipeBack: ${isSwipeBack}`);
       if (isSwipeBack) {
         console.log(`[NATIVE NAV] Exécution du swipe back`);
+        e.preventDefault();
+        e.stopPropagation();
         onBack();
       }
       startX = 0;
@@ -227,9 +238,9 @@ const setupNativeNavigation = (onBack: () => void) => {
       isSwipeBack = false;
     };
     
-    document.addEventListener('touchstart', handleTouchStart, { passive: true });
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
-    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
     
     // Méthode alternative pour simulateur iOS avec clavier
     const handleKeyDown = (e: KeyboardEvent) => {
