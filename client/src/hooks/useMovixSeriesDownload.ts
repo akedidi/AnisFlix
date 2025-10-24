@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { movixProxy } from '@/lib/movixProxy';
 
 interface MovixSearchResult {
@@ -104,6 +104,10 @@ const fetchMovixDownload = async (type: 'movie' | 'tv', tmdbId: number, season?:
 };
 
 export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: number, episode?: number, title?: string) => {
+  const [data, setData] = useState<MovixDownloadResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
   const enabled = !!tmdbId && (type === 'movie' || (type === 'tv' && !!season && !!episode));
   
   console.log('🔍 [MOVIX DOWNLOAD HOOK] Hook called with:', {
@@ -135,19 +139,56 @@ export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: 
     console.log('✅ [MOVIX DOWNLOAD] HOOK ENABLED!');
   }
   
-  return useQuery({
-    queryKey: ['movix-download', type, tmdbId, season, episode, title],
-    queryFn: () => {
-      console.log('🚀 [MOVIX DOWNLOAD] QUERY FN CALLED!', { type, tmdbId, season, episode, title });
-      return fetchMovixDownload(type, tmdbId, season, episode, title);
-    },
-    enabled,
-    staleTime: 0, // Pas de cache pour forcer l'exécution
-    gcTime: 0, // Pas de cache pour forcer l'exécution
-    retry: 1,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-  });
+  useEffect(() => {
+    if (!enabled) return;
+    
+    console.log('🚀 [MOVIX DOWNLOAD] USEEFFECT CALLED!', { type, tmdbId, season, episode, title });
+    
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('🚀 [MOVIX DOWNLOAD] FETCHING DATA!', { type, tmdbId, season, episode, title });
+        
+        const result = await fetchMovixDownload(type, tmdbId, season, episode, title);
+        console.log('✅ [MOVIX DOWNLOAD] FETCH RESULT:', result);
+        setData(result);
+      } catch (err) {
+        console.error('❌ [MOVIX DOWNLOAD] FETCH ERROR:', err);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [type, tmdbId, season, episode, title, enabled]);
+  
+  return {
+    data,
+    isLoading,
+    error,
+    isFetching: isLoading,
+    isStale: false,
+    refetch: () => {
+      if (enabled) {
+        console.log('🔄 [MOVIX DOWNLOAD] REFETCH CALLED!');
+        const fetchData = async () => {
+          try {
+            setIsLoading(true);
+            setError(null);
+            const result = await fetchMovixDownload(type, tmdbId, season, episode, title);
+            setData(result);
+          } catch (err) {
+            setError(err as Error);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        fetchData();
+      }
+    }
+  };
 };
 
 // Alias pour la compatibilité avec l'ancien nom
