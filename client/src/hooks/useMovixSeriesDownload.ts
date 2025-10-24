@@ -137,7 +137,10 @@ export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: 
   
   return useQuery({
     queryKey: ['movix-download', type, tmdbId, season, episode, title],
-    queryFn: () => fetchMovixDownload(type, tmdbId, season, episode, title),
+    queryFn: () => {
+      console.log('🚀 [MOVIX DOWNLOAD] QUERY FN CALLED!', { type, tmdbId, season, episode, title });
+      return fetchMovixDownload(type, tmdbId, season, episode, title);
+    },
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
