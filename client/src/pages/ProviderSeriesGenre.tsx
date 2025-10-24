@@ -59,8 +59,8 @@ const PROVIDERS = {
 
 export default function ProviderSeriesGenre() {
   const { t } = useLanguage();
-  const [, params] = useRoute("/provider/:providerId/series/category/:genre");
-  const providerId = parseInt(params?.providerId || '0');
+  const [, params] = useRoute("/provider/:id/series/:genre?");
+  const providerId = parseInt(params?.id || '0');
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

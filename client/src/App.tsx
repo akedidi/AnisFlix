@@ -190,6 +190,10 @@ function App() {
             <Route path="/paramount" component={ParamountContent} />
             <Route path="/paramount-content" component={ParamountContent} />
             <Route path="/provider/:id" component={ProviderDetail} />
+            <Route path="/provider/:id/movies" component={ProviderMoviesGenre} />
+            <Route path="/provider/:id/series" component={ProviderSeriesGenre} />
+            <Route path="/provider/:id/movies/:genre" component={ProviderMoviesGenre} />
+            <Route path="/provider/:id/series/:genre" component={ProviderSeriesGenre} />
             
             {/* Provider Movies routes */}
             <Route path="/netflix-movies" component={NetflixMovies} />
