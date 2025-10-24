@@ -101,32 +101,17 @@ export default function VidMolyPlayer({
         
         // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
         if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com')) {
-          console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
+          console.log('🎬 URL déjà extraite (m3u8), utilisation directe:', vidmolyUrl);
           
-          // Utiliser l'API VidMoly comme proxy pour les segments HLS
-          const proxyUrl = apiClient.getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
-          console.log('✅ Utilisation du proxy VidMoly pour les segments:', proxyUrl);
-          
-          // Utiliser le proxy pour les segments HLS
+          // Utiliser directement le m3u8 sans proxy (car c'est déjà un lien HLS valide)
           if (Hls.isSupported()) {
-            console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
-            const hls = new Hls({
-              xhrSetup: (xhr, url) => {
-                // Utiliser le proxy VidMoly pour tous les segments
-                if (url.includes('.ts') || url.includes('.m3u8')) {
-                  const proxiedUrl = apiClient.getVidMolyProxyUrl(url, 'https://vidmoly.net/');
-                  console.log('🔄 Proxy segment:', url, '→', proxiedUrl);
-                  xhr.open('GET', proxiedUrl, true);
-                } else {
-                  xhr.open('GET', url, true);
-                }
-              }
-            });
-            hls.loadSource(proxyUrl);
+            console.log('📺 Utilisation de HLS.js pour le m3u8 direct');
+            const hls = new Hls();
+            hls.loadSource(vidmolyUrl);
             hls.attachMedia(video);
             
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-              console.log('✅ Manifeste HLS parsé avec succès via proxy');
+              console.log('✅ Manifeste HLS parsé avec succès');
               setIsLoading(false);
               video.play().catch(console.error);
             });
@@ -139,10 +124,10 @@ export default function VidMolyPlayer({
               }
             });
           } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            console.log('📺 Utilisation de la lecture native HLS avec proxy');
-            video.src = proxyUrl;
+            console.log('📺 Utilisation de la lecture native HLS');
+            video.src = vidmolyUrl;
             video.addEventListener('loadedmetadata', () => {
-              console.log('✅ Métadonnées HLS chargées via proxy');
+              console.log('✅ Métadonnées HLS chargées');
               setIsLoading(false);
               video.play().catch(console.error);
             });
