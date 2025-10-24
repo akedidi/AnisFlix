@@ -198,9 +198,10 @@ const setupNativeNavigation = (onBack: () => void) => {
       isSwipeBack = false;
       console.log(`[NATIVE NAV] Touch start - X: ${startX}, Y: ${startY}`);
       
-      // Si on commence près du bord gauche, on a la priorité sur le pull
+      // PRIORITÉ SWIPE BACK : Si on commence près du bord gauche, bloquer le pull-to-refresh
       if (startX < 100) {
-        console.log(`[NATIVE NAV] Début de geste près du bord gauche - priorité navigation`);
+        console.log(`[NATIVE NAV] PRIORITÉ SWIPE BACK - Blocage du pull-to-refresh`);
+        e.preventDefault();
         e.stopPropagation();
       }
     };
@@ -215,18 +216,23 @@ const setupNativeNavigation = (onBack: () => void) => {
       
       console.log(`[NATIVE NAV] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
       
-      // Détecter un swipe horizontal de gauche à droite (seuils plus permissifs)
-      if (diffX > 20 && Math.abs(diffY) < 200 && startX < 150) {
+      // DÉTECTION SWIPE BACK : Mouvement horizontal dominant
+      const isHorizontalMovement = Math.abs(diffX) > Math.abs(diffY);
+      const isMovingRight = diffX > 0;
+      const isInLeftZone = startX < 150;
+      
+      console.log(`[NATIVE NAV] Analyse mouvement - horizontal: ${isHorizontalMovement}, droite: ${isMovingRight}, zone gauche: ${isInLeftZone}`);
+      
+      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 20) {
         isSwipeBack = true;
-        console.log(`[NATIVE NAV] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
-        // Empêcher le pull to refresh si on fait un swipe back
+        console.log(`[NATIVE NAV] ✅ SWIPE BACK DÉTECTÉ - Mouvement horizontal vers la droite`);
         e.preventDefault();
         e.stopPropagation();
       }
       
-      // Détection précoce : si on commence un mouvement horizontal, marquer comme potentiel swipe back
-      if (diffX > 10 && Math.abs(diffY) < 100 && startX < 150 && !isSwipeBack) {
-        console.log(`[NATIVE NAV] Mouvement horizontal détecté - préparation swipe back`);
+      // Détection précoce pour bloquer le pull-to-refresh
+      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 5 && !isSwipeBack) {
+        console.log(`[NATIVE NAV] Préparation swipe back - Blocage pull-to-refresh`);
         e.preventDefault();
         e.stopPropagation();
       }
@@ -838,6 +844,8 @@ export default function TVChannels() {
     console.log('[NATIVE NAV] isCapacitor():', isCapacitor());
     console.log('[NATIVE NAV] getNativePlatform():', getNativePlatform());
     console.log('[NATIVE NAV] UserAgent:', navigator.userAgent);
+    console.log('[NATIVE NAV] window.Capacitor:', (window as any).Capacitor);
+    console.log('[NATIVE NAV] window.Capacitor.Plugins:', (window as any).Capacitor?.Plugins);
     
     const handleBack = () => {
       console.log('[NATIVE NAV] Navigation vers la page précédente');
@@ -854,6 +862,7 @@ export default function TVChannels() {
     
     // TOUJOURS ajouter le fallback pour le simulateur iOS
     console.log('[NATIVE NAV] Configuration du fallback pour simulateur iOS');
+    console.log('[NATIVE NAV] Fallback activé - écoute des événements touch');
     
     let startX = 0;
     let startY = 0;
@@ -864,9 +873,12 @@ export default function TVChannels() {
       startY = e.touches[0].clientY;
       isSwipeBack = false;
       console.log(`[NATIVE NAV FALLBACK] Touch start - X: ${startX}, Y: ${startY}`);
+      console.log(`[NATIVE NAV FALLBACK] Position X: ${startX}, Zone gauche (< 100): ${startX < 100}`);
       
+      // PRIORITÉ SWIPE BACK : Si on commence près du bord gauche, bloquer le pull-to-refresh
       if (startX < 100) {
-        console.log(`[NATIVE NAV FALLBACK] Début de geste près du bord gauche`);
+        console.log(`[NATIVE NAV FALLBACK] PRIORITÉ SWIPE BACK - Blocage du pull-to-refresh`);
+        e.preventDefault();
         e.stopPropagation();
       }
     };
@@ -881,16 +893,23 @@ export default function TVChannels() {
       
       console.log(`[NATIVE NAV FALLBACK] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
       
-      if (diffX > 20 && Math.abs(diffY) < 200 && startX < 150) {
+      // DÉTECTION SWIPE BACK : Mouvement horizontal dominant
+      const isHorizontalMovement = Math.abs(diffX) > Math.abs(diffY);
+      const isMovingRight = diffX > 0;
+      const isInLeftZone = startX < 150;
+      
+      console.log(`[NATIVE NAV FALLBACK] Analyse mouvement - horizontal: ${isHorizontalMovement}, droite: ${isMovingRight}, zone gauche: ${isInLeftZone}`);
+      
+      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 20) {
         isSwipeBack = true;
-        console.log(`[NATIVE NAV FALLBACK] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
+        console.log(`[NATIVE NAV FALLBACK] ✅ SWIPE BACK DÉTECTÉ - Mouvement horizontal vers la droite`);
         e.preventDefault();
         e.stopPropagation();
       }
       
-      // Détection précoce : si on commence un mouvement horizontal, marquer comme potentiel swipe back
-      if (diffX > 10 && Math.abs(diffY) < 100 && startX < 150 && !isSwipeBack) {
-        console.log(`[NATIVE NAV FALLBACK] Mouvement horizontal détecté - préparation swipe back`);
+      // Détection précoce pour bloquer le pull-to-refresh
+      if (isHorizontalMovement && isMovingRight && isInLeftZone && diffX > 5 && !isSwipeBack) {
+        console.log(`[NATIVE NAV FALLBACK] Préparation swipe back - Blocage pull-to-refresh`);
         e.preventDefault();
         e.stopPropagation();
       }
