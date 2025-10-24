@@ -119,6 +119,21 @@ export const useMovixDownload = (type: 'movie' | 'tv', tmdbId: number, season?: 
     }
   });
   
+  // Log plus visible pour le debug
+  if (!enabled) {
+    console.log('❌ [MOVIX DOWNLOAD] HOOK DISABLED!', {
+      hasTmdbId: !!tmdbId,
+      isMovie: type === 'movie',
+      isTv: type === 'tv',
+      hasSeason: !!season,
+      hasEpisode: !!episode,
+      seasonValue: season,
+      episodeValue: episode
+    });
+  } else {
+    console.log('✅ [MOVIX DOWNLOAD] HOOK ENABLED!');
+  }
+  
   return useQuery({
     queryKey: ['movix-download', type, tmdbId, season, episode, title],
     queryFn: () => fetchMovixDownload(type, tmdbId, season, episode, title),
