@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Play, Tv, Radio, Globe, Trophy, Star, Zap, Music, Gamepad2, Film, Newspaper, Users, Shield } from "lucide-react";
+import { Play, Tv, Radio, Globe, Trophy, Star, Zap, Music, Gamepad2, Film, Newspaper, Users, Shield, Search, X } from "lucide-react";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
@@ -556,13 +557,66 @@ export default function TVChannels() {
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [channelLogos, setChannelLogos] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<TVChannel[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Filtrer les chaînes par section et catégorie
   const filteredChannels = TV_CHANNELS.filter(
     channel => channel.section === selectedSection && channel.category === selectedCategory
   );
+
+  // Fonction de recherche de chaînes
+  const searchChannels = (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const results = TV_CHANNELS.filter(channel =>
+      channel.name.toLowerCase().includes(query.toLowerCase()) ||
+      channel.category.toLowerCase().includes(query.toLowerCase()) ||
+      TV_SECTIONS.find(s => s.id === channel.section)?.name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    setSearchResults(results);
+    setShowSearchResults(true);
+  };
+
+  // Effet pour la recherche
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      searchChannels(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Fonction pour sélectionner une chaîne depuis la recherche
+  const selectChannelFromSearch = (channel: TVChannel) => {
+    console.log('🔍 [SEARCH] Sélection de chaîne depuis la recherche:', channel.name);
+    setSelectedChannel(channel);
+    setSearchQuery("");
+    setShowSearchResults(false);
+    
+    // Mettre à jour la section et catégorie selon la chaîne sélectionnée
+    setSelectedSection(channel.section);
+    setSelectedCategory(channel.category);
+  };
+
+  // Fonction pour effacer la recherche
+  const clearSearch = () => {
+    setSearchQuery("");
+    setShowSearchResults(false);
+    setSearchResults([]);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
 
   // Obtenir les catégories disponibles pour la section sélectionnée
   const availableCategories = TV_SECTIONS.find(section => section.id === selectedSection)?.categories || [];
@@ -943,12 +997,99 @@ export default function TVChannels() {
 
   return (
     <CommonLayout 
-      title={t('nav.tvChannels')} 
-      icon={<Tv className="w-8 h-8" />}
+      title="" 
+      icon={null}
       showSearch={false}
       enablePullToRefresh={false}
     >
       <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+        {/* Barre de recherche */}
+        <div className="mb-8">
+          <div className="relative max-w-2xl mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Rechercher une chaîne TV..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10 py-3 text-lg"
+                onFocus={() => {
+                  if (searchQuery.trim()) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                onBlur={() => {
+                  // Délai pour permettre le clic sur les résultats
+                  setTimeout(() => setShowSearchResults(false), 200);
+                }}
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearSearch}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Résultats de recherche */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                {searchResults.map((channel) => (
+                  <div
+                    key={channel.id}
+                    className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                    onClick={() => selectChannelFromSearch(channel)}
+                  >
+                    {channelLogos[channel.id] ? (
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
+                        <img 
+                          src={channelLogos[channel.id]} 
+                          alt={`Logo ${channel.name}`}
+                          className="w-full h-full object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }}
+                        />
+                      </div>
+                    ) : null}
+                    <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
+                      <Tv className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm">{channel.name}</h4>
+                      <div className="flex gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs">{channel.category}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {TV_SECTIONS.find(s => s.id === channel.section)?.name}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Play className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Message si aucun résultat */}
+            {showSearchResults && searchResults.length === 0 && searchQuery.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 p-4">
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  <Search className="w-8 h-8 mx-auto mb-2" />
+                  <p>Aucune chaîne trouvée pour "{searchQuery}"</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">
           <div className="space-y-6">
             {selectedChannel ? (
