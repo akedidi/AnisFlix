@@ -843,73 +843,70 @@ export default function TVChannels() {
       console.log('[NATIVE NAV] Navigation native configurée avec succès');
     } else {
       console.log('[NATIVE NAV] Aucune navigation native configurée (pas sur plateforme native)');
-      
-      // Fallback pour simulateur iOS - ajouter quand même les gestes
-      console.log('[NATIVE NAV] Configuration du fallback pour simulateur iOS');
-      
-      let startX = 0;
-      let startY = 0;
-      let isSwipeBack = false;
-      
-      const handleTouchStart = (e: TouchEvent) => {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isSwipeBack = false;
-        console.log(`[NATIVE NAV FALLBACK] Touch start - X: ${startX}, Y: ${startY}`);
-        
-        if (startX < 50) {
-          console.log(`[NATIVE NAV FALLBACK] Début de geste près du bord gauche`);
-          e.stopPropagation();
-        }
-      };
-      
-      const handleTouchMove = (e: TouchEvent) => {
-        if (!startX || !startY) return;
-        
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const diffX = currentX - startX;
-        const diffY = currentY - startY;
-        
-        console.log(`[NATIVE NAV FALLBACK] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
-        
-        if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
-          isSwipeBack = true;
-          console.log(`[NATIVE NAV FALLBACK] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      };
-      
-      const handleTouchEnd = (e: TouchEvent) => {
-        console.log(`[NATIVE NAV FALLBACK] Touch end - isSwipeBack: ${isSwipeBack}`);
-        if (isSwipeBack) {
-          console.log(`[NATIVE NAV FALLBACK] Exécution du swipe back`);
-          e.preventDefault();
-          e.stopPropagation();
-          handleBack();
-        }
-        startX = 0;
-        startY = 0;
-        isSwipeBack = false;
-      };
-      
-      document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
-      document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
-      document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
-      
-      return () => {
-        document.removeEventListener('touchstart', handleTouchStart);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
     }
+    
+    // TOUJOURS ajouter le fallback pour le simulateur iOS
+    console.log('[NATIVE NAV] Configuration du fallback pour simulateur iOS');
+    
+    let startX = 0;
+    let startY = 0;
+    let isSwipeBack = false;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isSwipeBack = false;
+      console.log(`[NATIVE NAV FALLBACK] Touch start - X: ${startX}, Y: ${startY}`);
+      
+      if (startX < 50) {
+        console.log(`[NATIVE NAV FALLBACK] Début de geste près du bord gauche`);
+        e.stopPropagation();
+      }
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!startX || !startY) return;
+      
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const diffX = currentX - startX;
+      const diffY = currentY - startY;
+      
+      console.log(`[NATIVE NAV FALLBACK] Touch move - diffX: ${diffX}, diffY: ${diffY}, startX: ${startX}`);
+      
+      if (diffX > 30 && Math.abs(diffY) < 150 && startX < 100) {
+        isSwipeBack = true;
+        console.log(`[NATIVE NAV FALLBACK] Swipe back détecté - diffX: ${diffX}, diffY: ${diffY}`);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      console.log(`[NATIVE NAV FALLBACK] Touch end - isSwipeBack: ${isSwipeBack}`);
+      if (isSwipeBack) {
+        console.log(`[NATIVE NAV FALLBACK] Exécution du swipe back`);
+        e.preventDefault();
+        e.stopPropagation();
+        handleBack();
+      }
+      startX = 0;
+      startY = 0;
+      isSwipeBack = false;
+    };
+    
+    document.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
     
     return () => {
       if (cleanup) {
         console.log('[NATIVE NAV] Nettoyage de la navigation native');
         cleanup();
       }
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
     };
   }, [setLocation]);
 
