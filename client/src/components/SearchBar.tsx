@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import { Search, X, Tv } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
@@ -143,16 +143,29 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
               data-testid={`search-result-${item.id}`}
             >
-              <img
-                src={getOptimizedImageUrl(item.posterPath, 'w92')}
-                alt={item.title}
-                className="w-12 h-18 object-cover rounded"
-              />
+              {item.posterPath ? (
+                <img
+                  src={item.mediaType === 'tv' && item.posterPath.startsWith('http') 
+                    ? item.posterPath 
+                    : getOptimizedImageUrl(item.posterPath, 'w92')
+                  }
+                  alt={item.title}
+                  className="w-12 h-18 object-cover rounded"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className="w-12 h-18 bg-white/10 rounded flex items-center justify-center" style={{ display: item.posterPath ? 'none' : 'flex' }}>
+                <Tv className="w-6 h-6 text-white/70" />
+              </div>
               <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                    {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
+                    {item.mediaType === "tv" ? "Chaîne TV" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>
                   {item.year && (
                     <span className="text-xs text-gray-300">{item.year}</span>

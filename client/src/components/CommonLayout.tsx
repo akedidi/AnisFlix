@@ -20,6 +20,11 @@ interface CommonLayoutProps {
   onRefresh?: () => void;
   showRefreshButton?: boolean;
   enablePullToRefresh?: boolean;
+  // Props pour recherche personnalisée
+  customSearchQuery?: string;
+  customSearchResults?: any[];
+  onCustomSearch?: (query: string) => void;
+  onCustomSearchSelect?: (item: any) => void;
 }
 
 export default function CommonLayout({ 
@@ -29,12 +34,21 @@ export default function CommonLayout({
   children,
   onRefresh,
   showRefreshButton = true,
-  enablePullToRefresh = true
+  enablePullToRefresh = true,
+  customSearchQuery,
+  customSearchResults,
+  onCustomSearch,
+  onCustomSearchSelect
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
+  
+  // Utiliser la recherche personnalisée si fournie
+  const isCustomSearch = !!customSearchQuery;
+  const finalSearchQuery = isCustomSearch ? customSearchQuery : searchQuery;
+  const finalSearchResults = isCustomSearch ? (customSearchResults || []) : searchResults;
   
   // Gérer le scroll sur mobile
   useMobileScroll();
@@ -89,11 +103,15 @@ export default function CommonLayout({
             {showSearch && (
               <div className="flex-1 relative">
                 <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? searchResults : []}
+                  onSearch={isCustomSearch ? onCustomSearch : setSearchQuery}
+                  suggestions={finalSearchQuery ? finalSearchResults : []}
                   onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    setLocation(path);
+                    if (isCustomSearch && onCustomSearchSelect) {
+                      onCustomSearchSelect(item);
+                    } else {
+                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                      setLocation(path);
+                    }
                   }}
                 />
               </div>
