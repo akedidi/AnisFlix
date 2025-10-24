@@ -6,6 +6,7 @@ import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
 import { useDarkiSeries } from '@/hooks/useDarkiSeries';
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
+import { useMovixSeriesDownload } from '@/hooks/useMovixSeriesDownload';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -75,6 +76,7 @@ export default function StreamingSources({
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
+  const { data: movixSeriesDownloadData, isLoading: isLoadingMovixSeriesDownload } = useMovixSeriesDownload(id, season || 1, episode || 1);
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
@@ -309,6 +311,76 @@ export default function StreamingSources({
           id: `movix-download-${quality.toLowerCase()}-${index}`,
           name: `${qualityLabel} (${languageLabel})`,
           provider: 'darkibox',
+          url: modifiedUrl,
+          type: 'm3u8' as const,
+          isMovixDownload: true,
+          quality: quality,
+          language: source.language
+        });
+      });
+    });
+  }
+
+  // Ajouter les sources MovixSeriesDownload si disponibles
+  if (movixSeriesDownloadData && movixSeriesDownloadData.sources && selectedLanguage === 'VF') {
+    console.log('🔍 [MOVIX SERIES DOWNLOAD] Processing sources:', movixSeriesDownloadData.sources);
+    
+    // Trier les sources par qualité (du meilleur au moins bon)
+    const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
+    
+    const sortedSources = movixSeriesDownloadData.sources.sort((a: any, b: any) => {
+      const qualityA = a.quality || 'Unknown';
+      const qualityB = b.quality || 'Unknown';
+      
+      const indexA = qualityOrder.indexOf(qualityA);
+      const indexB = qualityOrder.indexOf(qualityB);
+      
+      // Si les deux qualités sont dans la liste, trier par index
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      
+      // Si une seule est dans la liste, la prioriser
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      // Si aucune n'est dans la liste, trier alphabétiquement
+      return qualityA.localeCompare(qualityB);
+    });
+
+    // Grouper par qualité et numéroter
+    const sourcesByQuality = sortedSources.reduce((acc: any, source: any) => {
+      const quality = source.quality || 'Unknown';
+      if (!acc[quality]) {
+        acc[quality] = [];
+      }
+      acc[quality].push(source);
+      return acc;
+    }, {});
+
+    // Ajouter les sources groupées par qualité
+    Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
+      sources.forEach((source: any, index: number) => {
+        const languageLabel = source.language === 'MULTI' ? 'Multi' : 
+                             source.language === 'FRE' ? 'Français' : 
+                             source.language === 'ENG' ? 'Anglais' : source.language;
+
+        // Ajouter un numéro si plusieurs sources de même qualité
+        const qualityLabel = sources.length > 1 ? `${quality} #${index + 1}` : quality;
+        
+        // Modifier l'URL pour forcer les sous-titres français
+        let modifiedUrl = source.m3u8;
+        if (source.language === 'MULTI' || source.language === 'FRE') {
+          // Ajouter le paramètre pour forcer les sous-titres français
+          const url = new URL(source.m3u8);
+          url.searchParams.set('subtitle', 'fr');
+          modifiedUrl = url.toString();
+        }
+
+        allSources.push({
+          id: `movix-series-download-${quality.toLowerCase()}-${index}`,
+          name: `${qualityLabel} (${languageLabel})`,
+          provider: 'movix-series-download',
           url: modifiedUrl,
           type: 'm3u8' as const,
           isMovixDownload: true,
@@ -632,7 +704,7 @@ export default function StreamingSources({
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingMovixSeriesDownload) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
