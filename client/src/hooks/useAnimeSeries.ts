@@ -116,11 +116,16 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
     vf: [] as any[],
     vostfr: [] as any[]
   });
+  
+  const [isLoadingVidMoly, setIsLoadingVidMoly] = useState(false);
 
   useEffect(() => {
     if (!animeData?.seasons) return;
 
     const processVidMolyLinks = async () => {
+      console.log('🔍 useAnimeVidMolyLinks - DÉBUT du traitement VidMoly');
+      setIsLoadingVidMoly(true);
+      
       console.log('🔍 useAnimeVidMolyLinks - Saisons trouvées:', animeData.seasons);
       console.log('🔍 useAnimeVidMolyLinks - Recherche saison numéro:', seasonNumber);
       console.log('🔍 useAnimeVidMolyLinks - Noms des saisons:', animeData.seasons.map(s => s.name));
@@ -207,6 +212,7 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
             }
           });
           
+          console.log('🔍 useAnimeVidMolyLinks - FIN du traitement VidMoly');
           console.log('🔍 useAnimeVidMolyLinks - Résultat final:', {
             vf: newVidmolyLinks.vf,
             vostfr: newVidmolyLinks.vostfr,
@@ -214,8 +220,12 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
             vostfrCount: newVidmolyLinks.vostfr.length
           });
 
+          // Mettre à jour les liens SEULEMENT à la fin de tout le traitement
           setVidmolyLinks(newVidmolyLinks);
+          setIsLoadingVidMoly(false);
         }
+      } else {
+        setIsLoadingVidMoly(false);
       }
     };
 
@@ -229,7 +239,7 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   
   return {
     data: vidmolyLinks,
-    isLoading,
+    isLoading: isLoading || isLoadingVidMoly,
     error,
     hasVidMolyLinks
   };
