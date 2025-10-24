@@ -896,6 +896,11 @@ export default function TVChannels() {
       
       const handlePlay = () => {
         console.log('🎥 [VIDEO] Lecture démarrée');
+        // Démuter automatiquement quand la lecture démarre
+        if (video.muted) {
+          console.log('🎥 [VIDEO] Démarrage de la lecture - démutage automatique');
+          video.muted = false;
+        }
       };
       
       const handlePause = () => {
@@ -923,13 +928,12 @@ export default function TVChannels() {
         console.log(`🎥 [HLS PLAYER] Manifest parsé avec succès`);
         setIsLoading(false);
         
-        // Sur mobile, ne pas démarrer automatiquement la lecture pour éviter le fullscreen
-        if (!isMobile()) {
-          video.play().catch(err => {
-            console.error("🎥 [HLS PLAYER] Erreur de lecture:", err);
-            setError("Impossible de lire le flux");
-          });
-        }
+        // Démarrer la lecture automatiquement mais en mode inline (pas fullscreen)
+        console.log(`🎥 [HLS PLAYER] Démarrage de la lecture automatique`);
+        video.play().catch(err => {
+          console.error("🎥 [HLS PLAYER] Erreur de lecture:", err);
+          setError("Impossible de lire le flux");
+        });
       });
 
       hls.on(Hls.Events.ERROR, (_event, data: any) => {
@@ -1148,8 +1152,9 @@ export default function TVChannels() {
                         ref={videoRef}
                         className="w-full h-full"
                         controls
-                        autoPlay={!isMobile()} // Désactiver autoPlay sur mobile pour éviter le fullscreen automatique
-                        playsInline // Forcer la lecture inline sur mobile
+                        autoPlay // Activer autoPlay pour démarrer automatiquement
+                        playsInline // Forcer la lecture inline (pas fullscreen automatique)
+                        muted // Muter par défaut pour permettre l'autoPlay sur mobile
                         data-testid="video-player-hls"
                       />
                     ) : playerType === 'shaka' && streamUrl ? (
