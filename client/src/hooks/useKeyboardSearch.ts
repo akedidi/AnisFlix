@@ -29,26 +29,32 @@ export function useKeyboardSearch() {
     const forceSearchKeyboard = () => {
       const searchInputs = document.querySelectorAll('input[type="search"]');
       searchInputs.forEach((input: any) => {
-        // Vérifier si les attributs sont déjà corrects pour éviter la boucle
-        const currentInputmode = input.getAttribute('inputmode');
-        const currentEnterkeyhint = input.getAttribute('enterkeyhint');
+        // Forcer les attributs HTML natifs (minuscules) - méthode plus agressive
+        input.setAttribute('inputmode', 'search');
+        input.setAttribute('enterkeyhint', 'search');
+        input.setAttribute('type', 'search');
         
-        if (currentInputmode !== 'search' || currentEnterkeyhint !== 'search') {
-          // Attributs HTML natifs (minuscules)
-          input.setAttribute('inputmode', 'search');
-          input.setAttribute('enterkeyhint', 'search');
-          input.setAttribute('type', 'search');
-          
-          // Propriétés JavaScript
-          input.inputMode = 'search';
-          input.enterKeyHint = 'search';
-          
-          console.log('🔍 [KEYBOARD] Attributs de recherche appliqués:', {
-            inputmode: input.getAttribute('inputmode'),
-            enterkeyhint: input.getAttribute('enterkeyhint'),
-            type: input.type
-          });
+        // Propriétés JavaScript
+        input.inputMode = 'search';
+        input.enterKeyHint = 'search';
+        
+        // Forcer également via le DOM
+        input.setAttribute('data-inputmode', 'search');
+        input.setAttribute('data-enterkeyhint', 'search');
+        
+        // Méthode alternative pour iOS
+        if (input.setAttribute) {
+          input.setAttribute('webkit-input-mode', 'search');
+          input.setAttribute('webkit-enter-key-hint', 'search');
         }
+        
+        console.log('🔍 [KEYBOARD] Attributs de recherche appliqués:', {
+          inputmode: input.getAttribute('inputmode'),
+          enterkeyhint: input.getAttribute('enterkeyhint'),
+          type: input.type,
+          inputMode: input.inputMode,
+          enterKeyHint: input.enterKeyHint
+        });
       });
     };
 

@@ -162,6 +162,21 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             WebkitAppearance: 'none',
             appearance: 'none'
           }}
+          // Forcer le clavier au focus
+          onFocus={(e) => {
+            const input = e.target as HTMLInputElement;
+            // Forcer les attributs au focus
+            input.setAttribute('inputmode', 'search');
+            input.setAttribute('enterkeyhint', 'search');
+            input.setAttribute('type', 'search');
+            input.inputMode = 'search';
+            input.enterKeyHint = 'search';
+            console.log('🔍 [SEARCHBAR] Focus - Attributs appliqués:', {
+              inputmode: input.getAttribute('inputmode'),
+              enterkeyhint: input.getAttribute('enterkeyhint'),
+              type: input.type
+            });
+          }}
         />
         {query && (
           <button
