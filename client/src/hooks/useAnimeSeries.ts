@@ -222,7 +222,10 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
     processVidMolyLinks();
   }, [animeData, seasonNumber, episodeNumber]);
 
+  // Recalculer hasVidMolyLinks à chaque changement de vidmolyLinks
   const hasVidMolyLinks = vidmolyLinks.vf.length > 0 || vidmolyLinks.vostfr.length > 0;
+  
+  console.log('🔍 useAnimeVidMolyLinks - hasVidMolyLinks recalculé:', hasVidMolyLinks, 'vf:', vidmolyLinks.vf.length, 'vostfr:', vidmolyLinks.vostfr.length);
   
   return {
     data: vidmolyLinks,
