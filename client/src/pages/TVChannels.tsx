@@ -11,6 +11,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
 import { apiClient } from "@/lib/apiClient";
+import { useLocation } from "wouter";
 
 // Extension des types pour window.scrollTimeout
 declare global {
@@ -163,6 +164,98 @@ const isCapacitor = () => {
   console.log(`[CAPACITOR DETECTION] isRealNativeApp: ${isRealNativeApp}`);
   
   return isRealNativeApp;
+};
+
+// Fonction pour détecter la plateforme native
+const getNativePlatform = () => {
+  if (!isCapacitor()) return null;
+  
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+    return 'ios';
+  } else if (userAgent.includes('android')) {
+    return 'android';
+  }
+  return null;
+};
+
+// Fonction pour gérer la navigation native
+const setupNativeNavigation = (onBack: () => void) => {
+  const platform = getNativePlatform();
+  console.log(`[NATIVE NAV] Plateforme détectée: ${platform}`);
+  
+  if (platform === 'ios') {
+    // Pour iOS : gérer le swipe back
+    console.log(`[NATIVE NAV] Configuration du swipe back pour iOS`);
+    
+    let startX = 0;
+    let startY = 0;
+    let isSwipeBack = false;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isSwipeBack = false;
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!startX || !startY) return;
+      
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const diffX = currentX - startX;
+      const diffY = currentY - startY;
+      
+      // Détecter un swipe horizontal de gauche à droite
+      if (diffX > 50 && Math.abs(diffY) < 100 && startX < 50) {
+        isSwipeBack = true;
+        console.log(`[NATIVE NAV] Swipe back détecté`);
+      }
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (isSwipeBack) {
+        console.log(`[NATIVE NAV] Exécution du swipe back`);
+        onBack();
+      }
+      startX = 0;
+      startY = 0;
+      isSwipeBack = false;
+    };
+    
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+  } else if (platform === 'android') {
+    // Pour Android : gérer le bouton back physique
+    console.log(`[NATIVE NAV] Configuration du bouton back pour Android`);
+    
+    const handleBackButton = (e: Event) => {
+      console.log(`[NATIVE NAV] Bouton back Android pressé`);
+      e.preventDefault();
+      onBack();
+    };
+    
+    // Écouter l'événement backbutton de Capacitor
+    if ((window as any).Capacitor?.Plugins?.App) {
+      (window as any).Capacitor.Plugins.App.addListener('backButton', handleBackButton);
+    }
+    
+    return () => {
+      if ((window as any).Capacitor?.Plugins?.App) {
+        (window as any).Capacitor.Plugins.App.removeAllListeners('backButton');
+      }
+    };
+  }
+  
+  return null;
 };
 
 // Fonction pour convertir une URL en URL proxy pour mobile natif
@@ -548,6 +641,7 @@ const TV_CHANNELS: TVChannel[] = [
 
 export default function TVChannels() {
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [selectedSection, setSelectedSection] = useState<string>("france");
   const [selectedCategory, setSelectedCategory] = useState<string>("Généraliste");
@@ -703,6 +797,25 @@ export default function TVChannels() {
     
     loadChannelLogos();
   }, []);
+
+  // Gestion de la navigation native (iOS swipe back / Android back button)
+  useEffect(() => {
+    console.log('[NATIVE NAV] ===== CONFIGURATION NAVIGATION NATIVE =====');
+    
+    const handleBack = () => {
+      console.log('[NATIVE NAV] Navigation vers la page précédente');
+      setLocation('/');
+    };
+    
+    const cleanup = setupNativeNavigation(handleBack);
+    
+    return () => {
+      if (cleanup) {
+        console.log('[NATIVE NAV] Nettoyage de la navigation native');
+        cleanup();
+      }
+    };
+  }, [setLocation]);
 
   // Scroll automatique vers le haut quand on sélectionne une chaîne
   useEffect(() => {
