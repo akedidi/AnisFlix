@@ -1042,6 +1042,7 @@ export default function TVChannels() {
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             !originalUrl.includes('/api/tv?url=') &&
             !originalUrl.includes('viamotionhsi.netplus.ch/api/tv') &&
+            !originalUrl.includes('undefined') && // Éviter les URLs avec undefined
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_'))) {
           
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
@@ -1057,10 +1058,26 @@ export default function TVChannels() {
               console.log(`🎥 [HLS FRAG] Base URL utilisée: ${baseUrl}`);
             } else {
               console.error(`🎥 [HLS FRAG] URL de base invalide: ${currentStreamUrl}`);
-              // Fallback vers une URL de base connue
-              const fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              // Fallback intelligent basé sur le nom du fichier
+              let fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              
+              // Détecter le canal basé sur le nom du fichier
+              if (originalUrl.includes('hd1-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              } else if (originalUrl.includes('nt1-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/';
+              } else if (originalUrl.includes('france3hd-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/';
+              } else if (originalUrl.includes('m6hd-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/';
+              } else if (originalUrl.includes('w9-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/';
+              } else if (originalUrl.includes('gulli-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/';
+              }
+              
               resolvedUrl = new URL(originalUrl, fallbackBaseUrl).href;
-              console.log(`🎥 [HLS FRAG] Fallback vers: ${resolvedUrl}`);
+              console.log(`🎥 [HLS FRAG] Fallback intelligent vers: ${resolvedUrl}`);
             }
           }
           
@@ -1083,6 +1100,7 @@ export default function TVChannels() {
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             !originalUrl.includes('/api/tv?url=') &&
             !originalUrl.includes('viamotionhsi.netplus.ch/api/tv') &&
+            !originalUrl.includes('undefined') && // Éviter les URLs avec undefined
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_'))) {
           
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
@@ -1098,10 +1116,26 @@ export default function TVChannels() {
               console.log(`🎥 [HLS AUDIO] Base URL utilisée: ${baseUrl}`);
             } else {
               console.error(`🎥 [HLS AUDIO] URL de base invalide: ${currentStreamUrl}`);
-              // Fallback vers une URL de base connue
-              const fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              // Fallback intelligent basé sur le nom du fichier
+              let fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              
+              // Détecter le canal basé sur le nom du fichier
+              if (originalUrl.includes('hd1-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              } else if (originalUrl.includes('nt1-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/';
+              } else if (originalUrl.includes('france3hd-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/';
+              } else if (originalUrl.includes('m6hd-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/';
+              } else if (originalUrl.includes('w9-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/';
+              } else if (originalUrl.includes('gulli-')) {
+                fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/';
+              }
+              
               resolvedUrl = new URL(originalUrl, fallbackBaseUrl).href;
-              console.log(`🎥 [HLS AUDIO] Fallback vers: ${resolvedUrl}`);
+              console.log(`🎥 [HLS AUDIO] Fallback intelligent vers: ${resolvedUrl}`);
             }
           }
           
