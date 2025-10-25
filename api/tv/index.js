@@ -40,12 +40,36 @@ function rewritePlaylistUrls(playlistText, baseUrl) {
     .split('\n')
     .map((line) => {
       const t = line.trim();
-      if (!t || t.startsWith('#')) return line;
-      const abs = toAbsolute(baseUrl, t);
-      if (/\.m3u8(\?|$)/i.test(abs)) {
+      if (!t) return line;
+      
+      // Traiter les lignes de segments (pas de #)
+      if (!t.startsWith('#')) {
+        const abs = toAbsolute(baseUrl, t);
+        if (/\.m3u8(\?|$)/i.test(abs)) {
+          return `/api/tv?url=${encodeURIComponent(abs)}`;
+        }
         return `/api/tv?url=${encodeURIComponent(abs)}`;
       }
-      return `/api/tv?url=${encodeURIComponent(abs)}`;
+      
+      // Traiter les tags #EXT-X-MEDIA pour les URLs audio
+      if (t.startsWith('#EXT-X-MEDIA:') && t.includes('URI=')) {
+        console.log(`[TV PROXY] Traitement ligne audio: ${t}`);
+        const uriMatch = t.match(/URI="([^"]+)"/);
+        if (uriMatch) {
+          const audioUrl = uriMatch[1];
+          console.log(`[TV PROXY] URL audio trouvée: ${audioUrl}`);
+          const abs = toAbsolute(baseUrl, audioUrl);
+          console.log(`[TV PROXY] URL absolue: ${abs}`);
+          const proxifiedAudioUrl = `/api/tv?url=${encodeURIComponent(abs)}`;
+          console.log(`[TV PROXY] URL proxifiée: ${proxifiedAudioUrl}`);
+          const result = t.replace(/URI="[^"]+"/, `URI="${proxifiedAudioUrl}"`);
+          console.log(`[TV PROXY] Ligne résultante: ${result}`);
+          return result;
+        }
+      }
+      
+      // Retourner la ligne inchangée pour les autres tags
+      return line;
     })
     .join('\n');
 }
