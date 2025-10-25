@@ -136,197 +136,80 @@ export default async function handler(req, res) {
       let m3u8Url = null;
       let methodUsed = 'none';
 
-      // ===== MÉTHODE 1: BYPASS AVEC PROXIES EXTERNES =====
+      // ===== MÉTHODE 1: EXTRACTION RAPIDE =====
       if (method === 'auto' || method === 'bypass') {
         try {
-          console.log(`[VIDMOLY] Tentative bypass avec proxies externes...`);
+          console.log(`[VIDMOLY] Tentative extraction rapide...`);
           
-          const proxyServices = [
-            'https://api.allorigins.win/raw?url=',
-            'https://cors-anywhere.herokuapp.com/',
-            'https://api.codetabs.com/v1/proxy?quest=',
-            'https://thingproxy.freeboard.io/fetch/'
-          ];
-
-          for (const proxyUrl of proxyServices) {
-            try {
-              const response = await axios.get(proxyUrl + encodeURIComponent(normalizedUrl), {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                  'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-                },
-                timeout: 15000,
-                maxRedirects: 5,
-                validateStatus: (status) => status >= 200 && status < 400
-              });
-
-              const html = response.data;
-              
-              if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
-                console.log(`[VIDMOLY] AdBlock détecté avec ${proxyUrl}`);
-                continue;
-              }
-
-              // Extraire le lien m3u8
-              const playerSetupMatch = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
-              
-              if (playerSetupMatch) {
-                m3u8Url = playerSetupMatch[1].replace(/,/g, '');
-                methodUsed = 'proxy-bypass';
-                console.log(`[VIDMOLY] Lien trouvé via bypass: ${m3u8Url}`);
-                break;
-              }
-            } catch (error) {
-              console.log(`[VIDMOLY] Proxy ${proxyUrl} échoué: ${error.message}`);
-              continue;
-            }
-          }
-        } catch (error) {
-          console.log(`[VIDMOLY] Méthode bypass échouée: ${error.message}`);
-        }
-      }
-
-      // ===== MÉTHODE 2: EXTRACTION DIRECTE =====
-      if (!m3u8Url && (method === 'auto' || method === 'extract')) {
-        try {
-          console.log(`[VIDMOLY] Tentative extraction directe...`);
-          
-          const extractionMethods = [
-            // Méthode 1: Proxy CORS
-            async () => {
-              const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
-              const response = await axios.get(proxyUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                },
-                timeout: 15000
-              });
-              return response.data.contents;
-            },
-            
-            // Méthode 2: Proxy alternatif
-            async () => {
-              const proxyUrl = `https://cors-anywhere.herokuapp.com/${normalizedUrl}`;
-              const response = await axios.get(proxyUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  'X-Requested-With': 'XMLHttpRequest',
-                },
-                timeout: 15000
-              });
-              return response.data;
-            },
-
-            // Méthode 3: Requête directe
-            async () => {
-              const response = await axios.get(normalizedUrl, {
-                headers: {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                  'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-                  'Accept-Encoding': 'gzip, deflate, br',
-                  'Connection': 'keep-alive',
-                  'Upgrade-Insecure-Requests': '1',
-                  'Referer': 'https://vidmoly.net/',
-                },
-                timeout: 15000
-              });
-              return response.data;
-            }
-          ];
-
-          for (let i = 0; i < extractionMethods.length; i++) {
-            try {
-              const html = await extractionMethods[i]();
-              
-              if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
-                console.log(`[VIDMOLY] AdBlock détecté avec méthode ${i + 1}`);
-                continue;
-              }
-
-              // Patterns de recherche pour les liens m3u8
-              const patterns = [
-                /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
-                /sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
-                /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
-                /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/,
-                /var\s+\w+\s*=\s*["']([^"']*\.m3u8[^"']*)["']/,
-                /"file"\s*:\s*["']([^"']*\.m3u8[^"']*)["']/
-              ];
-
-              for (let j = 0; j < patterns.length; j++) {
-                const match = html.match(patterns[j]);
-                if (match) {
-                  m3u8Url = (match[1] || match[0]).replace(/,/g, '').trim();
-                  methodUsed = `extract_method_${i + 1}_pattern_${j + 1}`;
-                  console.log(`[VIDMOLY] Lien trouvé via extraction: ${m3u8Url}`);
-                  break;
-                }
-              }
-
-              if (m3u8Url) break;
-            } catch (error) {
-              console.log(`[VIDMOLY] Méthode extraction ${i + 1} échouée: ${error.message}`);
-              continue;
-            }
-          }
-        } catch (error) {
-          console.log(`[VIDMOLY] Méthode extraction échouée: ${error.message}`);
-        }
-      }
-
-      // ===== MÉTHODE 3: TEST AVEC FALLBACK =====
-      if (!m3u8Url && (method === 'auto' || method === 'test')) {
-        try {
-          console.log(`[VIDMOLY] Tentative test avec fallback...`);
-          
-          // Essayer d'extraire avec la méthode la plus robuste
+          // Utiliser seulement le proxy le plus fiable
           const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
+          
           const response = await axios.get(proxyUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             },
-            timeout: 10000,
+            timeout: 8000, // Timeout réduit
             maxRedirects: 3
           });
-          
+
           const html = response.data.contents;
           
+          if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
+            console.log(`[VIDMOLY] AdBlock détecté`);
+            throw new Error('AdBlock détecté');
+          }
+
           // Patterns optimisés pour VidMoly
           const patterns = [
             /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
             /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
-            /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/,
-            /sources:\s*\[\s*{\s*file:\s*"([^"]+master\.m3u8[^"]*)"/s,
-            /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/,
-            /https?:\/\/[^"'\s]+\.urlset\/[^"'\s]*/
+            /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
           ];
           
           for (let i = 0; i < patterns.length; i++) {
             const match = html.match(patterns[i]);
             if (match) {
-              let rawUrl = match[1] || match[0];
-              rawUrl = rawUrl
-                .replace(/\\/g, '')
-                .replace(/\s+/g, '')
-                .trim();
-              
-              if (rawUrl.endsWith(',')) rawUrl = rawUrl.slice(0, -1);
-              if (rawUrl.startsWith(',')) rawUrl = rawUrl.slice(1);
-              
-              if (rawUrl && rawUrl.startsWith('http') && (rawUrl.includes('.m3u8') || rawUrl.includes('.urlset'))) {
-                m3u8Url = rawUrl;
-                methodUsed = `test_pattern_${i + 1}`;
-                console.log(`[VIDMOLY] Lien trouvé via test: ${m3u8Url}`);
-                break;
-              }
+              m3u8Url = (match[1] || match[0]).replace(/,/g, '').trim();
+              methodUsed = 'quick-extract';
+              console.log(`[VIDMOLY] Lien trouvé: ${m3u8Url}`);
+              break;
             }
           }
         } catch (error) {
-          console.log(`[VIDMOLY] Méthode test échouée: ${error.message}`);
+          console.log(`[VIDMOLY] Extraction rapide échouée: ${error.message}`);
         }
       }
+
+      // ===== MÉTHODE 2: FALLBACK SIMPLE =====
+      if (!m3u8Url && (method === 'auto' || method === 'extract')) {
+        try {
+          console.log(`[VIDMOLY] Tentative fallback simple...`);
+          
+          // Une seule tentative avec timeout court
+          const response = await axios.get(normalizedUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': 'https://vidmoly.net/',
+            },
+            timeout: 5000, // Timeout très court
+            maxRedirects: 2
+          });
+
+          const html = response.data;
+          
+          // Pattern simple et efficace
+          const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+          if (match) {
+            m3u8Url = match[1].replace(/,/g, '').trim();
+            methodUsed = 'fallback';
+            console.log(`[VIDMOLY] Lien trouvé via fallback: ${m3u8Url}`);
+          }
+        } catch (error) {
+          console.log(`[VIDMOLY] Fallback échoué: ${error.message}`);
+        }
+      }
+
+      // ===== MÉTHODE 3: SUPPRIMÉE POUR ÉVITER LES TIMEOUTS =====
 
       // ===== FALLBACK FINAL =====
       if (!m3u8Url) {
