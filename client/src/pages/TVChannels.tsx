@@ -873,7 +873,16 @@ export default function TVChannels() {
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
-          const encodedUrl = encodeURIComponent(originalUrl);
+          // Si c'est une URL relative, la résoudre par rapport au domaine de base
+          let resolvedUrl = originalUrl;
+          if (!originalUrl.startsWith('http')) {
+            // URL relative - la résoudre par rapport au domaine de base du stream
+            const baseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+            resolvedUrl = new URL(originalUrl, baseUrl).href;
+            console.log(`🎥 [HLS FRAG] URL relative résolue: ${resolvedUrl}`);
+          }
+          
+          const encodedUrl = encodeURIComponent(resolvedUrl);
           const proxifiedUrl = `/api/tv?url=${encodedUrl}`;
           console.log(`🎥 [HLS FRAG] URL proxifiée: ${proxifiedUrl}`);
           
@@ -892,7 +901,16 @@ export default function TVChannels() {
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
-          const encodedUrl = encodeURIComponent(originalUrl);
+          // Si c'est une URL relative, la résoudre par rapport au domaine de base
+          let resolvedUrl = originalUrl;
+          if (!originalUrl.startsWith('http')) {
+            // URL relative - la résoudre par rapport au domaine de base du stream
+            const baseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+            resolvedUrl = new URL(originalUrl, baseUrl).href;
+            console.log(`🎥 [HLS AUDIO] URL relative résolue: ${resolvedUrl}`);
+          }
+          
+          const encodedUrl = encodeURIComponent(resolvedUrl);
           const proxifiedUrl = `/api/tv?url=${encodedUrl}`;
           console.log(`🎥 [HLS AUDIO] URL proxifiée: ${proxifiedUrl}`);
           
