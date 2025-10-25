@@ -12,6 +12,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/(.*-mp4a_.*\\.m3u8)",
+      "destination": "/api/tv-audio-proxy?catchall=$1"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

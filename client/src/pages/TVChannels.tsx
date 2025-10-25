@@ -189,6 +189,12 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   if (type === 'hls_direct') {
     console.log(`[PROXY URL] Type hls_direct détecté - Utilisation du proxy spécialisé`);
     
+    // Vérifier si l'URL est déjà proxifiée pour éviter le double encodage
+    if (originalUrl.includes('/api/tv?url=') || originalUrl.includes('/api/tv-direct-proxy')) {
+      console.log(`[PROXY URL] URL déjà proxifiée, retour direct: ${originalUrl}`);
+      return originalUrl;
+    }
+    
     // Détecter le domaine et utiliser le proxy approprié
     if (originalUrl.includes('viamotionhsi.netplus.ch')) {
       // Extraire le chemin pour viamotionhsi

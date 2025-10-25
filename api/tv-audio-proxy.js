@@ -15,23 +15,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { channel } = req.query;
+    const { channel, filename, catchall } = req.query;
     
-    if (!channel) {
-      return res.status(400).json({ error: 'Channel parameter is required' });
+    let audioUrl;
+    
+    if (catchall) {
+      // Mode catch-all pour les fichiers audio directs
+      const filename = catchall;
+      if (filename.startsWith('hd1-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/${filename}`;
+      } else if (filename.startsWith('nt1-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/${filename}`;
+      } else if (filename.startsWith('france3hd-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/${filename}`;
+      } else if (filename.startsWith('m6hd-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/${filename}`;
+      } else if (filename.startsWith('w9-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/${filename}`;
+      } else if (filename.startsWith('gulli-')) {
+        audioUrl = `https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/${filename}`;
+      } else {
+        return res.status(404).json({ error: 'Unknown audio file' });
+      }
+    } else if (filename) {
+      // Si un nom de fichier est fourni, construire l'URL directement
+      audioUrl = `https://viamotionhsi.netplus.ch/live/eds/${channel}/browser-HLS8/${filename}`;
+    } else if (channel) {
+      // Mapping des chaînes vers leurs URLs audio par défaut
+      const channelAudioUrls = {
+        'hd1': 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1-mp4a_128000_fra=20009.m3u8',
+        'nt1': 'https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/nt1-mp4a_128000_fra=20005.m3u8',
+        'france3hd': 'https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd-mp4a_128000_fra=20003.m3u8',
+        'm6hd': 'https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd-mp4a_128000_fra=20004.m3u8',
+        'w9': 'https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/w9-mp4a_128000_fra=20006.m3u8',
+        'gulli': 'https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/gulli-mp4a_128000_fra=20007.m3u8'
+      };
+      audioUrl = channelAudioUrls[channel];
+    } else {
+      return res.status(400).json({ error: 'Channel or filename parameter is required' });
     }
-
-    // Mapping des chaînes vers leurs URLs audio
-    const channelAudioUrls = {
-      'hd1': 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1-mp4a_128000_fra=20009.m3u8',
-      'nt1': 'https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/nt1-mp4a_128000_fra=20005.m3u8',
-      'france3hd': 'https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd-mp4a_128000_fra=20003.m3u8',
-      'm6hd': 'https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd-mp4a_128000_fra=20004.m3u8',
-      'w9': 'https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/w9-mp4a_128000_fra=20006.m3u8',
-      'gulli': 'https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/gulli-mp4a_128000_fra=20007.m3u8'
-    };
-
-    const audioUrl = channelAudioUrls[channel];
     
     if (!audioUrl) {
       return res.status(404).json({ error: 'Channel not found' });
