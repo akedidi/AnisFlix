@@ -90,6 +90,11 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
           console.log(`🔍 [SHAKA INTERCEPTOR] Type: ${type}, URL: ${request.uris[0]}`);
           
+          // Log pour toutes les requêtes
+          if (request.uris[0]) {
+            console.log(`🔍 [SHAKA INTERCEPTOR] Requête détectée: ${request.uris[0]}`);
+          }
+          
           // Vérifier si l'URL n'est pas déjà proxifiée
           if (request.uris[0] && (
             request.uris[0].includes('/api/tv?url=') ||
@@ -98,11 +103,6 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           )) {
             console.log(`🔍 [SHAKA INTERCEPTOR] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
             return;
-          }
-          
-          // Log pour toutes les requêtes non-proxifiées
-          if (request.uris[0] && !request.uris[0].includes('anisflix.vercel.app')) {
-            console.log(`🔍 [SHAKA INTERCEPTOR] Requête non-proxifiée détectée: ${request.uris[0]}`);
           }
           
           // Proxifier les segments vidéo/audio et les sous-playlists M3U8
