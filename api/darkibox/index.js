@@ -20,12 +20,12 @@ export default async function handler(req, res) {
         // Mode série - traiter directement ici
         console.log(`[DARKIBOX] Mode série - ID: ${seriesId}, Saison: ${season}, Épisode: ${episode}`);
 
-        // Appel à l'API Movix pour les sources Darkibox
-        const apiUrl = `https://api.movix.site/api/series/download/${seriesId}/season/${season}/episode/${episode}`;
+        // Appel à l'API Movix via le proxy interne pour éviter les blocages DNS
+        const apiUrl = `https://anisflix.vercel.app/api/movix-proxy?path=series/download/${seriesId}/season/${season}/episode/${episode}`;
         
         try {
           const response = await axios.get(apiUrl, {
-            timeout: 10000,
+            timeout: 15000,
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
