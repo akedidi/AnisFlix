@@ -98,19 +98,19 @@ export default async function handler(req, res) {
     // Réécrire les URLs dans la playlist pour qu'elles passent par le proxy
     const baseUrl = new URL(targetUrl);
     const rewritten = response.data
-      .replace(/^(hd1-.*\.m3u8)$/gm, '/api/tv?url=https%3A%2F%2Fviamotionhsi.netplus.ch%2Flive%2Feds%2Fhd1%2Fbrowser-HLS8%2F$1')
-      .replace(/^(hd1-.*\.ts)$/gm, '/api/tv?url=https%3A%2F%2Fviamotionhsi.netplus.ch%2Flive%2Feds%2Fhd1%2Fbrowser-HLS8%2F$1')
       .replace(/^([^#\n].*\.m3u8)$/gm, (match) => {
-        // Pour les autres sous-playlists, les proxifier via l'API TV
+        // Pour les sous-playlists, les proxifier via le proxy direct
         const resolvedUrl = new URL(match, targetUrl).href;
-        const encodedUrl = encodeURIComponent(resolvedUrl);
-        return `/api/tv?url=${encodedUrl}`;
+        const urlObj = new URL(resolvedUrl);
+        const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
+        return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
       })
       .replace(/^([^#\n].*\.ts)$/gm, (match) => {
-        // Pour les segments TS, les proxifier via l'API TV
+        // Pour les segments TS, les proxifier via le proxy direct
         const resolvedUrl = new URL(match, targetUrl).href;
-        const encodedUrl = encodeURIComponent(resolvedUrl);
-        return `/api/tv?url=${encodedUrl}`;
+        const urlObj = new URL(resolvedUrl);
+        const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
+        return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
       });
 
     // Headers spécifiques pour les streams live
