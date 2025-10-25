@@ -129,43 +129,43 @@ export function registerHLSProxyRoutes(app: Express) {
     try {
       const { channelId } = req.params;
       
-      // Utiliser les sources alternatives qui fonctionnent
-      const workingUrl = WORKING_SOURCES[channelId as keyof typeof WORKING_SOURCES];
+      // Désactiver temporairement les sources alternatives pour permettre la différenciation des chaînes
+      // const workingUrl = WORKING_SOURCES[channelId as keyof typeof WORKING_SOURCES];
       
-      if (workingUrl) {
-        console.log(`[TV WORKING] Utilisation de la source alternative pour ${channelId}: ${workingUrl}`);
-        
-        try {
-          const r = await http.get(workingUrl, { 
-            headers: browserHeaders, 
-            responseType: 'text' 
-          });
+      // if (workingUrl) {
+      //   console.log(`[TV WORKING] Utilisation de la source alternative pour ${channelId}: ${workingUrl}`);
+      //   
+      //   try {
+      //     const r = await http.get(workingUrl, { 
+      //       headers: browserHeaders, 
+      //       responseType: 'text' 
+      //     });
 
-          const ctype = (r.headers['content-type'] || '').toLowerCase();
-          console.log(`[TV WORKING] ${r.status} ${ctype} ← ${workingUrl}`);
+      //     const ctype = (r.headers['content-type'] || '').toLowerCase();
+      //     console.log(`[TV WORKING] ${r.status} ${ctype} ← ${workingUrl}`);
 
-          if (typeof r.data !== 'string') {
-            return res.status(502).send('Pas une playlist M3U8.');
-          }
+      //     if (typeof r.data !== 'string') {
+      //       return res.status(502).send('Pas une playlist M3U8.');
+      //     }
 
-          const baseUrl = (r as any).request?.res?.responseUrl || workingUrl;
-          const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+      //     const baseUrl = (r as any).request?.res?.responseUrl || workingUrl;
+      //     const rewritten = rewritePlaylistUrls(r.data, baseUrl);
 
-          // Headers spécifiques pour les streams live
-          res.set('Content-Type', 'application/vnd.apple.mpegurl');
-          res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-          res.set('Pragma', 'no-cache');
-          res.set('Expires', '0');
-          res.set('Access-Control-Allow-Origin', '*');
-          res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-          res.set('Access-Control-Allow-Headers', 'Range, Content-Type');
-          res.send(rewritten);
-          return;
-        } catch (workingError: any) {
-          console.error(`[TV WORKING ERROR] Erreur avec la source alternative:`, workingError.message);
-          // Continuer avec la source principale si l'alternative échoue
-        }
-      }
+      //     // Headers spécifiques pour les streams live
+      //     res.set('Content-Type', 'application/vnd.apple.mpegurl');
+      //     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      //     res.set('Pragma', 'no-cache');
+      //     res.set('Expires', '0');
+      //     res.set('Access-Control-Allow-Origin', '*');
+      //     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      //     res.set('Access-Control-Allow-Headers', 'Range, Content-Type');
+      //     res.send(rewritten);
+      //     return;
+      //   } catch (workingError: any) {
+      //     console.error(`[TV WORKING ERROR] Erreur avec la source alternative:`, workingError.message);
+      //     // Continuer avec la source principale si l'alternative échoue
+      //   }
+      // }
       
       // URL initiale avec l'ID de chaîne (ex: 78.m3u8)
       const initialUrl = `${ORIGIN_HOST}/live/5A24C0D16059EDCC6A20E0CE234C7A25/${channelId}.m3u8`;
