@@ -7,10 +7,11 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
-  /* Solution iOS : fixer la hauteur du viewport */
-  height: 100vh;
-  height: 100dvh;
-  position: fixed;
+  /* Permettre le scroll vertical normal */
+  height: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
   width: 100%;
 }
 
@@ -47,21 +48,21 @@ html, body {
   /* Padding pour éviter que le contenu passe sous le tab bar */
   .main-content {
     padding-bottom: 90px !important;
-    /* Gérer le scroll dans le conteneur principal */
-    overflow-y: auto;
-    height: 100vh;
-    height: 100dvh;
+    /* Permettre le scroll normal */
+    overflow-y: visible;
+    min-height: 100vh;
+    min-height: 100dvh;
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Empêcher le bounce sur le body */
+  /* Permettre le scroll normal sur le body */
   body {
-    overscroll-behavior: none !important;
-    -webkit-overscroll-behavior: none !important;
-    /* Empêcher le bounce iOS */
+    overscroll-behavior: auto !important;
+    -webkit-overscroll-behavior: auto !important;
+    /* Permettre le scroll iOS */
     -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior-y: none !important;
+    overscroll-behavior-y: auto !important;
+    -webkit-overscroll-behavior-y: auto !important;
   }
 }
 
@@ -663,6 +664,8 @@ html, body {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       position: relative;
+      /* Permettre le scroll vertical */
+      overflow-y: auto;
     }
     
     /* Forcer le menu à rester en bas */
@@ -683,6 +686,8 @@ html, body {
     html {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
+      /* Permettre le scroll vertical */
+      overflow-y: auto;
     }
     
     /* Assurer que le contenu principal a un padding approprié */
@@ -691,6 +696,8 @@ html, body {
       min-height: calc(100vh - 5rem);
       position: relative;
       z-index: 1;
+      /* Permettre le scroll normal */
+      overflow-y: visible;
     }
   }
 }
@@ -758,9 +765,10 @@ html, body {
 
 /* Force le menu mobile à rester en bas */
 @media (max-width: 767px) {
-  /* Empêcher le scroll horizontal global */
+  /* Empêcher le scroll horizontal global mais permettre le scroll vertical */
   body {
     overflow-x: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     position: relative;
   }
@@ -771,6 +779,8 @@ html, body {
     min-height: calc(100vh - 5rem);
     position: relative;
     z-index: 1;
+    /* Permettre le scroll normal */
+    overflow-y: visible;
   }
   
   /* Forcer le tab bar à rester fixe */
