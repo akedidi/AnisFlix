@@ -390,8 +390,12 @@ export function registerHLSProxyRoutes(app: Express) {
       const originalUrl = req.originalUrl;
       console.log(`[TV CATCH-ALL] URL M3U8 non gérée: ${originalUrl}`);
       
-      // Pour l'instant, retourner une erreur 404 pour les URLs non gérées
-      res.status(404).send('URL M3U8 non gérée par le proxy');
+      // Rediriger vers l'API TV générique pour traiter l'URL
+      const encodedUrl = encodeURIComponent(originalUrl.replace('/api/', ''));
+      const redirectUrl = `/api/tv?url=${encodedUrl}`;
+      console.log(`[TV CATCH-ALL] Redirection vers: ${redirectUrl}`);
+      
+      res.redirect(redirectUrl);
     } catch (e: any) {
       console.error('[TV CATCH-ALL ERROR]', e.message);
       res.status(500).send('Erreur proxy catch-all.');
