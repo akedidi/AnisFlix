@@ -119,6 +119,12 @@ export default async function handler(req, res) {
           return `/api/tv?url=${encodedUrl}`;
         }
         
+        // Si c'est une sous-playlist vidéo (contient hd1-avc1_ et =), utiliser l'API TV standard
+        if (match.includes('hd1-avc1_') && match.includes('=')) {
+          const encodedUrl = encodeURIComponent(resolvedUrl);
+          return `/api/tv?url=${encodedUrl}`;
+        }
+        
         // Sinon, utiliser le proxy direct
         const urlObj = new URL(resolvedUrl);
         const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
