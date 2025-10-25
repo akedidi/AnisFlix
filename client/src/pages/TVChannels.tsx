@@ -189,19 +189,35 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   if (type === 'hls_direct') {
     console.log(`[PROXY URL] Type hls_direct détecté - Utilisation du proxy spécialisé`);
     
+    // Décoder l'URL pour nettoyer les encodages multiples
+    let cleanUrl = originalUrl;
+    try {
+      // Décoder jusqu'à 3 fois pour nettoyer les encodages multiples
+      for (let i = 0; i < 3; i++) {
+        if (cleanUrl.includes('%')) {
+          cleanUrl = decodeURIComponent(cleanUrl);
+        } else {
+          break;
+        }
+      }
+      console.log(`[PROXY URL] URL nettoyée: ${cleanUrl}`);
+    } catch (e) {
+      console.log(`[PROXY URL] Erreur de décodage, utilisation de l'URL originale: ${originalUrl}`);
+      cleanUrl = originalUrl;
+    }
+    
     // Vérifier si l'URL est déjà proxifiée pour éviter le double encodage
-    if (originalUrl.includes('/api/tv?url=') || 
-        originalUrl.includes('/api/tv-direct-proxy') ||
-        originalUrl.includes('%253A%252F%252F') || // Triple encodage détecté
-        originalUrl.includes('anisflix.vercel.app/api/')) {
-      console.log(`[PROXY URL] URL déjà proxifiée ou triple encodée, retour direct: ${originalUrl}`);
-      return originalUrl;
+    if (cleanUrl.includes('/api/tv?url=') || 
+        cleanUrl.includes('/api/tv-direct-proxy') ||
+        cleanUrl.includes('anisflix.vercel.app/api/')) {
+      console.log(`[PROXY URL] URL déjà proxifiée, retour direct: ${cleanUrl}`);
+      return cleanUrl;
     }
     
     // Détecter le domaine et utiliser le proxy approprié
-    if (originalUrl.includes('viamotionhsi.netplus.ch')) {
+    if (cleanUrl.includes('viamotionhsi.netplus.ch')) {
       // Extraire le chemin pour viamotionhsi
-      const pathMatch = originalUrl.match(/viamotionhsi\.netplus\.ch\/live\/eds\/(.+)/);
+      const pathMatch = cleanUrl.match(/viamotionhsi\.netplus\.ch\/live\/eds\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=viamotionhsi&path=${encodeURIComponent(path)}`;
@@ -209,9 +225,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('simulcast-p.ftven.fr')) {
+    } else if (cleanUrl.includes('simulcast-p.ftven.fr')) {
       // Extraire le chemin pour simulcast-ftven
-      const pathMatch = originalUrl.match(/simulcast-p\.ftven\.fr\/(.+)/);
+      const pathMatch = cleanUrl.match(/simulcast-p\.ftven\.fr\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=simulcast-ftven&path=${encodeURIComponent(path)}`;
@@ -219,9 +235,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('artesimulcast.akamaized.net')) {
+    } else if (cleanUrl.includes('artesimulcast.akamaized.net')) {
       // Extraire le chemin pour arte
-      const pathMatch = originalUrl.match(/artesimulcast\.akamaized\.net\/hls\/live\/2031003\/artelive_fr\/(.+)/);
+      const pathMatch = cleanUrl.match(/artesimulcast\.akamaized\.net\/hls\/live\/2031003\/artelive_fr\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=arte&path=${encodeURIComponent(path)}`;
@@ -229,9 +245,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('ncdn-live-bfm.pfd.sfr.net')) {
+    } else if (cleanUrl.includes('ncdn-live-bfm.pfd.sfr.net')) {
       // Extraire le chemin pour bfm
-      const pathMatch = originalUrl.match(/ncdn-live-bfm\.pfd\.sfr\.net\/shls\/(.+)/);
+      const pathMatch = cleanUrl.match(/ncdn-live-bfm\.pfd\.sfr\.net\/shls\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bfm&path=${encodeURIComponent(path)}`;
@@ -239,9 +255,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('rt-fra.rttv.com')) {
+    } else if (cleanUrl.includes('rt-fra.rttv.com')) {
       // Extraire le chemin pour rt
-      const pathMatch = originalUrl.match(/rt-fra\.rttv\.com\/live\/rtfrance\/(.+)/);
+      const pathMatch = cleanUrl.match(/rt-fra\.rttv\.com\/live\/rtfrance\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=rt&path=${encodeURIComponent(path)}`;
@@ -249,9 +265,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com')) {
+    } else if (cleanUrl.includes('live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com')) {
       // Extraire le chemin pour bfmtv
-      const pathMatch = originalUrl.match(/live-cdn-stream-euw1\.bfmtv\.bct\.nextradiotv\.com\/(.+)/);
+      const pathMatch = cleanUrl.match(/live-cdn-stream-euw1\.bfmtv\.bct\.nextradiotv\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bfmtv&path=${encodeURIComponent(path)}`;
@@ -259,9 +275,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('www.viously.com')) {
+    } else if (cleanUrl.includes('www.viously.com')) {
       // Extraire le chemin pour viously
-      const pathMatch = originalUrl.match(/www\.viously\.com\/video\/hls\/(.+)/);
+      const pathMatch = cleanUrl.match(/www\.viously\.com\/video\/hls\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=viously&path=${encodeURIComponent(path)}`;
@@ -269,9 +285,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('streamer3.qna.org.qa') || originalUrl.includes('streamer2.qna.org.qa')) {
+    } else if (cleanUrl.includes('streamer3.qna.org.qa') || cleanUrl.includes('streamer2.qna.org.qa')) {
       // Extraire le chemin pour qna
-      const pathMatch = originalUrl.match(/streamer[23]\.qna\.org\.qa\/(.+)/);
+      const pathMatch = cleanUrl.match(/streamer[23]\.qna\.org\.qa\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=qna&path=${encodeURIComponent(path)}`;
@@ -279,9 +295,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('live20.bozztv.com')) {
+    } else if (cleanUrl.includes('live20.bozztv.com')) {
       // Extraire le chemin pour bozztv
-      const pathMatch = originalUrl.match(/live20\.bozztv\.com\/(.+)/);
+      const pathMatch = cleanUrl.match(/live20\.bozztv\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bozztv&path=${encodeURIComponent(path)}`;
@@ -289,9 +305,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('live-hls-web-aja.getaj.net') || originalUrl.includes('live-hls-web-aje.getaj.net')) {
+    } else if (cleanUrl.includes('live-hls-web-aja.getaj.net') || cleanUrl.includes('live-hls-web-aje.getaj.net')) {
       // Extraire le chemin pour getaj
-      const pathMatch = originalUrl.match(/live-hls-web-[ae]j\.getaj\.net\/(.+)/);
+      const pathMatch = cleanUrl.match(/live-hls-web-[ae]j\.getaj\.net\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=getaj&path=${encodeURIComponent(path)}`;
@@ -299,9 +315,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('shls-live-ak.akamaized.net')) {
+    } else if (cleanUrl.includes('shls-live-ak.akamaized.net')) {
       // Extraire le chemin pour akamaized
-      const pathMatch = originalUrl.match(/shls-live-ak\.akamaized\.net\/(.+)/);
+      const pathMatch = cleanUrl.match(/shls-live-ak\.akamaized\.net\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=akamaized&path=${encodeURIComponent(path)}`;
@@ -309,9 +325,9 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
       }
-    } else if (originalUrl.includes('raw.githubusercontent.com')) {
+    } else if (cleanUrl.includes('raw.githubusercontent.com')) {
       // Extraire le chemin pour github
-      const pathMatch = originalUrl.match(/raw\.githubusercontent\.com\/(.+)/);
+      const pathMatch = cleanUrl.match(/raw\.githubusercontent\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
         const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=github&path=${encodeURIComponent(path)}`;
@@ -323,7 +339,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     
     // Fallback pour les autres domaines - utiliser l'API TV générique
     console.log(`[PROXY URL] Domaine non reconnu, utilisation de l'API TV générique`);
-    const encodedUrl = encodeURIComponent(originalUrl);
+    const encodedUrl = encodeURIComponent(cleanUrl);
     const finalUrl = `${baseUrl}/api/tv?url=${encodedUrl}`;
     console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
     console.log(`[PROXY URL] URL finale: ${finalUrl}`);
