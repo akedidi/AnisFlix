@@ -112,15 +112,8 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         // Charger le flux
         console.log('🔍 [DEBUG] URL Shaka:', url);
         
-        // Test de l'URL avant de la charger
-        try {
-          const response = await fetch(url, { method: 'HEAD' });
-          console.log('🔍 [DEBUG] Test URL - Status:', response.status);
-          console.log('🔍 [DEBUG] Test URL - Headers:', Object.fromEntries(response.headers.entries()));
-        } catch (fetchError) {
-          console.error('🔍 [DEBUG] Erreur test URL:', fetchError);
-        }
-        
+        // Désactiver le test HEAD qui cause des erreurs 405
+        // Shaka Player fera ses propres vérifications
         await player.load(url);
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);

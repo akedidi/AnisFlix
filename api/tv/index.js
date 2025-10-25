@@ -61,7 +61,7 @@ function rewriteMpdUrls(mpdText, baseUrl) {
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
 
   if (req.method === 'OPTIONS') {
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -246,9 +246,12 @@ export default async function handler(req, res) {
       }
 
       console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
-      const r = await http.get(cleanUrl, { 
+      
+      // Pour les requêtes HEAD, utiliser HEAD au lieu de GET
+      const requestMethod = req.method === 'HEAD' ? 'head' : 'get';
+      const r = await http[requestMethod](cleanUrl, { 
         headers, 
-        responseType: 'stream', 
+        responseType: req.method === 'HEAD' ? 'stream' : 'stream', 
         validateStatus: () => true 
       });
       
@@ -270,6 +273,12 @@ export default async function handler(req, res) {
           console.log(`[TV PROXY] Header propagé: ${h} = ${r.headers[h]}`);
         }
       });
+
+      // Pour les requêtes HEAD, retourner seulement les headers
+      if (req.method === 'HEAD') {
+        console.log(`[TV PROXY] Requête HEAD - retour des headers seulement`);
+        return res.status(r.status).end();
+      }
 
       console.log(`[TV PROXY] Streaming du segment vers le client`);
       res.status(r.status);

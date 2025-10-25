@@ -1050,10 +1050,18 @@ export default function TVChannels() {
             // URL relative - la résoudre par rapport au domaine de base du stream actuel
             // Extraire le domaine de base depuis l'URL du stream actuel
             const currentStreamUrl = hls.url || streamUrl;
-            const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
-            resolvedUrl = new URL(originalUrl, baseUrl).href;
-            console.log(`🎥 [HLS FRAG] URL relative résolue: ${resolvedUrl}`);
-            console.log(`🎥 [HLS FRAG] Base URL utilisée: ${baseUrl}`);
+            if (currentStreamUrl && !currentStreamUrl.includes('undefined')) {
+              const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
+              resolvedUrl = new URL(originalUrl, baseUrl).href;
+              console.log(`🎥 [HLS FRAG] URL relative résolue: ${resolvedUrl}`);
+              console.log(`🎥 [HLS FRAG] Base URL utilisée: ${baseUrl}`);
+            } else {
+              console.error(`🎥 [HLS FRAG] URL de base invalide: ${currentStreamUrl}`);
+              // Fallback vers une URL de base connue
+              const fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              resolvedUrl = new URL(originalUrl, fallbackBaseUrl).href;
+              console.log(`🎥 [HLS FRAG] Fallback vers: ${resolvedUrl}`);
+            }
           }
           
           const encodedUrl = encodeURIComponent(resolvedUrl);
@@ -1083,10 +1091,18 @@ export default function TVChannels() {
             // URL relative - la résoudre par rapport au domaine de base du stream actuel
             // Extraire le domaine de base depuis l'URL du stream actuel
             const currentStreamUrl = hls.url || streamUrl;
-            const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
-            resolvedUrl = new URL(originalUrl, baseUrl).href;
-            console.log(`🎥 [HLS AUDIO] URL relative résolue: ${resolvedUrl}`);
-            console.log(`🎥 [HLS AUDIO] Base URL utilisée: ${baseUrl}`);
+            if (currentStreamUrl && !currentStreamUrl.includes('undefined')) {
+              const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
+              resolvedUrl = new URL(originalUrl, baseUrl).href;
+              console.log(`🎥 [HLS AUDIO] URL relative résolue: ${resolvedUrl}`);
+              console.log(`🎥 [HLS AUDIO] Base URL utilisée: ${baseUrl}`);
+            } else {
+              console.error(`🎥 [HLS AUDIO] URL de base invalide: ${currentStreamUrl}`);
+              // Fallback vers une URL de base connue
+              const fallbackBaseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+              resolvedUrl = new URL(originalUrl, fallbackBaseUrl).href;
+              console.log(`🎥 [HLS AUDIO] Fallback vers: ${resolvedUrl}`);
+            }
           }
           
           const encodedUrl = encodeURIComponent(resolvedUrl);
