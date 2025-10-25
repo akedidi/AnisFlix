@@ -32,8 +32,14 @@ export default async function handler(req, res) {
           });
 
           if (!response.data || !response.data.sources || response.data.sources.length === 0) {
-            return res.status(404).json({ 
-              error: 'Aucune source Darkibox trouvée pour cette série' 
+            return res.status(200).json({ 
+              success: true,
+              sources: [],
+              seriesId: parseInt(seriesId),
+              season: parseInt(season),
+              episode: parseInt(episode),
+              total: 0,
+              message: 'Aucune source Darkibox trouvée pour cette série'
             });
           }
 
