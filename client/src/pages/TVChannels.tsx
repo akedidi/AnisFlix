@@ -964,7 +964,12 @@ export default function TVChannels() {
       } else {
         // Desktop : TOUJOURS utiliser le proxy pour éviter les blocages réseau
         console.log(`[SELECT LINK] Mode desktop - Utilisation du proxy pour éviter les blocages`);
-        finalUrl = getProxyUrl(link.url, link.type);
+        if (link.type === 'hls_direct') {
+          // Pour hls_direct avec Shaka Player, utiliser le proxy TV direct
+          finalUrl = getProxyUrl(link.url, link.type);
+        } else {
+          finalUrl = getProxyUrl(link.url, link.type);
+        }
       }
       
       console.log(`📺 Lien sélectionné pour ${channel.name}:`, { 

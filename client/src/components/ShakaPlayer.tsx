@@ -82,53 +82,9 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           return;
         }
 
-        // Créer le player Shaka
+        // Créer le player Shaka (approche simplifiée)
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
-
-        // Intercepter et réécrire les URLs pour éviter les problèmes d'undefined
-        player.getNetworkingEngine().registerRequestFilter((type, request) => {
-          console.log(`🔍 [SHAKA REQUEST] Type: ${type}, URL: ${request.uris[0]}`);
-          
-          // Réécrire les URLs qui contiennent undefined
-          if (request.uris[0] && request.uris[0].includes('undefined')) {
-            const originalUrl = request.uris[0];
-            console.log(`🔍 [SHAKA REQUEST] URL avec undefined détectée: ${originalUrl}`);
-            
-            // Remplacer undefined par hd1 (fallback intelligent)
-            let correctedUrl = originalUrl.replace('/undefined/', '/hd1/');
-            
-            // Détection intelligente basée sur le nom du fichier
-            if (originalUrl.includes('hd1-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/hd1/');
-            } else if (originalUrl.includes('nt1-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/nt1/');
-            } else if (originalUrl.includes('france3hd-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/france3hd/');
-            } else if (originalUrl.includes('m6hd-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/m6hd/');
-            } else if (originalUrl.includes('w9-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/w9/');
-            } else if (originalUrl.includes('gulli-')) {
-              correctedUrl = originalUrl.replace('/undefined/', '/gulli/');
-            }
-            
-            console.log(`🔍 [SHAKA REQUEST] URL corrigée: ${correctedUrl}`);
-            request.uris[0] = correctedUrl;
-          }
-          
-          // Proxifier les URLs si nécessaire (pour éviter les problèmes CORS)
-          if (request.uris[0] && (
-            request.uris[0].includes('viamotionhsi.netplus.ch') ||
-            request.uris[0].includes('cachehsi') ||
-            request.uris[0].includes('tok_')
-          )) {
-            const originalUrl = request.uris[0];
-            const proxifiedUrl = `/api/tv?url=${encodeURIComponent(originalUrl)}`;
-            console.log(`🔍 [SHAKA REQUEST] URL proxifiée: ${proxifiedUrl}`);
-            request.uris[0] = proxifiedUrl;
-          }
-        });
 
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
@@ -153,12 +109,22 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         videoRef.current.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
         videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
-        // Charger le flux
-        console.log('🔍 [DEBUG] URL Shaka:', url);
+        // Charger le flux avec proxification si nécessaire
+        console.log('🔍 [DEBUG] URL Shaka originale:', url);
         
-        // Désactiver le test HEAD qui cause des erreurs 405
-        // Shaka Player fera ses propres vérifications
-        await player.load(url);
+        // Déterminer si l'URL doit être proxifiée
+        let finalUrl = url;
+        if (url.includes('viamotionhsi.netplus.ch') || 
+            url.includes('cachehsi') || 
+            url.includes('tok_') ||
+            url.includes('simulcast-p.ftven.fr') ||
+            url.includes('artesimulcast.akamaized.net')) {
+          finalUrl = `/api/tv?url=${encodeURIComponent(url)}`;
+          console.log('🔍 [DEBUG] URL proxifiée pour Shaka:', finalUrl);
+        }
+        
+        // Shaka détermine le format (HLS ou DASH) tout seul !
+        await player.load(finalUrl);
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);
 
