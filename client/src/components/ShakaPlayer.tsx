@@ -95,11 +95,10 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             console.log(`🔍 [SHAKA INTERCEPTOR] Requête détectée: ${request.uris[0]}`);
           }
           
-          // Vérifier si l'URL n'est pas déjà proxifiée
+          // Vérifier si l'URL est déjà correctement proxifiée (avec /api/tv?url= ou /api/tv-direct-proxy)
           if (request.uris[0] && (
             request.uris[0].includes('/api/tv?url=') ||
-            request.uris[0].includes('/api/tv-direct-proxy') ||
-            request.uris[0].includes('anisflix.vercel.app/api/')
+            request.uris[0].includes('/api/tv-direct-proxy')
           )) {
             console.log(`🔍 [SHAKA INTERCEPTOR] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
             return;
