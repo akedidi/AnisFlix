@@ -104,13 +104,18 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           if (request.uris[0] && (
             request.uris[0].includes('.mp4') ||
             request.uris[0].includes('.ts') ||
+            request.uris[0].includes('-init.mp4') ||
             request.uris[0].includes('tf1hd-') ||
             request.uris[0].includes('hd1-') ||
             request.uris[0].includes('nt1-') ||
             request.uris[0].includes('france3hd-') ||
             request.uris[0].includes('m6hd-') ||
             request.uris[0].includes('w9-') ||
-            request.uris[0].includes('gulli-')
+            request.uris[0].includes('gulli-') ||
+            request.uris[0].includes('avc1_') ||
+            request.uris[0].includes('mp4a_') ||
+            request.uris[0].includes('scale=') ||
+            request.uris[0].includes('fra=')
           )) {
             const originalUrl = request.uris[0];
             console.log(`🔍 [SHAKA SEGMENT] Segment détecté: ${originalUrl}`);
@@ -131,6 +136,9 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
               fullUrl = `https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/${originalUrl}`;
             } else if (originalUrl.includes('gulli-')) {
               fullUrl = `https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('avc1_') || originalUrl.includes('mp4a_')) {
+              // Pour les segments TF1 avec avc1_ ou mp4a_, utiliser tf1hd par défaut
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/${originalUrl}`;
             }
             
             // Proxifier l'URL complète
