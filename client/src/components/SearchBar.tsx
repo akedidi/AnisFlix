@@ -212,19 +212,35 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               data-testid={`search-result-${item.id}`}
             >
               {item.posterPath ? (
-                  // Afficher les posters normalement pour tous les types de contenu
-                  <img
-                    src={getOptimizedImageUrl(item.posterPath, 'w92')}
-                    alt={item.title}
-                    className="w-12 h-18 object-cover rounded"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                  />
+                  // Pour les chaînes TV, afficher les logos avec fond blanc
+                  item.mediaType === "tv" ? (
+                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
+                      <img
+                        src={item.posterPath}
+                        alt={item.title}
+                        className="w-full h-full object-contain scale-110"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    // Pour les autres types de contenu, utiliser l'optimisation d'image
+                    <img
+                      src={getOptimizedImageUrl(item.posterPath, 'w92')}
+                      alt={item.title}
+                      className="w-12 h-18 object-cover rounded"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  )
               ) : null}
-              <div className="w-12 h-18 bg-white/10 rounded flex items-center justify-center" style={{ display: item.posterPath ? 'none' : 'flex' }}>
+              <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-18'} bg-white/10 rounded flex items-center justify-center`} style={{ display: item.posterPath ? 'none' : 'flex' }}>
                 <Tv className="w-6 h-6 text-white/70" />
               </div>
               <div className="flex-1 min-w-0">
