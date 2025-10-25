@@ -86,9 +86,9 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
-        // Intercepter les requêtes pour les segments vidéo/audio
+        // Intercepter les requêtes pour les segments vidéo/audio et sous-playlists
         player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
-          console.log(`🔍 [SHAKA SEGMENT] Type: ${type}, URL: ${request.uris[0]}`);
+          console.log(`🔍 [SHAKA INTERCEPTOR] Type: ${type}, URL: ${request.uris[0]}`);
           
           // Vérifier si l'URL n'est pas déjà proxifiée
           if (request.uris[0] && (
@@ -96,14 +96,15 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             request.uris[0].includes('/api/tv-direct-proxy') ||
             request.uris[0].includes('anisflix.vercel.app/api/')
           )) {
-            console.log(`🔍 [SHAKA SEGMENT] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
+            console.log(`🔍 [SHAKA INTERCEPTOR] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
             return;
           }
           
-          // Proxifier les segments vidéo/audio
+          // Proxifier les segments vidéo/audio et les sous-playlists M3U8
           if (request.uris[0] && (
             request.uris[0].includes('.mp4') ||
             request.uris[0].includes('.ts') ||
+            request.uris[0].includes('.m3u8') ||
             request.uris[0].includes('-init.mp4') ||
             request.uris[0].includes('tf1hd-') ||
             request.uris[0].includes('hd1-') ||
@@ -115,10 +116,11 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             request.uris[0].includes('avc1_') ||
             request.uris[0].includes('mp4a_') ||
             request.uris[0].includes('scale=') ||
-            request.uris[0].includes('fra=')
+            request.uris[0].includes('fra=') ||
+            request.uris[0].includes('iframe-')
           )) {
             const originalUrl = request.uris[0];
-            console.log(`🔍 [SHAKA SEGMENT] Segment détecté: ${originalUrl}`);
+            console.log(`🔍 [SHAKA INTERCEPTOR] Segment/Playlist détecté: ${originalUrl}`);
             
             // Reconstruire l'URL complète vers le serveur d'origine
             let fullUrl = originalUrl;
@@ -143,7 +145,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             
             // Proxifier l'URL complète
             const proxifiedUrl = `/api/tv?url=${encodeURIComponent(fullUrl)}`;
-            console.log(`🔍 [SHAKA SEGMENT] URL proxifiée: ${proxifiedUrl}`);
+            console.log(`🔍 [SHAKA INTERCEPTOR] URL proxifiée: ${proxifiedUrl}`);
             request.uris[0] = proxifiedUrl;
           }
         });
