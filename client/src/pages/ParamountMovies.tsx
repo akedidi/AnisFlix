@@ -112,7 +112,7 @@ export default function ParamountMovies() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 pt-20 md:pt-20">
         {/* Continue Watching */}
         <ContinueWatching maxItems={20} />
 

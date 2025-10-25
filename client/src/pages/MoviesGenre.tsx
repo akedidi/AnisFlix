@@ -152,7 +152,7 @@ export default function MoviesGenre() {
         </div>
 
       {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background">
+      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
