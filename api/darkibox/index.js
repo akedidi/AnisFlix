@@ -13,10 +13,52 @@ export default async function handler(req, res) {
   // ===== MODE PROXY (GET/HEAD) =====
   if (req.method === 'GET' || req.method === 'HEAD') {
     try {
-      const { url, action } = req.query;
+      const { url, action, seriesId, season, episode } = req.query;
 
-      if (!url) {
-        return res.status(400).json({ error: 'URL requise' });
+      // Vérifier si c'est une requête de série
+      if (seriesId && season && episode) {
+        // Mode série - traiter directement ici
+        console.log(`[DARKIBOX] Mode série - ID: ${seriesId}, Saison: ${season}, Épisode: ${episode}`);
+
+        // Appel à l'API Movix pour les sources Darkibox
+        const apiUrl = `https://api.movix.site/api/series/download/${seriesId}/season/${season}/episode/${episode}`;
+        
+        const response = await axios.get(apiUrl, {
+          timeout: 10000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+
+        if (!response.data || !response.data.sources || response.data.sources.length === 0) {
+          return res.status(404).json({ 
+            error: 'Aucune source Darkibox trouvée pour cette série' 
+          });
+        }
+
+        // Filtrer et formater les sources
+        const sources = response.data.sources.map((source, index) => ({
+          id: `darkibox-series-${index + 1}`,
+          src: source.src,
+          language: source.language,
+          quality: source.quality,
+          m3u8: source.m3u8,
+          provider: 'darkibox',
+          type: 'series'
+        }));
+
+        console.log(`[DARKIBOX] ${sources.length} sources trouvées pour la série`);
+
+        return res.status(200).json({
+          success: true,
+          sources: sources,
+          seriesId: parseInt(seriesId),
+          season: parseInt(season),
+          episode: parseInt(episode),
+          total: sources.length
+        });
+      } else if (!url) {
+        return res.status(400).json({ error: 'URL requise ou paramètres de série (seriesId, season, episode)' });
       }
 
       const targetUrl = decodeURIComponent(url);
