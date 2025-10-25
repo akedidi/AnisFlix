@@ -90,6 +90,16 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
           console.log(`🔍 [SHAKA SEGMENT] Type: ${type}, URL: ${request.uris[0]}`);
           
+          // Vérifier si l'URL n'est pas déjà proxifiée
+          if (request.uris[0] && (
+            request.uris[0].includes('/api/tv?url=') ||
+            request.uris[0].includes('/api/tv-direct-proxy') ||
+            request.uris[0].includes('anisflix.vercel.app/api/')
+          )) {
+            console.log(`🔍 [SHAKA SEGMENT] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
+            return;
+          }
+          
           // Proxifier les segments vidéo/audio
           if (request.uris[0] && (
             request.uris[0].includes('.mp4') ||
