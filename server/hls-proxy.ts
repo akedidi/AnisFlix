@@ -390,20 +390,10 @@ export function registerHLSProxyRoutes(app: Express) {
       const originalUrl = req.originalUrl;
       console.log(`[TV CATCH-ALL] URL M3U8 non gérée: ${originalUrl}`);
       
-      // Reconstruire l'URL complète en utilisant le domaine de base
-      const filename = originalUrl.replace('/api/', '');
-      
-      // Essayer de deviner le domaine de base depuis les headers ou utiliser un domaine par défaut
-      // Utiliser le domaine qui fonctionne selon les logs
-      const baseDomain = 'https://cachehsi1a.netplus.ch';
-      const fullUrl = `${baseDomain}/${filename}`;
-      const encodedUrl = encodeURIComponent(fullUrl);
-      const redirectUrl = `/api/tv?url=${encodedUrl}`;
-      
-      console.log(`[TV CATCH-ALL] URL reconstruite: ${fullUrl}`);
-      console.log(`[TV CATCH-ALL] Redirection vers: ${redirectUrl}`);
-      
-      res.redirect(redirectUrl);
+      // Au lieu de reconstruire l'URL, retourner une erreur 404 pour les fichiers de sous-playlist
+      // car ils nécessitent un contexte d'authentification spécifique
+      console.log(`[TV CATCH-ALL] Fichier de sous-playlist non accessible directement: ${originalUrl}`);
+      res.status(404).send('Fichier de sous-playlist non accessible directement.');
     } catch (e: any) {
       console.error('[TV CATCH-ALL ERROR]', e.message);
       res.status(500).send('Erreur proxy catch-all.');
