@@ -59,7 +59,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[DARKIBOX] Mode ${isMovie ? 'film' : 'série'} - ID: ${id}`);
 
       // Utiliser le proxy Vercel pour contourner le blocage
-      const proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=films/download/${id}`;
+      let proxyUrl;
+      if (isMovie) {
+        proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=films/download/${id}`;
+      } else {
+        proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=series/download/${id}/season/${season}/episode/${episode}`;
+      }
       
       console.log(`[DARKIBOX] Proxy URL: ${proxyUrl}`);
       
@@ -75,9 +80,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[DARKIBOX] Réponse proxy:`, response.status, response.data);
 
+      // Si l'API Movix retourne une erreur ou pas de sources, retourner une réponse vide
       if (!response.data || !response.data.sources || response.data.sources.length === 0) {
-        return res.status(404).json({ 
-          error: 'Aucune source Darkibox trouvée pour cette série' 
+        console.log(`[DARKIBOX] Aucune source trouvée pour ${isMovie ? 'film' : 'série'} ${id}`);
+        return res.json({ 
+          success: true,
+          sources: [],
+          total: 0,
+          message: 'Aucune source Darkibox disponible pour ce contenu'
         });
       }
 
@@ -115,6 +125,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (error.response) {
         console.error(`[DARKIBOX SERIES] Détails erreur:`, error.response.data);
+        
+        // Si l'API Movix retourne une erreur 500, retourner une réponse vide au lieu d'une erreur
+        if (error.response.status === 500) {
+          console.log(`[DARKIBOX] API Movix indisponible, retour d'une réponse vide`);
+          return res.json({ 
+            success: true,
+            sources: [],
+            total: 0,
+            message: 'API Movix temporairement indisponible'
+          });
+        }
+        
         return res.status(error.response.status).json({
           error: 'Erreur API Movix via proxy',
           details: error.response.data

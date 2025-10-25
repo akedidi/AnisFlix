@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
@@ -164,7 +164,23 @@ const StreamingSources = memo(function StreamingSources({
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
-  const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR') => {
+  const hasSourcesForLanguage = useCallback((language: 'VF' | 'VOSTFR') => {
+    console.log(`🔍 hasSourcesForLanguage(${language}) - Debug:`, {
+      topStreamData: !!topStreamData,
+      movixDownloadData: !!movixDownloadData,
+      vidmolyData: !!vidmolyData,
+      fStreamData: !!fStreamData,
+      darkiboxData: !!darkiboxData,
+      darkiData: !!darkiData,
+      animeVidMolyData: !!animeVidMolyData,
+      isLoadingTopStream,
+      isLoadingMovixDownload,
+      isLoadingVidMoly,
+      isLoadingFStream,
+      isLoadingDarkibox,
+      isLoadingDarki,
+      isLoadingAnimeVidMoly
+    });
     // Vérifier TopStream (VF uniquement)
     if (language === 'VF' && topStreamData && topStreamData.stream && topStreamData.stream.url) {
       return true;
@@ -260,8 +276,13 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
     
+    console.log(`❌ hasSourcesForLanguage(${language}) - Aucune source trouvée`);
     return false;
-  };
+  }, [
+    topStreamData, movixDownloadData, vidmolyData, fStreamData, 
+    darkiboxData, darkiData, animeVidMolyData, isAnimeSeries, 
+    type, episode
+  ]);
 
   // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
   useEffect(() => {
@@ -698,8 +719,44 @@ const StreamingSources = memo(function StreamingSources({
           <Play className="w-5 h-5" />
           {t("topstream.sources")}
         </h2>
+
+        {/* Sélecteur de langue - toujours afficher les onglets */}
+        <div className="flex gap-2">
+          <Button
+            variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLanguage('VF')}
+            disabled={!hasSourcesForLanguage('VF')}
+          >
+            {t("topstream.vf")}
+          </Button>
+          <Button
+            variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLanguage('VOSTFR')}
+            disabled={!hasSourcesForLanguage('VOSTFR')}
+          >
+            {t("topstream.vostfr")}
+          </Button>
+        </div>
+
         <div className="text-center py-8 text-muted-foreground">
-          <p>Aucune source de streaming disponible pour le moment.</p>
+          <p>
+            {selectedLanguage === 'VF' 
+              ? "Aucune source VF disponible pour ce contenu." 
+              : "Aucune source VOSTFR disponible pour ce contenu."
+            }
+          </p>
+          {selectedLanguage === 'VOSTFR' && hasSourcesForLanguage('VF') && (
+            <p className="text-sm mt-2">
+              Des sources VF sont disponibles. Cliquez sur l'onglet VF pour les voir.
+            </p>
+          )}
+          {selectedLanguage === 'VF' && hasSourcesForLanguage('VOSTFR') && (
+            <p className="text-sm mt-2">
+              Des sources VOSTFR sont disponibles. Cliquez sur l'onglet VOSTFR pour les voir.
+            </p>
+          )}
         </div>
       </div>
     );
