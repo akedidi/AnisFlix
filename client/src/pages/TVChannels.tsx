@@ -1036,10 +1036,13 @@ export default function TVChannels() {
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
           let resolvedUrl = originalUrl;
           if (!originalUrl.startsWith('http')) {
-            // URL relative - la résoudre par rapport au domaine de base du stream
-            const baseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+            // URL relative - la résoudre par rapport au domaine de base du stream actuel
+            // Extraire le domaine de base depuis l'URL du stream actuel
+            const currentStreamUrl = hls.url || streamUrl;
+            const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
             resolvedUrl = new URL(originalUrl, baseUrl).href;
             console.log(`🎥 [HLS FRAG] URL relative résolue: ${resolvedUrl}`);
+            console.log(`🎥 [HLS FRAG] Base URL utilisée: ${baseUrl}`);
           }
           
           const encodedUrl = encodeURIComponent(resolvedUrl);
@@ -1066,10 +1069,13 @@ export default function TVChannels() {
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
           let resolvedUrl = originalUrl;
           if (!originalUrl.startsWith('http')) {
-            // URL relative - la résoudre par rapport au domaine de base du stream
-            const baseUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/';
+            // URL relative - la résoudre par rapport au domaine de base du stream actuel
+            // Extraire le domaine de base depuis l'URL du stream actuel
+            const currentStreamUrl = hls.url || streamUrl;
+            const baseUrl = currentStreamUrl.substring(0, currentStreamUrl.lastIndexOf('/') + 1);
             resolvedUrl = new URL(originalUrl, baseUrl).href;
             console.log(`🎥 [HLS AUDIO] URL relative résolue: ${resolvedUrl}`);
+            console.log(`🎥 [HLS AUDIO] Base URL utilisée: ${baseUrl}`);
           }
           
           const encodedUrl = encodeURIComponent(resolvedUrl);
