@@ -36,6 +36,8 @@ function toAbsolute(base, maybeRelative) {
 }
 
 function rewritePlaylistUrls(playlistText, baseUrl) {
+  console.log(`[TV PROXY] rewritePlaylistUrls appelée avec baseUrl: ${baseUrl}`);
+  console.log(`[TV PROXY] Contenu playlist (premiers 500 chars): ${playlistText.substring(0, 500)}`);
   return playlistText
     .split('\n')
     .map((line) => {
