@@ -170,7 +170,7 @@ export default function VidMolyPlayer({
         const isRealVidMolyLink = data.method === 'extracted_real' || 
                                  data.method === 'direct_master_m3u8' || 
                                  data.method?.startsWith('direct_pattern_') ||
-                                 (cleanedUrl && cleanedUrl.includes('vmwesa.online'));
+                                 (cleanedUrl && (cleanedUrl.includes('vmwesa.online') || cleanedUrl.includes('vmeas.cloud')));
         
         console.log('🔍 Méthode d\'extraction:', data.method);
         console.log('🔍 Lien m3u8 nettoyé:', cleanedUrl);
