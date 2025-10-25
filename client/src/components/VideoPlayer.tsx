@@ -73,11 +73,11 @@ export default function VideoPlayer({
     setSourceType(detectedType);
 
     if (detectedType === "m3u8") {
-      // Vérifier si c'est une URL Darkibox et utiliser le proxy
+      // Vérifier si c'est une URL Darkibox et utiliser l'ancienne API
       let finalSrc = src;
       if (src.includes('darkibox.com')) {
-        finalSrc = `/api/proxy?type=darkibox&url=${encodeURIComponent(src)}`;
-        console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation du proxy:', finalSrc);
+        finalSrc = `/api/darkibox?url=${encodeURIComponent(src)}`;
+        console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation de l\'API legacy:', finalSrc);
       }
       
       // Lecture HLS

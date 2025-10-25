@@ -48,8 +48,8 @@ export default function DarkiboxPlayer({
         const streamUrl = m3u8Url;
         console.log('✅ Lien stream Darkibox:', streamUrl);
 
-        // Utiliser le proxy pour éviter les problèmes CORS
-        const proxyUrl = `/api/proxy?type=darkibox&url=${encodeURIComponent(streamUrl)}`;
+        // Utiliser l'ancienne API Darkibox en attendant le déploiement du proxy unifié
+        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(streamUrl)}`;
         console.log('🎬 [DARKIBOX CLICK] URL originale reçue:', m3u8Url);
         console.log('🎬 [DARKIBOX CLICK] URL stream traitée:', streamUrl);
         console.log('🎬 [DARKIBOX CLICK] URL proxy finale:', proxyUrl);
