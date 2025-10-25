@@ -610,9 +610,9 @@ export default function TVChannels() {
     console.log('🔍 [TV SEARCH EFFECT] searchQuery:', `"${searchQuery}"`);
     console.log('🔍 [TV SEARCH EFFECT] channelLogos chargés:', Object.keys(channelLogos).length);
     
-    // Ne déclencher la recherche que si la query a au moins 2 caractères
-    if (searchQuery.length < 2) {
-      console.log('🔍 [TV SEARCH EFFECT] Query trop courte - vidage des résultats');
+    // Ne déclencher la recherche que si la query a au moins 1 caractère
+    if (searchQuery.length < 1) {
+      console.log('🔍 [TV SEARCH EFFECT] Query vide - vidage des résultats');
       setSearchResults([]);
       return;
     }
