@@ -10,12 +10,21 @@ export function getBaseUrl(): string {
   const isCapacitor = typeof window !== 'undefined' && 
     (window as any).Capacitor !== undefined;
   
+  // Vérifier si nous sommes en développement local
+  const isLocalDev = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  
+  // En développement local, TOUJOURS utiliser l'URL locale
+  if (isLocalDev) {
+    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  }
+  
   if (isCapacitor) {
     // En mode natif, utiliser l'URL de production Vercel
     return 'https://anisflix.vercel.app';
   } else {
     // En mode web, utiliser l'origine actuelle
-    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
+    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
   }
 }
 
@@ -31,18 +40,24 @@ export function getApiUrl(endpoint: string): string {
  * Obtient l'URL du proxy VidMoly
  */
 export function getVidMolyProxyUrl(m3u8Url: string, referer?: string): string {
-  // Vérifier si l'URL est déjà encodée pour éviter le double encodage
-  const isAlreadyEncoded = m3u8Url.includes('%');
-  const encodedUrl = isAlreadyEncoded ? m3u8Url : encodeURIComponent(m3u8Url);
+  // Décoder l'URL si elle est sur-encodée, puis la réencoder correctement
+  let decodedUrl = m3u8Url;
   
+  // Décoder l'URL jusqu'à ce qu'elle soit correctement décodée
+  while (decodedUrl.includes('%25')) {
+    decodedUrl = decodeURIComponent(decodedUrl);
+    console.log('🔍 getVidMolyProxyUrl - Décodage itératif:', decodedUrl);
+  }
+  
+  // NE PAS réencoder l'URL - utiliser l'URL décodée directement
   const params = new URLSearchParams({
-    url: encodedUrl,
+    url: decodedUrl, // Utiliser l'URL décodée directement
     referer: encodeURIComponent(referer || 'https://vidmoly.net/')
   });
   
   console.log('🔍 getVidMolyProxyUrl - URL originale:', m3u8Url);
-  console.log('🔍 getVidMolyProxyUrl - URL déjà encodée?', isAlreadyEncoded);
-  console.log('🔍 getVidMolyProxyUrl - URL finale:', encodedUrl);
+  console.log('🔍 getVidMolyProxyUrl - URL décodée finale:', decodedUrl);
+  console.log('🔍 getVidMolyProxyUrl - URL finale (non encodée):', decodedUrl);
   
   return getApiUrl(`/api/vidmoly?${params.toString()}`);
 }

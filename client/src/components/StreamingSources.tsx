@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
@@ -53,9 +53,10 @@ interface StreamingSourcesProps {
   season?: number;
   episode?: number;
   imdbId?: string;
+  enabled?: boolean; // Nouvelle prop pour désactiver les hooks
 }
 
-export default function StreamingSources({ 
+const StreamingSources = memo(function StreamingSources({ 
   type, 
   id, 
   title, 
@@ -65,29 +66,50 @@ export default function StreamingSources({
   isLoadingSource,
   season,
   episode,
-  imdbId
+  imdbId,
+  enabled = true
 }: StreamingSourcesProps) {
   console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
+  console.log('🔍 [STREAMING SOURCES] Component render - timestamp:', Date.now());
   
   const { t } = useLanguage();
+  
+  // Désactiver les hooks si enabled est false
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
-  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
-  const { data: movixDownloadNewData, isLoading: isLoadingMovixDownloadNew } = useMovixDownloadNew(type, id, season, episode, title);
+  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
   
-  // Debug logs pour MovixDownloadNew
-  console.log('🔍 [STREAMING SOURCES] MovixDownloadNew Debug:', {
+  // Debug logs pour MovixDownload
+  console.log('🔍 [STREAMING SOURCES] MovixDownload Debug:', {
     type,
     id,
     season,
     episode,
     title,
-    isLoading: isLoadingMovixDownloadNew,
-    hasData: !!movixDownloadNewData,
-    sourcesCount: movixDownloadNewData?.sources?.length || 0
+    isLoading: isLoadingMovixDownload,
+    hasData: !!movixDownloadData,
+    sourcesCount: movixDownloadData?.sources?.length || 0
+  });
+  
+  // Debug des valeurs passées au hook
+  console.log('🔍 [STREAMING SOURCES] Hook Parameters:', {
+    type: type,
+    id: id,
+    season: season,
+    episode: episode,
+    title: title,
+    typeCheck: typeof type,
+    idCheck: typeof id,
+    seasonCheck: typeof season,
+    episodeCheck: typeof episode,
+    titleCheck: typeof title,
+    seasonValue: season,
+    episodeValue: episode,
+    seasonTruthy: !!season,
+    episodeTruthy: !!episode
   });
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
@@ -265,8 +287,11 @@ export default function StreamingSources({
     });
   }
 
-  // Ajouter les sources MovixDownload (Darkibox) si disponibles (VF uniquement)
+
+  // Ajouter les sources MovixDownload (nouvelle API) si disponibles
   if (movixDownloadData && movixDownloadData.sources && selectedLanguage === 'VF') {
+    console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadData.sources);
+    
     // Trier les sources par qualité (du meilleur au moins bon)
     const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
     
@@ -322,77 +347,7 @@ export default function StreamingSources({
         allSources.push({
           id: `movix-download-${quality.toLowerCase()}-${index}`,
           name: `${qualityLabel} (${languageLabel})`,
-          provider: 'darkibox',
-          url: modifiedUrl,
-          type: 'm3u8' as const,
-          isMovixDownload: true,
-          quality: quality,
-          language: source.language
-        });
-      });
-    });
-  }
-
-  // Ajouter les sources MovixDownload (nouvelle API) si disponibles
-  if (movixDownloadNewData && movixDownloadNewData.sources && selectedLanguage === 'VF') {
-    console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadNewData.sources);
-    
-    // Trier les sources par qualité (du meilleur au moins bon)
-    const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
-    
-    const sortedSources = movixDownloadNewData.sources.sort((a: any, b: any) => {
-      const qualityA = a.quality || 'Unknown';
-      const qualityB = b.quality || 'Unknown';
-      
-      const indexA = qualityOrder.indexOf(qualityA);
-      const indexB = qualityOrder.indexOf(qualityB);
-      
-      // Si les deux qualités sont dans la liste, trier par index
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      
-      // Si une seule est dans la liste, la prioriser
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      
-      // Si aucune n'est dans la liste, trier alphabétiquement
-      return qualityA.localeCompare(qualityB);
-    });
-
-    // Grouper par qualité et numéroter
-    const sourcesByQuality = sortedSources.reduce((acc: any, source: any) => {
-      const quality = source.quality || 'Unknown';
-      if (!acc[quality]) {
-        acc[quality] = [];
-      }
-      acc[quality].push(source);
-      return acc;
-    }, {});
-
-    // Ajouter les sources groupées par qualité
-    Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
-      sources.forEach((source: any, index: number) => {
-        const languageLabel = source.language === 'MULTI' ? 'Multi' : 
-                             source.language === 'FRE' ? 'Français' : 
-                             source.language === 'ENG' ? 'Anglais' : source.language;
-
-        // Ajouter un numéro si plusieurs sources de même qualité
-        const qualityLabel = sources.length > 1 ? `${quality} #${index + 1}` : quality;
-        
-        // Modifier l'URL pour forcer les sous-titres français
-        let modifiedUrl = source.m3u8;
-        if (source.language === 'MULTI' || source.language === 'FRE') {
-          // Ajouter le paramètre pour forcer les sous-titres français
-          const url = new URL(source.m3u8);
-          url.searchParams.set('subtitle', 'fr');
-          modifiedUrl = url.toString();
-        }
-
-        allSources.push({
-          id: `movix-download-new-${quality.toLowerCase()}-${index}`,
-          name: `${qualityLabel} (${languageLabel})`,
-          provider: 'movix-download-new',
+          provider: 'movix',
           url: modifiedUrl,
           type: 'm3u8' as const,
           isMovixDownload: true,
@@ -632,6 +587,7 @@ export default function StreamingSources({
 
   // Ajouter les sources Darki pour les séries si disponibles
   if (type === 'tv' && darkiboxData && darkiboxData.sources) {
+    console.log('🔍 [DARKIBOX] Sources trouvées:', darkiboxData.sources.length, darkiboxData.sources);
     darkiboxData.sources.forEach((source: any) => {
       // Filtrer par langue sélectionnée
       const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
@@ -684,10 +640,14 @@ export default function StreamingSources({
       });
     } else if (source.isMovixDownload) {
       console.log('✅ Source MovixDownload détectée');
+      console.log('🎬 [DARKIBOX SOURCE] URL complète:', source.url);
+      console.log('🎬 [DARKIBOX SOURCE] Nom de la source:', source.name);
+      console.log('🎬 [DARKIBOX SOURCE] Qualité:', source.quality);
+      console.log('🎬 [DARKIBOX SOURCE] Langue:', source.language);
       // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
       onSourceClick({
         url: source.url,
-        type: 'mp4' as const, // Traiter comme mp4 pour éviter le scraper
+        type: 'm3u8' as const, // Traiter comme m3u8 pour HLS
         name: source.name,
         isMovixDownload: true
       });
@@ -716,7 +676,7 @@ export default function StreamingSources({
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingMovixDownloadNew) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -850,4 +810,6 @@ export default function StreamingSources({
       </div>
     </div>
   );
-}
+});
+
+export default StreamingSources;

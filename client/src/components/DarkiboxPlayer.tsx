@@ -48,11 +48,12 @@ export default function DarkiboxPlayer({
         const streamUrl = m3u8Url;
         console.log('✅ Lien stream Darkibox:', streamUrl);
 
-        // Construire l'URL du proxy Darkibox
-        const streamUrlParsed = new URL(streamUrl);
-        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(streamUrl)}`;
-        
-        console.log('📺 URL proxy Darkibox:', proxyUrl);
+        // Utiliser le proxy pour éviter les problèmes CORS
+        const proxyUrl = `/api/darkibox-proxy?url=${encodeURIComponent(streamUrl)}`;
+        console.log('🎬 [DARKIBOX CLICK] URL originale reçue:', m3u8Url);
+        console.log('🎬 [DARKIBOX CLICK] URL stream traitée:', streamUrl);
+        console.log('🎬 [DARKIBOX CLICK] URL proxy finale:', proxyUrl);
+        console.log('🎬 [DARKIBOX CLICK] URL encodée pour proxy:', encodeURIComponent(streamUrl));
 
         // Configuration HLS pour Darkibox
         if (Hls.isSupported()) {
@@ -67,7 +68,6 @@ export default function DarkiboxPlayer({
           
           hlsRef.current = hls;
           hls.loadSource(proxyUrl);
-          hls.attachMedia(video);
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('📺 Manifest Darkibox chargé');

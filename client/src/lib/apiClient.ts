@@ -9,7 +9,14 @@ export class ApiClient {
     const isCapacitor = typeof window !== 'undefined' && 
       (window as any).Capacitor !== undefined;
     
-    if (isCapacitor) {
+    // Vérifier si nous sommes en développement local
+    const isLocalDev = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+    // En développement local, TOUJOURS utiliser l'URL locale
+    if (isLocalDev) {
+      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    } else if (isCapacitor) {
       // En mode natif, utiliser l'URL de production Vercel
       this.baseUrl = 'https://anisflix.vercel.app';
     } else {

@@ -59,14 +59,25 @@ export default function VideoPlayer({
 
     const video = videoRef.current;
     
+    console.log('🎬 [VIDEO PLAYER] URL reçue:', src);
+    console.log('🎬 [VIDEO PLAYER] Type spécifié:', type);
+    
     // Détection automatique du type de source
     const detectedType = type === "auto" 
       ? (src.includes(".m3u8") || src.includes("m3u8") ? "m3u8" : "mp4")
       : type;
     
+    console.log('🎬 [VIDEO PLAYER] Type détecté:', detectedType);
     setSourceType(detectedType);
 
     if (detectedType === "m3u8") {
+      // Vérifier si c'est une URL Darkibox et utiliser le proxy
+      let finalSrc = src;
+      if (src.includes('darkibox.com')) {
+        finalSrc = `/api/darkibox-proxy?url=${encodeURIComponent(src)}`;
+        console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation du proxy:', finalSrc);
+      }
+      
       // Lecture HLS
       if (Hls.isSupported()) {
         const hls = new Hls({
@@ -74,7 +85,7 @@ export default function VideoPlayer({
           lowLatencyMode: false,
         });
         hlsRef.current = hls;
-        hls.loadSource(src);
+        hls.loadSource(finalSrc);
         hls.attachMedia(video);
         
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -87,7 +98,7 @@ export default function VideoPlayer({
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = src;
+        video.src = finalSrc;
         video.addEventListener('loadedmetadata', () => {
           video.play().catch(err => console.warn("Autoplay failed:", err));
         });

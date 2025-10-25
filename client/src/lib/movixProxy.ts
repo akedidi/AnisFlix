@@ -84,8 +84,15 @@ export class MovixProxyClient {
    * Récupère les liens WiFlix
    */
   async getWiFlix(type: 'movie' | 'tv', id: number, season?: number): Promise<any> {
-    const path = season ? `wiflix/${type}/${id}/season/${season}` : `wiflix/${type}/${id}`;
-    return this.request(path);
+    if (type === 'tv' && season) {
+      // Pour les séries, utiliser le format wiflix/tv/{id}/{season}
+      const path = `wiflix/${type}/${id}/${season}`;
+      return this.request(path);
+    } else {
+      // Pour les films ou sans saison
+      const path = `wiflix/${type}/${id}`;
+      return this.request(path);
+    }
   }
 
   /**
