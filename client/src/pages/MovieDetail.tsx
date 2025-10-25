@@ -277,7 +277,7 @@ export default function MovieDetail() {
                     type="movie"
                     id={movieId}
                     title={movie.title}
-                    sources={sources}
+                    sources={[]}
                     genres={movie.genres}
                     onSourceClick={handleSourceSelect}
                     isLoadingSource={isLoadingSource}

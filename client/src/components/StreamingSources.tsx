@@ -712,27 +712,25 @@ const StreamingSources = memo(function StreamingSources({
         {t("topstream.sources")}
       </h2>
 
-      {/* Sélecteur de langue - afficher si on a des sources pour au moins une langue */}
-      {(hasSourcesForLanguage('VF') || hasSourcesForLanguage('VOSTFR')) && (
-        <div className="flex gap-2">
-          <Button
-            variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedLanguage('VF')}
-            disabled={!hasSourcesForLanguage('VF')}
-          >
-            {t("topstream.vf")}
-          </Button>
-          <Button
-            variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedLanguage('VOSTFR')}
-            disabled={!hasSourcesForLanguage('VOSTFR')}
-          >
-            {t("topstream.vostfr")}
-          </Button>
-        </div>
-      )}
+      {/* Sélecteur de langue - toujours afficher les onglets */}
+      <div className="flex gap-2">
+        <Button
+          variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedLanguage('VF')}
+          disabled={!hasSourcesForLanguage('VF')}
+        >
+          {t("topstream.vf")}
+        </Button>
+        <Button
+          variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedLanguage('VOSTFR')}
+          disabled={!hasSourcesForLanguage('VOSTFR')}
+        >
+          {t("topstream.vostfr")}
+        </Button>
+      </div>
 
       <div className="space-y-3">
         {allSources.length === 0 ? (
@@ -746,6 +744,11 @@ const StreamingSources = memo(function StreamingSources({
             {selectedLanguage === 'VOSTFR' && hasSourcesForLanguage('VF') && (
               <p className="text-sm mt-2">
                 Des sources VF sont disponibles. Cliquez sur l'onglet VF pour les voir.
+              </p>
+            )}
+            {selectedLanguage === 'VF' && hasSourcesForLanguage('VOSTFR') && (
+              <p className="text-sm mt-2">
+                Des sources VOSTFR sont disponibles. Cliquez sur l'onglet VOSTFR pour les voir.
               </p>
             )}
           </div>
