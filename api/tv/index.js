@@ -16,7 +16,7 @@ const browserHeaders = {
   'Connection': 'keep-alive'
 };
 
-const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch'];
+const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch'];
 
 function isAllowedUrl(urlString) {
   try {
@@ -169,6 +169,20 @@ export default async function handler(req, res) {
         };
       }
       
+      // Headers spécifiques pour les tokens JWT (cachehsi)
+      if (cleanUrl.includes('cachehsi') && cleanUrl.includes('tok_')) {
+        requestHeaders = {
+          ...requestHeaders,
+          'Accept': 'video/mp2t, video/*, */*',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Origin': 'https://viamotionhsi.netplus.ch',
+          'Referer': 'https://viamotionhsi.netplus.ch/'
+        };
+      }
+      
       const r = await http.get(cleanUrl, { 
         headers: requestHeaders, 
         responseType: 'text' 
@@ -221,6 +235,14 @@ export default async function handler(req, res) {
       if (req.headers.range) {
         headers.Range = req.headers.range;
         console.log(`[TV PROXY] Range demandé: ${req.headers.range}`);
+      }
+      
+      // Headers spécifiques pour les segments avec tokens JWT
+      if (cleanUrl.includes('cachehsi') && cleanUrl.includes('tok_')) {
+        headers['Accept'] = 'video/mp2t, video/*, */*';
+        headers['Origin'] = 'https://viamotionhsi.netplus.ch';
+        headers['Referer'] = 'https://viamotionhsi.netplus.ch/';
+        console.log(`[TV PROXY] Headers JWT appliqués pour segment: ${cleanUrl}`);
       }
 
       console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
