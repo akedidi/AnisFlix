@@ -102,7 +102,7 @@ export default function VidMolyPlayer({
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
         
           // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
-          if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com')) {
+          if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com') || vidmolyUrl.includes('vmeas.cloud')) {
             console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
             
             // Utiliser le proxy VidMoly pour éviter les problèmes CORS

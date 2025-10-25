@@ -207,6 +207,17 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
                 }
                 
                 console.log('✅ Utilisation du m3u8 extrait:', data.m3u8Url);
+                
+                // Vérifier si l'URL extraite nécessite un proxy
+                if (data.m3u8Url.includes('vmeas.cloud') || data.m3u8Url.includes('.m3u8')) {
+                  console.log('🔗 URL nécessite un proxy VidMoly:', data.m3u8Url);
+                  // L'URL sera proxifiée dans VidMolyPlayer
+                  return {
+                    url: data.m3u8Url,
+                    language: player.language
+                  };
+                }
+                
                 return {
                   url: data.m3u8Url,
                   language: player.language
