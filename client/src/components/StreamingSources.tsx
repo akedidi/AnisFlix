@@ -74,6 +74,17 @@ const StreamingSources = memo(function StreamingSources({
   
   const { t } = useLanguage();
   
+  // État local pour gérer le chargement de chaque source individuellement
+  const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
+  
+  // Nettoyer l'état de chargement quand une source est sélectionnée avec succès
+  useEffect(() => {
+    if (!isLoadingSource) {
+      // Si aucune source n'est en cours de chargement global, nettoyer tous les états locaux
+      setLoadingSources(new Set());
+    }
+  }, [isLoadingSource]);
+  
   // Désactiver les hooks si enabled est false
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
@@ -647,59 +658,72 @@ const StreamingSources = memo(function StreamingSources({
     console.log('🔍 Source type:', source.type);
     console.log('🔍 Source isVidMoly:', source.isVidMoly);
     
-    if (source.isTopStream) {
-      console.log('✅ Source TopStream détectée');
-      // Pour TopStream, on utilise directement l'URL
-      onSourceClick({
-        url: source.url,
-        type: source.type,
-        name: source.name,
-        isTopStream: true
+    // Marquer cette source comme en cours de chargement
+    setLoadingSources(prev => new Set(prev).add(source.id));
+    
+    try {
+      if (source.isTopStream) {
+        console.log('✅ Source TopStream détectée');
+        // Pour TopStream, on utilise directement l'URL
+        onSourceClick({
+          url: source.url,
+          type: source.type,
+          name: source.name,
+          isTopStream: true
+        });
+      } else if (source.isFStream) {
+        console.log('✅ Source FStream détectée');
+        // Pour Vidzy via FStream, on utilise le scraper existant
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const,
+          name: source.name,
+          isFStream: true
+        });
+      } else if (source.isMovixDownload) {
+        console.log('✅ Source MovixDownload détectée');
+        console.log('🎬 [DARKIBOX SOURCE] URL complète:', source.url);
+        console.log('🎬 [DARKIBOX SOURCE] Nom de la source:', source.name);
+        console.log('🎬 [DARKIBOX SOURCE] Qualité:', source.quality);
+        console.log('🎬 [DARKIBOX SOURCE] Langue:', source.language);
+        // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const, // Traiter comme m3u8 pour HLS
+          name: source.name,
+          isMovixDownload: true
+        });
+      } else if (source.isVidMoly) {
+        console.log('✅ Source VidMoly détectée, appel de onSourceClick');
+        // Pour VidMoly, on utilise le player dédié
+        onSourceClick({
+          url: source.url,
+          type: 'embed' as const,
+          name: source.name,
+          isVidMoly: true
+        });
+      } else if (source.isDarki) {
+        console.log('✅ Source Darki détectée');
+        // Pour Darki, on utilise le player dédié
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const,
+          name: source.name,
+          isDarki: true,
+          quality: source.quality,
+          language: source.language
+        });
+      } else {
+        console.log('❌ Type de source non reconnu:', source);
+      }
+    } catch (error) {
+      console.error('Erreur lors du clic sur la source:', error);
+      // Retirer cette source du chargement en cas d'erreur
+      setLoadingSources(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(source.id);
+        return newSet;
       });
-    } else if (source.isFStream) {
-      console.log('✅ Source FStream détectée');
-      // Pour Vidzy via FStream, on utilise le scraper existant
-      onSourceClick({
-        url: source.url,
-        type: 'm3u8' as const,
-        name: source.name,
-        isFStream: true
-      });
-    } else if (source.isMovixDownload) {
-      console.log('✅ Source MovixDownload détectée');
-      console.log('🎬 [DARKIBOX SOURCE] URL complète:', source.url);
-      console.log('🎬 [DARKIBOX SOURCE] Nom de la source:', source.name);
-      console.log('🎬 [DARKIBOX SOURCE] Qualité:', source.quality);
-      console.log('🎬 [DARKIBOX SOURCE] Langue:', source.language);
-      // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
-      onSourceClick({
-        url: source.url,
-        type: 'm3u8' as const, // Traiter comme m3u8 pour HLS
-        name: source.name,
-        isMovixDownload: true
-      });
-    } else if (source.isVidMoly) {
-      console.log('✅ Source VidMoly détectée, appel de onSourceClick');
-      // Pour VidMoly, on utilise le player dédié
-      onSourceClick({
-        url: source.url,
-        type: 'embed' as const,
-        name: source.name,
-        isVidMoly: true
-      });
-    } else if (source.isDarki) {
-      console.log('✅ Source Darki détectée');
-      // Pour Darki, on utilise le player dédié
-      onSourceClick({
-        url: source.url,
-        type: 'm3u8' as const,
-        name: source.name,
-        isDarki: true,
-        quality: source.quality,
-        language: source.language
-      });
-    } else {
-      console.log('❌ Type de source non reconnu:', source);
     }
   };
 
@@ -824,7 +848,7 @@ const StreamingSources = memo(function StreamingSources({
                 variant="outline"
                 className="w-full justify-between h-auto py-3"
                 onClick={() => handleSourceClick(source)}
-                disabled={isLoadingSource}
+                disabled={loadingSources.has(source.id)}
               >
               <span className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
@@ -866,7 +890,7 @@ const StreamingSources = memo(function StreamingSources({
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
-                {isLoadingSource ? t("topstream.loading") : "Regarder"}
+                {loadingSources.has(source.id) ? t("topstream.loading") : "Regarder"}
               </span>
             </Button>
           </div>

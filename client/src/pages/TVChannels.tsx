@@ -176,7 +176,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Regex match:`, match);
     if (match) {
       const channelId = match[1];
-      const finalUrl = `${baseUrl}/api/tv?channelId=${channelId}`;
+      const finalUrl = `${baseUrl}/api/tv/stream/${channelId}`;
       console.log(`[PROXY URL] Channel ID extrait: ${channelId}`);
       console.log(`[PROXY URL] URL finale: ${finalUrl}`);
       return finalUrl;
@@ -185,19 +185,14 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     }
   }
   
-  // Pour hls_direct, utiliser l'URL directe sur web, proxy sur natif
+  // Pour hls_direct, TOUJOURS utiliser le proxy (même sur web) pour éviter les blocages réseau
   if (type === 'hls_direct') {
-    if (!isCapacitor()) {
-      console.log(`[PROXY URL] Mode web - hls_direct en URL directe: ${originalUrl}`);
-      return originalUrl;
-    } else {
-      console.log(`[PROXY URL] Mode natif - hls_direct via proxy`);
-      const encodedUrl = encodeURIComponent(originalUrl);
-      const finalUrl = `${baseUrl}/api/tv?url=${encodedUrl}`;
-      console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
-      console.log(`[PROXY URL] URL finale: ${finalUrl}`);
-      return finalUrl;
-    }
+    console.log(`[PROXY URL] Type hls_direct détecté - Utilisation du proxy pour éviter les blocages`);
+    const encodedUrl = encodeURIComponent(originalUrl);
+    const finalUrl = `${baseUrl}/api/tv?url=${encodedUrl}`;
+    console.log(`[PROXY URL] URL encodée: ${encodedUrl}`);
+    console.log(`[PROXY URL] URL finale: ${finalUrl}`);
+    return finalUrl;
   }
   
   // Fallback pour les autres types
@@ -798,8 +793,9 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mode Capacitor - ${link.type} en URL directe: ${finalUrl}`);
         }
       } else {
-        // Desktop : URLs directes pour tous les types
-        console.log(`[SELECT LINK] Mode desktop - URL directe: ${finalUrl}`);
+        // Desktop : TOUJOURS utiliser le proxy pour éviter les blocages réseau
+        console.log(`[SELECT LINK] Mode desktop - Utilisation du proxy pour éviter les blocages`);
+        finalUrl = getProxyUrl(link.url, link.type);
       }
       
       console.log(`📺 Lien sélectionné pour ${channel.name}:`, { 
@@ -866,6 +862,43 @@ export default function TVChannels() {
       });
       
       hlsRef.current = hls;
+      
+      // Hook pour intercepter et proxifier les requêtes HLS (segments vidéo)
+      hls.on(Hls.Events.FRAG_LOADING, (event, data) => {
+        const originalUrl = data.frag.url;
+        console.log(`🎥 [HLS FRAG] URL originale: ${originalUrl}`);
+        
+        // Si l'URL n'est pas déjà proxifiée et contient des segments audio
+        if (!originalUrl.startsWith('http://localhost:3000/api/') && 
+            (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
+          
+          const encodedUrl = encodeURIComponent(originalUrl);
+          const proxifiedUrl = `/api/tv?url=${encodedUrl}`;
+          console.log(`🎥 [HLS FRAG] URL proxifiée: ${proxifiedUrl}`);
+          
+          // Modifier l'URL du fragment
+          data.frag.url = proxifiedUrl;
+        }
+      });
+
+      // Hook pour intercepter et proxifier les requêtes HLS (segments audio)
+      hls.on(Hls.Events.AUDIO_TRACK_LOADING, (event, data) => {
+        const originalUrl = data.url;
+        console.log(`🎥 [HLS AUDIO] URL originale: ${originalUrl}`);
+        
+        // Si l'URL n'est pas déjà proxifiée et contient des segments audio
+        if (!originalUrl.startsWith('http://localhost:3000/api/') && 
+            (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
+          
+          const encodedUrl = encodeURIComponent(originalUrl);
+          const proxifiedUrl = `/api/tv?url=${encodedUrl}`;
+          console.log(`🎥 [HLS AUDIO] URL proxifiée: ${proxifiedUrl}`);
+          
+          // Modifier l'URL du segment audio
+          data.url = proxifiedUrl;
+        }
+      });
+      
       console.log(`🎥 [HLS PLAYER] Chargement de la source: ${finalStreamUrl}`);
       hls.loadSource(finalStreamUrl);
       console.log(`🎥 [HLS PLAYER] Attachement au média`);
