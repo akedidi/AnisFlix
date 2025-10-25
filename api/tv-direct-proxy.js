@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
@@ -86,10 +86,21 @@ export default async function handler(req, res) {
         'Pragma': 'no-cache'
       },
       timeout: 10000,
-      responseType: 'text'
+      responseType: req.method === 'HEAD' ? 'stream' : 'text'
     });
 
     console.log(`[TV DIRECT PROXY] ${response.status} ${response.headers['content-type']} ← ${targetUrl}`);
+
+    // Pour les requêtes HEAD (segments), retourner juste les headers
+    if (req.method === 'HEAD') {
+      // Propager les headers utiles
+      ['content-type', 'content-length', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
+        if (response.headers[h]) {
+          res.setHeader(h, response.headers[h]);
+        }
+      });
+      return res.status(response.status).end();
+    }
 
     if (typeof response.data !== 'string') {
       return res.status(502).send('Pas une playlist M3U8.');
