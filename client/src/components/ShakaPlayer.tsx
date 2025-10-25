@@ -100,6 +100,11 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             return;
           }
           
+          // Log pour toutes les requêtes non-proxifiées
+          if (request.uris[0] && !request.uris[0].includes('anisflix.vercel.app')) {
+            console.log(`🔍 [SHAKA INTERCEPTOR] Requête non-proxifiée détectée: ${request.uris[0]}`);
+          }
+          
           // Proxifier les segments vidéo/audio et les sous-playlists M3U8
           if (request.uris[0] && (
             request.uris[0].includes('.mp4') ||
