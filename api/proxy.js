@@ -28,6 +28,7 @@ export default async function handler(req, res) {
         targetUrl = decodeURIComponent(url);
         headers['Referer'] = 'https://darkibox.com/';
         headers['Origin'] = 'https://darkibox.com';
+        headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
         break;
         
       case 'supervideo':
@@ -57,8 +58,55 @@ export default async function handler(req, res) {
         streamUrl: targetUrl,
         message: 'TV stream retrieved'
       });
+    } else if (type === 'darkibox') {
+      // Pour Darkibox, d'abord extraire le lien M3U8 depuis la page HTML
+      console.log(`[DARKIBOX PROXY] Extracting M3U8 from: ${targetUrl}`);
+      
+      const htmlResponse = await axios.get(targetUrl, {
+        headers,
+        timeout: 15000,
+      });
+      
+      const html = htmlResponse.data;
+      console.log(`[DARKIBOX PROXY] HTML received (${html.length} chars)`);
+      
+      // Extraire le lien M3U8 depuis le HTML
+      const m3u8Match = html.match(/file:\s*["']([^"']*\.m3u8[^"']*)["']/);
+      if (!m3u8Match) {
+        console.error('[DARKIBOX PROXY] No M3U8 link found in HTML');
+        return res.status(404).json({ error: 'No M3U8 stream found on Darkibox page' });
+      }
+      
+      const m3u8Url = m3u8Match[1];
+      console.log(`[DARKIBOX PROXY] Extracted M3U8 URL: ${m3u8Url}`);
+      
+      // Maintenant faire le proxy du stream M3U8
+      const streamResponse = await axios.get(m3u8Url, {
+        responseType: 'stream',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://darkibox.com/',
+          'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+          ...(req.headers.range && { 'Range': req.headers.range }),
+        },
+        timeout: 30000,
+      });
+
+      // Set appropriate headers for streaming
+      res.setHeader('Content-Type', streamResponse.headers['content-type'] || 'application/vnd.apple.mpegurl');
+      if (streamResponse.headers['content-length']) {
+        res.setHeader('Content-Length', streamResponse.headers['content-length']);
+      }
+      if (streamResponse.headers['accept-ranges']) {
+        res.setHeader('Accept-Ranges', streamResponse.headers['accept-ranges']);
+      }
+      if (streamResponse.headers['content-range']) {
+        res.setHeader('Content-Range', streamResponse.headers['content-range']);
+      }
+
+      streamResponse.data.pipe(res);
     } else {
-      // Pour les autres types, faire un proxy de stream
+      // Pour les autres types, faire un proxy de stream direct
       const response = await axios.get(targetUrl, {
         responseType: 'stream',
         headers: {
