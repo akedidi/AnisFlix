@@ -266,7 +266,7 @@ export const useMultiSearch = (query: string) => {
         return null;
       }).filter(Boolean);
     },
-    enabled: query.length >= 2,
+    enabled: query.length >= 1,
   });
 };
 

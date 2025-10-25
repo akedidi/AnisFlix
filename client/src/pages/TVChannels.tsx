@@ -443,9 +443,33 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "elarabiya": "al arabiya",
 };
 
+// Logos locaux avec fond blanc pour les chaînes principales
+const LOCAL_CHANNEL_LOGOS: Record<string, string> = {
+  "tf1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/TF1_logo_2013.svg/120px-TF1_logo_2013.svg.png",
+  "france2": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/France_2_2018.svg/120px-France_2_2018.svg.png",
+  "france3": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/France_3_2018.svg/120px-France_3_2018.svg.png",
+  "canal-plus": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Canal%2B_logo_2018.svg/120px-Canal%2B_logo_2018.svg.png",
+  "m6": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/M6_logo_2018.svg/120px-M6_logo_2018.svg.png",
+  "arte": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Arte_Logo_2016.svg/120px-Arte_Logo_2016.svg.png",
+  "nt1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/NT1_logo_2018.svg/120px-NT1_logo_2018.svg.png",
+  "w9": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/W9_logo_2018.svg/120px-W9_logo_2018.svg.png",
+  "gulli": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Gulli_logo_2018.svg/120px-Gulli_logo_2018.svg.png",
+  "bfmtv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/BFM_TV_logo_2018.svg/120px-BFM_TV_logo_2018.svg.png",
+  "cnews": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/CNEWS_logo_2018.svg/120px-CNEWS_logo_2018.svg.png",
+  "lci": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/LCI_logo_2018.svg/120px-LCI_logo_2018.svg.png",
+  "franceinfo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Franceinfo_logo_2018.svg/120px-Franceinfo_logo_2018.svg.png",
+};
+
 // Fonction pour obtenir l'URL du logo depuis l'API jaruba
 const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
   try {
+    // D'abord, vérifier les logos locaux
+    const localLogo = LOCAL_CHANNEL_LOGOS[channelId];
+    if (localLogo) {
+      console.log(`[LOGO LOCAL] Logo local trouvé pour ${channelId}: ${localLogo}`);
+      return localLogo;
+    }
+    
     const channelName = CHANNEL_NAME_MAPPING[channelId];
     console.log(`[LOGO API] Recherche logo pour ${channelId} -> ${channelName}`);
     
