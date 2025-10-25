@@ -121,21 +121,38 @@ export default async function handler(req, res) {
     return res.status(400).send('Paramètre "url" ou "channelId" manquant.');
   }
   
+  // Décoder l'URL pour nettoyer les encodages multiples
+  let cleanUrl = url;
+  try {
+    // Décoder jusqu'à 3 fois pour nettoyer les encodages multiples
+    for (let i = 0; i < 3; i++) {
+      if (cleanUrl.includes('%')) {
+        cleanUrl = decodeURIComponent(cleanUrl);
+      } else {
+        break;
+      }
+    }
+    console.log(`[TV PROXY] URL nettoyée: ${cleanUrl}`);
+  } catch (e) {
+    console.log(`[TV PROXY] Erreur de décodage, utilisation de l'URL originale: ${url}`);
+    cleanUrl = url;
+  }
+  
   // Validation SSRF: vérifier que l'URL est autorisée
-  if (!isAllowedUrl(url)) {
-    console.error(`[TV PROXY] URL non autorisée: ${url}`);
+  if (!isAllowedUrl(cleanUrl)) {
+    console.error(`[TV PROXY] URL non autorisée: ${cleanUrl}`);
     return res.status(403).send('URL non autorisée.');
   }
   
   try {
-    console.log(`[TV PROXY] Appel de l'URL: ${url}`);
+    console.log(`[TV PROXY] Appel de l'URL: ${cleanUrl}`);
     
     // ===== MODE PLAYLIST M3U8/MPD =====
-    if (url.includes('.m3u8') || url.includes('.mpd')) {
+    if (cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd')) {
       // Headers spécifiques selon le domaine
       let requestHeaders = { ...browserHeaders };
       
-      if (url.includes('simulcast-p.ftven.fr')) {
+      if (cleanUrl.includes('simulcast-p.ftven.fr')) {
         requestHeaders = {
           ...requestHeaders,
           'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
@@ -146,13 +163,13 @@ export default async function handler(req, res) {
         };
       }
       
-      const r = await http.get(url, { 
+      const r = await http.get(cleanUrl, { 
         headers: requestHeaders, 
         responseType: 'text' 
       });
 
       const ctype = (r.headers['content-type'] || '').toLowerCase();
-      const finalUrl = r.request?.res?.responseUrl || url;
+      const finalUrl = r.request?.res?.responseUrl || cleanUrl;
       
       console.log(`[TV PROXY] Réponse playlist reçue:`);
       console.log(`[TV PROXY] - Status: ${r.status}`);
@@ -200,8 +217,8 @@ export default async function handler(req, res) {
         console.log(`[TV PROXY] Range demandé: ${req.headers.range}`);
       }
 
-      console.log(`[TV PROXY] Appel de l'URL segment: ${url}`);
-      const r = await http.get(url, { 
+      console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
+      const r = await http.get(cleanUrl, { 
         headers, 
         responseType: 'stream', 
         validateStatus: () => true 
