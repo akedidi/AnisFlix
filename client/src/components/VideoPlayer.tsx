@@ -76,7 +76,7 @@ export default function VideoPlayer({
       // Vérifier si c'est une URL Darkibox et utiliser le proxy
       let finalSrc = src;
       if (src.includes('darkibox.com')) {
-        finalSrc = `/api/darkibox-proxy?url=${encodeURIComponent(src)}`;
+        finalSrc = `/api/proxy?type=darkibox&url=${encodeURIComponent(src)}`;
         console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation du proxy:', finalSrc);
       }
       

@@ -57,5 +57,5 @@ export function extractImdbId(imdbId: string): string | null {
  * @returns L'URL du proxy HLS
  */
 export function getHLSProxyUrl(segmentUrl: string): string {
-  return `/api/supervideo-proxy?url=${encodeURIComponent(segmentUrl)}`;
+  return `/api/proxy?type=supervideo&url=${encodeURIComponent(segmentUrl)}`;
 }
