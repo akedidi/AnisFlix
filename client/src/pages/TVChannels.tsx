@@ -176,7 +176,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Regex match:`, match);
     if (match) {
       const channelId = match[1];
-      const finalUrl = `${baseUrl}/api/proxy?type=tv-stream&channelId=${channelId}`;
+      const finalUrl = `${baseUrl}/api/tv?channelId=${channelId}`;
       console.log(`[PROXY URL] Channel ID extrait: ${channelId}`);
       console.log(`[PROXY URL] URL finale: ${finalUrl}`);
       return finalUrl;
