@@ -169,7 +169,13 @@ export default async function handler(req, res) {
           for (let i = 0; i < patterns.length; i++) {
             const match = html.match(patterns[i]);
             if (match) {
-              m3u8Url = (match[1] || match[0]).replace(/,/g, '').trim();
+              let rawUrl = (match[1] || match[0]).trim();
+              // Nettoyer les virgules parasites
+              if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
+                rawUrl = rawUrl.replace(/,/g, '');
+                console.log(`[VIDMOLY] URL nettoyée des virgules: ${rawUrl}`);
+              }
+              m3u8Url = rawUrl;
               methodUsed = 'quick-extract';
               console.log(`[VIDMOLY] Lien trouvé: ${m3u8Url}`);
               break;
@@ -200,7 +206,13 @@ export default async function handler(req, res) {
           // Pattern simple et efficace
           const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
           if (match) {
-            m3u8Url = match[1].replace(/,/g, '').trim();
+            let rawUrl = match[1].trim();
+            // Nettoyer les virgules parasites
+            if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
+              rawUrl = rawUrl.replace(/,/g, '');
+              console.log(`[VIDMOLY] URL nettoyée des virgules: ${rawUrl}`);
+            }
+            m3u8Url = rawUrl;
             methodUsed = 'fallback';
             console.log(`[VIDMOLY] Lien trouvé via fallback: ${m3u8Url}`);
           }

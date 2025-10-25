@@ -155,6 +155,13 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
+        // Nettoyer l'URL des virgules parasites
+        let cleanedUrl = data.m3u8Url;
+        if (cleanedUrl.includes(',') && cleanedUrl.includes('.urlset')) {
+          cleanedUrl = cleanedUrl.replace(/,/g, '');
+          console.log('🧹 URL nettoyée des virgules:', cleanedUrl);
+        }
+
         // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
         // ou directement pour les liens de démonstration
         let finalUrl;
@@ -163,22 +170,22 @@ export default function VidMolyPlayer({
         const isRealVidMolyLink = data.method === 'extracted_real' || 
                                  data.method === 'direct_master_m3u8' || 
                                  data.method?.startsWith('direct_pattern_') ||
-                                 (data.m3u8Url && data.m3u8Url.includes('vmwesa.online'));
+                                 (cleanedUrl && cleanedUrl.includes('vmwesa.online'));
         
         console.log('🔍 Méthode d\'extraction:', data.method);
-        console.log('🔍 Lien m3u8:', data.m3u8Url);
+        console.log('🔍 Lien m3u8 nettoyé:', cleanedUrl);
         console.log('🔍 Est un vrai lien VidMoly:', isRealVidMolyLink);
         
         if (isRealVidMolyLink) {
           // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
-          finalUrl = getVidMolyProxyUrl(data.m3u8Url, vidmolyUrl);
+          finalUrl = getVidMolyProxyUrl(cleanedUrl, vidmolyUrl);
           console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
           
           // Debug des URLs pour diagnostic
           debugUrlInfo();
         } else {
           // Pour les liens de fallback/démo, utiliser directement
-          finalUrl = data.m3u8Url;
+          finalUrl = cleanedUrl;
           console.log('📺 Utilisation directe du lien de démo:', finalUrl);
         }
 
