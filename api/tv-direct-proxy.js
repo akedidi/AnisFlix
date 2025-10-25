@@ -120,7 +120,7 @@ export default async function handler(req, res) {
         }
         
         // Si c'est une sous-playlist vidéo (contient hd1-avc1_ et =), utiliser l'API TV standard
-        if (match.includes('hd1-avc1_') && match.includes('=')) {
+        if (resolvedUrl.includes('hd1-avc1_') && resolvedUrl.includes('=')) {
           const encodedUrl = encodeURIComponent(resolvedUrl);
           return `/api/tv?url=${encodedUrl}`;
         }
