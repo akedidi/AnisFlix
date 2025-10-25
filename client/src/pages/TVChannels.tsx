@@ -870,6 +870,7 @@ export default function TVChannels() {
         
         // Si l'URL n'est pas déjà proxifiée et contient des segments audio
         if (!originalUrl.startsWith('http://localhost:3000/api/') && 
+            !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
           const encodedUrl = encodeURIComponent(originalUrl);
@@ -888,6 +889,7 @@ export default function TVChannels() {
         
         // Si l'URL n'est pas déjà proxifiée et contient des segments audio
         if (!originalUrl.startsWith('http://localhost:3000/api/') && 
+            !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
           const encodedUrl = encodeURIComponent(originalUrl);
