@@ -40,6 +40,62 @@ export default async function handler(req, res) {
         'Cache-Control': 'no-cache'
       };
 
+      // **Logique pour les pages HTML Darki (extraction M3U8 en morceaux)**
+      if (targetUrl.includes('darkibox.com') && !targetUrl.includes('.m3u8')) {
+        console.log(`[DARKI] Extraction M3U8 en morceaux depuis page HTML: ${targetUrl}`);
+        
+        requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
+        
+        const htmlResponse = await axios.get(targetUrl, {
+          headers: requestHeaders,
+          timeout: 15000,
+        });
+        
+        const html = htmlResponse.data;
+        console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
+        
+        // Extraire le lien M3U8 depuis le HTML (format Darki)
+        const m3u8Match = html.match(/file:\s*["']([^"']*\.m3u8[^"']*)["']/);
+        if (!m3u8Match) {
+          console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
+          return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+        }
+        
+        const m3u8Url = m3u8Match[1];
+        console.log(`[DARKI] Lien M3U8 extrait: ${m3u8Url}`);
+        
+        // Pour Darki, on doit réécrire les URLs des segments dans la playlist
+        const playlistResponse = await axios.get(m3u8Url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://darkibox.com/',
+            'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+          },
+          timeout: 15000,
+        });
+        
+        let playlistContent = playlistResponse.data;
+        console.log(`[DARKI] Playlist M3U8 reçue (${playlistContent.length} caractères)`);
+        
+        // Réécrire les URLs des segments .ts pour qu'elles passent par notre proxy
+        playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, (match) => {
+          return `/api/darkibox?url=${encodeURIComponent(match)}`;
+        });
+        
+        // Réécrire les URLs des sous-playlists M3U8
+        playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, (match) => {
+          return `/api/darkibox?url=${encodeURIComponent(match)}`;
+        });
+        
+        console.log(`[DARKI] Playlist M3U8 réécrite avec proxy`);
+        
+        // Retourner la playlist modifiée
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.end(playlistContent);
+        return;
+      }
+      
       // **Logique pour les playlists .m3u8**
       if (targetUrl.includes('.m3u8')) {
         requestHeaders['Accept'] = 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*';
