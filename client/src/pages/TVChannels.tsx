@@ -190,8 +190,11 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
     console.log(`[PROXY URL] Type hls_direct détecté - Utilisation du proxy spécialisé`);
     
     // Vérifier si l'URL est déjà proxifiée pour éviter le double encodage
-    if (originalUrl.includes('/api/tv?url=') || originalUrl.includes('/api/tv-direct-proxy')) {
-      console.log(`[PROXY URL] URL déjà proxifiée, retour direct: ${originalUrl}`);
+    if (originalUrl.includes('/api/tv?url=') || 
+        originalUrl.includes('/api/tv-direct-proxy') ||
+        originalUrl.includes('%253A%252F%252F') || // Triple encodage détecté
+        originalUrl.includes('anisflix.vercel.app/api/')) {
+      console.log(`[PROXY URL] URL déjà proxifiée ou triple encodée, retour direct: ${originalUrl}`);
       return originalUrl;
     }
     
