@@ -110,15 +110,31 @@ export default async function handler(req, res) {
     const baseUrl = new URL(targetUrl);
     const rewritten = response.data
       .replace(/^([^#\n].*\.m3u8)$/gm, (match) => {
-        // Pour les sous-playlists, les proxifier via le proxy direct
+        // Pour les sous-playlists, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
+        
+        // Si l'URL contient un token JWT (cache1a.netplus.ch avec tok_), utiliser l'API TV standard
+        if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
+          const encodedUrl = encodeURIComponent(resolvedUrl);
+          return `/api/tv?url=${encodedUrl}`;
+        }
+        
+        // Sinon, utiliser le proxy direct
         const urlObj = new URL(resolvedUrl);
         const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
         return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
       })
       .replace(/^([^#\n].*\.ts)$/gm, (match) => {
-        // Pour les segments TS, les proxifier via le proxy direct
+        // Pour les segments TS, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
+        
+        // Si l'URL contient un token JWT, utiliser l'API TV standard
+        if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
+          const encodedUrl = encodeURIComponent(resolvedUrl);
+          return `/api/tv?url=${encodedUrl}`;
+        }
+        
+        // Sinon, utiliser le proxy direct
         const urlObj = new URL(resolvedUrl);
         const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
         return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
