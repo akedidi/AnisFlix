@@ -77,7 +77,7 @@ export default function AnimeSeriesLatest() {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12 pt-20 md:pt-20">
           {isLoading ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">Chargement des séries anime...</p>
