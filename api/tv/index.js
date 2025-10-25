@@ -1,16 +1,11 @@
 import axios from "axios";
-import { CookieJar } from "tough-cookie";
-import { wrapper } from "axios-cookiejar-support";
 
 const ORIGIN_HOST = 'https://fremtv.lol';
 const EMBED_HOST = 'https://directfr.lat';
 
-const jar = new CookieJar();
-const http = wrapper(axios.create({ 
-  jar, 
-  withCredentials: true, 
+const http = axios.create({ 
   timeout: 15000 
-}));
+});
 
 const browserHeaders = {
   'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
