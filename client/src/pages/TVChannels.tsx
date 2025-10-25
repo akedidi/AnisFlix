@@ -1029,6 +1029,8 @@ export default function TVChannels() {
         // Si l'URL n'est pas déjà proxifiée et contient des segments audio
         if (!originalUrl.startsWith('http://localhost:3000/api/') && 
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
+            !originalUrl.includes('/api/tv?url=') &&
+            !originalUrl.includes('viamotionhsi.netplus.ch/api/tv') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
@@ -1057,6 +1059,8 @@ export default function TVChannels() {
         // Si l'URL n'est pas déjà proxifiée et contient des segments audio
         if (!originalUrl.startsWith('http://localhost:3000/api/') && 
             !originalUrl.startsWith('https://anisflix.vercel.app/api/') &&
+            !originalUrl.includes('/api/tv?url=') &&
+            !originalUrl.includes('viamotionhsi.netplus.ch/api/tv') &&
             (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8'))) {
           
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
