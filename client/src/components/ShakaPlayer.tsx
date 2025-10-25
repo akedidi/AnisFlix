@@ -86,6 +86,50 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
+        // Intercepter et réécrire les URLs pour éviter les problèmes d'undefined
+        player.getNetworkingEngine().registerRequestFilter((type, request) => {
+          console.log(`🔍 [SHAKA REQUEST] Type: ${type}, URL: ${request.uris[0]}`);
+          
+          // Réécrire les URLs qui contiennent undefined
+          if (request.uris[0] && request.uris[0].includes('undefined')) {
+            const originalUrl = request.uris[0];
+            console.log(`🔍 [SHAKA REQUEST] URL avec undefined détectée: ${originalUrl}`);
+            
+            // Remplacer undefined par hd1 (fallback intelligent)
+            let correctedUrl = originalUrl.replace('/undefined/', '/hd1/');
+            
+            // Détection intelligente basée sur le nom du fichier
+            if (originalUrl.includes('hd1-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/hd1/');
+            } else if (originalUrl.includes('nt1-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/nt1/');
+            } else if (originalUrl.includes('france3hd-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/france3hd/');
+            } else if (originalUrl.includes('m6hd-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/m6hd/');
+            } else if (originalUrl.includes('w9-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/w9/');
+            } else if (originalUrl.includes('gulli-')) {
+              correctedUrl = originalUrl.replace('/undefined/', '/gulli/');
+            }
+            
+            console.log(`🔍 [SHAKA REQUEST] URL corrigée: ${correctedUrl}`);
+            request.uris[0] = correctedUrl;
+          }
+          
+          // Proxifier les URLs si nécessaire (pour éviter les problèmes CORS)
+          if (request.uris[0] && (
+            request.uris[0].includes('viamotionhsi.netplus.ch') ||
+            request.uris[0].includes('cachehsi') ||
+            request.uris[0].includes('tok_')
+          )) {
+            const originalUrl = request.uris[0];
+            const proxifiedUrl = `/api/tv?url=${encodeURIComponent(originalUrl)}`;
+            console.log(`🔍 [SHAKA REQUEST] URL proxifiée: ${proxifiedUrl}`);
+            request.uris[0] = proxifiedUrl;
+          }
+        });
+
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
           console.error('Erreur Shaka Player:', event.detail);
