@@ -924,9 +924,20 @@ export default function TVChannels() {
           playerType = 'shaka';
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour MPD`);
         }
+      } else if (link.type === 'hls_direct') {
+        // Pour les M3U8 directs, utiliser Shaka Player (meilleur support)
+        if (isMobile() && !isCapacitor()) {
+          console.log(`[SELECT LINK] Mobile web détecté - Shaka Player non supporté pour hls_direct`);
+          // Fallback vers HLS.js sur mobile web
+          playerType = 'hls';
+        } else {
+          playerType = 'shaka';
+          console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour hls_direct`);
+        }
       } else {
+        // Pour hls_segments, utiliser HLS.js (streams segmentés)
         playerType = 'hls';
-        console.log(`[SELECT LINK] Type HLS - Utilisation HLS`);
+        console.log(`[SELECT LINK] Type hls_segments - Utilisation HLS.js`);
       }
       
       console.log(`[SELECT LINK] Player type final: ${playerType}`);
