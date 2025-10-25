@@ -137,8 +137,22 @@ export default async function handler(req, res) {
     
     // ===== MODE PLAYLIST M3U8/MPD =====
     if (url.includes('.m3u8') || url.includes('.mpd')) {
+      // Headers spécifiques selon le domaine
+      let requestHeaders = { ...browserHeaders };
+      
+      if (url.includes('simulcast-p.ftven.fr')) {
+        requestHeaders = {
+          ...requestHeaders,
+          'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        };
+      }
+      
       const r = await http.get(url, { 
-        headers: browserHeaders, 
+        headers: requestHeaders, 
         responseType: 'text' 
       });
 
@@ -225,6 +239,13 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('[TV PROXY ERROR]', e.message);
     console.error('[TV PROXY ERROR] Stack:', e.stack);
+    
+    if (e.response) {
+      console.error('[TV PROXY ERROR] Response status:', e.response.status);
+      console.error('[TV PROXY ERROR] Response data:', e.response.data);
+      return res.status(e.response.status).send(`Erreur distante: ${e.response.status} - ${e.response.statusText}`);
+    }
+    
     res.status(500).send(`Erreur proxy: ${e.message}`);
   }
 }
