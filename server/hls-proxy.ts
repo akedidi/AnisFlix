@@ -394,7 +394,8 @@ export function registerHLSProxyRoutes(app: Express) {
       const filename = originalUrl.replace('/api/', '');
       
       // Essayer de deviner le domaine de base depuis les headers ou utiliser un domaine par défaut
-      const baseDomain = 'https://cache1a.netplus.ch';
+      // Utiliser le domaine qui fonctionne selon les logs
+      const baseDomain = 'https://cachehsi1a.netplus.ch';
       const fullUrl = `${baseDomain}/${filename}`;
       const encodedUrl = encodeURIComponent(fullUrl);
       const redirectUrl = `/api/tv?url=${encodedUrl}`;
