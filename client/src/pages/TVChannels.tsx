@@ -970,7 +970,7 @@ export default function TVChannels() {
       let finalUrl = link.url;
       
       if (isMobile() && !isCapacitor()) {
-        // Mobile web : proxy pour hls_segments, direct pour hls_direct
+        // Mobile web : proxy pour hls_segments, direct pour hls_direct et mpd
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode mobile web - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
@@ -978,7 +978,7 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mode mobile web - ${link.type} en URL directe: ${finalUrl}`);
         }
       } else if (isCapacitor()) {
-        // App native : proxy pour hls_segments, direct pour hls_direct
+        // App native : proxy pour hls_segments, direct pour hls_direct et mpd
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode Capacitor - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
@@ -986,13 +986,12 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mode Capacitor - ${link.type} en URL directe: ${finalUrl}`);
         }
       } else {
-        // Desktop : TOUJOURS utiliser le proxy pour éviter les blocages réseau
-        console.log(`[SELECT LINK] Mode desktop - Utilisation du proxy pour éviter les blocages`);
-        if (link.type === 'hls_direct') {
-          // Pour hls_direct avec Shaka Player, utiliser le proxy TV direct
+        // Desktop : direct pour hls_direct et mpd, proxy pour hls_segments
+        if (link.type === 'hls_segments') {
+          console.log(`[SELECT LINK] Mode desktop - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
         } else {
-          finalUrl = getProxyUrl(link.url, link.type);
+          console.log(`[SELECT LINK] Mode desktop - ${link.type} en URL directe: ${finalUrl}`);
         }
       }
       
