@@ -399,4 +399,59 @@ export function registerHLSProxyRoutes(app: Express) {
       res.status(500).send('Erreur proxy catch-all.');
     }
   });
+
+  // Route spécifique pour les sous-playlists audio (ex: hd1-mp4a_128000_fra=20009.m3u8)
+  app.get('/api/hd1-mp4a_128000_fra=20009.m3u8', async (req: Request, res: Response) => {
+    try {
+      console.log(`[TV AUDIO SUB-PLAYLIST] Requête pour la sous-playlist audio: ${req.originalUrl}`);
+      
+      // URL complète de la sous-playlist audio
+      const audioUrl = 'https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1-mp4a_128000_fra=20009.m3u8';
+      console.log(`[TV AUDIO SUB-PLAYLIST] Proxification de: ${audioUrl}`);
+      
+      const r = await http.get(audioUrl, { 
+        headers: browserHeaders, 
+        responseType: 'text' 
+      });
+
+      const ctype = (r.headers['content-type'] || '').toLowerCase();
+      console.log(`[TV AUDIO SUB-PLAYLIST] ${r.status} ${ctype} ← ${audioUrl}`);
+
+      if (typeof r.data !== 'string') {
+        return res.status(502).send('Pas une playlist M3U8.');
+      }
+
+      const baseUrl = (r as any).request?.res?.responseUrl || audioUrl;
+      const rewritten = rewritePlaylistUrls(r.data, baseUrl);
+
+      // Headers spécifiques pour les streams live
+      res.set('Content-Type', 'application/vnd.apple.mpegurl');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.set('Access-Control-Allow-Headers', 'Range, Content-Type');
+      res.send(rewritten);
+    } catch (e: any) {
+      console.error('[TV AUDIO SUB-PLAYLIST ERROR]', e.message);
+      res.status(500).send('Erreur lors de la récupération de la sous-playlist audio.');
+    }
+  });
+
+  // Route catch-all pour les autres sous-playlists M3U8
+  app.get('/api/*.m3u8', async (req: Request, res: Response) => {
+    try {
+      const originalUrl = req.originalUrl;
+      console.log(`[TV CATCH-ALL] URL M3U8 non gérée: ${originalUrl}`);
+      
+      // Au lieu de reconstruire l'URL, retourner une erreur 404 pour les fichiers de sous-playlist
+      // car ils nécessitent un contexte d'authentification spécifique
+      console.log(`[TV CATCH-ALL] Fichier de sous-playlist non accessible directement: ${originalUrl}`);
+      res.status(404).send('Fichier de sous-playlist non accessible directement.');
+    } catch (e: any) {
+      console.error('[TV CATCH-ALL ERROR]', e.message);
+      res.status(500).send('Erreur proxy catch-all.');
+    }
+  });
 }
