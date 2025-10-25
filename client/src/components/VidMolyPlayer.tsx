@@ -213,6 +213,32 @@ export default function VidMolyPlayer({
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
+            // Configuration optimisée pour VidMoly
+            maxBufferLength: 60, // Buffer max de 60 secondes
+            maxMaxBufferLength: 120, // Buffer max absolu de 2 minutes
+            maxBufferSize: 60 * 1000 * 1000, // 60MB max
+            maxBufferHole: 0.1, // Tolérance aux trous de buffer
+            highBufferWatchdogPeriod: 2, // Surveillance du buffer haute qualité
+            nudgeOffset: 0.1, // Ajustement automatique des décalages
+            nudgeMaxRetry: 3, // Max 3 tentatives d'ajustement
+            maxFragLookUpTolerance: 0.25, // Tolérance de recherche de fragments
+            liveSyncDurationCount: 3, // Sync live
+            liveMaxLatencyDurationCount: 10, // Latence max pour live
+            // Configuration des niveaux de qualité
+            startLevel: -1, // Auto-détection du niveau optimal
+            capLevelToPlayerSize: true, // Adapter la qualité à la taille du player
+            // Gestion des erreurs de réseau
+            fragLoadingTimeOut: 20000, // Timeout de 20s pour les fragments
+            manifestLoadingTimeOut: 10000, // Timeout de 10s pour le manifeste
+            levelLoadingTimeOut: 10000, // Timeout de 10s pour les niveaux
+            // Retry automatique
+            fragLoadingMaxRetry: 3,
+            manifestLoadingMaxRetry: 3,
+            levelLoadingMaxRetry: 3,
+            // Configuration du buffer
+            backBufferLength: 30, // Garder 30s en arrière
+            // Désactiver certaines optimisations problématiques
+            enableSoftwareAES: true, // Décryptage logiciel si nécessaire
           });
           hlsRef.current = hls;
           
@@ -229,9 +255,56 @@ export default function VidMolyPlayer({
             });
           });
           
+          // Surveillance du buffer pour détecter les problèmes
+          hls.on(Hls.Events.BUFFER_STALLED, () => {
+            console.warn('⚠️ Buffer stalled - tentative de récupération...');
+            if (hls.media && hls.media.readyState >= 2) {
+              // Forcer un petit saut pour débloquer
+              const currentTime = hls.media.currentTime;
+              hls.media.currentTime = currentTime + 0.1;
+            }
+          });
+          
+          hls.on(Hls.Events.BUFFER_APPENDED, () => {
+            console.log('📊 Buffer appended - santé du streaming OK');
+          });
+          
+          hls.on(Hls.Events.FRAG_LOADED, () => {
+            console.log('📦 Fragment chargé avec succès');
+          });
+          
           hls.on(Hls.Events.ERROR, (_, data) => {
             console.error("Erreur HLS VidMoly:", data);
+            
+            // Gestion spécifique des erreurs de buffer
+            if (data.details === 'bufferStalledError' || data.details === 'bufferSeekOverHole') {
+              console.warn('⚠️ Problème de buffer détecté, tentative de récupération...');
+              
+              // Essayer de récupérer en vidant le buffer et en rechargeant
+              if (hls.media) {
+                hls.media.currentTime = hls.media.currentTime + 0.1; // Petit saut pour éviter le trou
+              }
+              
+              // Ne pas traiter comme fatal, laisser HLS.js gérer
+              return;
+            }
+            
             if (data.fatal) {
+              console.error('❌ Erreur fatale HLS:', data);
+              
+              // Tentative de récupération pour certaines erreurs
+              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                console.log('🔄 Tentative de récupération réseau...');
+                hls.startLoad();
+                return;
+              }
+              
+              if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                console.log('🔄 Tentative de récupération média...');
+                hls.recoverMediaError();
+                return;
+              }
+              
               setError(`Erreur de lecture VidMoly: ${data.details}`);
               setIsLoading(false);
             }
