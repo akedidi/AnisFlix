@@ -86,6 +86,50 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
+        // Intercepter les requêtes pour les segments vidéo/audio
+        player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
+          console.log(`🔍 [SHAKA SEGMENT] Type: ${type}, URL: ${request.uris[0]}`);
+          
+          // Proxifier les segments vidéo/audio
+          if (request.uris[0] && (
+            request.uris[0].includes('.mp4') ||
+            request.uris[0].includes('.ts') ||
+            request.uris[0].includes('tf1hd-') ||
+            request.uris[0].includes('hd1-') ||
+            request.uris[0].includes('nt1-') ||
+            request.uris[0].includes('france3hd-') ||
+            request.uris[0].includes('m6hd-') ||
+            request.uris[0].includes('w9-') ||
+            request.uris[0].includes('gulli-')
+          )) {
+            const originalUrl = request.uris[0];
+            console.log(`🔍 [SHAKA SEGMENT] Segment détecté: ${originalUrl}`);
+            
+            // Reconstruire l'URL complète vers le serveur d'origine
+            let fullUrl = originalUrl;
+            if (originalUrl.includes('tf1hd-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('hd1-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('nt1-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('france3hd-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('m6hd-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('w9-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/${originalUrl}`;
+            } else if (originalUrl.includes('gulli-')) {
+              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/${originalUrl}`;
+            }
+            
+            // Proxifier l'URL complète
+            const proxifiedUrl = `/api/tv?url=${encodeURIComponent(fullUrl)}`;
+            console.log(`🔍 [SHAKA SEGMENT] URL proxifiée: ${proxifiedUrl}`);
+            request.uris[0] = proxifiedUrl;
+          }
+        });
+
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
           console.error('Erreur Shaka Player:', event.detail);
