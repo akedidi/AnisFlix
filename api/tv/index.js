@@ -133,6 +133,12 @@ export default async function handler(req, res) {
       }
     }
     console.log(`[TV PROXY] URL nettoyée: ${cleanUrl}`);
+    
+    // Détecter les boucles infinies (URLs qui pointent vers notre propre API)
+    if (cleanUrl.includes('/api/tv?url=') || cleanUrl.includes('anisflix.vercel.app/api/tv')) {
+      console.error(`[TV PROXY] Boucle infinie détectée: ${cleanUrl}`);
+      return res.status(400).send('Boucle infinie détectée dans l\'URL');
+    }
   } catch (e) {
     console.log(`[TV PROXY] Erreur de décodage, utilisation de l'URL originale: ${url}`);
     cleanUrl = url;
