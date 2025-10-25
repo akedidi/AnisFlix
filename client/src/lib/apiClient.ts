@@ -92,7 +92,7 @@ export class ApiClient {
    * Extrait Vidzy avec gestion Capacitor
    */
     async extractVidzy(url: string): Promise<any> {
-      const response = await this.post('/api/vidzy-real', { url });
+      const response = await this.post('/api/vidzy/extract', { url });
     
     if (!response.ok) {
       throw new Error(`Vidzy extraction failed: ${response.status}`);

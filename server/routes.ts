@@ -14,6 +14,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
+  // Route proxy pour l'API Movix TMDB via Vercel
+  app.get("/api/movix-tmdb", async (req, res) => {
+    try {
+      const { movieId } = req.query;
+      
+      if (!movieId) {
+        return res.status(400).json({ error: 'movieId is required' });
+      }
+      
+      console.log(`[MOVIX TMDB] Fetching sources for movie: ${movieId}`);
+      
+      // Utiliser le proxy Vercel pour éviter le blocage DNS
+      const proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=tmdb/movie/${movieId}`;
+      console.log(`[MOVIX TMDB] Proxy URL: ${proxyUrl}`);
+      
+      const response = await axios.get(proxyUrl, {
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache'
+        },
+        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+      });
+      
+      console.log(`[MOVIX TMDB] Response status: ${response.status}`);
+      
+      res.json(response.data);
+      
+    } catch (error: any) {
+      console.error(`[MOVIX TMDB] Error:`, error.message);
+      
+      if (error.response) {
+        console.error(`[MOVIX TMDB] Error details:`, error.response.data);
+        return res.status(error.response.status).json({
+          error: 'Erreur API Movix TMDB via proxy',
+          details: error.response.data
+        });
+      }
+      
+      return res.status(500).json({
+        error: 'Erreur serveur lors de la récupération des sources Movix TMDB',
+        details: error.message
+      });
+    }
+  });
+
   // Route pour récupérer le lien m3u8 depuis Vidzy
   app.post("/api/vidzy/extract", async (req, res) => {
     try {
@@ -248,13 +296,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'URL Darkibox requise' });
       }
       
-      if (!url.includes('darkibox.com')) {
+      // Décoder l'URL si elle est encodée
+      let decodedUrl = decodeURIComponent(url);
+      
+      // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
+      if (decodedUrl.includes('/api/darkibox-proxy')) {
+        // Extraire l'URL Darkibox du paramètre url
+        const urlMatch = decodedUrl.match(/[?&]url=([^&]+)/);
+        if (urlMatch) {
+          decodedUrl = decodeURIComponent(urlMatch[1]);
+        }
+      }
+      
+      if (!decodedUrl.includes('darkibox.com')) {
         return res.status(400).json({ error: 'URL Darkibox invalide' });
       }
       
-      console.log(`[DARKIBOX PROXY] Proxying URL: ${url}`);
+      console.log(`[DARKIBOX PROXY] Proxying URL: ${decodedUrl}`);
       
-      const response = await axios.get(url, {
+      const response = await axios.get(decodedUrl, {
         timeout: 15000,
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -508,11 +568,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, error: 'URL VidMoly requise' });
       }
 
-      if (!url.includes('vidmoly.net') && !url.includes('vidmoly.to')) {
+      if (!url.includes('vidmoly.net') && !url.includes('vidmoly.to') && !url.includes('vidmoly.me')) {
         return res.status(400).json({ success: false, error: 'URL VidMoly invalide' });
       }
 
-      const normalizedUrl = url.replace("vidmoly.to", "vidmoly.net");
+      // Normaliser l'URL vers vidmoly.net
+      let normalizedUrl = url;
+      if (url.includes('vidmoly.to')) {
+        normalizedUrl = url.replace("vidmoly.to", "vidmoly.net");
+      } else if (url.includes('vidmoly.me')) {
+        normalizedUrl = url.replace("vidmoly.me", "vidmoly.net");
+      }
 
       // Récupérer la page directement côté serveur (pas de CORS)
       const response = await axios.get(normalizedUrl, {
@@ -528,16 +594,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Referer: normalizedUrl,
         },
         timeout: 15000,
-        maxRedirects: 5,
+        maxRedirects: 10, // Augmenter le nombre de redirections
+        validateStatus: (status) => status < 400, // Accepter les redirections
       });
 
       const html: string = response.data ?? "";
+      
+      // Debug: afficher un extrait du HTML pour comprendre la structure
+      console.log(`[VIDMOLY] HTML reçu (${html.length} caractères)`);
+      console.log(`[VIDMOLY] Extrait HTML:`, html.substring(0, 1000));
+      
+      // Vérifier si c'est une page de redirection VidMoly
+      if (html.includes('meta http-equiv=\'refresh\'') && html.includes('cdn.staticmoly.me')) {
+        console.log(`[VIDMOLY] Page de redirection détectée, extraction de l'URL de redirection...`);
+        
+        // Extraire l'URL de redirection
+        const redirectMatch = html.match(/content='0;URL=([^']+)'/);
+        if (redirectMatch && redirectMatch[1]) {
+          const redirectUrl = redirectMatch[1];
+          console.log(`[VIDMOLY] Redirection vers: ${redirectUrl}`);
+          
+          // Suivre la redirection
+          try {
+            const redirectResponse = await axios.get(redirectUrl, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+                "Referer": normalizedUrl,
+              },
+              timeout: 15000,
+              maxRedirects: 5,
+            });
+            
+            const redirectedHtml = redirectResponse.data ?? "";
+            console.log(`[VIDMOLY] HTML après redirection (${redirectedHtml.length} caractères)`);
+            console.log(`[VIDMOLY] Extrait HTML après redirection:`, redirectedHtml.substring(0, 1000));
+            
+            // Utiliser le HTML de la redirection pour l'extraction
+            const finalHtml = redirectedHtml;
+            
+            // Continuer avec l'extraction sur le HTML final
+            const patterns: RegExp[] = [
+              // Patterns VidMoly modernes
+              /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/, // player.setup first source
+              /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/, // sources: [{file:"..."}]
+              /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/, // sources: [{file:'...'}]
+              /file:\s*["']([^"']*\.m3u8[^"']*)["']/, // file: "url.m3u8"
+              /src:\s*["']([^"']*\.m3u8[^"']*)["']/, // src: "url.m3u8"
+              /url:\s*["']([^"']*\.m3u8[^"']*)["']/, // url: "url.m3u8"
+              /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/, // generic m3u8
+              // Patterns pour VidMoly spécifiques
+              /box-\d+-[^"'\s]+\.m3u8[^"'\s]*/, // box-xxx-xxx.m3u8
+              /https?:\/\/box-[^"'\s]+\.m3u8[^"'\s]*/, // https://box-xxx.m3u8
+            ];
+
+            let m3u8Url: string | null = null;
+            for (const pattern of patterns) {
+              const match = finalHtml.match(pattern);
+              if (match) {
+                const raw = match[1] || match[0];
+                m3u8Url = raw.replace(/\\/g, "").trim();
+                console.log(`[VIDMOLY] M3u8 trouvé avec pattern: ${m3u8Url}`);
+                break;
+              }
+            }
+
+            if (!m3u8Url) {
+              return res.status(200).json({ success: true, m3u8Url: null, source: "vidmoly" });
+            }
+
+            return res.status(200).json({ 
+              success: true, 
+              m3u8Url, 
+              method: 'extracted_real',
+              source: "vidmoly", 
+              originalUrl: url 
+            });
+            
+          } catch (redirectError) {
+            console.error(`[VIDMOLY] Erreur lors de la redirection:`, redirectError);
+            return res.status(200).json({ success: true, m3u8Url: null, source: "vidmoly" });
+          }
+        }
+      }
 
       const patterns: RegExp[] = [
+        // Patterns VidMoly modernes
         /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/, // player.setup first source
         /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/, // sources: [{file:"..."}]
         /sources:\s*\[\s*\{\s*file:\s*'([^']+)'\s*\}/, // sources: [{file:'...'}]
+        /file:\s*["']([^"']*\.m3u8[^"']*)["']/, // file: "url.m3u8"
+        /src:\s*["']([^"']*\.m3u8[^"']*)["']/, // src: "url.m3u8"
+        /url:\s*["']([^"']*\.m3u8[^"']*)["']/, // url: "url.m3u8"
         /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/, // generic m3u8
+        // Patterns pour VidMoly spécifiques
+        /box-\d+-[^"'\s]+\.m3u8[^"'\s]*/, // box-xxx-xxx.m3u8
+        /https?:\/\/box-[^"'\s]+\.m3u8[^"'\s]*/, // https://box-xxx.m3u8
       ];
 
       let m3u8Url: string | null = null;

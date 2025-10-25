@@ -1,128 +1,99 @@
-import { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Download, Play, Pause, Volume2, VolumeX } from "lucide-react";
-import { useDeviceType } from "@/hooks/useDeviceType";
+import { X, ExternalLink } from "lucide-react";
+import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
+import { ErrorPopup } from "@/components/ErrorPopup";
+import { errorMessages } from "@/lib/errorMessages";
+import Hls from "hls.js";
+import type { MediaType } from "@shared/schema";
 
 interface DarkiPlayerProps {
-  m3u8Url: string;
-  title?: string;
-  onClose?: () => void;
+  darkiUrl: string;
+  title: string;
+  mediaId: number;
+  mediaType: MediaType;
   posterPath?: string | null;
-  quality?: string;
-  language?: string;
+  backdropPath?: string | null;
+  onClose?: () => void;
 }
 
-export default function DarkiPlayer({ 
-  m3u8Url, 
-  title = "Vidéo Darki",
-  onClose,
+export default function DarkiPlayer({
+  darkiUrl,
+  title,
+  mediaId,
+  mediaType,
   posterPath,
-  quality,
-  language
+  backdropPath,
+  onClose
 }: DarkiPlayerProps) {
-  const { isNative } = useDeviceType();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [m3u8Url, setM3u8Url] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+  const lastSaveTimeRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!videoRef.current || !m3u8Url) return;
-
-    const video = videoRef.current;
-    setIsLoading(true);
-    setError(null);
-
-    // Fonction pour traiter le lien m3u8 Darki
-    const processAndPlay = async () => {
+    console.log('🌑 [DARKI PLAYER] Initialisation avec URL:', darkiUrl);
+    
+    const extractM3u8FromDarki = async () => {
       try {
-        console.log('🎬 Traitement du lien Darki:', m3u8Url);
-        
-        // Utiliser directement le lien M3U8 avec le proxy
-        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(m3u8Url)}`;
-        
-        console.log('📺 URL proxy Darki:', proxyUrl);
+        setIsLoading(true);
+        setError(null);
 
-        // Configuration HLS pour Darki
-        if (Hls.isSupported()) {
-          const hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            startLevel: -1,
-            capLevelToPlayerSize: true,
-          });
-          
-          hlsRef.current = hls;
-          hls.loadSource(proxyUrl);
-          hls.attachMedia(video);
-          
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            console.log('📺 Manifest Darki chargé');
-            setIsLoading(false);
-            video.play().catch(err => {
-              console.warn("Autoplay failed:", err);
-              setIsLoading(false);
-            });
-          });
-          
-          hls.on(Hls.Events.ERROR, (_, data) => {
-            console.error("Erreur HLS Darki:", data);
-            if (data.fatal) {
-              setError("Erreur de lecture Darki");
-              setIsLoading(false);
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = proxyUrl;
-          video.addEventListener('loadedmetadata', () => {
-            setIsLoading(false);
-            video.play().catch(err => {
-              console.warn("Autoplay failed:", err);
-              setIsLoading(false);
-            });
-          });
-        } else {
-          setError("Votre navigateur ne supporte pas HLS");
-          setIsLoading(false);
-        }
-
+        // Utiliser le proxy Darki pour extraire le lien M3U8
+        const proxyUrl = `/api/darkibox-proxy?url=${encodeURIComponent(darkiUrl)}`;
+        console.log('🌑 [DARKI PLAYER] Utilisation du proxy:', proxyUrl);
+        
+        setM3u8Url(proxyUrl);
+        setIsLoading(false);
       } catch (error) {
-        console.error('❌ Erreur Darki:', error);
-        setError(error instanceof Error ? error.message : 'Erreur inconnue');
+        console.error('🌑 [DARKI PLAYER] Erreur lors de l\'extraction:', error);
+        setError(errorMessages.players.darkibox.message);
         setIsLoading(false);
       }
     };
 
-    processAndPlay();
+    extractM3u8FromDarki();
+  }, [darkiUrl]);
 
-    // Event listeners pour les contrôles
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-    const handleTimeUpdate = () => {
-      if (video.duration) {
-        setCurrentTime(video.currentTime);
-        setDuration(video.duration);
-        setProgress((video.currentTime / video.duration) * 100);
-      }
-    };
+  // Charger la vidéo HLS
+  useEffect(() => {
+    if (!videoRef.current || !m3u8Url) return;
 
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('timeupdate', handleTimeUpdate);
+    const video = videoRef.current;
+    console.log('🌑 [DARKI PLAYER] Chargement de la vidéo HLS:', m3u8Url);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(m3u8Url);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('🌑 [DARKI PLAYER] Manifest HLS chargé');
+        video.play().catch(err => console.warn("Autoplay failed:", err));
+      });
+      
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.error('🌑 [DARKI PLAYER] Erreur HLS:', data);
+        if (data.fatal) {
+          setError(errorMessages.players.darkibox.message);
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = m3u8Url;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch(err => console.warn("Autoplay failed:", err));
+      });
+    } else {
+      setError(errorMessages.players.generic.hlsNotSupported);
+    }
 
     return () => {
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -130,145 +101,150 @@ export default function DarkiPlayer({
     };
   }, [m3u8Url]);
 
-  const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+  // Restaurer la position de lecture
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+    const savedProgress = getMediaProgress(mediaId, mediaType);
+
+    if (savedProgress && savedProgress.currentTime > 0) {
+      const handleLoadedMetadata = () => {
+        if (video.duration > 0 && savedProgress.currentTime < video.duration - 5) {
+          video.currentTime = savedProgress.currentTime;
+        }
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    }
+  }, [mediaId, mediaType]);
+
+  // Sauvegarder la progression périodiquement
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+
+    const handleTimeUpdate = () => {
+      const now = Date.now();
+      
+      // Sauvegarder toutes les 5 secondes
+      if (now - lastSaveTimeRef.current < 5000) return;
+      
+      if (video.duration > 0 && video.currentTime > 0) {
+        const progress = Math.round((video.currentTime / video.duration) * 100);
+        
+        saveWatchProgress({
+          mediaId,
+          mediaType,
+          title: title || "Vidéo",
+          posterPath: posterPath || null,
+          backdropPath: backdropPath || null,
+          currentTime: video.currentTime,
+          duration: video.duration,
+          progress,
+        });
+        
+        lastSaveTimeRef.current = now;
       }
-    }
-  };
+    };
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-      setIsMuted(!isMuted);
-    }
-  };
+    const handleEnded = () => {
+      if (mediaId && mediaType) {
+        saveWatchProgress({
+          mediaId,
+          mediaType,
+          title: title || "Vidéo",
+          posterPath: posterPath || null,
+          backdropPath: backdropPath || null,
+          currentTime: 0,
+          duration: video.duration,
+          progress: 100,
+        });
+      }
+    };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (videoRef.current) {
-      const newTime = (parseFloat(e.target.value) / 100) * duration;
-      videoRef.current.currentTime = newTime;
-    }
-  };
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ended', handleEnded);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [mediaId, mediaType, title, posterPath, backdropPath]);
+
+  const handleOpenExternal = () => {
+    window.open(darkiUrl, '_blank');
   };
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md mx-4">
-          <h3 className="text-lg font-semibold mb-4 text-red-600">Erreur Darki</h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
-          <div className="flex gap-2">
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Réessayer
-            </Button>
-            {onClose && (
-              <Button onClick={onClose} variant="default">
-                Fermer
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <ErrorPopup
+        title={errorMessages.players.darkibox.title}
+        message={error}
+        onClose={() => {
+          setError(null);
+          setIsLoading(false);
+          onClose?.();
+        }}
+      />
     );
   }
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-card border-b">
-        <div>
-          <h2 className="text-lg font-semibold truncate">{title}</h2>
-          {quality && (
-            <p className="text-sm text-muted-foreground">
-              {quality} • {language}
-            </p>
-          )}
-        </div>
-        {onClose && (
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-          >
-            ✕
-          </Button>
+      <div className="relative aspect-video bg-black">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black">
+            <div className="text-center text-white">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p>Chargement de la source Darki...</p>
+            </div>
+          </div>
+        )}
+
+        {!isLoading && m3u8Url && (
+          <video
+            ref={videoRef}
+            className="w-full h-full"
+            controls
+            playsInline
+            preload="auto"
+            title={`${title} - Source Darki`}
+          />
         )}
       </div>
+      
+      <div className="p-4 space-y-4">
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            onClick={handleOpenExternal}
+            variant="outline"
+            className="gap-2"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Ouvrir dans un nouvel onglet
+          </Button>
+          
+          {onClose && (
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="gap-2"
+            >
+              <X className="w-4 h-4" />
+              Fermer
+            </Button>
+          )}
+        </div>
 
-      {/* Video Container */}
-      <div className="relative">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
-            <div className="text-white text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p>Chargement Darki...</p>
-            </div>
-          </div>
-        )}
-        
-        <video
-          ref={videoRef}
-          className="w-full aspect-video bg-black object-contain"
-          poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
-          controls={!isNative}
-          playsInline
-        />
-
-        {/* Contrôles personnalisés pour mobile */}
-        {isNative && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-            {/* Progress Bar */}
-            <div className="mb-4">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={progress}
-                onChange={handleSeek}
-                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress}%, #4b5563 ${progress}%, #4b5563 100%)`
-                }}
-              />
-              <div className="flex justify-between text-white text-sm mt-1">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Contrôles */}
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                onClick={togglePlayPause}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-              </Button>
-              
-              <Button
-                onClick={toggleMute}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20"
-              >
-                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-              </Button>
-            </div>
-          </div>
-        )}
+        <div className="text-sm text-muted-foreground">
+          <p><strong>Source:</strong> Darki</p>
+          <p><strong>Type:</strong> Flux HLS (M3U8)</p>
+          <p><strong>Status:</strong> {isLoading ? "Chargement..." : m3u8Url ? "Prêt" : "En attente"}</p>
+        </div>
       </div>
     </div>
   );
 }
-

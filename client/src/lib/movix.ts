@@ -151,16 +151,9 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
       return null;
     }
     
-    // Pour iOS, utiliser le proxy Vidzy pour éviter les problèmes CORS
-    const isCapacitor = typeof window !== 'undefined' && 
-      (window as any).Capacitor !== undefined;
-    
-    if (isCapacitor) {
-      const proxyUrl = getVidzyProxyUrl(data.m3u8Url, vidzyUrl);
-      console.log('📺 Vidzy proxy URL pour iOS:', proxyUrl);
-      return proxyUrl;
-    }
-    
+    // Pour Vidzy, utiliser directement l'URL m3u8 extraite
+    // Pas besoin de proxy car l'URL est déjà extraite et valide
+    console.log('📺 Vidzy m3u8 URL directe:', data.m3u8Url);
     return data.m3u8Url;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);

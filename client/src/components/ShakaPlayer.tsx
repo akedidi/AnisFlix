@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucide-react";
+import { ErrorPopup } from "@/components/ErrorPopup";
+import { errorMessages } from "@/lib/errorMessages";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
@@ -53,7 +55,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             setupPlayer();
           };
           script.onerror = () => {
-            setError("Impossible de charger Shaka Player");
+            setError(errorMessages.players.generic.message);
             setIsLoading(false);
           };
           document.head.appendChild(script);
@@ -62,7 +64,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         }
       } catch (err) {
         console.error("Erreur d'initialisation:", err);
-        setError("Erreur d'initialisation du lecteur");
+        setError(errorMessages.players.generic.message);
         setIsLoading(false);
       }
     };
@@ -75,7 +77,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         window.shaka.polyfill.installAll();
 
         if (!window.shaka.Player.isBrowserSupported()) {
-          setError("Navigateur non supporté par Shaka Player");
+          setError(errorMessages.players.generic.hlsNotSupported);
           setIsLoading(false);
           return;
         }
@@ -99,7 +101,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             console.error('🔍 [DEBUG 3016] Category:', event.detail.category);
           }
           
-          setError(`Erreur Shaka: ${event.detail.message || 'Erreur inconnue'}`);
+          setError(`${errorMessages.players.generic.title}: ${event.detail.message || 'Erreur inconnue'}`);
           setIsLoading(false);
         });
 
@@ -127,13 +129,13 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         if (videoRef.current) {
           videoRef.current.play().catch((err) => {
             console.error("Erreur de lecture:", err);
-            setError("Impossible de démarrer la lecture");
+            setError(errorMessages.players.generic.message);
             setIsLoading(false);
           });
         }
       } catch (err) {
         console.error("Erreur de chargement du flux:", err);
-        setError("Impossible de charger le flux");
+        setError(errorMessages.players.generic.message);
         setIsLoading(false);
       }
     };
@@ -223,16 +225,14 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="text-center text-white">
-                <div className="text-red-500 text-4xl mb-2">⚠️</div>
-                <h3 className="text-lg font-semibold mb-1">Erreur</h3>
-                <p className="text-gray-300 text-sm mb-2">{error}</p>
-                {onClose && (
-                  <Button onClick={onClose} variant="outline" size="sm" className="text-white border-white hover:bg-white/20">
-                    Fermer
-                  </Button>
-                )}
-              </div>
+        <ErrorPopup
+          title={errorMessages.players.generic.title}
+          message={error}
+          onClose={() => {
+            setError(null);
+            onClose?.();
+          }}
+        />
             </div>
           )}
 
@@ -322,14 +322,14 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="text-center text-white">
-                <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                <h3 className="text-xl font-semibold mb-2">Erreur de lecture</h3>
-                <p className="text-gray-300 mb-4">{error}</p>
-                <Button onClick={onClose} variant="outline" className="text-white border-white hover:bg-white/20">
-                  Fermer
-                </Button>
-              </div>
+        <ErrorPopup
+          title={errorMessages.players.generic.title}
+          message={error}
+          onClose={() => {
+            setError(null);
+            onClose?.();
+          }}
+        />
             </div>
           )}
 

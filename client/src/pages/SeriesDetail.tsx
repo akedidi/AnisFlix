@@ -391,11 +391,13 @@ export default function SeriesDetail() {
                                     />
                                   ) : selectedSource.isDarki ? (
                                     <DarkiPlayer
-                                      m3u8Url={selectedSource.url}
+                                      darkiUrl={selectedSource.url}
                                       title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
                                       posterPath={series.poster_path}
-                                      quality={selectedSource.quality}
-                                      language={selectedSource.language}
+                                      mediaId={series?.id}
+                                      mediaType="tv"
+                                      backdropPath={series?.backdrop_path}
+                                      onClose={() => setSelectedSource(null)}
                                     />
                                   ) : (
                                     <VideoPlayer

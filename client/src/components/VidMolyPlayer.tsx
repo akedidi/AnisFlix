@@ -6,6 +6,8 @@ import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
 import { apiClient } from "@/lib/apiClient";
 import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
 import { saveWatchProgress } from "@/lib/watchProgress";
+import { ErrorPopup } from "@/components/ErrorPopup";
+import { errorMessages } from "@/lib/errorMessages";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -148,7 +150,7 @@ export default function VidMolyPlayer({
         console.log('🎬 Données JSON reçues de vidmoly:', data);
         
         if (!data.success || !data.m3u8Url) {
-          throw new Error(data.error || 'Impossible d\'extraire le lien de streaming VidMoly');
+          throw new Error(errorMessages.players.vidmoly.message);
         }
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
@@ -239,7 +241,7 @@ export default function VidMolyPlayer({
             });
           });
         } else {
-          setError("Votre navigateur ne supporte pas HLS");
+          setError(errorMessages.players.vidmoly.hlsNotSupported);
           setIsLoading(false);
         }
 
@@ -354,42 +356,15 @@ export default function VidMolyPlayer({
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md mx-4">
-          <h3 className="text-lg font-semibold mb-4 text-red-600">Erreur VidMoly</h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
-          <div className="flex gap-2">
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Réessayer
-            </Button>
-            {onClose && (
-              <Button onClick={() => {
-                console.log('🎬 Bouton Fermer cliqué');
-                console.log('🔍 État avant fermeture - isLoading:', isLoading);
-                console.log('🔍 État avant fermeture - error:', error);
-                console.log('🔍 État avant fermeture - vidmolyUrl:', vidmolyUrl);
-                
-                // Arrêter la vidéo et nettoyer les ressources
-                if (videoRef.current) {
-                  console.log('🔄 Arrêt de la vidéo');
-                  videoRef.current.pause();
-                  videoRef.current.src = '';
-                  videoRef.current.load();
-                }
-                
-                // Nettoyer l'état
-                setIsLoading(false);
-                setError(null);
-                
-                console.log('✅ VidMolyPlayer fermé et nettoyé');
-                onClose();
-              }} variant="default">
-                Fermer
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+        <ErrorPopup
+          title={errorMessages.players.vidmoly.title}
+          message={error}
+          onClose={() => {
+            setError(null);
+            setIsLoading(false);
+            onClose?.();
+          }}
+        />
     );
   }
 

@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { ErrorPopup } from "@/components/ErrorPopup";
+import { errorMessages } from "@/lib/errorMessages";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {

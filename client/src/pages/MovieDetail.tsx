@@ -6,10 +6,12 @@ import { Clock, Star, Calendar, X, Heart } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
+import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
 import PullToRefresh from "@/components/PullToRefresh";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
+import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -21,7 +23,7 @@ export default function MovieDetail() {
   const movieId = parseInt(id || "0");
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -34,6 +36,9 @@ export default function MovieDetail() {
 
   // Fetch Movix player links
   const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
+  
+  // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
+  const { data: movixTmdbSources } = useMovixTmdbSources(movieId);
 
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
@@ -42,7 +47,7 @@ export default function MovieDetail() {
   const sources = movixLinks ? [
     ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `fstream-${link.id}`,
-      name: link.name,
+      name: 'FStream',
       provider: 'FStream',
       url: link.url,
       type: 'm3u8' as const,
@@ -56,7 +61,7 @@ export default function MovieDetail() {
     })),
     ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `topstream-${link.id}`,
-      name: link.name,
+      name: 'TopStream',
       provider: 'TopStream',
       url: link.url,
       type: 'mp4' as const,
@@ -70,7 +75,7 @@ export default function MovieDetail() {
     })),
     ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `wiflix-${link.id}`,
-      name: link.name,
+      name: 'Wiflix',
       provider: 'Wiflix',
       url: link.url,
       type: 'm3u8' as const,
@@ -84,9 +89,84 @@ export default function MovieDetail() {
     }))
   ] : [];
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean }) => {
+  // Add Movix TMDB sources (VidMoly, Darkibox, etc.) using processed sources
+  const tmdbSources = movixTmdbSources?.processedSources?.map((source: any, index: number) => {
+    const isVidMoly = source.provider === 'vidmoly';
+    const isVidzy = source.provider === 'vidzy';
+    const isDarki = source.provider === 'darki';
+    
+    return {
+      id: `tmdb-${source.provider}-${index}`,
+      name: source.quality, // Utiliser le nom du provider déjà formaté
+      provider: source.provider.toUpperCase(),
+      url: source.url,
+      type: 'embed' as const,
+      isTopStream: false,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: isVidMoly,
+      isVidzy: isVidzy,
+      isDarki: isDarki,
+      quality: source.quality,
+      language: source.language,
+      originalQuality: source.originalQuality
+    };
+  }) || [];
+
+  const allSources = [...sources, ...tmdbSources];
+
+  // Debug logs pour les sources TMDB
+  console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {
+    hasData: !!movixTmdbSources,
+    processedSources: movixTmdbSources?.processedSources?.length || 0,
+    tmdbSources: tmdbSources.length,
+    allSources: allSources.length,
+    rawData: movixTmdbSources
+  });
+
+  // Log détaillé des sources TMDB
+  if (movixTmdbSources?.processedSources) {
+    console.log('📊 [MOVIE DETAIL] Sources TMDB détaillées:', movixTmdbSources.processedSources);
+  }
+
+  // Log des sources finales
+  console.log('🎯 [MOVIE DETAIL] Sources finales (allSources):', allSources);
+  
+  // Log spécifique pour les sources VidMoly et Darki
+  const vidMolySources = allSources.filter(s => s.isVidMoly);
+  const darkiSources = allSources.filter(s => s.isDarki);
+  console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
+  console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
+
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean }) => {
     setIsLoadingSource(true);
     try {
+      // Pour VidMoly, passer le lien embed original au VidMolyPlayer
+      if (source.isVidMoly) {
+        console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
+        setSelectedSource({
+          url: source.url, // Lien embed original
+          type: "embed",
+          name: source.name,
+          isVidMoly: true
+        });
+        setIsLoadingSource(false);
+        return;
+      }
+
+      // Pour Darki, utiliser le DarkiPlayer avec l'URL embed originale
+      if (source.isDarki) {
+        console.log('🌑 Source Darki détectée, passage au DarkiPlayer:', source.url);
+        setSelectedSource({
+          url: source.url, // Lien embed original
+          type: "embed",
+          name: source.name,
+          isDarki: true
+        });
+        setIsLoadingSource(false);
+        return;
+      }
+
       // Si c'est une source Vidzy via FStream (type marqué m3u8 mais url = page embed), extraire d'abord le vrai m3u8
       if (source.url && source.type === "m3u8" && source.isFStream) {
         console.log("🎬 Extraction Vidzy pour:", source.url);
@@ -277,7 +357,7 @@ export default function MovieDetail() {
                     type="movie"
                     id={movieId}
                     title={movie.title}
-                    sources={[]}
+                    sources={allSources}
                     genres={movie.genres}
                     onSourceClick={handleSourceSelect}
                     isLoadingSource={isLoadingSource}
@@ -297,7 +377,7 @@ export default function MovieDetail() {
                       Fermer
                     </Button>
                   </div>
-                  {selectedSource.type === 'embed' ? (
+                  {selectedSource.type === 'embed' && selectedSource.isVidMoly ? (
                     <VidMolyPlayer
                       vidmolyUrl={selectedSource.url}
                       title={movie.title}
@@ -305,6 +385,16 @@ export default function MovieDetail() {
                       mediaType="movie"
                       posterPath={movie.poster_path}
                       backdropPath={movie.backdrop_path}
+                    />
+                  ) : selectedSource.type === 'embed' && selectedSource.isDarki ? (
+                    <DarkiPlayer
+                      darkiUrl={selectedSource.url}
+                      title={movie.title}
+                      mediaId={movieId}
+                      mediaType="movie"
+                      posterPath={movie.poster_path}
+                      backdropPath={movie.backdrop_path}
+                      onClose={handleClosePlayer}
                     />
                   ) : (
                     <VideoPlayer

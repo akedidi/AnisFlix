@@ -294,6 +294,12 @@ const StreamingSources = memo(function StreamingSources({
 
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];
+  
+  // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
+  if (sources && sources.length > 0) {
+    console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
+    allSources.push(...sources);
+  }
 
 
   // Ajouter TopStream en premier si disponible (VF uniquement)
