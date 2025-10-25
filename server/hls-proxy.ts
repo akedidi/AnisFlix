@@ -390,9 +390,16 @@ export function registerHLSProxyRoutes(app: Express) {
       const originalUrl = req.originalUrl;
       console.log(`[TV CATCH-ALL] URL M3U8 non gérée: ${originalUrl}`);
       
-      // Rediriger vers l'API TV générique pour traiter l'URL
-      const encodedUrl = encodeURIComponent(originalUrl.replace('/api/', ''));
+      // Reconstruire l'URL complète en utilisant le domaine de base
+      const filename = originalUrl.replace('/api/', '');
+      
+      // Essayer de deviner le domaine de base depuis les headers ou utiliser un domaine par défaut
+      const baseDomain = 'https://cache1a.netplus.ch';
+      const fullUrl = `${baseDomain}/${filename}`;
+      const encodedUrl = encodeURIComponent(fullUrl);
       const redirectUrl = `/api/tv?url=${encodedUrl}`;
+      
+      console.log(`[TV CATCH-ALL] URL reconstruite: ${fullUrl}`);
       console.log(`[TV CATCH-ALL] Redirection vers: ${redirectUrl}`);
       
       res.redirect(redirectUrl);
