@@ -86,73 +86,8 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
-        // Intercepter les requêtes pour les segments vidéo/audio et sous-playlists
-        player.getNetworkingEngine().registerRequestFilter((type: any, request: any) => {
-          console.log(`🔍 [SHAKA INTERCEPTOR] Type: ${type}, URL: ${request.uris[0]}`);
-          
-          // Log pour toutes les requêtes
-          if (request.uris[0]) {
-            console.log(`🔍 [SHAKA INTERCEPTOR] Requête détectée: ${request.uris[0]}`);
-          }
-          
-          // Vérifier si l'URL est déjà correctement proxifiée (avec /api/tv?url= ou /api/tv-direct-proxy)
-          if (request.uris[0] && (
-            request.uris[0].includes('/api/tv?url=') ||
-            request.uris[0].includes('/api/tv-direct-proxy')
-          )) {
-            console.log(`🔍 [SHAKA INTERCEPTOR] URL déjà proxifiée, ignorée: ${request.uris[0]}`);
-            return;
-          }
-          
-          // Proxifier les segments vidéo/audio et les sous-playlists M3U8
-          if (request.uris[0] && (
-            request.uris[0].includes('.mp4') ||
-            request.uris[0].includes('.ts') ||
-            request.uris[0].includes('.m3u8') ||
-            request.uris[0].includes('-init.mp4') ||
-            request.uris[0].includes('tf1hd-') ||
-            request.uris[0].includes('hd1-') ||
-            request.uris[0].includes('nt1-') ||
-            request.uris[0].includes('france3hd-') ||
-            request.uris[0].includes('m6hd-') ||
-            request.uris[0].includes('w9-') ||
-            request.uris[0].includes('gulli-') ||
-            request.uris[0].includes('avc1_') ||
-            request.uris[0].includes('mp4a_') ||
-            request.uris[0].includes('scale=') ||
-            request.uris[0].includes('fra=') ||
-            request.uris[0].includes('iframe-')
-          )) {
-            const originalUrl = request.uris[0];
-            console.log(`🔍 [SHAKA INTERCEPTOR] Segment/Playlist détecté: ${originalUrl}`);
-            
-            // Reconstruire l'URL complète vers le serveur d'origine
-            let fullUrl = originalUrl;
-            if (originalUrl.includes('tf1hd-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('hd1-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('nt1-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('france3hd-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('m6hd-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('w9-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('gulli-')) {
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/${originalUrl}`;
-            } else if (originalUrl.includes('avc1_') || originalUrl.includes('mp4a_')) {
-              // Pour les segments TF1 avec avc1_ ou mp4a_, utiliser tf1hd par défaut
-              fullUrl = `https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/${originalUrl}`;
-            }
-            
-            // Proxifier l'URL complète
-            const proxifiedUrl = `/api/tv?url=${encodeURIComponent(fullUrl)}`;
-            console.log(`🔍 [SHAKA INTERCEPTOR] URL proxifiée: ${proxifiedUrl}`);
-            request.uris[0] = proxifiedUrl;
-          }
-        });
+        // Approche simplifiée : laisser Shaka Player gérer directement les URLs
+        // Pas d'intercepteur complexe, Shaka Player est capable de gérer les URLs M3U8/MPD directement
 
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
@@ -177,22 +112,11 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         videoRef.current.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
         videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
-        // Charger le flux avec proxification si nécessaire
-        console.log('🔍 [DEBUG] URL Shaka originale:', url);
-        
-        // Déterminer si l'URL doit être proxifiée
-        let finalUrl = url;
-        if (url.includes('viamotionhsi.netplus.ch') || 
-            url.includes('cachehsi') || 
-            url.includes('tok_') ||
-            url.includes('simulcast-p.ftven.fr') ||
-            url.includes('artesimulcast.akamaized.net')) {
-          finalUrl = `/api/tv?url=${encodeURIComponent(url)}`;
-          console.log('🔍 [DEBUG] URL proxifiée pour Shaka:', finalUrl);
-        }
+        // Approche simplifiée : charger directement l'URL comme dans votre code fonctionnel
+        console.log('🔍 [SHAKA] Chargement direct de l\'URL:', url);
         
         // Shaka détermine le format (HLS ou DASH) tout seul !
-        await player.load(finalUrl);
+        await player.load(url);
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);
 
