@@ -83,7 +83,7 @@ export default async function handler(req, res) {
       };
 
       // **Logique pour les pages HTML Darki (extraction M3U8 en morceaux)**
-      if (targetUrl.includes('darkibox.com') && !targetUrl.includes('.m3u8')) {
+      if (targetUrl.includes('darkibox.com') && !targetUrl.includes('.m3u8') && !targetUrl.includes('.ts')) {
         console.log(`[DARKI] Extraction M3U8 en morceaux depuis page HTML: ${targetUrl}`);
         
         requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
