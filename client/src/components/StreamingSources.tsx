@@ -105,6 +105,18 @@ const StreamingSources = memo(function StreamingSources({
     sourcesCount: movixDownloadData?.sources?.length || 0
   });
   
+  // Debug spécifique pour comprendre pourquoi le hook n'est pas activé
+  console.log('🔍 [STREAMING SOURCES] Hook Activation Check:', {
+    hasId: !!id,
+    isMovie: type === 'movie',
+    isTv: type === 'tv',
+    hasSeason: !!season,
+    hasEpisode: !!episode,
+    seasonValue: season,
+    episodeValue: episode,
+    shouldBeEnabled: !!id && (type === 'movie' || (type === 'tv' && !!season && !!episode))
+  });
+  
   // Debug des valeurs passées au hook
   console.log('🔍 [STREAMING SOURCES] Hook Parameters:', {
     type: type,
