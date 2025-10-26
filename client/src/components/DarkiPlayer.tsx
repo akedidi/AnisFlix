@@ -52,6 +52,16 @@ export default function DarkiPlayer({
         const proxyUrl = `/api/darkibox?url=${encodeURIComponent(darkiUrl)}`;
         console.log('🌑 [DARKI PLAYER] Utilisation de l\'API Darkibox legacy:', proxyUrl);
         
+        // Vérifier d'abord si l'API retourne une erreur
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('🌑 [DARKI PLAYER] Erreur API:', errorData);
+          setError(errorData.error || 'Erreur lors de l\'extraction du stream');
+          setIsLoading(false);
+          return;
+        }
+        
         setM3u8Url(proxyUrl);
         setIsLoading(false);
       } catch (error) {
