@@ -110,12 +110,48 @@ export default async function handler(req, res) {
         
         requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
         
-        const htmlResponse = await axios.get(targetUrl, {
-          headers: requestHeaders,
-          timeout: 15000,
-        });
+        // Essayer plusieurs méthodes pour contourner la restriction
+        let htmlResponse;
+        let html;
         
-        const html = htmlResponse.data;
+        try {
+          // Méthode 1: Requête directe
+          htmlResponse = await axios.get(targetUrl, {
+            headers: requestHeaders,
+            timeout: 15000,
+          });
+          html = htmlResponse.data;
+        } catch (error) {
+          console.log('[DARKI] Méthode 1 échouée, essai avec proxy...');
+          
+          try {
+            // Méthode 2: Utiliser un proxy externe
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const proxyResponse = await axios.get(proxyUrl, {
+              timeout: 15000,
+            });
+            html = proxyResponse.data.contents;
+          } catch (proxyError) {
+            console.log('[DARKI] Méthode 2 échouée, essai avec headers différents...');
+            
+            // Méthode 3: Headers différents pour contourner la restriction
+            const alternativeHeaders = {
+              ...requestHeaders,
+              'Origin': 'https://darkibox.com',
+              'Referer': 'https://darkibox.com/',
+              'X-Forwarded-For': '127.0.0.1',
+              'X-Real-IP': '127.0.0.1',
+              'CF-Connecting-IP': '127.0.0.1'
+            };
+            
+            htmlResponse = await axios.get(targetUrl, {
+              headers: alternativeHeaders,
+              timeout: 15000,
+            });
+            html = htmlResponse.data;
+          }
+        }
+        
         console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
         
         // Vérifier si l'embed est restreint
