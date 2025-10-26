@@ -834,13 +834,13 @@ export default function TVChannels() {
     }
   }, [selectedSection, availableCategories, selectedCategory]);
 
-  // Remonter le scroll quand on change de section ou de catégorie
+  // Remonter le scroll seulement quand on change de section (pas de catégorie)
   useEffect(() => {
     const channelsContainer = document.querySelector('.space-y-2.max-h-96.overflow-y-auto');
     if (channelsContainer) {
       channelsContainer.scrollTop = 0;
     }
-  }, [selectedSection, selectedCategory]);
+  }, [selectedSection]); // Supprimé selectedCategory de la dépendance
 
   // Réinitialiser l'index du lien quand on change de chaîne
   useEffect(() => {
