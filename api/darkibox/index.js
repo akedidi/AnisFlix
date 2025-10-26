@@ -170,11 +170,19 @@ export default async function handler(req, res) {
         
         // Réécrire les URLs des segments .ts pour qu'elles passent par notre proxy
         playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, (match) => {
+          // Éviter les boucles infinies - ne pas proxifier les URLs qui pointent déjà vers notre API
+          if (match.includes('anisflix.vercel.app') || match.includes('localhost:3000')) {
+            return match;
+          }
           return `/api/darkibox?url=${encodeURIComponent(match)}`;
         });
         
         // Réécrire les URLs des sous-playlists M3U8
         playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, (match) => {
+          // Éviter les boucles infinies - ne pas proxifier les URLs qui pointent déjà vers notre API
+          if (match.includes('anisflix.vercel.app') || match.includes('localhost:3000')) {
+            return match;
+          }
           return `/api/darkibox?url=${encodeURIComponent(match)}`;
         });
         
