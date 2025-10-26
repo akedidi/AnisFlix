@@ -118,11 +118,30 @@ export default async function handler(req, res) {
         const html = htmlResponse.data;
         console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
         
-        // Extraire le lien M3U8 depuis le HTML (format exact avec espaces et retours à la ligne)
-        const m3u8Match = html.match(/sources:\s*\[\s*\{\s*src:\s*["']([^"']*\.m3u8[^"']*)["']/s);
+        // Debug: afficher les parties contenant "sources" et "m3u8"
+        const sourcesMatch = html.match(/sources:.*?\]/s);
+        if (sourcesMatch) {
+          console.log(`[DARKI] Sources trouvées: ${sourcesMatch[0]}`);
+        }
+        
+        const m3u8InHtml = html.match(/[^"']*\.m3u8[^"']*/g);
+        if (m3u8InHtml) {
+          console.log(`[DARKI] URLs M3U8 trouvées: ${m3u8InHtml.join(', ')}`);
+        }
+        
+        // Extraire le lien M3U8 depuis le HTML (pattern flexible pour détecter l'URL qui change)
+        let m3u8Match = html.match(/sources:\s*\[\s*\{\s*src:\s*["']([^"']*\.m3u8[^"']*)["']/s);
         if (!m3u8Match) {
-          console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
-          return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+          // Essayer une regex plus simple pour détecter l'URL M3U8
+          m3u8Match = html.match(/src:\s*["']([^"']*up27\.darkibox\.com[^"']*\.m3u8[^"']*)["']/);
+          if (!m3u8Match) {
+            // Dernière tentative : chercher n'importe quelle URL M3U8 de darkibox
+            m3u8Match = html.match(/(https?:\/\/up27\.darkibox\.com[^"'\s]*\.m3u8[^"'\s]*)/);
+            if (!m3u8Match) {
+              console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
+              return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+            }
+          }
         }
         
         const m3u8Url = m3u8Match[1];
