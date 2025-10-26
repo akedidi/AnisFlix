@@ -156,8 +156,70 @@ export default async function handler(req, res) {
         
         // Vérifier si l'embed est restreint
         if (html.includes('Video embed restricted') || html.length < 100) {
-          console.error('[DARKI] Embed restreint pour ce domaine');
-          return res.status(403).json({ error: 'Embed restreint pour ce domaine' });
+          console.log('[DARKI] Embed restreint, tentative de construction directe de l\'URL M3U8...');
+          
+          // Construire directement l'URL M3U8 à partir de l'URL de la page
+          const embedId = targetUrl.match(/embed-([^.]+)/);
+          if (!embedId) {
+            console.error('[DARKI] Impossible d\'extraire l\'ID de l\'embed');
+            return res.status(404).json({ error: 'URL Darkibox invalide' });
+          }
+          
+          const m3u8Url = `https://up27.darkibox.com/hls2/02/01599/${embedId[1]}_o/master.m3u8`;
+          console.log(`[DARKI] URL M3U8 construite: ${m3u8Url}`);
+          
+          // Essayer de récupérer la playlist M3U8 avec des headers différents
+          try {
+            const playlistResponse = await axios.get(m3u8Url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Referer': 'https://darkibox.com/',
+                'Origin': 'https://darkibox.com',
+                'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+                'X-Forwarded-For': '127.0.0.1',
+                'X-Real-IP': '127.0.0.1',
+              },
+              timeout: 10000,
+              validateStatus: function (status) {
+                return status < 500;
+              }
+            });
+            
+            if (playlistResponse.status === 200) {
+              let playlistContent = playlistResponse.data;
+              console.log(`[DARKI] Playlist M3U8 récupérée avec succès (${playlistContent.length} caractères)`);
+              
+              // Réécrire les URLs des segments .ts pour qu'elles passent par notre proxy
+              playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, (match) => {
+                if (match.includes('anisflix.vercel.app') || match.includes('localhost:3000')) {
+                  return match;
+                }
+                return `/api/darkibox?url=${encodeURIComponent(match)}`;
+              });
+              
+              // Réécrire les URLs des sous-playlists M3U8
+              playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, (match) => {
+                if (match.includes('anisflix.vercel.app') || match.includes('localhost:3000')) {
+                  return match;
+                }
+                return `/api/darkibox?url=${encodeURIComponent(match)}`;
+              });
+              
+              console.log(`[DARKI] Playlist M3U8 réécrite avec proxy`);
+              
+              // Retourner la playlist modifiée
+              res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.end(playlistContent);
+              return;
+            } else {
+              console.error(`[DARKI] Erreur HTTP ${playlistResponse.status} pour l'URL M3U8: ${m3u8Url}`);
+              return res.status(404).json({ error: `Erreur HTTP ${playlistResponse.status} lors de la récupération du stream` });
+            }
+          } catch (error) {
+            console.error(`[DARKI] Erreur lors de la récupération de la playlist: ${error.message}`);
+            return res.status(404).json({ error: 'Impossible de récupérer la playlist M3U8' });
+          }
         }
         
         // Debug: afficher les parties contenant "sources" et "m3u8"
