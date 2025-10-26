@@ -135,8 +135,12 @@ export default async function handler(req, res) {
           // Essayer une regex plus flexible
           m3u8Match = html.match(/src:\s*["']([^"']*\.m3u8[^"']*)["']/);
           if (!m3u8Match) {
-            console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
-            return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+            // Dernière tentative avec une regex très simple
+            m3u8Match = html.match(/(https?:\/\/[^"'\s]*\.m3u8[^"'\s]*)/);
+            if (!m3u8Match) {
+              console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
+              return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+            }
           }
         }
         
