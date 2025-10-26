@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
         
         // Extraire le lien M3U8 depuis le HTML (format Darki)
-        const m3u8Match = html.match(/src:\s*["']([^"']*\.m3u8[^"']*)["']/);
+        const m3u8Match = html.match(/sources:\s*\[\s*\{\s*src:\s*["']([^"']*\.m3u8[^"']*)["']/);
         if (!m3u8Match) {
           console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
           return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
