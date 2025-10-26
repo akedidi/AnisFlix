@@ -1,58 +1,29 @@
 import { useEffect, useCallback } from 'react';
-import { useLocation } from 'wouter';
-
-interface NavigationItem {
-  id: number;
-  mediaType: 'movie' | 'tv';
-}
 
 interface UseKeyboardNavigationProps {
-  currentId: number;
-  currentMediaType: 'movie' | 'tv';
-  similarItems: NavigationItem[];
+  videoRef: React.RefObject<HTMLVideoElement>;
   isPlayerActive?: boolean; // Pour savoir si on est dans le lecteur
 }
 
 export function useKeyboardNavigation({
-  currentId,
-  currentMediaType,
-  similarItems,
+  videoRef,
   isPlayerActive = false
 }: UseKeyboardNavigationProps) {
-  const [, setLocation] = useLocation();
 
-  const navigateToItem = useCallback((direction: 'prev' | 'next') => {
-    if (similarItems.length === 0) return;
+  const seekVideo = useCallback((direction: 'backward' | 'forward') => {
+    if (!videoRef.current) return;
 
-    // Trouver l'index de l'élément actuel
-    const currentIndex = similarItems.findIndex(item => 
-      item.id === currentId && item.mediaType === currentMediaType
-    );
+    const video = videoRef.current;
+    const seekAmount = 10; // 10 secondes par défaut
 
-    if (currentIndex === -1) {
-      // Si l'élément actuel n'est pas dans la liste, prendre le premier/dernier
-      const targetItem = direction === 'next' ? similarItems[0] : similarItems[similarItems.length - 1];
-      if (targetItem) {
-        const path = targetItem.mediaType === 'movie' ? `/movie/${targetItem.id}` : `/series/${targetItem.id}`;
-        setLocation(path);
-      }
-      return;
-    }
-
-    // Calculer l'index cible
-    let targetIndex: number;
-    if (direction === 'next') {
-      targetIndex = (currentIndex + 1) % similarItems.length;
+    if (direction === 'backward') {
+      video.currentTime = Math.max(0, video.currentTime - seekAmount);
+      console.log('⏪ [KEYBOARD] Recul de 10 secondes');
     } else {
-      targetIndex = currentIndex === 0 ? similarItems.length - 1 : currentIndex - 1;
+      video.currentTime = Math.min(video.duration, video.currentTime + seekAmount);
+      console.log('⏩ [KEYBOARD] Avance de 10 secondes');
     }
-
-    const targetItem = similarItems[targetIndex];
-    if (targetItem) {
-      const path = targetItem.mediaType === 'movie' ? `/movie/${targetItem.id}` : `/series/${targetItem.id}`;
-      setLocation(path);
-    }
-  }, [currentId, currentMediaType, similarItems, setLocation]);
+  }, [videoRef]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,11 +42,11 @@ export function useKeyboardNavigation({
       }
 
       if (event.key === 'ArrowLeft') {
-        console.log('🎬 [KEYBOARD NAV] Navigation vers le précédent');
-        navigateToItem('prev');
+        console.log('⏪ [KEYBOARD] Recul dans la vidéo');
+        seekVideo('backward');
       } else if (event.key === 'ArrowRight') {
-        console.log('🎬 [KEYBOARD NAV] Navigation vers le suivant');
-        navigateToItem('next');
+        console.log('⏩ [KEYBOARD] Avance dans la vidéo');
+        seekVideo('forward');
       }
     };
 
@@ -86,9 +57,9 @@ export function useKeyboardNavigation({
     return () => {
       document.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [navigateToItem, isPlayerActive]);
+  }, [seekVideo, isPlayerActive]);
 
   return {
-    navigateToItem
+    seekVideo
   };
 }

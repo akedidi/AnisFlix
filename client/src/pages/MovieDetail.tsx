@@ -44,19 +44,8 @@ export default function MovieDetail() {
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
 
-  // Navigation au clavier
+  // Navigation au clavier pour contrôler la lecture vidéo
   const isPlayerActive = !!selectedSource;
-  const similarMoviesForNav = similarMovies.map((movie: any) => ({
-    id: movie.id,
-    mediaType: 'movie' as const
-  }));
-  
-  useKeyboardNavigation({
-    currentId: movieId,
-    currentMediaType: 'movie',
-    similarItems: similarMoviesForNav,
-    isPlayerActive
-  });
 
   // Generate sources from Movix links
   const sources = movixLinks ? [

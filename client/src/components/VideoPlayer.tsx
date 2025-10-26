@@ -8,6 +8,7 @@ import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -55,6 +56,12 @@ export default function VideoPlayer({
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
+
+  // Navigation au clavier pour contrôler la lecture vidéo
+  useKeyboardNavigation({
+    videoRef,
+    isPlayerActive: !!src
+  });
 
   useEffect(() => {
     if (!videoRef.current || !src) return;

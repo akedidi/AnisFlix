@@ -8,6 +8,7 @@ import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
 import { saveWatchProgress } from "@/lib/watchProgress";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -58,6 +59,12 @@ export default function VidMolyPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
+
+  // Navigation au clavier pour contrôler la lecture vidéo
+  useKeyboardNavigation({
+    videoRef,
+    isPlayerActive: true
+  });
 
   // Fonction pour sauvegarder la progression
   const saveProgress = () => {
@@ -256,12 +263,14 @@ export default function VidMolyPlayer({
           });
           
           // Surveillance du buffer pour détecter les problèmes
-          hls.on(Hls.Events.BUFFER_STALLED, () => {
-            console.warn('⚠️ Buffer stalled - tentative de récupération...');
-            if (hls.media && hls.media.readyState >= 2) {
-              // Forcer un petit saut pour débloquer
-              const currentTime = hls.media.currentTime;
-              hls.media.currentTime = currentTime + 0.1;
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.details === 'bufferStalledError') {
+              console.warn('⚠️ Buffer stalled - tentative de récupération...');
+              if (hls.media && hls.media.readyState >= 2) {
+                // Forcer un petit saut pour débloquer
+                const currentTime = hls.media.currentTime;
+                hls.media.currentTime = currentTime + 0.1;
+              }
             }
           });
           

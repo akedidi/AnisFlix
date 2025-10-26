@@ -4,6 +4,7 @@ import { X, ExternalLink } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import Hls from "hls.js";
 import type { MediaType } from "@shared/schema";
 
@@ -32,6 +33,12 @@ export default function DarkiPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSaveTimeRef = useRef<number>(0);
+
+  // Navigation au clavier pour contrôler la lecture vidéo
+  useKeyboardNavigation({
+    videoRef,
+    isPlayerActive: true
+  });
 
   useEffect(() => {
     console.log('🌑 [DARKI PLAYER] Initialisation avec URL:', darkiUrl);

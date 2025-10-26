@@ -3,6 +3,7 @@ import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 interface DarkiboxPlayerProps {
   m3u8Url: string;
@@ -31,6 +32,12 @@ export default function DarkiboxPlayer({
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+
+  // Navigation au clavier pour contrôler la lecture vidéo
+  useKeyboardNavigation({
+    videoRef,
+    isPlayerActive: true
+  });
 
   useEffect(() => {
     if (!videoRef.current || !m3u8Url) return;

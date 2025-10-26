@@ -70,19 +70,8 @@ export default function SeriesDetail() {
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
 
-  // Navigation au clavier
+  // Navigation au clavier pour contrôler la lecture vidéo
   const isPlayerActive = !!selectedSource;
-  const similarSeriesForNav = similarSeries.map((series: any) => ({
-    id: series.id,
-    mediaType: 'tv' as const
-  }));
-  
-  useKeyboardNavigation({
-    currentId: seriesId,
-    currentMediaType: 'tv',
-    similarItems: similarSeriesForNav,
-    isPlayerActive
-  });
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [];
   const handleSourceClick = async (source: {
