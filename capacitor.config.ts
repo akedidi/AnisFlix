@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
-    iosScheme: 'https'
+    iosScheme: 'https',
+    allowNavigation: ['*']
   },
   ios: {
     contentInset: 'automatic',
@@ -14,7 +15,9 @@ const config: CapacitorConfig = {
     backgroundColor: '#000000',
     allowsLinkPreview: false,
     handleApplicationNotifications: true,
-    preferredContentMode: 'mobile'
+    preferredContentMode: 'mobile',
+    // Configuration pour les liens profonds
+    overrideUserAgent: 'AnisFlix Mobile App'
   },
   android: {
     backgroundColor: '#000000',
@@ -22,7 +25,9 @@ const config: CapacitorConfig = {
     captureInput: true,
     webContentsDebuggingEnabled: false,
     // Configuration pour les permissions Android
-    appendUserAgent: 'AnisFlix'
+    appendUserAgent: 'AnisFlix',
+    // Configuration pour les liens profonds
+    overrideUserAgent: 'AnisFlix Mobile App'
   },
   plugins: {
     SplashScreen: {

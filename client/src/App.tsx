@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import BottomNav from "@/components/BottomNav";
 import { useServiceWorker } from "@/hooks/useOffline";
+import { useDeepLinks } from "@/hooks/useDeepLinks";
 import CustomSplashScreen from "@/components/CustomSplashScreen";
 import { useState } from "react";
 // Import des styles pour le clavier natif
@@ -105,6 +106,9 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
+  
+  // Gérer les liens profonds
+  useDeepLinks();
   const [showSplash, setShowSplash] = useState(() => {
     const isCapacitorApp = isCapacitor();
     const splashShown = sessionStorage.getItem('splash-shown');
