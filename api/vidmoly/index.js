@@ -225,15 +225,15 @@ export default async function handler(req, res) {
 
       // ===== FALLBACK FINAL =====
       if (!m3u8Url) {
-        console.log(`[VIDMOLY] Toutes les méthodes ont échoué, utilisation du fallback`);
-        const fallbackUrl = 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8';
+        console.log(`[VIDMOLY] Toutes les méthodes ont échoué, retour d'une erreur`);
         
-        return res.status(200).json({ 
-          success: true,
-          m3u8Url: fallbackUrl,
+        return res.status(404).json({ 
+          success: false,
+          error: 'Aucun lien de streaming trouvé',
+          message: 'Impossible d\'extraire le lien VidMoly. Veuillez essayer un autre lien.',
           source: 'vidmoly',
           originalUrl: url,
-          method: 'fallback'
+          method: 'failed'
         });
       }
 
