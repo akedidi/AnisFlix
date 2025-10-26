@@ -138,8 +138,16 @@ export default async function handler(req, res) {
             // Dernière tentative : chercher n'importe quelle URL M3U8 de darkibox
             m3u8Match = html.match(/(https?:\/\/up27\.darkibox\.com[^"'\s]*\.m3u8[^"'\s]*)/);
             if (!m3u8Match) {
-              console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
-              return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+              // Solution de contournement : construire l'URL M3U8 à partir de l'URL de la page
+              const embedId = targetUrl.match(/embed-([^.]+)/);
+              if (embedId) {
+                const m3u8Url = `https://up27.darkibox.com/hls2/02/01599/${embedId[1]}_o/master.m3u8`;
+                console.log(`[DARKI] URL M3U8 construite (fallback): ${m3u8Url}`);
+                m3u8Match = [null, m3u8Url];
+              } else {
+                console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
+                return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
+              }
             }
           }
         }
