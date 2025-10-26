@@ -104,9 +104,9 @@ export default async function handler(req, res) {
         'Cache-Control': 'no-cache'
       };
 
-      // **Logique pour les pages HTML Darki (extraction M3U8 en morceaux)**
+      // **Logique pour les pages HTML Darki (extraction M3U8 depuis HTML)**
       if (targetUrl.includes('darkibox.com') && !targetUrl.includes('.m3u8') && !targetUrl.includes('.ts')) {
-        console.log(`[DARKI] Extraction M3U8 en morceaux depuis page HTML: ${targetUrl}`);
+        console.log(`[DARKI] Extraction M3U8 depuis page HTML: ${targetUrl}`);
         
         requestHeaders['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8';
         
@@ -118,38 +118,11 @@ export default async function handler(req, res) {
         const html = htmlResponse.data;
         console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
         
-        // Debug: afficher les parties contenant "sources" et "m3u8"
-        const sourcesMatch = html.match(/sources:.*?\]/s);
-        if (sourcesMatch) {
-          console.log(`[DARKI] Sources trouvées: ${sourcesMatch[0]}`);
-        }
-        
-        const m3u8InHtml = html.match(/[^"']*\.m3u8[^"']*/g);
-        if (m3u8InHtml) {
-          console.log(`[DARKI] URLs M3U8 trouvées: ${m3u8InHtml.join(', ')}`);
-        }
-        
-        // Extraire le lien M3U8 depuis le HTML (format Darki)
-        let m3u8Match = html.match(/sources:\s*\[\s*\{\s*src:\s*["']([^"']*\.m3u8[^"']*)["']/);
+        // Extraire le lien M3U8 depuis le HTML (format exact avec espaces et retours à la ligne)
+        const m3u8Match = html.match(/sources:\s*\[\s*\{\s*src:\s*["']([^"']*\.m3u8[^"']*)["']/s);
         if (!m3u8Match) {
-          // Essayer une regex plus flexible
-          m3u8Match = html.match(/src:\s*["']([^"']*\.m3u8[^"']*)["']/);
-          if (!m3u8Match) {
-            // Dernière tentative avec une regex très simple
-            m3u8Match = html.match(/(https?:\/\/[^"'\s]*\.m3u8[^"'\s]*)/);
-            if (!m3u8Match) {
-              // Solution de contournement : construire l'URL M3U8 à partir de l'URL de la page
-              const embedId = targetUrl.match(/embed-([^.]+)/);
-              if (embedId) {
-                const m3u8Url = `https://up27.darkibox.com/hls2/02/01599/${embedId[1]}_o/master.m3u8`;
-                console.log(`[DARKI] URL M3U8 construite: ${m3u8Url}`);
-                m3u8Match = [null, m3u8Url];
-              } else {
-                console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
-                return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
-              }
-            }
-          }
+          console.error('[DARKI] Aucun lien M3U8 trouvé dans le HTML');
+          return res.status(404).json({ error: 'Aucun stream M3U8 trouvé sur la page Darki' });
         }
         
         const m3u8Url = m3u8Match[1];
