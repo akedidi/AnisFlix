@@ -156,14 +156,28 @@ export default async function handler(req, res) {
         console.log(`[DARKI] Lien M3U8 extrait: ${m3u8Url}`);
         
         // Pour Darki, on doit réécrire les URLs des segments dans la playlist
-        const playlistResponse = await axios.get(m3u8Url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Referer': 'https://darkibox.com/',
-            'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
-          },
-          timeout: 15000,
-        });
+        try {
+          const playlistResponse = await axios.get(m3u8Url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Referer': 'https://darkibox.com/',
+              'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+            },
+            timeout: 10000,
+            validateStatus: function (status) {
+              return status < 500; // Accepter les codes < 500
+            }
+          });
+          
+          if (playlistResponse.status === 403) {
+            console.error(`[DARKI] Accès refusé (403) pour l'URL M3U8: ${m3u8Url}`);
+            return res.status(404).json({ error: 'Accès refusé au stream M3U8' });
+          }
+          
+          if (playlistResponse.status !== 200) {
+            console.error(`[DARKI] Erreur HTTP ${playlistResponse.status} pour l'URL M3U8: ${m3u8Url}`);
+            return res.status(404).json({ error: `Erreur HTTP ${playlistResponse.status} lors de la récupération du stream` });
+          }
         
         let playlistContent = playlistResponse.data;
         console.log(`[DARKI] Playlist M3U8 reçue (${playlistContent.length} caractères)`);
@@ -188,11 +202,15 @@ export default async function handler(req, res) {
         
         console.log(`[DARKI] Playlist M3U8 réécrite avec proxy`);
         
-        // Retourner la playlist modifiée
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.end(playlistContent);
-        return;
+          // Retourner la playlist modifiée
+          res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(playlistContent);
+          return;
+        } catch (error) {
+          console.error(`[DARKI] Erreur lors de la récupération de la playlist: ${error.message}`);
+          return res.status(404).json({ error: 'Impossible de récupérer la playlist M3U8' });
+        }
       }
       
       // **Logique pour les playlists .m3u8**
