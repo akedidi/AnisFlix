@@ -632,14 +632,17 @@ const StreamingSources = memo(function StreamingSources({
       const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
       
       if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
+        // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
+        const cleanM3u8Url = source.m3u8.replace(/,/g, '');
+        
         allSources.push({
           id: source.id,
           name: `${source.quality} - ${source.language}`,
-          provider: 'darki',
-          url: source.m3u8,
+          provider: 'darkibox',
+          url: cleanM3u8Url,
           type: 'm3u8' as const,
-          player: 'darki',
-          isDarki: true,
+          player: 'darkibox',
+          isDarkibox: true,
           sourceKey: selectedLanguage,
           quality: source.quality,
           language: source.language
