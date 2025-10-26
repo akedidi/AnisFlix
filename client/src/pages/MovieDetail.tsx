@@ -17,6 +17,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 export default function MovieDetail() {
   const { id } = useParams();
@@ -42,6 +43,20 @@ export default function MovieDetail() {
 
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
+
+  // Navigation au clavier
+  const isPlayerActive = !!selectedSource;
+  const similarMoviesForNav = similarMovies.map((movie: any) => ({
+    id: movie.id,
+    mediaType: 'movie' as const
+  }));
+  
+  useKeyboardNavigation({
+    currentId: movieId,
+    currentMediaType: 'movie',
+    similarItems: similarMoviesForNav,
+    isPlayerActive
+  });
 
   // Generate sources from Movix links
   const sources = movixLinks ? [

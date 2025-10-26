@@ -18,6 +18,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 export default function SeriesDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
@@ -68,6 +69,20 @@ export default function SeriesDetail() {
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
+
+  // Navigation au clavier
+  const isPlayerActive = !!selectedSource;
+  const similarSeriesForNav = similarSeries.map((series: any) => ({
+    id: series.id,
+    mediaType: 'tv' as const
+  }));
+  
+  useKeyboardNavigation({
+    currentId: seriesId,
+    currentMediaType: 'tv',
+    similarItems: similarSeriesForNav,
+    isPlayerActive
+  });
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [];
   const handleSourceClick = async (source: {
