@@ -7,7 +7,10 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    allowNavigation: ['*']
+    allowNavigation: ['*'],
+    // Configuration pour le développement local
+    url: 'http://localhost:3000',
+    cleartext: true
   },
   ios: {
     contentInset: 'automatic',

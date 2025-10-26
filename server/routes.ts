@@ -88,6 +88,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route unifiée pour l'extraction (utilisée par l'app native)
+  app.post("/api/extract", async (req, res) => {
+    try {
+      const { type, url } = req.body;
+      
+      if (!type || !url) {
+        return res.status(400).json({ error: 'Type et URL requis' });
+      }
+      
+      console.log(`[EXTRACT] Extraction ${type} pour: ${url}`);
+      
+      let result;
+      
+      switch (type) {
+        case 'vidzy':
+          const m3u8Link = await getVidzyM3u8Link(url);
+          if (!m3u8Link) {
+            return res.status(404).json({ error: 'Impossible d\'extraire le lien m3u8' });
+          }
+          result = { m3u8Url: m3u8Link };
+          break;
+          
+        case 'vidsrc':
+          const vidsrcResult = await vidsrcScraper.extractStreamingLinks(url);
+          if (!vidsrcResult.success) {
+            return res.status(404).json({ error: 'Impossible d\'extraire les liens VidSrc' });
+          }
+          result = { 
+            success: true,
+            players: vidsrcResult.players
+          };
+          break;
+          
+        default:
+          return res.status(400).json({ error: 'Type d\'extraction non supporté' });
+      }
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Erreur lors de l\'extraction:', error);
+      res.status(500).json({ error: 'Erreur serveur lors de l\'extraction' });
+    }
+  });
+
   // Route pour récupérer les sources Darkibox pour les films et séries via proxy Vercel
   app.get("/api/darkibox", async (req, res) => {
     try {

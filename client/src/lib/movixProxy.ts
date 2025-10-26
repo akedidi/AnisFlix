@@ -7,11 +7,19 @@ export class MovixProxyClient {
   private baseUrl: string;
 
   constructor() {
-    // Toujours utiliser le proxy Vercel pour éviter les blocages FAI
-    this.baseUrl = 'https://anisflix.vercel.app';
+    // Utiliser l'URL appropriée selon l'environnement
+    const isCapacitorDev = typeof window !== 'undefined' && 
+      window.location.href.includes('capacitor://localhost');
+    
+    if (isCapacitorDev) {
+      this.baseUrl = 'http://localhost:3000';
+      console.log('🔍 MovixProxyClient - Utilisation du serveur local en développement');
+    } else {
+      this.baseUrl = 'https://anisflix.vercel.app';
+      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel en production');
+    }
     
     console.log('🔍 MovixProxyClient - baseUrl:', this.baseUrl);
-    console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel pour éviter les blocages FAI');
   }
 
   /**

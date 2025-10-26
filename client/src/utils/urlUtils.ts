@@ -14,13 +14,17 @@ export function getBaseUrl(): string {
   const isLocalDev = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
   
-  // En développement local, TOUJOURS utiliser l'URL locale
-  if (isLocalDev) {
-    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  // Vérifier si nous sommes dans Capacitor en développement
+  const isCapacitorDev = typeof window !== 'undefined' && 
+    window.location.href.includes('capacitor://localhost');
+  
+  // En développement local (web ou Capacitor), TOUJOURS utiliser l'URL locale
+  if (isLocalDev || isCapacitorDev) {
+    return 'http://localhost:3000';
   }
   
   if (isCapacitor) {
-    // En mode natif, utiliser l'URL de production Vercel
+    // En mode natif production, utiliser l'URL de production Vercel
     return 'https://anisflix.vercel.app';
   } else {
     // En mode web, utiliser l'origine actuelle
@@ -86,8 +90,9 @@ export function isCapacitorUrl(url: string): boolean {
  */
 export function convertCapacitorUrl(url: string): string {
   if (isCapacitorUrl(url)) {
-    // Remplacer capacitor://localhost par l'URL Vercel
-    return url.replace('capacitor://localhost', 'https://anisflix.vercel.app');
+    // Remplacer capacitor://localhost par l'URL appropriée selon l'environnement
+    const baseUrl = getBaseUrl();
+    return url.replace('capacitor://localhost', baseUrl);
   }
   return url;
 }

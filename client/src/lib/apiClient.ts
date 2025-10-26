@@ -13,15 +13,30 @@ export class ApiClient {
     const isLocalDev = typeof window !== 'undefined' && 
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     
-    // En développement local, TOUJOURS utiliser l'URL locale
-    if (isLocalDev) {
-      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    // Vérifier si nous sommes dans Capacitor en développement
+    const isCapacitorDev = typeof window !== 'undefined' && 
+      window.location.href.includes('capacitor://localhost');
+    
+    console.log(`[API CLIENT] Platform detection:`, {
+      isCapacitor,
+      isLocalDev,
+      isCapacitorDev,
+      hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined',
+      href: typeof window !== 'undefined' ? window.location.href : 'undefined'
+    });
+    
+    // En développement local (web ou Capacitor), TOUJOURS utiliser l'URL locale
+    if (isLocalDev || isCapacitorDev) {
+      this.baseUrl = 'http://localhost:3000';
+      console.log(`[API CLIENT] Using local development server: ${this.baseUrl}`);
     } else if (isCapacitor) {
-      // En mode natif, utiliser l'URL de production Vercel
+      // En mode natif production, utiliser l'URL de production Vercel
       this.baseUrl = 'https://anisflix.vercel.app';
+      console.log(`[API CLIENT] Using production server: ${this.baseUrl}`);
     } else {
       // En mode web, utiliser l'origine actuelle
       this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
+      console.log(`[API CLIENT] Using current origin: ${this.baseUrl}`);
     }
   }
 
