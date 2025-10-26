@@ -118,6 +118,12 @@ export default async function handler(req, res) {
         const html = htmlResponse.data;
         console.log(`[DARKI] HTML reçu (${html.length} caractères)`);
         
+        // Vérifier si l'embed est restreint
+        if (html.includes('Video embed restricted') || html.length < 100) {
+          console.error('[DARKI] Embed restreint pour ce domaine');
+          return res.status(403).json({ error: 'Embed restreint pour ce domaine' });
+        }
+        
         // Debug: afficher les parties contenant "sources" et "m3u8"
         const sourcesMatch = html.match(/sources:.*?\]/s);
         if (sourcesMatch) {
