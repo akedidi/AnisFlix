@@ -109,6 +109,13 @@ export default function MovieDetail() {
       
       const data = await response.json();
       console.log(`✅ [FILMS DOWNLOAD] Sources retrieved:`, data);
+      
+      // Vérifier que la réponse ne contient pas un tmdb_id différent
+      if (data.tmdb_id && data.tmdb_id !== movieId) {
+        console.log(`❌ [FILMS DOWNLOAD] Response tmdb_id mismatch (${data.tmdb_id} !== ${movieId})`);
+        throw new Error(`TMDB ID mismatch in response: ${data.tmdb_id} !== ${movieId}`);
+      }
+      
       return data;
     },
     enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id && firstResult?.tmdb_id === movieId,
