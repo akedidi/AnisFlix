@@ -75,6 +75,7 @@ export default function MovieDetail() {
   
   console.log(`🔍 [FILMS DOWNLOAD] Debug:`, {
     movieTitle: movie?.title,
+    movieOriginalTitle: movie?.original_title,
     movieId: movieId,
     firstResult: firstResult,
     firstResultTmdbId: firstResult?.tmdb_id,
@@ -82,35 +83,38 @@ export default function MovieDetail() {
     shouldFetch: shouldFetchFilmsDownload
   });
   
+  // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
   const { data: filmsDownloadSources } = useQuery({
-    queryKey: ['films-download', movieId],
+    queryKey: ['films-download', firstResult?.id],
     queryFn: async () => {
-      if (!shouldFetchFilmsDownload) {
-        console.log(`❌ [FILMS DOWNLOAD] Not fetching because tmdb_id mismatch: ${firstResult?.tmdb_id} !== ${movieId}`);
-        return null;
+      // Double vérification : ne jamais faire la requête si les IDs ne correspondent pas
+      if (firstResult?.tmdb_id !== movieId) {
+        console.log(`❌ [FILMS DOWNLOAD] Blocked: tmdb_id mismatch (${firstResult?.tmdb_id} !== ${movieId})`);
+        throw new Error(`TMDB ID mismatch: search returned ${firstResult?.tmdb_id} but expected ${movieId}`);
       }
       
       // Utiliser l'ID Movix du premier résultat
       const movixId = firstResult?.id;
       if (!movixId) {
         console.log(`❌ [FILMS DOWNLOAD] No Movix ID found`);
-        return null;
+        throw new Error('No Movix ID found');
       }
       
       console.log(`✅ [FILMS DOWNLOAD] Fetching sources for Movix ID: ${movixId}`);
       const response = await fetch(`/api/movix-proxy?path=films/download/${movixId}`);
       if (!response.ok) {
         console.log(`❌ [FILMS DOWNLOAD] Response not OK: ${response.status}`);
-        return null;
+        throw new Error(`API returned ${response.status}`);
       }
       
       const data = await response.json();
       console.log(`✅ [FILMS DOWNLOAD] Sources retrieved:`, data);
       return data;
     },
-    enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id,
+    enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id && firstResult?.tmdb_id === movieId,
     staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    gcTime: 10 * 60 * 1000,
+    retry: false // Ne pas réessayer si ça échoue
   });
 
   // Get trailer
