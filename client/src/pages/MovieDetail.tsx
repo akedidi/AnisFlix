@@ -85,7 +85,7 @@ export default function MovieDetail() {
   
   // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
   const { data: filmsDownloadSources } = useQuery({
-    queryKey: ['films-download', firstResult?.id],
+    queryKey: ['films-download', movieId, firstResult?.id, shouldFetchFilmsDownload],
     queryFn: async () => {
       // Double vérification : ne jamais faire la requête si les IDs ne correspondent pas
       if (firstResult?.tmdb_id !== movieId) {
