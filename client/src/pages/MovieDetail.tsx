@@ -48,20 +48,43 @@ export default function MovieDetail() {
     processedSources: movixTmdbSources?.processedSources?.length || 0 
   });
 
-  // Récupérer les sources films/download si le tmdb_id correspond
-  const shouldFetchFilmsDownload = movixTmdbSources?.tmdb_details?.id === movieId;
-  const { data: filmsDownloadSources } = useQuery({
-    queryKey: ['films-download', movieId],
+  // Récupérer les sources films/download en cherchant par titre d'abord
+  const { data: searchResults } = useQuery({
+    queryKey: ['search-movie', movie?.title],
     queryFn: async () => {
-      if (!shouldFetchFilmsDownload) return null;
+      if (!movie?.title) return null;
       
-      const response = await fetch(`/api/movix-proxy?path=films/download/${movieId}`);
+      const response = await fetch(`/api/movix-proxy?path=search&title=${encodeURIComponent(movie.title)}`);
       if (!response.ok) return null;
       
       const data = await response.json();
       return data;
     },
-    enabled: shouldFetchFilmsDownload && !!movieId,
+    enabled: !!movie?.title,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
+  });
+
+  // Vérifier si le tmdb_id du premier résultat correspond au TMDB ID du film
+  const firstResult = searchResults?.results?.[0];
+  const shouldFetchFilmsDownload = firstResult?.tmdb_id === movieId;
+  
+  const { data: filmsDownloadSources } = useQuery({
+    queryKey: ['films-download', movieId],
+    queryFn: async () => {
+      if (!shouldFetchFilmsDownload) return null;
+      
+      // Utiliser l'ID Movix du premier résultat
+      const movixId = firstResult?.id;
+      if (!movixId) return null;
+      
+      const response = await fetch(`/api/movix-proxy?path=films/download/${movixId}`);
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      return data;
+    },
+    enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000
   });
