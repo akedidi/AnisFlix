@@ -8,9 +8,9 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     iosScheme: 'https',
     allowNavigation: ['*'],
-    // Configuration pour le développement local
-    url: 'http://localhost:3000', // Serveur de développement Express
-    cleartext: true // Permettre HTTP en local
+    // Configuration pour la production - pointer vers Vercel
+    // Pour le développement local, commenter cette ligne et laisser apiClient gérer
+    // url: 'https://anisflix.vercel.app',
   },
   ios: {
     contentInset: 'never', // Changé de 'automatic' à 'never' pour éviter les décalages
