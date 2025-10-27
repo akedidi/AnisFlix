@@ -169,7 +169,58 @@ export const tmdb = {
 
   // Search
   searchMulti: async (query: string) => {
-    return tmdbFetch('/search/multi', { query });
+    // Search across multiple languages to find titles in all languages
+    const language = getLanguage();
+    const userLang = getLanguageCode(language);
+    
+    // Search in user's language and English in parallel for maximum coverage
+    const searches = [
+      fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=${userLang}&include_adult=false`)
+    ];
+    
+    // Add English search as fallback if not already in English
+    if (language !== 'en') {
+      searches.push(
+        fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`)
+      );
+    }
+    
+    // Execute searches in parallel with error handling
+    try {
+      const responses = await Promise.allSettled(searches);
+      const results: any[] = [];
+      
+      for (const response of responses) {
+        if (response.status === 'fulfilled') {
+          const data = await response.value.json();
+          if (data.results) {
+            results.push(data);
+          }
+        }
+      }
+      
+      // Merge results, removing duplicates by ID
+      const merged: Record<number, any> = {};
+      for (const result of results) {
+        if (result.results) {
+          for (const item of result.results) {
+            if (!merged[item.id]) {
+              merged[item.id] = item;
+            }
+          }
+        }
+      }
+      
+      return {
+        results: Object.values(merged),
+        page: 1,
+        total_pages: Math.ceil(Object.keys(merged).length / 20),
+        total_results: Object.keys(merged).length
+      };
+    } catch (error) {
+      console.error('Error in searchMulti:', error);
+      return { results: [], page: 1, total_pages: 0, total_results: 0 };
+    }
   },
 
   // Genres
