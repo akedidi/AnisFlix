@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, X, Heart } from "lucide-react";
@@ -45,6 +46,24 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] useMovixTmdbSources result:', { 
     hasData: !!movixTmdbSources, 
     processedSources: movixTmdbSources?.processedSources?.length || 0 
+  });
+
+  // Récupérer les sources films/download si le tmdb_id correspond
+  const shouldFetchFilmsDownload = movixTmdbSources?.tmdb_details?.id === movieId;
+  const { data: filmsDownloadSources } = useQuery({
+    queryKey: ['films-download', movieId],
+    queryFn: async () => {
+      if (!shouldFetchFilmsDownload) return null;
+      
+      const response = await fetch(`/api/movix-proxy?path=films/download/${movieId}`);
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      return data;
+    },
+    enabled: shouldFetchFilmsDownload && !!movieId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Get trailer
@@ -123,8 +142,25 @@ export default function MovieDetail() {
     };
   }) || [];
 
+  // Ajouter les sources films/download si disponibles
+  const filmsDownloadSourcesList = filmsDownloadSources?.sources?.map((source: any, index: number) => ({
+    id: `films-download-${index}`,
+    name: 'Films Download',
+    provider: 'Films Download',
+    url: source.m3u8 || source.src,
+    type: 'm3u8' as const,
+    isTopStream: false,
+    isFStream: false,
+    isMovixDownload: true,
+    isVidMoly: false,
+    isVidzy: false,
+    isDarki: false,
+    quality: source.quality || 'HD',
+    language: source.language || 'Français'
+  })) || [];
+
   // Filtrer les sources pour exclure celles avec isDarki (mais garder les sources darkibox normales)
-  const allSources = [...sources, ...tmdbSources].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources, ...filmsDownloadSourcesList].filter(source => !source.isDarki);
 
   // Debug logs pour les sources TMDB
   console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {
