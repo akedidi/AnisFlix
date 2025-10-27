@@ -42,5 +42,8 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    hmr: {
+      overlay: false, // Désactiver l'overlay d'erreur pour les plugins web
+    },
   },
 });

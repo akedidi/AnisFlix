@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>AnisFlix</string>
+        <string>AnisFlix</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,7 +23,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen.storyboard</string>
+	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -45,40 +45,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	
-	<!-- Permissions pour les liens et la navigation -->
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsArbitraryLoadsInWebContent</key>
-		<true/>
-	</dict>
-	
-	<!-- Configuration pour les liens profonds -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.anisflix.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>anisflix</string>
-				<string>https</string>
-				<string>http</string>
-			</array>
-		</dict>
-	</array>
-	
-	<!-- Permissions pour l'accès réseau -->
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Cette application a besoin d'accéder au réseau pour diffuser du contenu.</string>
-	
-	<!-- Configuration pour le contenu web -->
-	<key>WKAppBoundDomains</key>
-	<array>
-		<string>anisflix.vercel.app</string>
-		<string>localhost</string>
-	</array>
 </dict>
 </plist>

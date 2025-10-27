@@ -10,12 +10,20 @@ html, body {
   /* Permettre le scroll vertical normal */
   height: auto;
   min-height: 100vh;
-  min-height: 100dvh;
+  /* min-height: 100dvh; - SUPPRIMÉ car peut causer des changements sur iOS */
   position: relative;
   width: 100%;
 }
 
-/* Tab bar fixe sur mobile - ne doit jamais bouger */
+/* Header avec safe area pour iOS natif */
+@media (max-width: 767px) {
+  .header-ios-safe {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important; /* Fallback 34px + 20px */
+  }
+}
+
+/* Tab bar fixe sur mobile - CSS initial, puis bloquée par JavaScript */
 @media (max-width: 767px) {
   .mobile-bottom-nav {
     position: fixed !important;
@@ -23,46 +31,32 @@ html, body {
     left: 0 !important;
     right: 0 !important;
     z-index: 999999 !important;
-    /* Solution définitive : dimensions fixes */
-    width: 100% !important;
+    width: 100vw !important;
     height: 70px !important;
-    top: auto !important;
-    /* Hardware acceleration maximale */
     transform: translate3d(0, 0, 0) !important;
     -webkit-transform: translate3d(0, 0, 0) !important;
-    /* Empêcher le bounce et les animations */
-    overscroll-behavior: none !important;
-    -webkit-overscroll-behavior: none !important;
-    /* Optimiser les performances */
-    will-change: transform !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    /* Isolation complète */
-    isolation: isolate !important;
-    contain: layout style paint !important;
-    /* Forcer la stabilité */
-    margin: 0 !important;
-    padding: 0 !important;
   }
   
-  /* Padding pour éviter que le contenu passe sous le tab bar */
+  /* Padding UNIQUE pour éviter les conflits */
   .main-content {
-    padding-bottom: 90px !important;
-    /* Permettre le scroll normal */
-    overflow-y: visible;
-    min-height: 100vh;
-    min-height: 100dvh;
-    -webkit-overflow-scrolling: touch;
+    padding-bottom: 100px !important;
+    /* Padding-top pour que le contenu commence sous la SearchBar */
+    padding-top: 100px !important;
   }
   
-  /* Permettre le scroll normal sur le body */
+  /* Sur desktop, augmenter le padding-top car la SearchBar est plus haute avec le header */
+  @media (min-width: 768px) {
+    .main-content,
+    #main-content-desktop {
+      padding-top: 200px !important;
+      margin-top: 0 !important;
+    }
+  }
+  
+  /* Body simple - pas de padding redondant */
   body {
-    overscroll-behavior: auto !important;
-    -webkit-overscroll-behavior: auto !important;
-    /* Permettre le scroll iOS */
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: auto !important;
-    -webkit-overscroll-behavior-y: auto !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -89,31 +83,14 @@ html, body {
   -webkit-bounces: false !important;
 }
 
-/* Correction spécifique pour les listes et conteneurs de scroll */
+/* Correction spécifique pour les listes et conteneurs de scroll - SIMPLIFIÉE */
 @media (max-width: 767px) {
-  /* Permettre le scroll programmatique sur mobile */
-  html, body {
-    overscroll-behavior: auto !important;
-    -webkit-overscroll-behavior: auto !important;
-  }
-  
-  .scrollable-content,
-  [data-scrollable],
-  .scroll-container,
-  .main-content {
-    /* Empêcher le bounce iOS */
-    overscroll-behavior: none !important;
-    -webkit-overscroll-behavior: none !important;
-    /* Assurer que le contenu a assez de padding en bas */
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
-    /* Empêcher que le contenu passe sous l'encoche */
-    padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
-  }
-  
-  /* Empêcher le scroll automatique sous l'encoche */
   .scrollable-content,
   [data-scrollable],
   .scroll-container {
+    /* Empêcher le bounce iOS */
+    overscroll-behavior: none !important;
+    -webkit-overscroll-behavior: none !important;
     content-inset-adjustment-behavior: never !important;
     -webkit-content-inset-adjustment-behavior: never !important;
   }
@@ -655,49 +632,14 @@ html, body {
   }
 }
 
-/* Styles pour le comportement mobile - intégrés depuis global.css */
+/* Styles pour le comportement mobile - SIMPLIFIÉS */
 @layer base {
-  /* Assurer que le menu mobile est toujours visible */
+  /* Styles mobiles simplifiés - pas de redondance */
   @media (max-width: 767px) {
-    body {
-      padding-bottom: 5rem; /* 80px pour le menu mobile + safe area */
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      position: relative;
-      /* Permettre le scroll vertical */
-      overflow-y: auto;
-    }
-    
-    /* Forcer le menu à rester en bas */
-    .mobile-bottom-nav {
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      z-index: 99999 !important;
-      transform: translate3d(0, 0, 0) !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
-      backface-visibility: hidden !important;
-      -webkit-backface-visibility: hidden !important;
-      contain: layout style paint !important;
-    }
-    
-    /* Empêcher le contenu de passer derrière la scroll bar */
     html {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      /* Permettre le scroll vertical */
       overflow-y: auto;
-    }
-    
-    /* Assurer que le contenu principal a un padding approprié */
-    .main-content {
-      padding-bottom: 5rem !important;
-      min-height: calc(100vh - 5rem);
-      position: relative;
-      z-index: 1;
-      /* Permettre le scroll normal */
-      overflow-y: visible;
     }
   }
 }
@@ -765,23 +707,16 @@ html, body {
 
 /* Force le menu mobile à rester en bas */
 @media (max-width: 767px) {
-  /* Empêcher le scroll horizontal global mais permettre le scroll vertical */
-  body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
+  /* Body déjà défini plus haut - pas de redondance */
   
-  /* Assurer que le contenu principal a un padding pour le tab bar */
-  .main-content {
+  /* Assurer que le contenu principal a un padding pour le tab bar - SUPPRIMÉ (redondant) */
+  /* .main-content {
     padding-bottom: 5rem !important;
     min-height: calc(100vh - 5rem);
     position: relative;
     z-index: 1;
-    /* Permettre le scroll normal */
     overflow-y: visible;
-  }
+  } */
   
   /* Forcer le tab bar à rester fixe */
   .mobile-bottom-nav {
@@ -799,9 +734,9 @@ html, body {
     max-width: 100vw !important;
   }
   
-  /* S'assurer que le header reste au-dessus du contenu */
+  /* S'assurer que le header reste au-dessus du contenu ET de la SearchBar */
   .bg-background\/95 {
-    z-index: 50 !important;
+    z-index: 1000000 !important; /* Au-dessus de la SearchBar (999999) */
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;

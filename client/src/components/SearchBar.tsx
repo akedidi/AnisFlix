@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { Search, X, Tv } from "lucide-react";
+import { Search, X, Tv, Film } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
@@ -34,7 +34,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Hook pour configurer le clavier de recherche
+  // Hook pour configurer le clavier de recherche - RÉACTIVÉ avec modifications
   useKeyboardSearch();
 
   useEffect(() => {
@@ -150,9 +150,6 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           // Attributs recommandés pour le clavier de recherche
           inputMode="search"
           enterKeyHint="search"
-          // Attributs HTML natifs (minuscules)
-          inputmode="search"
-          enterkeyhint="search"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -196,7 +193,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            zIndex: 2147483647,
+            zIndex: 999999,
             backgroundColor: 'rgba(0, 0, 0, 0.95)',
             backdropFilter: 'blur(20px)'
           }}
@@ -208,7 +205,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 e.preventDefault();
                 handleSelectItem(item);
               }}
-              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
+              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors min-h-[72px]"
               data-testid={`search-result-${item.id}`}
             >
               {item.posterPath ? (
@@ -220,9 +217,12 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                         alt={item.title}
                         className="w-full h-full object-contain scale-110"
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.style.display = 'flex';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const fallback = parent.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                            parent.style.display = 'none';
+                          }
                         }}
                       />
                     </div>
@@ -231,7 +231,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                     <img
                       src={getOptimizedImageUrl(item.posterPath, 'w92')}
                       alt={item.title}
-                      className="w-12 h-18 object-cover rounded"
+                      className="w-12 h-16 object-cover rounded flex-shrink-0"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                         const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -239,13 +239,19 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                       }}
                     />
                   )
-              ) : null}
-              <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-18'} bg-white/10 rounded flex items-center justify-center`} style={{ display: item.posterPath ? 'none' : 'flex' }}>
-                <Tv className="w-6 h-6 text-white/70" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
-                <div className="flex items-center gap-2 mt-1">
+              ) : (
+                // Affichage fallback si pas de posterPath - cadre blanc avec hauteur fixe
+                <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-16'} bg-white border border-gray-200 rounded flex items-center justify-center shadow-sm flex-shrink-0`}>
+                  {item.mediaType === "tv" ? (
+                    <Tv className="w-6 h-6 text-gray-400" />
+                  ) : (
+                    <Film className="w-6 h-6 text-gray-400" />
+                  )}
+                </div>
+              )}
+              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                <h4 className="font-medium text-sm truncate text-white leading-snug">{item.title}</h4>
+                <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                     {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>

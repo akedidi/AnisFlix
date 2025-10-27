@@ -5,7 +5,7 @@ import { getVidzyM3u8Link } from "./vidzy-scraper";
 import { extractVidSrcM3u8, vidsrcScraper } from "./vidsrc-scraper";
 import { registerHLSProxyRoutes } from "./hls-proxy";
 import axios from "axios";
-import https from "https";
+import https from "https"; // Toujours utilisé pour d'autres routes
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -14,7 +14,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
-  // Route proxy pour l'API Movix TMDB via Vercel
+  // Route proxy unifiée pour l'API Movix (similaire à api/movix-proxy/index.js)
+  app.get("/api/movix-proxy", async (req, res) => {
+    try {
+      const { path, ...queryParams } = req.query;
+      
+      if (!path) {
+        return res.status(400).json({ error: 'Paramètre "path" manquant' });
+      }
+
+      // Décoder le path pour éviter le double encodage
+      const decodedPath = decodeURIComponent(path as string);
+      
+      // Déterminer le type de requête pour améliorer les logs
+      const isTmdbRequest = decodedPath.startsWith('tmdb/');
+      const isAnimeRequest = decodedPath.startsWith('anime/search/');
+      
+      if (isTmdbRequest) {
+        console.log(`🚀 [MOVIX TMDB] Fetching sources for: ${decodedPath}`);
+      } else {
+        console.log(`[MOVIX PROXY] Path: ${path}`);
+        console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
+      }
+      
+      // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
+      let movixUrl;
+      if (isAnimeRequest) {
+        movixUrl = `https://api.movix.site/${decodedPath}`;
+      } else {
+        movixUrl = `https://api.movix.site/api/${decodedPath}`;
+      }
+      
+      const url = new URL(movixUrl);
+      
+      // Ajouter les query parameters
+      Object.entries(queryParams).forEach(([key, value]) => {
+        if (key !== 'path') {
+          url.searchParams.append(key, String(value));
+        }
+      });
+
+      if (isTmdbRequest) {
+        console.log(`[MOVIX TMDB] URL: ${url.toString()}`);
+      } else {
+        console.log(`[MOVIX PROXY] Requête vers: ${url.toString()}`);
+      }
+
+      // Faire la requête vers Movix
+      const response = await axios.get(url.toString(), {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Referer': 'https://movix.site/',
+          'Origin': 'https://movix.site',
+        },
+        timeout: 15000,
+        validateStatus: (status) => status < 500, // Accepter les 4xx mais pas les 5xx
+      });
+
+      if (isTmdbRequest) {
+        console.log(`[MOVIX TMDB] Response status: ${response.status}`);
+      } else {
+        console.log(`[MOVIX PROXY] Réponse reçue: ${response.status} ${response.statusText}`);
+      }
+
+      // Si la réponse est un succès, renvoyer les données
+      if (response.status >= 200 && response.status < 300) {
+        res.status(response.status).json(response.data);
+      } else {
+        // Pour les erreurs 4xx, renvoyer l'erreur avec le bon status
+        res.status(response.status).json({
+          error: isTmdbRequest ? 'Erreur API Movix TMDB' : 'Erreur API Movix',
+          status: response.status,
+          message: response.statusText,
+          data: response.data
+        });
+      }
+
+    } catch (error: any) {
+      const isTmdbRequest = req.query.path && typeof req.query.path === 'string' && decodeURIComponent(req.query.path).startsWith('tmdb/');
+      const errorPrefix = isTmdbRequest ? '[MOVIX TMDB ERROR]' : '[MOVIX PROXY ERROR]';
+      
+      console.error(errorPrefix, error.message);
+      
+      if (error.response) {
+        console.error(errorPrefix, 'Détails:', error.response.data);
+        res.status(error.response.status).json({
+          error: isTmdbRequest ? 'Erreur proxy Movix TMDB' : 'Erreur proxy Movix',
+          status: error.response.status,
+          message: error.response.statusText,
+          details: error.message
+        });
+      } else if (error.request) {
+        console.error(errorPrefix, 'Pas de réponse du serveur Movix');
+        res.status(502).json({
+          error: isTmdbRequest ? 'Erreur réseau Movix TMDB' : 'Erreur réseau Movix',
+          message: `Impossible de contacter l'API Movix${isTmdbRequest ? ' TMDB' : ''}`,
+          details: error.message
+        });
+      } else {
+        console.error(errorPrefix, 'Erreur:', error.message);
+        res.status(500).json({
+          error: isTmdbRequest ? 'Erreur serveur proxy Movix TMDB' : 'Erreur serveur proxy Movix',
+          message: 'Erreur interne du serveur',
+          details: error.message
+        });
+      }
+    }
+  });
+
+  // Route proxy pour l'API Movix TMDB (pour compatibilité)
+  // Utilise maintenant la route movix-proxy locale avec le paramètre path=tmdb
   app.get("/api/movix-tmdb", async (req, res) => {
     try {
       const { movieId } = req.query;
@@ -25,19 +136,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[MOVIX TMDB] Fetching sources for movie: ${movieId}`);
       
-      // Utiliser le proxy Vercel pour éviter le blocage DNS
-      const proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=tmdb/movie/${movieId}`;
-      console.log(`[MOVIX TMDB] Proxy URL: ${proxyUrl}`);
+      // Utiliser le proxy local unifié avec le paramètre path
+      const proxyUrl = `http://localhost:3000/api/movix-proxy?path=tmdb/movie/${movieId}`;
+      console.log(`[MOVIX TMDB] Proxy URL locale: ${proxyUrl}`);
       
       const response = await axios.get(proxyUrl, {
         timeout: 15000,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           'Accept': 'application/json',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache'
-        },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false })
+        }
       });
       
       console.log(`[MOVIX TMDB] Response status: ${response.status}`);
@@ -135,7 +242,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Route pour récupérer les sources Darkibox pour les films et séries via proxy Vercel
   app.get("/api/darkibox", async (req, res) => {
     try {
-      const { seriesId, season, episode, movieId } = req.query;
+      const { seriesId, season, episode, movieId, url } = req.query;
+
+      // Vérifier si c'est une requête avec paramètre url (mode proxy)
+      if (url) {
+        // Mode proxy - faire passer l'URL directement sans traitement supplémentaire
+        try {
+          const decodedUrl = decodeURIComponent(url as string);
+          console.log(`[DARKIBOX PROXY] Mode proxy - URL: ${decodedUrl}`);
+          console.log(`[DARKIBOX PROXY] Type de req.query: ${typeof req.query}, url query param: ${url}`);
+          
+          const response = await axios.get(decodedUrl, {
+            timeout: 10000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Referer': 'https://darkibox.com/',
+              'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+              ...(req.headers.range && { 'Range': req.headers.range as string })
+            },
+            validateStatus: function (status) {
+              return status < 500; // Accepter les codes < 500
+            }
+          });
+
+          if (response.status === 403) {
+            return res.status(404).json({ error: 'Accès refusé au stream' });
+          }
+
+          if (response.status !== 200) {
+            return res.status(404).json({ error: `Erreur HTTP ${response.status}` });
+          }
+
+          // Si c'est une playlist M3U8, la réécrire pour proxifier les segments
+          console.log(`[DARKIBOX PROXY] URL contient .m3u8: ${decodedUrl.includes('.m3u8')}, type response.data: ${typeof response.data}`);
+          if (decodedUrl.includes('.m3u8') && typeof response.data === 'string') {
+            let playlistContent = response.data;
+            console.log(`[DARKIBOX PROXY] Playlist M3U8 détectée (${playlistContent.length} caractères)`);
+            
+            // Fonction pour proxifier une URL
+            const proxifyUrl = (url: string) => {
+              if (url.includes('anisflix.vercel.app') || url.includes('localhost:3000')) {
+                return url;
+              }
+              return `/api/darkibox?url=${encodeURIComponent(url)}`;
+            };
+            
+            // Réécrire les URLs dans les attributs URI="..." (pour les balises #EXT-X-MEDIA, etc.)
+            playlistContent = playlistContent.replace(/URI="([^"]+\.(m3u8|ts)[^"]*)"/g, (match, url) => {
+              return `URI="${proxifyUrl(url)}"`;
+            });
+            
+            // Réécrire les URLs qui sont seules sur une ligne (segments .ts)
+            playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, proxifyUrl);
+            
+            // Réécrire les URLs qui sont seules sur une ligne (playlists .m3u8)
+            playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, proxifyUrl);
+            
+            console.log(`[DARKIBOX PROXY] Playlist M3U8 réécrite avec proxy`);
+            
+            // Retourner la playlist modifiée
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.end(playlistContent);
+            return;
+          }
+
+          // Pour les autres types de contenu (segments TS, etc.), faire un proxy direct
+          res.setHeader('Content-Type', response.headers['content-type'] || 'application/vnd.apple.mpegurl');
+          if (response.headers['content-length']) {
+            res.setHeader('Content-Length', response.headers['content-length']);
+          }
+          if (response.headers['accept-ranges']) {
+            res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+          }
+          if (req.headers.range) {
+            res.status(206); // Partial Content
+          }
+
+          // Si c'est un stream, utiliser pipe, sinon envoyer directement
+          if (response.data.pipe) {
+            response.data.pipe(res);
+          } else {
+            res.end(response.data);
+          }
+          return;
+        } catch (error: any) {
+          console.error(`[DARKIBOX PROXY] Erreur:`, error.message);
+          return res.status(500).json({ error: 'Erreur lors du proxy' });
+        }
+      }
 
       // Déterminer si c'est un film ou une série
       const isMovie = !!movieId;
@@ -143,19 +338,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!isMovie && !isSeries) {
         return res.status(400).json({ 
-          error: 'movieId ou (seriesId, season, episode) sont requis' 
+          error: 'movieId, (seriesId, season, episode) ou url sont requis' 
         });
       }
 
       const id = isMovie ? movieId : seriesId;
       console.log(`[DARKIBOX] Mode ${isMovie ? 'film' : 'série'} - ID: ${id}`);
 
-      // Utiliser le proxy Vercel pour contourner le blocage
+      // Utiliser le proxy local
       let proxyUrl;
       if (isMovie) {
-        proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=films/download/${id}`;
+        proxyUrl = `http://localhost:3000/api/movix-proxy?path=films/download/${id}`;
       } else {
-        proxyUrl = `https://anisflix.vercel.app/api/movix-proxy?path=series/download/${id}/season/${season}/episode/${episode}`;
+        proxyUrl = `http://localhost:3000/api/movix-proxy?path=series/download/${id}/season/${season}/episode/${episode}`;
       }
       
       console.log(`[DARKIBOX] Proxy URL: ${proxyUrl}`);

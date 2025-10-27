@@ -19,7 +19,6 @@ const isCapacitor = () => {
   const isMobileWeb = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
   
   if (isMobileWeb) {
-    console.log(`[CAPACITOR DETECTION] Mobile web détecté - Forçage false`);
     return false;
   }
   
@@ -28,7 +27,6 @@ const isCapacitor = () => {
   const hasCapacitorPlugins = (window as any).Capacitor?.Plugins !== undefined;
   const isNativeApp = hasCapacitor && hasCapacitorPlugins;
   
-  console.log(`[CAPACITOR DETECTION] hasCapacitor: ${hasCapacitor}, hasPlugins: ${hasCapacitorPlugins}, isNativeApp: ${isNativeApp}`);
   
   return isNativeApp;
 };
@@ -113,29 +111,18 @@ function App() {
     const isCapacitorApp = isCapacitor();
     const splashShown = sessionStorage.getItem('splash-shown');
     
-    console.log('🎬 [SPLASH DEBUG] isCapacitor:', isCapacitorApp);
-    console.log('🎬 [SPLASH DEBUG] splash-shown:', splashShown);
-    console.log('🎬 [SPLASH DEBUG] userAgent:', navigator.userAgent);
-    console.log('🎬 [SPLASH DEBUG] window.Capacitor:', (window as any).Capacitor);
-    console.log('🎬 [SPLASH DEBUG] location.href:', window.location.href);
-    console.log('🎬 [SPLASH DEBUG] location.protocol:', window.location.protocol);
     
     // Détection plus robuste pour mobile natif
     const isWeb = window.location.protocol === 'http:' || window.location.protocol === 'https:';
     const hasCapacitor = (window as any).Capacitor !== undefined;
     const isNative = !isWeb && hasCapacitor;
     
-    console.log('🎬 [SPLASH DEBUG] isWeb:', isWeb);
-    console.log('🎬 [SPLASH DEBUG] hasCapacitor:', hasCapacitor);
-    console.log('🎬 [SPLASH DEBUG] isNative:', isNative);
     
     // Afficher le splash SEULEMENT sur mobile natif (pas web ET avec Capacitor)
     if (!isNative) {
-      console.log('🎬 [SPLASH DEBUG] Pas sur natif - Pas de splash');
       return false;
     }
     
-    console.log('🎬 [SPLASH DEBUG] Sur natif - Vérifier si déjà affiché');
     return !splashShown;
   });
 

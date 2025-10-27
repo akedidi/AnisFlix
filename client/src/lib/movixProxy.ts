@@ -7,16 +7,26 @@ export class MovixProxyClient {
   private baseUrl: string;
 
   constructor() {
-    // Utiliser l'URL appropriée selon l'environnement
-    const isCapacitorDev = typeof window !== 'undefined' && 
-      window.location.href.includes('capacitor://localhost');
+    // En mode natif Capacitor, TOUJOURS utiliser l'URL de production Vercel
+    const isCapacitor = typeof window !== 'undefined' && 
+      (window as any).Capacitor !== undefined;
     
-    if (isCapacitorDev) {
-      this.baseUrl = 'http://localhost:3000';
-      console.log('🔍 MovixProxyClient - Utilisation du serveur local en développement');
-    } else {
+    // Vérifier si nous sommes en développement local
+    const isLocalDev = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    
+    if (isCapacitor) {
+      // En mode natif Capacitor, toujours utiliser l'URL de production Vercel
       this.baseUrl = 'https://anisflix.vercel.app';
-      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel en production');
+      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel (mode natif)');
+    } else if (isLocalDev) {
+      // En développement local web, utiliser localhost
+      this.baseUrl = 'http://localhost:3000';
+      console.log('🔍 MovixProxyClient - Utilisation du proxy local (mode développement)');
+    } else {
+      // En production web, utiliser Vercel
+      this.baseUrl = 'https://anisflix.vercel.app';
+      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel (mode web)');
     }
     
     console.log('🔍 MovixProxyClient - baseUrl:', this.baseUrl);

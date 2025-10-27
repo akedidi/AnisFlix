@@ -33,8 +33,9 @@ export function useOffline() {
         lastOnlineCheckRef.current = Date.now();
       }
     } catch (error) {
-      // Pas de connexion
-      if (!isOffline) {
+      // Pas de connexion - mais ne pas changer l'état si on est déjà offline
+      // pour éviter les changements quand localhost n'est pas lancé
+      if (!isOffline && navigator.onLine) {
         console.log('🌐 [CONNEXION] Pas de connexion détectée - passage hors ligne');
         setIsOffline(true);
       }

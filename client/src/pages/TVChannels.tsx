@@ -165,7 +165,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
   console.log(`[PROXY URL] isCapacitor(): ${isCapacitor()}`);
   
   // Utiliser l'API client pour obtenir la bonne URL de base
-  const baseUrl = apiClient.getBaseUrl();
+  const baseUrl = apiClient.getPublicBaseUrl();
   console.log(`[PROXY URL] baseUrl (API client): ${baseUrl}`);
   
   // Pour hls_segments, TOUJOURS utiliser le proxy (même sur mobile web)
@@ -381,7 +381,7 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "france4": "france 4", 
   "france5": "france 5",
   "m6": "m6",
-  "arte": "arte.tv", // Exact match dans l'API
+  "arte": "arte",
   "tfx": "tfx",
   "canal-plus": "canal+",
   "tmc": "tmc",
@@ -411,16 +411,16 @@ const CHANNEL_NAME_MAPPING: Record<string, string> = {
   "lequipe-tv": "l'équipe tv",
   
   // Fiction & Série - correspondances exactes
-  "syfy": "syfy", // Exact match dans l'API
+  "syfy": "syfy",
   
   // Jeunesse - correspondances exactes
   "game-one": "game one",
   "mangas": "mangas",
-  "boomerang": "boomerang", // Exact match dans l'API
-  "cartoon-network": "cartoon network", // Exact match dans l'API
+  "boomerang": "boomerang",
+  "cartoon-network": "cartoon network",
   
   // Découverte - correspondances exactes
-  "natgeo": "national geographic", // Exact match dans l'API
+  "natgeo": "national geographic",
   "natgeo-wild": "national geographic wild",
   
   // Cinéma
@@ -463,13 +463,6 @@ const LOCAL_CHANNEL_LOGOS: Record<string, string> = {
 // Fonction pour obtenir l'URL du logo depuis l'API jaruba
 const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
   try {
-    // D'abord, vérifier les logos locaux
-    const localLogo = LOCAL_CHANNEL_LOGOS[channelId];
-    if (localLogo) {
-      console.log(`[LOGO LOCAL] Logo local trouvé pour ${channelId}: ${localLogo}`);
-      return localLogo;
-    }
-    
     const channelName = CHANNEL_NAME_MAPPING[channelId];
     console.log(`[LOGO API] Recherche logo pour ${channelId} -> ${channelName}`);
     
@@ -482,9 +475,9 @@ const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
     const logos = await response.json();
     console.log(`[LOGO API] API chargée, ${Object.keys(logos).length} logos disponibles`);
     
-    // Chercher le logo correspondant (insensible à la casse)
+    // Chercher UNIQUEMENT la correspondance exacte en minuscules
     const logoPath = logos[channelName.toLowerCase()];
-    console.log(`[LOGO API] Recherche "${channelName.toLowerCase()}" -> ${logoPath ? 'TROUVÉ' : 'NON TROUVÉ'}`);
+    console.log(`[LOGO API] Recherche exacte "${channelName.toLowerCase()}" -> ${logoPath ? 'TROUVÉ' : 'NON TROUVÉ'}`);
     
     if (logoPath) {
       const fullUrl = `https://jaruba.github.io/channel-logos/export/transparent-color${logoPath}`;
@@ -492,23 +485,8 @@ const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
       return fullUrl;
     }
     
-    // Essayer des variations du nom
-    const variations = [
-      channelName.toLowerCase(),
-      channelName.toLowerCase().replace(/\s+/g, ''),
-      channelName.toLowerCase().replace(/[^a-z0-9]/g, ''),
-      channelName.toLowerCase().replace(/\s+/g, '-'),
-    ];
-    
-    for (const variation of variations) {
-      if (logos[variation]) {
-        const fullUrl = `https://jaruba.github.io/channel-logos/export/transparent-color${logos[variation]}`;
-        console.log(`[LOGO API] Trouvé avec variation "${variation}": ${fullUrl}`);
-        return fullUrl;
-      }
-    }
-    
-    console.log(`[LOGO API] Aucun logo trouvé pour ${channelName} (essayé: ${variations.join(', ')})`);
+    // Si pas trouvé, retourner null (affichage vide)
+    console.log(`[LOGO API] Aucun logo trouvé pour ${channelName.toLowerCase()}`);
     return null;
   } catch (error) {
     console.error(`[LOGO API] Erreur lors du chargement des logos:`, error);

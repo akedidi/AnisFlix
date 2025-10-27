@@ -5,9 +5,21 @@ export class ApiClient {
   private baseUrl: string;
 
   constructor() {
+    // Initialiser avec l'URL par défaut
+    // Sera recalculé au moment de la première requête
+    this.baseUrl = this.determineBaseUrl();
+  }
+
+  /**
+   * Détermine l'URL de base selon la plateforme
+   * Appelé à chaque requête pour être sûr d'avoir les bonnes infos
+   */
+  private determineBaseUrl(): string {
     // Déterminer l'URL de base selon la plateforme
     const isCapacitor = typeof window !== 'undefined' && 
       (window as any).Capacitor !== undefined;
+    
+    console.log('🔍 [API CLIENT] determineBaseUrl called at:', new Date().toISOString());
     
     // Vérifier si nous sommes en développement local
     const isLocalDev = typeof window !== 'undefined' && 
@@ -25,26 +37,37 @@ export class ApiClient {
       href: typeof window !== 'undefined' ? window.location.href : 'undefined'
     });
     
-    // En développement local (web ou Capacitor), TOUJOURS utiliser l'URL locale
-    if (isLocalDev || isCapacitorDev) {
-      this.baseUrl = 'http://localhost:3000';
-      console.log(`[API CLIENT] Using local development server: ${this.baseUrl}`);
+    // En développement local (web uniquement), utiliser l'URL locale
+    if (isLocalDev && !isCapacitor) {
+      const url = 'http://localhost:3000';
+      console.log(`[API CLIENT] Using local development server: ${url}`);
+      return url;
     } else if (isCapacitor) {
-      // En mode natif production, utiliser l'URL de production Vercel
-      this.baseUrl = 'https://anisflix.vercel.app';
-      console.log(`[API CLIENT] Using production server: ${this.baseUrl}`);
+      // En mode natif Capacitor, toujours utiliser l'URL de production Vercel (même en dev)
+      const url = 'https://anisflix.vercel.app';
+      console.log(`[API CLIENT] Using production server: ${url}`);
+      return url;
     } else {
       // En mode web, utiliser l'origine actuelle
-      this.baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
-      console.log(`[API CLIENT] Using current origin: ${this.baseUrl}`);
+      const url = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
+      console.log(`[API CLIENT] Using current origin: ${url}`);
+      return url;
     }
+  }
+
+  /**
+   * Obtient l'URL de base (recalculée à chaque appel)
+   */
+  private getBaseUrl(): string {
+    return this.determineBaseUrl();
   }
 
   /**
    * Effectue une requête API avec gestion automatique de l'URL
    */
   async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const baseUrl = this.getBaseUrl();
+    const url = `${baseUrl}${endpoint}`;
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
@@ -59,9 +82,18 @@ export class ApiClient {
       },
     };
 
+    // Debug log pour voir si on passe ici
+    console.log(`🌐 [API CLIENT] request() called with endpoint: ${endpoint}`);
+    console.log(`🌐 [API CLIENT] Calculated URL: ${url}`);
     console.log(`🌐 API Request: ${config.method || 'GET'} ${url}`);
     
+    // Vérifier si nous sommes dans Capacitor
+    const isCapacitor = typeof window !== 'undefined' && 
+      (window as any).Capacitor !== undefined;
+    console.log(`🔍 [API CLIENT] isCapacitor: ${isCapacitor}`);
+    
     try {
+      console.log(`🔍 [API CLIENT] About to call fetch...`);
       const response = await fetch(url, config);
       console.log(`📡 API Response: ${response.status} ${response.statusText}`);
       return response;
@@ -133,19 +165,21 @@ export class ApiClient {
    * Proxy VidMoly avec gestion Capacitor
    */
   getVidMolyProxyUrl(url: string, referer?: string): string {
+    const baseUrl = this.getBaseUrl();
     const params = new URLSearchParams({
       url: encodeURIComponent(url),
       referer: encodeURIComponent(referer || 'https://vidmoly.net/')
     });
     
-    return `${this.baseUrl}/api/vidmoly?${params.toString()}`;
+    return `${baseUrl}/api/vidmoly?${params.toString()}`;
   }
 
   /**
    * Obtient l'URL de base appropriée pour les requêtes
+   * (accessible publiquement pour les cas où on a besoin de l'URL)
    */
-  getBaseUrl(): string {
-    return this.baseUrl;
+  getPublicBaseUrl(): string {
+    return this.getBaseUrl();
   }
 }
 

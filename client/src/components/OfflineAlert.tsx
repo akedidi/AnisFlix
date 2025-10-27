@@ -51,7 +51,7 @@ export default function OfflineAlert({ onRefresh, showRefreshButton = true }: Of
   // Message de reconnexion
   if (isNative && reconnectionMessage) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-[100] p-4">
+      <div className="fixed top-24 left-0 right-0 z-[100] p-4">
         <Alert className="border-green-500 bg-green-500/10">
           <Wifi className="h-4 w-4 text-green-500" />
           <AlertDescription className="text-green-500">
@@ -68,7 +68,7 @@ export default function OfflineAlert({ onRefresh, showRefreshButton = true }: Of
   // Indicateur de vérification de connexion
   if (isNative && isCheckingConnection && !isOffline) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-[100] p-4">
+      <div className="fixed top-24 left-0 right-0 z-[100] p-4">
         <Alert className="border-blue-500 bg-blue-500/10">
           <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />
           <AlertDescription className="text-blue-500">

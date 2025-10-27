@@ -2,7 +2,8 @@ import { Home, Film, Tv, Radio, Heart, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
 // import { useTabBarDiagnostic } from "../hooks/useTabBarDiagnostic";
 
 export default function BottomNav() {
@@ -10,10 +11,45 @@ export default function BottomNav() {
   const { t } = useLanguage();
   const { isOffline } = useOffline();
   
-  // Diagnostic de la tab bar (désactivé temporairement pour Vercel)
-  // const { navRef } = useTabBarDiagnostic(true);
+  // Utiliser la hauteur réelle du viewport (compatible iOS)
+  const viewportHeight = useViewportHeight();
+  
+  // État pour bloquer la position après le changement initial
+  const [isPositionLocked, setIsPositionLocked] = useState(false);
+  const [lockedBottom, setLockedBottom] = useState(0);
+  
   const navRef = useRef<HTMLElement>(null);
 
+  // Log de la hauteur du viewport pour debug (désactivé en production)
+  // useEffect(() => {
+  //   const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+  //   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  //   console.log('📏 [BOTTOMNAV] Viewport height:', viewportHeight, '| Capacitor:', isCapacitor, '| iOS:', isIOS, '| Offline:', isOffline);
+  // }, [viewportHeight, isOffline]);
+
+  // Corriger la position de la tab bar qui remonte de +34px (iOS natif uniquement)
+  useEffect(() => {
+    // Vérifier si on est sur iOS natif (Capacitor)
+    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isCapacitor && isIOS && navRef.current && !isPositionLocked) {
+      // Si la hauteur a changé (probablement de 778 à 812), corriger la position
+      if (viewportHeight >= 800) { // Seuil pour détecter le changement
+        const correctedBottom = -34; // Corriger en descendant de 34px
+        setLockedBottom(correctedBottom);
+        setIsPositionLocked(true);
+        console.log('🔒 [BOTTOMNAV] Position corrigée à:', correctedBottom, 'px (iOS natif - descend de 34px)');
+        
+        // Appliquer le style de position fixe avec correction
+        navRef.current.style.position = 'fixed';
+        navRef.current.style.bottom = `${correctedBottom}px`;
+        navRef.current.style.left = '0';
+        navRef.current.style.right = '0';
+        navRef.current.style.zIndex = '999999';
+      }
+    }
+  }, [viewportHeight, isPositionLocked]);
 
   // Reset scroll to top when location changes
   useEffect(() => {
@@ -28,8 +64,8 @@ export default function BottomNav() {
       console.error('Erreur lors de l\'effacement des positions de scroll:', error);
     }
     
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll to top - TEMPORAIREMENT DÉSACTIVÉ pour tester
+    // window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location]);
 
 
@@ -47,30 +83,6 @@ export default function BottomNav() {
       <nav 
         ref={navRef}
         className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999999,
-          width: '100%',
-          height: '70px',
-          // Solution définitive : utiliser une position fixe absolue
-          top: 'auto',
-          // Hardware acceleration maximale
-          transform: 'translate3d(0, 0, 0)',
-          WebkitTransform: 'translate3d(0, 0, 0)',
-          // Empêcher tout mouvement
-          margin: 0,
-          padding: 0,
-          // Isolation complète
-          isolation: 'isolate',
-          contain: 'layout style paint',
-          // Optimisations
-          willChange: 'transform',
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden'
-        }}
       >
         <div className="flex items-center justify-around h-16 w-full max-w-full overflow-hidden pb-2">
           {navItems.map((item) => {

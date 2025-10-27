@@ -22,6 +22,7 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
+  console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean } | null>(null);
@@ -39,7 +40,12 @@ export default function MovieDetail() {
   const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
   
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
+  console.log('🔍 [MOVIE DETAIL] About to call useMovixTmdbSources with movieId:', movieId);
   const { data: movixTmdbSources } = useMovixTmdbSources(movieId);
+  console.log('🔍 [MOVIE DETAIL] useMovixTmdbSources result:', { 
+    hasData: !!movixTmdbSources, 
+    processedSources: movixTmdbSources?.processedSources?.length || 0 
+  });
 
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
@@ -117,7 +123,8 @@ export default function MovieDetail() {
     };
   }) || [];
 
-  const allSources = [...sources, ...tmdbSources];
+  // Filtrer les sources pour exclure celles avec isDarki (mais garder les sources darkibox normales)
+  const allSources = [...sources, ...tmdbSources].filter(source => !source.isDarki);
 
   // Debug logs pour les sources TMDB
   console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {

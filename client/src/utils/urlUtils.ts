@@ -18,17 +18,17 @@ export function getBaseUrl(): string {
   const isCapacitorDev = typeof window !== 'undefined' && 
     window.location.href.includes('capacitor://localhost');
   
-  // En développement local (web ou Capacitor), TOUJOURS utiliser l'URL locale
-  if (isLocalDev || isCapacitorDev) {
+  // En développement local (web uniquement), utiliser l'URL locale
+  if (isLocalDev && !isCapacitor) {
     return 'http://localhost:3000';
   }
   
   if (isCapacitor) {
-    // En mode natif production, utiliser l'URL de production Vercel
+    // En mode natif Capacitor, toujours utiliser l'URL de production Vercel
     return 'https://anisflix.vercel.app';
   } else {
     // En mode web, utiliser l'origine actuelle
-    return typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    return typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
   }
 }
 

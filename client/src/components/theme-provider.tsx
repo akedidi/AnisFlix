@@ -39,19 +39,28 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
-
+    // Solution : Ne pas supprimer toutes les classes d'un coup
+    // Vérifier d'abord quelle classe est actuellement appliquée
+    const currentTheme = root.classList.contains("dark") ? "dark" : "light"
+    
+    // Seulement changer si nécessaire
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
         .matches
         ? "dark"
         : "light"
-
-      root.classList.add(systemTheme)
+      
+      if (currentTheme !== systemTheme) {
+        root.classList.remove(currentTheme)
+        root.classList.add(systemTheme)
+      }
       return
     }
 
-    root.classList.add(theme)
+    if (currentTheme !== theme) {
+      root.classList.remove(currentTheme)
+      root.classList.add(theme)
+    }
   }, [theme])
 
   const value = {

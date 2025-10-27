@@ -40,12 +40,21 @@ export default async function handler(req, res) {
     // Construire l'URL Movix
     // Décoder le path pour éviter le double encodage
     const decodedPath = decodeURIComponent(path);
-    console.log(`[MOVIX PROXY] Path original: ${path}`);
-    console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
+    
+    // Déterminer le type de requête pour améliorer les logs
+    const isTmdbRequest = decodedPath.startsWith('tmdb/');
+    const isAnimeRequest = decodedPath.startsWith('anime/search/');
+    
+    if (isTmdbRequest) {
+      console.log(`🚀 [MOVIX TMDB] Fetching sources for: ${decodedPath}`);
+    } else {
+      console.log(`[MOVIX PROXY] Path original: ${path}`);
+      console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
+    }
     
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
-    if (decodedPath.startsWith('anime/search/')) {
+    if (isAnimeRequest) {
       movixUrl = `https://api.movix.site/${decodedPath}`;
     } else {
       movixUrl = `https://api.movix.site/api/${decodedPath}`;
@@ -59,7 +68,11 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log(`[MOVIX PROXY] Requête vers: ${url.toString()}`);
+    if (isTmdbRequest) {
+      console.log(`[MOVIX TMDB] URL: ${url.toString()}`);
+    } else {
+      console.log(`[MOVIX PROXY] Requête vers: ${url.toString()}`);
+    }
 
     // Faire la requête vers Movix
     const response = await axios.get(url.toString(), {
@@ -68,7 +81,11 @@ export default async function handler(req, res) {
       validateStatus: (status) => status < 500, // Accepter les 4xx mais pas les 5xx
     });
 
-    console.log(`[MOVIX PROXY] Réponse reçue: ${response.status} ${response.statusText}`);
+    if (isTmdbRequest) {
+      console.log(`[MOVIX TMDB] Response status: ${response.status}`);
+    } else {
+      console.log(`[MOVIX PROXY] Réponse reçue: ${response.status} ${response.statusText}`);
+    }
 
     // Si la réponse est un succès, renvoyer les données
     if (response.status >= 200 && response.status < 300) {
@@ -76,7 +93,7 @@ export default async function handler(req, res) {
     } else {
       // Pour les erreurs 4xx, renvoyer l'erreur avec le bon status
       res.status(response.status).json({
-        error: 'Erreur API Movix',
+        error: isTmdbRequest ? 'Erreur API Movix TMDB' : 'Erreur API Movix',
         status: response.status,
         message: response.statusText,
         data: response.data
@@ -84,34 +101,37 @@ export default async function handler(req, res) {
     }
 
   } catch (error) {
-    console.error('[MOVIX PROXY ERROR]', error.message);
+    const isTmdbRequest = req.query.path && decodeURIComponent(req.query.path).startsWith('tmdb/');
+    const errorPrefix = isTmdbRequest ? '[MOVIX TMDB ERROR]' : '[MOVIX PROXY ERROR]';
+    
+    console.error(errorPrefix, error.message);
     
     if (error.response) {
       // Erreur de réponse HTTP
-      console.error(`[MOVIX PROXY ERROR] Status: ${error.response.status}`);
-      console.error(`[MOVIX PROXY ERROR] Data:`, error.response.data);
+      console.error(`${errorPrefix} Status: ${error.response.status}`);
+      console.error(`${errorPrefix} Data:`, error.response.data);
       
       res.status(502).json({
-        error: 'Erreur proxy Movix',
+        error: isTmdbRequest ? 'Erreur proxy Movix TMDB' : 'Erreur proxy Movix',
         status: error.response.status,
         message: error.response.statusText,
         details: error.message
       });
     } else if (error.request) {
       // Erreur de réseau
-      console.error('[MOVIX PROXY ERROR] Pas de réponse reçue');
+      console.error(`${errorPrefix} Pas de réponse reçue`);
       
       res.status(502).json({
-        error: 'Erreur réseau Movix',
-        message: 'Impossible de contacter l\'API Movix',
+        error: isTmdbRequest ? 'Erreur réseau Movix TMDB' : 'Erreur réseau Movix',
+        message: `Impossible de contacter l'API Movix${isTmdbRequest ? ' TMDB' : ''}`,
         details: error.message
       });
     } else {
       // Autre erreur
-      console.error('[MOVIX PROXY ERROR] Erreur inconnue:', error.message);
+      console.error(`${errorPrefix} Erreur inconnue:`, error.message);
       
       res.status(500).json({
-        error: 'Erreur serveur proxy Movix',
+        error: isTmdbRequest ? 'Erreur serveur proxy Movix TMDB' : 'Erreur serveur proxy Movix',
         message: 'Erreur interne du serveur',
         details: error.message
       });

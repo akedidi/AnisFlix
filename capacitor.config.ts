@@ -9,11 +9,11 @@ const config: CapacitorConfig = {
     iosScheme: 'https',
     allowNavigation: ['*'],
     // Configuration pour le développement local
-    url: 'http://localhost:3000',
-    cleartext: true
+    url: 'http://localhost:3000', // Serveur de développement Express
+    cleartext: true // Permettre HTTP en local
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never', // Changé de 'automatic' à 'never' pour éviter les décalages
     scrollEnabled: true,
     backgroundColor: '#000000',
     allowsLinkPreview: false,
@@ -54,13 +54,11 @@ const config: CapacitorConfig = {
     },
     // Configuration pour l'app
     App: {
-      launchUrl: "https://anisflix.vercel.app"
+      // launchUrl est obsolète dans les nouvelles versions de Capacitor
     },
     // Configuration pour le clavier
     Keyboard: {
-      resize: 'body',
-      style: 'dark',
-      resizeOnFullScreen: true
+      // La configuration est gérée automatiquement par Capacitor
     }
   }
 };

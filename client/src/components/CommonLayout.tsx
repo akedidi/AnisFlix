@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -13,6 +13,8 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useNativeNavigation } from "@/hooks/useNativeNavigation";
 import SwipeBackAnimation from "@/components/SwipeBackAnimation";
+import { useViewportHeight } from "@/hooks/useViewportHeight";
+// import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
 interface CommonLayoutProps {
   title?: string;
@@ -46,44 +48,62 @@ export default function CommonLayout({
   const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
   
+  // Utiliser la hauteur réelle du viewport (compatible iOS)
+  const viewportHeight = useViewportHeight();
+  
+  // État pour ajuster le header sur iOS natif
+  const [headerOffset, setHeaderOffset] = useState(0);
+  const headerRef = useRef<HTMLDivElement>(null);
+  
   // Utiliser la recherche personnalisée si fournie, sinon utiliser la recherche TMDB
   const isCustomSearch = !!customSearchQuery || !!customSearchResults;
   const finalSearchQuery = isCustomSearch ? customSearchQuery : searchQuery;
-  
-  console.log('🔍 [COMMON LAYOUT] ===== RECHERCHE LAYOUT =====');
-  console.log('🔍 [COMMON LAYOUT] customSearchQuery:', `"${customSearchQuery}"`);
-  console.log('🔍 [COMMON LAYOUT] isCustomSearch:', isCustomSearch);
-  console.log('🔍 [COMMON LAYOUT] finalSearchQuery:', `"${finalSearchQuery}"`);
-  console.log('🔍 [COMMON LAYOUT] customSearchResults:', customSearchResults?.length || 0);
   
   // Seulement utiliser useMultiSearch si ce n'est pas une recherche personnalisée
   const { data: tmdbSearchResults = [] } = useMultiSearch(isCustomSearch ? "" : searchQuery);
   const finalSearchResults = isCustomSearch ? (customSearchResults || []) : tmdbSearchResults;
   
-  console.log('🔍 [COMMON LAYOUT] tmdbSearchResults:', tmdbSearchResults?.length || 0);
-  console.log('🔍 [COMMON LAYOUT] finalSearchResults:', finalSearchResults?.length || 0);
-  console.log('🔍 [COMMON LAYOUT] ===== FIN RECHERCHE LAYOUT =====');
-  
-  // Gérer le scroll sur mobile
-  useMobileScroll();
+  // Gérer le scroll sur mobile - TEMPORAIREMENT DÉSACTIVÉ pour tester
+  // useMobileScroll();
   
   // Détecter l'environnement natif
   const { isNativeMobile, getContainerClass } = useNativeDetection();
   
-  // Gérer la navigation native (swipe back iOS / bouton back Android)
+  // Gérer la navigation native (swipe back iOS / bouton back Android) - RÉACTIVÉ
   const { swipeProgress, isSwipeActive } = useNativeNavigation();
 
-  // Gérer le pull-to-refresh
+  // Gérer le pull-to-refresh - RÉACTIVÉ
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
     onRefresh: onRefresh || (() => {
-      console.log('🔄 [PULL] Refresh de la page...');
       window.location.reload();
     }),
     disabled: !enablePullToRefresh,
-    threshold: 60, // Seuil plus bas pour faciliter le déclenchement
-    resistance: 0.8 // Moins de résistance
+    threshold: 60 // Seuil plus bas pour faciliter le déclenchement
   });
 
+  // Ajuster le header sur iOS natif pour éviter l'encoche et la status bar
+  useEffect(() => {
+    // Vérifier si on est sur iOS natif (Capacitor)
+    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isCapacitor && isIOS) {
+      // Calculer l'offset pour éviter l'encoche et la status bar
+      const statusBarHeight = 34; // Hauteur approximative de la status bar + encoche
+      const additionalOffset = 20; // Ajustement supplémentaire
+      const offset = statusBarHeight + additionalOffset;
+      
+      setHeaderOffset(offset);
+      
+      // Appliquer le style avec un délai pour s'assurer que le header est monté
+      setTimeout(() => {
+        if (headerRef.current) {
+          headerRef.current.style.top = `${offset}px`;
+          headerRef.current.style.paddingTop = '8px'; // Ajouter un peu de padding
+        }
+      }, 100);
+    }
+  }, [viewportHeight]);
 
   return (
     <>
@@ -109,7 +129,6 @@ export default function CommonLayout({
         progress={swipeProgress}
         onComplete={() => {
           // La navigation est déjà gérée dans useNativeNavigation
-          console.log('[SWIPE ANIMATION] Animation terminée');
         }}
       />
       
@@ -117,16 +136,12 @@ export default function CommonLayout({
       <DesktopSidebar />
       
       {/* Header - Fixed on all devices */}
-      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
+      <div 
+        ref={headerRef}
+        className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-[1000000] md:left-64 header-ios-safe"
+      >
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
           <div className="flex items-center gap-4">
-            {title && (
-              <div className="flex items-center gap-3">
-                {icon}
-                <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
-              </div>
-            )}
-            
             {showSearch && (
               <div className="flex-1 relative">
                 <SearchBar
@@ -161,10 +176,22 @@ export default function CommonLayout({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className={getContainerClass("main-content min-h-screen md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0 overflow-y-auto")}>
-        {children}
-      </div>
+          {/* Main Content */}
+          <div 
+            className={`${getContainerClass("main-content min-h-screen overflow-y-auto")} md:ml-64 md:pb-0`}
+            id="main-content-desktop"
+            style={{ 
+              paddingTop: headerOffset > 0 
+                ? `${100 + headerOffset + 8}px` 
+                : window.innerWidth >= 768 
+                  ? '70px' 
+                  : '70px'
+            }}
+          >
+            {children}
+          </div>
+      
+      {/* Problème de hauteur résolu avec visualViewport.height */}
     </>
   );
 }

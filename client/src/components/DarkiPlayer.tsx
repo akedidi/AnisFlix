@@ -7,6 +7,7 @@ import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import Hls from "hls.js";
 import type { MediaType } from "@shared/schema";
+import { apiClient } from "@/lib/apiClient";
 
 interface DarkiPlayerProps {
   darkiUrl: string;
@@ -48,9 +49,11 @@ export default function DarkiPlayer({
         setIsLoading(true);
         setError(null);
 
-        // Utiliser l'ancienne API Darkibox en attendant le déploiement du proxy unifié
-        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(darkiUrl)}`;
-        console.log('🌑 [DARKI PLAYER] Utilisation de l\'API Darkibox legacy:', proxyUrl);
+        // Utiliser l'URL de base appropriée
+        const baseUrl = apiClient.getPublicBaseUrl();
+        const proxyUrl = `${baseUrl}/api/darkibox?url=${encodeURIComponent(darkiUrl)}`;
+        console.log('🌑 [DARKI PLAYER] Base URL:', baseUrl);
+        console.log('🌑 [DARKI PLAYER] Proxy URL complète:', proxyUrl);
         
         // Vérifier d'abord si l'API retourne une erreur
         const response = await fetch(proxyUrl);

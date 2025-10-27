@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '../lib/apiClient';
 
 interface MovixTmdbSource {
   decoded_url: string;
@@ -72,48 +73,68 @@ function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
 }
 
 export const useMovixTmdbSources = (movieId: number) => {
-  return useQuery({
+  console.log('🔍 [MOVIX TMDB] Hook initialized with movieId:', movieId);
+  console.log('🔍 [MOVIX TMDB] Hook enabled check:', !!movieId, 'movieId type:', typeof movieId);
+  
+  const queryResult = useQuery({
     queryKey: ['movix-tmdb-sources', movieId],
     queryFn: async (): Promise<MovixTmdbResponse & { processedSources: ProcessedSource[] }> => {
       console.log('🚀 [MOVIX TMDB] Fetching sources for movie:', movieId);
+      console.log('🔍 [MOVIX TMDB] queryFn started - movieId:', movieId, 'type:', typeof movieId);
       
-      const response = await fetch(`/api/movix-tmdb?movieId=${movieId}`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch Movix TMDB sources: ${response.status}`);
+      try {
+        console.log('🔍 [MOVIX TMDB] Entered try block');
+        // Utiliser apiClient pour gérer correctement l'URL du backend
+        console.log('🔍 [MOVIX TMDB] About to call apiClient.request...');
+        const url = `/api/movix-tmdb?movieId=${movieId}`;
+        console.log('🔍 [MOVIX TMDB] Request URL:', url);
+        const response = await apiClient.request(url);
+        console.log('✅ [MOVIX TMDB] Got response from apiClient, status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Movix TMDB sources: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ [MOVIX TMDB] Sources fetched:', data);
+        
+        // Traiter les player_links pour analyser les providers
+        const processedSources = processPlayerLinks(data.player_links || []);
+        
+        // Filtrer les sources par provider (vidmoly, vidzy, darki)
+        const filteredSources = processedSources.filter(source => 
+          source.provider !== 'unknown'
+        );
+        
+        console.log('🔍 [MOVIX TMDB] Processed sources:', {
+          total: processedSources.length,
+          filtered: filteredSources.length,
+          byProvider: {
+            vidmoly: filteredSources.filter(s => s.provider === 'vidmoly').length,
+            vidzy: filteredSources.filter(s => s.provider === 'vidzy').length,
+            darki: filteredSources.filter(s => s.provider === 'darki').length,
+          }
+        });
+        
+        return {
+          ...data,
+          processedSources: filteredSources,
+          // Sources groupées par provider pour faciliter l'utilisation
+          sourcesByProvider: {
+            vidmoly: filteredSources.filter(s => s.provider === 'vidmoly'),
+            vidzy: filteredSources.filter(s => s.provider === 'vidzy'),
+            darki: filteredSources.filter(s => s.provider === 'darki'),
+          }
+        };
+      } catch (error) {
+        console.error('❌ [MOVIX TMDB] Error fetching sources:', error);
+        console.error('❌ [MOVIX TMDB] Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          type: typeof error
+        });
+        throw error;
       }
-      
-      const data = await response.json();
-      console.log('✅ [MOVIX TMDB] Sources fetched:', data);
-      
-      // Traiter les player_links pour analyser les providers
-      const processedSources = processPlayerLinks(data.player_links || []);
-      
-      // Filtrer les sources par provider (vidmoly, vidzy, darki)
-      const filteredSources = processedSources.filter(source => 
-        source.provider !== 'unknown'
-      );
-      
-      console.log('🔍 [MOVIX TMDB] Processed sources:', {
-        total: processedSources.length,
-        filtered: filteredSources.length,
-        byProvider: {
-          vidmoly: filteredSources.filter(s => s.provider === 'vidmoly').length,
-          vidzy: filteredSources.filter(s => s.provider === 'vidzy').length,
-          darki: filteredSources.filter(s => s.provider === 'darki').length,
-        }
-      });
-      
-      return {
-        ...data,
-        processedSources: filteredSources,
-        // Sources groupées par provider pour faciliter l'utilisation
-        sourcesByProvider: {
-          vidmoly: filteredSources.filter(s => s.provider === 'vidmoly'),
-          vidzy: filteredSources.filter(s => s.provider === 'vidzy'),
-          darki: filteredSources.filter(s => s.provider === 'darki'),
-        }
-      };
     },
     enabled: !!movieId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -122,4 +143,14 @@ export const useMovixTmdbSources = (movieId: number) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+  
+  console.log('🔍 [MOVIX TMDB] Query result:', {
+    isLoading: queryResult.isLoading,
+    isError: queryResult.isError,
+    isSuccess: queryResult.isSuccess,
+    hasData: !!queryResult.data,
+    error: queryResult.error
+  });
+  
+  return queryResult;
 };
