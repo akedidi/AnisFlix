@@ -50,17 +50,21 @@ export default function MovieDetail() {
 
   // Récupérer les sources films/download en cherchant par titre d'abord
   const { data: searchResults } = useQuery({
-    queryKey: ['search-movie', movie?.title],
+    queryKey: ['search-movie', movie?.original_title || movie?.title],
     queryFn: async () => {
-      if (!movie?.title) return null;
+      if (!movie) return null;
       
-      const response = await fetch(`/api/movix-proxy?path=search&title=${encodeURIComponent(movie.title)}`);
+      // Essayer d'abord avec le titre original, puis le titre si nécessaire
+      const searchTitle = movie.original_title || movie.title;
+      console.log(`🔍 [FILMS DOWNLOAD] Searching for movie: "${searchTitle}"`);
+      const response = await fetch(`/api/movix-proxy?path=search&title=${encodeURIComponent(searchTitle)}`);
       if (!response.ok) return null;
       
       const data = await response.json();
+      console.log(`🔍 [FILMS DOWNLOAD] Search results:`, data);
       return data;
     },
-    enabled: !!movie?.title,
+    enabled: !!movie,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000
   });
@@ -69,19 +73,39 @@ export default function MovieDetail() {
   const firstResult = searchResults?.results?.[0];
   const shouldFetchFilmsDownload = firstResult?.tmdb_id === movieId;
   
+  console.log(`🔍 [FILMS DOWNLOAD] Debug:`, {
+    movieTitle: movie?.title,
+    movieId: movieId,
+    firstResult: firstResult,
+    firstResultTmdbId: firstResult?.tmdb_id,
+    firstResultMovixId: firstResult?.id,
+    shouldFetch: shouldFetchFilmsDownload
+  });
+  
   const { data: filmsDownloadSources } = useQuery({
     queryKey: ['films-download', movieId],
     queryFn: async () => {
-      if (!shouldFetchFilmsDownload) return null;
+      if (!shouldFetchFilmsDownload) {
+        console.log(`❌ [FILMS DOWNLOAD] Not fetching because tmdb_id mismatch: ${firstResult?.tmdb_id} !== ${movieId}`);
+        return null;
+      }
       
       // Utiliser l'ID Movix du premier résultat
       const movixId = firstResult?.id;
-      if (!movixId) return null;
+      if (!movixId) {
+        console.log(`❌ [FILMS DOWNLOAD] No Movix ID found`);
+        return null;
+      }
       
+      console.log(`✅ [FILMS DOWNLOAD] Fetching sources for Movix ID: ${movixId}`);
       const response = await fetch(`/api/movix-proxy?path=films/download/${movixId}`);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.log(`❌ [FILMS DOWNLOAD] Response not OK: ${response.status}`);
+        return null;
+      }
       
       const data = await response.json();
+      console.log(`✅ [FILMS DOWNLOAD] Sources retrieved:`, data);
       return data;
     },
     enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id,
