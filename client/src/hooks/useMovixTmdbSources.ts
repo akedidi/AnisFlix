@@ -84,9 +84,9 @@ export const useMovixTmdbSources = (movieId: number) => {
       
       try {
         console.log('🔍 [MOVIX TMDB] Entered try block');
-        // Utiliser apiClient pour gérer correctement l'URL du backend
+        // Utiliser l'API unifiée movix-proxy avec le paramètre path
         console.log('🔍 [MOVIX TMDB] About to call apiClient.request...');
-        const url = `/api/movix-tmdb?movieId=${movieId}`;
+        const url = `/api/movix-proxy?path=tmdb/movie/${movieId}`;
         console.log('🔍 [MOVIX TMDB] Request URL:', url);
         const response = await apiClient.request(url);
         console.log('✅ [MOVIX TMDB] Got response from apiClient, status:', response.status);
