@@ -60,14 +60,20 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
       return matchingResult.id;
     }
     
-    // Si pas de correspondance exacte, prendre le premier résultat de la série
+    // NE PAS utiliser un autre résultat si aucune correspondance exacte
+    // Cela pourrait utiliser un mauvais film
     if (searchData.results.length > 0) {
-      const firstResult = searchData.results[0];
-      console.log('⚠️ [MOVIX DOWNLOAD] No exact match found, using first result:', firstResult);
-      return firstResult.id;
+      console.error('❌ [MOVIX DOWNLOAD] No exact match found. Available results:', searchData.results.map(r => ({
+        id: r.id,
+        tmdb_id: r.tmdb_id,
+        name: r.name,
+        type: r.type
+      })));
+      console.error('❌ [MOVIX DOWNLOAD] Requested tmdbId:', tmdbId, 'type:', type);
+      console.error('❌ [MOVIX DOWNLOAD] Rejecting all results to prevent mismatch');
     }
     
-    console.log('❌ [MOVIX DOWNLOAD] No results found for search');
+    console.log('❌ [MOVIX DOWNLOAD] No matching result found for search');
     return null;
   } catch (error) {
     console.error('❌ [MOVIX DOWNLOAD] Error getting Movix ID:', error);
