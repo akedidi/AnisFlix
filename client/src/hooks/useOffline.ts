@@ -10,6 +10,12 @@ export function useOffline() {
   const checkConnection = async () => {
     if (isCheckingConnection) return;
     
+    // Éviter les vérifications inutiles si on est déjà en ligne et que ça fait moins de 5 minutes
+    const timeSinceLastCheck = Date.now() - lastOnlineCheckRef.current;
+    if (!isOffline && timeSinceLastCheck < 300000) {
+      return;
+    }
+    
     setIsCheckingConnection(true);
     
     try {
@@ -60,15 +66,15 @@ export function useOffline() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Vérification périodique de la connexion (toutes les 30 secondes)
+    // Vérification périodique de la connexion (toutes les 2 minutes)
     checkIntervalRef.current = setInterval(() => {
       const timeSinceLastCheck = Date.now() - lastOnlineCheckRef.current;
       
-      // Vérifier la connexion si on est hors ligne ou si ça fait plus de 30 secondes
-      if (isOffline || timeSinceLastCheck > 30000) {
+      // Vérifier la connexion seulement si on est hors ligne ou si ça fait plus de 2 minutes
+      if (isOffline || timeSinceLastCheck > 120000) {
         checkConnection();
       }
-    }, 30000);
+    }, 120000);
 
     // Vérification initiale
     checkConnection();
