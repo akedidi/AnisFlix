@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -140,8 +139,7 @@ export default function Home() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
-          <div className="space-y-8 md:space-y-12">
+      <div className="space-y-8 md:space-y-12">
         {popularMovies.length > 0 && (
           <HeroSection
             items={popularMovies.slice(0, 5).map((movie: any) => ({
@@ -363,7 +361,6 @@ export default function Home() {
           )}
         </div>
         </div>
-      </PullToRefresh>
     </CommonLayout>
   );
 }

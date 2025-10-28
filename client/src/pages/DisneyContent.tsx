@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 ;
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -83,7 +82,7 @@ export default function DisneyContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      <PullToRefresh onRefresh={handleRefresh}>
+      
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
@@ -252,7 +251,7 @@ export default function DisneyContent() {
         )}
         </div>
         
-        </PullToRefresh>
+        
 
         
       </CommonLayout>

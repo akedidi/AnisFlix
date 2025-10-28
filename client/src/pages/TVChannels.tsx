@@ -1440,7 +1440,7 @@ export default function TVChannels() {
       title="" 
       icon={null}
       showSearch={true}
-      enablePullToRefresh={false}
+      
       customSearchQuery={searchQuery || ""} // Toujours utiliser la recherche personnalisée
       customSearchResults={searchResults}
       onCustomSearch={setSearchQuery}

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
@@ -63,7 +62,7 @@ export default function Movies() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
+      
 
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
         <MediaCarousel
@@ -122,7 +121,7 @@ export default function Movies() {
         />
 
           </div>
-      </PullToRefresh>
+      
     </CommonLayout>
   );
 }

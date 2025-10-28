@@ -5,11 +5,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import OfflineAlert from "@/components/OfflineAlert";
-import PullToRefreshIndicator from "@/components/PullToRefreshIndicator";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 // import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
@@ -21,7 +19,6 @@ interface CommonLayoutProps {
   children: React.ReactNode;
   onRefresh?: () => void;
   showRefreshButton?: boolean;
-  enablePullToRefresh?: boolean;
   // Props pour recherche personnalisée
   customSearchQuery?: string;
   customSearchResults?: any[];
@@ -36,7 +33,6 @@ export default function CommonLayout({
   children,
   onRefresh,
   showRefreshButton = true,
-  enablePullToRefresh = true,
   customSearchQuery,
   customSearchResults,
   onCustomSearch,
@@ -79,14 +75,6 @@ export default function CommonLayout({
   const { isNativeMobile, getContainerClass } = useNativeDetection();
   
 
-  // Gérer le pull-to-refresh - RÉACTIVÉ
-  const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
-    onRefresh: onRefresh || (() => {
-      window.location.reload();
-    }),
-    disabled: !enablePullToRefresh,
-    threshold: 60 // Seuil plus bas pour faciliter le déclenchement
-  });
 
   // Ajuster le header sur iOS natif pour éviter l'encoche et la status bar
   useEffect(() => {
@@ -119,16 +107,6 @@ export default function CommonLayout({
         onRefresh={onRefresh} 
         showRefreshButton={showRefreshButton}
       />
-      
-      {/* Pull to Refresh Indicator - seulement si activé */}
-      {enablePullToRefresh && (
-        <PullToRefreshIndicator
-          isRefreshing={isRefreshing}
-          pullDistance={pullDistance}
-          isPulling={isPulling}
-          threshold={80}
-        />
-      )}
       
       {/* Desktop Sidebar */}
       <DesktopSidebar />

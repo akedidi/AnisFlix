@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import MediaCard from "@/components/MediaCard";
 import Pagination from "@/components/Pagination";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useMultiSearch } from "@/hooks/useTMDB";
 
@@ -50,7 +49,7 @@ export default function LatestSeries() {
         setLocation(path);
       }}
     >
-      <PullToRefresh onRefresh={handleRefresh}>
+      
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Dernières séries</h1>
@@ -88,7 +87,7 @@ export default function LatestSeries() {
             </div>
           )}
         </div>
-      </PullToRefresh>
+      
     </CommonLayout>
   );
 }

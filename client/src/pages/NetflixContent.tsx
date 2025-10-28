@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import ContinueWatching from "@/components/ContinueWatching";
@@ -95,7 +94,7 @@ export default function NetflixContent() {
 
 
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
+      
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
@@ -282,7 +281,7 @@ export default function NetflixContent() {
           )
         )}
         </div>
-        </PullToRefresh>
+        
 
       </CommonLayout>
 

@@ -11,7 +11,6 @@ import {
 } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 
 // Types
 interface Provider {
@@ -88,14 +87,14 @@ export default function ProviderDetail() {
 
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
-        <PullToRefresh onRefresh={handleRefresh}>
+        
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-12">
           <h1 className="text-2xl font-semibold mb-2">{t("provider.notFound") || "Fournisseur introuvable"}</h1>
           <p className="text-muted-foreground">
             {t("provider.chooseAnother") || "Veuillez sélectionner un autre fournisseur."}
           </p>
         </div>
-          </PullToRefresh>
+          
 
         </CommonLayout>
 
