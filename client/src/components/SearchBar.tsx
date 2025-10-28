@@ -138,7 +138,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   return (
     <div ref={searchRef} className="relative w-full" data-testid="search-bar-container">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none ${isCapacitor() ? 'w-4 h-4' : 'w-3.5 h-3.5 md:w-4 md:h-4'}`} />
         <Input
           ref={inputRef}
           type="search"
@@ -146,7 +146,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : ''}`}
+          className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : 'h-8 md:h-9'}`}
           data-testid="input-search"
           // Attributs recommandés pour le clavier de recherche
           inputMode="search"
@@ -182,7 +182,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             data-testid="button-clear-search"
           >
-            <X className="w-4 h-4" />
+            <X className={`${isCapacitor() ? 'w-4 h-4' : 'w-3.5 h-3.5 md:w-4 md:h-4'}`} />
           </button>
         )}
       </div>
