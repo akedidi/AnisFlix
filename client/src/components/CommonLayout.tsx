@@ -10,6 +10,7 @@ import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
+import IonicPullToRefresh from "@/components/IonicPullToRefresh";
 // import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
 interface CommonLayoutProps {
@@ -73,6 +74,21 @@ export default function CommonLayout({
   
   // Détecter l'environnement natif
   const { isNativeMobile, getContainerClass } = useNativeDetection();
+  
+  // Gérer le refresh Ionic pour les apps natives
+  const handleIonicRefresh = (event: CustomEvent<any>) => {
+    const refreshFunction = onRefresh || (() => {
+      window.location.reload();
+    });
+    
+    // Exécuter la fonction de refresh
+    refreshFunction();
+    
+    // Compléter le refresh après un délai
+    setTimeout(() => {
+      event.detail.complete();
+    }, 1000);
+  };
   
 
 
@@ -158,19 +174,21 @@ export default function CommonLayout({
       </div>
 
           {/* Main Content */}
-          <div 
-            className={`${getContainerClass("main-content min-h-screen overflow-y-auto")} md:ml-64 md:pb-0`}
-            id="main-content-desktop"
-            style={{ 
-              paddingTop: headerOffset > 0 
-                ? `${100 + headerOffset + 8}px` 
-                : window.innerWidth >= 768 
-                  ? '70px' 
-                  : '70px'
-            }}
-          >
-            {children}
-          </div>
+          <IonicPullToRefresh onRefresh={handleIonicRefresh}>
+            <div 
+              className={`${getContainerClass("main-content min-h-screen overflow-y-auto")} md:ml-64 md:pb-0`}
+              id="main-content-desktop"
+              style={{ 
+                paddingTop: headerOffset > 0 
+                  ? `${100 + headerOffset + 8}px` 
+                  : window.innerWidth >= 768 
+                    ? '70px' 
+                    : '70px'
+              }}
+            >
+              {children}
+            </div>
+          </IonicPullToRefresh>
       
       {/* Problème de hauteur résolu avec visualViewport.height */}
     </>
