@@ -16,6 +16,7 @@ interface SearchSuggestion {
   id: number;
   title: string;
   posterPath: string | null;
+  backdropPath?: string | null;
   mediaType: "movie" | "tv" | "anime" | "documentary";
   year?: string;
 }
@@ -208,12 +209,12 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
               className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors min-h-[72px]"
               data-testid={`search-result-${item.id}`}
             >
-              {item.posterPath ? (
+              {item.posterPath || item.backdropPath ? (
                   // Pour les chaînes TV, afficher les logos avec fond blanc
                   item.mediaType === "tv" ? (
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
                       <img
-                        src={item.posterPath}
+                        src={item.posterPath || item.backdropPath || ''}
                         alt={item.title}
                         className="w-full h-full object-contain scale-110"
                         onError={(e) => {
@@ -229,7 +230,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                   ) : (
                     // Pour les autres types de contenu, utiliser l'optimisation d'image
                     <img
-                      src={getOptimizedImageUrl(item.posterPath, 'w92')}
+                      src={getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92')}
                       alt={item.title}
                       className="w-12 h-16 object-cover rounded flex-shrink-0"
                       onError={(e) => {
@@ -240,7 +241,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                     />
                   )
               ) : (
-                // Affichage fallback si pas de posterPath - cadre blanc avec hauteur fixe
+                // Affichage fallback si pas de posterPath ni backdropPath - cadre blanc avec hauteur fixe
                 <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-16'} bg-white border border-gray-200 rounded flex items-center justify-center shadow-sm flex-shrink-0`}>
                   {item.mediaType === "tv" ? (
                     <Tv className="w-6 h-6 text-gray-400" />

@@ -12,28 +12,52 @@ const CACHE_OPTIONS = {
 };
 
 // Transform TMDB movie data to our app format
-const transformMovie = (movie: any) => ({
-  id: movie.id,
-  title: movie.title,
-  posterPath: movie.poster_path,
-  backdropPath: movie.backdrop_path,
-  overview: movie.overview,
-  rating: Math.round(movie.vote_average * 10) / 10,
-  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
-  mediaType: "movie" as const,
-});
+const transformMovie = (movie: any) => {
+  // Debug pour les affiches manquantes
+  if (!movie.poster_path) {
+    console.warn(`⚠️ [TMDB TRANSFORM] Film sans poster_path:`, {
+      id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path,
+      backdrop_path: movie.backdrop_path
+    });
+  }
+  
+  return {
+    id: movie.id,
+    title: movie.title,
+    posterPath: movie.poster_path,
+    backdropPath: movie.backdrop_path,
+    overview: movie.overview,
+    rating: Math.round(movie.vote_average * 10) / 10,
+    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+    mediaType: "movie" as const,
+  };
+};
 
 // Transform TMDB series data to our app format
-const transformSeries = (series: any) => ({
-  id: series.id,
-  title: series.name,
-  posterPath: series.poster_path,
-  backdropPath: series.backdrop_path,
-  overview: series.overview,
-  rating: Math.round(series.vote_average * 10) / 10,
-  year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : "",
-  mediaType: "tv" as const,
-});
+const transformSeries = (series: any) => {
+  // Debug pour les affiches manquantes
+  if (!series.poster_path) {
+    console.warn(`⚠️ [TMDB TRANSFORM] Série sans poster_path:`, {
+      id: series.id,
+      name: series.name,
+      poster_path: series.poster_path,
+      backdrop_path: series.backdrop_path
+    });
+  }
+  
+  return {
+    id: series.id,
+    title: series.name,
+    posterPath: series.poster_path,
+    backdropPath: series.backdrop_path,
+    overview: series.overview,
+    rating: Math.round(series.vote_average * 10) / 10,
+    year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : "",
+    mediaType: "tv" as const,
+  };
+};
 
 export const usePopularMovies = (page = 1) => {
   return useQuery({
