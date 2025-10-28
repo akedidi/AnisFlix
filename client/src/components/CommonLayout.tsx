@@ -11,8 +11,6 @@ import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
-import { useNativeNavigation } from "@/hooks/useNativeNavigation";
-import SwipeBackAnimation from "@/components/SwipeBackAnimation";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 // import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
@@ -80,8 +78,6 @@ export default function CommonLayout({
   // Détecter l'environnement natif
   const { isNativeMobile, getContainerClass } = useNativeDetection();
   
-  // Gérer la navigation native (swipe back iOS / bouton back Android) - RÉACTIVÉ
-  const { swipeProgress, isSwipeActive } = useNativeNavigation();
 
   // Gérer le pull-to-refresh - RÉACTIVÉ
   const { isRefreshing, pullDistance, isPulling } = usePullToRefresh({
@@ -133,15 +129,6 @@ export default function CommonLayout({
           threshold={80}
         />
       )}
-      
-      {/* Animation de swipe back */}
-      <SwipeBackAnimation 
-        isActive={isSwipeActive}
-        progress={swipeProgress}
-        onComplete={() => {
-          // La navigation est déjà gérée dans useNativeNavigation
-        }}
-      />
       
       {/* Desktop Sidebar */}
       <DesktopSidebar />
