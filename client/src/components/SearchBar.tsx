@@ -237,10 +237,27 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                   item.mediaType === "tv" ? (
                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
                       <img
-                        src={item.posterPath || item.backdropPath || ''}
+                        src={(() => {
+                          const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
+                          console.log('🖼️ [SEARCHBAR] TV Image URL generated:', {
+                            id: item.id,
+                            title: item.title,
+                            posterPath: item.posterPath,
+                            backdropPath: item.backdropPath,
+                            finalUrl: imageUrl
+                          });
+                          return imageUrl;
+                        })()}
                         alt={item.title}
                         className="w-full h-full object-contain scale-110"
                         onError={(e) => {
+                          console.error('❌ [SEARCHBAR] TV Image failed to load:', {
+                            id: item.id,
+                            title: item.title,
+                            src: e.currentTarget.src,
+                            posterPath: item.posterPath,
+                            backdropPath: item.backdropPath
+                          });
                           const parent = e.currentTarget.parentElement;
                           if (parent) {
                             const fallback = parent.nextElementSibling as HTMLElement;
@@ -248,18 +265,49 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                             parent.style.display = 'none';
                           }
                         }}
+                        onLoad={() => {
+                          console.log('✅ [SEARCHBAR] TV Image loaded successfully:', {
+                            id: item.id,
+                            title: item.title,
+                            src: item.posterPath || item.backdropPath
+                          });
+                        }}
                       />
                     </div>
                   ) : (
                     // Pour les autres types de contenu, utiliser l'optimisation d'image
                     <img
-                      src={getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92')}
+                      src={(() => {
+                        const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
+                        console.log('🖼️ [SEARCHBAR] Image URL generated:', {
+                          id: item.id,
+                          title: item.title,
+                          posterPath: item.posterPath,
+                          backdropPath: item.backdropPath,
+                          finalUrl: imageUrl
+                        });
+                        return imageUrl;
+                      })()}
                       alt={item.title}
                       className="w-12 h-16 object-cover rounded flex-shrink-0"
                       onError={(e) => {
+                        console.error('❌ [SEARCHBAR] Image failed to load:', {
+                          id: item.id,
+                          title: item.title,
+                          src: e.currentTarget.src,
+                          posterPath: item.posterPath,
+                          backdropPath: item.backdropPath
+                        });
                         e.currentTarget.style.display = 'none';
                         const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = 'flex';
+                      }}
+                      onLoad={() => {
+                        console.log('✅ [SEARCHBAR] Image loaded successfully:', {
+                          id: item.id,
+                          title: item.title,
+                          src: item.posterPath || item.backdropPath
+                        });
                       }}
                     />
                   )
