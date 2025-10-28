@@ -19,10 +19,32 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'URL requise' });
       }
 
-      const targetUrl = decodeURIComponent(url);
+      // Décoder l'URL avec gestion des caractères spéciaux
+      let targetUrl;
+      try {
+        targetUrl = decodeURIComponent(url);
+        // Si l'URL contient encore des caractères encodés, essayer de les décoder à nouveau
+        if (targetUrl.includes('%')) {
+          targetUrl = decodeURIComponent(targetUrl);
+        }
+      } catch (error) {
+        console.error(`[VIDMOLY] Erreur décodage URL: ${error.message}`);
+        targetUrl = url; // Utiliser l'URL brute si le décodage échoue
+      }
+      
       const refererUrl = referer ? decodeURIComponent(referer) : 'https://vidmoly.net/';
       
-      console.log(`[VIDMOLY] Mode proxy - URL: ${targetUrl}, Action: ${action || 'stream'}`);
+      console.log(`[VIDMOLY] Mode proxy - URL originale: ${url}`);
+      console.log(`[VIDMOLY] Mode proxy - URL décodée: ${targetUrl}`);
+      console.log(`[VIDMOLY] Mode proxy - Action: ${action || 'stream'}`);
+      
+      // Valider que l'URL décodée est valide
+      try {
+        new URL(targetUrl);
+      } catch (error) {
+        console.error(`[VIDMOLY] URL invalide après décodage: ${targetUrl}`);
+        return res.status(400).json({ error: 'URL invalide' });
+      }
       
       // Ignorer les requêtes pour le favicon
       if (req.url === '/favicon.ico') {
