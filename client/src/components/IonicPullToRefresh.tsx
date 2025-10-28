@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  IonContent,
   IonRefresher,
   IonRefresherContent,
   RefresherEventDetail,
@@ -55,18 +54,18 @@ export default function IonicPullToRefresh({
     return <>{children}</>;
   }
 
-  console.log('🔍 [IONIC PULL TO REFRESH] Enabled - rendering IonContent with IonRefresher');
+  console.log('🔍 [IONIC PULL TO REFRESH] Enabled - rendering IonRefresher only');
   return (
-    <IonContent>
+    <>
       <IonRefresher slot="fixed" onIonRefresh={onRefresh}>
         <IonRefresherContent
-          pullingIcon="arrow-down-outline"
+          pullingIcon="chevron-down"
           refreshingSpinner="circles"
           pullingText="Tirez pour rafraîchir"
           refreshingText="Chargement..."
         />
       </IonRefresher>
       {children}
-    </IonContent>
+    </>
   );
 }
