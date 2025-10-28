@@ -277,18 +277,39 @@ export const useMultiSearch = (query: string) => {
   return useQuery({
     queryKey: ["search", query],
     queryFn: async () => {
+      console.log('🔍 [USE MULTI SEARCH] Searching for:', query);
       const data = await tmdb.searchMulti(query);
-      return data.results.map((item: any) => {
+      console.log('🔍 [USE MULTI SEARCH] Raw TMDB data:', data);
+      
+      const transformedResults = data.results.map((item: any) => {
+        console.log('🔍 [USE MULTI SEARCH] Processing item:', {
+          id: item.id,
+          name: item.name,
+          title: item.title,
+          media_type: item.media_type,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          first_air_date: item.first_air_date
+        });
+        
         // Filtrer les films
         if (item.media_type === "movie") {
-          return transformMovie(item);
+          const transformed = transformMovie(item);
+          console.log('🔍 [USE MULTI SEARCH] Transformed movie:', transformed);
+          return transformed;
         } 
         // Filtrer les séries TV (pas les chaînes TV)
         else if (item.media_type === "tv" && item.first_air_date) {
-          return transformSeries(item);
+          const transformed = transformSeries(item);
+          console.log('🔍 [USE MULTI SEARCH] Transformed series:', transformed);
+          return transformed;
         }
+        console.log('🔍 [USE MULTI SEARCH] Item filtered out:', item);
         return null;
       }).filter(Boolean);
+      
+      console.log('🔍 [USE MULTI SEARCH] Final transformed results:', transformedResults);
+      return transformedResults;
     },
     enabled: query.length >= 1,
   });
