@@ -199,7 +199,19 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             backdropFilter: 'blur(20px)'
           }}
         >
-          {suggestions.map((item) => (
+          {suggestions.map((item) => {
+            // Debug pour les affiches manquantes
+            if (!item.posterPath && !item.backdropPath) {
+              console.warn(`⚠️ [SEARCHBAR] Item sans image:`, {
+                id: item.id,
+                title: item.title,
+                mediaType: item.mediaType,
+                posterPath: item.posterPath,
+                backdropPath: item.backdropPath
+              });
+            }
+            
+            return (
             <div
               key={`${item.mediaType}-${item.id}`}
               onMouseDown={(e) => {
@@ -262,7 +274,8 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </Card>,
         document.body
       )}

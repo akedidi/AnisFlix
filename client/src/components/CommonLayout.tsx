@@ -63,6 +63,17 @@ export default function CommonLayout({
   const { data: tmdbSearchResults = [] } = useMultiSearch(isCustomSearch ? "" : searchQuery);
   const finalSearchResults = isCustomSearch ? (customSearchResults || []) : tmdbSearchResults;
   
+  // Debug pour les résultats de recherche
+  if (finalSearchResults.length > 0) {
+    console.log('🔍 [COMMON LAYOUT] Search results:', finalSearchResults.map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      mediaType: item.mediaType,
+      posterPath: item.posterPath,
+      backdropPath: item.backdropPath
+    })));
+  }
+  
   // Gérer le scroll sur mobile - TEMPORAIREMENT DÉSACTIVÉ pour tester
   // useMobileScroll();
   
