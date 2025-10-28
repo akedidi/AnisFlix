@@ -69,32 +69,33 @@ export default function MovieDetail() {
     gcTime: 10 * 60 * 1000
   });
 
-  // Vérifier si le tmdb_id du premier résultat correspond au TMDB ID du film
-  const firstResult = searchResults?.results?.[0];
-  const shouldFetchFilmsDownload = firstResult?.tmdb_id === movieId;
+  // Chercher le résultat qui correspond au TMDB ID du film (pas forcément le premier)
+  const matchingResult = searchResults?.results?.find((result: any) => result.tmdb_id === movieId);
+  const shouldFetchFilmsDownload = !!matchingResult && matchingResult.tmdb_id === movieId;
   
   console.log(`🔍 [FILMS DOWNLOAD] Debug:`, {
     movieTitle: movie?.title,
     movieOriginalTitle: movie?.original_title,
     movieId: movieId,
-    firstResult: firstResult,
-    firstResultTmdbId: firstResult?.tmdb_id,
-    firstResultMovixId: firstResult?.id,
-    shouldFetch: shouldFetchFilmsDownload
+    matchingResult: matchingResult,
+    matchingResultTmdbId: matchingResult?.tmdb_id,
+    matchingResultMovixId: matchingResult?.id,
+    shouldFetch: shouldFetchFilmsDownload,
+    allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
   });
   
   // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
   const { data: filmsDownloadSources } = useQuery({
-    queryKey: ['films-download', movieId, firstResult?.id, shouldFetchFilmsDownload],
+    queryKey: ['films-download', movieId, matchingResult?.id, shouldFetchFilmsDownload],
     queryFn: async () => {
       // Double vérification : ne jamais faire la requête si les IDs ne correspondent pas
-      if (firstResult?.tmdb_id !== movieId) {
-        console.log(`❌ [FILMS DOWNLOAD] Blocked: tmdb_id mismatch (${firstResult?.tmdb_id} !== ${movieId})`);
-        throw new Error(`TMDB ID mismatch: search returned ${firstResult?.tmdb_id} but expected ${movieId}`);
+      if (!matchingResult || matchingResult.tmdb_id !== movieId) {
+        console.log(`❌ [FILMS DOWNLOAD] Blocked: tmdb_id mismatch (${matchingResult?.tmdb_id} !== ${movieId})`);
+        throw new Error(`TMDB ID mismatch: search returned ${matchingResult?.tmdb_id} but expected ${movieId}`);
       }
       
-      // Utiliser l'ID Movix du premier résultat
-      const movixId = firstResult?.id;
+      // Utiliser l'ID Movix du résultat correspondant
+      const movixId = matchingResult.id;
       if (!movixId) {
         console.log(`❌ [FILMS DOWNLOAD] No Movix ID found`);
         throw new Error('No Movix ID found');
@@ -118,7 +119,7 @@ export default function MovieDetail() {
       
       return data;
     },
-    enabled: shouldFetchFilmsDownload && !!movieId && !!firstResult?.id && firstResult?.tmdb_id === movieId,
+    enabled: shouldFetchFilmsDownload && !!movieId && !!matchingResult?.id && matchingResult?.tmdb_id === movieId,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     retry: false // Ne pas réessayer si ça échoue
