@@ -58,7 +58,9 @@ const config: CapacitorConfig = {
     },
     // Configuration pour le clavier
     Keyboard: {
-      // La configuration est gérée automatiquement par Capacitor
+      resize: 'none' as any, // Empêcher le redimensionnement automatique
+      style: 'dark' as any,
+      resizeOnFullScreen: false
     }
   }
 };

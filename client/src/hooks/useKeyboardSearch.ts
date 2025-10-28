@@ -53,6 +53,16 @@ export function useKeyboardSearch() {
         }
       };
 
+      // Configurer le clavier pour ne pas redimensionner la vue
+      const configureKeyboardResize = async () => {
+        try {
+          await Keyboard.setResizeMode({ mode: 'none' });
+          console.log('🔍 [KEYBOARD] Mode resize configuré sur "none"');
+        } catch (error) {
+          console.warn('🔍 [KEYBOARD] Erreur lors de la configuration du resize:', error);
+        }
+      };
+
       // Forcer les attributs de clavier de recherche sur tous les inputs
       const forceSearchKeyboard = () => {
         const searchInputs = document.querySelectorAll('input[type="search"]');
@@ -88,11 +98,13 @@ export function useKeyboardSearch() {
 
       // Configurer le clavier au démarrage
       hideAccessoryBar();
+      configureKeyboardResize();
       forceSearchKeyboard();
 
       // Réappliquer la configuration si nécessaire
       const handleKeyboardShow = async () => {
         await hideAccessoryBar();
+        await configureKeyboardResize();
         forceSearchKeyboard();
       };
 

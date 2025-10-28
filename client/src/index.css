@@ -718,7 +718,7 @@ html, body {
     overflow-y: visible;
   } */
   
-  /* Forcer le tab bar à rester fixe */
+  /* Forcer le tab bar à rester fixe même avec le clavier */
   .mobile-bottom-nav {
     position: fixed !important;
     bottom: 0 !important;
@@ -732,6 +732,10 @@ html, body {
     contain: layout style paint !important;
     width: 100% !important;
     max-width: 100vw !important;
+    /* Empêcher le clavier de déplacer la tabbar */
+    position: fixed !important;
+    bottom: env(keyboard-inset-height, 0px) !important;
+    bottom: 0px !important; /* Forcer bottom: 0 même avec le clavier */
   }
   
   /* S'assurer que le header reste au-dessus du contenu ET de la SearchBar */
