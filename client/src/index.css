@@ -15,9 +15,9 @@ html, body {
   width: 100%;
 }
 
-/* Header avec safe area pour iOS natif */
+/* Header avec safe area pour iOS natif uniquement */
 @media (max-width: 767px) {
-  .header-ios-safe {
+  .header-ios-safe.native-mobile {
     padding-top: env(safe-area-inset-top, 0px) !important;
     padding-top: max(env(safe-area-inset-top, 0px), 54px) !important; /* Fallback 34px + 20px */
   }

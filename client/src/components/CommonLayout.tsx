@@ -149,7 +149,12 @@ export default function CommonLayout({
       {/* Header - Fixed on all devices */}
       <div 
         ref={headerRef}
-        className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-[1000000] md:left-64 header-ios-safe"
+        className={`bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-[1000000] md:left-64 header-ios-safe ${isNativeMobile ? 'native-mobile' : ''}`}
+        style={{
+          top: isNativeMobile ? undefined : '0px',
+          marginTop: isNativeMobile ? undefined : '0px',
+          paddingTop: isNativeMobile ? undefined : '0px'
+        }}
       >
         <div className={`container mx-auto px-4 md:px-8 lg:px-12 ${isNativeMobile ? 'py-4' : 'py-2 md:py-4'}`}>
           <div className="flex items-center gap-4">
