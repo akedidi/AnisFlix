@@ -4,7 +4,6 @@ import {
   IonRefresher,
   IonRefresherContent,
   RefresherEventDetail,
-  isPlatform,
 } from "@ionic/react";
 
 interface IonicPullToRefreshProps {
@@ -18,12 +17,17 @@ export default function IonicPullToRefresh({
   children, 
   disabled = false 
 }: IonicPullToRefreshProps) {
-  const isNative = isPlatform("ios") || isPlatform("android");
+  // Utiliser la détection Capacitor native au lieu d'Ionic isPlatform
+  const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  const isNative = isCapacitor && (isIOS || isAndroid);
 
   // Debug logs
   console.log('🔍 [IONIC PULL TO REFRESH] Platform detection:', {
-    isIOS: isPlatform("ios"),
-    isAndroid: isPlatform("android"),
+    isCapacitor: isCapacitor,
+    isIOS: isIOS,
+    isAndroid: isAndroid,
     isNative: isNative,
     disabled: disabled,
     userAgent: navigator.userAgent
