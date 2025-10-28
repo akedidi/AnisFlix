@@ -77,15 +77,20 @@ export default function CommonLayout({
   
   // Gérer le refresh Ionic pour les apps natives
   const handleIonicRefresh = (event: CustomEvent<any>) => {
+    console.log('🔄 [IONIC REFRESH] Refresh triggered!', event);
+    
     const refreshFunction = onRefresh || (() => {
+      console.log('🔄 [IONIC REFRESH] Using default refresh (window.location.reload)');
       window.location.reload();
     });
     
+    console.log('🔄 [IONIC REFRESH] Executing refresh function...');
     // Exécuter la fonction de refresh
     refreshFunction();
     
     // Compléter le refresh après un délai
     setTimeout(() => {
+      console.log('🔄 [IONIC REFRESH] Completing refresh');
       event.detail.complete();
     }, 1000);
   };
@@ -176,7 +181,7 @@ export default function CommonLayout({
           {/* Main Content */}
           <IonicPullToRefresh onRefresh={handleIonicRefresh}>
             <div 
-              className={`${getContainerClass("main-content min-h-screen overflow-y-auto")} md:ml-64 md:pb-0`}
+              className={`${getContainerClass("main-content")} md:ml-64 md:pb-0`}
               id="main-content-desktop"
               style={{ 
                 paddingTop: headerOffset > 0 

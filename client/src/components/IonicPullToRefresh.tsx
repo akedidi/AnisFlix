@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  IonContent,
   IonRefresher,
   IonRefresherContent,
   RefresherEventDetail,
@@ -19,13 +20,24 @@ export default function IonicPullToRefresh({
 }: IonicPullToRefreshProps) {
   const isNative = isPlatform("ios") || isPlatform("android");
 
+  // Debug logs
+  console.log('🔍 [IONIC PULL TO REFRESH] Platform detection:', {
+    isIOS: isPlatform("ios"),
+    isAndroid: isPlatform("android"),
+    isNative: isNative,
+    disabled: disabled,
+    userAgent: navigator.userAgent
+  });
+
   // Ne pas afficher sur le web ou si désactivé
   if (!isNative || disabled) {
+    console.log('🔍 [IONIC PULL TO REFRESH] Disabled - returning children only');
     return <>{children}</>;
   }
 
+  console.log('🔍 [IONIC PULL TO REFRESH] Enabled - rendering IonContent with IonRefresher');
   return (
-    <>
+    <IonContent>
       <IonRefresher slot="fixed" onIonRefresh={onRefresh}>
         <IonRefresherContent
           pullingIcon="arrow-down-outline"
@@ -35,6 +47,6 @@ export default function IonicPullToRefresh({
         />
       </IonRefresher>
       {children}
-    </>
+    </IonContent>
   );
 }
