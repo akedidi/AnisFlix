@@ -200,6 +200,17 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           }}
         >
           {suggestions.map((item) => {
+            // Debug spécifique pour One-Punch Man
+            if (item.id === 63926) {
+              console.log('✅ [SEARCHBAR] One-Punch Man in suggestions:', {
+                id: item.id,
+                title: item.title,
+                mediaType: item.mediaType,
+                posterPath: item.posterPath,
+                backdropPath: item.backdropPath
+              });
+            }
+            
             // Debug pour les affiches manquantes
             if (!item.posterPath && !item.backdropPath) {
               console.warn(`⚠️ [SEARCHBAR] Item sans image:`, {

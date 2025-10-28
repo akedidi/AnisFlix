@@ -309,6 +309,15 @@ export const useMultiSearch = (query: string) => {
       }).filter(Boolean);
       
       console.log('🔍 [USE MULTI SEARCH] Final transformed results:', transformedResults);
+      
+      // Log spécifique pour One-Punch Man
+      const onePunchMan = transformedResults.find((item: any) => item.id === 63926);
+      if (onePunchMan) {
+        console.log('✅ [USE MULTI SEARCH] One-Punch Man found in results:', onePunchMan);
+      } else {
+        console.log('❌ [USE MULTI SEARCH] One-Punch Man NOT found in transformed results');
+      }
+      
       return transformedResults;
     },
     enabled: query.length >= 1,
