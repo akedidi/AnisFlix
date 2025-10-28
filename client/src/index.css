@@ -9,6 +9,27 @@
 @import '@ionic/react/css/flex-utils.css';
 @import '@ionic/react/css/display.css';
 
+/* Styles pour le pull-to-refresh Ionic */
+.ion-content-transparent {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+.ion-content-transparent ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+/* S'assurer que le contenu Ionic ne masque pas notre contenu */
+ion-page {
+  background: transparent !important;
+}
+
+ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

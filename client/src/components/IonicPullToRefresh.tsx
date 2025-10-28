@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  IonPage,
+  IonContent,
   IonRefresher,
   IonRefresherContent,
   RefresherEventDetail,
@@ -54,18 +56,28 @@ export default function IonicPullToRefresh({
     return <>{children}</>;
   }
 
-  console.log('🔍 [IONIC PULL TO REFRESH] Enabled - rendering IonRefresher only');
+  console.log('🔍 [IONIC PULL TO REFRESH] Enabled - rendering IonPage with IonContent');
   return (
-    <>
-      <IonRefresher slot="fixed" onIonRefresh={onRefresh}>
-        <IonRefresherContent
-          pullingIcon="chevron-down"
-          refreshingSpinner="circles"
-          pullingText="Tirez pour rafraîchir"
-          refreshingText="Chargement..."
-        />
-      </IonRefresher>
-      {children}
-    </>
+    <IonPage>
+      <IonContent 
+        style={{
+          '--background': 'transparent',
+          '--color': 'inherit'
+        } as any}
+        className="ion-content-transparent"
+      >
+        <IonRefresher slot="fixed" onIonRefresh={onRefresh}>
+          <IonRefresherContent
+            pullingIcon="refresh"
+            refreshingSpinner="circles"
+            pullingText="Tirez pour rafraîchir"
+            refreshingText="Chargement..."
+          />
+        </IonRefresher>
+        <div style={{ background: 'transparent', minHeight: '100vh' }}>
+          {children}
+        </div>
+      </IonContent>
+    </IonPage>
   );
 }
