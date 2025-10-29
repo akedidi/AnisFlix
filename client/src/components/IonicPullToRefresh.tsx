@@ -71,6 +71,13 @@ export default function IonicPullToRefresh({
             refreshingSpinner="circles"
             pullingText="Tirez pour rafraîchir"
             refreshingText="Chargement..."
+            style={{
+              '--color': '#FF0000',
+              '--background': '#FFFF00',
+              'background': '#FFFF00',
+              'padding': '30px',
+              'border': '3px solid #FF0000'
+            } as any}
           />
         </IonRefresher>
         <div style={{ background: 'transparent', minHeight: '100vh' }}>

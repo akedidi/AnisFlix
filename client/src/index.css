@@ -30,14 +30,25 @@ ion-content {
   --color: inherit !important;
 }
 
-/* Améliorer l'animation du pull-to-refresh */
+/* Améliorer l'animation du pull-to-refresh - STYLES ULTRA VISIBLES */
 ion-refresher-content {
-  --color: #007AFF !important;
-  --background: rgba(0, 122, 255, 0.2) !important;
-  background: rgba(0, 122, 255, 0.2) !important;
-  padding: 20px !important;
-  border-radius: 10px !important;
-  margin: 10px !important;
+  --color: #FF0000 !important;
+  --background: #FFFF00 !important;
+  background: #FFFF00 !important;
+  padding: 30px !important;
+  border-radius: 15px !important;
+  margin: 20px !important;
+  border: 5px solid #FF0000 !important;
+  position: fixed !important;
+  top: 50px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99999 !important;
+  width: 200px !important;
+  height: 100px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Rendre le spinner TRÈS visible */
