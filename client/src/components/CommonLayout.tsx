@@ -88,11 +88,11 @@ export default function CommonLayout({
     // Exécuter la fonction de refresh
     refreshFunction();
     
-    // Compléter le refresh après un délai
+    // Compléter le refresh après un délai plus long pour voir le spinner
     setTimeout(() => {
       console.log('🔄 [IONIC REFRESH] Completing refresh');
       event.detail.complete();
-    }, 1000);
+    }, 3000);
   };
   
 

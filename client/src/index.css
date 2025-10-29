@@ -33,26 +33,49 @@ ion-content {
 /* Améliorer l'animation du pull-to-refresh */
 ion-refresher-content {
   --color: #007AFF !important;
-  --background: rgba(0, 122, 255, 0.1) !important;
+  --background: rgba(0, 122, 255, 0.2) !important;
+  background: rgba(0, 122, 255, 0.2) !important;
+  padding: 20px !important;
+  border-radius: 10px !important;
+  margin: 10px !important;
 }
 
-/* Rendre le spinner plus visible */
+/* Rendre le spinner TRÈS visible */
 ion-refresher-content ion-spinner {
   --color: #007AFF !important;
-  width: 24px !important;
-  height: 24px !important;
+  width: 40px !important;
+  height: 40px !important;
+  stroke-width: 4px !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Forcer la visibilité du spinner */
+ion-refresher-content .refresher-refreshing-icon {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 /* Améliorer l'apparence du texte */
 ion-refresher-content .refresher-pulling-text,
 ion-refresher-content .refresher-refreshing-text {
   color: #007AFF !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  margin-top: 10px !important;
 }
 
 /* Animation pour le spinner */
 ion-refresher-content ion-spinner {
   animation: spin 1s linear infinite;
+}
+
+/* Styles pour le refresher entier */
+ion-refresher {
+  background: rgba(0, 122, 255, 0.1) !important;
+  z-index: 9999 !important;
 }
 
 @keyframes spin {
