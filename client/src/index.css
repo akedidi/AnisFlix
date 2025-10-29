@@ -38,9 +38,8 @@ ion-refresher-content {
   padding: 20px !important;
   border-radius: 10px !important;
   margin: 20px !important;
-  border: 2px solid #FFFFFF !important;
   position: fixed !important;
-  top: 120px !important;  /* Position sous le header + SearchBar */
+  top: 110px !important;  /* Remonté de 10px (120px -> 110px) */
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 99999 !important;

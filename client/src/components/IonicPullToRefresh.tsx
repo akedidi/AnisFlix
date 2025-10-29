@@ -76,7 +76,6 @@ export default function IonicPullToRefresh({
               '--background': 'rgba(0, 0, 0, 0.8)',
               'background': 'rgba(0, 0, 0, 0.8)',
               'padding': '20px',
-              'border': '2px solid #FFFFFF',
               'border-radius': '10px'
             } as any}
           />
