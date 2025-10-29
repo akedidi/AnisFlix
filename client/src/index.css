@@ -38,7 +38,7 @@ ion-refresher-content {
   padding: 0px !important;
   margin: 0px !important;
   position: fixed !important;
-  top: 110px !important;
+  top: 120px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 99999 !important;
