@@ -79,20 +79,26 @@ export default function CommonLayout({
   const handleIonicRefresh = (event: CustomEvent<any>) => {
     console.log('🔄 [IONIC REFRESH] Refresh triggered!', event);
     
-    const refreshFunction = onRefresh || (() => {
-      console.log('🔄 [IONIC REFRESH] Using default refresh (window.location.reload)');
-      window.location.reload();
-    });
+    console.log('🔄 [IONIC REFRESH] Starting refresh process...');
     
-    console.log('🔄 [IONIC REFRESH] Executing refresh function...');
-    // Exécuter la fonction de refresh
-    refreshFunction();
-    
-    // Compléter le refresh après un délai plus long pour voir le spinner
+    // Attendre 2 secondes pour voir le spinner, puis exécuter le refresh
     setTimeout(() => {
-      console.log('🔄 [IONIC REFRESH] Completing refresh');
-      event.detail.complete();
-    }, 3000);
+      console.log('🔄 [IONIC REFRESH] Executing refresh function...');
+      
+      const refreshFunction = onRefresh || (() => {
+        console.log('🔄 [IONIC REFRESH] Using default refresh (window.location.reload)');
+        window.location.reload();
+      });
+      
+      // Exécuter la fonction de refresh
+      refreshFunction();
+      
+      // Compléter le refresh après encore 1 seconde
+      setTimeout(() => {
+        console.log('🔄 [IONIC REFRESH] Completing refresh');
+        event.detail.complete();
+      }, 1000);
+    }, 2000);
   };
   
 
