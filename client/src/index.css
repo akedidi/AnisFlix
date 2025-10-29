@@ -30,6 +30,29 @@ ion-content {
   --color: inherit !important;
 }
 
+/* Améliorer l'animation du pull-to-refresh */
+ion-refresher-content {
+  --color: #007AFF !important;
+}
+
+ion-refresher-content .refresher-pulling-icon {
+  animation: rotate 1s linear infinite;
+}
+
+ion-refresher-content .refresher-refreshing-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
