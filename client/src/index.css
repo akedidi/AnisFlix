@@ -33,19 +33,26 @@ ion-content {
 /* Améliorer l'animation du pull-to-refresh */
 ion-refresher-content {
   --color: #007AFF !important;
+  --background: rgba(0, 122, 255, 0.1) !important;
 }
 
-ion-refresher-content .refresher-pulling-icon {
-  animation: rotate 1s linear infinite;
+/* Rendre le spinner plus visible */
+ion-refresher-content ion-spinner {
+  --color: #007AFF !important;
+  width: 24px !important;
+  height: 24px !important;
 }
 
-ion-refresher-content .refresher-refreshing-icon {
+/* Améliorer l'apparence du texte */
+ion-refresher-content .refresher-pulling-text,
+ion-refresher-content .refresher-refreshing-text {
+  color: #007AFF !important;
+  font-weight: 500 !important;
+}
+
+/* Animation pour le spinner */
+ion-refresher-content ion-spinner {
   animation: spin 1s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 @keyframes spin {

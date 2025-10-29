@@ -68,7 +68,6 @@ export default function IonicPullToRefresh({
       >
         <IonRefresher slot="fixed" onIonRefresh={onRefresh}>
           <IonRefresherContent
-            pullingIcon="arrow-down"
             refreshingSpinner="circles"
             pullingText="Tirez pour rafraîchir"
             refreshingText="Chargement..."
