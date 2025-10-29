@@ -30,21 +30,20 @@ ion-content {
   --color: inherit !important;
 }
 
-/* Améliorer l'animation du pull-to-refresh - STYLES FINAUX */
+/* Améliorer l'animation du pull-to-refresh - SPINNER SEUL */
 ion-refresher-content {
   --color: #FFFFFF !important;
-  --background: rgba(0, 0, 0, 0.8) !important;
-  background: rgba(0, 0, 0, 0.8) !important;
-  padding: 20px !important;
-  border-radius: 10px !important;
-  margin: 20px !important;
+  --background: transparent !important;
+  background: transparent !important;
+  padding: 0px !important;
+  margin: 0px !important;
   position: fixed !important;
-  top: 110px !important;  /* Remonté de 10px (120px -> 110px) */
+  top: 110px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 99999 !important;
-  width: 180px !important;
-  height: 80px !important;
+  width: auto !important;
+  height: auto !important;
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
