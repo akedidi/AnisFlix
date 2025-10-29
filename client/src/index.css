@@ -30,22 +30,22 @@ ion-content {
   --color: inherit !important;
 }
 
-/* Améliorer l'animation du pull-to-refresh - STYLES ULTRA VISIBLES */
+/* Améliorer l'animation du pull-to-refresh - STYLES FINAUX */
 ion-refresher-content {
-  --color: #FF0000 !important;
-  --background: #FFFF00 !important;
-  background: #FFFF00 !important;
-  padding: 30px !important;
-  border-radius: 15px !important;
+  --color: #FFFFFF !important;
+  --background: rgba(0, 0, 0, 0.8) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  padding: 20px !important;
+  border-radius: 10px !important;
   margin: 20px !important;
-  border: 5px solid #FF0000 !important;
+  border: 2px solid #FFFFFF !important;
   position: fixed !important;
-  top: 50px !important;
+  top: 120px !important;  /* Position sous le header + SearchBar */
   left: 50% !important;
   transform: translateX(-50%) !important;
   z-index: 99999 !important;
-  width: 200px !important;
-  height: 100px !important;
+  width: 180px !important;
+  height: 80px !important;
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -53,10 +53,10 @@ ion-refresher-content {
 
 /* Rendre le spinner TRÈS visible */
 ion-refresher-content ion-spinner {
-  --color: #007AFF !important;
-  width: 40px !important;
-  height: 40px !important;
-  stroke-width: 4px !important;
+  --color: #FFFFFF !important;
+  width: 30px !important;
+  height: 30px !important;
+  stroke-width: 3px !important;
   opacity: 1 !important;
   display: block !important;
   visibility: visible !important;
@@ -72,10 +72,10 @@ ion-refresher-content .refresher-refreshing-icon {
 /* Améliorer l'apparence du texte */
 ion-refresher-content .refresher-pulling-text,
 ion-refresher-content .refresher-refreshing-text {
-  color: #007AFF !important;
-  font-weight: 600 !important;
-  font-size: 16px !important;
-  margin-top: 10px !important;
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  margin-top: 8px !important;
 }
 
 /* Animation pour le spinner */

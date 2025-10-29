@@ -72,11 +72,12 @@ export default function IonicPullToRefresh({
             pullingText="Tirez pour rafraîchir"
             refreshingText="Chargement..."
             style={{
-              '--color': '#FF0000',
-              '--background': '#FFFF00',
-              'background': '#FFFF00',
-              'padding': '30px',
-              'border': '3px solid #FF0000'
+              '--color': '#FFFFFF',
+              '--background': 'rgba(0, 0, 0, 0.8)',
+              'background': 'rgba(0, 0, 0, 0.8)',
+              'padding': '20px',
+              'border': '2px solid #FFFFFF',
+              'border-radius': '10px'
             } as any}
           />
         </IonRefresher>
