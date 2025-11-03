@@ -9,6 +9,7 @@ import { saveWatchProgress } from "@/lib/watchProgress";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import CustomVideoControls from "@/components/CustomVideoControls";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -62,6 +63,7 @@ export default function VidMolyPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
   const lastSaveTimeRef = useRef<number>(0);
 
   // Navigation au clavier pour contrôler la lecture vidéo
@@ -120,6 +122,9 @@ export default function VidMolyPlayer({
             const { getVidMolyProxyUrl } = await import('../utils/urlUtils');
             const proxyUrl = getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
             console.log('🔗 URL proxy VidMoly:', proxyUrl);
+            
+            // Stocker l'URL finale pour Chromecast
+            setFinalMediaUrl(proxyUrl);
             
             if (Hls.isSupported()) {
               console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
@@ -199,6 +204,9 @@ export default function VidMolyPlayer({
           finalUrl = cleanedUrl;
           console.log('📺 Utilisation directe du lien de démo:', finalUrl);
         }
+        
+        // Stocker l'URL finale pour Chromecast
+        setFinalMediaUrl(finalUrl);
 
         // Configuration HLS avec gestion iOS native
         if (isNative) {
@@ -450,9 +458,8 @@ export default function VidMolyPlayer({
     }
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSeek = (newTime: number) => {
     if (videoRef.current) {
-      const newTime = (parseFloat(e.target.value) / 100) * duration;
       videoRef.current.currentTime = newTime;
     }
   };
@@ -527,87 +534,56 @@ export default function VidMolyPlayer({
           ref={videoRef}
           className="w-full aspect-video bg-black object-contain"
           poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
-          controls={!isNative}
+          controls={false}
           playsInline
         />
 
-        {/* Fullscreen button overlay for web (ensure visibility on mobile web) */}
+        {/* Contrôles personnalisés pour web */}
         {!isNative && (
-          <div className="absolute top-2 right-2 z-20">
-            <Button
-              onClick={toggleFullscreen}
-              variant="secondary"
-              size="icon"
-              className="bg-black/50 text-white hover:bg-black/60"
-              title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
-            >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </Button>
-          </div>
+          <CustomVideoControls
+            videoRef={videoRef}
+            isPlaying={isPlaying}
+            isMuted={isMuted}
+            isFullscreen={isFullscreen}
+            isPictureInPicture={isPictureInPicture}
+            currentTime={currentTime}
+            duration={duration}
+            progress={progress}
+            mediaUrl={finalMediaUrl}
+            title={title}
+            posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
+            onPlayPause={togglePlayPause}
+            onMute={toggleMute}
+            onFullscreen={toggleFullscreen}
+            onPictureInPicture={togglePictureInPicture}
+            onSeek={handleSeek}
+            formatTime={formatTime}
+          />
         )}
 
         {/* Contrôles personnalisés pour mobile */}
         {isNative && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-            {/* Progress Bar */}
-            <div className="mb-4">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={progress}
-                onChange={handleSeek}
-                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                style={{
-                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress}%, #4b5563 ${progress}%, #4b5563 100%)`
-                }}
-              />
-              <div className="flex justify-between text-white text-sm mt-1">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Contrôles */}
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                onClick={togglePlayPause}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-              </Button>
-              
-              <Button
-                onClick={toggleMute}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20"
-              >
-                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-              </Button>
-
-            <Button
-              onClick={toggleFullscreen}
-              variant="ghost"
-              size="sm"
-              className="text-white hover:bg-white hover:bg-opacity-20"
-              title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
-            >
-              {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
-            </Button>
-              
-              <Button
-                onClick={togglePictureInPicture}
-                variant="ghost"
-                size="sm"
-                className="text-white hover:bg-white hover:bg-opacity-20"
-                title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
-              >
-                <PictureInPicture className="w-6 h-6" />
-              </Button>
-            </div>
+            {/* Contrôles personnalisés pour mobile */}
+            <CustomVideoControls
+              videoRef={videoRef}
+              isPlaying={isPlaying}
+              isMuted={isMuted}
+              isFullscreen={isFullscreen}
+              isPictureInPicture={isPictureInPicture}
+              currentTime={currentTime}
+              duration={duration}
+              progress={progress}
+              mediaUrl={finalMediaUrl}
+              title={title}
+              posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
+              onPlayPause={togglePlayPause}
+              onMute={toggleMute}
+              onFullscreen={toggleFullscreen}
+              onPictureInPicture={togglePictureInPicture}
+              onSeek={handleSeek}
+              formatTime={formatTime}
+            />
           </div>
         )}
       </div>

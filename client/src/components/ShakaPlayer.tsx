@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucide-react";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
+import ChromecastButton from "@/components/ChromecastButton";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
@@ -38,6 +39,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     const initPlayer = async () => {
@@ -111,6 +113,13 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         // Gérer Picture-in-Picture
         videoRef.current.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
         videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
+
+        // Mettre à jour currentTime pour Chromecast
+        videoRef.current.addEventListener('timeupdate', () => {
+          if (videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime);
+          }
+        });
 
         // Approche simplifiée : charger directement l'URL comme dans votre code fonctionnel
         console.log('🔍 [SHAKA] Chargement direct de l\'URL:', url);
@@ -292,6 +301,16 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
               >
                 <PictureInPicture className="w-4 h-4" />
               </Button>
+              {url && (
+                <ChromecastButton
+                  mediaUrl={url}
+                  title={title || "Vidéo"}
+                  currentTime={currentTime}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                />
+              )}
               <Button
                 variant="ghost"
                 size="sm"
