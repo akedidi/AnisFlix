@@ -306,3 +306,4 @@ Après avoir lancé tous les tests, vous devriez voir :
 
 Si certains tests échouent, vérifier les screenshots dans `test-results/` pour diagnostiquer le problème !
 
+

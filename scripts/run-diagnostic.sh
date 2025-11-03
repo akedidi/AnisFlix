@@ -109,3 +109,4 @@ echo "5. Si la tabbar bouge, vérifiez les styles CSS dans le code"
 echo -e "\n${GREEN}✅ Diagnostic terminé!${NC}"
 
 
+

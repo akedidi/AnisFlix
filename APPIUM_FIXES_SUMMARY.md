@@ -33,3 +33,4 @@ L'app démarre correctement ! Le problème est uniquement dans la syntaxe des te
 L'infrastructure Appium est fonctionnelle ! 🎉
 
 
+

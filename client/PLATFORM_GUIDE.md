@@ -142,3 +142,4 @@ client/src/
 3. **Responsive** : La détection desktop/mobile se base sur `window.innerWidth >= 768px`
 4. **Native** : La détection native utilise `isNativeApp()` qui vérifie Capacitor + plugins
 
+

@@ -140,3 +140,4 @@ if (ionPage) {
 Si du contenu apparaît après ces commandes, le problème est CSS. Sinon, le problème est le rendu React.
 
 
+

@@ -202,3 +202,4 @@ console.log('IonContent:', {
 **La règle d'or** : Si ça marche sur web mais pas sur natif, c'est probablement un override CSS qui casse Ionic. Enlever l'override.
 
 
+

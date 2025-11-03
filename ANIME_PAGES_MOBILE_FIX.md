@@ -266,3 +266,4 @@ Sur web mobile, les pages anime ont maintenant :
 Testez maintenant sur http://localhost:3000/anime-series-popular ! 🎉
 
 
+

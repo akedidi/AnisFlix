@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
-import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture } from "lucide-react";
+import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture, Maximize, Minimize } from "lucide-react";
 import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
 import { apiClient } from "@/lib/apiClient";
 import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
@@ -21,6 +21,8 @@ const isNativePlatform = () => {
 declare global {
   interface HTMLVideoElement {
     webkitSetPresentationMode?: (mode: string) => void;
+    webkitEnterFullscreen?: () => void;
+    webkitExitFullscreen?: () => void;
   }
 }
 
@@ -49,6 +51,7 @@ export default function VidMolyPlayer({
 }: VidMolyPlayerProps) {
   const { isNative, platform } = useCapacitorDevice();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export default function VidMolyPlayer({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const lastSaveTimeRef = useRef<number>(0);
 
   // Navigation au clavier pour contrôler la lecture vidéo
@@ -363,12 +367,28 @@ export default function VidMolyPlayer({
     video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
     video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
+    const handleFullscreenChange = () => {
+      const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsFullscreen(isFs);
+    };
+    const handleWebkitBeginFullscreen = () => setIsFullscreen(true);
+    const handleWebkitEndFullscreen = () => setIsFullscreen(false);
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as any);
+    video.addEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as any);
+    video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen as any);
+
     return () => {
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
       video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
+      video.removeEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as any);
+      video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen as any);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as any);
       
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -437,6 +457,39 @@ export default function VidMolyPlayer({
     }
   };
 
+  const toggleFullscreen = () => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video) return;
+
+    if (!isFullscreen) {
+      // iOS Safari special case: use webkitEnterFullscreen on the video element
+      const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && !!(window as any).webkit;
+      if (isIOSSafari && typeof video.webkitEnterFullscreen === 'function') {
+        try {
+          video.webkitEnterFullscreen();
+          return;
+        } catch (e) {
+          // Fallback to standard API below
+        }
+      }
+
+      // Prefer container fullscreen to include overlays
+      const target: any = container || video;
+      const request = (target.requestFullscreen 
+        || target.webkitRequestFullscreen 
+        || target.mozRequestFullScreen 
+        || target.msRequestFullscreen);
+      request?.call(target);
+    } else {
+      const exit = (document.exitFullscreen 
+        || (document as any).webkitExitFullscreen 
+        || (document as any).mozCancelFullScreen 
+        || (document as any).msExitFullscreen);
+      exit?.call(document);
+    }
+  };
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -460,7 +513,7 @@ export default function VidMolyPlayer({
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
       {/* Video Container */}
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="text-white text-center">
@@ -477,6 +530,21 @@ export default function VidMolyPlayer({
           controls={!isNative}
           playsInline
         />
+
+        {/* Fullscreen button overlay for web (ensure visibility on mobile web) */}
+        {!isNative && (
+          <div className="absolute top-2 right-2 z-20">
+            <Button
+              onClick={toggleFullscreen}
+              variant="secondary"
+              size="icon"
+              className="bg-black/50 text-white hover:bg-black/60"
+              title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+            >
+              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            </Button>
+          </div>
+        )}
 
         {/* Contrôles personnalisés pour mobile */}
         {isNative && (
@@ -519,6 +587,16 @@ export default function VidMolyPlayer({
               >
                 {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
               </Button>
+
+            <Button
+              onClick={toggleFullscreen}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white hover:bg-opacity-20"
+              title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+            >
+              {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+            </Button>
               
               <Button
                 onClick={togglePictureInPicture}

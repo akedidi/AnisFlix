@@ -129,3 +129,4 @@ echo "📸 Screenshots disponibles dans: test-results/"
 echo "📊 Logs disponibles dans: logs/"
 
 
+

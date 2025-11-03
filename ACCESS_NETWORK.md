@@ -77,3 +77,4 @@ lsof -i :3000
 - Utilisez un VPN ou un tunnel SSH pour un accès sécurisé depuis l'extérieur
 - Ne partagez jamais votre IP publique avec des personnes non autorisées
 
+

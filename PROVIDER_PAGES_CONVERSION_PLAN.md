@@ -160,3 +160,4 @@ http://localhost:3000/netflix-movies
 Les pages `*Content.tsx` (NetflixContent, AmazonContent, etc.) utilisent probablement déjà `CommonLayout`. On se concentre sur les pages `*Movies.tsx` et `*Series.tsx`.
 
 
+

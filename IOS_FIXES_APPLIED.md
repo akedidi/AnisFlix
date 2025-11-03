@@ -184,3 +184,4 @@ Copier les résultats du script de diagnostic et indiquer :
 5. Signaler les problèmes restants avec les détails du diagnostic
 
 
+

@@ -193,8 +193,8 @@ export default function CommonLayout({
 
           {/* Main Content */}
           {isReallyNativeMobile ? (
-            <IonicPullToRefresh onRefresh={handleIonicRefresh}>
-              <div 
+          <IonicPullToRefresh onRefresh={handleIonicRefresh}>
+            <div 
                 className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
                 id="main-content-desktop"
                 style={{ 
@@ -223,7 +223,7 @@ export default function CommonLayout({
               {children}
             </div>
           )}
-
+      
       {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}
     </>
   );

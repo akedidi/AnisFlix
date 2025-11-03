@@ -115,3 +115,4 @@ Ces tests automatisés permettent de vérifier automatiquement que :
 
 Ces tests fournissent des screenshots et des rapports détaillés pour diagnostiquer les problèmes de l'UI native.
 
+

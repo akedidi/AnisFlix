@@ -324,3 +324,4 @@ console.log('isNativeMobile:', isNativeMobile);
 
 Si tout est correct, l'application devrait maintenant avoir des animations fluides, un header qui reste en haut sous l'encoche, et un pull to refresh fonctionnel ! 🎉
 
+

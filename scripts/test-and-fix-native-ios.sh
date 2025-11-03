@@ -83,3 +83,4 @@ echo -e "\n${BLUE}📸 Screenshots disponibles dans : test-results/${NC}"
 echo -e "${BLUE}📊 Logs disponibles dans : test-results/*.log${NC}"
 
 
+

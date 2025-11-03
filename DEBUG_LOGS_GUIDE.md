@@ -179,3 +179,4 @@ npx cap open ios
 - Les logs avec emojis facilitent la lecture dans la console
 
 
+

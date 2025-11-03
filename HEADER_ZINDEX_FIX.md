@@ -149,3 +149,4 @@ Cela améliore la perception de profondeur et indique visuellement que l'utilisa
 Testez maintenant sur http://localhost:3000/anime-series-popular ! 🎉
 
 
+
