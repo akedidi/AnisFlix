@@ -65,6 +65,46 @@ export default function BottomNav() {
     { icon: Settings, label: t("nav.settings"), path: "/settings", offline: true },
   ];
 
+  // Déterminer quel onglet doit être actif pour une URL donnée
+  const getActiveRoot = (currentPath: string) => {
+    const p = currentPath.split('?')[0].split('#')[0];
+    const isOneOf = (prefixes: string[]) => prefixes.some((pref) => p === pref || p.startsWith(pref));
+
+    // Movies: racine + détails + genres + pages dérivées (latest/popular)
+    if (
+      isOneOf([
+        '/movies',
+        '/movie',
+        '/movies-',
+        '/movies/genre',
+        '/movies-genre',
+        '/latest-movies',
+        '/popular-movies'
+      ])
+    ) return '/movies';
+
+    // Series: racine + détails + genres + pages dérivées (latest/popular)
+    if (
+      isOneOf([
+        '/series',
+        '/series-',
+        '/series/genre',
+        '/series-genre',
+        '/latest-series',
+        '/popular-series'
+      ])
+    ) return '/series';
+
+    // TV
+    if (isOneOf(['/tv-channels'])) return '/tv-channels';
+    // Favorites
+    if (isOneOf(['/favorites'])) return '/favorites';
+    // Settings
+    if (isOneOf(['/settings'])) return '/settings';
+    // Home par défaut
+    return '/';
+  };
+
   const tabbarElement = (
     <nav
       ref={navRef}
@@ -92,9 +132,10 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const Icon = item.icon;
           // Normaliser le path pour comparer correctement
-          const normalizedLocation = location.split('?')[0].split('#')[0]; // Enlever query params et hash
+          const normalizedLocation = location.split('?')[0].split('#')[0];
           const normalizedPath = item.path.split('?')[0].split('#')[0];
-          const isActive = normalizedLocation === normalizedPath || (normalizedLocation === '' && normalizedPath === '/');
+          const activeRoot = getActiveRoot(normalizedLocation || '/');
+          const isActive = normalizedPath === activeRoot;
           const isOfflineAvailable = item.offline;
           
           return (

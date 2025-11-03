@@ -41,7 +41,7 @@ export default function CommonLayout({
   onCustomSearchSelect
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [, setLocation] = useLocation();
+  const [locationPath, setLocation] = useLocation();
   const { isOffline } = useOffline();
   
   // Utiliser la hauteur réelle du viewport (compatible iOS)
@@ -213,11 +213,26 @@ export default function CommonLayout({
               className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
               id="main-content-desktop"
               style={{ 
-                paddingTop: headerOffset > 0 
-                  ? `${100 + headerOffset + 8}px` 
-                  : window.innerWidth >= 768 
-                    ? '70px' 
-                    : '53px'
+                paddingTop: (() => {
+                  if (headerOffset > 0) return `${100 + headerOffset + 8}px`;
+                  const isDesktop = window.innerWidth >= 768;
+                  if (isDesktop) return '70px';
+                  // Mobile web: ajouter un léger padding pour les pages de liste (hors accueil)
+                  const p = (locationPath || '/').split('?')[0].split('#')[0];
+                  const isListPage = (
+                    p === '/movies' ||
+                    p === '/series' ||
+                    p === '/latest-movies' ||
+                    p === '/latest-series' ||
+                    p === '/popular-movies' ||
+                    p === '/popular-series' ||
+                    p.startsWith('/movies-genre') ||
+                    p.startsWith('/movies/genre') ||
+                    p.startsWith('/series-genre') ||
+                    p.startsWith('/series/genre')
+                  );
+                  return isListPage ? '64px' : '53px';
+                })()
               }}
             >
               {children}

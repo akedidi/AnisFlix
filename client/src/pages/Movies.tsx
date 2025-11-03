@@ -64,7 +64,7 @@ export default function Movies() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
       
 
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 space-y-8 md:space-y-12 -mt-12 md:mt-0">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 space-y-8 md:space-y-12 mt-2 md:mt-0">
         <MediaCarousel
           title={t("movies.latest")}
           items={latestMovies.slice(0, 10)}

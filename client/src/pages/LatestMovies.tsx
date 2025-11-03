@@ -50,7 +50,7 @@ export default function LatestMovies() {
       }}
     >
       
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Derniers films</h1>
             <p className="text-muted-foreground max-w-2xl">
