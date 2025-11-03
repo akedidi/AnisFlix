@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useServiceWorker } from "@/hooks/useOffline";
 import { useDeepLinks } from "@/hooks/useDeepLinks";
 import CustomSplashScreen from "@/components/CustomSplashScreen";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Import des styles pour le clavier natif et tabbar
 import "@/styles/native-keyboard.css";
@@ -80,16 +81,30 @@ function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
-        <LanguageProvider>
-          <Suspense fallback={<div>Loading...</div>}>
-            {isNative ? <AppNative /> : <AppWeb />}
-          </Suspense>
-          <Toaster />
-        </LanguageProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
+          <LanguageProvider>
+            <Suspense fallback={
+              <div style={{ 
+                minHeight: '100vh', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                backgroundColor: 'hsl(220, 15%, 8%)',
+                color: 'hsl(0, 0%, 95%)',
+                fontSize: '18px'
+              }}>
+                <div>Chargement...</div>
+              </div>
+            }>
+              {isNative ? <AppNative /> : <AppWeb />}
+            </Suspense>
+            <Toaster />
+          </LanguageProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

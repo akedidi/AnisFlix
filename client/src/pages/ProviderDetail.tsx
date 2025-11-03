@@ -57,8 +57,8 @@ const providers: Record<number, Provider> = {
     description:
       "Disney+ regroupe les films Disney, Marvel, Star Wars, Pixar et National Geographic.",
   },
-  1899: {
-    id: 1899,
+  384: {
+    id: 384,
     name: "HBO Max",
     logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg",
     description:

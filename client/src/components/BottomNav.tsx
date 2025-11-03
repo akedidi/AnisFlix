@@ -53,22 +53,7 @@ export default function BottomNav() {
     }
   }, [viewportHeight, isPositionLocked]);
 
-  // Reset scroll to top when location changes
-  useEffect(() => {
-    // Clear all saved scroll positions when navigating
-    try {
-      const positions = JSON.parse(localStorage.getItem('scrollPositions') || '{}');
-      Object.keys(positions).forEach(key => {
-        delete positions[key];
-      });
-      localStorage.setItem('scrollPositions', JSON.stringify(positions));
-    } catch (error) {
-      console.error('Erreur lors de l\'effacement des positions de scroll:', error);
-    }
-    
-    // Scroll to top - TEMPORAIREMENT DÉSACTIVÉ pour tester
-    // window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [location]);
+  // La préservation du scroll est maintenant gérée par useScrollPreservation dans AppWeb
 
 
   const navItems = [
@@ -85,23 +70,31 @@ export default function BottomNav() {
       ref={navRef}
       className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
       style={{
-        position: 'fixed !important',
-        bottom: '0px !important',
-        left: '0px !important',
-        right: '0px !important',
-        zIndex: '2147483647 !important', // Maximum z-index possible
-        width: '100vw !important',
-        height: '70px !important',
-        background: 'hsl(var(--card)) !important',
-        borderTop: '1px solid hsl(var(--card-border)) !important',
-        transform: 'translateZ(0) !important',
-        willChange: 'transform !important'
+        display: 'block',
+        visibility: 'visible',
+        opacity: '1',
+        position: 'fixed',
+        bottom: '0px',
+        left: '0px',
+        right: '0px',
+        top: 'auto',
+        zIndex: 99999, // Réduit de 2147483647 à 99999 pour éviter les problèmes de pointer-events
+        width: '100vw',
+        height: '70px',
+        background: 'hsl(var(--card))',
+        borderTop: '1px solid hsl(var(--card-border))',
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        pointerEvents: 'auto' // S'assurer que les interactions sont possibles
       }}
     >
       <div className="flex items-center justify-around h-16 w-full max-w-full overflow-hidden pb-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.path;
+          // Normaliser le path pour comparer correctement
+          const normalizedLocation = location.split('?')[0].split('#')[0]; // Enlever query params et hash
+          const normalizedPath = item.path.split('?')[0].split('#')[0];
+          const isActive = normalizedLocation === normalizedPath || (normalizedLocation === '' && normalizedPath === '/');
           const isOfflineAvailable = item.offline;
           
           return (
@@ -109,6 +102,7 @@ export default function BottomNav() {
               key={item.path}
               href={item.path}
               data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+              style={{ pointerEvents: 'auto' }} // S'assurer que les liens sont cliquables
             >
               <button
                 className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${
@@ -118,8 +112,13 @@ export default function BottomNav() {
                     ? "text-muted-foreground/50"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                style={{ maxWidth: 'calc(100vw / 6)' }}
+                style={{ 
+                  maxWidth: 'calc(100vw / 6)',
+                  pointerEvents: 'auto', // S'assurer que les boutons sont cliquables
+                  cursor: 'pointer' // Ajouter le curseur pointer
+                }}
                 disabled={isOffline && !isOfflineAvailable}
+                type="button"
               >
                 <Icon className={`w-5 h-5 ${isActive ? "fill-primary/20" : ""}`} />
                 <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
@@ -139,29 +138,119 @@ export default function BottomNav() {
     setIsMounted(true);
     console.log('[BottomNav] Component mounted, Portal ready');
 
+    // Détecter si on est sur mobile (largeur d'écran ou user agent)
+    const isMobile = () => {
+      const width = window.innerWidth;
+      const isMobileWidth = width <= 768;
+      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      return isMobileWidth || isMobileUA;
+    };
+
+    // Créer ou récupérer l'élément de navigation directement dans le DOM
+    const ensureNavElement = () => {
+      let navElement = document.querySelector('.mobile-bottom-nav') as HTMLElement;
+      
+      if (!navElement) {
+        // Créer l'élément directement dans le body si le Portal ne l'a pas encore créé
+        navElement = document.createElement('nav');
+        navElement.className = 'mobile-bottom-nav';
+        document.body.appendChild(navElement);
+        console.log('[BottomNav] Created nav element directly in DOM');
+      }
+      
+      return navElement;
+    };
+
     // Forcer le positionnement après le montage
     const forcePositioning = () => {
-      const navElement = document.querySelector('.mobile-bottom-nav') as HTMLElement;
-      if (navElement) {
-        navElement.style.position = 'fixed !important';
-        navElement.style.bottom = '0px !important';
-        navElement.style.left = '0px !important';
-        navElement.style.right = '0px !important';
-        navElement.style.zIndex = '2147483647 !important';
-        navElement.style.width = '100vw !important';
-        navElement.style.height = '70px !important';
-        console.log('[BottomNav] Forced positioning applied');
+      const navElement = ensureNavElement();
+      
+      if (!navElement) return;
+      
+      // S'assurer que le parent (body) n'a pas de transform ou overflow qui pourrait casser le fixed
+      const body = document.body;
+      if (body) {
+        // Forcer body à ne pas avoir de transform ou overflow qui pourrait casser le fixed
+        body.style.setProperty('transform', 'none', 'important');
+        body.style.setProperty('overflow-x', 'hidden', 'important');
       }
+      
+      // S'assurer que html n'a pas de transform
+      const html = document.documentElement;
+      if (html) {
+        html.style.setProperty('transform', 'none', 'important');
+      }
+
+      // Forcer l'affichage sur mobile même si md:hidden est appliqué
+      if (isMobile()) {
+        navElement.style.setProperty('display', 'block', 'important');
+        navElement.style.setProperty('visibility', 'visible', 'important');
+        navElement.style.setProperty('opacity', '1', 'important');
+      } else {
+        navElement.style.setProperty('display', 'none', 'important');
+        return; // Ne pas positionner sur desktop
+      }
+      
+      // Forcer le positionnement fixe en bas de l'écran
+      navElement.style.setProperty('position', 'fixed', 'important');
+      navElement.style.setProperty('bottom', '0px', 'important');
+      navElement.style.setProperty('left', '0px', 'important');
+      navElement.style.setProperty('right', '0px', 'important');
+      navElement.style.setProperty('top', 'auto', 'important');
+      navElement.style.setProperty('z-index', '99999', 'important'); // Réduit pour éviter les problèmes
+      navElement.style.setProperty('width', '100vw', 'important');
+      navElement.style.setProperty('max-width', '100vw', 'important');
+      navElement.style.setProperty('height', '70px', 'important');
+      navElement.style.setProperty('transform', 'translateZ(0)', 'important');
+      navElement.style.setProperty('will-change', 'transform', 'important');
+      navElement.style.setProperty('margin', '0', 'important');
+      navElement.style.setProperty('padding', '0', 'important');
+      navElement.style.setProperty('box-sizing', 'border-box', 'important');
+      navElement.style.setProperty('pointer-events', 'auto', 'important'); // S'assurer que les interactions sont possibles
+      
+      // Vérifier la position réelle après application
+      const rect = navElement.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const expectedBottom = 0;
+      const actualBottom = viewportHeight - rect.bottom;
+      
+      if (Math.abs(actualBottom - expectedBottom) > 1) {
+        console.warn(`[BottomNav] Position mismatch! Expected bottom: ${expectedBottom}px, Actual: ${actualBottom}px, rect.bottom: ${rect.bottom}, viewportHeight: ${viewportHeight}`);
+        // Forcer encore plus
+        navElement.style.setProperty('bottom', '0px', 'important');
+        navElement.style.setProperty('top', 'auto', 'important');
+      }
+      
+      console.log('[BottomNav] Forced positioning applied, isMobile:', isMobile(), 'bottom:', rect.bottom, 'viewportHeight:', viewportHeight, 'actualBottom:', actualBottom);
     };
 
     // Appliquer immédiatement et après un délai
     forcePositioning();
     setTimeout(forcePositioning, 100);
     setTimeout(forcePositioning, 500);
+    setTimeout(forcePositioning, 1000);
 
-    // Réappliquer sur resize
+    // Réappliquer sur resize et scroll pour maintenir le positionnement fixe
+    let rafId: number | null = null;
+    const handleScroll = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        forcePositioning();
+      });
+    };
+
     window.addEventListener('resize', forcePositioning);
-    return () => window.removeEventListener('resize', forcePositioning);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Forcer le positionnement périodiquement pour éviter les problèmes
+    const intervalId = setInterval(forcePositioning, 300);
+    
+    return () => {
+      window.removeEventListener('resize', forcePositioning);
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Ne rendre le Portal que lorsque le composant est complètement monté
@@ -169,5 +258,12 @@ export default function BottomNav() {
     return null;
   }
 
-  return createPortal(tabbarElement, document.body);
+  // S'assurer que le Portal est rendu directement dans le body
+  const portalContainer = document.body;
+  if (!portalContainer) {
+    console.error('[BottomNav] document.body not found, cannot render Portal');
+    return null;
+  }
+
+  return createPortal(tabbarElement, portalContainer);
 }

@@ -44,15 +44,14 @@ const PROVIDERS = {
   8: 'Netflix',
   9: 'Amazon Prime Video',
   350: 'Apple TV+',
-  531: 'Disney+',
-  1899: 'Paramount+',
-  384: 'HBO Max',
+  337: 'Disney+',  // ID correct pour Disney+
+  531: 'Paramount+',  // ID correct pour Paramount+
+  384: 'HBO Max',  // ID correct pour HBO Max
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
   192: 'YouTube',
   7: 'Vudu',
-  337: 'Disney Now',
   386: 'Peacock Premium',
   387: 'Peacock'
 };
@@ -86,15 +85,22 @@ export default function ProviderSeriesGenre() {
         setLoading(true);
         setError(null);
         
+        // Construire l'URL de base avec le provider
+        let baseUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&watch_region=US&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+        
+        // Ajouter le genre seulement s'il est défini
+        if (genreId) {
+          baseUrl += `&with_genres=${genreId}`;
+        }
+        
         // Essayer plusieurs régions pour avoir plus de contenu
         const regions = ['US', 'FR', 'GB', 'CA'];
         let result = null;
         
         for (const region of regions) {
           try {
-            const response = await fetch(
-              `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&with_genres=${genreId}&watch_region=${region}&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
-            );
+            const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
+            const response = await fetch(url);
             
             if (response.ok) {
               const data = await response.json();
@@ -111,9 +117,14 @@ export default function ProviderSeriesGenre() {
         
         // Si aucune région n'a donné de résultats, essayer sans restriction de région
         if (!result || !result.results || result.results.length === 0) {
-          const response = await fetch(
-            `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
-          );
+          let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+          
+          // Ajouter le genre seulement s'il est défini
+          if (genreId) {
+            fallbackUrl += `&with_genres=${genreId}`;
+          }
+          
+          const response = await fetch(fallbackUrl);
           
           if (response.ok) {
             result = await response.json();
@@ -209,9 +220,17 @@ export default function ProviderSeriesGenre() {
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("series.title")} {genreName} {t("provider.on")} {providerName}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
+            {genreSlug 
+              ? `${t("series.title")} ${genreName} ${t("provider.on")} ${providerName}`
+              : `${t("series.title")} ${t("provider.on")} ${providerName}`
+            }
+          </h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
-            {t("provider.discoverSeriesPrefix")} {genreName} {t("provider.discoverSeriesSuffix")} {providerName}.
+            {genreSlug 
+              ? `${t("provider.discoverSeriesPrefix")} ${genreName} ${t("provider.discoverSeriesSuffix")} ${providerName}.`
+              : `${t("provider.discoverSeriesPrefix")} ${t("provider.discoverSeriesSuffix")} ${providerName}.`
+            }
           </p>
         </div>
       </div>

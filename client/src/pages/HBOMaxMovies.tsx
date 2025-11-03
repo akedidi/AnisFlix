@@ -30,7 +30,7 @@ export default function HBOMaxMovies() {
         setError(null);
         
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=1899&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
+          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=384&watch_region=FR&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
         );
         
         if (!response.ok) {

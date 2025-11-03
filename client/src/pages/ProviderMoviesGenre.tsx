@@ -40,15 +40,14 @@ const PROVIDERS = {
   8: 'Netflix',
   9: 'Amazon Prime Video',
   350: 'Apple TV+',
-  531: 'Disney+',
-  1899: 'Paramount+',
-  384: 'HBO Max',
+  337: 'Disney+',  // ID correct pour Disney+
+  531: 'Paramount+',  // ID correct pour Paramount+
+  384: 'HBO Max',  // ID correct pour HBO Max
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
   192: 'YouTube',
   7: 'Vudu',
-  337: 'Disney Now',
   386: 'Peacock Premium',
   387: 'Peacock'
 };

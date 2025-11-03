@@ -49,8 +49,8 @@ export default function Home() {
   const { data: netflixSeriesData } = useSeriesByProvider(8);
   const { data: amazonSeriesData } = useSeriesByProvider(9);
   const { data: amazonMoviesData } = useMoviesByProvider(9);
-  const { data: hboMaxSeriesData } = useSeriesByProvider(1899);
-  const { data: hboMaxMoviesData } = useMoviesByProvider(1899);
+  const { data: hboMaxSeriesData } = useSeriesByProvider(384);
+  const { data: hboMaxMoviesData } = useMoviesByProvider(384);
   const { data: disneyMoviesData } = useMoviesByProvider(337);
   const { data: disneySeriesData } = useSeriesByProvider(337);
   const { data: appleTvMoviesData } = useMoviesByProvider(350);
@@ -91,7 +91,7 @@ export default function Home() {
     { id: 350, name: "Apple TV+", logoPath: "/6uhKBfmtzFqOcLousHwZuzcrScK.jpg" },
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
-    { id: 1899, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
+    { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
   ];
 
   // Charger la progression réelle depuis localStorage

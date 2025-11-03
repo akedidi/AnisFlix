@@ -21,14 +21,14 @@ export default function HBOMaxContent() {
   );
 
   // Fetch data from TMDB - Only HBO Max content
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(1899, currentPage);
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(1899, currentPage);
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(384, currentPage);
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(384, currentPage);
   
   // HBO Max specific genres
-  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(1899, 18); // Drama
-  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(1899, 53); // Thriller
-  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(1899, 18); // Drama
-  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(1899, 80); // Crime
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(384, 18); // Drama
+  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(384, 53); // Thriller
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(384, 18); // Drama
+  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(384, 80); // Crime
 
   const movies = moviesData?.results || [];
   const series = seriesData?.results || [];

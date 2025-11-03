@@ -76,7 +76,13 @@ export default function CommonLayout({
   // Détecter l'environnement natif
   const { isNativeMobile, getContainerClass } = useNativeDetection();
   
-  // Gérer le refresh Ionic pour les apps natives
+  // Détecter si on est vraiment sur mobile natif (Capacitor)
+  const isReallyNativeMobile = typeof window !== 'undefined' && 
+    (window as any).Capacitor !== undefined &&
+    ((window as any).Capacitor?.getPlatform?.() === 'ios' || 
+     (window as any).Capacitor?.getPlatform?.() === 'android');
+  
+  // Gérer le refresh Ionic pour les apps natives uniquement
   const handleIonicRefresh = (event: CustomEvent<any>) => {
     console.log('🔄 [IONIC REFRESH] Refresh triggered!', event);
     
@@ -186,7 +192,23 @@ export default function CommonLayout({
       </div>
 
           {/* Main Content */}
-          <IonicPullToRefresh onRefresh={handleIonicRefresh}>
+          {isReallyNativeMobile ? (
+            <IonicPullToRefresh onRefresh={handleIonicRefresh}>
+              <div 
+                className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
+                id="main-content-desktop"
+                style={{ 
+                  paddingTop: headerOffset > 0 
+                    ? `${100 + headerOffset + 8}px` 
+                    : window.innerWidth >= 768 
+                      ? '70px' 
+                      : '53px'
+                }}
+              >
+                {children}
+              </div>
+            </IonicPullToRefresh>
+          ) : (
             <div 
               className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
               id="main-content-desktop"
@@ -200,7 +222,7 @@ export default function CommonLayout({
             >
               {children}
             </div>
-          </IonicPullToRefresh>
+          )}
 
       {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}
     </>
