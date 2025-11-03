@@ -5,12 +5,13 @@ import Pagination from "@/components/Pagination";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 export default function LatestSeries() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
   // Fetch data from TMDB
   const { data: seriesData, isLoading: seriesLoading } = useLatestSeries(currentPage);
@@ -28,8 +29,13 @@ export default function LatestSeries() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Always reset scroll to top on page mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -69,7 +75,14 @@ export default function LatestSeries() {
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
-                      onClick={() => setLocation(`/series/${serie.id}`)}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        setLocation(`/series/${serie.id}`);
+                      }}
                     />
                   </div>
                 ))}

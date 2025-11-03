@@ -93,7 +93,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
           <LanguageProvider>
-            <Suspense fallback={
+            <Suspense fallback={isNative ? <></> : (
               <div style={{ 
                 minHeight: '100vh', 
                 display: 'flex', 
@@ -105,7 +105,7 @@ function App() {
               }}>
                 <div>Chargement...</div>
               </div>
-            }>
+            )}>
               {isNative ? <AppNative /> : <AppWeb />}
             </Suspense>
             <Toaster />

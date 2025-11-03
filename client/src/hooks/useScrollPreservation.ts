@@ -8,11 +8,27 @@ interface ScrollPositions {
 }
 
 // Routes principales (onglets de la tabbar) - le scroll doit revenir en haut lors du changement
-const MAIN_TAB_ROUTES = ['/', '/movies', '/series', '/tv-channels', '/favorites', '/settings'];
+const MAIN_TAB_ROUTES = ['/', '/movies', '/series', '/tv-channels', '/favorites', '/settings', '/latest-movies', '/latest-series'];
 
 // Vérifier si une route est une route principale (onglet)
 function isMainTabRoute(path: string): boolean {
-  return MAIN_TAB_ROUTES.includes(path);
+  if (!path) return false;
+  if (MAIN_TAB_ROUTES.includes(path)) return true;
+  // Considérer comme "pages liste" à reset:
+  // - Toutes les pages provider
+  // - Tous les listings films/séries (et sous-routes) -> '/movies', '/series'
+  // - Collections: latest-, popular-, trending-
+  // - Pages anime-
+  // - Recherche globale
+  if (path.startsWith('/provider/')) return true;
+  if (path === '/movies' || path.startsWith('/movies/')) return true;
+  if (path === '/series' || path.startsWith('/series/')) return true;
+  if (path.startsWith('/latest-')) return true;
+  if (path.startsWith('/popular-')) return true;
+  if (path.startsWith('/trending-')) return true;
+  if (path.startsWith('/anime')) return true;
+  if (path === '/search' || path.startsWith('/search/')) return true;
+  return false;
 }
 
 // Vérifier si on change entre deux routes principales (changement d'onglet)
@@ -30,6 +46,13 @@ export function useScrollPreservation() {
   const previousLocationRef = useRef<string>('');
   const isRestoringRef = useRef<boolean>(false);
 
+  // Détecter le bon conteneur de scroll (nombreuses pages utilisent un wrapper h-screen overflow-y-auto)
+  const getScrollElement = (): HTMLElement | Window => {
+    if (typeof window === 'undefined') return ({} as unknown) as Window;
+    const el = document.querySelector<HTMLElement>('div.h-screen.overflow-y-auto');
+    return el || window;
+  };
+
   // Sauvegarder la position de scroll en continu pendant qu'on est sur une page
   useEffect(() => {
     if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
@@ -38,7 +61,8 @@ export function useScrollPreservation() {
     
     const saveScrollPosition = () => {
       if (location && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
-        const scrollY = window.scrollY;
+        const scroller = getScrollElement();
+        const scrollY = scroller === window ? window.scrollY : (scroller as HTMLElement).scrollTop;
         try {
           const positions: ScrollPositions = JSON.parse(
             localStorage.getItem(SCROLL_POSITIONS_KEY) || '{}'
@@ -62,7 +86,8 @@ export function useScrollPreservation() {
     };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', handleScroll, { passive: true });
+      const scroller = getScrollElement();
+      (scroller as any).addEventListener?.('scroll', handleScroll, { passive: true });
       
       // Sauvegarder avant de quitter la page
       const handleBeforeUnload = () => {
@@ -71,7 +96,7 @@ export function useScrollPreservation() {
       window.addEventListener('beforeunload', handleBeforeUnload);
 
       return () => {
-        window.removeEventListener('scroll', handleScroll);
+        (scroller as any).removeEventListener?.('scroll', handleScroll);
         window.removeEventListener('beforeunload', handleBeforeUnload);
         clearTimeout(scrollTimeout);
         // Sauvegarder une dernière fois lors du cleanup
@@ -106,10 +131,12 @@ export function useScrollPreservation() {
     // Si c'est un changement d'onglet, réinitialiser le scroll en haut
     if (isTabChange && typeof window !== 'undefined') {
       console.log(`[ScrollPreservation] Changement d'onglet détecté (${previousLocation} -> ${location}), scroll réinitialisé en haut`);
-      window.scrollTo({
-        top: 0,
-        behavior: 'instant'
-      });
+      const scroller = getScrollElement();
+      if (scroller === window) {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } else {
+        (scroller as HTMLElement).scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      }
       
       // Supprimer la position sauvegardée pour cette route car on vient de la réinitialiser
       if (typeof localStorage !== 'undefined') {
@@ -147,15 +174,16 @@ export function useScrollPreservation() {
           // Fonction pour restaurer la position si nécessaire
           const attemptRestore = () => {
             if (typeof window === 'undefined') return;
-            
-            const currentPosition = window.scrollY;
+            const scroller = getScrollElement();
+            const currentPosition = scroller === window ? window.scrollY : (scroller as HTMLElement).scrollTop;
             
             if (currentPosition === 0 || currentPosition < savedPosition - 10) {
               // On est en haut ou très haut, restaurer la position sauvegardée
-              window.scrollTo({
-                top: savedPosition,
-                behavior: 'instant'
-              });
+              if (scroller === window) {
+                window.scrollTo({ top: savedPosition, behavior: 'instant' });
+              } else {
+                (scroller as HTMLElement).scrollTo({ top: savedPosition, behavior: 'instant' as ScrollBehavior });
+              }
               console.log(`[ScrollPreservation] Position restaurée pour ${location}: ${savedPosition} (position actuelle: ${currentPosition})`);
             } else {
               // La position semble correcte
@@ -202,6 +230,7 @@ export function useScrollPreservation() {
     if (typeof window === 'undefined') return;
     
     const originalScrollTo = window.scrollTo;
+    const scroller = getScrollElement();
     
     window.scrollTo = function(...args: any[]) {
       // Vérifier si on a une position sauvegardée pour cette page
@@ -230,10 +259,12 @@ export function useScrollPreservation() {
             if (savedPosition !== undefined && savedPosition > 0 && !isRestoringRef.current) {
               setTimeout(() => {
                 if (typeof window !== 'undefined') {
-                  window.scrollTo({
-                    top: savedPosition,
-                    behavior: 'instant'
-                  });
+                  const s = getScrollElement();
+                  if (s === window) {
+                    window.scrollTo({ top: savedPosition, behavior: 'instant' });
+                  } else {
+                    (s as HTMLElement).scrollTo({ top: savedPosition, behavior: 'instant' as ScrollBehavior });
+                  }
                   console.log('[ScrollPreservation] Position restaurée après scrollTo ignoré');
                 }
               }, 50);
@@ -273,14 +304,17 @@ export function useScrollPreservation() {
         const savedPosition = positions[location];
         
         if (savedPosition !== undefined && savedPosition > 0) {
-          const currentPosition = window.scrollY;
+          const scroller = getScrollElement();
+          const currentPosition = scroller === window ? window.scrollY : (scroller as HTMLElement).scrollTop;
           
           // Si on est revenu en haut alors qu'on devrait être plus bas, restaurer
           if (currentPosition === 0 || currentPosition < savedPosition - 20) {
-            window.scrollTo({
-              top: savedPosition,
-              behavior: 'instant'
-            });
+            const s = getScrollElement();
+            if (s === window) {
+              window.scrollTo({ top: savedPosition, behavior: 'instant' });
+            } else {
+              (s as HTMLElement).scrollTo({ top: savedPosition, behavior: 'instant' as ScrollBehavior });
+            }
             console.log(`[ScrollPreservation] Position restaurée après scrollTo: ${savedPosition}`);
           }
         }

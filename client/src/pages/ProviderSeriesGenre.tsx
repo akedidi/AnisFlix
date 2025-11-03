@@ -11,6 +11,7 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -39,6 +40,34 @@ const GENRES = {
   'news': { id: 10763, translationKey: 'series.news' }
 };
 
+// Alias anglais -> clé FR existante
+const GENRE_ALIASES: Record<string, keyof typeof GENRES> = {
+  'drama': 'drame',
+  'comedy': 'comedie',
+  'action': 'action',
+  'adventure': 'aventure',
+  'fantasy': 'fantastique',
+  'history': 'histoire',
+  'horror': 'horreur',
+  'music': 'musique',
+  'mystery': 'mystere',
+  'romance': 'romance',
+  'scifi': 'science-fiction',
+  'sciencefiction': 'science-fiction',
+  'sci-fi': 'science-fiction',
+  'tv': 'telefilm',
+  'war': 'guerre',
+  'western': 'western',
+  'crime': 'policier',
+  'family': 'famille',
+  'animation': 'animation',
+  'thriller': 'thriller',
+  'documentary': 'documentaire',
+  'news': 'news',
+  'reality': 'reality',
+  'talk': 'talk',
+};
+
 // Mapping des providers avec leurs noms
 const PROVIDERS = {
   8: 'Netflix',
@@ -62,7 +91,7 @@ export default function ProviderSeriesGenre() {
   const providerId = parseInt(params?.id || '0');
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +100,8 @@ export default function ProviderSeriesGenre() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Get genre and provider info
-  const genreInfo = GENRES[genreSlug as keyof typeof GENRES];
+  const mappedSlug = (GENRE_ALIASES[genreSlug] as keyof typeof GENRES) || (genreSlug as keyof typeof GENRES);
+  const genreInfo = GENRES[mappedSlug as keyof typeof GENRES];
   const genreId = genreInfo?.id;
   const genreName = genreInfo ? t(genreInfo.translationKey) : genreSlug;
   const providerName = PROVIDERS[providerId as keyof typeof PROVIDERS] || `Provider ${providerId}`;
@@ -85,28 +115,32 @@ export default function ProviderSeriesGenre() {
         setLoading(true);
         setError(null);
         
-        // Construire l'URL de base avec le provider
-        let baseUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&watch_region=US&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+        // Mode catalogue complet trié par dernières sorties (exclure le futur)
+        const today = new Date();
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        const firstAirDateLte = fmt(today);
+
+        // Construire l'URL de base avec le provider (HBO Max: inclure Max 1899), tri par date de première diffusion
+        const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
+        let baseUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=flatrate|ads&include_adult=false&include_null_first_air_dates=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
         
         // Ajouter le genre seulement s'il est défini
         if (genreId) {
           baseUrl += `&with_genres=${genreId}`;
         }
         
-        // Essayer plusieurs régions pour avoir plus de contenu
-        const regions = ['US', 'FR', 'GB', 'CA'];
-        let result = null;
-        
+        // Essayer plusieurs régions pour avoir plus de contenu (garder la pagination TMDB)
+        const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+        let result: any = null;
         for (const region of regions) {
           try {
             const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
             const response = await fetch(url);
-            
             if (response.ok) {
               const data = await response.json();
               if (data.results && data.results.length > 0) {
-                result = data;
-                break; // Si on trouve du contenu, on s'arrête
+                result = data; // Retourner les résultats avec pagination TMDB standard
+                break;
               }
             }
           } catch (err) {
@@ -115,9 +149,9 @@ export default function ProviderSeriesGenre() {
           }
         }
         
-        // Si aucune région n'a donné de résultats, essayer sans restriction de région
+        // Si aucune région n'a donné de résultats, essayer sans restriction de région mais toujours avec filtre provider
         if (!result || !result.results || result.results.length === 0) {
-          let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+          let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&include_adult=false&include_null_first_air_dates=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
           
           // Ajouter le genre seulement s'il est défini
           if (genreId) {
@@ -128,6 +162,29 @@ export default function ProviderSeriesGenre() {
           
           if (response.ok) {
             result = await response.json();
+          }
+        }
+
+        // Fallback par réseau (Originals) pour certains providers si toujours vide
+        if (!result || !result.results || result.results.length === 0) {
+          const providerNetworkMap: Record<number, string[]> = {
+            8: ['213'],           // Netflix
+            384: ['49','3186'],   // HBO / HBO Max
+            337: ['2739'],        // Disney+
+            350: ['2552'],        // Apple TV+
+            531: ['4330'],        // Paramount+
+          };
+          const networks = providerNetworkMap[providerId] || [];
+          for (const net of networks) {
+            try {
+              let netUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=${net}&include_null_first_air_dates=false&include_adult=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+              if (genreId) netUrl += `&with_genres=${genreId}`;
+              const resp = await fetch(netUrl);
+              if (resp.ok) {
+                const data = await resp.json();
+                if (data.results && data.results.length > 0) { result = data; break; }
+              }
+            } catch {}
           }
         }
         
@@ -161,11 +218,11 @@ export default function ProviderSeriesGenre() {
 
   // Reset page when genre or provider changes
   useEffect(() => {
-    setCurrentPage(1);
+    onPageChange(1);
   }, [genreSlug, providerId]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -259,7 +316,14 @@ export default function ProviderSeriesGenre() {
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...transformedSerie}
-                      onClick={() => window.location.href = `/series/${serie.id}`}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        window.location.href = `/series/${serie.id}`;
+                      }}
                     />
                   </div>
                 );

@@ -10,11 +10,12 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 export default function AmazonSeries() {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,14 +30,15 @@ export default function AmazonSeries() {
         setLoading(true);
         setError(null);
         
-        const response = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&watch_region=US&with_watch_monetization_types=flatrate&vote_average_gte=5&page=${currentPage}`
-        );
-        
+        // Exclure le futur, trier par dernières sorties
+        const today = new Date();
+        const firstAirDateLte = today.toISOString().slice(0, 10);
+
+        const url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&watch_region=US&with_watch_monetization_types=flatrate&include_adult=false&include_null_first_air_dates=false&sort_by=popularity.desc&page=${currentPage}`;
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
         const result = await response.json();
         setData(result);
       } catch (err) {
@@ -63,7 +65,7 @@ export default function AmazonSeries() {
   }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -129,7 +131,14 @@ export default function AmazonSeries() {
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...transformedSerie}
-                      onClick={() => window.location.href = `/series/${serie.id}`}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        window.location.href = `/series/${serie.id}`;
+                      }}
                     />
                   </div>
                 );

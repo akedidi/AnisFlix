@@ -5,12 +5,13 @@ import Pagination from "@/components/Pagination";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 export default function LatestMovies() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
   // Fetch data from TMDB
   const { data: moviesData, isLoading: moviesLoading } = useLatestMovies(currentPage);
@@ -28,8 +29,13 @@ export default function LatestMovies() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Always reset scroll to top on page mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -69,7 +75,14 @@ export default function LatestMovies() {
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...movie}
-                      onClick={() => setLocation(`/movie/${movie.id}`)}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        setLocation(`/movie/${movie.id}`);
+                      }}
                     />
                   </div>
                 ))}

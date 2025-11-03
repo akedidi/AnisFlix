@@ -59,7 +59,7 @@ import MoviesGenre from "@/pages/MoviesGenre";
 import SeriesGenre from "@/pages/SeriesGenre";
 
 /**
- * Helper pour wrapper les pages dans NativePageWrapper
+ * Helper pour wrapper les pages (React Router v5 utilisé par @ionic/react-router)
  */
 const wrapPage = (Component: any) => (props: any) => (
   <NativePageWrapper>
@@ -86,56 +86,56 @@ export default function AppNative() {
             <Route exact path="/tv-channels" component={wrapPage(TVChannels)} />
             <Route exact path="/favorites" component={wrapPage(Favorites)} />
             <Route exact path="/settings" component={wrapPage(Settings)} />
-            
+
             {/* Detail routes */}
             <Route exact path="/movie/:id" component={wrapPage(MovieDetail)} />
             <Route exact path="/series/:id" component={wrapPage(SeriesDetail)} />
-            
+
             {/* Latest & Popular */}
             <Route exact path="/latest-movies" component={wrapPage(LatestMovies)} />
             <Route exact path="/latest-series" component={wrapPage(LatestSeries)} />
             <Route exact path="/popular-movies" component={wrapPage(PopularMovies)} />
             <Route exact path="/popular-series" component={wrapPage(PopularSeries)} />
-            
+
             {/* Anime routes */}
             <Route exact path="/anime-movies-latest" component={wrapPage(AnimeMoviesLatest)} />
             <Route exact path="/anime-movies-popular" component={wrapPage(AnimeMoviesPopular)} />
             <Route exact path="/anime-series-latest" component={wrapPage(AnimeSeriesLatest)} />
             <Route exact path="/anime-series-popular" component={wrapPage(AnimeSeriesPopular)} />
-            
+
             {/* Netflix routes */}
             <Route exact path="/netflix-movies" component={wrapPage(NetflixMovies)} />
             <Route exact path="/netflix-series" component={wrapPage(NetflixSeries)} />
-            
+
             {/* Amazon routes */}
             <Route exact path="/amazon-movies" component={wrapPage(AmazonMovies)} />
             <Route exact path="/amazon-series" component={wrapPage(AmazonSeries)} />
-            
+
             {/* Apple TV routes */}
             <Route exact path="/apple-tv-movies" component={wrapPage(AppleTVMovies)} />
             <Route exact path="/apple-tv-series" component={wrapPage(AppleTVSeries)} />
-            
+
             {/* Disney+ routes */}
             <Route exact path="/disney-movies" component={wrapPage(DisneyMovies)} />
             <Route exact path="/disney-series" component={wrapPage(DisneySeries)} />
-            
+
             {/* HBO Max routes */}
             <Route exact path="/hbo-max-movies" component={wrapPage(HBOMaxMovies)} />
             <Route exact path="/hbo-max-series" component={wrapPage(HBOMaxSeries)} />
-            
+
             {/* Paramount routes */}
             <Route exact path="/paramount-movies" component={wrapPage(ParamountMovies)} />
             <Route exact path="/paramount-series" component={wrapPage(ParamountSeries)} />
-            
+
             {/* Provider Detail routes */}
             <Route exact path="/provider/:id" component={wrapPage(ProviderDetail)} />
             <Route exact path="/provider/:id/movies/:genre?" component={wrapPage(ProviderMoviesGenre)} />
             <Route exact path="/provider/:id/series/:genre?" component={wrapPage(ProviderSeriesGenre)} />
-            
+
             {/* Genre routes */}
             <Route exact path="/movies-genre/:genre" component={wrapPage(MoviesGenre)} />
             <Route exact path="/series-genre/:genre" component={wrapPage(SeriesGenre)} />
-            
+
             {/* 404 */}
             <Route component={wrapPage(NotFound)} />
           </IonRouterOutlet>

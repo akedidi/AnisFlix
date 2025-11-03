@@ -11,6 +11,7 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -33,6 +34,32 @@ const GENRES = {
   'thriller': { id: 53, translationKey: 'movies.thriller' },
   'guerre': { id: 10752, translationKey: 'movies.war' },
   'western': { id: 37, translationKey: 'movies.western' }
+};
+
+// Alias anglais -> clé FR existante
+const GENRE_ALIASES: Record<string, keyof typeof GENRES> = {
+  'drama': 'drame',
+  'comedy': 'comedie',
+  'action': 'action',
+  'adventure': 'aventure',
+  'fantasy': 'fantastique',
+  'history': 'histoire',
+  'horror': 'horreur',
+  'music': 'musique',
+  'mystery': 'mystere',
+  'romance': 'romance',
+  'scifi': 'science-fiction',
+  'sciencefiction': 'science-fiction',
+  'sci-fi': 'science-fiction',
+  'tvmovie': 'telefilm',
+  'tv-movie': 'telefilm',
+  'war': 'guerre',
+  'western': 'western',
+  'crime': 'crime',
+  'family': 'famille',
+  'animation': 'animation',
+  'thriller': 'thriller',
+  'documentary': 'documentaire',
 };
 
 // Mapping des providers avec leurs noms
@@ -58,7 +85,7 @@ export default function ProviderMoviesGenre() {
   const providerId = parseInt(params?.id || '0');
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +94,8 @@ export default function ProviderMoviesGenre() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Get genre and provider info
-  const genreInfo = GENRES[genreSlug as keyof typeof GENRES];
+  const mappedSlug = (GENRE_ALIASES[genreSlug] as keyof typeof GENRES) || (genreSlug as keyof typeof GENRES);
+  const genreInfo = GENRES[mappedSlug as keyof typeof GENRES];
   const genreId = genreInfo?.id;
   const genreName = genreInfo ? t(genreInfo.translationKey) : genreSlug;
   const providerName = PROVIDERS[providerId as keyof typeof PROVIDERS] || `Provider ${providerId}`;
@@ -81,8 +109,14 @@ export default function ProviderMoviesGenre() {
         setLoading(true);
         setError(null);
         
-        // Construire l'URL selon qu'il y a un genre ou non
-        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&watch_region=US&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+        // Limiter au présent (exclure futur), tri dernières sorties
+        const today = new Date();
+        const releaseDateLte = today.toISOString().slice(0, 10);
+
+        // Construire l'URL selon qu'il y a un genre ou non, tri par date de sortie
+        // HBO Max: inclure Max 1899 également
+        const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
+        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
         
         // Ajouter le genre si spécifié
         if (genreId) {
@@ -90,7 +124,7 @@ export default function ProviderMoviesGenre() {
         }
         
         // Essayer plusieurs régions pour avoir plus de contenu
-        const regions = ['US', 'FR', 'GB', 'CA'];
+        const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
         let result = null;
         
         for (const region of regions) {
@@ -111,9 +145,9 @@ export default function ProviderMoviesGenre() {
           }
         }
         
-        // Si aucune région n'a donné de résultats, essayer sans restriction de région
+        // Si aucune région n'a donné de résultats, essayer sans restriction de région mais toujours avec filtre provider
         if (!result || !result.results || result.results.length === 0) {
-          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`;
+          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
           
           if (genreId) {
             fallbackUrl += `&with_genres=${genreId}`;
@@ -160,7 +194,7 @@ export default function ProviderMoviesGenre() {
   }, [genreSlug, providerId]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -248,7 +282,14 @@ export default function ProviderMoviesGenre() {
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...transformedMovie}
-                      onClick={() => window.location.href = `/movie/${movie.id}`}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        window.location.href = `/movie/${movie.id}`;
+                      }}
                     />
                   </div>
                 );
