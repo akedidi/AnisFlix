@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 // import { useTabBarDiagnostic } from "../hooks/useTabBarDiagnostic";
 
@@ -10,6 +11,7 @@ export default function BottomNav() {
   const [location] = useLocation();
   const { t } = useLanguage();
   const { isOffline } = useOffline();
+  const [isMounted, setIsMounted] = useState(false);
   
   // Utiliser la hauteur réelle du viewport (compatible iOS)
   const viewportHeight = useViewportHeight();
@@ -78,47 +80,94 @@ export default function BottomNav() {
     { icon: Settings, label: t("nav.settings"), path: "/settings", offline: true },
   ];
 
-  return (
-    <>
-      <nav 
-        ref={navRef}
-        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
-      >
-        <div className="flex items-center justify-around h-16 w-full max-w-full overflow-hidden pb-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            const isOfflineAvailable = item.offline;
-            
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+  const tabbarElement = (
+    <nav
+      ref={navRef}
+      className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-card-border md:hidden"
+      style={{
+        position: 'fixed !important',
+        bottom: '0px !important',
+        left: '0px !important',
+        right: '0px !important',
+        zIndex: '2147483647 !important', // Maximum z-index possible
+        width: '100vw !important',
+        height: '70px !important',
+        background: 'hsl(var(--card)) !important',
+        borderTop: '1px solid hsl(var(--card-border)) !important',
+        transform: 'translateZ(0) !important',
+        willChange: 'transform !important'
+      }}
+    >
+      <div className="flex items-center justify-around h-16 w-full max-w-full overflow-hidden pb-2">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location === item.path;
+          const isOfflineAvailable = item.offline;
+          
+          return (
+            <Link
+              key={item.path}
+              href={item.path}
+              data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              <button
+                className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${
+                  isActive
+                    ? "text-primary"
+                    : isOffline && !isOfflineAvailable
+                    ? "text-muted-foreground/50"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                style={{ maxWidth: 'calc(100vw / 6)' }}
+                disabled={isOffline && !isOfflineAvailable}
               >
-                <button
-                  className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${
-                    isActive
-                      ? "text-primary"
-                      : isOffline && !isOfflineAvailable
-                      ? "text-muted-foreground/50"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                  style={{ maxWidth: 'calc(100vw / 6)' }}
-                  disabled={isOffline && !isOfflineAvailable}
-                >
-                  <Icon className={`w-5 h-5 ${isActive ? "fill-primary/20" : ""}`} />
-                  <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
-                  {isOfflineAvailable && isOffline && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
-                  )}
-                </button>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-      
-    </>
+                <Icon className={`w-5 h-5 ${isActive ? "fill-primary/20" : ""}`} />
+                <span className="text-xs font-medium leading-tight text-center">{item.label}</span>
+                {isOfflineAvailable && isOffline && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+                )}
+              </button>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
+
+  // S'assurer que le composant est monté avant de rendre le Portal
+  useEffect(() => {
+    setIsMounted(true);
+    console.log('[BottomNav] Component mounted, Portal ready');
+
+    // Forcer le positionnement après le montage
+    const forcePositioning = () => {
+      const navElement = document.querySelector('.mobile-bottom-nav') as HTMLElement;
+      if (navElement) {
+        navElement.style.position = 'fixed !important';
+        navElement.style.bottom = '0px !important';
+        navElement.style.left = '0px !important';
+        navElement.style.right = '0px !important';
+        navElement.style.zIndex = '2147483647 !important';
+        navElement.style.width = '100vw !important';
+        navElement.style.height = '70px !important';
+        console.log('[BottomNav] Forced positioning applied');
+      }
+    };
+
+    // Appliquer immédiatement et après un délai
+    forcePositioning();
+    setTimeout(forcePositioning, 100);
+    setTimeout(forcePositioning, 500);
+
+    // Réappliquer sur resize
+    window.addEventListener('resize', forcePositioning);
+    return () => window.removeEventListener('resize', forcePositioning);
+  }, []);
+
+  // Ne rendre le Portal que lorsque le composant est complètement monté
+  if (!isMounted) {
+    return null;
+  }
+
+  return createPortal(tabbarElement, document.body);
 }

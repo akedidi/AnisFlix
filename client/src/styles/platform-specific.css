@@ -1,0 +1,394 @@
+/**
+ * CSS spécifique par plateforme
+ * Utilise des classes de data-attribute pour cibler chaque plateforme
+ */
+
+/* ============================================
+   WEB DESKTOP (>= 768px, navigateur web)
+   ============================================ */
+[data-platform="web-desktop"] {
+  /* Layout spécifique desktop */
+}
+
+[data-platform="web-desktop"] html {
+  height: auto !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: auto !important;
+}
+
+[data-platform="web-desktop"] body {
+  height: auto !important;
+  min-height: 100vh !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+  -webkit-overflow-scrolling: auto !important;
+}
+
+/* S'assurer qu'aucun élément parent ne bloque le scroll */
+/* Sur desktop, pas d'IonApp/IonTabs, donc on ne doit pas avoir de conflits */
+[data-platform="web-desktop"] ion-app {
+  height: auto !important;
+  min-height: auto !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  position: relative !important;
+}
+
+[data-platform="web-desktop"] ion-tabs {
+  display: none !important; /* Pas d'IonTabs sur desktop */
+  height: 0 !important;
+  overflow: visible !important;
+}
+
+[data-platform="web-desktop"] ion-router-outlet {
+  display: none !important; /* Pas d'IonRouterOutlet sur desktop */
+  height: 0 !important;
+  overflow: visible !important;
+}
+
+[data-platform="web-desktop"] .main-content,
+[data-platform="web-desktop"] #main-content-desktop {
+  margin-left: 256px !important; /* Sidebar width */
+  padding-top: 69px !important; /* Hauteur du header fixe */
+}
+
+[data-platform="web-desktop"] header,
+[data-platform="web-desktop"] .header-ios-safe,
+[data-platform="web-desktop"] div[class*="header"],
+[data-platform="web-desktop"] div[class*="fixed"][class*="top-0"]:not(aside) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 256px !important; /* Après la sidebar */
+  right: 0 !important;
+  z-index: 1000000 !important;
+  transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+}
+
+/* S'assurer qu'aucun parent ne casse le position: fixed */
+[data-platform="web-desktop"] body > div[class*="fixed"][class*="top-0"]:not(aside),
+[data-platform="web-desktop"] body > .header-ios-safe,
+[data-platform="web-desktop"] body > div[class*="header"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 256px !important;
+  right: 0 !important;
+  z-index: 1000000 !important;
+  transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+}
+
+/* S'assurer que body et html n'ont pas de transform */
+[data-platform="web-desktop"] body {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+}
+
+[data-platform="web-desktop"] html {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+}
+
+/* S'assurer que #root n'a pas de transform non plus */
+[data-platform="web-desktop"] #root {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+  position: relative !important;
+}
+
+/* ============================================
+   WEB MOBILE (< 768px, navigateur web)
+   ============================================ */
+[data-platform="web-mobile"] {
+  /* Layout spécifique web mobile */
+}
+
+[data-platform="web-mobile"] body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+  position: relative !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+[data-platform="web-mobile"] html {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+  height: 100%;
+  min-height: -webkit-fill-available;
+}
+
+[data-platform="web-mobile"] #root {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+  position: relative !important;
+}
+
+[data-platform="web-mobile"] .main-content {
+  padding-top: 53px !important; /* Header height exacte sur web mobile */
+  padding-bottom: 70px; /* Tabbar height */
+}
+
+/* Navigation mobile (tabbar en bas) - RÈGLES CRITIQUES POUR LA POSITION FIXE */
+[data-platform="web-mobile"] nav.fixed.bottom-0,
+[data-platform="web-mobile"] nav[class*="bottom-0"] {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999999 !important;
+  transform: translate3d(0, 0, 0) !important;
+  -webkit-transform: translate3d(0, 0, 0) !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  contain: layout style paint !important;
+  /* Forcer la hauteur pour éviter les problèmes de viewport */
+  height: 70px !important;
+  min-height: 70px !important;
+  max-height: 70px !important;
+  /* Éviter les problèmes de scroll */
+  overscroll-behavior: contain !important;
+  touch-action: manipulation !important;
+  /* Empêcher TOUS les déplacements pendant animations/scroll */
+  will-change: auto !important; /* Pas de will-change pour stabilité max */
+  transition: none !important; /* Aucune transition */
+  animation: none !important; /* Aucune animation */
+  pointer-events: auto !important; /* Toujours cliquable */
+}
+
+[data-platform="web-mobile"] header,
+[data-platform="web-mobile"] .header-ios-safe,
+[data-platform="web-mobile"] div[class*="header"][class*="fixed"][class*="top-0"] {
+  left: 0 !important;
+  right: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  z-index: 1000000 !important;
+  transform: none !important;
+  will-change: auto !important;
+  perspective: none !important;
+  filter: none !important;
+  margin-top: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+[data-platform="web-mobile"] body > div[class*="header"][class*="fixed"][class*="top-0"]:not(aside),
+[data-platform="web-mobile"] body > .header-ios-safe {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000000 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+[data-platform="web-mobile"] ion-tab-bar {
+  display: flex !important;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 70px !important;
+  transform: none !important;
+  will-change: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  background: #000000 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Forcer aussi les éléments DOM sous-jacents d'Ionic */
+[data-platform="web-mobile"] ion-tab-bar::part(container),
+[data-platform="web-mobile"] ion-tab-bar .tab-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* S'assurer que body et html n'ont pas de transform sur web-mobile */
+[data-platform="web-mobile"] body {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+}
+
+[data-platform="web-mobile"] html {
+  transform: none !important;
+  -webkit-transform: none !important;
+  will-change: auto !important;
+}
+
+/* Couleurs pour les onglets : gris par défaut, rouge quand sélectionné */
+[data-platform="web-mobile"] ion-tab-button {
+  --color: #9CA3AF !important; /* Gris pour les icônes/textes non sélectionnés */
+  --color-selected: #E50914 !important; /* Rouge pour l'onglet sélectionné */
+}
+
+/* Par défaut, tous les icônes et labels sont gris */
+[data-platform="web-mobile"] ion-tab-button ion-icon,
+[data-platform="web-mobile"] ion-tab-button ion-label {
+  color: #9CA3AF !important;
+}
+
+/* Quand l'onglet est sélectionné, utiliser le rouge */
+[data-platform="web-mobile"] ion-tab-button.tab-selected ion-icon,
+[data-platform="web-mobile"] ion-tab-button.tab-selected ion-label,
+[data-platform="web-mobile"] ion-tab-button[aria-selected="true"] ion-icon,
+[data-platform="web-mobile"] ion-tab-button[aria-selected="true"] ion-label,
+[data-platform="web-mobile"] ion-tab-button[selected] ion-icon,
+[data-platform="web-mobile"] ion-tab-button[selected] ion-label {
+  color: #E50914 !important;
+}
+
+[data-platform="web-mobile"] ion-router-outlet {
+  height: auto;
+  min-height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+/* ============================================
+   NATIVE MOBILE (iOS/Android via Capacitor)
+   ============================================ */
+[data-platform="native-mobile"] {
+  /* Layout spécifique natif */
+}
+
+[data-platform="native-mobile"] body {
+  overflow: hidden; /* Le scroll se fait dans IonContent */
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-platform="native-mobile"] .main-content {
+  padding-top: 0; /* Pas de padding fixe, géré par Ionic */
+  padding-bottom: 0;
+}
+
+[data-platform="native-mobile"] header {
+  position: relative; /* Ionic gère le positionnement */
+  left: 0;
+  right: 0;
+}
+
+/* CRITIQUE : Header avec safe area pour iOS natif */
+[data-platform="native-mobile"] header.native-mobile,
+[data-platform="native-mobile"] .native-mobile {
+  /* Fallback par défaut */
+  padding-top: 44px !important;
+  /* Puis override avec env() si disponible */
+  padding-top: env(safe-area-inset-top, 44px) !important;
+  margin-top: 0 !important;
+  box-sizing: border-box !important;
+}
+
+[data-platform="native-mobile"] ion-tab-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999999 !important;
+  /* Empêcher tout mouvement pendant le scroll */
+  transform: translate3d(0, 0, 0) !important;
+  -webkit-transform: translate3d(0, 0, 0) !important;
+  will-change: auto !important;
+  contain: layout style paint !important;
+  /* Respecter le safe area en bas */
+  padding-bottom: env(safe-area-inset-bottom, 20px) !important;
+  height: calc(70px + env(safe-area-inset-bottom, 20px)) !important;
+  /* Assurer que le tabbar reste visible */
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  /* Fond et bordure */
+  background-color: #000000 !important;
+  --background: #000000 !important;
+  border-top: 1px solid #333333 !important;
+}
+
+/* Sur natif, laisser Ionic gérer la structure - juste définir les couleurs */
+[data-platform="native-mobile"] ion-page {
+  --background: #000000;
+}
+
+[data-platform="native-mobile"] ion-content {
+  --background: #000000;
+}
+
+/* ============================================
+   Classes utilitaires par plateforme
+   ============================================ */
+
+/* Cacher sur desktop */
+[data-platform="web-desktop"] .mobile-only {
+  display: none !important;
+}
+
+[data-platform="web-desktop"] .native-only {
+  display: none !important;
+}
+
+/* Cacher sur web mobile */
+[data-platform="web-mobile"] .desktop-only {
+  display: none !important;
+}
+
+[data-platform="web-mobile"] .native-only {
+  display: none !important;
+}
+
+/* Cacher sur natif */
+[data-platform="native-mobile"] .desktop-only {
+  display: none !important;
+}
+
+[data-platform="native-mobile"] .web-mobile-only {
+  display: none !important;
+}
+
+/* Afficher uniquement sur desktop */
+[data-platform="web-desktop"] .desktop-only {
+  display: block;
+}
+
+/* Afficher uniquement sur web mobile */
+[data-platform="web-mobile"] .mobile-only {
+  display: block;
+}
+
+/* Afficher uniquement sur natif */
+[data-platform="native-mobile"] .native-only {
+  display: block;
+}

@@ -8,7 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import BottomNav from "@/components/BottomNav";
+
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 
@@ -112,7 +112,7 @@ export default function SeriesGenre() {
   // If genre not found, show error
   if (!genreInfo) {
     return (
-      <div className="min-h-screen fade-in-up">
+      <div className="h-screen overflow-y-auto fade-in-up">
         <DesktopSidebar />
         <div className="md:ml-64">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
@@ -128,7 +128,7 @@ export default function SeriesGenre() {
   }
 
   return (
-    <div className="min-h-screen fade-in-up">
+    <div className="h-screen overflow-y-auto">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
@@ -166,7 +166,7 @@ export default function SeriesGenre() {
       </div>
 
       {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">{t("common.loading")}</p>
@@ -208,10 +208,8 @@ export default function SeriesGenre() {
           </div>
         )}
       </div>
-      
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
       </div>
+      
     </div>
   );
 }

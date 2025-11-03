@@ -1446,7 +1446,7 @@ export default function TVChannels() {
       onCustomSearch={setSearchQuery}
       onCustomSearchSelect={selectChannelFromSearch}
     >
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
         <div className="grid lg:grid-cols-[1fr_350px] gap-8">
           <div className="space-y-6">
             {selectedChannel ? (

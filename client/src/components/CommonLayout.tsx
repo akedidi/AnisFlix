@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
+import BottomNav from "@/components/BottomNav";
 import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
@@ -187,21 +188,21 @@ export default function CommonLayout({
           {/* Main Content */}
           <IonicPullToRefresh onRefresh={handleIonicRefresh}>
             <div 
-              className={`${getContainerClass("main-content")} md:ml-64 md:pb-0`}
+              className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
               id="main-content-desktop"
               style={{ 
                 paddingTop: headerOffset > 0 
                   ? `${100 + headerOffset + 8}px` 
                   : window.innerWidth >= 768 
                     ? '70px' 
-                    : '70px'
+                    : '53px'
               }}
             >
               {children}
             </div>
           </IonicPullToRefresh>
-      
-      {/* Problème de hauteur résolu avec visualViewport.height */}
+
+      {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}
     </>
   );
 }

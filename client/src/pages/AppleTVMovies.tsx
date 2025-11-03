@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
+
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 
@@ -67,7 +68,7 @@ export default function AppleTVMovies() {
   };
 
   return (
-    <div className="min-h-screen fade-in-up">
+    <div className="h-screen overflow-y-auto">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
@@ -105,7 +106,7 @@ export default function AppleTVMovies() {
       </div>
 
       {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Chargement...</p>
@@ -147,9 +148,8 @@ export default function AppleTVMovies() {
           </div>
         )}
       </div>
-      
-      {/* Mobile Bottom Navigation */}
       </div>
+      
     </div>
   );
 }

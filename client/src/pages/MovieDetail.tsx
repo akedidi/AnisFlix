@@ -358,8 +358,8 @@ export default function MovieDetail() {
   // Main content
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
             <div className="hidden md:block">
               {movie.poster_path && (

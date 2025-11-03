@@ -1,0 +1,93 @@
+/**
+ * Styles pour IonTabBar selon la plateforme
+ * - Web Desktop : Pas de tabbar
+ * - Web Mobile : Tabbar fixe en bas
+ * - Native (iOS/Android) : Tabbar fixe en bas avec safe area
+ */
+
+/* Sur web mobile (max-width: 767px) */
+@media (max-width: 767px) {
+  ion-tab-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 999 !important;
+    height: 70px !important;
+    background: #000000 !important;
+    --background: #000000 !important;
+    border-top: 1px solid #333333 !important;
+  }
+  
+  ion-tab-button {
+    --color: #888888 !important;
+    --color-selected: #E50914 !important;
+  }
+  
+  /* S'assurer que le contenu principal a du padding en bas */
+  .main-content {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Sur web desktop (min-width: 768px) - Cacher complètement la tabbar */
+@media (min-width: 768px) {
+  ion-tab-bar {
+    display: none !important;
+  }
+}
+
+/* Sur natif (iOS/Android) - Avec safe area */
+[data-platform="native-mobile"] ion-tab-bar,
+.ios ion-tab-bar,
+.md ion-tab-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 999 !important;
+  background: #000000 !important;
+  --background: #000000 !important;
+  border-top: 1px solid #333333 !important;
+  
+  /* Safe area pour iPhone */
+  padding-bottom: env(safe-area-inset-bottom, 20px) !important;
+  height: calc(70px + env(safe-area-inset-bottom, 20px)) !important;
+}
+
+[data-platform="native-mobile"] ion-tab-button,
+.ios ion-tab-button,
+.md ion-tab-button {
+  --color: #888888 !important;
+  --color-selected: #E50914 !important;
+}
+
+/* S'assurer que IonContent a du scroll sur natif */
+[data-platform="native-mobile"] ion-content {
+  --padding-bottom: calc(70px + env(safe-area-inset-bottom, 20px));
+}
+
+/* IonRouterOutlet doit permettre les animations */
+ion-router-outlet {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* IonPage pour animations natives */
+ion-page {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  contain: layout style size !important;
+  overflow: hidden !important;
+}
+
+

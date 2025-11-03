@@ -180,8 +180,8 @@ export default function SeriesDetail() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
             <div className="hidden md:block">
               {series.poster_path && (
@@ -295,7 +295,16 @@ export default function SeriesDetail() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Épisodes</h3>
                     <div className="space-y-3">
-                      {seasonDetails?.episodes?.map((episode: any) => {
+                      {seasonDetails?.episodes
+                        ?.filter((episode: any) => {
+                          // Ne montrer que les épisodes déjà diffusés (air_date dans le passé ou aujourd'hui)
+                          if (!episode.air_date) return true; // Si pas de date, montrer quand même
+                          const airDate = new Date(episode.air_date);
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0); // Début de journée
+                          return airDate <= today;
+                        })
+                        ?.map((episode: any) => {
                         // Récupérer la progression de l'épisode
                         const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
                         

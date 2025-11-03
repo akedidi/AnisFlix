@@ -156,7 +156,7 @@ export default function ProviderDetail() {
 
   return (
     <CommonLayout showSearch>
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
         {/* Provider Header */}
         <div className="flex items-center gap-6 mb-8">
           <img

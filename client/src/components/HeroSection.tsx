@@ -90,7 +90,7 @@ export default function HeroSection({
 
   return (
     <div 
-      className="relative w-full h-[50vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden group cursor-pointer" 
+      className="relative w-full h-[40vh] sm:h-[45vh] md:h-[50vh] lg:h-[60vh] overflow-hidden group cursor-pointer" 
       data-testid="hero-section"
       onClick={() => onClick?.(currentItem)}
     >
@@ -110,7 +110,7 @@ export default function HeroSection({
 
       {/* Dots Indicator */}
       {heroItems.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20 flex gap-2">
           {heroItems.map((_, index) => (
             <button
               key={index}
@@ -129,8 +129,8 @@ export default function HeroSection({
       )}
 
       <div className="relative h-full flex items-end">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 pb-8 sm:pb-12 md:pb-16">
-          <div className="max-w-2xl space-y-4">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pb-4 sm:pb-6 md:pb-8">
+          <div className="max-w-2xl space-y-2 sm:space-y-3 md:space-y-4">
             {currentItem.mediaType && (
               <Badge variant="secondary" className="mb-2">
                 {currentItem.mediaType === "tv" ? "Série" : currentItem.mediaType === "anime" ? "Anime" : currentItem.mediaType === "documentary" ? "Documentaire" : "Film"}
@@ -157,7 +157,7 @@ export default function HeroSection({
               {currentItem.overview}
             </p>
 
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap gap-2 sm:gap-3 pt-1 sm:pt-2">
               <Button
                 size="lg"
                 variant="outline"

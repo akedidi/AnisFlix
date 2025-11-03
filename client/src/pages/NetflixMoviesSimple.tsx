@@ -5,7 +5,7 @@ import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
-import BottomNav from "@/components/BottomNav";
+
 import DesktopSidebar from "@/components/DesktopSidebar";
 import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -67,9 +67,8 @@ export default function NetflixMoviesSimple() {
   console.log('NetflixMoviesSimple - Debug:', { moviesData, isLoading: moviesLoading, error, movies });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen overflow-y-auto bg-background">
       <DesktopSidebar />
-      <BottomNav />
       
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -91,7 +90,7 @@ export default function NetflixMoviesSimple() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 pt-20 md:pt-20">
+      <div className="container mx-auto px-4 pt-2 pb-24 md:pb-6 md:py-6 md:pt-20">
         {/* Continue Watching */}
         <ContinueWatching maxItems={20} />
 
@@ -176,6 +175,7 @@ export default function NetflixMoviesSimple() {
           </>
         )}
       </div>
+      
     </div>
   );
 }
