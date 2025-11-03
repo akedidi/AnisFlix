@@ -5,12 +5,12 @@ const config: CapacitorConfig = {
   appName: 'AnisFlix',
   webDir: 'dist/public',
   server: {
-    androidScheme: 'https',
-    iosScheme: 'https',
+    // En développement iOS/Android, on pointe vers le serveur local Vite/Express
+    // Pour la prod, commentez url et laissez Capacitor servir les assets buildés
+    url: 'http://localhost:3000',
+    androidScheme: 'http',
+    iosScheme: 'http',
     allowNavigation: ['*'],
-    // Configuration pour la production - pointer vers Vercel
-    // Pour le développement local, commenter cette ligne et laisser apiClient gérer
-    // url: 'https://anisflix.vercel.app',
   },
   ios: {
     contentInset: 'never', // Changé de 'automatic' à 'never' pour éviter les décalages
