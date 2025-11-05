@@ -75,35 +75,67 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
             variant="ghost"
             className="btn-animate gap-1"
             onClick={() => {
+              // Déterminer la route cible
+              let targetPath: string | null = null;
+              
+              if (seeAllLink) {
+                targetPath = seeAllLink;
+              } else if (sectionId) {
+                targetPath = `/${sectionId}`;
+              } else {
+                // Fallback basé sur le titre
+                if (title.includes('Netflix')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/netflix-series' : '/netflix-movies';
+                } else if (title.includes('Amazon Prime')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/amazon-series' : '/amazon-movies';
+                } else if (title.includes('Apple TV+')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/apple-tv-series' : '/apple-tv-movies';
+                } else if (title.includes('Disney+')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/disney-series' : '/disney-movies';
+                } else if (title.includes('HBO Max')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/hbo-max-series' : '/hbo-max-movies';
+                } else if (title.includes('Paramount+')) {
+                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
+                  targetPath = isSeries ? '/paramount-series' : '/paramount-movies';
+                }
+              }
+              
+              // Réinitialiser la pagination pour cette route avant la navigation
+              if (targetPath) {
+                try {
+                  // Normaliser le chemin (supprimer les paramètres de requête et les hash)
+                  const normalizedPath = targetPath.split('?')[0].split('#')[0];
+                  
+                  // Supprimer la pagination sauvegardée pour cette route
+                  const storage = JSON.parse(localStorage.getItem('paginationState') || '{}');
+                  delete storage[normalizedPath];
+                  localStorage.setItem('paginationState', JSON.stringify(storage));
+                  
+                  const session = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                  delete session[normalizedPath];
+                  sessionStorage.setItem('paginationLast', JSON.stringify(session));
+                  
+                  console.log('[MediaCarousel] Réinitialisation pagination pour:', normalizedPath);
+                } catch (err) {
+                  console.error('[MediaCarousel] Erreur lors de la réinitialisation de la pagination:', err);
+                }
+              }
+              
+              // Naviguer vers la route
               if (seeAllLink) {
                 setLocation(seeAllLink);
               } else if (sectionId) {
-                // Utiliser l'identifiant de section pour une redirection précise
                 setLocation(`/${sectionId}`);
+              } else if (targetPath) {
+                setLocation(targetPath);
               } else {
-                // Fallback basé sur le titre (pour la rétrocompatibilité)
-                if (title.includes('Netflix')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/netflix-series' : '/netflix-movies');
-                } else if (title.includes('Amazon Prime')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/amazon-series' : '/amazon-movies');
-                } else if (title.includes('Apple TV+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/apple-tv-series' : '/apple-tv-movies');
-                } else if (title.includes('Disney+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/disney-series' : '/disney-movies');
-                } else if (title.includes('HBO Max')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/hbo-max-series' : '/hbo-max-movies');
-                } else if (title.includes('Paramount+')) {
-                  const isSeries = title.toLowerCase().includes('série') || title.toLowerCase().includes('series');
-                  setLocation(isSeries ? '/paramount-series' : '/paramount-movies');
-                } else {
-                  // Par défaut, rediriger vers la page d'accueil
-                  setLocation('/');
-                }
+                // Par défaut, rediriger vers la page d'accueil
+                setLocation('/');
               }
             }}
             data-testid={`button-see-all-${title.toLowerCase().replace(/\s+/g, "-")}`}
