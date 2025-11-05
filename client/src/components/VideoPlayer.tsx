@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { ErrorPopup } from "@/components/ErrorPopup";
+import { errorMessages } from "@/lib/errorMessages";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import CustomVideoControls from "@/components/CustomVideoControls";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -52,21 +56,47 @@ export default function VideoPlayer({
   const [isDownloading, setIsDownloading] = useState(false);
   const [sourceType, setSourceType] = useState<"m3u8" | "mp4">("mp4");
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const lastSaveTimeRef = useRef<number>(0);
+
+  // Navigation au clavier pour contrôler la lecture vidéo
+  useKeyboardNavigation({
+    videoRef,
+    isPlayerActive: !!src
+  });
 
   useEffect(() => {
     if (!videoRef.current || !src) return;
 
     const video = videoRef.current;
     
+    console.log('🎬 [VIDEO PLAYER] URL reçue:', src);
+    console.log('🎬 [VIDEO PLAYER] Type spécifié:', type);
+    
     // Détection automatique du type de source
     const detectedType = type === "auto" 
       ? (src.includes(".m3u8") || src.includes("m3u8") ? "m3u8" : "mp4")
       : type;
     
+    console.log('🎬 [VIDEO PLAYER] Type détecté:', detectedType);
     setSourceType(detectedType);
 
     if (detectedType === "m3u8") {
+      // Vérifier si c'est une URL Darkibox et utiliser l'ancienne API
+      let finalSrc = src;
+      if (src.includes('darkibox.com')) {
+        finalSrc = `/api/darkibox?url=${encodeURIComponent(src)}`;
+        console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation de l\'API legacy:', finalSrc);
+      }
+      setFinalMediaUrl(finalSrc);
+      
       // Lecture HLS
       if (Hls.isSupported()) {
         const hls = new Hls({
@@ -74,7 +104,7 @@ export default function VideoPlayer({
           lowLatencyMode: false,
         });
         hlsRef.current = hls;
-        hls.loadSource(src);
+        hls.loadSource(finalSrc);
         hls.attachMedia(video);
         
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -87,13 +117,14 @@ export default function VideoPlayer({
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = src;
+        video.src = finalSrc;
         video.addEventListener('loadedmetadata', () => {
           video.play().catch(err => console.warn("Autoplay failed:", err));
         });
       }
     } else {
       // Lecture MP4 directe
+      setFinalMediaUrl(src);
       video.src = src;
       video.load();
       video.play().catch(err => console.warn("Autoplay failed:", err));
@@ -135,6 +166,15 @@ export default function VideoPlayer({
     const handleTimeUpdate = () => {
       const now = Date.now();
       
+      // Mettre à jour le currentTime pour Chromecast
+      setCurrentTime(video.currentTime);
+      
+      // Mettre à jour duration et progress
+      if (video.duration) {
+        setDuration(video.duration);
+        setProgress((video.currentTime / video.duration) * 100);
+      }
+      
       // Sauvegarder toutes les 5 secondes
       if (now - lastSaveTimeRef.current < 5000) return;
       
@@ -158,6 +198,14 @@ export default function VideoPlayer({
       }
     };
 
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleLoadedMetadata = () => {
+      if (video.duration) {
+        setDuration(video.duration);
+      }
+    };
+
     const handleEnded = () => {
       // Ne pas sauvegarder si la vidéo est terminée (pour ne pas la voir dans "Continuer à regarder")
       if (mediaId && mediaType) {
@@ -177,17 +225,84 @@ export default function VideoPlayer({
     };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('ended', handleEnded);
     video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
     video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
+    const handleFullscreenChange = () => {
+      const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
+      setIsFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as any);
+
+    // Détecter le mute state initial
+    setIsMuted(video.muted);
+
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
       video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as any);
     };
   }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
+
+  const togglePlayPause = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video) return;
+
+    if (!isFullscreen) {
+      const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && !!(window as any).webkit;
+      if (isIOSSafari && typeof video.webkitEnterFullscreen === 'function') {
+        try {
+          video.webkitEnterFullscreen();
+          return;
+        } catch (e) {
+          // Fallback
+        }
+      }
+
+      const target: any = container || video;
+      const request = (target.requestFullscreen 
+        || target.webkitRequestFullscreen 
+        || target.mozRequestFullScreen 
+        || target.msRequestFullscreen);
+      request?.call(target);
+    } else {
+      const exit = (document.exitFullscreen 
+        || (document as any).webkitExitFullscreen 
+        || (document as any).mozCancelFullScreen 
+        || (document as any).msExitFullscreen);
+      exit?.call(document);
+    }
+  };
 
   const togglePictureInPicture = async () => {
     if (!videoRef.current) return;
@@ -220,9 +335,19 @@ export default function VideoPlayer({
       }
     } catch (error) {
       console.error("Error toggling Picture-in-Picture:", error);
-      // Ne pas afficher d'alerte pour éviter de spammer l'utilisateur
-      // L'erreur est déjà loggée dans la console
     }
+  };
+
+  const handleSeek = (newTime: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleDownloadMP4 = async () => {
@@ -354,22 +479,46 @@ export default function VideoPlayer({
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
-      <video
-        ref={videoRef}
-        className="w-full aspect-video bg-black"
-        controls
-        playsInline={!isNativePlatform()}
-        preload="auto"
-        data-testid="video-player-main"
-        {...(isNativePlatform() && {
-          'webkit-playsinline': 'false',
-          'playsinline': 'false'
-        })}
-      />
+      <div className="relative w-full aspect-video bg-black" ref={containerRef}>
+        <video
+          ref={videoRef}
+          className="w-full h-full object-contain"
+          controls={false}
+          playsInline={!isNativePlatform()}
+          preload="auto"
+          data-testid="video-player-main"
+          {...(isNativePlatform() && {
+            'webkit-playsinline': 'false',
+            'playsinline': 'false'
+          })}
+        />
+        
+        {!isNative && (
+          <CustomVideoControls
+            videoRef={videoRef}
+            isPlaying={isPlaying}
+            isMuted={isMuted}
+            isFullscreen={isFullscreen}
+            isPictureInPicture={isPictureInPicture}
+            currentTime={currentTime}
+            duration={duration}
+            progress={progress}
+            mediaUrl={finalMediaUrl}
+            title={title}
+            posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
+            onPlayPause={togglePlayPause}
+            onMute={toggleMute}
+            onFullscreen={toggleFullscreen}
+            onPictureInPicture={togglePictureInPicture}
+            onSeek={handleSeek}
+            formatTime={formatTime}
+          />
+        )}
+      </div>
       
       <div className="p-4 space-y-4">
-        <div className="flex gap-2 flex-wrap">
-          {isNative && sourceType === "m3u8" && (
+        {isNative && sourceType === "m3u8" && (
+          <div className="space-y-2">
             <Button
               onClick={handleDownloadMP4}
               disabled={isDownloading}
@@ -379,42 +528,28 @@ export default function VideoPlayer({
               <Download className="w-4 h-4" />
               {isDownloading ? `Téléchargement... ${downloadProgress}%` : 'Télécharger en MP4'}
             </Button>
-          )}
-          
-          <Button
-            onClick={togglePictureInPicture}
-            variant="outline"
-            className="gap-2"
-            title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
-          >
-            <PictureInPicture className="w-4 h-4" />
-            {isPictureInPicture ? "Quitter PiP" : "Picture-in-Picture"}
-          </Button>
-          
-        </div>
 
-        {isNative && isDownloading && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Téléchargement & Conversion</span>
-              <span>{downloadProgress}%</span>
-            </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-200"
-                style={{ width: `${downloadProgress}%` }}
-              />
-            </div>
+            {isDownloading && (
+              <>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Téléchargement & Conversion</span>
+                  <span>{downloadProgress}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-200"
+                    style={{ width: `${downloadProgress}%` }}
+                  />
+                </div>
+              </>
+            )}
+
+            <p className="text-sm text-muted-foreground">
+              • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
+            </p>
           </div>
         )}
-
-        {isNative && (
-          <p className="text-sm text-muted-foreground">
-            • <strong>Téléchargement MP4 :</strong> Convertit le flux HLS (.ts) en fichier MP4 standard.
-          </p>
-        )}
       </div>
-
     </div>
   );
 }

@@ -1,0 +1,46 @@
+{
+  "ios": {
+    "icon": {
+      "sources": [
+        {
+          "src": "assets/icon.png",
+          "width": 1024,
+          "height": 1024,
+          "density": "universal"
+        }
+      ]
+    },
+    "splash": {
+      "sources": [
+        {
+          "src": "assets/splash.png",
+          "width": 2732,
+          "height": 2732,
+          "density": "universal"
+        }
+      ]
+    }
+  },
+  "android": {
+    "icon": {
+      "sources": [
+        {
+          "src": "assets/icon.png",
+          "width": 1024,
+          "height": 1024,
+          "density": "universal"
+        }
+      ]
+    },
+    "splash": {
+      "sources": [
+        {
+          "src": "assets/splash.png",
+          "width": 2732,
+          "height": 2732,
+          "density": "universal"
+        }
+      ]
+    }
+  }
+}

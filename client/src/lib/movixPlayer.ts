@@ -20,17 +20,8 @@ export interface MovixResponse {
  */
 export async function getMovixPlayerLinks(imdbId: string, mediaType: 'movie' | 'tv'): Promise<MovixResponse> {
   try {
-    const endpoint = mediaType === 'movie' 
-      ? `https://api.movix.site/api/imdb/movie/${imdbId}`
-      : `https://api.movix.site/api/imdb/tv/${imdbId}`;
-    
-    const response = await fetch(endpoint);
-    
-    if (!response.ok) {
-      throw new Error(`Movix API error: ${response.status}`);
-    }
-    
-    const data: MovixResponse = await response.json();
+    const { movixProxy } = await import('./movixProxy');
+    const data = await movixProxy.getByImdbId(imdbId, mediaType);
     return data;
   } catch (error) {
     console.error('Error fetching Movix player links:', error);
@@ -66,5 +57,5 @@ export function extractImdbId(imdbId: string): string | null {
  * @returns L'URL du proxy HLS
  */
 export function getHLSProxyUrl(segmentUrl: string): string {
-  return `/api/supervideo-proxy?url=${encodeURIComponent(segmentUrl)}`;
+  return `/api/proxy?type=supervideo&url=${encodeURIComponent(segmentUrl)}`;
 }

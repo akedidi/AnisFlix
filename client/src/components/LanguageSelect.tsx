@@ -25,7 +25,7 @@ export default function LanguageSelect() {
 
   return (
     <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
-      <SelectTrigger className="w-[50px]" data-testid="select-language">
+      <SelectTrigger className="w-[50px] relative [&>span]:flex-1 [&>svg]:absolute [&>svg]:right-0 [&>svg]:top-[14px] [&>svg]:h-3 [&>svg]:w-3" data-testid="select-language">
         <span className="text-lg">{currentLanguage?.flag}</span>
       </SelectTrigger>
       <SelectContent>

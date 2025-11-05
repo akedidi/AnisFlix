@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { Heart, Trash2, Play } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
@@ -41,7 +42,7 @@ export default function Favorites() {
 
   return (
     <CommonLayout showSearch={true}>
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-8 md:-mt-4">
           {isOffline && (
             <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
               <p className="text-orange-500 text-sm">
@@ -103,6 +104,8 @@ export default function Favorites() {
                 </div>
               )}
             </TabsContent>
+
+            <Separator className="my-8" />
 
             <TabsContent value="series" className="space-y-6">
               {seriesFavorites.length > 0 ? (

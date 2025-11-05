@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface MovixSearchResult {
   id: number;
@@ -20,14 +21,7 @@ const getMovixIdFromTmdb = async (tmdbId: number, title?: string): Promise<numbe
     }
     
     // Rechercher dans l'API Movix avec le titre
-    const searchUrl = `https://api.movix.site/api/search?title=${encodeURIComponent(title)}`;
-    
-    const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) {
-      return null;
-    }
-    
-    const searchData: MovixSearchResponse = await searchResponse.json();
+    const searchData: MovixSearchResponse = await movixProxy.search(title);
     
     // Trouver le résultat qui correspond à notre TMDB ID et type 'series'
     const matchingResult = searchData.results.find(result => 
@@ -77,7 +71,7 @@ const fetchDarkiSeries = async (tmdbId: number, season: number, episode: number,
     
     console.log(`[DarkiSeries] Conversion TMDB ${tmdbId} → Movix ${movixId}`);
     
-    const url = `/api/darkibox/series?seriesId=${movixId}&season=${season}&episode=${episode}`;
+    const url = `/api/darkibox?seriesId=${movixId}&season=${season}&episode=${episode}`;
     
     const response = await fetch(url);
     

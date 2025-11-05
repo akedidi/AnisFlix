@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface TopStreamResponse {
   success: boolean;
@@ -28,33 +29,32 @@ interface TopStreamResponse {
   timestamp: string;
 }
 
-const fetchTopStream = async (type: 'movie' | 'tv', id: number): Promise<TopStreamResponse | null> => {
+const fetchTopStream = async (type: 'movie' | 'tv', id: number, season?: number, episode?: number): Promise<TopStreamResponse | null> => {
   try {
-    const response = await fetch(`https://api.movix.site/api/topstream/${type}/${id}`);
+    console.log('🔍 [TOPSTREAM] Fetching data for:', { type, id, season, episode });
+    const data = await movixProxy.getTopStream(type, id, season, episode);
     
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
+    console.log('🔍 [TOPSTREAM] API Response:', data);
     
     // Vérifier si on a un stream disponible
     if (data.success && data.stream && data.stream.url) {
+      console.log('✅ [TOPSTREAM] Stream found:', data.stream.url);
       return data;
     }
     
+    console.log('❌ [TOPSTREAM] No stream available');
     return null;
   } catch (error) {
-    console.error('Erreur lors de la récupération des données TopStream:', error);
+    console.error('❌ [TOPSTREAM] Error fetching data:', error);
     return null;
   }
 };
 
-export const useTopStream = (type: 'movie' | 'tv', id: number) => {
+export const useTopStream = (type: 'movie' | 'tv', id: number, season?: number, episode?: number) => {
   return useQuery({
-    queryKey: ['topstream', type, id],
-    queryFn: () => fetchTopStream(type, id),
-    enabled: !!id,
+    queryKey: ['topstream', type, id, season, episode],
+    queryFn: () => fetchTopStream(type, id, season, episode),
+    enabled: !!id && (type === 'movie' || (type === 'tv' && !!season)),
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   });

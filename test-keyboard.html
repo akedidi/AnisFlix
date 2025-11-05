@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Clavier de Recherche</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        
+        .test-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .native-app input[type="search"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #111;
+            color: #fff;
+            font-size: 16px;
+            
+            /* Forcer le clavier de recherche */
+            inputmode: search !important;
+            enterkeyhint: search !important;
+            
+            /* Forcer les attributs via CSS */
+            -webkit-input-mode: search !important;
+            -webkit-enter-key-hint: search !important;
+            
+            /* Masquer la barre "Done" sur iOS */
+            -webkit-appearance: none;
+            appearance: none;
+            
+            /* Désactiver l'autocomplétion */
+            autocomplete: off;
+            autocorrect: off;
+            autocapitalize: off;
+            spellcheck: false;
+        }
+        
+        .test-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #222;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .success { background: #0f5132; }
+        .error { background: #842029; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Test Clavier de Recherche</h1>
+        <p>Testez le clavier sur votre appareil mobile. Le bouton devrait afficher "Rechercher" au lieu de "Accéder".</p>
+        
+        <div class="native-app">
+            <input 
+                type="search" 
+                placeholder="Tapez votre recherche ici..."
+                id="searchInput"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+            />
+        </div>
+        
+        <div class="test-info">
+            <h3>Informations de test :</h3>
+            <div id="deviceInfo"></div>
+            <div id="inputInfo"></div>
+            <div id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        // Détecter le type d'appareil
+        function detectDevice() {
+            const userAgent = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+            const isAndroid = /Android/.test(userAgent);
+            const isCapacitor = typeof window !== 'undefined' && window.Capacitor !== undefined;
+            
+            return {
+                isIOS,
+                isAndroid,
+                isCapacitor,
+                userAgent
+            };
+        }
+        
+        // Forcer le clavier de recherche
+        function forceSearchKeyboard() {
+            const input = document.getElementById('searchInput');
+            if (!input) return;
+            
+            // Méthode 1: Attributs HTML
+            input.setAttribute('inputmode', 'search');
+            input.setAttribute('enterkeyhint', 'search');
+            input.setAttribute('data-inputmode', 'search');
+            input.setAttribute('data-enterkeyhint', 'search');
+            
+            // Méthode 2: Propriétés JavaScript
+            input.inputMode = 'search';
+            input.enterKeyHint = 'search';
+            
+            // Méthode 3: Forcer le type
+            input.setAttribute('type', 'search');
+            
+            // Méthode 4: Attributs WebKit pour iOS
+            input.setAttribute('webkit-input-mode', 'search');
+            input.setAttribute('webkit-enter-key-hint', 'search');
+            
+            // Méthode 5: Style CSS inline
+            input.style.setProperty('inputmode', 'search');
+            input.style.setProperty('enterkeyhint', 'search');
+        }
+        
+        // Afficher les informations
+        function displayInfo() {
+            const device = detectDevice();
+            const input = document.getElementById('searchInput');
+            
+            document.getElementById('deviceInfo').innerHTML = `
+                <strong>Appareil :</strong> ${device.isIOS ? 'iOS' : device.isAndroid ? 'Android' : 'Desktop'}<br>
+                <strong>Capacitor :</strong> ${device.isCapacitor ? 'Oui' : 'Non'}<br>
+                <strong>User Agent :</strong> ${device.userAgent}
+            `;
+            
+            if (input) {
+                document.getElementById('inputInfo').innerHTML = `
+                    <strong>Type :</strong> ${input.type}<br>
+                    <strong>InputMode :</strong> ${input.inputMode || input.getAttribute('inputmode')}<br>
+                    <strong>EnterKeyHint :</strong> ${input.enterKeyHint || input.getAttribute('enterkeyhint')}
+                `;
+            }
+        }
+        
+        // Événements
+        document.addEventListener('DOMContentLoaded', () => {
+            forceSearchKeyboard();
+            displayInfo();
+            
+            const input = document.getElementById('searchInput');
+            if (input) {
+                input.addEventListener('focus', () => {
+                    forceSearchKeyboard();
+                    document.getElementById('status').innerHTML = '<div class="status success">Clavier forcé en mode recherche</div>';
+                });
+                
+                input.addEventListener('input', () => {
+                    forceSearchKeyboard();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

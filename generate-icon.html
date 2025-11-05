@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Générer icône ANISFLIX</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f0f0f0; }
+        .icon-container { 
+            width: 1024px; 
+            height: 1024px; 
+            background: #000000; 
+            position: relative;
+            margin: 20px auto;
+        }
+        .letter-a {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+        }
+        .letter-a svg {
+            width: 100%;
+            height: 100%;
+        }
+        .instructions {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h2>Icône ANISFLIX</h2>
+        <p>Faites un clic droit sur l'icône ci-dessous et "Enregistrer l'image sous..."</p>
+        <p>Nommez le fichier "icon.png" et placez-le dans le dossier assets/</p>
+    </div>
+    
+    <div class="icon-container">
+        <div class="letter-a">
+            <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+                <!-- Lettre A stylisée avec effet 3D -->
+                <path d="M80,320 L140,160 L180,160 L240,320 L200,320 L180,280 L120,280 L100,320 Z" fill="#E50914"/>
+                <!-- Barre horizontale avec effet de pliage -->
+                <path d="M140,200 L180,200 L180,220 L140,220 Z" fill="#E50914"/>
+                <!-- Ombres pour l'effet 3D -->
+                <path d="M80,320 L140,160 L120,160 L60,320 Z" fill="#B20710"/>
+                <path d="M180,160 L240,320 L220,320 L160,160 Z" fill="#B20710"/>
+                <path d="M140,200 L150,200 L150,220 L140,220 Z" fill="#B20710"/>
+            </svg>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <p><strong>Instructions :</strong></p>
+        <ol>
+            <li>Faites un clic droit sur l'icône noire ci-dessus</li>
+            <li>Sélectionnez "Enregistrer l'image sous..."</li>
+            <li>Nommez le fichier "icon.png"</li>
+            <li>Placez-le dans le dossier assets/ de votre projet</li>
+            <li>Exécutez : npx cap sync</li>
+        </ol>
+    </div>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture, X } from "lucide-react";
 import { saveWatchProgress } from "@/lib/watchProgress";
+import ChromecastButton from "@/components/ChromecastButton";
 import type { MediaType } from "@shared/schema";
 
 interface CapacitorVideoPlayerProps {
@@ -38,6 +39,7 @@ export default function CapacitorVideoPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
   const lastSaveTimeRef = useRef<number>(0);
 
   const isNative = Capacitor.isNativePlatform();
@@ -54,6 +56,9 @@ export default function CapacitorVideoPlayer({
     const detectedType = type === "auto" 
       ? (src.includes(".m3u8") || src.includes("m3u8") ? "m3u8" : "mp4")
       : type;
+
+    // Stocker l'URL finale pour Chromecast
+    setFinalMediaUrl(src);
 
     if (detectedType === "m3u8") {
       // Sur iOS natif, Safari gère nativement HLS
@@ -279,6 +284,18 @@ export default function CapacitorVideoPlayer({
           >
             <PictureInPicture className="w-5 h-5" />
           </Button>
+
+          {finalMediaUrl && (
+            <ChromecastButton
+              mediaUrl={finalMediaUrl}
+              title={title}
+              posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
+              currentTime={currentTime}
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/20"
+            />
+          )}
         </div>
 
         <div className="flex justify-between text-white text-sm mt-2">

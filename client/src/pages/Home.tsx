@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
-import PullToRefresh from "@/components/PullToRefresh";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -50,8 +49,8 @@ export default function Home() {
   const { data: netflixSeriesData } = useSeriesByProvider(8);
   const { data: amazonSeriesData } = useSeriesByProvider(9);
   const { data: amazonMoviesData } = useMoviesByProvider(9);
-  const { data: hboMaxSeriesData } = useSeriesByProvider(1899);
-  const { data: hboMaxMoviesData } = useMoviesByProvider(1899);
+  const { data: hboMaxSeriesData } = useSeriesByProvider(384);
+  const { data: hboMaxMoviesData } = useMoviesByProvider(384);
   const { data: disneyMoviesData } = useMoviesByProvider(337);
   const { data: disneySeriesData } = useSeriesByProvider(337);
   const { data: appleTvMoviesData } = useMoviesByProvider(350);
@@ -79,7 +78,9 @@ export default function Home() {
 
   // S'assurer que la page commence en haut
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Désactivé pour éviter les conflits avec le scroll automatique des autres pages
+    // window.scrollTo(0, 0);
+    console.log('📱 [HOME] Scroll automatique désactivé pour éviter les conflits');
   }, []);
 
 
@@ -90,7 +91,7 @@ export default function Home() {
     { id: 350, name: "Apple TV+", logoPath: "/6uhKBfmtzFqOcLousHwZuzcrScK.jpg" },
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
-    { id: 1899, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
+    { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
   ];
 
   // Charger la progression réelle depuis localStorage
@@ -138,8 +139,7 @@ export default function Home() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      <PullToRefresh onRefresh={handleRefresh}>
-          <div className="space-y-8 md:space-y-12">
+      <div className="space-y-8 md:space-y-12 -mt-16 md:mt-0" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {popularMovies.length > 0 && (
           <HeroSection
             items={popularMovies.slice(0, 5).map((movie: any) => ({
@@ -173,7 +173,7 @@ export default function Home() {
           />
         )}
 
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 space-y-8 md:space-y-12">
+        <div className="space-y-8 md:space-y-12 px-4 md:px-8 lg:px-12">
           {continueWatching.length > 0 && (
             <MediaCarousel
               title={t("home.continueWatching")}
@@ -361,7 +361,6 @@ export default function Home() {
           )}
         </div>
         </div>
-      </PullToRefresh>
     </CommonLayout>
   );
 }

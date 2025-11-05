@@ -1,3 +1,109 @@
+@import '@ionic/react/css/core.css';
+@import '@ionic/react/css/normalize.css';
+@import '@ionic/react/css/structure.css';
+@import '@ionic/react/css/typography.css';
+@import '@ionic/react/css/padding.css';
+@import '@ionic/react/css/float-elements.css';
+@import '@ionic/react/css/text-alignment.css';
+@import '@ionic/react/css/text-transformation.css';
+@import '@ionic/react/css/flex-utils.css';
+@import '@ionic/react/css/display.css';
+
+/* Styles pour le pull-to-refresh Ionic */
+.ion-content-transparent {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+.ion-content-transparent ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+/* S'assurer que le contenu Ionic ne masque pas notre contenu */
+ion-page {
+  background: transparent !important;
+}
+
+ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+/* Améliorer l'animation du pull-to-refresh - SPINNER SEUL */
+ion-refresher-content {
+  --color: #FFFFFF !important;
+  --background: transparent !important;
+  background: transparent !important;
+  padding: 0px !important;
+  margin: 0px !important;
+  position: fixed !important;
+  top: 130px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99999 !important;
+  width: auto !important;
+  height: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Rendre le spinner TRÈS visible */
+ion-refresher-content ion-spinner {
+  --color: #FFFFFF !important;
+  width: 30px !important;
+  height: 30px !important;
+  stroke-width: 3px !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Forcer la visibilité du spinner */
+ion-refresher-content .refresher-refreshing-icon {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Améliorer l'apparence du texte */
+ion-refresher-content .refresher-pulling-text,
+ion-refresher-content .refresher-refreshing-text {
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  margin-top: 8px !important;
+}
+
+/* Animation pour le spinner */
+ion-refresher-content ion-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Styles pour le refresher entier */
+ion-refresher {
+  background: rgba(0, 122, 255, 0.1) !important;
+  z-index: 9999 !important;
+}
+
+/* Désactiver le pull-to-refresh sur web mobile - seulement actif sur mobile natif */
+@media (max-width: 767px) {
+  /* Cacher le refresher sur web mobile (pas sur Capacitor natif) */
+  html:not([data-capacitor]) ion-refresher,
+  html:not([data-capacitor]) ion-refresher-content {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,61 +113,93 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
-  /* Solution iOS : fixer la hauteur du viewport */
-  height: 100vh;
-  height: 100dvh;
-  position: fixed;
+  /* Permettre le scroll vertical normal */
+  height: auto;
+  min-height: 100vh;
+  /* min-height: 100dvh; - SUPPRIMÉ car peut causer des changements sur iOS */
+  position: relative;
   width: 100%;
 }
 
-/* Tab bar fixe sur mobile - ne doit jamais bouger */
+/* Header avec safe area pour iOS natif uniquement */
+@media (max-width: 767px) {
+  .header-ios-safe.native-mobile {
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important; /* Fallback 34px + 20px */
+  }
+}
+
+/* Tab bar fixe sur mobile - CSS initial, puis bloquée par JavaScript */
+/* Règle globale pour forcer l'affichage sur mobile (même hors media query) */
+.mobile-bottom-nav {
+  /* Forcer l'affichage - sera surchargé par la media query pour desktop */
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Cacher la tabbar sur desktop */
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
 @media (max-width: 767px) {
   .mobile-bottom-nav {
     position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 999999 !important;
-    /* Solution définitive : dimensions fixes */
-    width: 100% !important;
-    height: 70px !important;
+    bottom: 0px !important;
+    left: 0px !important;
+    right: 0px !important;
     top: auto !important;
-    /* Hardware acceleration maximale */
+    z-index: 99999 !important; /* Z-index réduit pour éviter les problèmes de pointer-events */
+    width: 100vw !important;
+    height: 70px !important;
     transform: translate3d(0, 0, 0) !important;
     -webkit-transform: translate3d(0, 0, 0) !important;
-    /* Empêcher le bounce et les animations */
-    overscroll-behavior: none !important;
-    -webkit-overscroll-behavior: none !important;
-    /* Optimiser les performances */
     will-change: transform !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    /* Isolation complète */
-    isolation: isolate !important;
-    contain: layout style paint !important;
-    /* Forcer la stabilité */
-    margin: 0 !important;
-    padding: 0 !important;
+    pointer-events: auto !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* S'assurer que les enfants sont cliquables */
+  .mobile-bottom-nav * {
+    pointer-events: auto !important;
   }
   
-  /* Padding pour éviter que le contenu passe sous le tab bar */
+  /* Boutons et liens doivent être cliquables */
+  .mobile-bottom-nav button,
+  .mobile-bottom-nav a {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1) !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+  
+  /* Padding UNIQUE pour éviter les conflits */
   .main-content {
-    padding-bottom: 90px !important;
-    /* Gérer le scroll dans le conteneur principal */
-    overflow-y: auto;
-    height: 100vh;
-    height: 100dvh;
-    -webkit-overflow-scrolling: touch;
+    padding-bottom: 100px !important;
+    /* Padding-top pour que le contenu commence sous la SearchBar */
+    padding-top: 100px !important;
   }
   
-  /* Empêcher le bounce sur le body */
+  /* Sur desktop, augmenter le padding-top car la SearchBar est plus haute avec le header */
+  @media (min-width: 768px) {
+    .main-content,
+    #main-content-desktop {
+      padding-top: 200px !important;
+      margin-top: 0 !important;
+    }
+  }
+  
+  /* Body simple - pas de padding redondant */
   body {
-    overscroll-behavior: none !important;
-    -webkit-overscroll-behavior: none !important;
-    /* Empêcher le bounce iOS */
-    -webkit-overflow-scrolling: touch !important;
-    overscroll-behavior-y: none !important;
-    -webkit-overscroll-behavior-y: none !important;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -70,6 +208,12 @@ html, body {
 /* Empêcher le bounce sur tous les éléments */
 * {
   overscroll-behavior-x: none;
+}
+
+/* Permettre le scroll programmatique sur le body et html */
+html, body {
+  overscroll-behavior: auto !important;
+  -webkit-overscroll-behavior: auto !important;
 }
 
 /* Empêcher le bounce sur les éléments scrollables spécifiques */
@@ -82,25 +226,14 @@ html, body {
   -webkit-bounces: false !important;
 }
 
-/* Correction spécifique pour les listes et conteneurs de scroll */
+/* Correction spécifique pour les listes et conteneurs de scroll - SIMPLIFIÉE */
 @media (max-width: 767px) {
   .scrollable-content,
   [data-scrollable],
-  .scroll-container,
-  .main-content {
+  .scroll-container {
     /* Empêcher le bounce iOS */
     overscroll-behavior: none !important;
     -webkit-overscroll-behavior: none !important;
-    /* Assurer que le contenu a assez de padding en bas */
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 16px) !important;
-    /* Empêcher que le contenu passe sous l'encoche */
-    padding-top: calc(80px + env(safe-area-inset-top, 0px)) !important;
-  }
-  
-  /* Empêcher le scroll automatique sous l'encoche */
-  .scrollable-content,
-  [data-scrollable],
-  .scroll-container {
     content-inset-adjustment-behavior: never !important;
     -webkit-content-inset-adjustment-behavior: never !important;
   }
@@ -203,6 +336,13 @@ html, body {
 
 .fade-in-up {
   animation: fadeInUp 0.3s ease-out forwards;
+}
+
+/* Désactiver l'animation fade-in-up sur mobile natif (Capacitor) uniquement */
+.no-fade-animation .fade-in-up {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .fade-in-down {
@@ -521,6 +661,12 @@ html, body {
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  #root {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+  }
 }
 
 /**
@@ -635,43 +781,14 @@ html, body {
   }
 }
 
-/* Styles pour le comportement mobile - intégrés depuis global.css */
+/* Styles pour le comportement mobile - SIMPLIFIÉS */
 @layer base {
-  /* Assurer que le menu mobile est toujours visible */
+  /* Styles mobiles simplifiés - pas de redondance */
   @media (max-width: 767px) {
-    body {
-      padding-bottom: 5rem; /* 80px pour le menu mobile + safe area */
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      position: relative;
-    }
-    
-    /* Forcer le menu à rester en bas */
-    .mobile-bottom-nav {
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      z-index: 99999 !important;
-      transform: translate3d(0, 0, 0) !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
-      backface-visibility: hidden !important;
-      -webkit-backface-visibility: hidden !important;
-      contain: layout style paint !important;
-    }
-    
-    /* Empêcher le contenu de passer derrière la scroll bar */
     html {
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-    }
-    
-    /* Assurer que le contenu principal a un padding approprié */
-    .main-content {
-      padding-bottom: 5rem !important;
-      min-height: calc(100vh - 5rem);
-      position: relative;
-      z-index: 1;
+      overflow-y: auto;
     }
   }
 }
@@ -739,27 +856,24 @@ html, body {
 
 /* Force le menu mobile à rester en bas */
 @media (max-width: 767px) {
-  /* Empêcher le scroll horizontal global */
-  body {
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
-  }
+  /* Body déjà défini plus haut - pas de redondance */
   
-  /* Assurer que le contenu principal a un padding pour le tab bar */
-  .main-content {
+  /* Assurer que le contenu principal a un padding pour le tab bar - SUPPRIMÉ (redondant) */
+  /* .main-content {
     padding-bottom: 5rem !important;
     min-height: calc(100vh - 5rem);
     position: relative;
     z-index: 1;
-  }
+    overflow-y: visible;
+  } */
   
-  /* Forcer le tab bar à rester fixe */
+  /* Forcer le tab bar à rester fixe même avec le clavier */
   .mobile-bottom-nav {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    top: auto !important;
     z-index: 99999 !important;
     transform: translate3d(0, 0, 0) !important;
     -webkit-transform: translate3d(0, 0, 0) !important;
@@ -768,11 +882,15 @@ html, body {
     contain: layout style paint !important;
     width: 100% !important;
     max-width: 100vw !important;
+    /* Forcer l'affichage sur mobile même si md:hidden est appliqué */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
-  /* S'assurer que le header reste au-dessus du contenu */
+  /* S'assurer que le header reste au-dessus du contenu ET de la SearchBar */
   .bg-background\/95 {
-    z-index: 50 !important;
+    z-index: 1000000 !important; /* Au-dessus de la SearchBar (999999) */
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { movixProxy } from '@/lib/movixProxy';
 
 interface WiFlixPlayer {
   name: string;
@@ -22,21 +23,12 @@ interface WiFlixResponse {
 
 const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): Promise<WiFlixResponse | null> => {
   try {
-    let url = `https://api.movix.site/api/wiflix/${type}/${id}`;
-    if (type === 'tv' && season) {
-      url += `/season/${season}`;
-    }
-    
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      return null;
-    }
-    
-    const data = await response.json();
+    const data = await movixProxy.getWiFlix(type, id, season);
     
     console.log('WiFlix API Response:', {
-      url,
+      type,
+      id,
+      season,
       success: data.success,
       players: data.players ? Object.keys(data.players) : 'No players',
       data
@@ -55,11 +47,15 @@ const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): P
 
 export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => {
   return useQuery({
-    queryKey: ['wiflix', type, id, season, 'debug-cache-clear'], // Timestamp pour vider le cache
+    queryKey: ['wiflix', type, id, season],
     queryFn: () => fetchWiFlix(type, id, season),
     enabled: !!id,
-    staleTime: 0, // Pas de cache pour debug
-    gcTime: 0, // Pas de cache pour debug
+    staleTime: 5 * 60 * 1000, // 5 minutes de cache
+    gcTime: 10 * 60 * 1000, // 10 minutes de cache
+    retry: 1,
+    refetchOnMount: false, // Pas de refetch au montage si les données sont en cache
+    refetchOnWindowFocus: false, // Pas de refetch au focus
+    refetchOnReconnect: false, // Pas de refetch sur reconnexion
   });
 };
 

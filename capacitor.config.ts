@@ -5,32 +5,36 @@ const config: CapacitorConfig = {
   appName: 'AnisFlix',
   webDir: 'dist/public',
   server: {
-    androidScheme: 'https',
-    iosScheme: 'https'
+    // En développement iOS/Android, on pointe vers le serveur local Vite/Express
+    // Pour la prod, commentez url et laissez Capacitor servir les assets buildés
+    url: 'http://localhost:3000',
+    androidScheme: 'http',
+    iosScheme: 'http',
+    allowNavigation: ['*'],
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never', // Changé de 'automatic' à 'never' pour éviter les décalages
     scrollEnabled: true,
     backgroundColor: '#000000',
     allowsLinkPreview: false,
     handleApplicationNotifications: true,
-    allowsInlineMediaPlayback: true,
-    mediaPlaybackRequiresUserAction: false,
-    allowsAirPlayForMediaPlayback: true,
-    allowsPictureInPictureMediaPlayback: true,
     preferredContentMode: 'mobile',
-    overrideUserInterfaceStyle: 'dark'
+    // Configuration pour les liens profonds
+    overrideUserAgent: 'AnisFlix Mobile App'
   },
   android: {
     backgroundColor: '#000000',
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: false,
-    overrideUserInterfaceStyle: 'dark'
+    // Configuration pour les permissions Android
+    appendUserAgent: 'AnisFlix',
+    // Configuration pour les liens profonds
+    overrideUserAgent: 'AnisFlix Mobile App'
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 0,
       launchAutoHide: true,
       backgroundColor: "#000000",
       androidSplashResourceName: "splash",
@@ -38,7 +42,7 @@ const config: CapacitorConfig = {
       showSpinner: false,
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "small",
-      spinnerColor: "#ffffff",
+      spinnerColor: "#E50914",
       splashFullScreen: true,
       splashImmersive: true,
       layoutName: "launch_screen",
@@ -47,6 +51,16 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'dark',
       backgroundColor: '#000000'
+    },
+    // Configuration pour l'app
+    App: {
+      // launchUrl est obsolète dans les nouvelles versions de Capacitor
+    },
+    // Configuration pour le clavier
+    Keyboard: {
+      resize: 'none' as any, // Empêcher le redimensionnement automatique
+      style: 'dark' as any,
+      resizeOnFullScreen: false
     }
   }
 };

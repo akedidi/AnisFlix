@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-;
+import { useLocation } from "wouter";
 import MediaCard from "@/components/MediaCard";
-import SearchBar from "@/components/SearchBar";
-import ThemeToggle from "@/components/ThemeToggle";
-import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
-import DesktopSidebar from "@/components/DesktopSidebar";
+import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestMovies, useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 
 export default function LatestMovies() {
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
   // Fetch data from TMDB
   const { data: moviesData, isLoading: moviesLoading } = useLatestMovies(currentPage);
@@ -31,83 +29,78 @@ export default function LatestMovies() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Always reset scroll to top on page mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
-    <div className="min-h-screen fade-in-up">
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
+    <CommonLayout 
+      showSearch={true} 
+      onRefresh={handleRefresh}
+      customSearchQuery={searchQuery}
+      customSearchResults={searchResults}
+      onCustomSearch={setSearchQuery}
+      onCustomSearchSelect={(item) => {
+        const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+        setLocation(path);
+      }}
+    >
       
-      {/* Main Content */}
-      <div className="md:ml-64">
-        {/* Header avec recherche et contrôles */}
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
-            <div className="flex items-center gap-4">
-              
-              <div className="flex-1">
-                <SearchBar
-                  onSearch={setSearchQuery}
-                  suggestions={searchQuery ? searchResults : []}
-                  onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
-                  }}
-                />
-              </div>
-              <LanguageSelect />
-              <ThemeToggle />
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Derniers films</h1>
+            <p className="text-muted-foreground max-w-2xl">
+              Découvrez les derniers films sortis au cinéma.
+            </p>
+          </div>
+
+          {moviesLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chargement...</p>
             </div>
-          </div>
-        </div>
-
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Derniers films</h1>
-          <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez les derniers films sortis au cinéma.
-          </p>
-        </div>
-      </div>
-
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-        {moviesLoading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Chargement...</p>
-          </div>
-        ) : movies.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          ) : movies.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                 {movies.map((movie: any) => (
-                <div key={movie.id} className="w-full">
-                  <MediaCard
-                    {...movie}
-                    onClick={() => window.location.href = `/movie/${movie.id}`}
-                  />
-                </div>
-              ))}
+                  <div key={movie.id} className="w-full">
+                    <MediaCard
+                      {...movie}
+                      onClick={() => {
+                        try {
+                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                          sess[window.location.pathname] = currentPage;
+                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                        } catch {}
+                        setLocation(`/movie/${movie.id}`);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Aucun film récent disponible</p>
             </div>
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun film récent disponible</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       
-      {/* Mobile Bottom Navigation */}
-      </div>
-    </div>
+    </CommonLayout>
   );
 }
