@@ -12,13 +12,17 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
   res.header('Access-Control-Allow-Credentials', 'true');
-  
+
+  // Autoriser l'intégration dans une iframe pour la preview
+  res.removeHeader('X-Frame-Options');
+  res.header('Content-Security-Policy', "frame-ancestors *");
+
   // Gérer les requêtes preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  
+
   next();
 });
 
