@@ -12,52 +12,28 @@ const CACHE_OPTIONS = {
 };
 
 // Transform TMDB movie data to our app format
-const transformMovie = (movie: any) => {
-  // Debug pour les affiches manquantes
-  if (!movie.poster_path) {
-    console.warn(`⚠️ [TMDB TRANSFORM] Film sans poster_path:`, {
-      id: movie.id,
-      title: movie.title,
-      poster_path: movie.poster_path,
-      backdrop_path: movie.backdrop_path
-    });
-  }
-  
-  return {
-    id: movie.id,
-    title: movie.title,
-    posterPath: movie.poster_path,
-    backdropPath: movie.backdrop_path,
-    overview: movie.overview,
-    rating: Math.round(movie.vote_average * 10) / 10,
-    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
-    mediaType: "movie" as const,
-  };
-};
+const transformMovie = (movie: any) => ({
+  id: movie.id,
+  title: movie.title,
+  posterPath: movie.poster_path,
+  backdropPath: movie.backdrop_path,
+  overview: movie.overview,
+  rating: Math.round(movie.vote_average * 10) / 10,
+  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+  mediaType: "movie" as const,
+});
 
 // Transform TMDB series data to our app format
-const transformSeries = (series: any) => {
-  // Debug pour les affiches manquantes
-  if (!series.poster_path) {
-    console.warn(`⚠️ [TMDB TRANSFORM] Série sans poster_path:`, {
-      id: series.id,
-      name: series.name,
-      poster_path: series.poster_path,
-      backdrop_path: series.backdrop_path
-    });
-  }
-  
-  return {
-    id: series.id,
-    title: series.name,
-    posterPath: series.poster_path,
-    backdropPath: series.backdrop_path,
-    overview: series.overview,
-    rating: Math.round(series.vote_average * 10) / 10,
-    year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : "",
-    mediaType: "tv" as const,
-  };
-};
+const transformSeries = (series: any) => ({
+  id: series.id,
+  title: series.name,
+  posterPath: series.poster_path,
+  backdropPath: series.backdrop_path,
+  overview: series.overview,
+  rating: Math.round(series.vote_average * 10) / 10,
+  year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : "",
+  mediaType: "tv" as const,
+});
 
 export const usePopularMovies = (page = 1) => {
   return useQuery({
@@ -277,50 +253,17 @@ export const useMultiSearch = (query: string) => {
   return useQuery({
     queryKey: ["search", query],
     queryFn: async () => {
-      console.log('🔍 [USE MULTI SEARCH] Searching for:', query);
       const data = await tmdb.searchMulti(query);
-      console.log('🔍 [USE MULTI SEARCH] Raw TMDB data:', data);
-      
-      const transformedResults = data.results.map((item: any) => {
-        console.log('🔍 [USE MULTI SEARCH] Processing item:', {
-          id: item.id,
-          name: item.name,
-          title: item.title,
-          media_type: item.media_type,
-          poster_path: item.poster_path,
-          backdrop_path: item.backdrop_path,
-          first_air_date: item.first_air_date
-        });
-        
-        // Filtrer les films
+      return data.results.map((item: any) => {
         if (item.media_type === "movie") {
-          const transformed = transformMovie(item);
-          console.log('🔍 [USE MULTI SEARCH] Transformed movie:', transformed);
-          return transformed;
-        } 
-        // Filtrer les séries TV (pas les chaînes TV)
-        else if (item.media_type === "tv" && item.first_air_date) {
-          const transformed = transformSeries(item);
-          console.log('🔍 [USE MULTI SEARCH] Transformed series:', transformed);
-          return transformed;
+          return transformMovie(item);
+        } else if (item.media_type === "tv") {
+          return transformSeries(item);
         }
-        console.log('🔍 [USE MULTI SEARCH] Item filtered out:', item);
         return null;
       }).filter(Boolean);
-      
-      console.log('🔍 [USE MULTI SEARCH] Final transformed results:', transformedResults);
-      
-      // Log spécifique pour One-Punch Man
-      const onePunchMan = transformedResults.find((item: any) => item.id === 63926);
-      if (onePunchMan) {
-        console.log('✅ [USE MULTI SEARCH] One-Punch Man found in results:', onePunchMan);
-      } else {
-        console.log('❌ [USE MULTI SEARCH] One-Punch Man NOT found in transformed results');
-      }
-      
-      return transformedResults;
     },
-    enabled: query.length >= 1,
+    enabled: query.length > 2,
   });
 };
 

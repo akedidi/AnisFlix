@@ -3,7 +3,11 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, Heart } from "lucide-react";
-import CommonLayout from "@/components/CommonLayout";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import MediaCarousel from "@/components/MediaCarousel";
+import SearchBar from "@/components/SearchBar";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import Pagination from "@/components/Pagination";
 import { useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -11,6 +15,7 @@ import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AnimeSeriesPopular() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
@@ -19,6 +24,7 @@ export default function AnimeSeriesPopular() {
   
   // Fetch popular anime series (genre 16 = Animation) - utilise la page 2 pour les "popular"
   const { data: animeSeriesData, isLoading: animeSeriesLoading } = useSeriesByGenre(16, currentPage === 1 ? 2 : currentPage + 1);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const animeSeries = animeSeriesData?.results || [];
   const totalPages = animeSeriesData?.total_pages || 1;
@@ -32,22 +38,42 @@ export default function AnimeSeriesPopular() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
-  const handleRefresh = () => {
-    window.location.reload();
-  };
 
   return (
-    <CommonLayout 
-      title="Séries anime populaires"
-      showSearch={true}
-      onRefresh={handleRefresh}
-    >
-      <div className="space-y-8 md:space-y-12">
+    <div className="min-h-screen bg-background">
+      <DesktopSidebar />
+      
+      <div className="lg:pl-64">
+        {/* Header fixe */}
+        <div className={`sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b transition-all duration-200 ${scrollY > 10 ? 'shadow-sm' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 lg:px-12">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <h1 className="text-xl font-semibold">Séries anime populaires</h1>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  placeholder="Rechercher des séries anime..."
+                />
+                <LanguageSelect />
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
           {animeSeries.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {animeSeries.map((series: any) => (
@@ -104,14 +130,15 @@ export default function AnimeSeriesPopular() {
                 </div>
               ))}
             </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucune série anime trouvée</p>
-          </div>
-        )}
-        
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Aucune série anime trouvée</p>
+            </div>
+          )}
+        </div>
+
         {/* Pagination */}
-        {totalPages > 1 && (
+        {!searchQuery && totalPages > 1 && (
           <div className="flex justify-center mt-8">
             <Pagination
               currentPage={currentPage}
@@ -121,6 +148,7 @@ export default function AnimeSeriesPopular() {
           </div>
         )}
       </div>
-    </CommonLayout>
+      
+    </div>
   );
 }

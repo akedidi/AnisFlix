@@ -2,15 +2,20 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, Heart } from "lucide-react";
-import CommonLayout from "@/components/CommonLayout";
+import { Clock, Star, Calendar, ArrowLeft, Heart } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
+import MediaCarousel from "@/components/MediaCarousel";
+import SearchBar from "@/components/SearchBar";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import Pagination from "@/components/Pagination";
-import { useMoviesByGenre } from "@/hooks/useTMDB";
+import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function AnimeMoviesLatest() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [, setLocation] = useLocation();
   const { t } = useLanguage();
@@ -19,6 +24,7 @@ export default function AnimeMoviesLatest() {
   
   // Fetch anime movies (genre 16 = Animation)
   const { data: animeMoviesData, isLoading: animeMoviesLoading } = useMoviesByGenre(16, currentPage);
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   const animeMovies = animeMoviesData?.results || [];
   const totalPages = animeMoviesData?.total_pages || 1;
@@ -32,22 +38,51 @@ export default function AnimeMoviesLatest() {
     return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
-  const handleRefresh = () => {
-    window.location.reload();
-  };
 
   return (
-    <CommonLayout 
-      title="Derniers films anime"
-      showSearch={true}
-      onRefresh={handleRefresh}
-    >
-      <div className="space-y-8 md:space-y-12">
+    <div className="min-h-screen bg-background">
+      <DesktopSidebar />
+      
+      <div className="lg:pl-64">
+        {/* Header fixe */}
+        <div className={`sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b transition-all duration-200 ${scrollY > 10 ? 'shadow-sm' : ''}`}>
+          <div className="container mx-auto px-4 md:px-8 lg:px-12">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLocation('/')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Retour
+                </Button>
+                <h1 className="text-xl font-semibold">Derniers films anime</h1>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  placeholder="Rechercher des films anime..."
+                />
+                <LanguageSelect />
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
           {animeMovies.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {animeMovies.map((movie: any) => (
@@ -104,14 +139,15 @@ export default function AnimeMoviesLatest() {
                 </div>
               ))}
             </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucun film anime trouvé</p>
-          </div>
-        )}
-        
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Aucun film anime trouvé</p>
+            </div>
+          )}
+        </div>
+
         {/* Pagination */}
-        {totalPages > 1 && (
+        {!searchQuery && totalPages > 1 && (
           <div className="flex justify-center mt-8">
             <Pagination
               currentPage={currentPage}
@@ -121,6 +157,7 @@ export default function AnimeMoviesLatest() {
           </div>
         )}
       </div>
-    </CommonLayout>
+      
+    </div>
   );
 }

@@ -137,7 +137,7 @@ export class IOSDebugger {
     try {
       this.log('🌐 Test de connectivité réseau...');
       
-      const response = await fetch(apiClient['baseUrl'] + '/api/vidmoly');
+      const response = await fetch(apiClient['baseUrl'] + '/api/vidmoly-extract');
       
       if (response.ok) {
         const data = await response.json();

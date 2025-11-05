@@ -63,21 +63,6 @@ const getRegionForProvider = (providerId: number): string => {
   return getRegion(); // Use user's region for others
 };
 
-// Some providers have multiple IDs (rebranding/regional IDs)
-const expandProviderFilter = (providerId: number): string => {
-  // HBO Max/Max
-  if (providerId === 384) {
-    return '384|1899';
-  }
-  return providerId.toString();
-};
-
-const getMonetizationForProvider = (providerId: number): string => {
-  // Amazon Prime Video: éviter le contenu avec pubs (Freevee), conserver l'abonnement inclus
-  if (providerId === 9) return 'flatrate';
-  return 'flatrate|ads';
-};
-
 // Map language codes to TMDB language format
 const getLanguageCode = (lang: string): string => {
   const languageMap: Record<string, string> = {
@@ -115,22 +100,7 @@ export const tmdb = {
   },
 
   getLatestMovies: async (page = 1) => {
-    // Découverte des sorties récentes disponibles en streaming (flatrate)
-    const today = new Date();
-    const past = new Date();
-    past.setDate(today.getDate() - 60);
-    const firstDateGte = past.toISOString().slice(0, 10);
-    const lastDateLte = today.toISOString().slice(0, 10);
-    const region = getRegion();
-    return tmdbFetch('/discover/movie', {
-      sort_by: 'release_date.desc',
-      include_adult: 'false',
-      'release_date.gte': firstDateGte,
-      'release_date.lte': lastDateLte,
-      with_watch_monetization_types: 'flatrate',
-      watch_region: region,
-      page: page.toString(),
-    } as any);
+    return tmdbFetch('/movie/now_playing', { page: page.toString() });
   },
 
   getMovieDetails: async (movieId: number) => {
@@ -158,23 +128,7 @@ export const tmdb = {
   },
 
   getLatestSeries: async (page = 1) => {
-    // Découverte des séries récentes disponibles en streaming (flatrate)
-    const today = new Date();
-    const past = new Date();
-    past.setDate(today.getDate() - 60);
-    const firstDateGte = past.toISOString().slice(0, 10);
-    const lastDateLte = today.toISOString().slice(0, 10);
-    const region = getRegion();
-    return tmdbFetch('/discover/tv', {
-      sort_by: 'first_air_date.desc',
-      include_adult: 'false',
-      include_null_first_air_dates: 'false',
-      'first_air_date.gte': firstDateGte,
-      'first_air_date.lte': lastDateLte,
-      with_watch_monetization_types: 'flatrate',
-      watch_region: region,
-      page: page.toString(),
-    } as any);
+    return tmdbFetch('/tv/on_the_air', { page: page.toString() });
   },
 
   getSeriesDetails: async (seriesId: number) => {
@@ -215,58 +169,7 @@ export const tmdb = {
 
   // Search
   searchMulti: async (query: string) => {
-    // Search across multiple languages to find titles in all languages
-    const language = getLanguage();
-    const userLang = getLanguageCode(language);
-    
-    // Search in user's language and English in parallel for maximum coverage
-    const searches = [
-      fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=${userLang}&include_adult=false`)
-    ];
-    
-    // Add English search as fallback if not already in English
-    if (language !== 'en') {
-      searches.push(
-        fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`)
-      );
-    }
-    
-    // Execute searches in parallel with error handling
-    try {
-      const responses = await Promise.allSettled(searches);
-      const results: any[] = [];
-      
-      for (const response of responses) {
-        if (response.status === 'fulfilled') {
-          const data = await response.value.json();
-          if (data.results) {
-            results.push(data);
-          }
-        }
-      }
-      
-      // Merge results, removing duplicates by ID
-      const merged: Record<number, any> = {};
-      for (const result of results) {
-        if (result.results) {
-          for (const item of result.results) {
-            if (!merged[item.id]) {
-              merged[item.id] = item;
-            }
-          }
-        }
-      }
-      
-      return {
-        results: Object.values(merged),
-        page: 1,
-        total_pages: Math.ceil(Object.keys(merged).length / 20),
-        total_results: Object.keys(merged).length
-      };
-    } catch (error) {
-      console.error('Error in searchMulti:', error);
-      return { results: [], page: 1, total_pages: 0, total_results: 0 };
-    }
+    return tmdbFetch('/search/multi', { query });
   },
 
   // Genres
@@ -280,24 +183,19 @@ export const tmdb = {
 
   // Discover by provider
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
-    // Récentes sorties (90 jours) et exclure le futur
-    const today = new Date();
-    const releaseDateLte = today.toISOString().slice(0, 10);
-
     // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    const regions = ['US', 'FR', 'GB', 'CA'];
     
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/movie', {
-          with_watch_providers: expandProviderFilter(providerId),
+          with_watch_providers: providerId.toString(),
           watch_region: region,
-          with_watch_monetization_types: getMonetizationForProvider(providerId),
-          include_adult: 'false',
-          sort_by: providerId === 9 ? 'popularity.desc' : 'release_date.desc',
-          ...(providerId === 9 ? {} : { 'release_date.lte': releaseDateLte }),
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
           page: page.toString(),
-        } as any);
+        });
         
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
@@ -308,16 +206,15 @@ export const tmdb = {
       }
     }
     
-    // Fallback sans région
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
     try {
       return await tmdbFetch('/discover/movie', {
-        with_watch_providers: expandProviderFilter(providerId),
-        with_watch_monetization_types: getMonetizationForProvider(providerId),
-        include_adult: 'false',
-        sort_by: providerId === 9 ? 'popularity.desc' : 'release_date.desc',
-        ...(providerId === 9 ? {} : { 'release_date.lte': releaseDateLte }),
+        with_watch_providers: providerId.toString(),
+        with_watch_monetization_types: 'flatrate',
+        vote_average_gte: '5',
+        vote_count_gte: '50',
         page: page.toString(),
-      } as any);
+      });
     } catch (err) {
       // Retourner un résultat vide en cas d'échec total
       return { results: [], total_pages: 0, page: 1 };
@@ -325,106 +222,60 @@ export const tmdb = {
   },
 
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
-    // Catalogue complet trié par dernières sorties (exclure le futur)
-    const today = new Date();
-    const firstAirDateLte = today.toISOString().slice(0, 10);
-
-    // Essayer plusieurs régions pour avoir plus de contenu (garder la pagination TMDB standard)
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    // Essayer plusieurs régions pour avoir plus de contenu
+    const regions = ['US', 'FR', 'GB', 'CA'];
     
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/tv', {
-          with_watch_providers: expandProviderFilter(providerId),
+          with_watch_providers: providerId.toString(),
           watch_region: region,
-          with_watch_monetization_types: getMonetizationForProvider(providerId),
-          sort_by: providerId === 9 ? 'popularity.desc' : 'first_air_date.desc',
-          include_null_first_air_dates: 'false',
-          include_adult: 'false',
-          ...(providerId === 9 ? {} : { first_air_date_lte: firstAirDateLte }),
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
           page: page.toString(),
-        } as any);
-
+        });
+        
         if (data.results && data.results.length > 0) {
-          return data; // Retourner les résultats avec pagination TMDB standard
+          return data; // Si on trouve du contenu, on s'arrête
         }
       } catch (err) {
         console.log(`Région ${region} échouée pour séries provider, essai suivant...`);
         continue;
       }
     }
-
-    // Fallback sans région mais toujours avec filtre provider
+    
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
     try {
-      const fallback = await tmdbFetch('/discover/tv', {
-        with_watch_providers: expandProviderFilter(providerId),
-        with_watch_monetization_types: getMonetizationForProvider(providerId),
-        sort_by: providerId === 9 ? 'popularity.desc' : 'first_air_date.desc',
-        include_null_first_air_dates: 'false',
-        include_adult: 'false',
-        ...(providerId === 9 ? {} : { first_air_date_lte: firstAirDateLte }),
+      return await tmdbFetch('/discover/tv', {
+        with_watch_providers: providerId.toString(),
+        with_watch_monetization_types: 'flatrate',
+        vote_average_gte: '5',
+        vote_count_gte: '50',
         page: page.toString(),
-      } as any);
-      if (fallback.results && fallback.results.length > 0) return fallback;
-    } catch {}
-
-    // Fallback par réseau pour certains providers (meilleure couverture des Originals)
-    const providerNetworkMap: Record<number, string[]> = {
-      8: ['213'],           // Netflix
-      9: ['1024'],          // Amazon (Prime Video Originals)
-      384: ['49','3186'],   // HBO (49), HBO Max (3186)
-      337: ['2739'],        // Disney+
-      350: ['2552'],        // Apple TV+
-      531: ['4330'],        // Paramount+
-    };
-    const networks = providerNetworkMap[providerId];
-    if (networks && networks.length) {
-      // Essayer chaque réseau jusqu'à trouver des résultats (garder pagination TMDB)
-      for (const net of networks) {
-        try {
-          const byNetwork = await tmdbFetch('/discover/tv', {
-            with_networks: net,
-            sort_by: 'first_air_date.desc',
-            include_null_first_air_dates: 'false',
-            include_adult: 'false',
-            first_air_date_lte: firstAirDateLte,
-            page: page.toString(),
-          } as any);
-          if (byNetwork.results && byNetwork.results.length > 0) return byNetwork;
-        } catch {}
-      }
+      });
+    } catch (err) {
+      // Retourner un résultat vide en cas d'échec total
+      return { results: [], total_pages: 0, page: 1 };
     }
-
-    // Dernier recours: popular
-    return await tmdbFetch('/discover/tv', {
-      with_watch_providers: expandProviderFilter(providerId),
-      with_watch_monetization_types: getMonetizationForProvider(providerId),
-      sort_by: 'popularity.desc',
-      page: page.toString(),
-    } as any);
   },
 
   // Discover by provider + genre with fallback logic
   discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
-    // Exclure le futur, trier par dernières sorties
-    const today = new Date();
-    const releaseDateLte = today.toISOString().slice(0, 10);
-
     // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    const regions = ['US', 'FR', 'GB', 'CA'];
     
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/movie', {
-          with_watch_providers: expandProviderFilter(providerId),
+          with_watch_providers: providerId.toString(),
           with_genres: genreId.toString(),
           watch_region: region,
-          with_watch_monetization_types: getMonetizationForProvider(providerId),
-          include_adult: 'false',
-          sort_by: 'release_date.desc',
-          'release_date.lte': releaseDateLte,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
           page: page.toString(),
-        } as any);
+        });
         
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
@@ -435,17 +286,14 @@ export const tmdb = {
       }
     }
     
-    // Fallback sans région mais filtré provider
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
     try {
       return await tmdbFetch('/discover/movie', {
-        with_watch_providers: expandProviderFilter(providerId),
         with_genres: genreId.toString(),
-        with_watch_monetization_types: getMonetizationForProvider(providerId),
-        include_adult: 'false',
-        sort_by: 'release_date.desc',
-        'release_date.lte': releaseDateLte,
+        vote_average_gte: '5',
+        vote_count_gte: '50',
         page: page.toString(),
-      } as any);
+      });
     } catch (err) {
       // Retourner un résultat vide en cas d'échec total
       return { results: [], total_pages: 0, page: 1 };
@@ -453,26 +301,20 @@ export const tmdb = {
   },
 
   discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
-    // Exclure le futur, trier par dernières sorties
-    const today = new Date();
-    const firstAirDateLte = today.toISOString().slice(0, 10);
-
     // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    const regions = ['US', 'FR', 'GB', 'CA'];
     
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/tv', {
-          with_watch_providers: expandProviderFilter(providerId),
+          with_watch_providers: providerId.toString(),
           with_genres: genreId.toString(),
           watch_region: region,
-          with_watch_monetization_types: getMonetizationForProvider(providerId),
-          include_adult: 'false',
-          include_null_first_air_dates: 'false',
-          sort_by: 'first_air_date.desc',
-          'first_air_date.lte': firstAirDateLte,
+          with_watch_monetization_types: 'flatrate',
+          vote_average_gte: '5',
+          vote_count_gte: '50',
           page: page.toString(),
-        } as any);
+        });
         
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
@@ -483,18 +325,14 @@ export const tmdb = {
       }
     }
     
-    // Fallback sans région mais filtré provider
+    // Si aucune région n'a donné de résultats, essayer sans restriction de région
     try {
       return await tmdbFetch('/discover/tv', {
-        with_watch_providers: expandProviderFilter(providerId),
         with_genres: genreId.toString(),
-        with_watch_monetization_types: getMonetizationForProvider(providerId),
-        include_adult: 'false',
-        include_null_first_air_dates: 'false',
-        sort_by: 'first_air_date.desc',
-        'first_air_date.lte': firstAirDateLte,
+        vote_average_gte: '5',
+        vote_count_gte: '50',
         page: page.toString(),
-      } as any);
+      });
     } catch (err) {
       // Retourner un résultat vide en cas d'échec total
       return { results: [], total_pages: 0, page: 1 };

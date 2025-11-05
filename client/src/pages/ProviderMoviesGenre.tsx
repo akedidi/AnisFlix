@@ -8,10 +8,9 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
-
+import BottomNav from "@/components/BottomNav";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
-import { usePaginationState } from "@/hooks/usePaginationState";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -36,56 +35,31 @@ const GENRES = {
   'western': { id: 37, translationKey: 'movies.western' }
 };
 
-// Alias anglais -> clé FR existante
-const GENRE_ALIASES: Record<string, keyof typeof GENRES> = {
-  'drama': 'drame',
-  'comedy': 'comedie',
-  'action': 'action',
-  'adventure': 'aventure',
-  'fantasy': 'fantastique',
-  'history': 'histoire',
-  'horror': 'horreur',
-  'music': 'musique',
-  'mystery': 'mystere',
-  'romance': 'romance',
-  'scifi': 'science-fiction',
-  'sciencefiction': 'science-fiction',
-  'sci-fi': 'science-fiction',
-  'tvmovie': 'telefilm',
-  'tv-movie': 'telefilm',
-  'war': 'guerre',
-  'western': 'western',
-  'crime': 'crime',
-  'family': 'famille',
-  'animation': 'animation',
-  'thriller': 'thriller',
-  'documentary': 'documentaire',
-};
-
 // Mapping des providers avec leurs noms
 const PROVIDERS = {
   8: 'Netflix',
   9: 'Amazon Prime Video',
   350: 'Apple TV+',
-  337: 'Disney+',  // ID correct pour Disney+
-  531: 'Paramount+',  // ID correct pour Paramount+
-  384: 'HBO Max',  // ID correct pour HBO Max
+  531: 'Disney+',
+  1899: 'Paramount+',
+  384: 'HBO Max',
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
   192: 'YouTube',
   7: 'Vudu',
+  337: 'Disney Now',
   386: 'Peacock Premium',
   387: 'Peacock'
 };
 
 export default function ProviderMoviesGenre() {
   const { t } = useLanguage();
-  const [, params] = useRoute("/provider/:id/movies/:genre?");
-  const providerId = parseInt(params?.id || '0');
+  const [, params] = useRoute("/provider/:providerId/films/category/:genre");
+  const providerId = parseInt(params?.providerId || '0');
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
-  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,43 +68,29 @@ export default function ProviderMoviesGenre() {
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Get genre and provider info
-  const mappedSlug = (GENRE_ALIASES[genreSlug] as keyof typeof GENRES) || (genreSlug as keyof typeof GENRES);
-  const genreInfo = GENRES[mappedSlug as keyof typeof GENRES];
+  const genreInfo = GENRES[genreSlug as keyof typeof GENRES];
   const genreId = genreInfo?.id;
   const genreName = genreInfo ? t(genreInfo.translationKey) : genreSlug;
   const providerName = PROVIDERS[providerId as keyof typeof PROVIDERS] || `Provider ${providerId}`;
 
   // Fetch movies by provider and genre
   useEffect(() => {
-    if (!providerId) return;
+    if (!genreId || !providerId) return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Limiter au présent (exclure futur), tri dernières sorties
-        const today = new Date();
-        const releaseDateLte = today.toISOString().slice(0, 10);
-
-        // Construire l'URL selon qu'il y a un genre ou non, tri par date de sortie
-        // HBO Max: inclure Max 1899 également
-        const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
-        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
-        
-        // Ajouter le genre si spécifié
-        if (genreId) {
-          baseUrl += `&with_genres=${genreId}`;
-        }
-        
         // Essayer plusieurs régions pour avoir plus de contenu
-        const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+        const regions = ['US', 'FR', 'GB', 'CA'];
         let result = null;
         
         for (const region of regions) {
           try {
-            const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
-            const response = await fetch(url);
+            const response = await fetch(
+              `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerId}&with_genres=${genreId}&watch_region=${region}&with_watch_monetization_types=flatrate&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+            );
             
             if (response.ok) {
               const data = await response.json();
@@ -145,15 +105,11 @@ export default function ProviderMoviesGenre() {
           }
         }
         
-        // Si aucune région n'a donné de résultats, essayer sans restriction de région mais toujours avec filtre provider
+        // Si aucune région n'a donné de résultats, essayer sans restriction de région
         if (!result || !result.results || result.results.length === 0) {
-          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
-          
-          if (genreId) {
-            fallbackUrl += `&with_genres=${genreId}`;
-          }
-          
-          const response = await fetch(fallbackUrl);
+          const response = await fetch(
+            `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+          );
           
           if (response.ok) {
             result = await response.json();
@@ -194,21 +150,21 @@ export default function ProviderMoviesGenre() {
   }, [genreSlug, providerId]);
 
   const handlePageChange = (page: number) => {
-    onPageChange(page);
+    setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // If provider not found, show error
-  if (!providerId) {
+  // If genre or provider not found, show error
+  if (!genreInfo || !providerId) {
     return (
       <div className="min-h-screen fade-in-up">
         <DesktopSidebar />
         <div className="md:ml-64">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
-              <h1 className="text-2xl font-bold mb-4">Provider non trouvé</h1>
+              <h1 className="text-2xl font-bold mb-4">Genre ou Provider non trouvé</h1>
               <p className="text-muted-foreground mb-4">
-                Le provider "{providerId}" n'existe pas.
+                Le genre "{genreSlug}" ou le provider "{providerId}" n'existe pas.
               </p>
               
             </div>
@@ -219,7 +175,7 @@ export default function ProviderMoviesGenre() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto">
+    <div className="min-h-screen fade-in-up">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
@@ -247,11 +203,9 @@ export default function ProviderMoviesGenre() {
         </div>
 
       {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
+      <div className="relative bg-gradient-to-b from-primary/20 to-background">
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
-            {genreName ? `${t("movies.title")} ${genreName} ${t("provider.on")} ${providerName}` : `${t("movies.title")} ${t("provider.on")} ${providerName}`}
-          </h1>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("movies.title")} {genreName} {t("provider.on")} {providerName}</h1>
           <p className="text-muted-foreground mb-4 max-w-2xl">
             {t("provider.discoverMoviesPrefix")} {genreName} {t("provider.discoverMoviesSuffix")} {providerName}.
           </p>
@@ -259,7 +213,7 @@ export default function ProviderMoviesGenre() {
       </div>
 
       {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">{t("common.loading")}</p>
@@ -282,14 +236,7 @@ export default function ProviderMoviesGenre() {
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...transformedMovie}
-                      onClick={() => {
-                        try {
-                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
-                          sess[window.location.pathname] = currentPage;
-                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
-                        } catch {}
-                        window.location.href = `/movie/${movie.id}`;
-                      }}
+                      onClick={() => window.location.href = `/movie/${movie.id}`}
                     />
                   </div>
                 );
@@ -308,8 +255,10 @@ export default function ProviderMoviesGenre() {
           </div>
         )}
       </div>
-      </div>
       
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
+      </div>
     </div>
   );
 }

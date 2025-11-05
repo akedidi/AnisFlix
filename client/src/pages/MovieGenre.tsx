@@ -8,7 +8,6 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
-
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 
@@ -95,7 +94,7 @@ export default function MovieGenre() {
 
   if (!genreId) {
     return (
-      <div className="h-screen overflow-y-auto flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Genre non trouvé</h1>
           
@@ -105,7 +104,7 @@ export default function MovieGenre() {
   }
 
   return (
-    <div className="h-screen overflow-y-auto">
+    <div className="min-h-screen fade-in-up">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
       
@@ -143,7 +142,7 @@ export default function MovieGenre() {
       </div>
 
       {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {moviesLoading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Chargement...</p>
@@ -173,8 +172,9 @@ export default function MovieGenre() {
           </div>
         )}
       </div>
-      </div>
       
+      {/* Mobile Bottom Navigation */}
+      </div>
     </div>
   );
 }

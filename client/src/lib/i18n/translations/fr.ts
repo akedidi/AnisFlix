@@ -5,7 +5,7 @@ export default {
   "nav.series": "Séries",
   "nav.tvChannels": "TV",
   "nav.favorites": "Favoris",
-  "nav.settings": "Params",
+  "nav.settings": "Paramètres",
   
   // Home page
   "home.continueWatching": "Continuer à regarder",

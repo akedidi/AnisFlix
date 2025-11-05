@@ -38,16 +38,11 @@ export function useCapacitorDevice(): CapacitorDeviceInfo {
       // Déterminer l'URL de base pour les APIs
       let baseUrl = '';
       if (isCapacitor && platform !== 'web') {
-        // Vérifier si nous sommes en développement Capacitor
-        const isCapacitorDev = window.location.href.includes('capacitor://localhost');
-        if (isCapacitorDev) {
-          baseUrl = 'http://localhost:3000';
-        } else {
-          baseUrl = 'https://anisflix.vercel.app';
-        }
+        // En mode natif, utiliser l'URL de production Vercel
+        baseUrl = 'https://anisflix.vercel.app';
       } else {
         // En mode web, utiliser l'origine actuelle
-        baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+        baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
       }
 
       setDeviceInfo({

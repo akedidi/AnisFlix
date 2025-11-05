@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { movixProxy } from '@/lib/movixProxy';
 
 interface FStreamPlayer {
   url: string;
@@ -62,12 +61,21 @@ interface FStreamResponse {
 
 const fetchFStream = async (type: 'movie' | 'tv', id: number, season?: number): Promise<FStreamResponse | null> => {
   try {
-    const data = await movixProxy.getFStream(type, id, season);
+    let url = `https://api.movix.site/api/fstream/${type}/${id}`;
+    if (type === 'tv' && season) {
+      url += `/season/${season}`;
+    }
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const data = await response.json();
     
     console.log('FStream API Response:', {
-      type,
-      id,
-      season,
+      url,
       success: data.success,
       players: data.players ? Object.keys(data.players) : 'No players',
       data

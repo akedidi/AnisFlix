@@ -11,13 +11,13 @@ import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
-import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 export default function SeriesDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
@@ -68,9 +68,6 @@ export default function SeriesDetail() {
   const trailer = videos?.results?.find(
     (video: any) => video.type === "Trailer" && video.site === "YouTube"
   );
-
-  // Navigation au clavier pour contrôler la lecture vidéo
-  const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [];
   const handleSourceClick = async (source: {
@@ -153,13 +150,13 @@ export default function SeriesDetail() {
   if (isLoadingSeries) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
+        <PullToRefresh onRefresh={handleRefresh}>
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Chargement de la série...</p>
             </div>
           </div>
-        
+        </PullToRefresh>
       </CommonLayout>
     );
   }
@@ -167,21 +164,21 @@ export default function SeriesDetail() {
   if (!series) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
+        <PullToRefresh onRefresh={handleRefresh}>
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Série non trouvée</p>
             </div>
           </div>
-        
+        </PullToRefresh>
       </CommonLayout>
     );
   }
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
             <div className="hidden md:block">
               {series.poster_path && (
@@ -295,16 +292,7 @@ export default function SeriesDetail() {
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Épisodes</h3>
                     <div className="space-y-3">
-                      {seasonDetails?.episodes
-                        ?.filter((episode: any) => {
-                          // Ne montrer que les épisodes déjà diffusés (air_date dans le passé ou aujourd'hui)
-                          if (!episode.air_date) return true; // Si pas de date, montrer quand même
-                          const airDate = new Date(episode.air_date);
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0); // Début de journée
-                          return airDate <= today;
-                        })
-                        ?.map((episode: any) => {
+                      {seasonDetails?.episodes?.map((episode: any) => {
                         // Récupérer la progression de l'épisode
                         const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
                         
@@ -403,13 +391,11 @@ export default function SeriesDetail() {
                                     />
                                   ) : selectedSource.isDarki ? (
                                     <DarkiPlayer
-                                      darkiUrl={selectedSource.url}
+                                      m3u8Url={selectedSource.url}
                                       title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
                                       posterPath={series.poster_path}
-                                      mediaId={series?.id}
-                                      mediaType="tv"
-                                      backdropPath={series?.backdrop_path}
-                                      onClose={() => setSelectedSource(null)}
+                                      quality={selectedSource.quality}
+                                      language={selectedSource.language}
                                     />
                                   ) : (
                                     <VideoPlayer
@@ -448,7 +434,7 @@ export default function SeriesDetail() {
           </div>
         )}
         </div>
-      
+      </PullToRefresh>
     </CommonLayout>
   );
 }

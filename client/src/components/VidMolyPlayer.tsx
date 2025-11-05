@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
-import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture, Maximize, Minimize } from "lucide-react";
+import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture } from "lucide-react";
 import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
 import { apiClient } from "@/lib/apiClient";
 import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
 import { saveWatchProgress } from "@/lib/watchProgress";
-import { ErrorPopup } from "@/components/ErrorPopup";
-import { errorMessages } from "@/lib/errorMessages";
-import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
-import CustomVideoControls from "@/components/CustomVideoControls";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -22,8 +18,6 @@ const isNativePlatform = () => {
 declare global {
   interface HTMLVideoElement {
     webkitSetPresentationMode?: (mode: string) => void;
-    webkitEnterFullscreen?: () => void;
-    webkitExitFullscreen?: () => void;
   }
 }
 
@@ -52,7 +46,6 @@ export default function VidMolyPlayer({
 }: VidMolyPlayerProps) {
   const { isNative, platform } = useCapacitorDevice();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +55,7 @@ export default function VidMolyPlayer({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
   const lastSaveTimeRef = useRef<number>(0);
-
-  // Navigation au clavier pour contrôler la lecture vidéo
-  useKeyboardNavigation({
-    videoRef,
-    isPlayerActive: true
-  });
 
   // Fonction pour sauvegarder la progression
   const saveProgress = () => {
@@ -113,70 +98,17 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
-        
-          // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
-          if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com') || vidmolyUrl.includes('vmeas.cloud')) {
-            console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
-            
-            // Utiliser le proxy VidMoly pour éviter les problèmes CORS
-            const { getVidMolyProxyUrl } = await import('../utils/urlUtils');
-            const proxyUrl = getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
-            console.log('🔗 URL proxy VidMoly:', proxyUrl);
-            
-            // Stocker l'URL finale pour Chromecast
-            setFinalMediaUrl(proxyUrl);
-            
-            if (Hls.isSupported()) {
-              console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
-              const hls = new Hls();
-              hls.loadSource(proxyUrl);
-              hls.attachMedia(video);
-              
-              hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                console.log('✅ Manifeste HLS parsé avec succès via proxy');
-                setIsLoading(false);
-                video.play().catch(console.error);
-              });
-              
-              hls.on(Hls.Events.ERROR, (event, data) => {
-                console.error('❌ Erreur HLS via proxy:', data);
-                if (data.fatal) {
-                  setError('Erreur de lecture HLS: ' + data.details);
-                  setIsLoading(false);
-                }
-              });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-              console.log('📺 Utilisation de la lecture native HLS avec proxy');
-              video.src = proxyUrl;
-              video.addEventListener('loadedmetadata', () => {
-                console.log('✅ Métadonnées HLS chargées via proxy');
-                setIsLoading(false);
-                video.play().catch(console.error);
-              });
-            } else {
-              throw new Error('HLS non supporté sur ce navigateur');
-            }
-            return;
-          }
-        
-        console.log('🎬 Appel API vidmoly...');
+        console.log('🎬 Appel API vidmoly-test...');
         
         const data = await apiClient.extractVidMoly(vidmolyUrl);
         
-        console.log('🎬 Données JSON reçues de vidmoly:', data);
+        console.log('🎬 Données JSON reçues de vidmoly-test:', data);
         
         if (!data.success || !data.m3u8Url) {
-          throw new Error(errorMessages.players.vidmoly.message);
+          throw new Error(data.error || 'Impossible d\'extraire le lien de streaming VidMoly');
         }
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
-
-        // Nettoyer l'URL des virgules parasites
-        let cleanedUrl = data.m3u8Url;
-        if (cleanedUrl.includes(',') && cleanedUrl.includes('.urlset')) {
-          cleanedUrl = cleanedUrl.replace(/,/g, '');
-          console.log('🧹 URL nettoyée des virgules:', cleanedUrl);
-        }
 
         // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
         // ou directement pour les liens de démonstration
@@ -186,27 +118,24 @@ export default function VidMolyPlayer({
         const isRealVidMolyLink = data.method === 'extracted_real' || 
                                  data.method === 'direct_master_m3u8' || 
                                  data.method?.startsWith('direct_pattern_') ||
-                                 (cleanedUrl && (cleanedUrl.includes('vmwesa.online') || cleanedUrl.includes('vmeas.cloud')));
+                                 (data.m3u8Url && data.m3u8Url.includes('vmwesa.online'));
         
         console.log('🔍 Méthode d\'extraction:', data.method);
-        console.log('🔍 Lien m3u8 nettoyé:', cleanedUrl);
+        console.log('🔍 Lien m3u8:', data.m3u8Url);
         console.log('🔍 Est un vrai lien VidMoly:', isRealVidMolyLink);
         
         if (isRealVidMolyLink) {
           // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
-          finalUrl = getVidMolyProxyUrl(cleanedUrl, vidmolyUrl);
+          finalUrl = getVidMolyProxyUrl(data.m3u8Url, vidmolyUrl);
           console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
           
           // Debug des URLs pour diagnostic
           debugUrlInfo();
         } else {
           // Pour les liens de fallback/démo, utiliser directement
-          finalUrl = cleanedUrl;
+          finalUrl = data.m3u8Url;
           console.log('📺 Utilisation directe du lien de démo:', finalUrl);
         }
-        
-        // Stocker l'URL finale pour Chromecast
-        setFinalMediaUrl(finalUrl);
 
         // Configuration HLS avec gestion iOS native
         if (isNative) {
@@ -232,32 +161,6 @@ export default function VidMolyPlayer({
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            // Configuration optimisée pour VidMoly
-            maxBufferLength: 60, // Buffer max de 60 secondes
-            maxMaxBufferLength: 120, // Buffer max absolu de 2 minutes
-            maxBufferSize: 60 * 1000 * 1000, // 60MB max
-            maxBufferHole: 0.1, // Tolérance aux trous de buffer
-            highBufferWatchdogPeriod: 2, // Surveillance du buffer haute qualité
-            nudgeOffset: 0.1, // Ajustement automatique des décalages
-            nudgeMaxRetry: 3, // Max 3 tentatives d'ajustement
-            maxFragLookUpTolerance: 0.25, // Tolérance de recherche de fragments
-            liveSyncDurationCount: 3, // Sync live
-            liveMaxLatencyDurationCount: 10, // Latence max pour live
-            // Configuration des niveaux de qualité
-            startLevel: -1, // Auto-détection du niveau optimal
-            capLevelToPlayerSize: true, // Adapter la qualité à la taille du player
-            // Gestion des erreurs de réseau
-            fragLoadingTimeOut: 20000, // Timeout de 20s pour les fragments
-            manifestLoadingTimeOut: 10000, // Timeout de 10s pour le manifeste
-            levelLoadingTimeOut: 10000, // Timeout de 10s pour les niveaux
-            // Retry automatique
-            fragLoadingMaxRetry: 3,
-            manifestLoadingMaxRetry: 3,
-            levelLoadingMaxRetry: 3,
-            // Configuration du buffer
-            backBufferLength: 30, // Garder 30s en arrière
-            // Désactiver certaines optimisations problématiques
-            enableSoftwareAES: true, // Décryptage logiciel si nécessaire
           });
           hlsRef.current = hls;
           
@@ -274,58 +177,9 @@ export default function VidMolyPlayer({
             });
           });
           
-          // Surveillance du buffer pour détecter les problèmes
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.details === 'bufferStalledError') {
-              console.warn('⚠️ Buffer stalled - tentative de récupération...');
-              if (hls.media && hls.media.readyState >= 2) {
-                // Forcer un petit saut pour débloquer
-                const currentTime = hls.media.currentTime;
-                hls.media.currentTime = currentTime + 0.1;
-              }
-            }
-          });
-          
-          hls.on(Hls.Events.BUFFER_APPENDED, () => {
-            console.log('📊 Buffer appended - santé du streaming OK');
-          });
-          
-          hls.on(Hls.Events.FRAG_LOADED, () => {
-            console.log('📦 Fragment chargé avec succès');
-          });
-          
           hls.on(Hls.Events.ERROR, (_, data) => {
             console.error("Erreur HLS VidMoly:", data);
-            
-            // Gestion spécifique des erreurs de buffer
-            if (data.details === 'bufferStalledError' || data.details === 'bufferSeekOverHole') {
-              console.warn('⚠️ Problème de buffer détecté, tentative de récupération...');
-              
-              // Essayer de récupérer en vidant le buffer et en rechargeant
-              if (hls.media) {
-                hls.media.currentTime = hls.media.currentTime + 0.1; // Petit saut pour éviter le trou
-              }
-              
-              // Ne pas traiter comme fatal, laisser HLS.js gérer
-              return;
-            }
-            
             if (data.fatal) {
-              console.error('❌ Erreur fatale HLS:', data);
-              
-              // Tentative de récupération pour certaines erreurs
-              if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                console.log('🔄 Tentative de récupération réseau...');
-                hls.startLoad();
-                return;
-              }
-              
-              if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                console.log('🔄 Tentative de récupération média...');
-                hls.recoverMediaError();
-                return;
-              }
-              
               setError(`Erreur de lecture VidMoly: ${data.details}`);
               setIsLoading(false);
             }
@@ -342,7 +196,7 @@ export default function VidMolyPlayer({
             });
           });
         } else {
-          setError(errorMessages.players.vidmoly.hlsNotSupported);
+          setError("Votre navigateur ne supporte pas HLS");
           setIsLoading(false);
         }
 
@@ -375,28 +229,12 @@ export default function VidMolyPlayer({
     video.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
     video.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
-    const handleFullscreenChange = () => {
-      const isFs = !!(document.fullscreenElement || (document as any).webkitFullscreenElement);
-      setIsFullscreen(isFs);
-    };
-    const handleWebkitBeginFullscreen = () => setIsFullscreen(true);
-    const handleWebkitEndFullscreen = () => setIsFullscreen(false);
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange as any);
-    video.addEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as any);
-    video.addEventListener('webkitendfullscreen', handleWebkitEndFullscreen as any);
-
     return () => {
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
       video.removeEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
-      video.removeEventListener('webkitbeginfullscreen', handleWebkitBeginFullscreen as any);
-      video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen as any);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as any);
       
       if (hlsRef.current) {
         hlsRef.current.destroy();
@@ -458,42 +296,10 @@ export default function VidMolyPlayer({
     }
   };
 
-  const handleSeek = (newTime: number) => {
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (videoRef.current) {
+      const newTime = (parseFloat(e.target.value) / 100) * duration;
       videoRef.current.currentTime = newTime;
-    }
-  };
-
-  const toggleFullscreen = () => {
-    const video = videoRef.current;
-    const container = containerRef.current;
-    if (!video) return;
-
-    if (!isFullscreen) {
-      // iOS Safari special case: use webkitEnterFullscreen on the video element
-      const isIOSSafari = /iPhone|iPad|iPod/.test(navigator.userAgent) && !!(window as any).webkit;
-      if (isIOSSafari && typeof video.webkitEnterFullscreen === 'function') {
-        try {
-          video.webkitEnterFullscreen();
-          return;
-        } catch (e) {
-          // Fallback to standard API below
-        }
-      }
-
-      // Prefer container fullscreen to include overlays
-      const target: any = container || video;
-      const request = (target.requestFullscreen 
-        || target.webkitRequestFullscreen 
-        || target.mozRequestFullScreen 
-        || target.msRequestFullscreen);
-      request?.call(target);
-    } else {
-      const exit = (document.exitFullscreen 
-        || (document as any).webkitExitFullscreen 
-        || (document as any).mozCancelFullScreen 
-        || (document as any).msExitFullscreen);
-      exit?.call(document);
     }
   };
 
@@ -505,22 +311,29 @@ export default function VidMolyPlayer({
 
   if (error) {
     return (
-        <ErrorPopup
-          title={errorMessages.players.vidmoly.title}
-          message={error}
-          onClose={() => {
-            setError(null);
-            setIsLoading(false);
-            onClose?.();
-          }}
-        />
+      <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md mx-4">
+          <h3 className="text-lg font-semibold mb-4 text-red-600">Erreur VidMoly</h3>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
+          <div className="flex gap-2">
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Réessayer
+            </Button>
+            {onClose && (
+              <Button onClick={onClose} variant="default">
+                Fermer
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
       {/* Video Container */}
-      <div className="relative" ref={containerRef}>
+      <div className="relative">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="text-white text-center">
@@ -534,56 +347,62 @@ export default function VidMolyPlayer({
           ref={videoRef}
           className="w-full aspect-video bg-black object-contain"
           poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
-          controls={false}
+          controls={!isNative}
           playsInline
         />
-
-        {/* Contrôles personnalisés pour web */}
-        {!isNative && (
-          <CustomVideoControls
-            videoRef={videoRef}
-            isPlaying={isPlaying}
-            isMuted={isMuted}
-            isFullscreen={isFullscreen}
-            isPictureInPicture={isPictureInPicture}
-            currentTime={currentTime}
-            duration={duration}
-            progress={progress}
-            mediaUrl={finalMediaUrl}
-            title={title}
-            posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
-            onPlayPause={togglePlayPause}
-            onMute={toggleMute}
-            onFullscreen={toggleFullscreen}
-            onPictureInPicture={togglePictureInPicture}
-            onSeek={handleSeek}
-            formatTime={formatTime}
-          />
-        )}
 
         {/* Contrôles personnalisés pour mobile */}
         {isNative && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-            {/* Contrôles personnalisés pour mobile */}
-            <CustomVideoControls
-              videoRef={videoRef}
-              isPlaying={isPlaying}
-              isMuted={isMuted}
-              isFullscreen={isFullscreen}
-              isPictureInPicture={isPictureInPicture}
-              currentTime={currentTime}
-              duration={duration}
-              progress={progress}
-              mediaUrl={finalMediaUrl}
-              title={title}
-              posterUrl={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
-              onPlayPause={togglePlayPause}
-              onMute={toggleMute}
-              onFullscreen={toggleFullscreen}
-              onPictureInPicture={togglePictureInPicture}
-              onSeek={handleSeek}
-              formatTime={formatTime}
-            />
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={progress}
+                onChange={handleSeek}
+                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress}%, #4b5563 ${progress}%, #4b5563 100%)`
+                }}
+              />
+              <div className="flex justify-between text-white text-sm mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+
+            {/* Contrôles */}
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                onClick={togglePlayPause}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white hover:bg-opacity-20"
+              >
+                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+              </Button>
+              
+              <Button
+                onClick={toggleMute}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white hover:bg-opacity-20"
+              >
+                {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+              </Button>
+              
+              <Button
+                onClick={togglePictureInPicture}
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white hover:bg-opacity-20"
+                title={isPictureInPicture ? "Quitter le mode Picture-in-Picture" : "Mode Picture-in-Picture"}
+              >
+                <PictureInPicture className="w-6 h-6" />
+              </Button>
+            </div>
           </div>
         )}
       </div>

@@ -1,16 +1,25 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+;
 import MediaCard from "@/components/MediaCard";
-import CommonLayout from "@/components/CommonLayout";
+import SearchBar from "@/components/SearchBar";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageSelect from "@/components/LanguageSelect";
 import Pagination from "@/components/Pagination";
+import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useMultiSearch } from "@/hooks/useTMDB";
 
 export default function NetflixMovies() {
   const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch data from TMDB - Only Netflix movies
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
 
   // Fetch Netflix movies data
   useEffect(() => {
@@ -56,18 +65,47 @@ export default function NetflixMovies() {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-  
-  const handleRefresh = () => {
-    window.location.reload();
-  };
 
   return (
-    <CommonLayout 
-      title="Films Netflix"
-      showSearch={true}
-      onRefresh={handleRefresh}
-    >
-      <div className="space-y-8 md:space-y-12">
+    <div className="min-h-screen fade-in-up">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar />
+      
+      {/* Main Content */}
+      <div className="md:ml-64">
+        {/* Header avec recherche et contrôles */}
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
+            <div className="flex items-center gap-4">
+              
+              <div className="flex-1">
+                <SearchBar
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
+                  onSelect={(item) => {
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    window.location.href = path;
+                  }}
+                />
+              </div>
+              <LanguageSelect />
+              <ThemeToggle />
+            </div>
+          </div>
+        </div>
+
+      {/* Header */}
+      <div className="relative bg-gradient-to-b from-primary/20 to-background">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">Films Netflix</h1>
+          <p className="text-muted-foreground mb-4 max-w-2xl">
+            Découvrez les films disponibles sur Netflix.
+          </p>
+        </div>
+      </div>
+
+      {/* Contenu paginé */}
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Chargement...</p>
@@ -109,6 +147,9 @@ export default function NetflixMovies() {
           </div>
         )}
       </div>
-    </CommonLayout>
+      
+      {/* Mobile Bottom Navigation */}
+      </div>
+    </div>
   );
 }

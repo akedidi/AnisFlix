@@ -3,7 +3,6 @@ import Hls from "hls.js";
 import { Button } from "@/components/ui/button";
 import { Download, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { useDeviceType } from "@/hooks/useDeviceType";
-import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 interface DarkiboxPlayerProps {
   m3u8Url: string;
@@ -33,12 +32,6 @@ export default function DarkiboxPlayer({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
-  // Navigation au clavier pour contrôler la lecture vidéo
-  useKeyboardNavigation({
-    videoRef,
-    isPlayerActive: true
-  });
-
   useEffect(() => {
     if (!videoRef.current || !m3u8Url) return;
 
@@ -55,12 +48,11 @@ export default function DarkiboxPlayer({
         const streamUrl = m3u8Url;
         console.log('✅ Lien stream Darkibox:', streamUrl);
 
-        // Utiliser l'ancienne API Darkibox en attendant le déploiement du proxy unifié
-        const proxyUrl = `/api/darkibox?url=${encodeURIComponent(streamUrl)}`;
-        console.log('🎬 [DARKIBOX CLICK] URL originale reçue:', m3u8Url);
-        console.log('🎬 [DARKIBOX CLICK] URL stream traitée:', streamUrl);
-        console.log('🎬 [DARKIBOX CLICK] URL proxy finale:', proxyUrl);
-        console.log('🎬 [DARKIBOX CLICK] URL encodée pour proxy:', encodeURIComponent(streamUrl));
+        // Construire l'URL du proxy Darkibox
+        const streamUrlParsed = new URL(streamUrl);
+        const proxyUrl = `/api/darkibox/proxy?url=${encodeURIComponent(streamUrl)}`;
+        
+        console.log('📺 URL proxy Darkibox:', proxyUrl);
 
         // Configuration HLS pour Darkibox
         if (Hls.isSupported()) {
@@ -75,6 +67,7 @@ export default function DarkiboxPlayer({
           
           hlsRef.current = hls;
           hls.loadSource(proxyUrl);
+          hls.attachMedia(video);
           
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('📺 Manifest Darkibox chargé');

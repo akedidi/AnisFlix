@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucide-react";
-import { ErrorPopup } from "@/components/ErrorPopup";
-import { errorMessages } from "@/lib/errorMessages";
-import ChromecastButton from "@/components/ChromecastButton";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
@@ -39,7 +36,6 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
     const initPlayer = async () => {
@@ -57,7 +53,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
             setupPlayer();
           };
           script.onerror = () => {
-            setError(errorMessages.players.generic.message);
+            setError("Impossible de charger Shaka Player");
             setIsLoading(false);
           };
           document.head.appendChild(script);
@@ -66,7 +62,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         }
       } catch (err) {
         console.error("Erreur d'initialisation:", err);
-        setError(errorMessages.players.generic.message);
+        setError("Erreur d'initialisation du lecteur");
         setIsLoading(false);
       }
     };
@@ -79,34 +75,19 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         window.shaka.polyfill.installAll();
 
         if (!window.shaka.Player.isBrowserSupported()) {
-          setError(errorMessages.players.generic.hlsNotSupported);
+          setError("Navigateur non supporté par Shaka Player");
           setIsLoading(false);
           return;
         }
 
-        // Créer le player Shaka (approche simplifiée)
+        // Créer le player Shaka
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
-
-        // Approche simplifiée : laisser Shaka Player gérer directement les URLs
-        // Pas d'intercepteur complexe, Shaka Player est capable de gérer les URLs M3U8/MPD directement
 
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {
           console.error('Erreur Shaka Player:', event.detail);
-          console.error('Erreur de chargement du flux:', event.detail);
-          
-          // Logs détaillés pour debugger l'erreur 3016
-          if (event.detail?.code === 3016) {
-            console.error('🔍 [DEBUG 3016] Erreur de réseau détectée:');
-            console.error('🔍 [DEBUG 3016] URL demandée:', url);
-            console.error('🔍 [DEBUG 3016] Détails complets:', event.detail);
-            console.error('🔍 [DEBUG 3016] Data:', event.detail.data);
-            console.error('🔍 [DEBUG 3016] Severity:', event.detail.severity);
-            console.error('🔍 [DEBUG 3016] Category:', event.detail.category);
-          }
-          
-          setError(`${errorMessages.players.generic.title}: ${event.detail.message || 'Erreur inconnue'}`);
+          setError(`Erreur Shaka: ${event.detail.message || 'Erreur inconnue'}`);
           setIsLoading(false);
         });
 
@@ -114,17 +95,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         videoRef.current.addEventListener('enterpictureinpicture', () => setIsPictureInPicture(true));
         videoRef.current.addEventListener('leavepictureinpicture', () => setIsPictureInPicture(false));
 
-        // Mettre à jour currentTime pour Chromecast
-        videoRef.current.addEventListener('timeupdate', () => {
-          if (videoRef.current) {
-            setCurrentTime(videoRef.current.currentTime);
-          }
-        });
-
-        // Approche simplifiée : charger directement l'URL comme dans votre code fonctionnel
-        console.log('🔍 [SHAKA] Chargement direct de l\'URL:', url);
-        
-        // Shaka détermine le format (HLS ou DASH) tout seul !
+        // Charger le flux
         await player.load(url);
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);
@@ -133,13 +104,13 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         if (videoRef.current) {
           videoRef.current.play().catch((err) => {
             console.error("Erreur de lecture:", err);
-            setError(errorMessages.players.generic.message);
+            setError("Impossible de démarrer la lecture");
             setIsLoading(false);
           });
         }
       } catch (err) {
         console.error("Erreur de chargement du flux:", err);
-        setError(errorMessages.players.generic.message);
+        setError("Impossible de charger le flux");
         setIsLoading(false);
       }
     };
@@ -229,14 +200,16 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
-        <ErrorPopup
-          title={errorMessages.players.generic.title}
-          message={error}
-          onClose={() => {
-            setError(null);
-            onClose?.();
-          }}
-        />
+              <div className="text-center text-white">
+                <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                <h3 className="text-lg font-semibold mb-1">Erreur</h3>
+                <p className="text-gray-300 text-sm mb-2">{error}</p>
+                {onClose && (
+                  <Button onClick={onClose} variant="outline" size="sm" className="text-white border-white hover:bg-white/20">
+                    Fermer
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
@@ -301,16 +274,6 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
               >
                 <PictureInPicture className="w-4 h-4" />
               </Button>
-              {url && (
-                <ChromecastButton
-                  mediaUrl={url}
-                  title={title || "Vidéo"}
-                  currentTime={currentTime}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20"
-                />
-              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -336,14 +299,14 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center z-20">
-        <ErrorPopup
-          title={errorMessages.players.generic.title}
-          message={error}
-          onClose={() => {
-            setError(null);
-            onClose?.();
-          }}
-        />
+              <div className="text-center text-white">
+                <div className="text-red-500 text-6xl mb-4">⚠️</div>
+                <h3 className="text-xl font-semibold mb-2">Erreur de lecture</h3>
+                <p className="text-gray-300 mb-4">{error}</p>
+                <Button onClick={onClose} variant="outline" className="text-white border-white hover:bg-white/20">
+                  Fermer
+                </Button>
+              </div>
             </div>
           )}
 

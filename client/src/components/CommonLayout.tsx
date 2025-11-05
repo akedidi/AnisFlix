@@ -1,18 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import BottomNav from "@/components/BottomNav";
 import OfflineAlert from "@/components/OfflineAlert";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
-import { useNativeDetection } from "@/hooks/useNativeDetection";
-import { useViewportHeight } from "@/hooks/useViewportHeight";
-import IonicPullToRefresh from "@/components/IonicPullToRefresh";
-// import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
 interface CommonLayoutProps {
   title?: string;
@@ -21,11 +16,6 @@ interface CommonLayoutProps {
   children: React.ReactNode;
   onRefresh?: () => void;
   showRefreshButton?: boolean;
-  // Props pour recherche personnalisée
-  customSearchQuery?: string;
-  customSearchResults?: any[];
-  onCustomSearch?: (query: string) => void;
-  onCustomSearchSelect?: (item: any) => void;
 }
 
 export default function CommonLayout({ 
@@ -34,105 +24,16 @@ export default function CommonLayout({
   icon,
   children,
   onRefresh,
-  showRefreshButton = true,
-  customSearchQuery,
-  customSearchResults,
-  onCustomSearch,
-  onCustomSearchSelect
+  showRefreshButton = true
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [locationPath, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const { isOffline } = useOffline();
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
-  // Utiliser la hauteur réelle du viewport (compatible iOS)
-  const viewportHeight = useViewportHeight();
-  
-  // État pour ajuster le header sur iOS natif
-  const [headerOffset, setHeaderOffset] = useState(0);
-  const headerRef = useRef<HTMLDivElement>(null);
-  
-  // Utiliser la recherche personnalisée si fournie, sinon utiliser la recherche TMDB
-  const isCustomSearch = !!customSearchQuery || !!customSearchResults;
-  const finalSearchQuery = isCustomSearch ? customSearchQuery : searchQuery;
-  
-  // Seulement utiliser useMultiSearch si ce n'est pas une recherche personnalisée
-  const { data: tmdbSearchResults = [] } = useMultiSearch(isCustomSearch ? "" : searchQuery);
-  const finalSearchResults = isCustomSearch ? (customSearchResults || []) : tmdbSearchResults;
-  
-  // Debug pour les résultats de recherche
-  if (finalSearchResults.length > 0) {
-    console.log('🔍 [COMMON LAYOUT] Search results:', finalSearchResults.map((item: any) => ({
-      id: item.id,
-      title: item.title,
-      mediaType: item.mediaType,
-      posterPath: item.posterPath,
-      backdropPath: item.backdropPath
-    })));
-  }
-  
-  // Gérer le scroll sur mobile - TEMPORAIREMENT DÉSACTIVÉ pour tester
-  // useMobileScroll();
-  
-  // Détecter l'environnement natif
-  const { isNativeMobile, getContainerClass } = useNativeDetection();
-  
-  // Détecter si on est vraiment sur mobile natif (Capacitor)
-  const isReallyNativeMobile = typeof window !== 'undefined' && 
-    (window as any).Capacitor !== undefined &&
-    ((window as any).Capacitor?.getPlatform?.() === 'ios' || 
-     (window as any).Capacitor?.getPlatform?.() === 'android');
-  
-  // Gérer le refresh Ionic pour les apps natives uniquement
-  const handleIonicRefresh = (event: CustomEvent<any>) => {
-    console.log('🔄 [IONIC REFRESH] Refresh triggered!', event);
-    
-    console.log('🔄 [IONIC REFRESH] Starting refresh process...');
-    
-    // Attendre 2 secondes pour voir le spinner, puis exécuter le refresh
-    setTimeout(() => {
-      console.log('🔄 [IONIC REFRESH] Executing refresh function...');
-      
-      const refreshFunction = onRefresh || (() => {
-        console.log('🔄 [IONIC REFRESH] Using default refresh (window.location.reload)');
-        window.location.reload();
-      });
-      
-      // Exécuter la fonction de refresh
-      refreshFunction();
-      
-      // Compléter le refresh après encore 1 seconde
-      setTimeout(() => {
-        console.log('🔄 [IONIC REFRESH] Completing refresh');
-        event.detail.complete();
-      }, 1000);
-    }, 2000);
-  };
-  
+  // Gérer le scroll sur mobile
+  useMobileScroll();
 
-
-  // Ajuster le header sur iOS natif pour éviter l'encoche et la status bar
-  useEffect(() => {
-    // Vérifier si on est sur iOS natif (Capacitor)
-    const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isCapacitor && isIOS) {
-      // Calculer l'offset pour éviter l'encoche et la status bar
-      const statusBarHeight = 34; // Hauteur approximative de la status bar + encoche
-      const additionalOffset = 20; // Ajustement supplémentaire
-      const offset = statusBarHeight + additionalOffset;
-      
-      setHeaderOffset(offset);
-      
-      // Appliquer le style avec un délai pour s'assurer que le header est monté
-      setTimeout(() => {
-        if (headerRef.current) {
-          headerRef.current.style.top = `${offset}px`;
-          headerRef.current.style.paddingTop = '8px'; // Ajouter un peu de padding
-        }
-      }, 100);
-    }
-  }, [viewportHeight]);
 
   return (
     <>
@@ -146,36 +47,28 @@ export default function CommonLayout({
       <DesktopSidebar />
       
       {/* Header - Fixed on all devices */}
-      <div 
-        ref={headerRef}
-        className={`bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-[1000000] md:left-64 header-ios-safe ${isNativeMobile ? 'native-mobile' : ''}`}
-        style={{
-          top: isNativeMobile ? undefined : '0px',
-          marginTop: isNativeMobile ? undefined : '0px',
-          paddingTop: isNativeMobile ? undefined : '0px'
-        }}
-      >
-        <div className={`container mx-auto px-4 md:px-8 lg:px-12 ${isNativeMobile ? 'py-4' : 'py-2 md:py-4'}`}>
+      <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-50 md:left-64">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
           <div className="flex items-center gap-4">
+            {title && (
+              <div className="flex items-center gap-3">
+                {icon}
+                <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
+              </div>
+            )}
+            
             {showSearch && (
               <div className="flex-1 relative">
                 <SearchBar
-                  onSearch={isCustomSearch ? onCustomSearch : setSearchQuery}
-                  suggestions={finalSearchQuery ? finalSearchResults : []}
+                  onSearch={setSearchQuery}
+                  suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
-                    if (isCustomSearch && onCustomSearchSelect) {
-                      onCustomSearchSelect(item);
-                    } else {
-                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                      setLocation(path);
-                    }
+                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
+                    setLocation(path);
                   }}
                 />
               </div>
             )}
-            
-            {/* Spacer pour pousser les boutons vers la droite quand pas de search */}
-            {!showSearch && <div className="flex-1"></div>}
             
             <div className="flex items-center gap-2">
               {isOffline && (
@@ -191,55 +84,10 @@ export default function CommonLayout({
         </div>
       </div>
 
-          {/* Main Content */}
-          {isReallyNativeMobile ? (
-          <IonicPullToRefresh onRefresh={handleIonicRefresh}>
-            <div 
-                className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
-                id="main-content-desktop"
-                style={{ 
-                  paddingTop: headerOffset > 0 
-                    ? `${100 + headerOffset + 8}px` 
-                    : window.innerWidth >= 768 
-                      ? '70px' 
-                      : '53px'
-                }}
-              >
-                {children}
-              </div>
-            </IonicPullToRefresh>
-          ) : (
-            <div 
-              className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
-              id="main-content-desktop"
-              style={{ 
-                paddingTop: (() => {
-                  if (headerOffset > 0) return `${100 + headerOffset + 8}px`;
-                  const isDesktop = window.innerWidth >= 768;
-                  if (isDesktop) return '70px';
-                  // Mobile web: ajouter un léger padding pour les pages de liste (hors accueil)
-                  const p = (locationPath || '/').split('?')[0].split('#')[0];
-                  const isListPage = (
-                    p === '/movies' ||
-                    p === '/series' ||
-                    p === '/latest-movies' ||
-                    p === '/latest-series' ||
-                    p === '/popular-movies' ||
-                    p === '/popular-series' ||
-                    p.startsWith('/movies-genre') ||
-                    p.startsWith('/movies/genre') ||
-                    p.startsWith('/series-genre') ||
-                    p.startsWith('/series/genre')
-                  );
-                  return isListPage ? '64px' : '53px';
-                })()
-              }}
-            >
-              {children}
-            </div>
-          )}
-      
-      {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}
+      {/* Main Content */}
+      <div className="main-content min-h-screen fade-in-up md:ml-64 pt-20 md:pt-20 pb-20 md:pb-0 overflow-y-auto">
+        {children}
+      </div>
     </>
   );
 }

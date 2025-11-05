@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { Search, X, Tv, Film } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
-import { useKeyboardSearch } from "@/hooks/useKeyboardSearch";
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
@@ -16,7 +15,6 @@ interface SearchSuggestion {
   id: number;
   title: string;
   posterPath: string | null;
-  backdropPath?: string | null;
   mediaType: "movie" | "tv" | "anime" | "documentary";
   year?: string;
 }
@@ -34,9 +32,6 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Hook pour configurer le clavier de recherche - RÉACTIVÉ avec modifications
-  useKeyboardSearch();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,49 +42,6 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Forcer les attributs de clavier sur mobile natif
-  useEffect(() => {
-    if (isCapacitor() && inputRef.current) {
-      const input = inputRef.current;
-      
-      // Fonction pour forcer les attributs
-      const forceSearchAttributes = () => {
-        input.setAttribute('inputmode', 'search');
-        input.setAttribute('enterkeyhint', 'search');
-        input.inputMode = 'search';
-        input.enterKeyHint = 'search';
-        
-        // Forcer également via le style
-        input.style.setProperty('inputmode', 'search');
-        input.style.setProperty('enterkeyhint', 'search');
-        
-        console.log('🔍 [SEARCH KEYBOARD] Attributs de clavier appliqués:', {
-          inputMode: input.inputMode,
-          enterKeyHint: input.enterKeyHint,
-          type: input.type,
-          attributes: {
-            inputmode: input.getAttribute('inputmode'),
-            enterkeyhint: input.getAttribute('enterkeyhint')
-          }
-        });
-      };
-      
-      // Appliquer immédiatement
-      forceSearchAttributes();
-      
-      // Observer les changements pour maintenir les attributs
-      const observer = new MutationObserver(() => {
-        if (input.getAttribute('inputmode') !== 'search' || input.getAttribute('enterkeyhint') !== 'search') {
-          forceSearchAttributes();
-        }
-      });
-      
-      observer.observe(input, { attributes: true, attributeFilter: ['inputmode', 'enterkeyhint'] });
-      
-      return () => observer.disconnect();
-    }
   }, []);
 
   const updateDropdownPosition = () => {
@@ -138,7 +90,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   return (
     <div ref={searchRef} className="relative w-full" data-testid="search-bar-container">
       <div className="relative">
-        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none ${isCapacitor() ? 'w-4 h-4' : 'w-3.5 h-3.5 md:w-4 md:h-4'}`} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
           ref={inputRef}
           type="search"
@@ -146,35 +98,17 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           value={query}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`pl-10 pr-10 ${isCapacitor() ? 'native-app' : 'h-8 md:h-9'}`}
+          className="pl-10 pr-10"
           data-testid="input-search"
-          // Attributs recommandés pour le clavier de recherche
-          inputMode="search"
-          enterKeyHint="search"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          // Attributs spécifiques pour masquer la barre "Done" sur iOS
-          style={{
-            WebkitAppearance: 'none',
-            appearance: 'none'
-          }}
-          // Forcer le clavier au focus
-          onFocus={(e) => {
-            const input = e.target as HTMLInputElement;
-            // Forcer les attributs au focus
-            input.setAttribute('inputmode', 'search');
-            input.setAttribute('enterkeyhint', 'search');
-            input.setAttribute('type', 'search');
-            input.inputMode = 'search';
-            input.enterKeyHint = 'search';
-            console.log('🔍 [SEARCHBAR] Focus - Attributs appliqués:', {
-              inputmode: input.getAttribute('inputmode'),
-              enterkeyhint: input.getAttribute('enterkeyhint'),
-              type: input.type
-            });
-          }}
+          // Attributs pour iOS natif
+          {...(isCapacitor() && {
+            inputMode: "search",
+            enterKeyHint: "search",
+            autoComplete: "off",
+            autoCorrect: "off",
+            autoCapitalize: "off",
+            spellCheck: false
+          })}
         />
         {query && (
           <button
@@ -182,7 +116,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             data-testid="button-clear-search"
           >
-            <X className={`${isCapacitor() ? 'w-4 h-4' : 'w-3.5 h-3.5 md:w-4 md:h-4'}`} />
+            <X className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -194,136 +128,29 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
-            zIndex: 999999,
+            zIndex: 2147483647,
             backgroundColor: 'rgba(0, 0, 0, 0.95)',
             backdropFilter: 'blur(20px)'
           }}
         >
-          {suggestions.map((item) => {
-            // Debug spécifique pour One-Punch Man
-            if (item.id === 63926) {
-              console.log('✅ [SEARCHBAR] One-Punch Man in suggestions:', {
-                id: item.id,
-                title: item.title,
-                mediaType: item.mediaType,
-                posterPath: item.posterPath,
-                backdropPath: item.backdropPath
-              });
-            }
-            
-            // Debug pour les affiches manquantes
-            if (!item.posterPath && !item.backdropPath) {
-              console.warn(`⚠️ [SEARCHBAR] Item sans image:`, {
-                id: item.id,
-                title: item.title,
-                mediaType: item.mediaType,
-                posterPath: item.posterPath,
-                backdropPath: item.backdropPath
-              });
-            }
-            
-            return (
+          {suggestions.map((item) => (
             <div
               key={`${item.mediaType}-${item.id}`}
               onMouseDown={(e) => {
                 e.preventDefault();
                 handleSelectItem(item);
               }}
-              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors min-h-[72px]"
+              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors"
               data-testid={`search-result-${item.id}`}
             >
-              {item.posterPath || item.backdropPath ? (
-                  // Pour les chaînes TV, afficher les logos avec fond blanc
-                  item.mediaType === "tv" ? (
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
-                      <img
-                        src={(() => {
-                          const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
-                          console.log('🖼️ [SEARCHBAR] TV Image URL generated:', {
-                            id: item.id,
-                            title: item.title,
-                            posterPath: item.posterPath,
-                            backdropPath: item.backdropPath,
-                            finalUrl: imageUrl
-                          });
-                          return imageUrl;
-                        })()}
-                        alt={item.title}
-                        className="w-full h-full object-contain scale-110"
-                        onError={(e) => {
-                          console.error('❌ [SEARCHBAR] TV Image failed to load:', {
-                            id: item.id,
-                            title: item.title,
-                            src: e.currentTarget.src,
-                            posterPath: item.posterPath,
-                            backdropPath: item.backdropPath
-                          });
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const fallback = parent.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                            parent.style.display = 'none';
-                          }
-                        }}
-                        onLoad={() => {
-                          console.log('✅ [SEARCHBAR] TV Image loaded successfully:', {
-                            id: item.id,
-                            title: item.title,
-                            src: item.posterPath || item.backdropPath
-                          });
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    // Pour les autres types de contenu, utiliser l'optimisation d'image
-                    <img
-                      src={(() => {
-                        const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
-                        console.log('🖼️ [SEARCHBAR] Image URL generated:', {
-                          id: item.id,
-                          title: item.title,
-                          posterPath: item.posterPath,
-                          backdropPath: item.backdropPath,
-                          finalUrl: imageUrl
-                        });
-                        return imageUrl;
-                      })()}
-                      alt={item.title}
-                      className="w-12 h-16 object-cover rounded flex-shrink-0"
-                      onError={(e) => {
-                        console.error('❌ [SEARCHBAR] Image failed to load:', {
-                          id: item.id,
-                          title: item.title,
-                          src: e.currentTarget.src,
-                          posterPath: item.posterPath,
-                          backdropPath: item.backdropPath
-                        });
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'flex';
-                      }}
-                      onLoad={() => {
-                        console.log('✅ [SEARCHBAR] Image loaded successfully:', {
-                          id: item.id,
-                          title: item.title,
-                          src: item.posterPath || item.backdropPath
-                        });
-                      }}
-                    />
-                  )
-              ) : (
-                // Affichage fallback si pas de posterPath ni backdropPath - cadre blanc avec hauteur fixe
-                <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-16'} bg-white border border-gray-200 rounded flex items-center justify-center shadow-sm flex-shrink-0`}>
-                  {item.mediaType === "tv" ? (
-                    <Tv className="w-6 h-6 text-gray-400" />
-                  ) : (
-                    <Film className="w-6 h-6 text-gray-400" />
-                  )}
-                </div>
-              )}
-              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                <h4 className="font-medium text-sm truncate text-white leading-snug">{item.title}</h4>
-                <div className="flex items-center gap-2">
+              <img
+                src={getOptimizedImageUrl(item.posterPath, 'w92')}
+                alt={item.title}
+                className="w-12 h-18 object-cover rounded"
+              />
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm truncate text-white">{item.title}</h4>
+                <div className="flex items-center gap-2 mt-1">
                   <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                     {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                   </Badge>
@@ -333,8 +160,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 </div>
               </div>
             </div>
-            );
-          })}
+          ))}
         </Card>,
         document.body
       )}

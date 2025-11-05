@@ -56,8 +56,8 @@ export default function Settings() {
   };
 
   return (
-    <CommonLayout showSearch={true} >
-      <div className="container mx-auto -mt-16 md:mt-0 px-4 md:px-8 lg:px-12 py-8">
+    <CommonLayout showSearch={true}>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {isOffline && (
           <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
             <p className="text-orange-500 text-sm">

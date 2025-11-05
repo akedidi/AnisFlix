@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import BottomNav from "@/components/BottomNav";
 import ContinueWatching from "@/components/ContinueWatching";
@@ -94,11 +95,11 @@ export default function NetflixContent() {
 
 
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      
+      <PullToRefresh onRefresh={handleRefresh}>
 
       {/* Header */}
       <div className="relative bg-gradient-to-b from-primary/20 to-background">
-        <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           <div className="flex items-center gap-4 mb-4">
             <img
               src="https://image.tmdb.org/t/p/original/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg"
@@ -116,7 +117,7 @@ export default function NetflixContent() {
       </div>
 
       {/* Onglets */}
-      <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12">
         <div className="flex gap-2 mb-6">
           <Button
             variant={activeTab === 'movies' ? 'default' : 'outline'}
@@ -134,7 +135,7 @@ export default function NetflixContent() {
       </div>
 
       {/* Catégories Netflix */}
-      <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8 space-y-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
         {/* Continuer à regarder */}
         <ContinueWatching maxItems={20} />
         
@@ -220,7 +221,7 @@ export default function NetflixContent() {
       </div>
 
       {/* Contenu paginé */}
-      <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
         {activeTab === 'movies' ? (
           moviesLoading ? (
             <div className="text-center py-12">
@@ -281,7 +282,7 @@ export default function NetflixContent() {
           )
         )}
         </div>
-        
+        </PullToRefresh>
 
       </CommonLayout>
 

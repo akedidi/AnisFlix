@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
@@ -77,11 +78,11 @@ export default function AppleTVContent() {
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
 
-      
+      <PullToRefresh onRefresh={handleRefresh}>
 
         {/* Header */}
         <div className="relative bg-gradient-to-b from-primary/20 to-background">
-          <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="flex items-center gap-4 mb-4">
               <img
                 src="https://image.tmdb.org/t/p/original/6uhKBfmtzFqOcLousHwZuzcrScK.jpg"
@@ -99,7 +100,7 @@ export default function AppleTVContent() {
         </div>
 
         {/* Onglets */}
-        <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex gap-2 mb-6">
             <Button
               variant={activeTab === 'movies' ? 'default' : 'outline'}
@@ -117,7 +118,7 @@ export default function AppleTVContent() {
         </div>
 
         {/* Catégories Apple TV+ */}
-        <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8 space-y-8">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8">
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold">Films Drame Apple TV+</h2>
             {dramaMovies.length > 0 && (
@@ -152,7 +153,7 @@ export default function AppleTVContent() {
         </div>
 
         {/* Contenu paginé */}
-        <div className="container mx-auto mt-5 md:mt-0 px-4 md:px-8 lg:px-12 py-8">
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
           {activeTab === 'movies' ? (
             moviesLoading ? (
               <div className="text-center py-12">
@@ -213,7 +214,7 @@ export default function AppleTVContent() {
             )
           )}
         </div>
-        
+        </PullToRefresh>
 
       </CommonLayout>
 

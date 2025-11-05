@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
@@ -6,7 +6,6 @@ import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
 import { useDarkiSeries } from '@/hooks/useDarkiSeries';
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
-import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -53,10 +52,9 @@ interface StreamingSourcesProps {
   season?: number;
   episode?: number;
   imdbId?: string;
-  enabled?: boolean; // Nouvelle prop pour désactiver les hooks
 }
 
-const StreamingSources = memo(function StreamingSources({ 
+export default function StreamingSources({ 
   type, 
   id, 
   title, 
@@ -66,74 +64,17 @@ const StreamingSources = memo(function StreamingSources({
   isLoadingSource,
   season,
   episode,
-  imdbId,
-  enabled = true
+  imdbId
 }: StreamingSourcesProps) {
   console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
-  console.log('🔍 [STREAMING SOURCES] Component render - timestamp:', Date.now());
   
   const { t } = useLanguage();
-  
-  // État local pour gérer le chargement de chaque source individuellement
-  const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
-  
-  // Nettoyer l'état de chargement quand une source est sélectionnée avec succès
-  useEffect(() => {
-    if (!isLoadingSource) {
-      // Si aucune source n'est en cours de chargement global, nettoyer tous les états locaux
-      setLoadingSources(new Set());
-    }
-  }, [isLoadingSource]);
-  
-  // Désactiver les hooks si enabled est false
-  const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
+  const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
+  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownload(type, id, season, episode, title);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
-  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
-  
-  // Debug logs pour MovixDownload
-  console.log('🔍 [STREAMING SOURCES] MovixDownload Debug:', {
-    type,
-    id,
-    season,
-    episode,
-    title,
-    isLoading: isLoadingMovixDownload,
-    hasData: !!movixDownloadData,
-    sourcesCount: movixDownloadData?.sources?.length || 0
-  });
-  
-  // Debug spécifique pour comprendre pourquoi le hook n'est pas activé
-  console.log('🔍 [STREAMING SOURCES] Hook Activation Check:', {
-    hasId: !!id,
-    isMovie: type === 'movie',
-    isTv: type === 'tv',
-    hasSeason: !!season,
-    hasEpisode: !!episode,
-    seasonValue: season,
-    episodeValue: episode,
-    shouldBeEnabled: !!id && (type === 'movie' || (type === 'tv' && !!season && !!episode))
-  });
-  
-  // Debug des valeurs passées au hook
-  console.log('🔍 [STREAMING SOURCES] Hook Parameters:', {
-    type: type,
-    id: id,
-    season: season,
-    episode: episode,
-    title: title,
-    typeCheck: typeof type,
-    idCheck: typeof id,
-    seasonCheck: typeof season,
-    episodeCheck: typeof episode,
-    titleCheck: typeof title,
-    seasonValue: season,
-    episodeValue: episode,
-    seasonTruthy: !!season,
-    episodeTruthy: !!episode
-  });
   
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
@@ -171,8 +112,6 @@ const StreamingSources = memo(function StreamingSources({
   console.log('🔍 StreamingSources - isAnimeSeries:', isAnimeSeries);
   console.log('🔍 StreamingSources - isAnimeByGenre:', isAnimeByGenre);
   console.log('🔍 StreamingSources - isAnimeByTitle:', isAnimeByTitle);
-  console.log('🔍 StreamingSources - Title pour détection:', title);
-  console.log('🔍 StreamingSources - Genres pour détection:', genres);
   
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
     title || '', 
@@ -187,23 +126,7 @@ const StreamingSources = memo(function StreamingSources({
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR'>('VF');
 
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
-  const hasSourcesForLanguage = useCallback((language: 'VF' | 'VOSTFR') => {
-    console.log(`🔍 hasSourcesForLanguage(${language}) - Debug:`, {
-      topStreamData: !!topStreamData,
-      movixDownloadData: !!movixDownloadData,
-      vidmolyData: !!vidmolyData,
-      fStreamData: !!fStreamData,
-      darkiboxData: !!darkiboxData,
-      darkiData: !!darkiData,
-      animeVidMolyData: !!animeVidMolyData,
-      isLoadingTopStream,
-      isLoadingMovixDownload,
-      isLoadingVidMoly,
-      isLoadingFStream,
-      isLoadingDarkibox,
-      isLoadingDarki,
-      isLoadingAnimeVidMoly
-    });
+  const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR') => {
     // Vérifier TopStream (VF uniquement)
     if (language === 'VF' && topStreamData && topStreamData.stream && topStreamData.stream.url) {
       return true;
@@ -299,13 +222,8 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
     
-    console.log(`❌ hasSourcesForLanguage(${language}) - Aucune source trouvée`);
     return false;
-  }, [
-    topStreamData, movixDownloadData, vidmolyData, fStreamData, 
-    darkiboxData, darkiData, animeVidMolyData, isAnimeSeries, 
-    type, episode
-  ]);
+  };
 
   // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
   useEffect(() => {
@@ -317,12 +235,6 @@ const StreamingSources = memo(function StreamingSources({
 
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];
-  
-  // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
-  if (sources && sources.length > 0) {
-    console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
-    allSources.push(...sources);
-  }
 
 
   // Ajouter TopStream en premier si disponible (VF uniquement)
@@ -337,11 +249,8 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
-
-  // Ajouter les sources MovixDownload (nouvelle API) si disponibles
+  // Ajouter les sources MovixDownload (Darkibox) si disponibles (VF uniquement)
   if (movixDownloadData && movixDownloadData.sources && selectedLanguage === 'VF') {
-    console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadData.sources);
-    
     // Trier les sources par qualité (du meilleur au moins bon)
     const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
     
@@ -397,7 +306,7 @@ const StreamingSources = memo(function StreamingSources({
         allSources.push({
           id: `movix-download-${quality.toLowerCase()}-${index}`,
           name: `${qualityLabel} (${languageLabel})`,
-          provider: 'movix',
+          provider: 'darkibox',
           url: modifiedUrl,
           type: 'm3u8' as const,
           isMovixDownload: true,
@@ -637,24 +546,20 @@ const StreamingSources = memo(function StreamingSources({
 
   // Ajouter les sources Darki pour les séries si disponibles
   if (type === 'tv' && darkiboxData && darkiboxData.sources) {
-    console.log('🔍 [DARKIBOX] Sources trouvées:', darkiboxData.sources.length, darkiboxData.sources);
     darkiboxData.sources.forEach((source: any) => {
       // Filtrer par langue sélectionnée
       const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
       const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
       
       if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
-        // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
-        const cleanM3u8Url = source.m3u8.replace(/,/g, '');
-        
         allSources.push({
           id: source.id,
           name: `${source.quality} - ${source.language}`,
-          provider: 'darkibox',
-          url: cleanM3u8Url,
+          provider: 'darki',
+          url: source.m3u8,
           type: 'm3u8' as const,
-          player: 'darkibox',
-          isDarkibox: true,
+          player: 'darki',
+          isDarki: true,
           sourceKey: selectedLanguage,
           quality: source.quality,
           language: source.language
@@ -673,76 +578,59 @@ const StreamingSources = memo(function StreamingSources({
     console.log('🔍 Source type:', source.type);
     console.log('🔍 Source isVidMoly:', source.isVidMoly);
     
-    // Marquer cette source comme en cours de chargement
-    setLoadingSources(prev => new Set(prev).add(source.id));
-    
-    try {
-      if (source.isTopStream) {
-        console.log('✅ Source TopStream détectée');
-        // Pour TopStream, on utilise directement l'URL
-        onSourceClick({
-          url: source.url,
-          type: source.type,
-          name: source.name,
-          isTopStream: true
-        });
-      } else if (source.isFStream) {
-        console.log('✅ Source FStream détectée');
-        // Pour Vidzy via FStream, on utilise le scraper existant
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const,
-          name: source.name,
-          isFStream: true
-        });
-      } else if (source.isMovixDownload) {
-        console.log('✅ Source MovixDownload détectée');
-        console.log('🎬 [DARKIBOX SOURCE] URL complète:', source.url);
-        console.log('🎬 [DARKIBOX SOURCE] Nom de la source:', source.name);
-        console.log('🎬 [DARKIBOX SOURCE] Qualité:', source.quality);
-        console.log('🎬 [DARKIBOX SOURCE] Langue:', source.language);
-        // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const, // Traiter comme m3u8 pour HLS
-          name: source.name,
-          isMovixDownload: true
-        });
-      } else if (source.isVidMoly) {
-        console.log('✅ Source VidMoly détectée, appel de onSourceClick');
-        // Pour VidMoly, on utilise le player dédié
-        onSourceClick({
-          url: source.url,
-          type: 'embed' as const,
-          name: source.name,
-          isVidMoly: true
-        });
-      } else if (source.isDarki) {
-        console.log('✅ Source Darki détectée');
-        // Pour Darki, on utilise le player dédié
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const,
-          name: source.name,
-          isDarki: true,
-          quality: source.quality,
-          language: source.language
-        });
-      } else {
-        console.log('❌ Type de source non reconnu:', source);
-      }
-    } catch (error) {
-      console.error('Erreur lors du clic sur la source:', error);
-      // Retirer cette source du chargement en cas d'erreur
-      setLoadingSources(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(source.id);
-        return newSet;
+    if (source.isTopStream) {
+      console.log('✅ Source TopStream détectée');
+      // Pour TopStream, on utilise directement l'URL
+      onSourceClick({
+        url: source.url,
+        type: source.type,
+        name: source.name,
+        isTopStream: true
       });
+    } else if (source.isFStream) {
+      console.log('✅ Source FStream détectée');
+      // Pour Vidzy via FStream, on utilise le scraper existant
+      onSourceClick({
+        url: source.url,
+        type: 'm3u8' as const,
+        name: source.name,
+        isFStream: true
+      });
+    } else if (source.isMovixDownload) {
+      console.log('✅ Source MovixDownload détectée');
+      // Pour les sources MovixDownload (Darkibox), on utilise directement le lien m3u8
+      onSourceClick({
+        url: source.url,
+        type: 'mp4' as const, // Traiter comme mp4 pour éviter le scraper
+        name: source.name,
+        isMovixDownload: true
+      });
+    } else if (source.isVidMoly) {
+      console.log('✅ Source VidMoly détectée, appel de onSourceClick');
+      // Pour VidMoly, on utilise le player dédié
+      onSourceClick({
+        url: source.url,
+        type: 'embed' as const,
+        name: source.name,
+        isVidMoly: true
+      });
+    } else if (source.isDarki) {
+      console.log('✅ Source Darki détectée');
+      // Pour Darki, on utilise le player dédié
+      onSourceClick({
+        url: source.url,
+        type: 'm3u8' as const,
+        name: source.name,
+        isDarki: true,
+        quality: source.quality,
+        language: source.language
+      });
+    } else {
+      console.log('❌ Type de source non reconnu:', source);
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly) {
+  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -764,8 +652,22 @@ const StreamingSources = memo(function StreamingSources({
           <Play className="w-5 h-5" />
           {t("topstream.sources")}
         </h2>
+        <div className="text-center py-8 text-muted-foreground">
+          <p>Aucune source de streaming disponible pour le moment.</p>
+        </div>
+      </div>
+    );
+  }
 
-        {/* Sélecteur de langue - toujours afficher les onglets */}
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold flex items-center gap-2">
+        <Play className="w-5 h-5" />
+        {t("topstream.sources")}
+      </h2>
+
+      {/* Sélecteur de langue - afficher si on a des sources pour au moins une langue */}
+      {(hasSourcesForLanguage('VF') || hasSourcesForLanguage('VOSTFR')) && (
         <div className="flex gap-2">
           <Button
             variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
@@ -784,55 +686,7 @@ const StreamingSources = memo(function StreamingSources({
             {t("topstream.vostfr")}
           </Button>
         </div>
-
-        <div className="text-center py-8 text-muted-foreground">
-          <p>
-            {selectedLanguage === 'VF' 
-              ? "Aucune source VF disponible pour ce contenu." 
-              : "Aucune source VOSTFR disponible pour ce contenu."
-            }
-          </p>
-          {selectedLanguage === 'VOSTFR' && hasSourcesForLanguage('VF') && (
-            <p className="text-sm mt-2">
-              Des sources VF sont disponibles. Cliquez sur l'onglet VF pour les voir.
-            </p>
-          )}
-          {selectedLanguage === 'VF' && hasSourcesForLanguage('VOSTFR') && (
-            <p className="text-sm mt-2">
-              Des sources VOSTFR sont disponibles. Cliquez sur l'onglet VOSTFR pour les voir.
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold flex items-center gap-2">
-        <Play className="w-5 h-5" />
-        {t("topstream.sources")}
-      </h2>
-
-      {/* Sélecteur de langue - toujours afficher les onglets */}
-      <div className="flex gap-2">
-        <Button
-          variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedLanguage('VF')}
-          disabled={!hasSourcesForLanguage('VF')}
-        >
-          {t("topstream.vf")}
-        </Button>
-        <Button
-          variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedLanguage('VOSTFR')}
-          disabled={!hasSourcesForLanguage('VOSTFR')}
-        >
-          {t("topstream.vostfr")}
-        </Button>
-      </div>
+      )}
 
       <div className="space-y-3">
         {allSources.length === 0 ? (
@@ -848,11 +702,6 @@ const StreamingSources = memo(function StreamingSources({
                 Des sources VF sont disponibles. Cliquez sur l'onglet VF pour les voir.
               </p>
             )}
-            {selectedLanguage === 'VF' && hasSourcesForLanguage('VOSTFR') && (
-              <p className="text-sm mt-2">
-                Des sources VOSTFR sont disponibles. Cliquez sur l'onglet VOSTFR pour les voir.
-              </p>
-            )}
           </div>
         ) : (
           allSources.map((source) => {
@@ -863,7 +712,7 @@ const StreamingSources = memo(function StreamingSources({
                 variant="outline"
                 className="w-full justify-between h-auto py-3"
                 onClick={() => handleSourceClick(source)}
-                disabled={loadingSources.has(source.id)}
+                disabled={isLoadingSource}
               >
               <span className="flex items-center gap-2">
                 <Play className="w-4 h-4" />
@@ -905,7 +754,7 @@ const StreamingSources = memo(function StreamingSources({
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
-                {loadingSources.has(source.id) ? t("topstream.loading") : "Regarder"}
+                {isLoadingSource ? t("topstream.loading") : "Regarder"}
               </span>
             </Button>
           </div>
@@ -915,6 +764,4 @@ const StreamingSources = memo(function StreamingSources({
       </div>
     </div>
   );
-});
-
-export default StreamingSources;
+}

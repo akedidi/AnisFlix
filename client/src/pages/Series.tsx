@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
+import PullToRefresh from "@/components/PullToRefresh";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
@@ -53,9 +54,9 @@ export default function Series() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-      
+      <PullToRefresh onRefresh={handleRefresh}>
 
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 space-y-8 md:space-y-12 mt-2 md:mt-0">
+          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 space-y-8 md:space-y-12">
         <MediaCarousel
           title={t("series.latest")}
           items={latestSeries.slice(0, 10)}
@@ -112,7 +113,7 @@ export default function Series() {
         />
 
           </div>
-      
+      </PullToRefresh>
     </CommonLayout>
   );
 }
