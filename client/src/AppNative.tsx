@@ -3,6 +3,8 @@ import { IonReactRouter } from '@ionic/react-router';
 import { Route } from 'react-router-dom';
 import { home, film, tv, radio, heart, settings } from 'ionicons/icons';
 import NativePageWrapper from '@/components/NativePageWrapper';
+import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useOffline } from "@/hooks/useOffline";
 
 // Pages
 import Home from "@/pages/Home";
@@ -73,6 +75,8 @@ const wrapPage = (Component: any) => (props: any) => (
  */
 export default function AppNative() {
   console.log('🚀 [AppNative] Rendering Native App');
+  const { t } = useLanguage();
+  const { isOffline } = useOffline();
   
   return (
     <IonApp>
@@ -142,29 +146,50 @@ export default function AppNative() {
           
           {/* IonTabBar natif - en bas avec safe area */}
           <IonTabBar slot="bottom">
+            {/* Accueil - toujours accessible */}
             <IonTabButton tab="home" href="/">
               <IonIcon icon={home} />
-              <IonLabel>Home</IonLabel>
+              <IonLabel>{t("nav.home")}</IonLabel>
             </IonTabButton>
-            <IonTabButton tab="movies" href="/movies">
+            
+            {/* Films - désactivé en mode offline */}
+            <IonTabButton 
+              tab="movies" 
+              href="/movies"
+              className={isOffline ? "offline-disabled" : ""}
+              disabled={isOffline}
+            >
               <IonIcon icon={film} />
-              <IonLabel>Movies</IonLabel>
+              <IonLabel>{t("nav.movies")}</IonLabel>
             </IonTabButton>
-            <IonTabButton tab="series" href="/series">
+            
+            {/* Séries - désactivé en mode offline */}
+            <IonTabButton 
+              tab="series" 
+              href="/series"
+              className={isOffline ? "offline-disabled" : ""}
+              disabled={isOffline}
+            >
               <IonIcon icon={tv} />
-              <IonLabel>Series</IonLabel>
+              <IonLabel>{t("nav.series")}</IonLabel>
             </IonTabButton>
+            
+            {/* TV Direct - toujours accessible */}
             <IonTabButton tab="tv-channels" href="/tv-channels">
               <IonIcon icon={radio} />
-              <IonLabel>TV</IonLabel>
+              <IonLabel>{t("nav.tvChannels")}</IonLabel>
             </IonTabButton>
+            
+            {/* Favoris - toujours accessible */}
             <IonTabButton tab="favorites" href="/favorites">
               <IonIcon icon={heart} />
-              <IonLabel>Favorites</IonLabel>
+              <IonLabel>{t("nav.favorites")}</IonLabel>
             </IonTabButton>
+            
+            {/* Paramètres - toujours accessible */}
             <IonTabButton tab="settings" href="/settings">
               <IonIcon icon={settings} />
-              <IonLabel>Settings</IonLabel>
+              <IonLabel>{t("nav.settings")}</IonLabel>
             </IonTabButton>
           </IonTabBar>
         </IonTabs>

@@ -13,6 +13,30 @@ import "@/styles/tabbar.css";
 
 // Lazy load des composants App selon la plateforme
 const AppWeb = lazy(() => import("@/AppWeb"));
+const AppNative = lazy(() => import("@/AppNative"));
+
+/**
+ * Détecte si on est dans une app Capacitor native (iOS/Android)
+ */
+const isNativeApp = (): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const hasCapacitor = (window as any).Capacitor !== undefined;
+    const platform = (window as any).Capacitor?.getPlatform?.();
+    const isNative = platform === 'ios' || platform === 'android';
+
+    console.log('[App] Platform detection:', {
+      hasCapacitor,
+      platform,
+      isNative
+    });
+
+    return isNative;
+  } catch {
+    return false;
+  }
+};
 
 // Create a client
 const queryClient = new QueryClient({
@@ -30,6 +54,9 @@ function App() {
   
   // Gérer les liens profonds
   useDeepLinks();
+
+  // Détecter si on est sur natif ou web
+  const isNative = isNativeApp();
 
   return (
     <ErrorBoundary>
@@ -49,7 +76,7 @@ function App() {
                 <div>Chargement...</div>
               </div>
             )}>
-              <AppWeb />
+              {isNative ? <AppNative /> : <AppWeb />}
             </Suspense>
             <Toaster />
           </LanguageProvider>

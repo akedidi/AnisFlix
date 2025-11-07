@@ -1,0 +1,121 @@
+/* Ionic CSS imports - loaded conditionally for native apps only */
+@import '@ionic/react/css/core.css';
+@import '@ionic/react/css/normalize.css';
+@import '@ionic/react/css/structure.css';
+@import '@ionic/react/css/typography.css';
+@import '@ionic/react/css/padding.css';
+@import '@ionic/react/css/float-elements.css';
+@import '@ionic/react/css/text-alignment.css';
+@import '@ionic/react/css/text-transformation.css';
+@import '@ionic/react/css/flex-utils.css';
+@import '@ionic/react/css/display.css';
+
+/* Styles pour le pull-to-refresh Ionic */
+.ion-content-transparent {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+.ion-content-transparent ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+/* S'assurer que le contenu Ionic ne masque pas notre contenu */
+ion-page {
+  background: transparent !important;
+}
+
+ion-content {
+  --background: transparent !important;
+  --color: inherit !important;
+}
+
+/* Améliorer l'animation du pull-to-refresh - SPINNER SEUL */
+ion-refresher-content {
+  --color: #FFFFFF !important;
+  --background: transparent !important;
+  background: transparent !important;
+  padding: 0px !important;
+  margin: 0px !important;
+  position: fixed !important;
+  top: 130px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 99999 !important;
+  width: auto !important;
+  height: auto !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Rendre le spinner TRÈS visible */
+ion-refresher-content ion-spinner {
+  --color: #FFFFFF !important;
+  width: 30px !important;
+  height: 30px !important;
+  stroke-width: 3px !important;
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Forcer la visibilité du spinner */
+ion-refresher-content .refresher-refreshing-icon {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Améliorer l'apparence du texte */
+ion-refresher-content .refresher-pulling-text,
+ion-refresher-content .refresher-refreshing-text {
+  color: #FFFFFF !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Afficher l'icône même si on ne tire pas jusqu'en bas */
+ion-refresher-content .refresher-pulling-icon {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Forcer le pull-to-refresh au-dessus de tout */
+ion-refresher {
+  z-index: 99999 !important;
+  position: absolute !important;
+}
+
+/* Styler le tab bar pour mobile natif */
+ion-tab-bar {
+  --background: hsl(220, 15%, 8%);
+  --color: hsl(0, 0%, 60%);
+  --color-selected: hsl(350, 85%, 55%);
+  border-top: 1px solid hsl(220, 15%, 15%);
+}
+
+ion-tab-button {
+  --color: hsl(0, 0%, 60%);
+  --color-selected: hsl(350, 85%, 55%);
+}
+
+ion-tab-button.tab-selected {
+  --color: hsl(350, 85%, 55%);
+}
+
+/* Style pour les tabs désactivés en mode offline */
+ion-tab-button.offline-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* IonPage dark theme */
+ion-app {
+  background: hsl(220, 15%, 8%);
+  color: hsl(0, 0%, 95%);
+}

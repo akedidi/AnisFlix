@@ -1,5 +1,6 @@
 import { IonPage, IonContent, IonRefresher, IonRefresherContent } from '@ionic/react';
 import { ReactNode } from 'react';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface NativePageWrapperProps {
   children: ReactNode;
@@ -9,9 +10,11 @@ interface NativePageWrapperProps {
 /**
  * Wrapper pour les pages natives
  * Enveloppe le contenu dans IonPage + IonContent pour Ionic
+ * Inclut le pull-to-refresh (IonRefresher) pour toutes les pages
  */
 export default function NativePageWrapper({ children, onRefresh }: NativePageWrapperProps) {
   console.log('✅ [NativePageWrapper] Rendering page wrapper');
+  const { t } = useLanguage();
   
   const handleRefresh = (event: CustomEvent) => {
     console.log('🔄 [NativePageWrapper] Pull to refresh triggered');
@@ -32,12 +35,12 @@ export default function NativePageWrapper({ children, onRefresh }: NativePageWra
   return (
     <IonPage>
       <IonContent fullscreen>
-        {/* Pull to refresh sur natif */}
+        {/* Pull to refresh sur natif - disponible sur toutes les pages */}
         <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
           <IonRefresherContent
-            pullingText="Tirer pour rafraîchir"
+            pullingText={t("refresh.pulling")}
             refreshingSpinner="circles"
-            refreshingText="Chargement..."
+            refreshingText={t("refresh.loading")}
           />
         </IonRefresher>
         

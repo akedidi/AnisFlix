@@ -1,7 +1,16 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-// import "./lib/ionic"; // Configuration Ionic - disabled for web-only build
+
+// Charger Ionic CSS et config seulement si Capacitor est disponible
+if (typeof window !== 'undefined' && (window as any).Capacitor) {
+  import("./ionic.css").catch(err => {
+    console.warn('Failed to load Ionic CSS:', err);
+  });
+  import("./lib/ionic").catch(err => {
+    console.warn('Failed to load Ionic config:', err);
+  });
+}
 
 const rootElement = document.getElementById("root");
 

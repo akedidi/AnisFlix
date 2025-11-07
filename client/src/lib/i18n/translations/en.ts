@@ -7,6 +7,10 @@ export default {
   "nav.favorites": "Favorites",
   "nav.settings": "Settings",
   
+  // Pull to refresh
+  "refresh.pulling": "Pull to refresh",
+  "refresh.loading": "Loading...",
+  
   // Home page
   "home.continueWatching": "Continue Watching",
   "home.popularMovies": "Popular Movies",

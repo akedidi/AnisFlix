@@ -4,7 +4,12 @@ export default {
   "nav.movies": "Filme",
   "nav.series": "Serien",
   "nav.tvChannels": "TV",
+  "nav.favorites": "Favoriten",
   "nav.settings": "Einstellungen",
+  
+  // Pull to refresh
+  "refresh.pulling": "Ziehen zum Aktualisieren",
+  "refresh.loading": "Laden...",
   
   // Home page
   "home.continueWatching": "Weiterschauen",
