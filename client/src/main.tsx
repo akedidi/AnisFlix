@@ -7,7 +7,11 @@ if (typeof window !== 'undefined' && (window as any).Capacitor) {
   import("./ionic.css").catch(err => {
     console.warn('Failed to load Ionic CSS:', err);
   });
-  import("./lib/ionic").catch(err => {
+  import("./lib/ionic").then(({ setupIonic }) => {
+    setupIonic().catch(err => {
+      console.warn('Failed to setup Ionic:', err);
+    });
+  }).catch(err => {
     console.warn('Failed to load Ionic config:', err);
   });
 }
