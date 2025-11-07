@@ -12,6 +12,8 @@ import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMoviesByProvider, useMoviesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 // Type for transformed media data
 type TransformedMedia = {
@@ -25,6 +27,7 @@ type TransformedMedia = {
 
 export default function ParamountMovies() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const { restoreScrollPosition } = useScrollPosition('paramount-movies');
@@ -133,7 +136,7 @@ export default function ParamountMovies() {
                         rating={Math.round(movie.vote_average * 10) / 10}
                         year={movie.release_date ? new Date(movie.release_date).getFullYear().toString() : ""}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -161,7 +164,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -181,7 +184,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -198,7 +201,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -215,7 +218,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -232,7 +235,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -249,7 +252,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -266,7 +269,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -283,7 +286,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -300,7 +303,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -317,7 +320,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}
@@ -334,7 +337,7 @@ export default function ParamountMovies() {
                       <MediaCard
                         {...movie}
                         mediaType="movie"
-                        onClick={() => window.location.href = `/movie/${movie.id}`}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
                       />
                     </div>
                   ))}

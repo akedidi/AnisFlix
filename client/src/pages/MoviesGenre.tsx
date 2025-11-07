@@ -11,6 +11,8 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -37,6 +39,7 @@ const GENRES = {
 
 export default function MoviesGenre() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [, params] = useRoute("/movies-genre/:genre");
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
@@ -140,8 +143,8 @@ export default function MoviesGenre() {
                   onSearch={setSearchQuery}
                   suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+                    navigate(path);
                   }}
                 />
               </div>
@@ -185,7 +188,7 @@ export default function MoviesGenre() {
                   <div key={movie.id} className="w-full">
                     <MediaCard
                       {...transformedMovie}
-                      onClick={() => window.location.href = `/movie/${movie.id}`}
+                      onClick={() => navigate(navPaths.movie(movie.id))}
                     />
                   </div>
                 );

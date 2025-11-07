@@ -5,6 +5,7 @@ import { Search, X, Tv, Film } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
+import { navPaths } from "@/lib/nativeNavigation";
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {

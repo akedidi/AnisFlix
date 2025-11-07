@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -18,9 +18,11 @@ import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 export default function SeriesDetail() {
   const { id } = useParams();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; quality?: string; language?: string } | null>(null);
@@ -443,7 +445,7 @@ export default function SeriesDetail() {
             <MediaCarousel
               title="Séries similaires"
               items={similarSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
             />
           </div>
         )}

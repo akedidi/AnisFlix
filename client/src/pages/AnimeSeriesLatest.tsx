@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, Heart } from "lucide-react";
@@ -9,10 +8,12 @@ import { useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function AnimeSeriesLatest() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { restoreScrollPosition } = useScrollPosition('anime-series');
@@ -66,7 +67,7 @@ export default function AnimeSeriesLatest() {
                 <div key={series.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"
-                    onClick={() => setLocation(`/series/${series.id}`)}
+                    onClick={() => navigate(navPaths.seriesDetail(series.id))}
                   >
                     <div className="relative aspect-[2/3]">
                       <img

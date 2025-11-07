@@ -10,9 +10,12 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { useAppNavigation } from "@/lib/useAppNavigation";
+import { navPaths } from "@/lib/nativeNavigation";
 
 export default function HBOMaxSeries() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<any>(null);
@@ -84,8 +87,8 @@ export default function HBOMaxSeries() {
                   onSearch={setSearchQuery}
                   suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+                    navigate(path);
                   }}
                 />
               </div>
@@ -129,7 +132,7 @@ export default function HBOMaxSeries() {
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...transformedSerie}
-                      onClick={() => window.location.href = `/series/${serie.id}`}
+                      onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                     />
                   </div>
                 );

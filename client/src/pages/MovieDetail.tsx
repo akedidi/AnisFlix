@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,15 @@ import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function MovieDetail() {
   const { id } = useParams();
   const movieId = parseInt(id || "0");
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
@@ -535,7 +537,7 @@ export default function MovieDetail() {
               <MediaCarousel
                 title="Films similaires"
                 items={similarMovies.slice(0, 10)}
-                onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
               />
             </div>
           )}

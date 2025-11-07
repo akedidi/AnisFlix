@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 import SearchBar from "@/components/SearchBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageSelect from "@/components/LanguageSelect";
@@ -11,6 +12,7 @@ import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
+import { navPaths } from "@/lib/nativeNavigation";
 // import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
 interface CommonLayoutProps {
@@ -40,7 +42,8 @@ export default function CommonLayout({
   onCustomSearchSelect
 }: CommonLayoutProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [locationPath, setLocation] = useLocation();
+  const [locationPath] = useLocation();
+  const { navigate } = useAppNavigation();
   const { isOffline } = useOffline();
   
   // Utiliser la hauteur réelle du viewport (compatible iOS)
@@ -165,8 +168,8 @@ export default function CommonLayout({
                     if (isCustomSearch && onCustomSearchSelect) {
                       onCustomSearchSelect(item);
                     } else {
-                      const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                      setLocation(path);
+                      const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+                      navigate(path);
                     }
                   }}
                 />

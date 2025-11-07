@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import MediaCard from "@/components/MediaCard";
 import Pagination from "@/components/Pagination";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 import { usePopularSeries, useMultiSearch } from "@/hooks/useTMDB";
+import { navPaths } from "@/lib/nativeNavigation";
 
 export default function PopularSeries() {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -45,8 +46,8 @@ export default function PopularSeries() {
       customSearchResults={searchResults}
       onCustomSearch={setSearchQuery}
       onCustomSearchSelect={(item) => {
-        const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-        setLocation(path);
+        const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+        navigate(path);
       }}
     >
       
@@ -69,7 +70,7 @@ export default function PopularSeries() {
                   <div key={serie.id} className="w-full">
                     <MediaCard
                       {...serie}
-                      onClick={() => setLocation(`/series/${serie.id}`)}
+                      onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                     />
                   </div>
                 ))}

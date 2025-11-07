@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Star, Heart } from "lucide-react";
 import CommonLayout from "@/components/CommonLayout";
@@ -7,10 +6,12 @@ import Pagination from "@/components/Pagination";
 import { useMoviesByGenre } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function AnimeMoviesPopular() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   
@@ -51,7 +52,7 @@ export default function AnimeMoviesPopular() {
                 <div key={movie.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"
-                    onClick={() => setLocation(`/movie/${movie.id}`)}
+                    onClick={() => navigate(navPaths.movie(movie.id))}
                   >
                     <div className="relative aspect-[2/3]">
                       <img

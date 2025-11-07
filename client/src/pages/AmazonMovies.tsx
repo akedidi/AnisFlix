@@ -11,9 +11,12 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
+import { useAppNavigation } from "@/lib/useAppNavigation";
+import { navPaths } from "@/lib/nativeNavigation";
 
 export default function AmazonMovies() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
@@ -86,8 +89,8 @@ export default function AmazonMovies() {
                   onSearch={setSearchQuery}
                   suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
-                    const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+                    navigate(path);
                   }}
                 />
               </div>
@@ -137,7 +140,7 @@ export default function AmazonMovies() {
                           sess[window.location.pathname] = currentPage;
                           sessionStorage.setItem('paginationLast', JSON.stringify(sess));
                         } catch {}
-                        window.location.href = `/movie/${movie.id}`;
+                        navigate(navPaths.movie(movie.id));
                       }}
                     />
                   </div>

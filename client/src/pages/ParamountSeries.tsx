@@ -12,6 +12,8 @@ import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useSeriesByProvider, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 // Type for transformed media data
 type TransformedMedia = {
@@ -25,6 +27,7 @@ type TransformedMedia = {
 
 export default function ParamountSeries() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const { restoreScrollPosition } = useScrollPosition('paramount-series');
@@ -133,7 +136,7 @@ export default function ParamountSeries() {
                         rating={Math.round(serie.vote_average * 10) / 10}
                         year={serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : ""}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -161,7 +164,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -181,7 +184,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -198,7 +201,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -215,7 +218,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -232,7 +235,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -249,7 +252,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -266,7 +269,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -283,7 +286,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -300,7 +303,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -317,7 +320,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}
@@ -334,7 +337,7 @@ export default function ParamountSeries() {
                       <MediaCard
                         {...serie}
                         mediaType="tv"
-                        onClick={() => window.location.href = `/series/${serie.id}`}
+                        onClick={() => navigate(navPaths.seriesDetail(serie.id))}
                       />
                     </div>
                   ))}

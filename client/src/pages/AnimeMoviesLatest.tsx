@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Heart } from "lucide-react";
@@ -9,10 +8,12 @@ import { useMoviesByGenre } from "@/hooks/useTMDB";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function AnimeMoviesLatest() {
   const [currentPage, setCurrentPage] = useState(1);
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { restoreScrollPosition } = useScrollPosition('anime-movies');
@@ -54,7 +55,7 @@ export default function AnimeMoviesLatest() {
                 <div key={movie.id} className="w-full">
                   <div
                     className="group relative overflow-hidden cursor-pointer content-card bg-card rounded-lg shadow-sm hover:shadow-lg transition-all duration-200"
-                    onClick={() => setLocation(`/movie/${movie.id}`)}
+                    onClick={() => navigate(navPaths.movie(movie.id))}
                   >
                     <div className="relative aspect-[2/3]">
                       <img

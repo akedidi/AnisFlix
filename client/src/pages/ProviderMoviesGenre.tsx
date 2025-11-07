@@ -12,6 +12,8 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -81,6 +83,7 @@ const PROVIDERS = {
 
 export default function ProviderMoviesGenre() {
   const { t } = useLanguage();
+  const { navigate } = useAppNavigation();
   const [, params] = useRoute("/provider/:id/movies/:genre?");
   const providerId = parseInt(params?.id || '0');
   const genreSlug = params?.genre || '';
@@ -236,7 +239,7 @@ export default function ProviderMoviesGenre() {
                   suggestions={searchQuery ? searchResults : []}
                   onSelect={(item) => {
                     const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                    window.location.href = path;
+                    navigate(path);
                   }}
                 />
               </div>
@@ -288,7 +291,7 @@ export default function ProviderMoviesGenre() {
                           sess[window.location.pathname] = currentPage;
                           sessionStorage.setItem('paginationLast', JSON.stringify(sess));
                         } catch {}
-                        window.location.href = `/movie/${movie.id}`;
+                        navigate(navPaths.movie(movie.id));
                       }}
                     />
                   </div>

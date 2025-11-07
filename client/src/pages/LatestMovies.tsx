@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import MediaCard from "@/components/MediaCard";
 import Pagination from "@/components/Pagination";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 import { useLatestMovies, useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
+import { navPaths } from "@/lib/nativeNavigation";
 
 export default function LatestMovies() {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState("");
   const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
@@ -51,8 +52,8 @@ export default function LatestMovies() {
       customSearchResults={searchResults}
       onCustomSearch={setSearchQuery}
       onCustomSearchSelect={(item) => {
-        const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-        setLocation(path);
+        const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+        navigate(path);
       }}
     >
       
@@ -81,7 +82,7 @@ export default function LatestMovies() {
                           sess[window.location.pathname] = currentPage;
                           sessionStorage.setItem('paginationLast', JSON.stringify(sess));
                         } catch {}
-                        setLocation(`/movie/${movie.id}`);
+                        navigate(navPaths.movie(movie.id));
                       }}
                     />
                   </div>

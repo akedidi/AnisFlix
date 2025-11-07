@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { navPaths } from "@/lib/nativeNavigation";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -23,7 +24,7 @@ import { getWatchProgress } from "@/lib/watchProgress";
 export default function Home() {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -163,10 +164,10 @@ export default function Home() {
               });
             }}
             onInfo={(item) => {
-              setLocation(`/movie/${item.id}`);
+              navigate(navPaths.movie(item.id));
             }}
             onClick={(item) => {
-              setLocation(`/movie/${item.id}`);
+              navigate(navPaths.movie(item.id));
             }}
             autoRotate={true}
             rotationInterval={6000}
@@ -179,8 +180,8 @@ export default function Home() {
               title={t("home.continueWatching")}
               items={continueWatching}
               onItemClick={(item) => {
-                const path = item.mediaType === 'movie' ? `/movie/${item.id}` : `/series/${item.id}`;
-                setLocation(path);
+                const path = item.mediaType === 'movie' ? navPaths.movie(item.id) : navPaths.seriesDetail(item.id);
+                navigate(path);
               }}
             />
           )}
@@ -193,7 +194,7 @@ export default function Home() {
                   <div key={provider.id} className="w-40 flex-shrink-0">
                     <ProviderCard
                       {...provider}
-                      onClick={() => setLocation(`/provider/${provider.id}`)}
+                      onClick={() => navigate(navPaths.provider(provider.id))}
                     />
                   </div>
                 ))}
@@ -206,14 +207,14 @@ export default function Home() {
           <MediaCarousel
             title={t("home.latestMovies")}
             items={latestMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.movie(item.id))}
             seeAllLink="/latest-movies"
           />
 
           <MediaCarousel
             title={t("home.latestSeries")}
             items={latestSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
             seeAllLink="/latest-series"
           />
 
@@ -221,14 +222,14 @@ export default function Home() {
           <MediaCarousel
             title={t("home.popularMovies")}
             items={popularMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.movie(item.id))}
             seeAllLink="/popular-movies"
           />
 
           <MediaCarousel
             title={t("home.popularSeries")}
             items={popularSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
             seeAllLink="/popular-series"
           />
 
@@ -236,7 +237,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.latestMovies")}
             items={animeMovies.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.movie(item.id))}
             showSeeAllButton={true}
             sectionId="anime-movies-latest"
           />
@@ -244,7 +245,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.latestSeries")}
             items={animeSeries.slice(0, 10)}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
             showSeeAllButton={true}
             sectionId="anime-series-latest"
           />
@@ -252,7 +253,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.popularMovies")}
             items={popularAnimeMovies}
-            onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.movie(item.id))}
             showSeeAllButton={true}
             sectionId="anime-movies-popular"
           />
@@ -260,7 +261,7 @@ export default function Home() {
           <MediaCarousel
             title={t("anime.popularSeries")}
             items={popularAnimeSeries}
-            onItemClick={(item) => setLocation(`/series/${item.id}`)}
+            onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
             showSeeAllButton={true}
             sectionId="anime-series-popular"
           />
@@ -270,7 +271,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.netflix")} - ${t("home.latestMovies")}`}
               items={netflixMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -279,7 +280,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.netflix")} - ${t("home.latestSeries")}`}
               items={netflixSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -289,7 +290,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.amazonPrime")} - ${t("home.latestMovies")}`}
               items={amazonMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -298,7 +299,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.amazonPrime")} - ${t("home.latestSeries")}`}
               items={amazonSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -308,7 +309,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.appleTV")} - ${t("home.latestMovies")}`}
               items={appleTvMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -317,7 +318,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.appleTV")} - ${t("home.latestSeries")}`}
               items={appleTvSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -327,7 +328,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.disney")} - ${t("home.latestMovies")}`}
               items={disneyMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -336,7 +337,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.disney")} - ${t("home.latestSeries")}`}
               items={disneySeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -346,7 +347,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.hboMax")} - ${t("home.latestMovies")}`}
               items={hboMaxMovies.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/movie/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
               showSeeAllButton={true}
             />
           )}
@@ -355,7 +356,7 @@ export default function Home() {
             <MediaCarousel
               title={`${t("platform.hboMax")} - ${t("home.latestSeries")}`}
               items={hboMaxSeries.slice(0, 10)}
-              onItemClick={(item) => setLocation(`/series/${item.id}`)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               showSeeAllButton={true}
             />
           )}
