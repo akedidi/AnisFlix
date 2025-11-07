@@ -146,7 +146,7 @@ function TabsContainer() {
       {/* IonTabBar natif - en bas avec safe area */}
       <IonTabBar slot="bottom">
         {/* Accueil - toujours accessible */}
-        <IonTabButton tab="home" routerLink="/tabs/home">
+        <IonTabButton tab="home" href="/tabs/home">
           <IonIcon icon={home} />
           <IonLabel>{t("nav.home")}</IonLabel>
         </IonTabButton>
@@ -154,7 +154,7 @@ function TabsContainer() {
         {/* Films - désactivé en mode offline */}
         <IonTabButton 
           tab="movies" 
-          routerLink="/tabs/movies"
+          href="/tabs/movies"
           className={isOffline ? "offline-disabled" : ""}
           disabled={isOffline}
         >
@@ -165,7 +165,7 @@ function TabsContainer() {
         {/* Séries - désactivé en mode offline */}
         <IonTabButton 
           tab="series" 
-          routerLink="/tabs/series"
+          href="/tabs/series"
           className={isOffline ? "offline-disabled" : ""}
           disabled={isOffline}
         >
@@ -174,19 +174,19 @@ function TabsContainer() {
         </IonTabButton>
         
         {/* TV Direct - toujours accessible */}
-        <IonTabButton tab="tv-channels" routerLink="/tabs/tv-channels">
+        <IonTabButton tab="tv-channels" href="/tabs/tv-channels">
           <IonIcon icon={radio} />
           <IonLabel>{t("nav.tvChannels")}</IonLabel>
         </IonTabButton>
         
         {/* Favoris - toujours accessible */}
-        <IonTabButton tab="favorites" routerLink="/tabs/favorites">
+        <IonTabButton tab="favorites" href="/tabs/favorites">
           <IonIcon icon={heart} />
           <IonLabel>{t("nav.favorites")}</IonLabel>
         </IonTabButton>
         
         {/* Paramètres - toujours accessible */}
-        <IonTabButton tab="settings" routerLink="/tabs/settings">
+        <IonTabButton tab="settings" href="/tabs/settings">
           <IonIcon icon={settings} />
           <IonLabel>{t("nav.settings")}</IonLabel>
         </IonTabButton>
