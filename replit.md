@@ -4,7 +4,15 @@
 
 AnisFlix is a streaming media platform for discovering and watching movies, TV series, anime, and documentaries. The application provides a Netflix-like experience with features including content browsing, search functionality, favorites management, watch progress tracking, and download capabilities. Built with a modern tech stack featuring React frontend and Express backend, the platform integrates with The Movie Database (TMDB) API for content metadata and uses multiple video streaming providers.
 
-**Recent Changes (October 8, 2025):**
+**Recent Changes (November 7, 2025):**
+- **Native Mobile Support (iOS/Android via Ionic/Capacitor):**
+  - Dual platform architecture: AppWeb for browser, AppNative for mobile devices
+  - Conditional Ionic dependency loading via dynamic imports (only in native mode)
+  - Platform detection using `window.Capacitor` to route to appropriate app version
+  - IonTabBar with 6 translated tabs (Home/Movies/Series/TV/Favorites/Settings)
+  - IonRefresher pull-to-refresh functionality on all native pages
+  - Offline mode: disables Movies/Series tabs while keeping Home/TV/Favorites/Settings accessible
+  - All native UI elements use LanguageContext for consistent 6-language support
 - Complete i18n system with 6 languages (FR/EN/ES/DE/IT/PT) using LanguageContext and combo box selector
 - All site labels translate dynamically based on selected language with TMDB API language sync
 - Hero section height reduced to 35vh/50vh (mobile/desktop) for better content visibility
