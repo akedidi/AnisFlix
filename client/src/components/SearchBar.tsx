@@ -92,8 +92,8 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 8,
+        left: rect.left,
         width: rect.width
       });
     }
