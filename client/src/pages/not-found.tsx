@@ -2,12 +2,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Home } from "lucide-react";
 import DesktopSidebar from "@/components/DesktopSidebar";
-import { useLocation } from "wouter";
+import { useAppNavigation } from "@/lib/useAppNavigation";
+import { navPaths } from "@/lib/nativeNavigation";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 
 export default function NotFound() {
   const { t } = useLanguage();
-  const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
   
   return (
     <div className="min-h-screen fade-in-up">
@@ -29,8 +30,9 @@ export default function NotFound() {
               </p>
               
               <Button 
-                onClick={() => setLocation('/')}
+                onClick={() => navigate(navPaths.home())}
                 className="w-full"
+                data-testid="button-back-home"
               >
                 <Home className="w-4 h-4 mr-2" />
                 {t("notFound.backToHome")}

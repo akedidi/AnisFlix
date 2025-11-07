@@ -5,13 +5,16 @@
  * AppNative utilise : /tabs/movie/:id
  */
 
+import { Capacitor } from '@capacitor/core';
+
 /**
- * Détecte si on est dans une app Capacitor native
+ * Détecte si on est dans une app Capacitor native (iOS/Android)
+ * Utilise la méthode officielle Capacitor.isNativePlatform()
  */
 export const isNativeApp = (): boolean => {
   if (typeof window === 'undefined') return false;
   try {
-    return (window as any).Capacitor !== undefined;
+    return Capacitor.isNativePlatform();
   } catch {
     return false;
   }
