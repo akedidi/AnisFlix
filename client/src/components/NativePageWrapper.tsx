@@ -44,9 +44,10 @@ export default function NativePageWrapper({ children, onRefresh }: NativePageWra
           />
         </IonRefresher>
         
-        {/* Contenu de la page */}
+        {/* Contenu de la page avec safe-area top et bottom */}
         <div style={{
           minHeight: '100vh',
+          paddingTop: 'env(safe-area-inset-top, 20px)',
           paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 20px))'
         }}>
           {children}
