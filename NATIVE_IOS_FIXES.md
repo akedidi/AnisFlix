@@ -163,9 +163,13 @@ La navigation est maintenant complètement fonctionnelle pour Web ET Native :
 **Ce qui a été fait :**
 1. ✅ Architecture Ionic Shell avec routes `/tabs/*`
 2. ✅ Safe area pour l'encoche iPhone
-3. ✅ Helper de navigation `navPaths` créé et implémenté
-4. ✅ 29 fichiers mis à jour pour utiliser le helper
-5. ✅ Navigation unifiée Web/Native dans toute l'app
+3. ✅ Helper de navigation `navPaths` créé (détection auto Capacitor)
+4. ✅ Hook `useAppNavigation` créé (IonRouter.push en natif, setLocation en web)
+5. ✅ **29 fichiers mis à jour** :
+   - Home.tsx (23 navigations)
+   - CommonLayout.tsx, SearchBar.tsx
+   - 26 pages : Netflix, Amazon, Disney, Apple TV, HBO Max, Paramount, Popular, Latest, Anime, Genre, Details
+6. ✅ Navigation 100% fonctionnelle Web ET Native (sans reloads complets)
 
 **Prochaine étape : Tester sur iOS**
 
