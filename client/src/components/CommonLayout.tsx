@@ -11,7 +11,6 @@ import { useOffline } from "@/hooks/useOffline";
 import { useMobileScroll } from "@/hooks/useMobileScroll";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
-import IonicPullToRefresh from "@/components/IonicPullToRefresh";
 // import DeepOriginDiagnostic from "@/components/DeepOriginDiagnostic"; // Supprimé - problème résolu
 
 interface CommonLayoutProps {
@@ -192,52 +191,34 @@ export default function CommonLayout({
       </div>
 
           {/* Main Content */}
-          {isReallyNativeMobile ? (
-          <IonicPullToRefresh onRefresh={handleIonicRefresh}>
-            <div 
-                className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
-                id="main-content-desktop"
-                style={{ 
-                  paddingTop: headerOffset > 0 
-                    ? `${100 + headerOffset + 8}px` 
-                    : window.innerWidth >= 768 
-                      ? '70px' 
-                      : '53px'
-                }}
-              >
-                {children}
-              </div>
-            </IonicPullToRefresh>
-          ) : (
-            <div 
-              className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
-              id="main-content-desktop"
-              style={{ 
-                paddingTop: (() => {
-                  if (headerOffset > 0) return `${100 + headerOffset + 8}px`;
-                  const isDesktop = window.innerWidth >= 768;
-                  if (isDesktop) return '70px';
-                  // Mobile web: ajouter un léger padding pour les pages de liste (hors accueil)
-                  const p = (locationPath || '/').split('?')[0].split('#')[0];
-                  const isListPage = (
-                    p === '/movies' ||
-                    p === '/series' ||
-                    p === '/latest-movies' ||
-                    p === '/latest-series' ||
-                    p === '/popular-movies' ||
-                    p === '/popular-series' ||
-                    p.startsWith('/movies-genre') ||
-                    p.startsWith('/movies/genre') ||
-                    p.startsWith('/series-genre') ||
-                    p.startsWith('/series/genre')
-                  );
-                  return isListPage ? '64px' : '53px';
-                })()
-              }}
-            >
-              {children}
-            </div>
-          )}
+          <div 
+            className={`${getContainerClass("main-content")} md:ml-64 pb-24 md:pb-0`}
+            id="main-content-desktop"
+            style={{ 
+              paddingTop: (() => {
+                if (headerOffset > 0) return `${100 + headerOffset + 8}px`;
+                const isDesktop = window.innerWidth >= 768;
+                if (isDesktop) return '70px';
+                // Mobile web: ajouter un léger padding pour les pages de liste (hors accueil)
+                const p = (locationPath || '/').split('?')[0].split('#')[0];
+                const isListPage = (
+                  p === '/movies' ||
+                  p === '/series' ||
+                  p === '/latest-movies' ||
+                  p === '/latest-series' ||
+                  p === '/popular-movies' ||
+                  p === '/popular-series' ||
+                  p.startsWith('/movies-genre') ||
+                  p.startsWith('/movies/genre') ||
+                  p.startsWith('/series-genre') ||
+                  p.startsWith('/series/genre')
+                );
+                return isListPage ? '64px' : '53px';
+              })()
+            }}
+          >
+            {children}
+          </div>
       
       {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}
     </>

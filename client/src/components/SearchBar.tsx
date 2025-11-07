@@ -5,7 +5,6 @@ import { Search, X, Tv, Film } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getOptimizedImageUrl } from "@/lib/imageOptimization";
-import { useKeyboardSearch } from "@/hooks/useKeyboardSearch";
 
 // Fonction pour détecter si on est sur mobile natif (Capacitor)
 const isCapacitor = () => {
@@ -34,9 +33,6 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Hook pour configurer le clavier de recherche - RÉACTIVÉ avec modifications
-  useKeyboardSearch();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

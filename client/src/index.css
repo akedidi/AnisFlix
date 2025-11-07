@@ -1,3 +1,5 @@
+/* Ionic CSS imports disabled for web-only build */
+/*
 @import '@ionic/react/css/core.css';
 @import '@ionic/react/css/normalize.css';
 @import '@ionic/react/css/structure.css';
@@ -8,8 +10,9 @@
 @import '@ionic/react/css/text-transformation.css';
 @import '@ionic/react/css/flex-utils.css';
 @import '@ionic/react/css/display.css';
+*/
 
-/* Styles pour le pull-to-refresh Ionic */
+/* Styles pour le pull-to-refresh Ionic - disabled for web-only build */
 .ion-content-transparent {
   --background: transparent !important;
   --color: inherit !important;

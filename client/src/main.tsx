@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import "./lib/ionic"; // Configuration Ionic
+// import "./lib/ionic"; // Configuration Ionic - disabled for web-only build
 
 const rootElement = document.getElementById("root");
 
