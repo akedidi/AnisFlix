@@ -32,6 +32,7 @@ const transformMovie = (movie: any) => {
     rating: Math.round(movie.vote_average * 10) / 10,
     year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
     mediaType: "movie" as const,
+    popularity: movie.popularity || 0,
   };
 };
 
@@ -56,6 +57,7 @@ const transformSeries = (series: any) => {
     rating: Math.round(series.vote_average * 10) / 10,
     year: series.first_air_date ? new Date(series.first_air_date).getFullYear().toString() : "",
     mediaType: "tv" as const,
+    popularity: series.popularity || 0,
   };
 };
 
@@ -310,15 +312,26 @@ export const useMultiSearch = (query: string) => {
       
       console.log('🔍 [USE MULTI SEARCH] Final transformed results:', transformedResults);
       
+      // Trier les résultats par popularité (du plus populaire au moins populaire)
+      const sortedResults = transformedResults.sort((a: any, b: any) => {
+        return (b.popularity || 0) - (a.popularity || 0);
+      });
+      
+      console.log('🔍 [USE MULTI SEARCH] Sorted by popularity:', sortedResults.slice(0, 5).map((item: any) => ({
+        title: item.title,
+        popularity: item.popularity,
+        mediaType: item.mediaType
+      })));
+      
       // Log spécifique pour One-Punch Man
-      const onePunchMan = transformedResults.find((item: any) => item.id === 63926);
+      const onePunchMan = sortedResults.find((item: any) => item.id === 63926);
       if (onePunchMan) {
         console.log('✅ [USE MULTI SEARCH] One-Punch Man found in results:', onePunchMan);
       } else {
         console.log('❌ [USE MULTI SEARCH] One-Punch Man NOT found in transformed results');
       }
       
-      return transformedResults;
+      return sortedResults;
     },
     enabled: query.length >= 1,
   });
