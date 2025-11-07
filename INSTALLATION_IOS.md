@@ -50,17 +50,39 @@ npx cap --version
 
 ### 3. Initialiser/Synchroniser iOS
 
+⚠️ **IMPORTANT** : Si le dossier `ios/` téléchargé depuis Replit est incomplet, vous **devez** le supprimer et le recréer.
+
+**Option A - Dossier iOS incomplet ou vide** (RECOMMANDÉ) :
 ```bash
-# Si le dossier ios/ est vide ou incomplet, recréer :
+# Supprimer le dossier iOS existant
+rm -rf ios
+
+# Créer un nouveau projet iOS propre
 npx cap add ios
 
-# Ou si ios/ existe déjà, synchroniser :
+# Synchroniser les fichiers web
 npx cap sync ios
 
-# Installer les pods iOS (dépendances natives)
+# Installer les CocoaPods (dépendances natives)
 cd ios/App
 pod install
 cd ../..
+```
+
+**Option B - Dossier iOS déjà complet** :
+```bash
+# Synchroniser seulement
+npx cap sync ios
+
+# Installer les pods iOS
+cd ios/App
+pod install
+cd ../..
+```
+
+**Vérification** : Le fichier `ios/App/App/Info.plist` doit exister
+```bash
+ls -la ios/App/App/Info.plist
 ```
 
 ---
@@ -154,6 +176,36 @@ Une fois l'app lancée, testez :
 ---
 
 ## 🐛 Dépannage
+
+### ❌ Erreur : "Info.plist cannot be found"
+
+**Symptôme** : Xcode affiche l'erreur :
+```
+Build input file cannot be found: '.../ios/App/App/Info.plist'
+```
+
+**Cause** : Le dossier iOS téléchargé depuis Replit est incomplet.
+
+**Solution** : Regénérer complètement le projet iOS
+```bash
+# Supprimer le dossier iOS incomplet
+rm -rf ios
+
+# Recréer le projet iOS
+npx cap add ios
+npx cap sync ios
+
+# Installer les CocoaPods
+cd ios/App
+pod install
+cd ../..
+
+# Vérifier que Info.plist existe
+ls -la ios/App/App/Info.plist
+
+# Ouvrir dans Xcode
+npx cap open ios
+```
 
 ### L'app ne se lance pas
 ```bash
