@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -706,6 +706,12 @@ export default function TVChannels() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
+  const filteredLinksForSelectedChannel = useMemo(() => {
+    if (!selectedChannel) return [];
+    return getFilteredLinks(selectedChannel);
+  }, [selectedChannel]);
 
   // Filtrer les chaînes par section et catégorie
   const filteredChannels = TV_CHANNELS.filter(
@@ -1509,19 +1515,11 @@ export default function TVChannels() {
             {selectedChannel ? (
               <div className="space-y-4">
                 {/* Sélecteur de liens */}
-                {(() => {
-                  const filteredLinks = getFilteredLinks(selectedChannel);
-                  console.log(`[UI LINKS] ===== AFFICHAGE UI =====`);
-                  console.log(`[UI LINKS] Channel: ${selectedChannel.name}`);
-                  console.log(`[UI LINKS] Filtered links count: ${filteredLinks.length}`);
-                  console.log(`[UI LINKS] Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
-                  console.log(`[UI LINKS] Show selector: ${filteredLinks && filteredLinks.length > 1}`);
-                  
-                  return filteredLinks && filteredLinks.length > 1 ? (
-                    <Card className="p-4">
-                      <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {filteredLinks.map((link, index) => (
+                {filteredLinksForSelectedChannel && filteredLinksForSelectedChannel.length > 1 ? (
+                  <Card className="p-4">
+                    <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {filteredLinksForSelectedChannel.map((link, index) => (
                           <Button
                             key={index}
                             variant={selectedLinkIndex === index ? "default" : "outline"}
@@ -1534,8 +1532,7 @@ export default function TVChannels() {
                         ))}
                       </div>
                     </Card>
-                  ) : null;
-                })()}
+                  ) : null}
 
                 <Card className="overflow-hidden">
                   <div className="aspect-video bg-black relative">
