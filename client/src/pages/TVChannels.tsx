@@ -687,6 +687,34 @@ const TV_CHANNELS: TVChannel[] = [
   ]}
 ];
 
+// Fonction pour filtrer les liens selon la plateforme (définie en dehors du composant)
+const getFilteredLinks = (channel: TVChannel): TVChannelLink[] => {
+  const isMobileDevice = isMobile();
+  const isNativeApp = isCapacitor();
+  
+  console.log(`[FILTER LINKS] ===== DÉBUT FILTRAGE =====`);
+  console.log(`[FILTER LINKS] Channel: ${channel.name}`);
+  console.log(`[FILTER LINKS] isMobileDevice: ${isMobileDevice}`);
+  console.log(`[FILTER LINKS] isNativeApp: ${isNativeApp}`);
+  console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
+  console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
+  
+  // Sur mobile web et natif, supprimer le Lien 1 (MPD), garder seulement Lien 2 (HLS)
+  if (isMobileDevice || isNativeApp) {
+    const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
+    console.log(`[FILTER LINKS] Mobile/Native - Suppression Lien 1 (MPD), garde Lien 2 (HLS)`);
+    console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
+    console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
+    return filteredLinks;
+  }
+  
+  // Sur desktop, garder tous les liens (Lien 1 MPD + Lien 2 HLS)
+  console.log(`[FILTER LINKS] Desktop - Garde Lien 1 (MPD) + Lien 2 (HLS)`);
+  console.log(`[FILTER LINKS] Desktop - All links kept: ${channel.links.length}`);
+  console.log(`[FILTER LINKS] Desktop - All links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
+  return channel.links;
+};
+
 export default function TVChannels() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
@@ -706,6 +734,12 @@ export default function TVChannels() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
+  const filteredLinksForSelectedChannel = useMemo(() => {
+    if (!selectedChannel) return [];
+    return getFilteredLinks(selectedChannel);
+  }, [selectedChannel]);
 
   // Filtrer les chaînes par section et catégorie
   const filteredChannels = TV_CHANNELS.filter(
@@ -890,40 +924,6 @@ export default function TVChannels() {
       videoRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
     };
   }, [streamUrl, playerType]);
-
-  // Fonction pour filtrer les liens selon la plateforme
-  const getFilteredLinks = (channel: TVChannel): TVChannelLink[] => {
-    const isMobileDevice = isMobile();
-    const isNativeApp = isCapacitor();
-    
-    console.log(`[FILTER LINKS] ===== DÉBUT FILTRAGE =====`);
-    console.log(`[FILTER LINKS] Channel: ${channel.name}`);
-    console.log(`[FILTER LINKS] isMobileDevice: ${isMobileDevice}`);
-    console.log(`[FILTER LINKS] isNativeApp: ${isNativeApp}`);
-    console.log(`[FILTER LINKS] Original links count: ${channel.links.length}`);
-    console.log(`[FILTER LINKS] Original links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
-    
-    // Sur mobile web et natif, supprimer le Lien 1 (MPD), garder seulement Lien 2 (HLS)
-    if (isMobileDevice || isNativeApp) {
-      const filteredLinks = channel.links.filter(link => link.type !== 'mpd');
-      console.log(`[FILTER LINKS] Mobile/Native - Suppression Lien 1 (MPD), garde Lien 2 (HLS)`);
-      console.log(`[FILTER LINKS] Mobile/Native - Filtered links count: ${filteredLinks.length}`);
-      console.log(`[FILTER LINKS] Mobile/Native - Filtered links:`, filteredLinks.map((link, index) => `${index}: ${link.type}`));
-      return filteredLinks;
-    }
-    
-    // Sur desktop, garder tous les liens (Lien 1 MPD + Lien 2 HLS)
-    console.log(`[FILTER LINKS] Desktop - Garde Lien 1 (MPD) + Lien 2 (HLS)`);
-    console.log(`[FILTER LINKS] Desktop - All links kept: ${channel.links.length}`);
-    console.log(`[FILTER LINKS] Desktop - All links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
-    return channel.links;
-  };
-
-  // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
-  const filteredLinksForSelectedChannel = useMemo(() => {
-    if (!selectedChannel) return [];
-    return getFilteredLinks(selectedChannel);
-  }, [selectedChannel]);
 
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
