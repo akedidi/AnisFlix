@@ -254,39 +254,54 @@ export function useChromecast(): UseChromecastReturn {
       const session = sessionRef.current;
       const chromeCast = window.chrome.cast as any;
       
-      // Détecter le type de média (HLS ou MP4)
+      // Détecter le type de média avec plus de précision
       const isHLS = mediaUrl.includes('.m3u8') || mediaUrl.includes('m3u8');
-      const contentType = isHLS 
-        ? 'application/x-mpegURL'  // Utiliser le type MIME standard pour HLS
-        : 'video/mp4';
+      const isDASH = mediaUrl.includes('.mpd') || mediaUrl.includes('mpd') || mediaUrl.includes('dash');
+      const isMP4 = mediaUrl.includes('.mp4');
       
-      console.log('[Chromecast] Cast média:', { mediaUrl, title, contentType, isHLS });
+      let contentType: string;
+      let streamType: any;
       
-      // Vérifier que l'URL est accessible depuis le Chromecast
-      // Les URLs locales (localhost) ne fonctionneront pas
+      if (isDASH) {
+        contentType = 'application/dash+xml';
+        streamType = chromeCast.media.StreamType.LIVE;
+        console.log('[Chromecast] Stream DASH/MPD détecté');
+      } else if (isHLS) {
+        contentType = 'application/x-mpegURL';
+        streamType = chromeCast.media.StreamType.LIVE;
+        console.log('[Chromecast] Stream HLS détecté');
+      } else if (isMP4) {
+        contentType = 'video/mp4';
+        streamType = chromeCast.media.StreamType.BUFFERED;
+        console.log('[Chromecast] Vidéo MP4 détectée');
+      } else {
+        // Par défaut, essayer HLS pour les streams TV
+        contentType = 'application/x-mpegURL';
+        streamType = chromeCast.media.StreamType.LIVE;
+        console.log('[Chromecast] Format inconnu, utilisation de HLS par défaut');
+      }
+      
+      console.log('[Chromecast] Cast média:', { 
+        mediaUrl, 
+        title, 
+        contentType, 
+        streamType,
+        isDASH,
+        isHLS,
+        isMP4
+      });
+      
+      // Vérifier l'accessibilité de l'URL
       if (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1')) {
         console.warn('[Chromecast] ⚠️ URL localhost détectée!');
         console.warn('[Chromecast] Le Chromecast ne pourra pas accéder à cette URL.');
-        console.warn('[Chromecast] Assurez-vous que l\'URL utilise votre IP locale (ex: 192.168.x.x) au lieu de localhost');
-        // On continue quand même, peut-être que l'URL a été convertie
+        throw new Error('URL localhost non accessible par Chromecast. Utilisez une IP locale ou un domaine public.');
       }
       
       const mediaInfo = new chromeCast.media.MediaInfo(mediaUrl, contentType);
       mediaInfo.metadata = new chromeCast.media.GenericMediaMetadata();
       mediaInfo.metadata.title = title;
-      
-      // Pour les streams HLS (live), utiliser LIVE ou NONE au lieu de BUFFERED
-      // BUFFERED est pour les vidéos pré-chargées, pas pour les streams live
-      if (isHLS) {
-        // Pour les streams live TV, utiliser LIVE
-        mediaInfo.streamType = chromeCast.media.StreamType.LIVE;
-        // Ne pas définir currentTime pour les streams live
-        console.log('[Chromecast] Stream HLS détecté, utilisation de StreamType.LIVE');
-      } else {
-        // Pour les vidéos MP4, utiliser BUFFERED
-        mediaInfo.streamType = chromeCast.media.StreamType.BUFFERED;
-        console.log('[Chromecast] Vidéo MP4 détectée, utilisation de StreamType.BUFFERED');
-      }
+      mediaInfo.streamType = streamType;
       
       if (posterUrl) {
         mediaInfo.metadata.images = [new chromeCast.Image(posterUrl)];
@@ -294,15 +309,15 @@ export function useChromecast(): UseChromecastReturn {
 
       const request = new chromeCast.media.LoadRequest(mediaInfo);
       
-      // Ne définir currentTime que pour les vidéos non-live
-      if (!isHLS && currentTime > 0) {
+      // Définir currentTime uniquement pour les vidéos BUFFERED
+      if (streamType === chromeCast.media.StreamType.BUFFERED && currentTime > 0) {
         request.currentTime = currentTime;
       }
 
       console.log('[Chromecast] Envoi de la requête de cast...', {
         url: mediaUrl,
         contentType,
-        streamType: mediaInfo.streamType,
+        streamType,
         currentTime: request.currentTime
       });
 

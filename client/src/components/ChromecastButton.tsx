@@ -83,6 +83,9 @@ export default function ChromecastButton({
         .catch((error) => {
           console.error('[ChromecastButton] Erreur lors du cast:', error);
           setIsCasting(false);
+          // Afficher un message à l'utilisateur
+          const errorMessage = error.message || 'Format vidéo incompatible ou URL non accessible';
+          alert(`Erreur Chromecast: ${errorMessage}`);
         });
     } else if (!isConnected && isCasting) {
       setIsCasting(false);
