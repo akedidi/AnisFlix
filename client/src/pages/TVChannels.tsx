@@ -376,7 +376,7 @@ interface TVSection {
 const CHANNEL_NAME_MAPPING: Record<string, string> = {
   // Généraliste - correspondances exactes trouvées dans l'API
   "tf1": "tf1",
-  "tf1-serie": "tf1", 
+  // "tf1-serie" volontairement omis pour éviter confusion avec tf1
   "france2": "france 2",
   "france3": "france 3",
   "france4": "france 4", 
@@ -461,9 +461,20 @@ const LOCAL_CHANNEL_LOGOS: Record<string, string> = {
   "franceinfo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Franceinfo_logo_2018.svg/120px-Franceinfo_logo_2018.svg.png",
 };
 
+// Chaînes qui ne doivent PAS chercher de logo (risque de collision avec d'autres chaînes)
+const EXCLUDE_FROM_LOGO_SEARCH = [
+  "tf1-serie", // Éviter confusion avec TF1
+];
+
 // Fonction pour obtenir l'URL du logo depuis l'API jaruba
 const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
   try {
+    // Exclure certaines chaînes de la recherche
+    if (EXCLUDE_FROM_LOGO_SEARCH.includes(channelId)) {
+      console.log(`[LOGO API] Chaîne ${channelId} exclue de la recherche de logos`);
+      return null;
+    }
+    
     const channelName = CHANNEL_NAME_MAPPING[channelId];
     console.log(`[LOGO API] Recherche logo pour ${channelId} -> ${channelName}`);
     
