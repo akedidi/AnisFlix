@@ -1537,7 +1537,10 @@ export default function TVChannels() {
                 <Card className="overflow-hidden">
                   <div className="aspect-video bg-black relative">
                     {/* Bouton Chromecast - En haut à droite */}
-                    {streamUrl && originalStreamUrl && (
+                    {/* Afficher uniquement si l'URL est accessible publiquement (pas fremtv.lol ni mpd) */}
+                    {streamUrl && originalStreamUrl && 
+                     !originalStreamUrl.includes('fremtv.lol') && 
+                     !originalStreamUrl.includes('.mpd') && (
                       <div className="absolute top-4 right-4 z-50">
                         <ChromecastButton
                           mediaUrl={originalStreamUrl}
