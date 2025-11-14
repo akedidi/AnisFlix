@@ -326,12 +326,16 @@ export function useChromecast(): UseChromecastReturn {
 
       console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType);
       
-      // Écouter les erreurs de média
-      mediaSession.addUpdateListener((isAlive: boolean) => {
-        if (!isAlive) {
-          console.error('[Chromecast] La session média n\'est plus active');
-        }
-      });
+      // Écouter les erreurs de média si la session existe
+      if (mediaSession && typeof mediaSession.addUpdateListener === 'function') {
+        mediaSession.addUpdateListener((isAlive: boolean) => {
+          if (!isAlive) {
+            console.error('[Chromecast] La session média n\'est plus active');
+          }
+        });
+      } else {
+        console.warn('[Chromecast] addUpdateListener non disponible sur mediaSession');
+      }
       
     } catch (error) {
       console.error('[Chromecast] Erreur lors du cast:', error);
