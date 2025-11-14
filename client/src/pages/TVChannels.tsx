@@ -10,6 +10,7 @@ import SearchBar from "@/components/SearchBar";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import Hls from "hls.js";
 import ShakaPlayer from "@/components/ShakaPlayer";
+import ChromecastButton from "@/components/ChromecastButton";
 import { apiClient } from "@/lib/apiClient";
 import { useLocation } from "wouter";
 
@@ -697,6 +698,8 @@ export default function TVChannels() {
   const [error, setError] = useState<string | null>(null);
   const [playerType, setPlayerType] = useState<'hls' | 'shaka' | null>(null);
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
+  const [originalStreamUrl, setOriginalStreamUrl] = useState<string | null>(null); // URL originale pour Chromecast
+  const [currentTime, setCurrentTime] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [channelLogos, setChannelLogos] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -871,6 +874,22 @@ export default function TVChannels() {
       }, 200);
     }
   }, [selectedChannel]);
+
+  // Suivi du temps de lecture pour Chromecast
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const handleTimeUpdate = () => {
+      if (videoRef.current) {
+        setCurrentTime(videoRef.current.currentTime);
+      }
+    };
+
+    videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
+    return () => {
+      videoRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [streamUrl, playerType]);
 
   // Fonction pour filtrer les liens selon la plateforme
   const getFilteredLinks = (channel: TVChannel): TVChannelLink[] => {
@@ -1387,7 +1406,25 @@ export default function TVChannels() {
       return;
     }
     
+    // Stocker l'URL originale (non proxy) pour le Chromecast
+    // Si l'URL est un proxy local, on doit utiliser l'URL originale de la chaîne
+    const selectedLink = getFilteredLinks(selectedChannel)[selectedLinkIndex];
+    const originalUrl = selectedLink?.url || streamUrl;
+    
+    // Si streamUrl est un proxy local, utiliser l'URL originale pour le cast
+    const castUrl = (streamUrl.includes('localhost') || streamUrl.includes('127.0.0.1') || streamUrl.includes('/api/tv'))
+      ? originalUrl
+      : streamUrl;
+    
+    console.log(`🎬 [TV CHANNELS] URLs définies:`, { 
+      streamUrl, 
+      originalUrl, 
+      castUrl,
+      isProxy: streamUrl.includes('/api/tv') || streamUrl.includes('localhost')
+    });
+    
     setStreamUrl(streamUrl);
+    setOriginalStreamUrl(castUrl); // URL pour Chromecast
     setPlayerType(detectedPlayerType);
     
     console.log(`🎬 [TV CHANNELS] Type de player et URL définis: ${detectedPlayerType}`);
@@ -1482,6 +1519,21 @@ export default function TVChannels() {
 
                 <Card className="overflow-hidden">
                   <div className="aspect-video bg-black relative">
+                    {/* Bouton Chromecast - En haut à droite */}
+                    {streamUrl && originalStreamUrl && (
+                      <div className="absolute top-4 right-4 z-50">
+                        <ChromecastButton
+                          mediaUrl={originalStreamUrl}
+                          title={selectedChannel.name}
+                          posterUrl={channelLogos[selectedChannel.id]}
+                          currentTime={0}
+                          variant="ghost"
+                          size="icon"
+                          className="bg-black/50 hover:bg-black/70 text-white"
+                        />
+                      </div>
+                    )}
+                    
                     {isLoading && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-white text-xl">Chargement du flux...</div>

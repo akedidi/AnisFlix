@@ -13,6 +13,33 @@ interface ChromecastButtonProps {
   size?: "sm" | "icon" | "lg";
 }
 
+// Fonction pour convertir les URLs localhost en IP locale accessible par Chromecast
+const getAccessibleUrl = (url: string): string => {
+  // Si l'URL contient localhost ou 127.0.0.1, la remplacer par l'IP locale
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    // Utiliser window.location.hostname pour obtenir l'IP ou hostname actuel
+    const currentHost = window.location.hostname;
+    const currentPort = window.location.port || '3000';
+    
+    console.log('[ChromecastButton] Conversion URL localhost:', {
+      original: url,
+      currentHost,
+      currentPort
+    });
+    
+    // Si on est déjà sur une IP locale, l'utiliser
+    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
+      return url.replace(/localhost:?\d*/g, `${currentHost}:${currentPort}`)
+                .replace(/127\.0\.0\.1:?\d*/g, `${currentHost}:${currentPort}`);
+    }
+    
+    // Sinon, avertir l'utilisateur
+    console.warn('[ChromecastButton] URL localhost détectée mais pas d\'IP locale disponible');
+  }
+  
+  return url;
+};
+
 export default function ChromecastButton({
   mediaUrl,
   title,
@@ -40,7 +67,16 @@ export default function ChromecastButton({
   // Si on est déjà connecté et qu'on n'est pas en train de caster, caster automatiquement
   useEffect(() => {
     if (isConnected && !isCasting && mediaUrlRef.current) {
-      cast(mediaUrlRef.current, titleRef.current, posterUrlRef.current, currentTimeRef.current)
+      // Convertir l'URL localhost en IP locale accessible par Chromecast
+      const accessibleUrl = getAccessibleUrl(mediaUrlRef.current);
+      const accessiblePosterUrl = posterUrlRef.current ? getAccessibleUrl(posterUrlRef.current) : undefined;
+      
+      console.log('[ChromecastButton] Cast avec URL accessible:', {
+        original: mediaUrlRef.current,
+        accessible: accessibleUrl
+      });
+      
+      cast(accessibleUrl, titleRef.current, accessiblePosterUrl, currentTimeRef.current)
         .then(() => {
           setIsCasting(true);
         })
