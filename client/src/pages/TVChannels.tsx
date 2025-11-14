@@ -1411,16 +1411,36 @@ export default function TVChannels() {
     const selectedLink = getFilteredLinks(selectedChannel)[selectedLinkIndex];
     const originalUrl = selectedLink?.url || streamUrl;
     
+    // Pour Chromecast, utiliser uniquement les liens HLS (pas MPD)
+    // Si le lien actuel est MPD, chercher un lien HLS alternatif
+    let castUrl = originalUrl;
+    if (selectedLink?.type === 'mpd') {
+      // Chercher un lien HLS alternatif dans la chaîne
+      const hlsLink = selectedChannel.links.find(link => 
+        link.type === 'hls_direct' || link.type === 'hls_segments'
+      );
+      if (hlsLink) {
+        castUrl = hlsLink.url;
+        console.log(`🎬 [TV CHANNELS] MPD détecté, utilisation du lien HLS pour Chromecast: ${castUrl}`);
+      } else {
+        console.warn(`🎬 [TV CHANNELS] Aucun lien HLS disponible pour Chromecast, utilisation de l'URL MPD (peut ne pas fonctionner)`);
+      }
+    }
+    
     // Si streamUrl est un proxy local, utiliser l'URL originale pour le cast
-    const castUrl = (streamUrl.includes('localhost') || streamUrl.includes('127.0.0.1') || streamUrl.includes('/api/tv'))
-      ? originalUrl
-      : streamUrl;
+    if (streamUrl.includes('localhost') || streamUrl.includes('127.0.0.1') || streamUrl.includes('/api/tv')) {
+      // castUrl est déjà défini ci-dessus
+    } else if (streamUrl !== originalUrl) {
+      // Si streamUrl est différent de originalUrl mais n'est pas un proxy local
+      castUrl = originalUrl;
+    }
     
     console.log(`🎬 [TV CHANNELS] URLs définies:`, { 
       streamUrl, 
       originalUrl, 
       castUrl,
-      isProxy: streamUrl.includes('/api/tv') || streamUrl.includes('localhost')
+      isProxy: streamUrl.includes('/api/tv') || streamUrl.includes('localhost'),
+      linkType: selectedLink?.type
     });
     
     setStreamUrl(streamUrl);
