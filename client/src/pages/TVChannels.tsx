@@ -707,12 +707,6 @@ export default function TVChannels() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
-  const filteredLinksForSelectedChannel = useMemo(() => {
-    if (!selectedChannel) return [];
-    return getFilteredLinks(selectedChannel);
-  }, [selectedChannel]);
-
   // Filtrer les chaînes par section et catégorie
   const filteredChannels = TV_CHANNELS.filter(
     channel => channel.section === selectedSection && channel.category === selectedCategory
@@ -924,6 +918,12 @@ export default function TVChannels() {
     console.log(`[FILTER LINKS] Desktop - All links:`, channel.links.map((link, index) => `${index}: ${link.type}`));
     return channel.links;
   };
+
+  // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
+  const filteredLinksForSelectedChannel = useMemo(() => {
+    if (!selectedChannel) return [];
+    return getFilteredLinks(selectedChannel);
+  }, [selectedChannel]);
 
   // Fonction pour sélectionner un lien par index et déterminer le player
   const selectLinkByIndex = (channel: TVChannel, linkIndex: number): { url: string; playerType: 'hls' | 'shaka'; linkType: string } => {
