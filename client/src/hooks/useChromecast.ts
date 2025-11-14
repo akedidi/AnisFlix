@@ -69,7 +69,9 @@ interface UseChromecastReturn {
   showPicker: () => void;
 }
 
-const CAST_APP_ID = 'CC1AD845'; // Default Media Receiver App ID
+// Utiliser le Styled Media Receiver qui supporte DASH, HLS et MP4
+// Ce receiver Google supporte nativement les formats DASH/MPD
+const CAST_APP_ID = '8F0EF7F3'; // Styled Media Receiver (supporte DASH/HLS/MP4)
 
 export function useChromecast(): UseChromecastReturn {
   const [isAvailable, setIsAvailable] = useState(false);
