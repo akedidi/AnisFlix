@@ -108,8 +108,8 @@ export default function VideoPlayer({
         // Si c'est Darkibox, proxifier toutes les requêtes (segments, sous-titres, etc.)
         if (isDarkibox) {
           hlsConfig.xhrSetup = function(xhr: XMLHttpRequest, url: string) {
-            // Ne proxifier que si l'URL n'est pas déjà proxifiée et contient darkibox.com
-            if (!url.includes('/api/darkibox') && url.includes('darkibox.com')) {
+            // Ne proxifier que les URLs externes darkibox.com (pas les URLs déjà proxifiées qui commencent par /api/)
+            if (!url.startsWith('/api/') && !url.startsWith('http://localhost') && url.includes('darkibox.com')) {
               const proxyUrl = `/api/darkibox?url=${encodeURIComponent(url)}`;
               xhr.open('GET', proxyUrl, true);
             }
