@@ -287,8 +287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return `/api/darkibox?url=${encodeURIComponent(url)}`;
             };
             
-            // Réécrire les URLs dans les attributs URI="..." (pour les balises #EXT-X-MEDIA, sous-titres, etc.)
-            playlistContent = playlistContent.replace(/URI="([^"]+\.(m3u8|ts|vtt)[^"]*)"/g, (match, url) => {
+            // Réécrire les URLs dans les attributs URI="..." (pour les balises #EXT-X-MEDIA, etc.)
+            playlistContent = playlistContent.replace(/URI="([^"]+\.(m3u8|ts)[^"]*)"/g, (match, url) => {
               return `URI="${proxifyUrl(url)}"`;
             });
             
@@ -298,25 +298,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Réécrire les URLs qui sont seules sur une ligne (playlists .m3u8)
             playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, proxifyUrl);
             
-            // Réécrire les URLs qui sont seules sur une ligne (sous-titres .vtt)
-            playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.vtt[^\s]*$/gm, proxifyUrl);
-            
             console.log(`[DARKIBOX PROXY] Playlist M3U8 réécrite avec proxy`);
             
             // Retourner la playlist modifiée
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             res.setHeader('Cache-Control', 'no-cache');
             res.end(playlistContent);
-            return;
-          }
-
-          // Pour les fichiers VTT (sous-titres), retourner directement le contenu
-          if (decodedUrl.includes('.vtt')) {
-            console.log(`[DARKIBOX PROXY] Fichier VTT détecté`);
-            res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.end(response.data);
             return;
           }
 
