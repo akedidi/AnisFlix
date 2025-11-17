@@ -11,6 +11,7 @@ import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 
@@ -47,7 +48,7 @@ export default function SeriesGenre() {
   const [, params] = useRoute("/series-genre/:genre");
   const genreSlug = params?.genre || '';
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,11 +105,12 @@ export default function SeriesGenre() {
 
   // Reset page when genre changes
   useEffect(() => {
-    setCurrentPage(1);
+    onPageChange(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreSlug]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -158,18 +160,14 @@ export default function SeriesGenre() {
           </div>
         </div>
 
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{t("series.title")} {genreName}</h1>
-          <p className="text-muted-foreground mb-4 max-w-2xl">
+      {/* Content */}
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">{t("series.title")} {genreName}</h1>
+          <p className="text-muted-foreground max-w-2xl">
             {t("genre.discoverSeries").replace('{genre}', genreName || 'inconnu')}
           </p>
         </div>
-      </div>
-
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">{t("common.loading")}</p>
@@ -210,9 +208,8 @@ export default function SeriesGenre() {
             <p className="text-muted-foreground">{t("genre.noSeriesAvailable").replace('{genre}', genreName || 'inconnu')}</p>
           </div>
         )}
+        </div>
       </div>
-      </div>
-      
     </div>
   );
 }

@@ -144,10 +144,11 @@ export default function CommonLayout({
         showRefreshButton={showRefreshButton}
       />
       
-      {/* Desktop Sidebar */}
-      <DesktopSidebar />
+      {/* Desktop Sidebar - Masqué en mode natif */}
+      {!isNativeMobile && <DesktopSidebar />}
       
-      {/* Header - Fixed on all devices */}
+      {/* Header - Fixed on all devices - Masqué en mode natif */}
+      {!isNativeMobile && (
       <div 
         ref={headerRef}
         className={`bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border fixed top-0 left-0 right-0 z-[1000000] md:left-64 header-ios-safe ${isNativeMobile ? 'native-mobile' : ''}`}
@@ -192,6 +193,7 @@ export default function CommonLayout({
           </div>
         </div>
       </div>
+      )}
 
           {/* Main Content */}
           <div 
@@ -199,6 +201,8 @@ export default function CommonLayout({
             id="main-content-desktop"
             style={{ 
               paddingTop: (() => {
+                // Mode natif : pas de padding top (géré par NativePageWrapper)
+                if (isNativeMobile) return '0';
                 if (headerOffset > 0) return `${100 + headerOffset + 8}px`;
                 const isDesktop = window.innerWidth >= 768;
                 if (isDesktop) return '70px';
@@ -220,7 +224,22 @@ export default function CommonLayout({
               })()
             }}
           >
-            {children}
+            {/* Page Title - Simple style like LatestSeries */}
+            {title && (
+              <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+                <div className="mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    {icon && <div className="text-primary text-2xl md:text-3xl">{icon}</div>}
+                    <h1 className="text-3xl md:text-4xl font-bold">{title}</h1>
+                  </div>
+                </div>
+                {/* Content wrapper with proper padding when title is present */}
+                <div>{children}</div>
+              </div>
+            )}
+            
+            {/* No title: render children directly without extra wrapper */}
+            {!title && children}
           </div>
       
       {/* Mobile Bottom Navigation géré à la racine dans AppWeb */}

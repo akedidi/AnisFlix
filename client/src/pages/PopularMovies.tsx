@@ -5,13 +5,14 @@ import CommonLayout from "@/components/CommonLayout";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { usePopularMovies, useMultiSearch } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { navPaths } from "@/lib/nativeNavigation";
 
 export default function PopularMovies() {
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
   // Fetch data from TMDB
   const { data: moviesData, isLoading: moviesLoading } = usePopularMovies(currentPage);
@@ -30,7 +31,7 @@ export default function PopularMovies() {
   }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

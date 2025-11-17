@@ -118,81 +118,82 @@ export default function ProviderSeriesGenre() {
         setLoading(true);
         setError(null);
         
-        // Mode catalogue complet trié par dernières sorties (exclure le futur)
-        const today = new Date();
-        const fmt = (d: Date) => d.toISOString().slice(0, 10);
-        const firstAirDateLte = fmt(today);
-
-        // Construire l'URL de base avec le provider (HBO Max: inclure Max 1899), tri par date de première diffusion
-        const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
-        let baseUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=flatrate|ads&include_adult=false&include_null_first_air_dates=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
-        
-        // Ajouter le genre seulement s'il est défini
-        if (genreId) {
-          baseUrl += `&with_genres=${genreId}`;
-        }
-        
-        // Essayer plusieurs régions pour avoir plus de contenu (garder la pagination TMDB)
-        const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
         let result: any = null;
-        for (const region of regions) {
+        
+        // Pour Amazon (9) uniquement, utiliser le network filter pour Amazon Originals
+        if (providerId === 9) {
           try {
-            const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
+            const today = new Date();
+            const firstAirDateLte = today.toISOString().slice(0, 10);
+            let url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=1024&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&include_null_first_air_dates=false&include_adult=false&page=${currentPage}`;
+            
+            if (genreId) {
+              url += `&with_genres=${genreId}`;
+            }
+            
             const response = await fetch(url);
             if (response.ok) {
-              const data = await response.json();
-              if (data.results && data.results.length > 0) {
-                result = data; // Retourner les résultats avec pagination TMDB standard
-                break;
-              }
+              result = await response.json();
             }
           } catch (err) {
-            console.log(`Région ${region} échouée, essai suivant...`);
-            continue;
+            console.error('Amazon network filter failed:', err);
           }
         }
         
-        // Si aucune région n'a donné de résultats, essayer sans restriction de région mais toujours avec filtre provider
+        // Pour les autres providers ou si Amazon échoue, utiliser with_watch_providers
         if (!result || !result.results || result.results.length === 0) {
-          let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&include_adult=false&include_null_first_air_dates=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+          // Pour les autres providers, utiliser with_watch_providers
+          const today = new Date();
+          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
+          const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
           
-          // Ajouter le genre seulement s'il est défini
-          if (genreId) {
-            fallbackUrl += `&with_genres=${genreId}`;
-          }
-          
-          const response = await fetch(fallbackUrl);
-          
-          if (response.ok) {
-            result = await response.json();
-          }
-        }
-
-        // Fallback par réseau (Originals) pour certains providers si toujours vide
-        if (!result || !result.results || result.results.length === 0) {
-          const providerNetworkMap: Record<number, string[]> = {
-            8: ['213'],           // Netflix
-            384: ['49','3186'],   // HBO / HBO Max
-            337: ['2739'],        // Disney+
-            350: ['2552'],        // Apple TV+
-            531: ['4330'],        // Paramount+
-          };
-          const networks = providerNetworkMap[providerId] || [];
-          for (const net of networks) {
+          // Essayer chaque région
+          for (const region of regions) {
             try {
-              let netUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=${net}&include_null_first_air_dates=false&include_adult=false&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
-              if (genreId) netUrl += `&with_genres=${genreId}`;
-              const resp = await fetch(netUrl);
-              if (resp.ok) {
-                const data = await resp.json();
-                if (data.results && data.results.length > 0) { result = data; break; }
+              let url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=${region}&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+              
+              if (genreId) {
+                url += `&with_genres=${genreId}`;
               }
-            } catch {}
+              
+              const response = await fetch(url);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  result = data;
+                  break;
+                }
+              }
+            } catch (err) {
+              console.log(`Région ${region} échouée, essai suivant...`);
+              continue;
+            }
+          }
+          
+          // Fallback sans région
+          if (!result || !result.results || result.results.length === 0) {
+            try {
+              let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+              
+              if (genreId) {
+                fallbackUrl += `&with_genres=${genreId}`;
+              }
+              
+              const response = await fetch(fallbackUrl);
+              
+              if (response.ok) {
+                result = await response.json();
+              }
+            } catch (err) {
+              console.error('Fallback failed:', err);
+            }
           }
         }
         
+        // Si toujours vide, retourner résultat vide
         if (!result) {
-          throw new Error('Aucun contenu trouvé');
+          result = { results: [], total_pages: 0, page: 1 };
         }
         
         setData(result);
@@ -222,6 +223,7 @@ export default function ProviderSeriesGenre() {
   // Reset page when genre or provider changes
   useEffect(() => {
     onPageChange(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreSlug, providerId]);
 
   const handlePageChange = (page: number) => {
@@ -277,26 +279,19 @@ export default function ProviderSeriesGenre() {
           </div>
         </div>
 
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
-            {genreSlug 
-              ? `${t("series.title")} ${genreName} ${t("provider.on")} ${providerName}`
-              : `${t("series.title")} ${t("provider.on")} ${providerName}`
-            }
+        {/* Content */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("series.title")}`}
           </h1>
-          <p className="text-muted-foreground mb-4 max-w-2xl">
-            {genreSlug 
-              ? `${t("provider.discoverSeriesPrefix")} ${genreName} ${t("provider.discoverSeriesSuffix")} ${providerName}.`
-              : `${t("provider.discoverSeriesPrefix")} ${t("provider.discoverSeriesSuffix")} ${providerName}.`
-            }
+          <p className="text-muted-foreground max-w-2xl">
+            {genreId 
+              ? t("genre.discoverSeries").replace('{genre}', genreName) 
+              : t("provider.discoverSeries").replace('{provider}', providerName)}
           </p>
         </div>
-      </div>
 
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">{t("common.loading")}</p>
@@ -344,9 +339,8 @@ export default function ProviderSeriesGenre() {
             <p className="text-muted-foreground">{t("provider.noSeriesAvailablePrefix")} {genreName} {t("provider.noSeriesAvailableSuffix")} {providerName}</p>
           </div>
         )}
+        </div>
       </div>
-      </div>
-      
     </div>
   );
 }

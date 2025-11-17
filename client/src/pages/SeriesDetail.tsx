@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
+import { IonPage } from '@ionic/react';
+import NativeHeader from "@/components/NativeHeader";
+import { useRouteParams } from "@/hooks/useRouteParams";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -21,7 +23,7 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 export default function SeriesDetail() {
-  const { id } = useParams();
+  const { id } = useRouteParams<{ id: string }>();
   const { navigate } = useAppNavigation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
@@ -155,7 +157,7 @@ export default function SeriesDetail() {
   if (isLoadingSeries) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
+        <NativeHeader title={t("nav.series")} showBackButton={true} defaultHref="/tabs/home" />
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Chargement de la série...</p>
@@ -182,7 +184,7 @@ export default function SeriesDetail() {
 
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
+      <NativeHeader title={series.name} showBackButton={true} defaultHref="/tabs/home" />
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
             <div className="hidden md:block">

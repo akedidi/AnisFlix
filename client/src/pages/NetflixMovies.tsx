@@ -4,13 +4,14 @@ import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
 
 export default function NetflixMovies() {
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export default function NetflixMovies() {
   }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   

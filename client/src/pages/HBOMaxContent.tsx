@@ -5,12 +5,13 @@ import MediaCard from "@/components/MediaCard";
 import CommonLayout from "@/components/CommonLayout";
 import Pagination from "@/components/Pagination";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useMoviesByProvider, useSeriesByProvider, useMoviesByProviderAndGenre, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
 export default function HBOMaxContent() {
   const { t } = useLanguage();
-    const [currentPage, setCurrentPage] = useState(1);
+    const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const { restoreScrollPosition } = useScrollPosition('hbo-max-content');
   
   // Lire le paramètre tab de l'URL pour déterminer l'onglet actif
@@ -57,13 +58,13 @@ export default function HBOMaxContent() {
   }, [restoreScrollPosition]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleTabChange = (tab: 'movies' | 'series') => {
     setActiveTab(tab);
-    setCurrentPage(1);
+    onPageChange(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   const handleRefresh = () => {

@@ -3,11 +3,13 @@ import { useAppNavigation } from "@/lib/useAppNavigation";
 import HeroSection from "@/components/HeroSection";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
+import NativeHeader from "@/components/NativeHeader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { navPaths } from "@/lib/nativeNavigation";
 import ProviderCard from "@/components/ProviderCard";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { 
   usePopularMovies, 
   useLatestMovies, 
@@ -25,6 +27,11 @@ export default function Home() {
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { navigate } = useAppNavigation();
+  const { isNativeMobile } = useNativeDetection();
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Recherche multi-média pour la search bar native
+  const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
   // Fetch data from TMDB
   const { data: popularMoviesData } = usePopularMovies();
@@ -138,8 +145,31 @@ export default function Home() {
     window.location.reload();
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query && searchResults.length > 0) {
+      // Naviguer vers le premier résultat
+      const firstResult = searchResults[0];
+      const path = firstResult.mediaType === 'movie' 
+        ? navPaths.movie(firstResult.id) 
+        : navPaths.seriesDetail(firstResult.id);
+      navigate(path);
+    }
+  };
+
   return (
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+    <>
+      {/* Native Header avec search bar pour iOS/Android */}
+      {isNativeMobile && (
+        <NativeHeader 
+          title={t("nav.home")}
+          showSearch={true}
+          onSearch={handleSearch}
+          searchPlaceholder={t("search.placeholder")}
+        />
+      )}
+      
+      <CommonLayout showSearch={!isNativeMobile} onRefresh={handleRefresh}>
       <div className="space-y-8 md:space-y-12 -mt-16 md:mt-0" style={{ paddingLeft: 0, paddingRight: 0 }}>
         {popularMovies.length > 0 && (
           <HeroSection
@@ -363,5 +393,6 @@ export default function Home() {
         </div>
         </div>
     </CommonLayout>
+    </>
   );
 }

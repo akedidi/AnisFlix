@@ -112,14 +112,24 @@ export default function ProviderMoviesGenre() {
         setLoading(true);
         setError(null);
         
-        // Limiter au présent (exclure futur), tri dernières sorties
+        // Pour Amazon (9) utiliser popularity, pour les autres utiliser date de sortie
         const today = new Date();
         const releaseDateLte = today.toISOString().slice(0, 10);
 
-        // Construire l'URL selon qu'il y a un genre ou non, tri par date de sortie
+        // Construire l'URL selon le provider
         // HBO Max: inclure Max 1899 également
         const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
-        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
+        const sortBy = providerId === 9 ? 'popularity.desc' : 'release_date.desc';
+        const monetization = providerId === 9 ? 'flatrate' : 'flatrate|ads';
+        
+        // Pour Amazon (9), ne pas filtrer par date. Pour les autres, exclure le futur
+        let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=${monetization}&include_adult=false&sort_by=${sortBy}`;
+        
+        if (providerId !== 9) {
+          baseUrl += `&release_date.lte=${releaseDateLte}`;
+        }
+        
+        baseUrl += `&page=${currentPage}`;
         
         // Ajouter le genre si spécifié
         if (genreId) {
@@ -127,7 +137,7 @@ export default function ProviderMoviesGenre() {
         }
         
         // Essayer plusieurs régions pour avoir plus de contenu
-        const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+        const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
         let result = null;
         
         for (const region of regions) {
@@ -139,7 +149,7 @@ export default function ProviderMoviesGenre() {
               const data = await response.json();
               if (data.results && data.results.length > 0) {
                 result = data;
-                break; // Si on trouve du contenu, on s'arrête
+                break;
               }
             }
           } catch (err) {
@@ -148,9 +158,15 @@ export default function ProviderMoviesGenre() {
           }
         }
         
-        // Si aucune région n'a donné de résultats, essayer sans restriction de région mais toujours avec filtre provider
+        // Fallback sans région mais toujours avec filtre provider
         if (!result || !result.results || result.results.length === 0) {
-          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&include_adult=false&sort_by=release_date.desc&release_date.lte=${releaseDateLte}&page=${currentPage}`;
+          let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=${monetization}&include_adult=false&sort_by=${sortBy}`;
+          
+          if (providerId !== 9) {
+            fallbackUrl += `&release_date.lte=${releaseDateLte}`;
+          }
+          
+          fallbackUrl += `&page=${currentPage}`;
           
           if (genreId) {
             fallbackUrl += `&with_genres=${genreId}`;
@@ -193,7 +209,8 @@ export default function ProviderMoviesGenre() {
 
   // Reset page when genre or provider changes
   useEffect(() => {
-    setCurrentPage(1);
+    onPageChange(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [genreSlug, providerId]);
 
   const handlePageChange = (page: number) => {
@@ -249,20 +266,18 @@ export default function ProviderMoviesGenre() {
           </div>
         </div>
 
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
-            {genreName ? `${t("movies.title")} ${genreName} ${t("provider.on")} ${providerName}` : `${t("movies.title")} ${t("provider.on")} ${providerName}`}
+        {/* Content */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("movies.title")}`}
           </h1>
-          <p className="text-muted-foreground mb-4 max-w-2xl">
-            {t("provider.discoverMoviesPrefix")} {genreName} {t("provider.discoverMoviesSuffix")} {providerName}.
+          <p className="text-muted-foreground max-w-2xl">
+            {genreId 
+              ? t("genre.discoverMovies").replace('{genre}', genreName) 
+              : t("provider.discoverMovies").replace('{provider}', providerName)}
           </p>
         </div>
-      </div>
-
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">{t("common.loading")}</p>
@@ -310,9 +325,8 @@ export default function ProviderMoviesGenre() {
             <p className="text-muted-foreground">{t("provider.noMoviesAvailablePrefix")} {genreName} {t("provider.noMoviesAvailableSuffix")} {providerName}</p>
           </div>
         )}
+        </div>
       </div>
-      </div>
-      
     </div>
   );
 }

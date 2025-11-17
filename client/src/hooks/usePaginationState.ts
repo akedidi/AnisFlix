@@ -107,20 +107,13 @@ export function usePaginationState(key?: string, initialPage = 1) {
       };
       window.addEventListener('beforeunload', handleBeforeUnload);
       
-      // Update URL without adding history entry
+      // Update URL without adding history entry - ALWAYS show page number
       try {
         const url = new URL(window.location.href);
         const currentPageParam = url.searchParams.get('page');
-        if (page === 1) {
-          if (currentPageParam) {
-            url.searchParams.delete('page');
-            window.history.replaceState({ ...window.history.state, __page: page }, document.title, url.toString());
-          }
-        } else {
-          if (currentPageParam !== String(page)) {
-            url.searchParams.set('page', String(page));
-            window.history.replaceState({ ...window.history.state, __page: page }, document.title, url.toString());
-          }
+        if (currentPageParam !== String(page)) {
+          url.searchParams.set('page', String(page));
+          window.history.replaceState({ ...window.history.state, __page: page }, document.title, url.toString());
         }
       } catch (err) {
         console.error('[PaginationState] Error updating URL:', err);
@@ -151,12 +144,17 @@ export function usePaginationState(key?: string, initialPage = 1) {
         urlPage
       });
       
-      // If URL has page param, use it
-      if (urlPage !== initialPage && urlPage !== page) {
-        console.log('[PaginationState] ✅ PopState: Restoring from URL:', { from: page, to: urlPage });
-        setPage(urlPage);
-      } else if (urlPage === initialPage) {
-        // If URL has no page param, try localStorage
+      // Always check if URL has page param (even if it's page 1)
+      const hasPageParam = new URLSearchParams(window.location.search).has('page');
+      
+      if (hasPageParam) {
+        // If URL has explicit page param, always use it (even if it's the same as current)
+        if (urlPage !== page) {
+          console.log('[PaginationState] ✅ PopState: Restoring from URL:', { from: page, to: urlPage });
+          setPage(urlPage);
+        }
+      } else {
+        // No page param in URL, try localStorage
         const store = readStorage();
         console.log('[PaginationState] 🔍 PopState: checking localStorage:', { routeKey: currentRouteKey, fullStore: store });
         const stored = store[currentRouteKey];
@@ -216,13 +214,15 @@ export function usePaginationState(key?: string, initialPage = 1) {
     if (typeof window !== 'undefined') {
       try {
         const url = new URL(window.location.href);
-        if (next === 1) {
-          url.searchParams.delete('page');
-        } else {
-          url.searchParams.set('page', String(next));
-        }
-        // Push state to create history entry for back button
+        // ALWAYS set page parameter, even for page 1
+        url.searchParams.set('page', String(next));
+        
+        // Use pushState and dispatch popstate to notify wouter
         window.history.pushState({ ...window.history.state, __page: next }, document.title, url.toString());
+        
+        // Dispatch popstate event to notify wouter and other listeners
+        window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
+        
         console.log('[PaginationState] Pushed to history:', url.toString());
       } catch (err) {
         console.error('[PaginationState] Error pushing to history:', err);

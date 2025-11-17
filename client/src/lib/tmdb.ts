@@ -280,7 +280,7 @@ export const tmdb = {
 
   // Discover by provider
   discoverMoviesByProvider: async (providerId: number, page = 1) => {
-    // Récentes sorties (90 jours) et exclure le futur
+    // Récentes sorties et exclure le futur
     const today = new Date();
     const releaseDateLte = today.toISOString().slice(0, 10);
 
@@ -294,8 +294,8 @@ export const tmdb = {
           watch_region: region,
           with_watch_monetization_types: getMonetizationForProvider(providerId),
           include_adult: 'false',
-          sort_by: providerId === 9 ? 'popularity.desc' : 'release_date.desc',
-          ...(providerId === 9 ? {} : { 'release_date.lte': releaseDateLte }),
+          sort_by: 'release_date.desc',
+          'release_date.lte': releaseDateLte,
           page: page.toString(),
         } as any);
         
@@ -314,8 +314,8 @@ export const tmdb = {
         with_watch_providers: expandProviderFilter(providerId),
         with_watch_monetization_types: getMonetizationForProvider(providerId),
         include_adult: 'false',
-        sort_by: providerId === 9 ? 'popularity.desc' : 'release_date.desc',
-        ...(providerId === 9 ? {} : { 'release_date.lte': releaseDateLte }),
+        sort_by: 'release_date.desc',
+        'release_date.lte': releaseDateLte,
         page: page.toString(),
       } as any);
     } catch (err) {
@@ -325,12 +325,29 @@ export const tmdb = {
   },
 
   discoverSeriesByProvider: async (providerId: number, page = 1) => {
-    // Catalogue complet trié par dernières sorties (exclure le futur)
+    // Pour Amazon (9) uniquement, utiliser le network filter pour avoir les Amazon Originals
+    if (providerId === 9) {
+      try {
+        const today = new Date();
+        const firstAirDateLte = today.toISOString().slice(0, 10);
+        return await tmdbFetch('/discover/tv', {
+          with_networks: '1024', // Amazon Studios
+          sort_by: 'first_air_date.desc',
+          'first_air_date.lte': firstAirDateLte,
+          include_null_first_air_dates: 'false',
+          include_adult: 'false',
+          page: page.toString(),
+        } as any);
+      } catch (err) {
+        console.error('Amazon network filter failed:', err);
+        return { results: [], total_pages: 0, page: 1 };
+      }
+    }
+
+    // Pour les autres providers, utiliser with_watch_providers
     const today = new Date();
     const firstAirDateLte = today.toISOString().slice(0, 10);
-
-    // Essayer plusieurs régions pour avoir plus de contenu (garder la pagination TMDB standard)
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
     
     for (const region of regions) {
       try {
@@ -338,15 +355,15 @@ export const tmdb = {
           with_watch_providers: expandProviderFilter(providerId),
           watch_region: region,
           with_watch_monetization_types: getMonetizationForProvider(providerId),
-          sort_by: providerId === 9 ? 'popularity.desc' : 'first_air_date.desc',
+          sort_by: 'first_air_date.desc',
           include_null_first_air_dates: 'false',
           include_adult: 'false',
-          ...(providerId === 9 ? {} : { first_air_date_lte: firstAirDateLte }),
+          first_air_date_lte: firstAirDateLte,
           page: page.toString(),
         } as any);
 
         if (data.results && data.results.length > 0) {
-          return data; // Retourner les résultats avec pagination TMDB standard
+          return data;
         }
       } catch (err) {
         console.log(`Région ${region} échouée pour séries provider, essai suivant...`);
@@ -354,54 +371,20 @@ export const tmdb = {
       }
     }
 
-    // Fallback sans région mais toujours avec filtre provider
+    // Fallback sans région
     try {
-      const fallback = await tmdbFetch('/discover/tv', {
+      return await tmdbFetch('/discover/tv', {
         with_watch_providers: expandProviderFilter(providerId),
         with_watch_monetization_types: getMonetizationForProvider(providerId),
-        sort_by: providerId === 9 ? 'popularity.desc' : 'first_air_date.desc',
+        sort_by: 'first_air_date.desc',
         include_null_first_air_dates: 'false',
         include_adult: 'false',
-        ...(providerId === 9 ? {} : { first_air_date_lte: firstAirDateLte }),
+        first_air_date_lte: firstAirDateLte,
         page: page.toString(),
       } as any);
-      if (fallback.results && fallback.results.length > 0) return fallback;
-    } catch {}
-
-    // Fallback par réseau pour certains providers (meilleure couverture des Originals)
-    const providerNetworkMap: Record<number, string[]> = {
-      8: ['213'],           // Netflix
-      9: ['1024'],          // Amazon (Prime Video Originals)
-      384: ['49','3186'],   // HBO (49), HBO Max (3186)
-      337: ['2739'],        // Disney+
-      350: ['2552'],        // Apple TV+
-      531: ['4330'],        // Paramount+
-    };
-    const networks = providerNetworkMap[providerId];
-    if (networks && networks.length) {
-      // Essayer chaque réseau jusqu'à trouver des résultats (garder pagination TMDB)
-      for (const net of networks) {
-        try {
-          const byNetwork = await tmdbFetch('/discover/tv', {
-            with_networks: net,
-            sort_by: 'first_air_date.desc',
-            include_null_first_air_dates: 'false',
-            include_adult: 'false',
-            first_air_date_lte: firstAirDateLte,
-            page: page.toString(),
-          } as any);
-          if (byNetwork.results && byNetwork.results.length > 0) return byNetwork;
-        } catch {}
-      }
+    } catch (err) {
+      return { results: [], total_pages: 0, page: 1 };
     }
-
-    // Dernier recours: popular
-    return await tmdbFetch('/discover/tv', {
-      with_watch_providers: expandProviderFilter(providerId),
-      with_watch_monetization_types: getMonetizationForProvider(providerId),
-      sort_by: 'popularity.desc',
-      page: page.toString(),
-    } as any);
   },
 
   // Discover by provider + genre with fallback logic

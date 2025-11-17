@@ -2,14 +2,20 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
+import NativeHeader from "@/components/NativeHeader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
+import { useNativeDetection } from "@/hooks/useNativeDetection";
+import { navPaths } from "@/lib/nativeNavigation";
+import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function Series() {
   const { t } = useLanguage();
   const { restoreScrollPosition } = useScrollPosition('series');
   const [, setLocation] = useLocation();
+  const { navigate } = useAppNavigation();
+  const { isNativeMobile } = useNativeDetection();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: searchResults = [] } = useMultiSearch(searchQuery);
   
@@ -51,8 +57,29 @@ export default function Series() {
     window.location.reload();
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query && searchResults.length > 0) {
+      const firstResult = searchResults[0];
+      const path = firstResult.mediaType === 'movie' 
+        ? navPaths.movie(firstResult.id) 
+        : navPaths.seriesDetail(firstResult.id);
+      navigate(path);
+    }
+  };
+
   return (
-    <CommonLayout showSearch={true} onRefresh={handleRefresh}>
+    <>
+      {isNativeMobile && (
+        <NativeHeader 
+          title={t("nav.series")}
+          showSearch={true}
+          onSearch={handleSearch}
+          searchPlaceholder={t("search.placeholder")}
+        />
+      )}
+      
+      <CommonLayout showSearch={!isNativeMobile} onRefresh={handleRefresh}>
       
 
           <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 space-y-8 md:space-y-12 mt-2 md:mt-0">
@@ -114,5 +141,6 @@ export default function Series() {
           </div>
       
     </CommonLayout>
+    </>
   );
 }

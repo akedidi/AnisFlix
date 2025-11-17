@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { IonPage } from '@ionic/react';
+import NativeHeader from "@/components/NativeHeader";
+import { useRouteParams } from "@/hooks/useRouteParams";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, X, Heart } from "lucide-react";
@@ -22,7 +24,7 @@ import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function MovieDetail() {
-  const { id } = useParams();
+  const { id } = useRouteParams<{ id: string }>();
   const movieId = parseInt(id || "0");
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
@@ -331,7 +333,7 @@ export default function MovieDetail() {
   if (isLoadingMovie) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
+        <NativeHeader title={t("nav.movies")} showBackButton={true} defaultHref="/tabs/home" />
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Chargement du film...</p>
@@ -360,7 +362,7 @@ export default function MovieDetail() {
   // Main content
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
+      <NativeHeader title={movie.title} showBackButton={true} defaultHref="/tabs/home" />
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
             <div className="hidden md:block">

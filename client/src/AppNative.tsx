@@ -2,6 +2,8 @@ import { IonApp, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, IonRouterO
 import { IonReactRouter } from '@ionic/react-router';
 import { Route, Redirect } from 'react-router-dom';
 import { home, film, tv, radio, heart, settings } from 'ionicons/icons';
+import { SplashScreen } from '@capacitor/splash-screen';
+import { useEffect } from 'react';
 import NativePageWrapper from '@/components/NativePageWrapper';
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { useOffline } from "@/hooks/useOffline";
@@ -68,11 +70,18 @@ import SeriesGenre from "@/pages/SeriesGenre";
  * @param Component - Le composant de page à wrapper
  * @param enableRefresh - Activer le pull-to-refresh (true pour listes, false pour détails)
  */
-const wrapPage = (Component: any, enableRefresh: boolean = true) => (props: any) => (
-  <NativePageWrapper enableRefresh={enableRefresh}>
-    <Component {...props} />
-  </NativePageWrapper>
-);
+const wrapPage = (Component: any, enableRefresh: boolean = true) => {
+  const WrappedComponent = (props: any) => {
+    console.log('📄 [wrapPage] Rendering component:', Component.name || 'Anonymous', { enableRefresh });
+    return (
+      <NativePageWrapper enableRefresh={enableRefresh}>
+        <Component {...props} />
+      </NativePageWrapper>
+    );
+  };
+  WrappedComponent.displayName = `Wrapped(${Component.name || 'Component'})`;
+  return WrappedComponent;
+};
 
 /**
  * TabsContainer - Composant qui gère l'architecture Shell Ionic
@@ -84,71 +93,68 @@ function TabsContainer() {
 
   return (
     <IonTabs>
-      <IonRouterOutlet>
+      <IonRouterOutlet id="main">
         {/* Tabs principales avec routes imbriquées sous /tabs - AVEC refresh */}
-        <Route exact path="/tabs/home" component={wrapPage(Home, true)} />
-        <Route exact path="/tabs/movies" component={wrapPage(Movies, true)} />
-        <Route exact path="/tabs/series" component={wrapPage(Series, true)} />
-        <Route exact path="/tabs/tv-channels" component={wrapPage(TVChannels, true)} />
-        <Route exact path="/tabs/favorites" component={wrapPage(Favorites, true)} />
-        <Route exact path="/tabs/settings" component={wrapPage(Settings, false)} />
+        <Route exact path="/tabs/home" render={() => wrapPage(Home, true)({})} />
+        <Route exact path="/tabs/movies" render={() => wrapPage(Movies, true)({})} />
+        <Route exact path="/tabs/series" render={() => wrapPage(Series, true)({})} />
+        <Route exact path="/tabs/tv-channels" render={() => wrapPage(TVChannels, true)({})} />
+        <Route exact path="/tabs/favorites" render={() => wrapPage(Favorites, true)({})} />
+        <Route exact path="/tabs/settings" render={() => wrapPage(Settings, false)({})} />
 
         {/* Routes de détail - SANS refresh (navigation push/pop) */}
-        <Route exact path="/tabs/movie/:id" component={wrapPage(MovieDetail, false)} />
-        <Route exact path="/tabs/series/:id" component={wrapPage(SeriesDetail, false)} />
+        <Route exact path="/tabs/movie/:id" render={(props) => wrapPage(MovieDetail, false)(props)} />
+        <Route exact path="/tabs/series/:id" render={(props) => wrapPage(SeriesDetail, false)(props)} />
 
         {/* Latest & Popular - AVEC refresh */}
-        <Route exact path="/tabs/latest-movies" component={wrapPage(LatestMovies, true)} />
-        <Route exact path="/tabs/latest-series" component={wrapPage(LatestSeries, true)} />
-        <Route exact path="/tabs/popular-movies" component={wrapPage(PopularMovies, true)} />
-        <Route exact path="/tabs/popular-series" component={wrapPage(PopularSeries, true)} />
+        <Route exact path="/tabs/latest-movies" render={() => wrapPage(LatestMovies, true)({})} />
+        <Route exact path="/tabs/latest-series" render={() => wrapPage(LatestSeries, true)({})} />
+        <Route exact path="/tabs/popular-movies" render={() => wrapPage(PopularMovies, true)({})} />
+        <Route exact path="/tabs/popular-series" render={() => wrapPage(PopularSeries, true)({})} />
 
         {/* Anime routes - AVEC refresh */}
-        <Route exact path="/tabs/anime-movies-latest" component={wrapPage(AnimeMoviesLatest, true)} />
-        <Route exact path="/tabs/anime-movies-popular" component={wrapPage(AnimeMoviesPopular, true)} />
-        <Route exact path="/tabs/anime-series-latest" component={wrapPage(AnimeSeriesLatest, true)} />
-        <Route exact path="/tabs/anime-series-popular" component={wrapPage(AnimeSeriesPopular, true)} />
+        <Route exact path="/tabs/anime-movies-latest" render={() => wrapPage(AnimeMoviesLatest, true)({})} />
+        <Route exact path="/tabs/anime-movies-popular" render={() => wrapPage(AnimeMoviesPopular, true)({})} />
+        <Route exact path="/tabs/anime-series-latest" render={() => wrapPage(AnimeSeriesLatest, true)({})} />
+        <Route exact path="/tabs/anime-series-popular" render={() => wrapPage(AnimeSeriesPopular, true)({})} />
 
         {/* Netflix routes - AVEC refresh */}
-        <Route exact path="/tabs/netflix-movies" component={wrapPage(NetflixMovies, true)} />
-        <Route exact path="/tabs/netflix-series" component={wrapPage(NetflixSeries, true)} />
+        <Route exact path="/tabs/netflix-movies" render={() => wrapPage(NetflixMovies, true)({})} />
+        <Route exact path="/tabs/netflix-series" render={() => wrapPage(NetflixSeries, true)({})} />
 
         {/* Amazon routes - AVEC refresh */}
-        <Route exact path="/tabs/amazon-movies" component={wrapPage(AmazonMovies, true)} />
-        <Route exact path="/tabs/amazon-series" component={wrapPage(AmazonSeries, true)} />
+        <Route exact path="/tabs/amazon-movies" render={() => wrapPage(AmazonMovies, true)({})} />
+        <Route exact path="/tabs/amazon-series" render={() => wrapPage(AmazonSeries, true)({})} />
 
         {/* Apple TV routes - AVEC refresh */}
-        <Route exact path="/tabs/apple-tv-movies" component={wrapPage(AppleTVMovies, true)} />
-        <Route exact path="/tabs/apple-tv-series" component={wrapPage(AppleTVSeries, true)} />
+        <Route exact path="/tabs/apple-tv-movies" render={() => wrapPage(AppleTVMovies, true)({})} />
+        <Route exact path="/tabs/apple-tv-series" render={() => wrapPage(AppleTVSeries, true)({})} />
 
         {/* Disney+ routes - AVEC refresh */}
-        <Route exact path="/tabs/disney-movies" component={wrapPage(DisneyMovies, true)} />
-        <Route exact path="/tabs/disney-series" component={wrapPage(DisneySeries, true)} />
+        <Route exact path="/tabs/disney-movies" render={() => wrapPage(DisneyMovies, true)({})} />
+        <Route exact path="/tabs/disney-series" render={() => wrapPage(DisneySeries, true)({})} />
 
         {/* HBO Max routes - AVEC refresh */}
-        <Route exact path="/tabs/hbo-max-movies" component={wrapPage(HBOMaxMovies, true)} />
-        <Route exact path="/tabs/hbo-max-series" component={wrapPage(HBOMaxSeries, true)} />
+        <Route exact path="/tabs/hbo-max-movies" render={() => wrapPage(HBOMaxMovies, true)({})} />
+        <Route exact path="/tabs/hbo-max-series" render={() => wrapPage(HBOMaxSeries, true)({})} />
 
         {/* Paramount routes - AVEC refresh */}
-        <Route exact path="/tabs/paramount-movies" component={wrapPage(ParamountMovies, true)} />
-        <Route exact path="/tabs/paramount-series" component={wrapPage(ParamountSeries, true)} />
+        <Route exact path="/tabs/paramount-movies" render={() => wrapPage(ParamountMovies, true)({})} />
+        <Route exact path="/tabs/paramount-series" render={() => wrapPage(ParamountSeries, true)({})} />
 
         {/* Provider Detail routes - SANS refresh (pages de détail) */}
-        <Route exact path="/tabs/provider/:id" component={wrapPage(ProviderDetail, false)} />
-        <Route exact path="/tabs/provider/:id/movies/:genre?" component={wrapPage(ProviderMoviesGenre, true)} />
-        <Route exact path="/tabs/provider/:id/series/:genre?" component={wrapPage(ProviderSeriesGenre, true)} />
+        <Route exact path="/tabs/provider/:id" render={(props) => wrapPage(ProviderDetail, false)(props)} />
+        <Route exact path="/tabs/provider/:id/movies/:genre?" render={(props) => wrapPage(ProviderMoviesGenre, true)(props)} />
+        <Route exact path="/tabs/provider/:id/series/:genre?" render={(props) => wrapPage(ProviderSeriesGenre, true)(props)} />
 
         {/* Genre routes - AVEC refresh */}
-        <Route exact path="/tabs/movies-genre/:genre" component={wrapPage(MoviesGenre, true)} />
-        <Route exact path="/tabs/series-genre/:genre" component={wrapPage(SeriesGenre, true)} />
+        <Route exact path="/tabs/movies-genre/:genre" render={(props) => wrapPage(MoviesGenre, true)(props)} />
+        <Route exact path="/tabs/series-genre/:genre" render={(props) => wrapPage(SeriesGenre, true)(props)} />
 
         {/* Redirect /tabs vers /tabs/home par défaut */}
         <Route exact path="/tabs">
           <Redirect to="/tabs/home" />
         </Route>
-        
-        {/* Route 404 - SANS refresh */}
-        <Route path="/tabs/*" component={wrapPage(NotFound, false)} />
       </IonRouterOutlet>
       
       {/* IonTabBar natif - en bas avec safe area */}
@@ -208,21 +214,21 @@ function TabsContainer() {
  * Utilise Ionic Shell Architecture avec tabs imbriqués sous /tabs
  */
 export default function AppNative() {
+  console.log('[App] Platform detection:', { hasCapacitor: true, platform: 'ios', isNative: true });
   console.log('🚀 [AppNative] Rendering Native App with Shell Architecture');
+  
+  // Masquer le SplashScreen au lancement
+  useEffect(() => {
+    SplashScreen.hide();
+  }, []);
   
   return (
     <IonApp>
       <IonReactRouter>
-        {/* Route parent pour les tabs */}
         <Route path="/tabs" component={TabsContainer} />
-        
-        {/* Redirect root vers /tabs/home */}
         <Route exact path="/">
           <Redirect to="/tabs/home" />
         </Route>
-        
-        {/* Toute autre route 404 - en dehors des tabs, SANS refresh */}
-        <Route path="*" component={wrapPage(NotFound, false)} />
       </IonReactRouter>
     </IonApp>
   );

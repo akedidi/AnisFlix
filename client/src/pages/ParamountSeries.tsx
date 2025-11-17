@@ -10,6 +10,7 @@ import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useSeriesByProvider, useSeriesByProviderAndGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 import { navPaths } from "@/lib/nativeNavigation";
@@ -29,7 +30,7 @@ export default function ParamountSeries() {
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const { restoreScrollPosition } = useScrollPosition('paramount-series');
 
   // Fetch data from TMDB - Only Paramount+ series
@@ -81,11 +82,11 @@ export default function ParamountSeries() {
 
   // Reset page when search changes
   useEffect(() => {
-    setCurrentPage(1);
+    onPageChange(1);
   }, [searchQuery]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

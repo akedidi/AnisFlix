@@ -9,6 +9,7 @@ import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
 import ContinueWatching from "@/components/ContinueWatching";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useMoviesByProvider, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 
@@ -25,7 +26,7 @@ type TransformedMedia = {
 export default function NetflixMoviesSimple() {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const { restoreScrollPosition } = useScrollPosition('netflix-movies-simple');
 
   // Fetch data from TMDB - Only Netflix movies (simplified)
@@ -55,11 +56,11 @@ export default function NetflixMoviesSimple() {
 
   // Reset page when search changes
   useEffect(() => {
-    setCurrentPage(1);
+    onPageChange(1);
   }, [searchQuery]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

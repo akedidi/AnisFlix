@@ -13,28 +13,26 @@ interface ChromecastButtonProps {
   size?: "sm" | "icon" | "lg";
 }
 
-// Fonction pour convertir les URLs localhost en IP locale accessible par Chromecast
+// Fonction pour convertir les URLs en URLs accessibles par Chromecast
 const getAccessibleUrl = (url: string): string => {
-  // Si l'URL contient localhost ou 127.0.0.1, la remplacer par l'IP locale
-  if (url.includes('localhost') || url.includes('127.0.0.1')) {
-    // Utiliser window.location.hostname pour obtenir l'IP ou hostname actuel
-    const currentHost = window.location.hostname;
-    const currentPort = window.location.port || '3000';
-    
-    console.log('[ChromecastButton] Conversion URL localhost:', {
+  // Si c'est une URL API relative, utiliser Vercel
+  if (url.startsWith('/api/')) {
+    const vercelUrl = `https://anisflix.vercel.app${url}`;
+    console.log('[ChromecastButton] ✅ URL API convertie pour Chromecast:', {
       original: url,
-      currentHost,
-      currentPort
+      vercel: vercelUrl
     });
-    
-    // Si on est déjà sur une IP locale, l'utiliser
-    if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-      return url.replace(/localhost:?\d*/g, `${currentHost}:${currentPort}`)
-                .replace(/127\.0\.0\.1:?\d*/g, `${currentHost}:${currentPort}`);
-    }
-    
-    // Sinon, avertir l'utilisateur
-    console.warn('[ChromecastButton] URL localhost détectée mais pas d\'IP locale disponible');
+    return vercelUrl;
+  }
+  
+  // Si l'URL contient localhost ou 127.0.0.1, utiliser Vercel
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    const vercelUrl = url.replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, 'https://anisflix.vercel.app');
+    console.log('[ChromecastButton] ✅ URL localhost convertie pour Chromecast:', {
+      original: url,
+      vercel: vercelUrl
+    });
+    return vercelUrl;
   }
   
   return url;

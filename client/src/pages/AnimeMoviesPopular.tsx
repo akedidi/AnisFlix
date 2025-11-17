@@ -4,13 +4,14 @@ import { Star, Heart } from "lucide-react";
 import CommonLayout from "@/components/CommonLayout";
 import Pagination from "@/components/Pagination";
 import { useMoviesByGenre } from "@/hooks/useTMDB";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function AnimeMoviesPopular() {
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
   const { navigate } = useAppNavigation();
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -31,7 +32,7 @@ export default function AnimeMoviesPopular() {
   }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   

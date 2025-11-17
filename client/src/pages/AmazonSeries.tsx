@@ -33,16 +33,67 @@ export default function AmazonSeries() {
         setLoading(true);
         setError(null);
         
-        // Exclure le futur, trier par dernières sorties
-        const today = new Date();
-        const firstAirDateLte = today.toISOString().slice(0, 10);
-
-        const url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&watch_region=US&with_watch_monetization_types=flatrate&include_adult=false&include_null_first_air_dates=false&sort_by=popularity.desc&page=${currentPage}`;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        let result: any = null;
+        
+        // Essayer d'abord avec le network filter pour Amazon Originals
+        try {
+          const today = new Date();
+          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=1024&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&include_null_first_air_dates=false&include_adult=false&page=${currentPage}`;
+          
+          const response = await fetch(url);
+          if (response.ok) {
+            result = await response.json();
+          }
+        } catch (err) {
+          console.error('Amazon network filter failed:', err);
         }
-        const result = await response.json();
+        
+        // Si échec, essayer avec with_watch_providers et plusieurs régions
+        if (!result || !result.results || result.results.length === 0) {
+          const today = new Date();
+          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+          
+          // Essayer chaque région
+          for (const region of regions) {
+            try {
+              const url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&watch_region=${region}&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+              
+              const response = await fetch(url);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                  result = data;
+                  break;
+                }
+              }
+            } catch (err) {
+              console.log(`Région ${region} échouée, essai suivant...`);
+              continue;
+            }
+          }
+          
+          // Fallback sans région
+          if (!result || !result.results || result.results.length === 0) {
+            try {
+              const fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=9&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
+              
+              const response = await fetch(fallbackUrl);
+              if (response.ok) {
+                result = await response.json();
+              }
+            } catch (err) {
+              console.error('Fallback failed:', err);
+            }
+          }
+        }
+        
+        // Si toujours vide, retourner résultat vide
+        if (!result) {
+          result = { results: [], total_pages: 0, page: 1 };
+        }
+        
         setData(result);
       } catch (err) {
         console.error('❌ Erreur:', err);
@@ -100,18 +151,15 @@ export default function AmazonSeries() {
           </div>
         </div>
 
-      {/* Header */}
-      <div className="relative bg-gradient-to-b from-primary/20 to-background pt-20 md:pt-20">
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Séries Amazon Prime</h1>
-          <p className="text-muted-foreground mb-4 max-w-2xl">
-            Découvrez les séries disponibles sur Amazon Prime Video.
-          </p>
-        </div>
-      </div>
+        {/* Content */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">Séries Amazon Prime</h1>
+            <p className="text-muted-foreground max-w-2xl">
+              Découvrez les séries disponibles sur Amazon Prime Video.
+            </p>
+          </div>
 
-      {/* Contenu paginé */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-24 md:pb-8 md:py-8">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">Chargement...</p>
@@ -156,12 +204,11 @@ export default function AmazonSeries() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Aucune série Amazon Prime disponible</p>
+            <p className="text-muted-foreground">Aucune série Amazon Prime Video disponible</p>
           </div>
         )}
+        </div>
       </div>
-      </div>
-      
     </div>
   );
 }

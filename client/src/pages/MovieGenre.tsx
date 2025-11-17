@@ -10,6 +10,7 @@ import Pagination from "@/components/Pagination";
 import DesktopSidebar from "@/components/DesktopSidebar";
 
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { usePaginationState } from "@/hooks/usePaginationState";
 import { useMoviesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 
 // Mapping des genres
@@ -55,7 +56,7 @@ export default function MovieGenre() {
   const { genre } = useParams();
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const { page: currentPage, onPageChange } = usePaginationState(undefined, 1);
 
   const genreId = GENRE_IDS[genre || ""];
   const genreName = GENRE_NAMES[genre || ""] || genre;
@@ -89,7 +90,7 @@ export default function MovieGenre() {
   }, []);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    onPageChange(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -172,9 +173,8 @@ export default function MovieGenre() {
             <p className="text-muted-foreground">Aucun film {genreName?.toLowerCase() || 'inconnu'} disponible</p>
           </div>
         )}
+        </div>
       </div>
-      </div>
-      
     </div>
   );
 }

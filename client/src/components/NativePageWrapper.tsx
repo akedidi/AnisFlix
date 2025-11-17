@@ -6,7 +6,7 @@ interface NativePageWrapperProps {
   children: ReactNode;
   onRefresh?: () => Promise<void> | void;
   enableRefresh?: boolean; // Activer/désactiver le refresh (par défaut: true pour listes, false pour détails)
-  fullscreen?: boolean; // Mode plein écran (par défaut: true)
+  fullscreen?: boolean; // Mode plein écran (par défaut: false pour respecter safe-area)
 }
 
 /**
@@ -18,7 +18,7 @@ export default function NativePageWrapper({
   children, 
   onRefresh, 
   enableRefresh = true,
-  fullscreen = true 
+  fullscreen = false 
 }: NativePageWrapperProps) {
   console.log('✅ [NativePageWrapper] Rendering page wrapper', { enableRefresh, fullscreen });
   const { t } = useLanguage();
@@ -43,7 +43,7 @@ export default function NativePageWrapper({
 
   return (
     <IonPage>
-      <IonContent fullscreen={fullscreen}>
+      <IonContent fullscreen={false}>
         {/* Pull to refresh sur natif - uniquement si activé */}
         {enableRefresh && (
           <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
@@ -55,11 +55,11 @@ export default function NativePageWrapper({
           </IonRefresher>
         )}
         
-        {/* Contenu de la page avec safe-area top et bottom */}
+        {/* Contenu de la page avec safe-area pour encoche et TabBar */}
         <div style={{
-          minHeight: '100vh',
-          paddingTop: 'env(safe-area-inset-top, 20px)',
-          paddingBottom: 'calc(70px + env(safe-area-inset-bottom, 20px))'
+          minHeight: '100%',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'calc(60px + env(safe-area-inset-bottom))'
         }}>
           {children}
         </div>

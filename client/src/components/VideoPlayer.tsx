@@ -91,7 +91,8 @@ export default function VideoPlayer({
     if (detectedType === "m3u8") {
       // Vérifier si c'est une URL Darkibox et utiliser l'ancienne API
       let finalSrc = src;
-      if (src.includes('darkibox.com')) {
+      const isDarkibox = src.includes('darkibox.com');
+      if (isDarkibox) {
         finalSrc = `/api/darkibox?url=${encodeURIComponent(src)}`;
         console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation de l\'API legacy:', finalSrc);
       }
@@ -99,10 +100,23 @@ export default function VideoPlayer({
       
       // Lecture HLS
       if (Hls.isSupported()) {
-        const hls = new Hls({
+        const hlsConfig: any = {
           enableWorker: true,
           lowLatencyMode: false,
-        });
+        };
+        
+        // Si c'est Darkibox, proxifier toutes les requêtes (segments, sous-titres, etc.)
+        if (isDarkibox) {
+          hlsConfig.xhrSetup = function(xhr: XMLHttpRequest, url: string) {
+            // Ne proxifier que si l'URL n'est pas déjà proxifiée et contient darkibox.com
+            if (!url.includes('/api/darkibox') && url.includes('darkibox.com')) {
+              const proxyUrl = `/api/darkibox?url=${encodeURIComponent(url)}`;
+              xhr.open('GET', proxyUrl, true);
+            }
+          };
+        }
+        
+        const hls = new Hls(hlsConfig);
         hlsRef.current = hls;
         hls.loadSource(finalSrc);
         hls.attachMedia(video);

@@ -17,6 +17,11 @@ ion-page {
   scroll-behavior: smooth;
 }
 
+/* Masquer les pages inactives pour éviter l'affichage en superposition */
+ion-page.ion-page-hidden {
+  display: none !important;
+}
+
 /* Améliorer l'apparence du TabBar */
 ion-tab-bar {
   --background: var(--ion-background-color, #000);
@@ -61,10 +66,24 @@ ion-tab-button.offline-disabled {
   pointer-events: none;
 }
 
+/* IonHeader fixe sous l'encoche avec search bar */
+ion-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  padding-top: env(safe-area-inset-top);
+}
+
+ion-header.header-translucent-ios ion-toolbar {
+  --background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
 /* IonContent avec safe area */
 ion-content {
   --background: var(--ion-background-color, #000);
-  --padding-top: env(safe-area-inset-top);
+  --padding-top: 0; /* Le header gère le safe-area-top */
   --padding-bottom: env(safe-area-inset-bottom);
   --padding-start: env(safe-area-inset-left);
   --padding-end: env(safe-area-inset-right);

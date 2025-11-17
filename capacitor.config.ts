@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     // En développement iOS/Android, on pointe vers le serveur local Vite/Express
     // Pour la prod, commentez url et laissez Capacitor servir les assets buildés
-    url: 'http://localhost:5000',
+    url: 'http://localhost:3000',
     androidScheme: 'http',
     iosScheme: 'http',
     allowNavigation: ['*'],
