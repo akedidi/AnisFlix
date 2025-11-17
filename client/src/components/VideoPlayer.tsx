@@ -105,18 +105,21 @@ export default function VideoPlayer({
           lowLatencyMode: false,
         };
         
-        // Si c'est Darkibox, proxifier toutes les requêtes (segments, sous-titres, etc.)
+        // Si c'est Darkibox, proxifier uniquement les manifests et segments vidéo
         if (isDarkibox) {
           const currentOrigin = window.location.origin;
           hlsConfig.xhrSetup = function(xhr: XMLHttpRequest, url: string) {
             // Ne proxifier que les URLs externes darkibox.com
-            // Exclure: /api/*, URLs avec l'origine actuelle, URLs localhost
+            // Exclure: /api/*, URLs avec l'origine actuelle, URLs localhost, sous-titres .vtt
             const isAlreadyProxied = url.startsWith('/api/') || 
                                      url.startsWith(currentOrigin + '/api/') ||
                                      url.startsWith('http://localhost') ||
                                      url.startsWith('https://localhost');
             
-            if (!isAlreadyProxied && url.includes('darkibox.com')) {
+            const isSubtitle = url.endsWith('.vtt') || url.includes('.vtt?');
+            
+            // Ne proxifier que les manifests (.m3u8) et segments vidéo (.ts, .m4s)
+            if (!isAlreadyProxied && !isSubtitle && url.includes('darkibox.com')) {
               const proxyUrl = `/api/darkibox?url=${encodeURIComponent(url)}`;
               xhr.open('GET', proxyUrl, true);
             }
