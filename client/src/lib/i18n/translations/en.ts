@@ -6,11 +6,11 @@ export default {
   "nav.tvChannels": "TV",
   "nav.favorites": "Favorites",
   "nav.settings": "Settings",
-  
+
   // Pull to refresh
   "refresh.pulling": "Pull to refresh",
   "refresh.loading": "Loading...",
-  
+
   // Home page
   "home.continueWatching": "Continue Watching",
   "home.popularMovies": "Popular Movies",
@@ -27,7 +27,7 @@ export default {
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
   "home.byPlatform": "By Platform",
-  
+
   // Movies page
   "movies.title": "Movies",
   "movies.action": "Action",
@@ -38,13 +38,14 @@ export default {
   "movies.horror": "Horror",
   "movies.romance": "Romance",
   "movies.scifi": "Science Fiction",
+  "movies.sciFi": "Science Fiction",
   "movies.fantasy": "Fantasy",
   "movies.animation": "Animation",
   "movies.documentary": "Documentary",
   "movies.crime": "Crime",
   "movies.mystery": "Mystery",
   "movies.latest": "Latest Movies",
-  
+
   // Series page
   "series.title": "Series",
   "series.action": "Action",
@@ -56,13 +57,14 @@ export default {
   "series.romance": "Romance",
   "series.mystery": "Mystery",
   "series.scifi": "Science Fiction",
+  "series.sciFi": "Science Fiction",
   "series.fantasy": "Fantasy",
   "series.documentary": "Documentary",
   "series.animation": "Animation",
   "series.crime": "Crime",
   "series.anime": "Anime",
   "series.latest": "Latest Series",
-  
+
   // Detail pages
   "detail.overview": "Overview",
   "detail.genres": "Genres",
@@ -89,12 +91,12 @@ export default {
   "detail.noOverview": "No overview available.",
   "detail.noTrailer": "No trailer available",
   "detail.minutes": "min",
-  
+
   // Search
   "search.placeholder": "Search movies, series, anime...",
   "search.noResults": "No results found",
   "search.searching": "Searching...",
-  
+
   // Settings
   "settings.title": "Settings",
   "settings.language": "Language",
@@ -105,7 +107,7 @@ export default {
   "settings.account": "Account",
   "settings.privacy": "Privacy",
   "settings.about": "About",
-  
+
   // Provider pages
   "provider.latestMovies": "Latest Movies",
   "provider.latestSeries": "Latest Series",
@@ -115,7 +117,7 @@ export default {
   "provider.animeSeries": "Anime Series",
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "contents available",
-  
+
   // TopStream
   "topstream.sources": "Streaming Sources",
   "topstream.searching": "Searching for sources...",
@@ -127,7 +129,7 @@ export default {
   "topstream.otherSources": "Other sources",
   "topstream.vf": "VF",
   "topstream.vostfr": "VOSTFR",
-  
+
   // Common
   "common.loading": "Loading...",
   "common.error": "Error",
@@ -143,13 +145,13 @@ export default {
   "common.year": "Year",
   "common.watch": "Watch",
   "common.contents": "contents",
-  
+
   // Pagination
   "pagination.page": "Page",
   "pagination.of": "of",
   "pagination.previous": "Previous",
   "pagination.next": "Next",
-  
+
   // Languages
   "language.fr": "Français",
   "language.en": "English",
@@ -157,13 +159,13 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
-  
+
   // Genre pages
   "genre.discoverMovies": "Discover the best {genre} movies.",
   "genre.discoverSeries": "Discover the best {genre} series.",
   "genre.noMoviesAvailable": "No {genre} movies available",
   "genre.noSeriesAvailable": "No {genre} series available",
-  
+
   // Provider pages
   "provider.on": "on",
   "provider.discoverMoviesPrefix": "Discover the best",
@@ -174,7 +176,7 @@ export default {
   "provider.noMoviesAvailableSuffix": "movies available on",
   "provider.noSeriesAvailablePrefix": "No",
   "provider.noSeriesAvailableSuffix": "series available on",
-  
+
   // Additional movie/series genres
   "movies.family": "Family",
   "movies.history": "History",
@@ -182,7 +184,7 @@ export default {
   "movies.telefilm": "TV Movie",
   "movies.war": "War",
   "movies.western": "Western",
-  
+
   "series.family": "Family",
   "series.history": "History",
   "series.music": "Music",
@@ -192,7 +194,7 @@ export default {
   "series.reality": "Reality",
   "series.talk": "Talk Show",
   "series.news": "News",
-  
+
   // Settings page
   "settings.offlineMode": "Offline mode - Settings are available locally",
   "settings.downloads": "Downloads",
@@ -211,7 +213,7 @@ export default {
   "settings.secondaryHost": "Secondary Host",
   "settings.backupHost": "Backup Host",
   "settings.saveSources": "Save Sources",
-  
+
   // Home page - Platform names
   "platform.netflix": "Netflix",
   "platform.amazonPrime": "Amazon Prime",
@@ -219,7 +221,7 @@ export default {
   "platform.paramount": "Paramount+",
   "platform.disney": "Disney+",
   "platform.hboMax": "HBO Max",
-  
+
   // 404 page
   "notFound.title": "404 Page Not Found",
   "notFound.description": "The page you are looking for does not exist or has been moved.",

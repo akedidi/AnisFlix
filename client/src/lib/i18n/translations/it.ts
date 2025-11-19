@@ -6,11 +6,11 @@ export default {
   "nav.tvChannels": "TV",
   "nav.favorites": "Preferiti",
   "nav.settings": "Impostazioni",
-  
+
   // Pull to refresh
   "refresh.pulling": "Tira per aggiornare",
   "refresh.loading": "Caricamento...",
-  
+
   // Home page
   "home.continueWatching": "Continua a guardare",
   "home.popularMovies": "Film popolari",
@@ -27,7 +27,7 @@ export default {
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
   "home.byPlatform": "Per piattaforma",
-  
+
   // Movies page
   "movies.title": "Film",
   "movies.action": "Azione",
@@ -38,13 +38,14 @@ export default {
   "movies.horror": "Horror",
   "movies.romance": "Romantico",
   "movies.scifi": "Fantascienza",
+  "movies.sciFi": "Fantascienza",
   "movies.fantasy": "Fantasy",
   "movies.animation": "Animazione",
   "movies.documentary": "Documentario",
   "movies.crime": "Poliziesco",
   "movies.mystery": "Mistero",
   "movies.latest": "Ultimi film",
-  
+
   // Series page
   "series.title": "Serie",
   "series.action": "Azione",
@@ -56,13 +57,14 @@ export default {
   "series.romance": "Romantico",
   "series.mystery": "Mistero",
   "series.scifi": "Fantascienza",
+  "series.sciFi": "Fantascienza",
   "series.fantasy": "Fantasy",
   "series.documentary": "Documentario",
   "series.animation": "Animazione",
   "series.crime": "Poliziesco",
   "series.anime": "Anime",
   "series.latest": "Ultime serie",
-  
+
   // Detail pages
   "detail.overview": "Panoramica",
   "detail.genres": "Generi",
@@ -89,12 +91,12 @@ export default {
   "detail.noOverview": "Nessuna descrizione disponibile.",
   "detail.noTrailer": "Nessun trailer disponibile",
   "detail.minutes": "min",
-  
+
   // Search
   "search.placeholder": "Cerca film, serie, anime...",
   "search.noResults": "Nessun risultato trovato",
   "search.searching": "Ricerca in corso...",
-  
+
   // Settings
   "settings.title": "Impostazioni",
   "settings.language": "Lingua",
@@ -106,7 +108,7 @@ export default {
   "settings.account": "Account",
   "settings.privacy": "Privacy",
   "settings.about": "Informazioni",
-  
+
   // Provider pages
   "provider.latestMovies": "Ultimi Film",
   "provider.latestSeries": "Ultime Serie",
@@ -116,7 +118,7 @@ export default {
   "provider.animeSeries": "Serie Anime",
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "contenuti disponibili",
-  
+
   // Common
   "common.loading": "Caricamento...",
   "common.error": "Errore",
@@ -132,13 +134,13 @@ export default {
   "common.year": "Anno",
   "common.watch": "Guarda",
   "common.contents": "contenuti",
-  
+
   // Pagination
   "pagination.page": "Pagina",
   "pagination.of": "di",
   "pagination.previous": "Precedente",
   "pagination.next": "Avanti",
-  
+
   // Languages
   "language.fr": "Français",
   "language.en": "English",

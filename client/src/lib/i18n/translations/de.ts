@@ -6,11 +6,11 @@ export default {
   "nav.tvChannels": "TV",
   "nav.favorites": "Favoriten",
   "nav.settings": "Einstellungen",
-  
+
   // Pull to refresh
   "refresh.pulling": "Ziehen zum Aktualisieren",
   "refresh.loading": "Laden...",
-  
+
   // Home page
   "home.continueWatching": "Weiterschauen",
   "home.popularMovies": "Beliebte Filme",
@@ -27,7 +27,7 @@ export default {
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
   "home.byPlatform": "Nach Plattform",
-  
+
   // Movies page
   "movies.title": "Filme",
   "movies.action": "Action",
@@ -38,13 +38,14 @@ export default {
   "movies.horror": "Horror",
   "movies.romance": "Romantik",
   "movies.scifi": "Science Fiction",
-  "movies.fantasy": "Fantasy",
+  "movies.sciFi": "Science Fiction",
+  "movies.fantasy": "Fantasie",
   "movies.animation": "Animation",
   "movies.documentary": "Dokumentation",
   "movies.crime": "Polizei",
   "movies.mystery": "Mystery",
   "movies.latest": "Neueste Filme",
-  
+
   // Series page
   "series.title": "Serien",
   "series.action": "Action",
@@ -56,13 +57,14 @@ export default {
   "series.romance": "Romantik",
   "series.mystery": "Mystery",
   "series.scifi": "Science Fiction",
-  "series.fantasy": "Fantasy",
+  "series.sciFi": "Science Fiction",
+  "series.fantasy": "Fantasie",
   "series.documentary": "Dokumentation",
   "series.animation": "Animation",
   "series.crime": "Polizei",
   "series.anime": "Anime",
   "series.latest": "Neueste Serien",
-  
+
   // Detail pages
   "detail.overview": "Übersicht",
   "detail.genres": "Genres",
@@ -89,12 +91,12 @@ export default {
   "detail.noOverview": "Keine Beschreibung verfügbar.",
   "detail.noTrailer": "Kein Trailer verfügbar",
   "detail.minutes": "Min.",
-  
+
   // Search
   "search.placeholder": "Filme, Serien, Anime suchen...",
   "search.noResults": "Keine Ergebnisse gefunden",
   "search.searching": "Suche läuft...",
-  
+
   // Settings
   "settings.title": "Einstellungen",
   "settings.language": "Sprache",
@@ -106,7 +108,7 @@ export default {
   "settings.account": "Konto",
   "settings.privacy": "Datenschutz",
   "settings.about": "Über",
-  
+
   // Provider pages
   "provider.latestMovies": "Neueste Filme",
   "provider.latestSeries": "Neueste Serien",
@@ -116,7 +118,7 @@ export default {
   "provider.animeSeries": "Anime-Serien",
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "Inhalte verfügbar",
-  
+
   // Common
   "common.loading": "Laden...",
   "common.error": "Fehler",
@@ -132,13 +134,13 @@ export default {
   "common.year": "Jahr",
   "common.watch": "Ansehen",
   "common.contents": "Inhalte",
-  
+
   // Pagination
   "pagination.page": "Seite",
   "pagination.of": "von",
   "pagination.previous": "Zurück",
   "pagination.next": "Weiter",
-  
+
   // Languages
   "language.fr": "Français",
   "language.en": "English",

@@ -6,11 +6,11 @@ export default {
   "nav.tvChannels": "TV",
   "nav.favorites": "Favoris",
   "nav.settings": "Params",
-  
+
   // Pull to refresh
   "refresh.pulling": "Tirer pour rafraîchir",
   "refresh.loading": "Chargement...",
-  
+
   // Home page
   "home.continueWatching": "Continuer à regarder",
   "home.popularMovies": "Films populaires",
@@ -27,7 +27,7 @@ export default {
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
   "home.byPlatform": "Par plateforme",
-  
+
   // Movies page
   "movies.title": "Films",
   "movies.action": "Action",
@@ -38,13 +38,14 @@ export default {
   "movies.horror": "Horreur",
   "movies.romance": "Romance",
   "movies.scifi": "Science-fiction",
+  "movies.sciFi": "Science-fiction",
   "movies.fantasy": "Fantastique",
   "movies.animation": "Animation",
   "movies.documentary": "Documentaire",
   "movies.crime": "Policier",
   "movies.mystery": "Mystère",
   "movies.latest": "Derniers films",
-  
+
   // Series page
   "series.title": "Séries",
   "series.action": "Action",
@@ -56,13 +57,14 @@ export default {
   "series.romance": "Romance",
   "series.mystery": "Mystère",
   "series.scifi": "Science-fiction",
+  "series.sciFi": "Science-fiction",
   "series.fantasy": "Fantastique",
   "series.documentary": "Documentaire",
   "series.animation": "Animation",
   "series.crime": "Policier",
   "series.anime": "Anime",
   "series.latest": "Dernières séries",
-  
+
   // Detail pages
   "detail.overview": "Synopsis",
   "detail.genres": "Genres",
@@ -89,12 +91,12 @@ export default {
   "detail.noOverview": "Aucune description disponible.",
   "detail.noTrailer": "Aucune bande-annonce disponible",
   "detail.minutes": "min",
-  
+
   // Search
   "search.placeholder": "Rechercher des films, séries, animes...",
   "search.noResults": "Aucun résultat trouvé",
   "search.searching": "Recherche en cours...",
-  
+
   // Settings
   "settings.title": "Paramètres",
   "settings.language": "Langue",
@@ -105,7 +107,7 @@ export default {
   "settings.account": "Compte",
   "settings.privacy": "Confidentialité",
   "settings.about": "À propos",
-  
+
   // Provider pages
   "provider.latestMovies": "Derniers films",
   "provider.latestSeries": "Dernières séries",
@@ -115,7 +117,7 @@ export default {
   "provider.animeSeries": "Séries anime",
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "contenus disponibles",
-  
+
   // TopStream
   "topstream.sources": "Sources de streaming",
   "topstream.searching": "Recherche de sources...",
@@ -127,7 +129,7 @@ export default {
   "topstream.otherSources": "Autres sources",
   "topstream.vf": "VF",
   "topstream.vostfr": "VOSTFR",
-  
+
   // Common
   "common.loading": "Chargement...",
   "common.error": "Erreur",
@@ -143,13 +145,13 @@ export default {
   "common.year": "Année",
   "common.watch": "Regarder",
   "common.contents": "contenus",
-  
+
   // Pagination
   "pagination.page": "Page",
   "pagination.of": "sur",
   "pagination.previous": "Précédent",
   "pagination.next": "Suivant",
-  
+
   // Languages
   "language.fr": "Français",
   "language.en": "English",
@@ -157,13 +159,13 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
-  
+
   // Genre pages
   "genre.discoverMovies": "Découvrez les meilleurs films du genre {genre}.",
   "genre.discoverSeries": "Découvrez les meilleures séries du genre {genre}.",
   "genre.noMoviesAvailable": "Aucun film {genre} disponible",
   "genre.noSeriesAvailable": "Aucune série {genre} disponible",
-  
+
   // Provider pages
   "provider.on": "sur",
   "provider.discoverMoviesPrefix": "Découvrez les meilleurs films",
@@ -174,7 +176,7 @@ export default {
   "provider.noMoviesAvailableSuffix": "disponible sur",
   "provider.noSeriesAvailablePrefix": "Aucune série",
   "provider.noSeriesAvailableSuffix": "disponible sur",
-  
+
   // Additional movie/series genres
   "movies.family": "Famille",
   "movies.history": "Histoire",
@@ -182,7 +184,7 @@ export default {
   "movies.telefilm": "Téléfilm",
   "movies.war": "Guerre",
   "movies.western": "Western",
-  
+
   "series.family": "Famille",
   "series.history": "Histoire",
   "series.music": "Musique",
@@ -192,23 +194,23 @@ export default {
   "series.reality": "Reality",
   "series.talk": "Talk Show",
   "series.news": "News",
-  
+
   // Anime sections
   "anime.latestMovies": "Derniers films anime",
   "anime.latestSeries": "Dernières séries anime",
   "anime.popularMovies": "Films anime populaires",
   "anime.popularSeries": "Séries anime populaires",
-  
+
   // Search placeholders
   "search.animeMovies": "Rechercher des films anime...",
   "search.animeSeries": "Rechercher des séries anime...",
   "search.netflixMovies": "Rechercher des films Netflix...",
   "search.paramountMovies": "Rechercher des films Paramount+...",
   "search.paramountSeries": "Rechercher des séries Paramount+...",
-  
+
   // Detail pages
   "detail.similarContent": "Contenu similaire",
-  
+
   // TV Channels
   "tv.sections": "Sections",
   "tv.categories": "Catégories",
@@ -223,14 +225,14 @@ export default {
   "tv.discovery": "Découverte",
   "tv.cinema": "Cinéma",
   "tv.tunisia": "Tunisie",
-  
+
   // Common buttons
   "button.back": "Retour",
   "button.chooseStreamingLink": "Choisir le lien de streaming :",
   "button.link": "Lien",
   "button.remove": "Supprimer",
   "button.continueWatching": "Continuer à regarder",
-  
+
   // Settings page
   "settings.offlineMode": "Mode hors ligne - Les paramètres sont disponibles localement",
   "settings.downloads": "Téléchargements",
@@ -249,7 +251,7 @@ export default {
   "settings.secondaryHost": "Host Secondaire",
   "settings.backupHost": "Host de Secours",
   "settings.saveSources": "Enregistrer les sources",
-  
+
   // Home page - Platform names
   "platform.netflix": "Netflix",
   "platform.amazonPrime": "Amazon Prime",
@@ -257,7 +259,7 @@ export default {
   "platform.paramount": "Paramount+",
   "platform.disney": "Disney+",
   "platform.hboMax": "HBO Max",
-  
+
   // 404 page
   "notFound.title": "404 Page Not Found",
   "notFound.description": "La page que vous recherchez n'existe pas ou a été déplacée.",

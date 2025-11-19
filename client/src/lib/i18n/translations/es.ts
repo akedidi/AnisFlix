@@ -6,11 +6,11 @@ export default {
   "nav.tvChannels": "TV",
   "nav.favorites": "Favoritos",
   "nav.settings": "Configuración",
-  
+
   // Pull to refresh
   "refresh.pulling": "Deslizar para actualizar",
   "refresh.loading": "Cargando...",
-  
+
   // Home page
   "home.continueWatching": "Continuar viendo",
   "home.popularMovies": "Películas populares",
@@ -27,7 +27,7 @@ export default {
   "home.appleTV": "Apple TV+",
   "home.hboMax": "HBO Max",
   "home.byPlatform": "Por plataforma",
-  
+
   // Movies page
   "movies.title": "Películas",
   "movies.action": "Acción",
@@ -37,14 +37,15 @@ export default {
   "movies.thriller": "Suspense",
   "movies.horror": "Terror",
   "movies.romance": "Romance",
-  "movies.scifi": "Ciencia Ficción",
+  "movies.scifi": "Ciencia ficción",
+  "movies.sciFi": "Ciencia ficción",
   "movies.fantasy": "Fantasía",
   "movies.animation": "Animación",
   "movies.documentary": "Documental",
   "movies.crime": "Policíaco",
   "movies.mystery": "Misterio",
   "movies.latest": "Últimas películas",
-  
+
   // Series page
   "series.title": "Series",
   "series.action": "Acción",
@@ -55,14 +56,15 @@ export default {
   "series.thriller": "Suspense",
   "series.romance": "Romance",
   "series.mystery": "Misterio",
-  "series.scifi": "Ciencia Ficción",
+  "series.scifi": "Ciencia ficción",
+  "series.sciFi": "Ciencia ficción",
   "series.fantasy": "Fantasía",
   "series.documentary": "Documental",
   "series.animation": "Animación",
   "series.crime": "Policíaco",
   "series.anime": "Anime",
   "series.latest": "Últimas series",
-  
+
   // Detail pages
   "detail.overview": "Sinopsis",
   "detail.genres": "Géneros",
@@ -89,12 +91,12 @@ export default {
   "detail.noOverview": "No hay descripción disponible.",
   "detail.noTrailer": "No hay tráiler disponible",
   "detail.minutes": "min",
-  
+
   // Search
   "search.placeholder": "Buscar películas, series, anime...",
   "search.noResults": "No se encontraron resultados",
   "search.searching": "Buscando...",
-  
+
   // Settings
   "settings.title": "Configuración",
   "settings.language": "Idioma",
@@ -105,7 +107,7 @@ export default {
   "settings.account": "Cuenta",
   "settings.privacy": "Privacidad",
   "settings.about": "Acerca de",
-  
+
   // Provider pages
   "provider.latestMovies": "Últimas Películas",
   "provider.latestSeries": "Últimas Series",
@@ -115,7 +117,7 @@ export default {
   "provider.animeSeries": "Series Anime",
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "contenidos disponibles",
-  
+
   // TopStream
   "topstream.sources": "Fuentes de Streaming",
   "topstream.searching": "Buscando fuentes...",
@@ -125,7 +127,7 @@ export default {
   "topstream.watchNow": "Ver ahora",
   "topstream.loading": "Cargando...",
   "topstream.otherSources": "Otras fuentes",
-  
+
   // Common
   "common.loading": "Cargando...",
   "common.error": "Error",
@@ -141,13 +143,13 @@ export default {
   "common.year": "Año",
   "common.watch": "Ver",
   "common.contents": "contenidos",
-  
+
   // Pagination
   "pagination.page": "Página",
   "pagination.of": "de",
   "pagination.previous": "Anterior",
   "pagination.next": "Siguiente",
-  
+
   // Languages
   "language.fr": "Français",
   "language.en": "English",
@@ -155,7 +157,7 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
-  
+
   // Settings page
   "settings.offlineMode": "Modo sin conexión - La configuración está disponible localmente",
   "settings.downloads": "Descargas",
@@ -174,7 +176,7 @@ export default {
   "settings.secondaryHost": "Host Secundario",
   "settings.backupHost": "Host de Respaldo",
   "settings.saveSources": "Guardar Fuentes",
-  
+
   // Home page - Platform names
   "platform.netflix": "Netflix",
   "platform.amazonPrime": "Amazon Prime",
@@ -182,7 +184,7 @@ export default {
   "platform.paramount": "Paramount+",
   "platform.disney": "Disney+",
   "platform.hboMax": "HBO Max",
-  
+
   // 404 page
   "notFound.title": "404 Página No Encontrada",
   "notFound.description": "La página que buscas no existe o ha sido movida.",

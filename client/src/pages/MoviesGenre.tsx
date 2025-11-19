@@ -65,15 +65,20 @@ export default function MoviesGenre() {
       try {
         setLoading(true);
         setError(null);
-        
+
+        const today = new Date().toISOString().split('T')[0];
+        const sortBy = genreSlug === 'science-fiction' ? 'primary_release_date.desc' : 'popularity.desc';
+        const dateFilter = genreSlug === 'science-fiction' ? `&primary_release_date.lte=${today}` : '';
+        const streamingFilter = genreSlug === 'science-fiction' ? '&with_watch_monetization_types=flatrate&watch_region=FR' : '';
+
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=popularity.desc&vote_average_gte=5&page=${currentPage}`
+          `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=${sortBy}${dateFilter}${streamingFilter}&vote_average_gte=5&page=${currentPage}`
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         setData(result);
       } catch (err) {
@@ -120,7 +125,7 @@ export default function MoviesGenre() {
             <div className="text-center py-12">
               <h1 className="text-2xl font-bold mb-4">Genre non trouvé</h1>
               <p className="text-muted-foreground mb-4">Le genre "{genreSlug}" n'existe pas.</p>
-              
+
             </div>
           </div>
         </div>
@@ -132,14 +137,14 @@ export default function MoviesGenre() {
     <div className="h-screen overflow-y-auto">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
-      
+
       {/* Main Content */}
       <div className="md:ml-64">
         {/* Header avec recherche et contrôles */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
-              
+
               <div className="flex-1">
                 <SearchBar
                   onSearch={setSearchQuery}
@@ -156,54 +161,54 @@ export default function MoviesGenre() {
           </div>
         </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">{t("movies.title")} {genreName}</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            {t("genre.discoverMovies").replace('{genre}', genreName || 'inconnu')}
-          </p>
-        </div>
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("common.loading")}</p>
+        {/* Content */}
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">{t("movies.title")} {genreName}</h1>
+            <p className="text-muted-foreground max-w-2xl">
+              {t("genre.discoverMovies").replace('{genre}', genreName || 'inconnu')}
+            </p>
           </div>
-        ) : movies.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {movies.map((movie: any) => {
-                // Transformer les données pour correspondre au format attendu
-                const transformedMovie = {
-                  id: movie.id,
-                  title: movie.title,
-                  posterPath: movie.poster_path,
-                  rating: Math.round(movie.vote_average * 10) / 10,
-                  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
-                  mediaType: "movie" as const,
-                };
-                
-                return (
-                  <div key={movie.id} className="w-full">
-                    <MediaCard
-                      {...transformedMovie}
-                      onClick={() => navigate(navPaths.movie(movie.id))}
-                    />
-                  </div>
-                );
-              })}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("common.loading")}</p>
             </div>
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("genre.noMoviesAvailable").replace('{genre}', genreName || 'inconnu')}</p>
-          </div>
-        )}
+          ) : movies.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {movies.map((movie: any) => {
+                  // Transformer les données pour correspondre au format attendu
+                  const transformedMovie = {
+                    id: movie.id,
+                    title: movie.title,
+                    posterPath: movie.poster_path,
+                    rating: Math.round(movie.vote_average * 10) / 10,
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+                    mediaType: "movie" as const,
+                  };
+
+                  return (
+                    <div key={movie.id} className="w-full">
+                      <MediaCard
+                        {...transformedMovie}
+                        onClick={() => navigate(navPaths.movie(movie.id))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("genre.noMoviesAvailable").replace('{genre}', genreName || 'inconnu')}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

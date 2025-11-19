@@ -42,7 +42,7 @@ const getRegion = (): string => {
   const language = getLanguage();
   const regionMap: Record<string, string> = {
     'fr': 'FR',
-    'en': 'US', 
+    'en': 'US',
     'es': 'ES',
     'de': 'DE',
     'it': 'IT',
@@ -55,11 +55,11 @@ const getRegion = (): string => {
 const getRegionForProvider = (providerId: number): string => {
   // Providers with better US catalogs
   const usProviders = [9, 1899, 531]; // Amazon Prime (9), HBO Max (1899), Paramount+ (531)
-  
+
   if (usProviders.includes(providerId)) {
     return 'US'; // Use US region for better content
   }
-  
+
   return getRegion(); // Use user's region for others
 };
 
@@ -97,7 +97,7 @@ const tmdbFetch = async (endpoint: string, params: Record<string, string> = {}) 
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   url.searchParams.append('api_key', TMDB_API_KEY);
   url.searchParams.append('language', getLanguageCode(language));
-  
+
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
   });
@@ -146,6 +146,20 @@ export const tmdb = {
   },
 
   getMoviesByGenre: async (genreId: number, page = 1) => {
+    // Special handling for Science Fiction (878)
+    if (genreId === 878) {
+      const today = new Date().toISOString().split('T')[0];
+      return tmdbFetch('/discover/movie', {
+        with_genres: genreId.toString(),
+        sort_by: 'primary_release_date.desc',
+        'primary_release_date.lte': today,
+        with_watch_monetization_types: 'flatrate',
+        watch_region: 'FR',
+        page: page.toString(),
+      } as any);
+    }
+
+    // Default behavior for other genres
     return tmdbFetch('/discover/movie', {
       with_genres: genreId.toString(),
       page: page.toString(),
@@ -194,6 +208,20 @@ export const tmdb = {
   },
 
   getSeriesByGenre: async (genreId: number, page = 1) => {
+    // Special handling for Sci-Fi & Fantasy (10765)
+    if (genreId === 10765) {
+      const today = new Date().toISOString().split('T')[0];
+      return tmdbFetch('/discover/tv', {
+        with_genres: genreId.toString(),
+        sort_by: 'first_air_date.desc',
+        'first_air_date.lte': today,
+        with_watch_monetization_types: 'flatrate',
+        watch_region: 'FR',
+        page: page.toString(),
+      } as any);
+    }
+
+    // Default behavior for other genres
     return tmdbFetch('/discover/tv', {
       with_genres: genreId.toString(),
       page: page.toString(),
@@ -218,24 +246,24 @@ export const tmdb = {
     // Search across multiple languages to find titles in all languages
     const language = getLanguage();
     const userLang = getLanguageCode(language);
-    
+
     // Search in user's language and English in parallel for maximum coverage
     const searches = [
       fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=${userLang}&include_adult=false`)
     ];
-    
+
     // Add English search as fallback if not already in English
     if (language !== 'en') {
       searches.push(
         fetch(`${TMDB_BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&language=en-US&include_adult=false`)
       );
     }
-    
+
     // Execute searches in parallel with error handling
     try {
       const responses = await Promise.allSettled(searches);
       const results: any[] = [];
-      
+
       for (const response of responses) {
         if (response.status === 'fulfilled') {
           const data = await response.value.json();
@@ -244,7 +272,7 @@ export const tmdb = {
           }
         }
       }
-      
+
       // Merge results, removing duplicates by ID
       const merged: Record<number, any> = {};
       for (const result of results) {
@@ -256,7 +284,7 @@ export const tmdb = {
           }
         }
       }
-      
+
       return {
         results: Object.values(merged),
         page: 1,
@@ -286,7 +314,7 @@ export const tmdb = {
 
     // Essayer plusieurs régions pour avoir plus de contenu
     const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
-    
+
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/movie', {
@@ -298,7 +326,7 @@ export const tmdb = {
           'release_date.lte': releaseDateLte,
           page: page.toString(),
         } as any);
-        
+
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
         }
@@ -307,7 +335,7 @@ export const tmdb = {
         continue;
       }
     }
-    
+
     // Fallback sans région
     try {
       return await tmdbFetch('/discover/movie', {
@@ -348,7 +376,7 @@ export const tmdb = {
     const today = new Date();
     const firstAirDateLte = today.toISOString().slice(0, 10);
     const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
-    
+
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/tv', {
@@ -395,7 +423,7 @@ export const tmdb = {
 
     // Essayer plusieurs régions pour avoir plus de contenu
     const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
-    
+
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/movie', {
@@ -408,7 +436,7 @@ export const tmdb = {
           'release_date.lte': releaseDateLte,
           page: page.toString(),
         } as any);
-        
+
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
         }
@@ -417,7 +445,7 @@ export const tmdb = {
         continue;
       }
     }
-    
+
     // Fallback sans région mais filtré provider
     try {
       return await tmdbFetch('/discover/movie', {
@@ -442,7 +470,7 @@ export const tmdb = {
 
     // Essayer plusieurs régions pour avoir plus de contenu
     const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
-    
+
     for (const region of regions) {
       try {
         const data = await tmdbFetch('/discover/tv', {
@@ -456,7 +484,7 @@ export const tmdb = {
           'first_air_date.lte': firstAirDateLte,
           page: page.toString(),
         } as any);
-        
+
         if (data.results && data.results.length > 0) {
           return data; // Si on trouve du contenu, on s'arrête
         }
@@ -465,7 +493,7 @@ export const tmdb = {
         continue;
       }
     }
-    
+
     // Fallback sans région mais filtré provider
     try {
       return await tmdbFetch('/discover/tv', {
