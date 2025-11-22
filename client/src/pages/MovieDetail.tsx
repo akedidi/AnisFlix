@@ -42,13 +42,13 @@ export default function MovieDetail() {
 
   // Fetch Movix player links
   const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
-  
+
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
   console.log('🔍 [MOVIE DETAIL] About to call useMovixTmdbSources with movieId:', movieId);
   const { data: movixTmdbSources } = useMovixTmdbSources(movieId);
-  console.log('🔍 [MOVIE DETAIL] useMovixTmdbSources result:', { 
-    hasData: !!movixTmdbSources, 
-    processedSources: movixTmdbSources?.processedSources?.length || 0 
+  console.log('🔍 [MOVIE DETAIL] useMovixTmdbSources result:', {
+    hasData: !!movixTmdbSources,
+    processedSources: movixTmdbSources?.processedSources?.length || 0
   });
 
   // Récupérer les sources films/download en cherchant par titre d'abord
@@ -56,13 +56,13 @@ export default function MovieDetail() {
     queryKey: ['search-movie', movie?.original_title || movie?.title],
     queryFn: async () => {
       if (!movie) return null;
-      
+
       // Essayer d'abord avec le titre original, puis le titre si nécessaire
       const searchTitle = movie.original_title || movie.title;
       console.log(`🔍 [FILMS DOWNLOAD] Searching for movie: "${searchTitle}"`);
       const response = await fetch(`/api/movix-proxy?path=search&title=${encodeURIComponent(searchTitle)}`);
       if (!response.ok) return null;
-      
+
       const data = await response.json();
       console.log(`🔍 [FILMS DOWNLOAD] Search results:`, data);
       return data;
@@ -75,7 +75,7 @@ export default function MovieDetail() {
   // Chercher le résultat qui correspond au TMDB ID du film (pas forcément le premier)
   const matchingResult = searchResults?.results?.find((result: any) => result.tmdb_id === movieId);
   const shouldFetchFilmsDownload = !!matchingResult && matchingResult.tmdb_id === movieId;
-  
+
   console.log(`🔍 [FILMS DOWNLOAD] Debug:`, {
     movieTitle: movie?.title,
     movieOriginalTitle: movie?.original_title,
@@ -86,7 +86,7 @@ export default function MovieDetail() {
     shouldFetch: shouldFetchFilmsDownload,
     allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
   });
-  
+
   // BLOQUER explicitement si matchingResult n'existe pas ou ne correspond pas
   if (matchingResult && matchingResult.tmdb_id !== movieId) {
     console.error(`❌ [FILMS DOWNLOAD] CRITICAL: matchingResult tmdb_id (${matchingResult.tmdb_id}) does not match movieId (${movieId})`);
@@ -94,7 +94,7 @@ export default function MovieDetail() {
   if (!matchingResult && searchResults?.results?.length > 0) {
     console.error(`❌ [FILMS DOWNLOAD] CRITICAL: No matching result found for movieId ${movieId}. Available tmdb_ids:`, searchResults.results.map((r: any) => r.tmdb_id));
   }
-  
+
   // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
   const { data: filmsDownloadSources } = useQuery({
     queryKey: ['films-download', movieId, matchingResult?.id, matchingResult?.tmdb_id],
@@ -104,19 +104,19 @@ export default function MovieDetail() {
         console.error(`❌ [FILMS DOWNLOAD] FATAL: No matching result found`);
         throw new Error('No matching result found in search');
       }
-      
+
       if (matchingResult.tmdb_id !== movieId) {
         console.error(`❌ [FILMS DOWNLOAD] FATAL: tmdb_id mismatch (${matchingResult.tmdb_id} !== ${movieId})`);
         throw new Error(`TMDB ID mismatch: search returned ${matchingResult.tmdb_id} but expected ${movieId}`);
       }
-      
+
       // Utiliser l'ID Movix du résultat correspondant
       const movixId = matchingResult.id;
       if (!movixId) {
         console.error(`❌ [FILMS DOWNLOAD] FATAL: No Movix ID found`);
         throw new Error('No Movix ID found in matching result');
       }
-      
+
       // Dernière vérification avant l'appel API
       console.log(`✅ [FILMS DOWNLOAD] Confirmed: Using Movix ID ${movixId} for TMDB ID ${movieId}`);
       const response = await fetch(`/api/movix-proxy?path=films/download/${movixId}`);
@@ -124,16 +124,16 @@ export default function MovieDetail() {
         console.log(`❌ [FILMS DOWNLOAD] Response not OK: ${response.status}`);
         throw new Error(`API returned ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log(`✅ [FILMS DOWNLOAD] Sources retrieved:`, data);
-      
+
       // Vérifier que la réponse ne contient pas un tmdb_id différent
       if (data.tmdb_id && data.tmdb_id !== movieId) {
         console.log(`❌ [FILMS DOWNLOAD] Response tmdb_id mismatch (${data.tmdb_id} !== ${movieId})`);
         throw new Error(`TMDB ID mismatch in response: ${data.tmdb_id} !== ${movieId}`);
       }
-      
+
       return data;
     },
     enabled: !!movieId && !!matchingResult && matchingResult.tmdb_id === movieId && !!matchingResult.id,
@@ -199,7 +199,7 @@ export default function MovieDetail() {
     const isVidMoly = source.provider === 'vidmoly';
     const isVidzy = source.provider === 'vidzy';
     const isDarki = source.provider === 'darki';
-    
+
     return {
       id: `tmdb-${source.provider}-${index}`,
       name: source.quality, // Utiliser le nom du provider déjà formaté
@@ -254,7 +254,7 @@ export default function MovieDetail() {
 
   // Log des sources finales
   console.log('🎯 [MOVIE DETAIL] Sources finales (allSources):', allSources);
-  
+
   // Log spécifique pour les sources VidMoly et Darki
   const vidMolySources = allSources.filter(s => s.isVidMoly);
   const darkiSources = allSources.filter(s => s.isDarki);
@@ -334,12 +334,12 @@ export default function MovieDetail() {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
         <NativeHeader title={t("nav.movies")} showBackButton={true} defaultHref="/tabs/home" />
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chargement du film...</p>
-            </div>
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Chargement du film...</p>
           </div>
-        
+        </div>
+
       </CommonLayout>
     );
   }
@@ -348,13 +348,13 @@ export default function MovieDetail() {
   if (!movie) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Film non trouvé</p>
-            </div>
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Film non trouvé</p>
           </div>
-        
+        </div>
+
       </CommonLayout>
     );
   }
@@ -363,188 +363,200 @@ export default function MovieDetail() {
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
       <NativeHeader title={movie.title} showBackButton={true} defaultHref="/tabs/home" />
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
-          <div className="grid md:grid-cols-[300px_1fr] gap-8">
-            <div className="hidden md:block">
-              {movie.poster_path && (
-                <img
-                  src={getImageUrl(movie.poster_path, 'w500')}
-                  alt={movie.title}
-                  className="w-full rounded-lg shadow-2xl"
-                />
-              )}
-            </div>
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
+        <div className="grid md:grid-cols-[300px_1fr] gap-8">
+          <div className="hidden md:block">
+            {movie.poster_path && (
+              <img
+                src={getImageUrl(movie.poster_path, 'w500')}
+                alt={movie.title}
+                className="w-full rounded-lg shadow-2xl"
+              />
+            )}
+          </div>
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">{movie.title}</h1>
 
-                <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                  <span className="text-lg font-semibold">
+                    {Math.round(movie.vote_average * 10) / 10}
+                  </span>
+                </div>
+                {movie.runtime && (
                   <div className="flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-lg font-semibold">
-                      {Math.round(movie.vote_average * 10) / 10}
-                    </span>
+                    <Clock className="w-5 h-5" />
+                    <span>{movie.runtime} min</span>
                   </div>
-                  {movie.runtime && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5" />
-                      <span>{movie.runtime} min</span>
-                    </div>
-                  )}
-                  {movie.release_date && (
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      <span>{new Date(movie.release_date).getFullYear()}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {movie.genres?.map((genre: any) => (
-                    <Badge key={genre.id} variant="secondary">
-                      {genre.name}
-                    </Badge>
-                  ))}
-                </div>
-                <p className="text-lg leading-relaxed text-muted-foreground mb-6">
-                  {movie.overview}
-                </p>
+                )}
+                {movie.release_date && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    <span>{new Date(movie.release_date).getFullYear()}</span>
+                  </div>
+                )}
               </div>
-
-              <div className="flex gap-4">
-                <Button
-                  onClick={() => {
-                    if (movie.imdb_id) {
-                      window.open(`https://www.imdb.com/title/${movie.imdb_id}`, '_blank');
-                    }
-                  }}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <span>Voir sur IMDb</span>
-                </Button>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {movie.genres?.map((genre: any) => (
+                  <Badge key={genre.id} variant="secondary">
+                    {genre.name}
+                  </Badge>
+                ))}
               </div>
+              <p className="text-lg leading-relaxed text-muted-foreground mb-6">
+                {movie.overview}
+              </p>
+            </div>
 
-              {/* Boutons d'action */}
-              <div className="flex gap-3 mb-6">
-                <Button
-                  variant={isFavorite(movieId, 'movie') ? "default" : "outline"}
-                  size="lg"
-                  className="flex items-center gap-2"
-                  onClick={() => {
-                    toggleFavorite({
-                      id: movieId,
-                      title: movie.title,
-                      posterPath: movie.poster_path,
-                      rating: movie.vote_average,
-                      year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
-                      mediaType: 'movie'
-                    });
-                  }}
-                >
-                  <Heart
-                    className={`w-5 h-5 ${isFavorite(movieId, 'movie') ? 'fill-current' : ''}`}
+            <div className="flex gap-4">
+              <Button
+                onClick={() => {
+                  if (movie.imdb_id) {
+                    window.open(`https://www.imdb.com/title/${movie.imdb_id}`, '_blank');
+                  }
+                }}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <span>Voir sur IMDb</span>
+              </Button>
+            </div>
+
+            {/* Boutons d'action */}
+            <div className="flex gap-3 mb-6">
+              <Button
+                variant={isFavorite(movieId, 'movie') ? "default" : "outline"}
+                size="lg"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  toggleFavorite({
+                    id: movieId,
+                    title: movie.title,
+                    posterPath: movie.poster_path,
+                    rating: movie.vote_average,
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '',
+                    mediaType: 'movie'
+                  });
+                }}
+              >
+                <Heart
+                  className={`w-5 h-5 ${isFavorite(movieId, 'movie') ? 'fill-current' : ''}`}
+                />
+                {isFavorite(movieId, 'movie') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
+              </Button>
+            </div>
+            {trailer && (
+              <div className="space-y-3">
+                <h3 className="text-lg font-medium">Bande-annonce</h3>
+                <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-muted">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${trailer.key}`}
+                    title="Trailer"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
                   />
-                  {isFavorite(movieId, 'movie') ? 'Retiré des favoris' : 'Ajouter aux favoris'}
-                </Button>
+                </div>
               </div>
-              {trailer && (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-medium">Bande-annonce</h3>
-                  <div className="aspect-video max-w-md rounded-lg overflow-hidden bg-muted">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={`https://www.youtube.com/embed/${trailer.key}`}
-                      title="Trailer"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
+            )}
+            {!selectedSource ? (
+              <div className="space-y-6">
+                {/* Barre de progression du film */}
+                {movieProgress && movieProgress.progress > 0 && (
+                  <div className="w-full bg-gray-200 rounded-full h-1">
+                    <div
+                      className="bg-red-500 h-1 rounded-full transition-all duration-300"
+                      style={{ width: `${movieProgress.progress}%` }}
                     />
                   </div>
+                )}
+
+                {/* Sources de streaming unifiées */}
+                <StreamingSources
+                  type="movie"
+                  id={movieId}
+                  title={movie.title}
+                  sources={allSources}
+                  genres={movie.genres}
+                  onSourceClick={handleSourceSelect}
+                  isLoadingSource={isLoadingSource}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Lecture en cours</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClosePlayer}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="w-4 h-4" />
+                    Fermer
+                  </Button>
                 </div>
-              )}
-              {!selectedSource ? (
-                <div className="space-y-6">
-                  {/* Barre de progression du film */}
-                  {movieProgress && movieProgress.progress > 0 && (
-                    <div className="w-full bg-gray-200 rounded-full h-1">
-                      <div 
-                        className="bg-red-500 h-1 rounded-full transition-all duration-300"
-                        style={{ width: `${movieProgress.progress}%` }}
+                {selectedSource.type === 'embed' && selectedSource.isVidMoly ? (
+                  <VidMolyPlayer
+                    vidmolyUrl={selectedSource.url}
+                    title={movie.title}
+                    mediaId={movieId}
+                    mediaType="movie"
+                    posterPath={movie.poster_path}
+                    backdropPath={movie.backdrop_path}
+                  />
+                ) : selectedSource.type === 'embed' && selectedSource.isDarki ? (
+                  <DarkiPlayer
+                    darkiUrl={selectedSource.url}
+                    title={movie.title}
+                    mediaId={movieId}
+                    mediaType="movie"
+                    posterPath={movie.poster_path}
+                    backdropPath={movie.backdrop_path}
+                    onClose={handleClosePlayer}
+                  />
+                ) : (
+                  <div className="fixed inset-0 z-50 bg-black flex items-center justify-center p-4 md:p-10">
+                    <div className="relative w-full max-w-6xl aspect-video">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute -top-12 right-0 text-white hover:bg-white/20 z-50"
+                        onClick={handleClosePlayer}
+                      >
+                        <X className="w-8 h-8" />
+                      </Button>
+                      <VideoPlayer
+                        src={selectedSource.url}
+                        type={selectedSource.type as "m3u8" | "mp4"}
+                        title={movie.title}
+                        mediaId={movieId}
+                        mediaType="movie"
+                        posterPath={movie.poster_path}
+                        backdropPath={movie.backdrop_path}
+                        imdbId={movie.imdb_id}
                       />
                     </div>
-                  )}
-                  
-                  {/* Sources de streaming unifiées */}
-                  <StreamingSources
-                    type="movie"
-                    id={movieId}
-                    title={movie.title}
-                    sources={allSources}
-                    genres={movie.genres}
-                    onSourceClick={handleSourceSelect}
-                    isLoadingSource={isLoadingSource}
-                  />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Lecture en cours</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClosePlayer}
-                      className="flex items-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Fermer
-                    </Button>
-                  </div>
-                  {selectedSource.type === 'embed' && selectedSource.isVidMoly ? (
-                    <VidMolyPlayer
-                      vidmolyUrl={selectedSource.url}
-                      title={movie.title}
-                      mediaId={movieId}
-                      mediaType="movie"
-                      posterPath={movie.poster_path}
-                      backdropPath={movie.backdrop_path}
-                    />
-                  ) : selectedSource.type === 'embed' && selectedSource.isDarki ? (
-                    <DarkiPlayer
-                      darkiUrl={selectedSource.url}
-                      title={movie.title}
-                      mediaId={movieId}
-                      mediaType="movie"
-                      posterPath={movie.poster_path}
-                      backdropPath={movie.backdrop_path}
-                      onClose={handleClosePlayer}
-                    />
-                  ) : (
-                    <VideoPlayer
-                      src={selectedSource.url}
-                      type={selectedSource.type as "m3u8" | "mp4"}
-                      title={movie.title}
-                      mediaId={movieId}
-                      mediaType="movie"
-                      posterPath={movie.poster_path}
-                      backdropPath={movie.backdrop_path}
-                    />
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>)}
+              </div>
+            )}
           </div>
-          {similarMovies.length > 0 && (
-            <div className="mt-16">
-              <MediaCarousel
-                title="Films similaires"
-                items={similarMovies.slice(0, 10)}
-                onItemClick={(item) => navigate(navPaths.movie(item.id))}
-              />
-            </div>
-          )}
         </div>
-      
+        {similarMovies.length > 0 && (
+          <div className="mt-16">
+            <MediaCarousel
+              title="Films similaires"
+              items={similarMovies.slice(0, 10)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
+            />
+          </div>
+        )}
+      </div>
+
     </CommonLayout>
   );
 }

@@ -58,13 +58,22 @@ declare global {
   }
 }
 
+import { Subtitle } from "@/lib/opensubtitles";
+
 interface UseChromecastReturn {
   isAvailable: boolean;
   isConnected: boolean;
   isConnecting: boolean;
   currentDevice: CastDevice | null;
   devices: CastDevice[];
-  cast: (mediaUrl: string, title: string, posterUrl?: string, currentTime?: number) => Promise<void>;
+  cast: (
+    mediaUrl: string,
+    title: string,
+    posterUrl?: string,
+    currentTime?: number,
+    subtitles?: Subtitle[],
+    activeSubtitleUrl?: string
+  ) => Promise<void>;
   disconnect: () => void;
   showPicker: () => void;
 }
@@ -93,7 +102,7 @@ export function useChromecast(): UseChromecastReturn {
 
       console.log('[Chromecast] Initialisation du framework Cast...');
       console.log('[Chromecast] Current origin:', window.location.origin);
-      
+
       const castFramework = window.cast.framework;
       castFramework.CastContext.getInstance().setOptions({
         receiverApplicationId: CAST_APP_ID,
@@ -111,7 +120,7 @@ export function useChromecast(): UseChromecastReturn {
         (event: any) => {
           const castState = event.castState;
           console.log('[Chromecast] État changé:', castState);
-          
+
           if (castState === castFramework.CastState.CONNECTED) {
             setIsConnected(true);
             setIsConnecting(false);
@@ -142,7 +151,7 @@ export function useChromecast(): UseChromecastReturn {
         (event: any) => {
           const sessionState = event.sessionState;
           console.log('[Chromecast] État de session:', sessionState);
-          
+
           if (sessionState === castFramework.SessionState.SESSION_STARTED) {
             sessionRef.current = context.getCurrentSession();
           } else if (sessionState === castFramework.SessionState.SESSION_ENDED) {
@@ -189,7 +198,7 @@ export function useChromecast(): UseChromecastReturn {
           initializeCast();
         }
       }, 100);
-      
+
       setTimeout(() => {
         clearInterval(checkInterval);
         console.log('[Chromecast] Timeout - SDK non disponible après 5s');
@@ -202,7 +211,7 @@ export function useChromecast(): UseChromecastReturn {
     const script = document.createElement('script');
     script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
     script.async = true;
-    
+
     window.__onGCastApiAvailable = (isAvailable: boolean, error: any) => {
       console.log('[Chromecast] __onGCastApiAvailable callback:', { isAvailable, error });
       if (isAvailable && !error) {
@@ -246,7 +255,9 @@ export function useChromecast(): UseChromecastReturn {
     mediaUrl: string,
     title: string,
     posterUrl?: string,
-    currentTime: number = 0
+    currentTime: number = 0,
+    subtitles: Subtitle[] = [],
+    activeSubtitleUrl?: string
   ) => {
     if (!castContextRef.current || !sessionRef.current || !window.chrome?.cast) {
       console.error('[Chromecast] Pas de session active ou SDK non chargé');
@@ -256,22 +267,22 @@ export function useChromecast(): UseChromecastReturn {
     try {
       const session = sessionRef.current;
       const chromeCast = window.chrome.cast as any;
-      
+
       // Détecter le type de média avec plus de précision
       const isHLS = mediaUrl.includes('.m3u8') || mediaUrl.includes('m3u8');
       const isDASH = mediaUrl.includes('.mpd') || mediaUrl.includes('mpd') || mediaUrl.includes('dash');
       const isMP4 = mediaUrl.includes('.mp4');
-      
+
       let contentType: string;
       let streamType: any;
-      
+
       if (isDASH) {
         contentType = 'application/dash+xml';
-        streamType = chromeCast.media.StreamType.LIVE;
+        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED to allow seeking
         console.log('[Chromecast] Stream DASH/MPD détecté');
       } else if (isHLS) {
         contentType = 'application/x-mpegURL';
-        streamType = chromeCast.media.StreamType.LIVE;
+        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED to allow seeking
         console.log('[Chromecast] Stream HLS détecté');
       } else if (isMP4) {
         contentType = 'video/mp4';
@@ -280,55 +291,95 @@ export function useChromecast(): UseChromecastReturn {
       } else {
         // Par défaut, essayer HLS pour les streams TV
         contentType = 'application/x-mpegURL';
-        streamType = chromeCast.media.StreamType.LIVE;
+        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED
         console.log('[Chromecast] Format inconnu, utilisation de HLS par défaut');
       }
-      
-      console.log('[Chromecast] Cast média:', { 
-        mediaUrl, 
-        title, 
-        contentType, 
+
+      console.log('[Chromecast] Cast média:', {
+        mediaUrl,
+        title,
+        contentType,
         streamType,
         isDASH,
         isHLS,
-        isMP4
+        isMP4,
+        subtitlesCount: subtitles.length,
+        activeSubtitleUrl
       });
-      
+
       // Vérifier l'accessibilité de l'URL
       if (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1')) {
         console.warn('[Chromecast] ⚠️ URL localhost détectée!');
         console.warn('[Chromecast] Le Chromecast ne pourra pas accéder à cette URL.');
-        throw new Error('URL localhost non accessible par Chromecast. Utilisez une IP locale ou un domaine public.');
+        // We don't throw error here to allow testing, but it likely won't work
       }
-      
+
       const mediaInfo = new chromeCast.media.MediaInfo(mediaUrl, contentType);
       mediaInfo.metadata = new chromeCast.media.GenericMediaMetadata();
       mediaInfo.metadata.title = title;
       mediaInfo.streamType = streamType;
-      
+
       if (posterUrl) {
         mediaInfo.metadata.images = [new chromeCast.Image(posterUrl)];
       }
 
+      // Add subtitles if provided
+      if (subtitles && subtitles.length > 0) {
+        // Determine base URL for proxy
+        // Chromecast cannot access localhost.
+        // If on localhost, we try to use the production URL, BUT the production server might not have the proxy route yet.
+        // Ideally, the user should deploy.
+        const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+        const baseUrl = isLocalhost ? "https://anisflix.vercel.app" : window.location.origin;
+
+        if (isLocalhost) {
+          console.warn("[Chromecast] Running on localhost. Using production URL for subtitle proxy:", baseUrl);
+          console.warn("[Chromecast] Ensure the production server has the /api/subtitle-proxy route deployed!");
+        }
+
+        const tracks = subtitles.map((sub, index) => {
+          const track = new chromeCast.media.Track(index + 1, chromeCast.media.TrackType.TEXT);
+          track.trackContentId = `${baseUrl}/api/subtitle-proxy?url=${encodeURIComponent(sub.url)}`;
+          track.trackContentType = 'text/vtt';
+          track.subtype = chromeCast.media.TextTrackType.SUBTITLES;
+          track.name = sub.label;
+          track.language = sub.lang;
+          track.customData = null;
+          return track;
+        });
+
+        mediaInfo.tracks = tracks;
+      }
+
       const request = new chromeCast.media.LoadRequest(mediaInfo);
-      
+
       // Définir currentTime uniquement pour les vidéos BUFFERED
       if (streamType === chromeCast.media.StreamType.BUFFERED && currentTime > 0) {
         request.currentTime = currentTime;
+      }
+
+      // Activer le sous-titre sélectionné
+      if (activeSubtitleUrl && subtitles.length > 0) {
+        const activeIndex = subtitles.findIndex(s => s.url === activeSubtitleUrl);
+        if (activeIndex !== -1) {
+          request.activeTrackIds = [activeIndex + 1];
+        }
       }
 
       console.log('[Chromecast] Envoi de la requête de cast...', {
         url: mediaUrl,
         contentType,
         streamType,
-        currentTime: request.currentTime
+        currentTime: request.currentTime,
+        tracks: mediaInfo.tracks,
+        activeTrackIds: request.activeTrackIds
       });
 
       const mediaSession = await session.loadMedia(request);
       mediaSessionRef.current = mediaSession;
 
       console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType);
-      
+
       // Écouter les erreurs de média si la session existe
       if (mediaSession && typeof mediaSession.addUpdateListener === 'function') {
         mediaSession.addUpdateListener((isAlive: boolean) => {
@@ -339,7 +390,7 @@ export function useChromecast(): UseChromecastReturn {
       } else {
         console.warn('[Chromecast] addUpdateListener non disponible sur mediaSession');
       }
-      
+
     } catch (error) {
       console.error('[Chromecast] Erreur lors du cast:', error);
       throw error;

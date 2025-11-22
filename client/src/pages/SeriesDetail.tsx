@@ -29,7 +29,7 @@ export default function SeriesDetail() {
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; quality?: string; language?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
-    const seriesId = parseInt(id || "0");
+  const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { getMediaProgress } = useWatchProgress();
@@ -104,20 +104,20 @@ export default function SeriesDetail() {
       setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
-      // Pour VidMoly, passer le lien embed original au VidMolyPlayer
-      if (source.isVidMoly) {
-        console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
-        setSelectedSource({
-          url: source.url, // Lien embed original
-          type: "embed",
-          name: source.name,
-          isVidMoly: true,
-          quality: source.quality,
-          language: source.language
-        });
-        setIsLoadingSource(false);
-        return;
-      }
+    // Pour VidMoly, passer le lien embed original au VidMolyPlayer
+    if (source.isVidMoly) {
+      console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
+      setSelectedSource({
+        url: source.url, // Lien embed original
+        type: "embed",
+        name: source.name,
+        isVidMoly: true,
+        quality: source.quality,
+        language: source.language
+      });
+      setIsLoadingSource(false);
+      return;
+    }
     // Pour Vidzy (via FStream), on utilise le scraper
     if (source.url && source.type === "m3u8" && source.isFStream) {
       setIsLoadingSource(true);
@@ -125,13 +125,13 @@ export default function SeriesDetail() {
         console.log("🎬 Extraction Vidzy pour:", source.url);
         const m3u8Url = await extractVidzyM3u8(source.url);
         console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
-        
+
         if (!m3u8Url) {
           console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
           alert("Aucun lien de streaming trouvé pour cette source Vidzy");
           return;
         }
-        
+
         setSelectedSource({
           url: m3u8Url,
           type: "m3u8",
@@ -158,12 +158,12 @@ export default function SeriesDetail() {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
         <NativeHeader title={t("nav.series")} showBackButton={true} defaultHref="/tabs/home" />
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Chargement de la série...</p>
-            </div>
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Chargement de la série...</p>
           </div>
-        
+        </div>
+
       </CommonLayout>
     );
   }
@@ -171,13 +171,13 @@ export default function SeriesDetail() {
   if (!series) {
     return (
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-        
-          <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Série non trouvée</p>
-            </div>
+
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Série non trouvée</p>
           </div>
-        
+        </div>
+
       </CommonLayout>
     );
   }
@@ -185,18 +185,18 @@ export default function SeriesDetail() {
   return (
     <CommonLayout showSearch={true} onRefresh={handleRefresh}>
       <NativeHeader title={series.name} showBackButton={true} defaultHref="/tabs/home" />
-        <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
-          <div className="grid md:grid-cols-[300px_1fr] gap-8">
-            <div className="hidden md:block">
-              {series.poster_path && (
-                <img
-                  src={getImageUrl(series.poster_path, 'w500')}
-                  alt={series.name}
-                  className="w-full rounded-lg shadow-2xl"
-                />
-              )}
-            </div>
-            <div className="space-y-6">
+      <div className="container mx-auto px-4 md:px-8 lg:px-12 py-8 -mt-12 md:mt-0">
+        <div className="grid md:grid-cols-[300px_1fr] gap-8">
+          <div className="hidden md:block">
+            {series.poster_path && (
+              <img
+                src={getImageUrl(series.poster_path, 'w500')}
+                alt={series.name}
+                className="w-full rounded-lg shadow-2xl"
+              />
+            )}
+          </div>
+          <div className="space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{series.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -309,132 +309,133 @@ export default function SeriesDetail() {
                           return airDate <= today;
                         })
                         ?.map((episode: any) => {
-                        // Récupérer la progression de l'épisode
-                        const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
-                        
-                        return (
-                          <Card
-                            key={episode.id}
-                            className="p-4 hover-elevate active-elevate-2 cursor-pointer relative"
-                            onClick={() => {
-                              console.log('🔍 Clic sur épisode:', episode.episode_number);
-                              setSelectedEpisode(episode.episode_number);
-                            }}
-                            data-testid={`card-episode-${episode.episode_number}`}
-                          >
-                            {/* Barre de progression rouge */}
-                            {episodeProgress && episodeProgress.progress > 0 && (
-                              <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 rounded-t-lg" 
-                                   style={{ width: `${episodeProgress.progress}%` }} />
-                            )}
-                            
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <h4 className="font-semibold mb-1">
-                                  {episode.episode_number}. {episode.name}
-                                </h4>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {episode.overview || "Aucune description disponible."}
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                  {episode.runtime && (
-                                    <span>{episode.runtime} min</span>
-                                  )}
-                                </div>
-                              </div>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
-                                  // Si un épisode différent est sélectionné, fermer le lecteur actuel
-                                  if (selectedEpisode !== episode.episode_number && selectedSource) {
-                                    console.log('🔄 Fermeture du lecteur actuel pour ouvrir un nouvel épisode');
-                                    setSelectedSource(null);
-                                    setIsLoadingSource(false);
-                                  }
-                                  setSelectedEpisode(episode.episode_number);
-                                }}
-                              >
-                                <Play className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          {selectedEpisode === episode.episode_number && (
-                            <div className="mt-4 pt-4 border-t space-y-3">
-                              {!selectedSource ? (
-                                <>
-                                  {/* Sources de streaming unifiées */}
-                                  <StreamingSources
-                                    type="tv"
-                                    id={seriesId}
-                                    title={`${series?.name} - Saison ${selectedSeasonNumber} Épisode ${episode.episode_number}`}
-                                    sources={episodeSources}
-                                    genres={series?.genres}
-                                    onSourceClick={handleSourceClick}
-                                    isLoadingSource={isLoadingSource}
-                                    season={selectedSeasonNumber}
-                                    episode={episode.episode_number}
-                                    imdbId={series?.imdb_id}
-                                  />
-                                </>
-                              ) : (
-                                <div className="space-y-3">
-                                  <div className="flex items-center justify-between">
-                                    <h5 className="font-semibold text-sm">Lecture - {selectedSource.name}</h5>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedSource(null);
-                                      }}
-                                      data-testid="button-close-episode-player"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </Button>
+                          // Récupérer la progression de l'épisode
+                          const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
+
+                          return (
+                            <Card
+                              key={episode.id}
+                              className="p-4 hover-elevate active-elevate-2 cursor-pointer relative"
+                              onClick={() => {
+                                console.log('🔍 Clic sur épisode:', episode.episode_number);
+                                setSelectedEpisode(episode.episode_number);
+                              }}
+                              data-testid={`card-episode-${episode.episode_number}`}
+                            >
+                              {/* Barre de progression rouge */}
+                              {episodeProgress && episodeProgress.progress > 0 && (
+                                <div className="absolute top-0 left-0 right-0 h-1 bg-red-500 rounded-t-lg"
+                                  style={{ width: `${episodeProgress.progress}%` }} />
+                              )}
+
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold mb-1">
+                                    {episode.episode_number}. {episode.name}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    {episode.overview || "Aucune description disponible."}
+                                  </p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    {episode.runtime && (
+                                      <span>{episode.runtime} min</span>
+                                    )}
                                   </div>
-                                  {selectedSource.isVidMoly ? (
-                                    <VidMolyPlayer
-                                      vidmolyUrl={selectedSource.url}
-                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
-                                      posterPath={series.poster_path}
-                                      mediaId={series?.id}
-                                      mediaType="tv"
-                                      backdropPath={series?.backdrop_path}
-                                      seasonNumber={selectedSeasonNumber}
-                                      episodeNumber={selectedEpisode || undefined}
-                                    />
-                                  ) : selectedSource.isDarki ? (
-                                    <DarkiPlayer
-                                      darkiUrl={selectedSource.url}
-                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
-                                      posterPath={series.poster_path}
-                                      mediaId={series?.id}
-                                      mediaType="tv"
-                                      backdropPath={series?.backdrop_path}
-                                      onClose={() => setSelectedSource(null)}
-                                    />
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    console.log('🔍 Clic sur bouton Play épisode:', episode.episode_number);
+                                    // Si un épisode différent est sélectionné, fermer le lecteur actuel
+                                    if (selectedEpisode !== episode.episode_number && selectedSource) {
+                                      console.log('🔄 Fermeture du lecteur actuel pour ouvrir un nouvel épisode');
+                                      setSelectedSource(null);
+                                      setIsLoadingSource(false);
+                                    }
+                                    setSelectedEpisode(episode.episode_number);
+                                  }}
+                                >
+                                  <Play className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              {selectedEpisode === episode.episode_number && (
+                                <div className="mt-4 pt-4 border-t space-y-3">
+                                  {!selectedSource ? (
+                                    <>
+                                      {/* Sources de streaming unifiées */}
+                                      <StreamingSources
+                                        type="tv"
+                                        id={seriesId}
+                                        title={`${series?.name} - Saison ${selectedSeasonNumber} Épisode ${episode.episode_number}`}
+                                        sources={episodeSources}
+                                        genres={series?.genres}
+                                        onSourceClick={handleSourceClick}
+                                        isLoadingSource={isLoadingSource}
+                                        season={selectedSeasonNumber}
+                                        episode={episode.episode_number}
+                                        imdbId={series?.imdb_id}
+                                      />
+                                    </>
                                   ) : (
-                                    <VideoPlayer
-                                      src={selectedSource.url}
-                                      type={selectedSource.type === 'embed' ? 'auto' : selectedSource.type}
-                                      title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
-                                      mediaId={series.id}
-                                      mediaType="tv"
-                                      posterPath={series.poster_path}
-                                      backdropPath={series.backdrop_path}
-                                      seasonNumber={selectedSeasonNumber}
-                                      episodeNumber={selectedEpisode || undefined}
-                                    />
+                                    <div className="space-y-3">
+                                      <div className="flex items-center justify-between">
+                                        <h5 className="font-semibold text-sm">Lecture - {selectedSource.name}</h5>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedSource(null);
+                                          }}
+                                          data-testid="button-close-episode-player"
+                                        >
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                      {selectedSource.isVidMoly ? (
+                                        <VidMolyPlayer
+                                          vidmolyUrl={selectedSource.url}
+                                          title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                          posterPath={series.poster_path}
+                                          mediaId={series?.id}
+                                          mediaType="tv"
+                                          backdropPath={series?.backdrop_path}
+                                          seasonNumber={selectedSeasonNumber}
+                                          episodeNumber={selectedEpisode || undefined}
+                                        />
+                                      ) : selectedSource.isDarki ? (
+                                        <DarkiPlayer
+                                          darkiUrl={selectedSource.url}
+                                          title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                          posterPath={series.poster_path}
+                                          mediaId={series?.id}
+                                          mediaType="tv"
+                                          backdropPath={series?.backdrop_path}
+                                          onClose={() => setSelectedSource(null)}
+                                        />
+                                      ) : (
+                                        <VideoPlayer
+                                          src={selectedSource.url}
+                                          type={selectedSource.type === 'embed' ? 'auto' : selectedSource.type}
+                                          title={`${series?.name || "Série"} - S${selectedSeasonNumber}E${selectedEpisode}`}
+                                          mediaId={series.id}
+                                          mediaType="tv"
+                                          posterPath={series.poster_path}
+                                          backdropPath={series.backdrop_path}
+                                          seasonNumber={selectedSeasonNumber}
+                                          episodeNumber={selectedEpisode || undefined}
+                                          imdbId={series.external_ids?.imdb_id}
+                                        />
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               )}
-                            </div>
-                          )}
-                        </Card>
-                        );
-                      })}
+                            </Card>
+                          );
+                        })}
                     </div>
                   </div>
                 </TabsContent>
@@ -451,8 +452,8 @@ export default function SeriesDetail() {
             />
           </div>
         )}
-        </div>
-      
+      </div>
+
     </CommonLayout>
   );
 }

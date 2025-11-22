@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, PictureInPicture, Cast } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, PictureInPicture, Cast, Subtitles, Check } from "lucide-react";
 import ChromecastButton from "@/components/ChromecastButton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Subtitle } from "@/lib/opensubtitles";
 
 interface CustomVideoControlsProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -21,6 +30,9 @@ interface CustomVideoControlsProps {
   onPictureInPicture: () => void;
   onSeek: (value: number) => void;
   formatTime: (time: number) => string;
+  subtitles?: Subtitle[];
+  selectedSubtitle?: string | null;
+  onSubtitleSelect?: (url: string | null) => void;
 }
 
 export default function CustomVideoControls({
@@ -41,6 +53,9 @@ export default function CustomVideoControls({
   onPictureInPicture,
   onSeek,
   formatTime,
+  subtitles = [],
+  selectedSubtitle,
+  onSubtitleSelect,
 }: CustomVideoControlsProps) {
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
@@ -53,11 +68,11 @@ export default function CustomVideoControls({
     const handleMouseMove = () => {
       setShowControls(true);
       setIsHovering(true);
-      
+
       if (hideControlsTimeoutRef.current) {
         clearTimeout(hideControlsTimeoutRef.current);
       }
-      
+
       hideControlsTimeoutRef.current = setTimeout(() => {
         if (isPlaying && !isHovering) {
           setShowControls(false);
@@ -109,9 +124,8 @@ export default function CustomVideoControls({
 
   return (
     <div
-      className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-opacity duration-300 ${
-        showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-      }`}
+      className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
@@ -167,6 +181,46 @@ export default function CustomVideoControls({
 
         {/* Right controls */}
         <div className="flex items-center gap-1">
+          {/* Subtitles Dropdown */}
+          {subtitles.length > 0 && onSubtitleSelect && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`text-white hover:bg-white/20 h-9 w-9 ${selectedSubtitle ? 'text-blue-400' : ''}`}
+                  title="Sous-titres"
+                >
+                  <Subtitles className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
+                <DropdownMenuLabel>Sous-titres</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onSubtitleSelect(null)}
+                  className="flex items-center justify-between"
+                >
+                  <span>Désactivé</span>
+                  {!selectedSubtitle && <Check className="w-4 h-4" />}
+                </DropdownMenuItem>
+                {subtitles.map((sub) => (
+                  <DropdownMenuItem
+                    key={sub.id}
+                    onClick={() => onSubtitleSelect(sub.url)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center">
+                      <span className="mr-2">{sub.flag}</span>
+                      {sub.label}
+                    </div>
+                    {selectedSubtitle === sub.url && <Check className="w-4 h-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
           {mediaUrl && (
             <div className="h-9 w-9">
               <ChromecastButton
@@ -177,6 +231,8 @@ export default function CustomVideoControls({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20 h-full w-full"
+                subtitles={subtitles}
+                activeSubtitleUrl={selectedSubtitle || undefined}
               />
             </div>
           )}

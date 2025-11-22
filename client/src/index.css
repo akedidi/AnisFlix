@@ -80,6 +80,7 @@ ion-refresher {
 
 /* Désactiver le pull-to-refresh sur web mobile - seulement actif sur mobile natif */
 @media (max-width: 767px) {
+
   /* Cacher le refresher sur web mobile (pas sur Capacitor natif) */
   html:not([data-capacitor]) ion-refresher,
   html:not([data-capacitor]) ion-refresher-content {
@@ -91,8 +92,13 @@ ion-refresher {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @tailwind base;
@@ -100,7 +106,8 @@ ion-refresher {
 @tailwind utilities;
 
 /* Empêcher le bounce horizontal et le débordement */
-html, body {
+html,
+body {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   -webkit-overflow-scrolling: touch;
@@ -116,7 +123,8 @@ html, body {
 @media (max-width: 767px) {
   .header-ios-safe.native-mobile {
     padding-top: env(safe-area-inset-top, 0px) !important;
-    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important; /* Fallback 34px + 20px */
+    padding-top: max(env(safe-area-inset-top, 0px), 54px) !important;
+    /* Fallback 34px + 20px */
   }
 }
 
@@ -143,7 +151,8 @@ html, body {
     left: 0px !important;
     right: 0px !important;
     top: auto !important;
-    z-index: 99999 !important; /* Z-index réduit pour éviter les problèmes de pointer-events */
+    z-index: 99999 !important;
+    /* Z-index réduit pour éviter les problèmes de pointer-events */
     width: 100vw !important;
     height: 70px !important;
     transform: translate3d(0, 0, 0) !important;
@@ -159,7 +168,7 @@ html, body {
   .mobile-bottom-nav * {
     pointer-events: auto !important;
   }
-  
+
   /* Boutons et liens doivent être cliquables */
   .mobile-bottom-nav button,
   .mobile-bottom-nav a {
@@ -170,23 +179,24 @@ html, body {
     user-select: none !important;
     -webkit-user-select: none !important;
   }
-  
+
   /* Padding UNIQUE pour éviter les conflits */
   .main-content {
     padding-bottom: 100px !important;
     /* Padding-top pour que le contenu commence sous la SearchBar */
     padding-top: 100px !important;
   }
-  
+
   /* Sur desktop, augmenter le padding-top car la SearchBar est plus haute avec le header */
   @media (min-width: 768px) {
+
     .main-content,
     #main-content-desktop {
       padding-top: 200px !important;
       margin-top: 0 !important;
     }
   }
-  
+
   /* Body simple - pas de padding redondant */
   body {
     overflow-x: hidden;
@@ -202,7 +212,8 @@ html, body {
 }
 
 /* Permettre le scroll programmatique sur le body et html */
-html, body {
+html,
+body {
   overscroll-behavior: auto !important;
   -webkit-overscroll-behavior: auto !important;
 }
@@ -219,6 +230,7 @@ html, body {
 
 /* Correction spécifique pour les listes et conteneurs de scroll - SIMPLIFIÉE */
 @media (max-width: 767px) {
+
   .scrollable-content,
   [data-scrollable],
   .scroll-container {
@@ -236,6 +248,7 @@ html, body {
     opacity: 0;
     transform: translateY(20px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -247,6 +260,7 @@ html, body {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+
   to {
     opacity: 0;
     transform: translateY(-10px) scale(1.02);
@@ -258,6 +272,7 @@ html, body {
     opacity: 0;
     transform: translateX(30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -269,6 +284,7 @@ html, body {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -280,6 +296,7 @@ html, body {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -291,6 +308,7 @@ html, body {
     opacity: 0;
     transform: translateY(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -302,6 +320,7 @@ html, body {
     opacity: 0;
     transform: scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -415,15 +434,16 @@ html, body {
 
 /* LIGHT MODE */
 :root {
-  --button-outline: rgba(0,0,0, .10);
-  --badge-outline: rgba(0,0,0, .05);
+  --button-outline: rgba(0, 0, 0, .10);
+  --badge-outline: rgba(0, 0, 0, .05);
 
   /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -8;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-1: rgba(0, 0, 0, .03);
+  --elevate-2: rgba(0, 0, 0, .08);
 
   --background: 0 0% 98%;
 
@@ -490,7 +510,8 @@ html, body {
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: .5rem; /* 8px */
+  --radius: .5rem;
+  /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(220 15% 8% / 0.02);
   --shadow-xs: 0px 2px 0px 0px hsl(220 15% 8% / 0.04);
   --shadow-sm: 0px 2px 0px 0px hsl(220 15% 8% / 0.05), 0px 1px 2px -1px hsl(220 15% 8% / 0.08);
@@ -534,14 +555,15 @@ html, body {
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
-  --badge-outline: rgba(255,255,255, .05);
+  --button-outline: rgba(255, 255, 255, .10);
+  --badge-outline: rgba(255, 255, 255, .05);
 
-  --opaque-button-border-intensity: 9;  /* In terms of percentages */
+  --opaque-button-border-intensity: 9;
+  /* In terms of percentages */
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
-  --elevate-1: rgba(255,255,255, .04);
-  --elevate-2: rgba(255,255,255, .09);
+  --elevate-1: rgba(255, 255, 255, .04);
+  --elevate-2: rgba(255, 255, 255, .09);
 
   --background: 220 15% 8%;
 
@@ -774,6 +796,7 @@ html, body {
 
 /* Styles pour le comportement mobile - SIMPLIFIÉS */
 @layer base {
+
   /* Styles mobiles simplifiés - pas de redondance */
   @media (max-width: 767px) {
     html {
@@ -785,59 +808,63 @@ html, body {
 }
 
 @layer utilities {
+
   /* Container principal - padding géré par le body */
   .mobile-bottom-nav-padding {
     min-height: 100vh;
   }
-  
+
   /* Amélioration de la visibilité des images */
   .image-zoom {
     transition: transform 0.3s ease-in-out;
   }
-  
+
   .image-zoom:hover {
     transform: scale(1.05);
   }
-  
+
   /* Amélioration de l'affichage sur iPhone et petits écrans */
   @media (max-width: 480px) {
+
     /* Assurer que la section hero a assez d'espace */
     [data-testid="hero-section"] {
       min-height: 50vh;
     }
-    
+
     /* Améliorer l'espacement du contenu */
     .container {
       padding-left: 1rem;
       padding-right: 1rem;
     }
   }
-  
+
   /* Empêcher le scroll horizontal sur mobile */
   @media (max-width: 767px) {
+
     /* S'assurer que tous les éléments respectent la largeur de l'écran */
     * {
       max-width: 100%;
       box-sizing: border-box;
     }
-    
+
     /* Empêcher les éléments de déborder */
-    .container, .container-fluid {
+    .container,
+    .container-fluid {
       overflow-x: hidden;
     }
-    
+
     /* S'assurer que les images ne dépassent pas */
     img {
       max-width: 100%;
       height: auto;
     }
-    
+
     /* Empêcher les tableaux de déborder */
     table {
       width: 100%;
       table-layout: fixed;
     }
-    
+
     /* Empêcher les éléments flex de déborder */
     .flex {
       flex-wrap: wrap;
@@ -848,7 +875,7 @@ html, body {
 /* Force le menu mobile à rester en bas */
 @media (max-width: 767px) {
   /* Body déjà défini plus haut - pas de redondance */
-  
+
   /* Assurer que le contenu principal a un padding pour le tab bar - SUPPRIMÉ (redondant) */
   /* .main-content {
     padding-bottom: 5rem !important;
@@ -857,7 +884,7 @@ html, body {
     z-index: 1;
     overflow-y: visible;
   } */
-  
+
   /* Forcer le tab bar à rester fixe même avec le clavier */
   .mobile-bottom-nav {
     position: fixed !important;
@@ -878,16 +905,17 @@ html, body {
     visibility: visible !important;
     opacity: 1 !important;
   }
-  
+
   /* S'assurer que le header reste au-dessus du contenu ET de la SearchBar */
   .bg-background\/95 {
-    z-index: 1000000 !important; /* Au-dessus de la SearchBar (999999) */
+    z-index: 1000000 !important;
+    /* Au-dessus de la SearchBar (999999) */
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
   }
-  
+
   /* Permettre le scroll horizontal pour les carrousels */
   .main-content .overflow-x-auto,
   .main-content .overflow-x-scroll,
@@ -898,8 +926,24 @@ html, body {
     overflow-x: auto !important;
     flex-wrap: nowrap !important;
   }
-  
+
   .main-content .flex-shrink-0 {
     flex-shrink: 0 !important;
   }
+}
+
+/* Move subtitles up above the progress bar */
+video::cue {
+  line-height: 1.5;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Webkit specific for Chrome/Safari */
+video::-webkit-media-text-track-display {
+  transform: translateY(-50px);
+}
+
+/* For Firefox and others */
+video::cue {
+  vertical-align: 10%;
 }

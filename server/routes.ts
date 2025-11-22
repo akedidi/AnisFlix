@@ -18,25 +18,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/movix-proxy", async (req, res) => {
     try {
       const { path, ...queryParams } = req.query;
-      
+
       if (!path) {
         return res.status(400).json({ error: 'Paramètre "path" manquant' });
       }
 
       // Décoder le path pour éviter le double encodage
       const decodedPath = decodeURIComponent(path as string);
-      
+
       // Déterminer le type de requête pour améliorer les logs
       const isTmdbRequest = decodedPath.startsWith('tmdb/');
       const isAnimeRequest = decodedPath.startsWith('anime/search/');
-      
+
       if (isTmdbRequest) {
         console.log(`🚀 [MOVIX TMDB] Fetching sources for: ${decodedPath}`);
       } else {
         console.log(`[MOVIX PROXY] Path: ${path}`);
         console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
       }
-      
+
       // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
       let movixUrl;
       if (isAnimeRequest) {
@@ -44,9 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         movixUrl = `https://api.movix.site/api/${decodedPath}`;
       }
-      
+
       const url = new URL(movixUrl);
-      
+
       // Ajouter les query parameters
       Object.entries(queryParams).forEach(([key, value]) => {
         if (key !== 'path') {
@@ -95,9 +95,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       const isTmdbRequest = req.query.path && typeof req.query.path === 'string' && decodeURIComponent(req.query.path).startsWith('tmdb/');
       const errorPrefix = isTmdbRequest ? '[MOVIX TMDB ERROR]' : '[MOVIX PROXY ERROR]';
-      
+
       console.error(errorPrefix, error.message);
-      
+
       if (error.response) {
         console.error(errorPrefix, 'Détails:', error.response.data);
         res.status(error.response.status).json({
@@ -129,31 +129,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/movix-tmdb", async (req, res) => {
     try {
       const { movieId } = req.query;
-      
+
       if (!movieId) {
         return res.status(400).json({ error: 'movieId is required' });
       }
-      
+
       console.log(`[MOVIX TMDB] Fetching sources for movie: ${movieId}`);
-      
+
       // Utiliser le proxy local unifié avec le paramètre path
       const proxyUrl = `http://localhost:3000/api/movix-proxy?path=tmdb/movie/${movieId}`;
       console.log(`[MOVIX TMDB] Proxy URL locale: ${proxyUrl}`);
-      
+
       const response = await axios.get(proxyUrl, {
         timeout: 15000,
         headers: {
           'Accept': 'application/json',
         }
       });
-      
+
       console.log(`[MOVIX TMDB] Response status: ${response.status}`);
-      
+
       res.json(response.data);
-      
+
     } catch (error: any) {
       console.error(`[MOVIX TMDB] Error:`, error.message);
-      
+
       if (error.response) {
         console.error(`[MOVIX TMDB] Error details:`, error.response.data);
         return res.status(error.response.status).json({
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: error.response.data
         });
       }
-      
+
       return res.status(500).json({
         error: 'Erreur serveur lors de la récupération des sources Movix TMDB',
         details: error.message
@@ -173,21 +173,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/vidzy/extract", async (req, res) => {
     try {
       const { url } = req.body;
-      
+
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL Vidzy requise' });
       }
-      
+
       if (!url.includes('vidzy.org')) {
         return res.status(400).json({ error: 'URL Vidzy invalide' });
       }
-      
+
       const m3u8Link = await getVidzyM3u8Link(url);
-      
+
       if (!m3u8Link) {
         return res.status(404).json({ error: 'Impossible d\'extraire le lien m3u8' });
       }
-      
+
       res.json({ m3u8Url: m3u8Link });
     } catch (error) {
       console.error('Erreur lors de l\'extraction Vidzy:', error);
@@ -199,15 +199,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/extract", async (req, res) => {
     try {
       const { type, url } = req.body;
-      
+
       if (!type || !url) {
         return res.status(400).json({ error: 'Type et URL requis' });
       }
-      
+
       console.log(`[EXTRACT] Extraction ${type} pour: ${url}`);
-      
+
       let result;
-      
+
       switch (type) {
         case 'vidzy':
           const m3u8Link = await getVidzyM3u8Link(url);
@@ -216,22 +216,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           result = { m3u8Url: m3u8Link };
           break;
-          
+
         case 'vidsrc':
           const vidsrcResult = await vidsrcScraper.extractStreamingLinks(url);
           if (!vidsrcResult.success) {
             return res.status(404).json({ error: 'Impossible d\'extraire les liens VidSrc' });
           }
-          result = { 
+          result = {
             success: true,
             players: vidsrcResult.players
           };
           break;
-          
+
         default:
           return res.status(400).json({ error: 'Type d\'extraction non supporté' });
       }
-      
+
       res.json(result);
     } catch (error) {
       console.error('Erreur lors de l\'extraction:', error);
@@ -251,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const decodedUrl = decodeURIComponent(url as string);
           console.log(`[DARKIBOX PROXY] Mode proxy - URL: ${decodedUrl}`);
           console.log(`[DARKIBOX PROXY] Type de req.query: ${typeof req.query}, url query param: ${url}`);
-          
+
           const response = await axios.get(decodedUrl, {
             timeout: 10000,
             headers: {
@@ -278,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (decodedUrl.includes('.m3u8') && typeof response.data === 'string') {
             let playlistContent = response.data;
             console.log(`[DARKIBOX PROXY] Playlist M3U8 détectée (${playlistContent.length} caractères)`);
-            
+
             // Fonction pour proxifier une URL
             const proxifyUrl = (url: string) => {
               if (url.includes('anisflix.vercel.app') || url.includes('localhost:3000')) {
@@ -286,20 +286,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               return `/api/darkibox?url=${encodeURIComponent(url)}`;
             };
-            
+
             // Réécrire les URLs dans les attributs URI="..." (pour les balises #EXT-X-MEDIA, etc.)
             playlistContent = playlistContent.replace(/URI="([^"]+\.(m3u8|ts)[^"]*)"/g, (match, url) => {
               return `URI="${proxifyUrl(url)}"`;
             });
-            
+
             // Réécrire les URLs qui sont seules sur une ligne (segments .ts)
             playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.ts[^\s]*$/gm, proxifyUrl);
-            
+
             // Réécrire les URLs qui sont seules sur une ligne (playlists .m3u8)
             playlistContent = playlistContent.replace(/^https?:\/\/[^\s]+\.m3u8[^\s]*$/gm, proxifyUrl);
-            
+
             console.log(`[DARKIBOX PROXY] Playlist M3U8 réécrite avec proxy`);
-            
+
             // Retourner la playlist modifiée
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             res.setHeader('Cache-Control', 'no-cache');
@@ -337,8 +337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isSeries = !!seriesId && !!season && !!episode;
 
       if (!isMovie && !isSeries) {
-        return res.status(400).json({ 
-          error: 'movieId, (seriesId, season, episode) ou url sont requis' 
+        return res.status(400).json({
+          error: 'movieId, (seriesId, season, episode) ou url sont requis'
         });
       }
 
@@ -352,9 +352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         proxyUrl = `http://localhost:3000/api/movix-proxy?path=series/download/${id}/season/${season}/episode/${episode}`;
       }
-      
+
       console.log(`[DARKIBOX] Proxy URL: ${proxyUrl}`);
-      
+
       const response = await axios.get(proxyUrl, {
         timeout: 15000,
         headers: {
@@ -370,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Si l'API Movix retourne une erreur ou pas de sources, retourner une réponse vide
       if (!response.data || !response.data.sources || response.data.sources.length === 0) {
         console.log(`[DARKIBOX] Aucune source trouvée pour ${isMovie ? 'film' : 'série'} ${id}`);
-        return res.json({ 
+        return res.json({
           success: true,
           sources: [],
           total: 0,
@@ -409,30 +409,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error(`[DARKIBOX SERIES] Erreur:`, error.message);
-      
+
       if (error.response) {
         console.error(`[DARKIBOX SERIES] Détails erreur:`, error.response.data);
-        
+
         // Si l'API Movix retourne une erreur 500, retourner une réponse vide au lieu d'une erreur
         if (error.response.status === 500) {
           console.log(`[DARKIBOX] API Movix indisponible, retour d'une réponse vide`);
-          return res.json({ 
+          return res.json({
             success: true,
             sources: [],
             total: 0,
             message: 'API Movix temporairement indisponible'
           });
         }
-        
+
         return res.status(error.response.status).json({
           error: 'Erreur API Movix via proxy',
           details: error.response.data
         });
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: 'Erreur serveur lors de la récupération des sources Darkibox',
-        details: error.message 
+        details: error.message
       });
     }
   });
@@ -462,10 +462,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const playlistContent = response.data;
-      
+
       if (!playlistContent || !playlistContent.includes('#EXTM3U')) {
-        return res.status(404).json({ 
-          error: 'Contenu de playlist m3u8 invalide' 
+        return res.status(404).json({
+          error: 'Contenu de playlist m3u8 invalide'
         });
       }
 
@@ -473,10 +473,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const lines = playlistContent.split('\n');
       const streamInfo = lines.find(line => line.includes('#EXT-X-STREAM-INF'));
       const streamUrl = lines.find(line => line.startsWith('https://') && line.includes('.m3u8'));
-      
+
       if (!streamUrl) {
-        return res.status(404).json({ 
-          error: 'Impossible de trouver l\'URL de stream dans la playlist' 
+        return res.status(404).json({
+          error: 'Impossible de trouver l\'URL de stream dans la playlist'
         });
       }
 
@@ -484,12 +484,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let bandwidth = null;
       let resolution = null;
       let codecs = null;
-      
+
       if (streamInfo) {
         const bandwidthMatch = streamInfo.match(/BANDWIDTH=(\d+)/);
         const resolutionMatch = streamInfo.match(/RESOLUTION=(\d+x\d+)/);
         const codecsMatch = streamInfo.match(/CODECS="([^"]+)"/);
-        
+
         bandwidth = bandwidthMatch ? parseInt(bandwidthMatch[1]) : null;
         resolution = resolutionMatch ? resolutionMatch[1] : null;
         codecs = codecsMatch ? codecsMatch[1] : null;
@@ -509,19 +509,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         source: 'darkibox'
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[DARKIBOX SCRAPING] Erreur:`, error.message);
-      
+
       if (error.response) {
         return res.status(error.response.status).json({
           error: 'Erreur lors de la récupération de la playlist',
           details: error.response.statusText
         });
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: 'Erreur serveur lors du scraping Darkibox',
-        details: error.message 
+        details: error.message
       });
     }
   });
@@ -530,14 +530,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/darkibox-proxy", async (req, res) => {
     try {
       const { url } = req.query;
-      
+
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL Darkibox requise' });
       }
-      
+
       // Décoder l'URL si elle est encodée
       let decodedUrl = decodeURIComponent(url);
-      
+
       // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
       if (decodedUrl.includes('/api/darkibox-proxy')) {
         // Extraire l'URL Darkibox du paramètre url
@@ -546,13 +546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           decodedUrl = decodeURIComponent(urlMatch[1]);
         }
       }
-      
+
       if (!decodedUrl.includes('darkibox.com')) {
         return res.status(400).json({ error: 'URL Darkibox invalide' });
       }
-      
+
       console.log(`[DARKIBOX PROXY] Proxying URL: ${decodedUrl}`);
-      
+
       const response = await axios.get(decodedUrl, {
         timeout: 15000,
         headers: {
@@ -563,20 +563,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         httpsAgent: new https.Agent({ rejectUnauthorized: false })
       });
-      
+
       res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      
+
       res.send(response.data);
-      
+
     } catch (error: any) {
       console.error(`[DARKIBOX PROXY] Erreur:`, error.message);
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: 'Erreur serveur lors du proxy Darkibox',
-        details: error.message 
+        details: error.message
       });
     }
   });
@@ -585,23 +585,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/vidsrc/extract", async (req, res) => {
     try {
       const { url } = req.body;
-      
+
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL VidSrc requise' });
       }
-      
+
       if (!url.includes('vidsrc.io')) {
         return res.status(400).json({ error: 'URL VidSrc invalide' });
       }
-      
+
       const result = await vidsrcScraper.extractStreamingLinks(url);
-      
+
       if (!result.success) {
-        return res.status(404).json({ 
-          error: result.error || 'Impossible d\'extraire les liens de streaming' 
+        return res.status(404).json({
+          error: result.error || 'Impossible d\'extraire les liens de streaming'
         });
       }
-      
+
       res.json({
         success: true,
         m3u8Url: result.m3u8Url,
@@ -674,21 +674,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/vidsrc/m3u8", async (req, res) => {
     try {
       const { url } = req.body;
-      
+
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: 'URL VidSrc requise' });
       }
-      
+
       if (!url.includes('vidsrc.io')) {
         return res.status(400).json({ error: 'URL VidSrc invalide' });
       }
-      
+
       const m3u8Link = await extractVidSrcM3u8(url);
-      
+
       if (!m3u8Link) {
         return res.status(404).json({ error: 'Impossible d\'extraire le lien m3u8' });
       }
-      
+
       res.json({ m3u8Url: m3u8Link });
     } catch (error) {
       console.error('Erreur lors de l\'extraction m3u8 VidSrc:', error);
@@ -701,13 +701,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let url = String(req.query.url || '');
       const referer = String(req.query.referer || 'https://vidmoly.net/');
-      
+
       // Décoder l'URL si elle est sur-encodée
       while (url.includes('%25')) {
         url = decodeURIComponent(url);
         console.log('🔍 [VIDMOLY PROXY] Décodage URL:', url);
       }
-      
+
       if (!url || !url.startsWith('http')) {
         return res.status(400).json({ error: 'Paramètre url invalide' });
       }
@@ -784,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const url = String(req.query.url || '');
       const referer = String(req.query.referer || 'https://vidmoly.net/');
-      
+
       if (!url || !url.startsWith('http')) {
         return res.status(400).json({ error: 'Paramètre url invalide' });
       }
@@ -802,7 +802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       const { url, method = 'auto' } = req.body;
-      
+
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ success: false, error: 'URL VidMoly requise' });
       }
@@ -838,21 +838,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const html: string = response.data ?? "";
-      
+
       // Debug: afficher un extrait du HTML pour comprendre la structure
       console.log(`[VIDMOLY] HTML reçu (${html.length} caractères)`);
       console.log(`[VIDMOLY] Extrait HTML:`, html.substring(0, 1000));
-      
+
       // Vérifier si c'est une page de redirection VidMoly
       if (html.includes('meta http-equiv=\'refresh\'') && html.includes('cdn.staticmoly.me')) {
         console.log(`[VIDMOLY] Page de redirection détectée, extraction de l'URL de redirection...`);
-        
+
         // Extraire l'URL de redirection
         const redirectMatch = html.match(/content='0;URL=([^']+)'/);
         if (redirectMatch && redirectMatch[1]) {
           const redirectUrl = redirectMatch[1];
           console.log(`[VIDMOLY] Redirection vers: ${redirectUrl}`);
-          
+
           // Suivre la redirection
           try {
             const redirectResponse = await axios.get(redirectUrl, {
@@ -865,14 +865,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               timeout: 15000,
               maxRedirects: 5,
             });
-            
+
             const redirectedHtml = redirectResponse.data ?? "";
             console.log(`[VIDMOLY] HTML après redirection (${redirectedHtml.length} caractères)`);
             console.log(`[VIDMOLY] Extrait HTML après redirection:`, redirectedHtml.substring(0, 1000));
-            
+
             // Utiliser le HTML de la redirection pour l'extraction
             const finalHtml = redirectedHtml;
-            
+
             // Continuer avec l'extraction sur le HTML final
             const patterns: RegExp[] = [
               // Patterns VidMoly modernes
@@ -903,14 +903,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return res.status(200).json({ success: true, m3u8Url: null, source: "vidmoly" });
             }
 
-            return res.status(200).json({ 
-              success: true, 
-              m3u8Url, 
+            return res.status(200).json({
+              success: true,
+              m3u8Url,
               method: 'extracted_real',
-              source: "vidmoly", 
-              originalUrl: url 
+              source: "vidmoly",
+              originalUrl: url
             });
-            
+
           } catch (redirectError) {
             console.error(`[VIDMOLY] Erreur lors de la redirection:`, redirectError);
             return res.status(200).json({ success: true, m3u8Url: null, source: "vidmoly" });
@@ -946,24 +946,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(200).json({ success: true, m3u8Url: null, source: "vidmoly" });
       }
 
-      return res.status(200).json({ 
-        success: true, 
-        m3u8Url, 
+      return res.status(200).json({
+        success: true,
+        m3u8Url,
         method: 'extracted_real',
-        source: "vidmoly", 
-        originalUrl: url 
+        source: "vidmoly",
+        originalUrl: url
       });
     } catch (error: any) {
       console.error('Erreur extraction VidMoly:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: error?.message || "Erreur VidMoly" 
+      return res.status(500).json({
+        success: false,
+        error: error?.message || "Erreur VidMoly"
       });
     }
   });
 
   // Enregistrer les routes proxy HLS pour les chaînes TV
   registerHLSProxyRoutes(app);
+
+  // Route proxy pour les sous-titres (SRT -> VTT)
+  app.get("/api/subtitle-proxy", async (req, res) => {
+    try {
+      const { url } = req.query;
+
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL requise' });
+      }
+
+      console.log(`[SUBTITLE PROXY] Fetching and converting: ${url}`);
+
+      const response = await axios.get(url, {
+        responseType: 'text',
+        timeout: 10000
+      });
+
+      const srtContent = response.data;
+
+      // Convert SRT to VTT
+      // Simple conversion: Replace commas with dots in timestamps and add WEBVTT header
+      let vttContent = "WEBVTT\n\n" + srtContent
+        .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n");
+
+      res.setHeader('Content-Type', 'text/vtt');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(vttContent);
+
+    } catch (error: any) {
+      console.error(`[SUBTITLE PROXY] Erreur:`, error.message);
+      res.status(500).json({ error: 'Erreur lors du proxy des sous-titres' });
+    }
+  });
 
   const httpServer = createServer(app);
 

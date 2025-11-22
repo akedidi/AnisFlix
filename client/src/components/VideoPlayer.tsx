@@ -11,11 +11,14 @@ import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import CustomVideoControls from "@/components/CustomVideoControls";
 import type { MediaType } from "@shared/schema";
+import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
+import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
+
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
-  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
-         (window as any).webkit?.messageHandlers || 
-         (window as any).Android;
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) &&
+    (window as any).webkit?.messageHandlers ||
+    (window as any).Android;
 };
 
 // Extension des types pour webkitSetPresentationMode
@@ -36,18 +39,20 @@ interface VideoPlayerProps {
   backdropPath?: string | null;
   seasonNumber?: number;
   episodeNumber?: number;
+  imdbId?: string; // Add imdbId prop
 }
 
-export default function VideoPlayer({ 
-  src, 
-  type = "auto", 
+export default function VideoPlayer({
+  src,
+  type = "auto",
   title = "Vidéo",
   mediaId,
   mediaType,
   posterPath,
   backdropPath,
   seasonNumber,
-  episodeNumber
+  episodeNumber,
+  imdbId
 }: VideoPlayerProps) {
   const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -66,25 +71,49 @@ export default function VideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSaveTimeRef = useRef<number>(0);
 
+  // Subtitles state
+  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
+
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
     videoRef,
     isPlayerActive: !!src
   });
 
+  // Fetch subtitles
+  useEffect(() => {
+    const fetchSubtitles = async () => {
+      if (imdbId && mediaType) {
+        console.log('🔍 [VIDEO PLAYER] Fetching subtitles for IMDB ID:', imdbId);
+        const subs = await getSubtitles(
+          imdbId,
+          mediaType === 'tv' ? 'series' : 'movie',
+          seasonNumber,
+          episodeNumber
+        );
+        setSubtitles(subs);
+      } else {
+        setSubtitles([]);
+      }
+    };
+
+    fetchSubtitles();
+  }, [imdbId, mediaType, seasonNumber, episodeNumber]);
+
   useEffect(() => {
     if (!videoRef.current || !src) return;
 
     const video = videoRef.current;
-    
+
     console.log('🎬 [VIDEO PLAYER] URL reçue:', src);
     console.log('🎬 [VIDEO PLAYER] Type spécifié:', type);
-    
+
     // Détection automatique du type de source
-    const detectedType = type === "auto" 
+    const detectedType = type === "auto"
       ? (src.includes(".m3u8") || src.includes("m3u8") ? "m3u8" : "mp4")
       : type;
-    
+
     console.log('🎬 [VIDEO PLAYER] Type détecté:', detectedType);
     setSourceType(detectedType);
 
@@ -97,17 +126,17 @@ export default function VideoPlayer({
         console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation de l\'API legacy:', finalSrc);
       }
       setFinalMediaUrl(finalSrc);
-      
+
       // Lecture HLS
       if (Hls.isSupported()) {
         const hlsConfig: any = {
           enableWorker: true,
           lowLatencyMode: false,
         };
-        
+
         // Si c'est Darkibox, proxifier toutes les requêtes (segments, sous-titres, etc.)
         if (isDarkibox) {
-          hlsConfig.xhrSetup = function(xhr: XMLHttpRequest, url: string) {
+          hlsConfig.xhrSetup = function (xhr: XMLHttpRequest, url: string) {
             // Ne proxifier que si l'URL n'est pas déjà proxifiée et contient darkibox.com
             if (!url.includes('/api/darkibox') && url.includes('darkibox.com')) {
               const proxyUrl = `/api/darkibox?url=${encodeURIComponent(url)}`;
@@ -115,16 +144,16 @@ export default function VideoPlayer({
             }
           };
         }
-        
+
         const hls = new Hls(hlsConfig);
         hlsRef.current = hls;
         hls.loadSource(finalSrc);
         hls.attachMedia(video);
-        
+
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           video.play().catch(err => console.warn("Autoplay failed:", err));
         });
-        
+
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             console.error("HLS error:", data);
@@ -179,22 +208,22 @@ export default function VideoPlayer({
 
     const handleTimeUpdate = () => {
       const now = Date.now();
-      
+
       // Mettre à jour le currentTime pour Chromecast
       setCurrentTime(video.currentTime);
-      
+
       // Mettre à jour duration et progress
       if (video.duration) {
         setDuration(video.duration);
         setProgress((video.currentTime / video.duration) * 100);
       }
-      
+
       // Sauvegarder toutes les 5 secondes
       if (now - lastSaveTimeRef.current < 5000) return;
-      
+
       if (video.duration > 0 && video.currentTime > 0) {
         const progress = Math.round((video.currentTime / video.duration) * 100);
-        
+
         saveWatchProgress({
           mediaId,
           mediaType,
@@ -207,7 +236,7 @@ export default function VideoPlayer({
           seasonNumber,
           episodeNumber,
         });
-        
+
         lastSaveTimeRef.current = now;
       }
     };
@@ -304,15 +333,15 @@ export default function VideoPlayer({
       }
 
       const target: any = container || video;
-      const request = (target.requestFullscreen 
-        || target.webkitRequestFullscreen 
-        || target.mozRequestFullScreen 
+      const request = (target.requestFullscreen
+        || target.webkitRequestFullscreen
+        || target.mozRequestFullScreen
         || target.msRequestFullscreen);
       request?.call(target);
     } else {
-      const exit = (document.exitFullscreen 
-        || (document as any).webkitExitFullscreen 
-        || (document as any).mozCancelFullScreen 
+      const exit = (document.exitFullscreen
+        || (document as any).webkitExitFullscreen
+        || (document as any).mozCancelFullScreen
         || (document as any).msExitFullscreen);
       exit?.call(document);
     }
@@ -320,10 +349,10 @@ export default function VideoPlayer({
 
   const togglePictureInPicture = async () => {
     if (!videoRef.current) return;
-    
+
     try {
       const video = videoRef.current;
-      
+
       if (isPictureInPicture) {
         // Sortir du mode PiP
         if (document.pictureInPictureElement) {
@@ -358,6 +387,93 @@ export default function VideoPlayer({
     }
   };
 
+  // Cache for converted subtitle URLs
+  const [convertedSubtitles, setConvertedSubtitles] = useState<Record<string, string>>({});
+
+  const handleSubtitleSelect = async (subtitleUrl: string | null) => {
+    setSelectedSubtitle(subtitleUrl);
+
+    if (videoRef.current) {
+      const tracks = videoRef.current.textTracks;
+
+      // Disable all tracks first
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].mode = 'hidden';
+      }
+
+      if (subtitleUrl) {
+        // Check if we already have a converted URL
+        let vttUrl = convertedSubtitles[subtitleUrl];
+
+        if (!vttUrl) {
+          console.log('🔄 [VideoPlayer] Converting subtitle to VTT:', subtitleUrl);
+          const converted = await fetchAndConvertSubtitle(subtitleUrl);
+          if (converted) {
+            vttUrl = converted;
+            setConvertedSubtitles(prev => ({ ...prev, [subtitleUrl]: vttUrl }));
+            console.log('✅ [VideoPlayer] Conversion successful:', vttUrl);
+          } else {
+            console.error('❌ [VideoPlayer] Failed to convert subtitle');
+            return;
+          }
+        }
+
+        // Find the track that matches the selected URL (original URL)
+        // We need to update the src of the track element corresponding to this subtitle
+        // But React renders the track elements based on the subtitles array.
+        // We should update the subtitles array or a separate state that maps original URL to display URL.
+
+        // Better approach: Update the track element directly if possible, or force re-render.
+        // Since we are using React, let's update a state that holds the "display URL" for each subtitle.
+        // But we are iterating over `subtitles` to render `<track>`.
+        // Let's use `convertedSubtitles` in the render loop.
+
+        // We also need to enable the track AFTER the src has been updated and loaded.
+
+        // Let's wait for the state update to reflect in the DOM? 
+        // Actually, if we update `convertedSubtitles`, the component re-renders, 
+        // the `<track>` src changes to the blob URL.
+        // Then we need to set the mode to showing.
+
+        // We can use a useEffect to watch `selectedSubtitle` and `convertedSubtitles`.
+      } else {
+        console.log('🚫 [VideoPlayer] Subtitles disabled');
+      }
+    }
+  };
+
+  // Effect to enable the track when selectedSubtitle or convertedSubtitles changes
+  useEffect(() => {
+    if (!selectedSubtitle || !videoRef.current) return;
+
+    const vttUrl = convertedSubtitles[selectedSubtitle];
+    if (!vttUrl) return; // Wait for conversion
+
+    const video = videoRef.current;
+    const tracks = video.textTracks;
+
+    // Find the track with the matching VTT URL (or original URL if we map it)
+    // In the render loop below, we will use `convertedSubtitles[sub.url] || sub.url` as src.
+    // So the track's src (if accessible via DOM) would be the blob URL.
+    // However, TextTrack object doesn't always expose src.
+    // We can match by label/language as before.
+
+    const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
+    if (selectedSub) {
+      // Give a small delay for the DOM to update the track src
+      setTimeout(() => {
+        for (let i = 0; i < tracks.length; i++) {
+          const track = tracks[i];
+          if (track.label === selectedSub.label && track.language === selectedSub.lang) {
+            track.mode = 'showing';
+            console.log(`✅ [VideoPlayer] Enabled subtitle track: ${track.label} (${track.language})`);
+            break;
+          }
+        }
+      }, 100);
+    }
+  }, [selectedSubtitle, convertedSubtitles, subtitles]);
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
@@ -375,7 +491,7 @@ export default function VideoPlayer({
       setDownloadProgress(0);
 
       const hls = hlsRef.current;
-      
+
       // Attendre que le manifest soit chargé
       if (!hls.levels?.length) {
         await new Promise(resolve => hls.once(Hls.Events.MANIFEST_PARSED, resolve));
@@ -393,14 +509,14 @@ export default function VideoPlayer({
       }
 
       if (!details) throw new Error('Impossible de charger les détails du niveau HLS.');
-      
+
       const frags = details.fragments;
       if (!frags?.length) throw new Error('Aucun segment TS trouvé.');
 
       const transmuxer = new muxjs.mp4.Transmuxer();
       let initSegment: Uint8Array | null = null;
       const mediaSegments: Uint8Array[] = [];
-      
+
       transmuxer.on('data', (segment: any) => {
         if (segment.initSegment) {
           initSegment = segment.initSegment;
@@ -409,15 +525,15 @@ export default function VideoPlayer({
           mediaSegments.push(segment.data);
         }
       });
-      
+
       const transmuxerDone = new Promise(resolve => transmuxer.on('done', resolve));
 
       // Récupérer l'URL de base pour résoudre les URLs relatives
       const baseUrl = details.url ? new URL(details.url) : null;
-      
+
       for (let i = 0; i < frags.length; i++) {
         let fragUrl: string;
-        
+
         if (frags[i].url.startsWith('http://') || frags[i].url.startsWith('https://')) {
           // URL absolue
           fragUrl = frags[i].url;
@@ -430,25 +546,25 @@ export default function VideoPlayer({
         } else {
           throw new Error(`Impossible de résoudre l'URL du fragment ${i}`);
         }
-        
+
         const resp = await fetch(fragUrl);
         if (!resp.ok) {
           throw new Error(`Erreur lors du téléchargement du segment ${i}: ${resp.status}`);
         }
-        
+
         const tsSegment = new Uint8Array(await resp.arrayBuffer());
         transmuxer.push(tsSegment);
         setDownloadProgress(Math.round(((i + 1) / frags.length) * 100));
       }
-      
+
       transmuxer.flush();
       await transmuxerDone;
 
       if (!initSegment) throw new Error("Le segment d'initialisation MP4 n'a pas pu être créé.");
 
-      const mp4Blob = new Blob([initSegment, ...mediaSegments], { type: 'video/mp4' });
+      const mp4Blob = new Blob([initSegment as any, ...mediaSegments as any[]], { type: 'video/mp4' });
       await saveBlob(mp4Blob, `${title.replace(/[^a-z0-9]/gi, '_')}.mp4`);
-      
+
       alert('Téléchargement MP4 terminé avec succès !');
 
     } catch (e: any) {
@@ -459,8 +575,6 @@ export default function VideoPlayer({
       setDownloadProgress(0);
     }
   };
-
-
 
   async function saveBlob(blob: Blob, name: string) {
     if ('showSaveFilePicker' in window) {
@@ -480,7 +594,7 @@ export default function VideoPlayer({
         console.warn('File picker annulé ou échoué, fallback sur <a>');
       }
     }
-    
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -500,13 +614,25 @@ export default function VideoPlayer({
           controls={false}
           playsInline={!isNativePlatform()}
           preload="auto"
+          crossOrigin="anonymous"
           data-testid="video-player-main"
           {...(isNativePlatform() && {
             'webkit-playsinline': 'false',
             'playsinline': 'false'
           })}
-        />
-        
+        >
+          {subtitles.map((sub) => (
+            <track
+              key={sub.id}
+              kind="subtitles"
+              label={sub.label}
+              srcLang={sub.lang}
+              src={convertedSubtitles[sub.url] || sub.url}
+              default={selectedSubtitle === sub.url}
+            />
+          ))}
+        </video>
+
         {!isNative && (
           <CustomVideoControls
             videoRef={videoRef}
@@ -526,10 +652,13 @@ export default function VideoPlayer({
             onPictureInPicture={togglePictureInPicture}
             onSeek={handleSeek}
             formatTime={formatTime}
+            subtitles={subtitles}
+            selectedSubtitle={selectedSubtitle}
+            onSubtitleSelect={handleSubtitleSelect}
           />
         )}
       </div>
-      
+
       <div className="p-4 space-y-4">
         {isNative && sourceType === "m3u8" && (
           <div className="space-y-2">
