@@ -7,6 +7,7 @@ import { Download, PictureInPicture } from "lucide-react";
 import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { ErrorPopup } from "@/components/ErrorPopup";
+import { formatDuration, formatTime } from "@/lib/utils";
 import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import CustomVideoControls from "@/components/CustomVideoControls";
@@ -474,11 +475,8 @@ export default function VideoPlayer({
     }
   }, [selectedSubtitle, convertedSubtitles, subtitles]);
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // Removed local formatTime in favor of imported one
+  // const formatTime = (time: number) => { ... }
 
   const handleDownloadMP4 = async () => {
     if (!hlsRef.current || sourceType !== "m3u8") {

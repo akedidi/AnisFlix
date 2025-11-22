@@ -10,12 +10,13 @@ import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import CustomVideoControls from "@/components/CustomVideoControls";
+import { formatTime } from "@/lib/utils";
 import type { MediaType } from "@shared/schema";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
-  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
-         (window as any).webkit?.messageHandlers || 
-         (window as any).Android;
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) &&
+    (window as any).webkit?.messageHandlers ||
+    (window as any).Android;
 };
 
 // Extension des types pour webkitSetPresentationMode
@@ -39,8 +40,8 @@ interface VidMolyPlayerProps {
   episodeNumber?: number;
 }
 
-export default function VidMolyPlayer({ 
-  vidmolyUrl, 
+export default function VidMolyPlayer({
+  vidmolyUrl,
   title = "Vidéo VidMoly",
   onClose,
   posterPath,
@@ -75,16 +76,16 @@ export default function VidMolyPlayer({
   // Fonction pour sauvegarder la progression
   const saveProgress = () => {
     if (!videoRef.current || !mediaId || !mediaType) return;
-    
+
     const video = videoRef.current;
     const now = Date.now();
-    
+
     // Sauvegarder au maximum toutes les 5 secondes
     if (now - lastSaveTimeRef.current < 5000) return;
-    
+
     if (video.duration > 0 && video.currentTime > 0) {
       const progress = Math.round((video.currentTime / video.duration) * 100);
-      
+
       saveWatchProgress({
         mediaId,
         mediaType,
@@ -97,7 +98,7 @@ export default function VidMolyPlayer({
         seasonNumber,
         episodeNumber
       });
-      
+
       lastSaveTimeRef.current = now;
     }
   };
@@ -113,58 +114,58 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
-        
-          // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
-          if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com') || vidmolyUrl.includes('vmeas.cloud')) {
-            console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
-            
-            // Utiliser le proxy VidMoly pour éviter les problèmes CORS
-            const { getVidMolyProxyUrl } = await import('../utils/urlUtils');
-            const proxyUrl = getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
-            console.log('🔗 URL proxy VidMoly:', proxyUrl);
-            
-            // Stocker l'URL finale pour Chromecast
-            setFinalMediaUrl(proxyUrl);
-            
-            if (Hls.isSupported()) {
-              console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
-              const hls = new Hls();
-              hls.loadSource(proxyUrl);
-              hls.attachMedia(video);
-              
-              hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                console.log('✅ Manifeste HLS parsé avec succès via proxy');
+
+        // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
+        if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com') || vidmolyUrl.includes('vmeas.cloud')) {
+          console.log('🎬 URL déjà extraite (m3u8), utilisation avec proxy VidMoly:', vidmolyUrl);
+
+          // Utiliser le proxy VidMoly pour éviter les problèmes CORS
+          const { getVidMolyProxyUrl } = await import('../utils/urlUtils');
+          const proxyUrl = getVidMolyProxyUrl(vidmolyUrl, 'https://vidmoly.net/');
+          console.log('🔗 URL proxy VidMoly:', proxyUrl);
+
+          // Stocker l'URL finale pour Chromecast
+          setFinalMediaUrl(proxyUrl);
+
+          if (Hls.isSupported()) {
+            console.log('📺 Utilisation de HLS.js avec proxy VidMoly');
+            const hls = new Hls();
+            hls.loadSource(proxyUrl);
+            hls.attachMedia(video);
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              console.log('✅ Manifeste HLS parsé avec succès via proxy');
+              setIsLoading(false);
+              video.play().catch(console.error);
+            });
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+              console.error('❌ Erreur HLS via proxy:', data);
+              if (data.fatal) {
+                setError('Erreur de lecture HLS: ' + data.details);
                 setIsLoading(false);
-                video.play().catch(console.error);
-              });
-              
-              hls.on(Hls.Events.ERROR, (event, data) => {
-                console.error('❌ Erreur HLS via proxy:', data);
-                if (data.fatal) {
-                  setError('Erreur de lecture HLS: ' + data.details);
-                  setIsLoading(false);
-                }
-              });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-              console.log('📺 Utilisation de la lecture native HLS avec proxy');
-              video.src = proxyUrl;
-              video.addEventListener('loadedmetadata', () => {
-                console.log('✅ Métadonnées HLS chargées via proxy');
-                setIsLoading(false);
-                video.play().catch(console.error);
-              });
-            } else {
-              throw new Error('HLS non supporté sur ce navigateur');
-            }
-            return;
+              }
+            });
+          } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            console.log('📺 Utilisation de la lecture native HLS avec proxy');
+            video.src = proxyUrl;
+            video.addEventListener('loadedmetadata', () => {
+              console.log('✅ Métadonnées HLS chargées via proxy');
+              setIsLoading(false);
+              video.play().catch(console.error);
+            });
+          } else {
+            throw new Error('HLS non supporté sur ce navigateur');
           }
-        
+          return;
+        }
+
         console.log('🎬 Appel API vidmoly...');
-        
+
         const data = await apiClient.extractVidMoly(vidmolyUrl);
-        
+
         console.log('🎬 Données JSON reçues de vidmoly:', data);
-        
+
         if (!data.success || !data.m3u8Url) {
           throw new Error(errorMessages.players.vidmoly.message);
         }
@@ -181,22 +182,22 @@ export default function VidMolyPlayer({
         // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
         // ou directement pour les liens de démonstration
         let finalUrl;
-        
+
         // Déterminer si c'est un vrai lien VidMoly qui nécessite un proxy
-        const isRealVidMolyLink = data.method === 'extracted_real' || 
-                                 data.method === 'direct_master_m3u8' || 
-                                 data.method?.startsWith('direct_pattern_') ||
-                                 (cleanedUrl && (cleanedUrl.includes('vmwesa.online') || cleanedUrl.includes('vmeas.cloud')));
-        
+        const isRealVidMolyLink = data.method === 'extracted_real' ||
+          data.method === 'direct_master_m3u8' ||
+          data.method?.startsWith('direct_pattern_') ||
+          (cleanedUrl && (cleanedUrl.includes('vmwesa.online') || cleanedUrl.includes('vmeas.cloud')));
+
         console.log('🔍 Méthode d\'extraction:', data.method);
         console.log('🔍 Lien m3u8 nettoyé:', cleanedUrl);
         console.log('🔍 Est un vrai lien VidMoly:', isRealVidMolyLink);
-        
+
         if (isRealVidMolyLink) {
           // Pour les vrais liens VidMoly, utiliser le proxy car ils sont protégés
           finalUrl = getVidMolyProxyUrl(cleanedUrl, vidmolyUrl);
           console.log('📺 Utilisation du proxy pour le vrai lien VidMoly:', finalUrl);
-          
+
           // Debug des URLs pour diagnostic
           debugUrlInfo();
         } else {
@@ -204,7 +205,7 @@ export default function VidMolyPlayer({
           finalUrl = cleanedUrl;
           console.log('📺 Utilisation directe du lien de démo:', finalUrl);
         }
-        
+
         // Stocker l'URL finale pour Chromecast
         setFinalMediaUrl(finalUrl);
 
@@ -260,11 +261,11 @@ export default function VidMolyPlayer({
             enableSoftwareAES: true, // Décryptage logiciel si nécessaire
           });
           hlsRef.current = hls;
-          
+
           console.log('🎬 Chargement de la source:', finalUrl);
           hls.loadSource(finalUrl);
           hls.attachMedia(video);
-          
+
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('📺 Manifest VidMoly chargé avec succès');
             setIsLoading(false);
@@ -273,7 +274,7 @@ export default function VidMolyPlayer({
               setIsLoading(false);
             });
           });
-          
+
           // Surveillance du buffer pour détecter les problèmes
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.details === 'bufferStalledError') {
@@ -285,47 +286,47 @@ export default function VidMolyPlayer({
               }
             }
           });
-          
+
           hls.on(Hls.Events.BUFFER_APPENDED, () => {
             console.log('📊 Buffer appended - santé du streaming OK');
           });
-          
+
           hls.on(Hls.Events.FRAG_LOADED, () => {
             console.log('📦 Fragment chargé avec succès');
           });
-          
+
           hls.on(Hls.Events.ERROR, (_, data) => {
             console.error("Erreur HLS VidMoly:", data);
-            
+
             // Gestion spécifique des erreurs de buffer
             if (data.details === 'bufferStalledError' || data.details === 'bufferSeekOverHole') {
               console.warn('⚠️ Problème de buffer détecté, tentative de récupération...');
-              
+
               // Essayer de récupérer en vidant le buffer et en rechargeant
               if (hls.media) {
                 hls.media.currentTime = hls.media.currentTime + 0.1; // Petit saut pour éviter le trou
               }
-              
+
               // Ne pas traiter comme fatal, laisser HLS.js gérer
               return;
             }
-            
+
             if (data.fatal) {
               console.error('❌ Erreur fatale HLS:', data);
-              
+
               // Tentative de récupération pour certaines erreurs
               if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                 console.log('🔄 Tentative de récupération réseau...');
                 hls.startLoad();
                 return;
               }
-              
+
               if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
                 console.log('🔄 Tentative de récupération média...');
                 hls.recoverMediaError();
                 return;
               }
-              
+
               setError(`Erreur de lecture VidMoly: ${data.details}`);
               setIsLoading(false);
             }
@@ -363,7 +364,7 @@ export default function VidMolyPlayer({
         setCurrentTime(video.currentTime);
         setDuration(video.duration);
         setProgress((video.currentTime / video.duration) * 100);
-        
+
         // Sauvegarder la progression
         saveProgress();
       }
@@ -397,7 +398,7 @@ export default function VidMolyPlayer({
       video.removeEventListener('webkitendfullscreen', handleWebkitEndFullscreen as any);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as any);
-      
+
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -424,10 +425,10 @@ export default function VidMolyPlayer({
 
   const togglePictureInPicture = async () => {
     if (!videoRef.current) return;
-    
+
     try {
       const video = videoRef.current;
-      
+
       if (isPictureInPicture) {
         // Sortir du mode PiP
         if (document.pictureInPictureElement) {
@@ -483,37 +484,33 @@ export default function VidMolyPlayer({
 
       // Prefer container fullscreen to include overlays
       const target: any = container || video;
-      const request = (target.requestFullscreen 
-        || target.webkitRequestFullscreen 
-        || target.mozRequestFullScreen 
+      const request = (target.requestFullscreen
+        || target.webkitRequestFullscreen
+        || target.mozRequestFullScreen
         || target.msRequestFullscreen);
       request?.call(target);
     } else {
-      const exit = (document.exitFullscreen 
-        || (document as any).webkitExitFullscreen 
-        || (document as any).mozCancelFullScreen 
+      const exit = (document.exitFullscreen
+        || (document as any).webkitExitFullscreen
+        || (document as any).mozCancelFullScreen
         || (document as any).msExitFullscreen);
       exit?.call(document);
     }
   };
 
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  // Removed local formatTime in favor of imported one
 
   if (error) {
     return (
-        <ErrorPopup
-          title={errorMessages.players.vidmoly.title}
-          message={error}
-          onClose={() => {
-            setError(null);
-            setIsLoading(false);
-            onClose?.();
-          }}
-        />
+      <ErrorPopup
+        title={errorMessages.players.vidmoly.title}
+        message={error}
+        onClose={() => {
+          setError(null);
+          setIsLoading(false);
+          onClose?.();
+        }}
+      />
     );
   }
 
@@ -529,7 +526,7 @@ export default function VidMolyPlayer({
             </div>
           </div>
         )}
-        
+
         <video
           ref={videoRef}
           className="w-full aspect-video bg-black object-contain"
