@@ -387,15 +387,17 @@ export default function SeriesDetail() {
                                       <div className="flex items-center justify-between">
                                         <h5 className="font-semibold text-sm">Lecture - {selectedSource.name}</h5>
                                         <Button
-                                          variant="ghost"
+                                          variant="outline"
                                           size="sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setSelectedSource(null);
                                           }}
+                                          className="flex items-center gap-2"
                                           data-testid="button-close-episode-player"
                                         >
                                           <X className="w-4 h-4" />
+                                          Fermer
                                         </Button>
                                       </div>
                                       {selectedSource.isVidMoly ? (
