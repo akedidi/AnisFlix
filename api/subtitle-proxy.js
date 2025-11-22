@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 /**
  * Serverless function to proxy and convert SRT subtitles to VTT
  * This avoids CORS issues and ensures Chromecast compatibility
@@ -14,16 +12,24 @@ module.exports = async (req, res) => {
 
         console.log(`[SUBTITLE PROXY] Fetching and converting: ${url}`);
 
-        // Fetch the subtitle file
-        const response = await axios.get(url, {
-            responseType: 'text',
-            timeout: 10000,
+        // Fetch the subtitle file using native fetch
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(url, {
+            signal: controller.signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             }
         });
 
-        let subtitleContent = response.data;
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch subtitle: ${response.status} ${response.statusText}`);
+        }
+
+        let subtitleContent = await response.text();
 
         // Convert SRT to VTT if needed
         if (!subtitleContent.startsWith('WEBVTT')) {
