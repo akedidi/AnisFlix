@@ -74,6 +74,7 @@ export default function VideoPlayer({
 
   // Subtitles state
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
