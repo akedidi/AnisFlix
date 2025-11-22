@@ -509,6 +509,7 @@ export default function MovieDetail() {
                     mediaType="movie"
                     posterPath={movie.poster_path}
                     backdropPath={movie.backdrop_path}
+                    imdbId={movie.imdb_id}
                   />
                 ) : selectedSource.type === 'embed' && selectedSource.isDarki ? (
                   <DarkiPlayer

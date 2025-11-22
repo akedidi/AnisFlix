@@ -12,6 +12,9 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import CustomVideoControls from "@/components/CustomVideoControls";
 import { formatTime } from "@/lib/utils";
 import type { MediaType } from "@shared/schema";
+import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
+import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
+
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) &&
@@ -38,6 +41,7 @@ interface VidMolyPlayerProps {
   backdropPath?: string | null;
   seasonNumber?: number;
   episodeNumber?: number;
+  imdbId?: string;
 }
 
 export default function VidMolyPlayer({
@@ -49,7 +53,8 @@ export default function VidMolyPlayer({
   mediaType,
   backdropPath,
   seasonNumber,
-  episodeNumber
+  episodeNumber,
+  imdbId
 }: VidMolyPlayerProps) {
   const { isNative, platform } = useCapacitorDevice();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -67,11 +72,97 @@ export default function VidMolyPlayer({
   const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
   const lastSaveTimeRef = useRef<number>(0);
 
+  // Subtitles state
+  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
+  const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
+  const [convertedSubtitles, setConvertedSubtitles] = useState<Record<string, string>>({});
+
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
     videoRef,
     isPlayerActive: true
   });
+
+  // Fetch subtitles
+  useEffect(() => {
+    const fetchSubtitles = async () => {
+      if (imdbId && mediaType) {
+        console.log('🔍 [VIDMOLY PLAYER] Fetching subtitles for IMDB ID:', imdbId);
+        const subs = await getSubtitles(
+          imdbId,
+          mediaType === 'tv' ? 'series' : 'movie',
+          seasonNumber,
+          episodeNumber
+        );
+        setSubtitles(subs);
+      } else {
+        setSubtitles([]);
+      }
+    };
+
+    fetchSubtitles();
+  }, [imdbId, mediaType, seasonNumber, episodeNumber]);
+
+  // Handle subtitle selection
+  const handleSubtitleSelect = async (subtitleUrl: string | null) => {
+    setSelectedSubtitle(subtitleUrl);
+
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const tracks = video.textTracks;
+
+      // Disable all tracks first
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].mode = 'hidden';
+      }
+
+      if (subtitleUrl) {
+        // Check if we already have a converted URL
+        let vttUrl = convertedSubtitles[subtitleUrl];
+
+        if (!vttUrl) {
+          console.log('🔄 [VIDMOLY PLAYER] Converting subtitle to VTT:', subtitleUrl);
+          const converted = await fetchAndConvertSubtitle(subtitleUrl);
+          if (converted) {
+            vttUrl = converted;
+            setConvertedSubtitles(prev => ({ ...prev, [subtitleUrl]: vttUrl }));
+            console.log('✅ [VIDMOLY PLAYER] Conversion successful:', vttUrl);
+          } else {
+            console.error('❌ [VIDMOLY PLAYER] Failed to convert subtitle');
+            return;
+          }
+        }
+      } else {
+        console.log('🚫 [VIDMOLY PLAYER] Subtitles disabled');
+      }
+    }
+  };
+
+  // Effect to enable the track when selectedSubtitle or convertedSubtitles changes
+  useEffect(() => {
+    if (!selectedSubtitle || !videoRef.current) return;
+
+    const vttUrl = convertedSubtitles[selectedSubtitle];
+    if (!vttUrl) return; // Wait for conversion
+
+    const video = videoRef.current;
+    const tracks = video.textTracks;
+
+    const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
+    if (selectedSub) {
+      // Give a small delay for the DOM to update the track src
+      setTimeout(() => {
+        for (let i = 0; i < tracks.length; i++) {
+          const track = tracks[i];
+          if (track.label === selectedSub.label && track.language === selectedSub.lang) {
+            track.mode = 'showing';
+            console.log(`✅ [VIDMOLY PLAYER] Enabled subtitle track: ${track.label} (${track.language})`);
+            break;
+          }
+        }
+      }, 100);
+    }
+  }, [selectedSubtitle, convertedSubtitles, subtitles]);
 
   // Fonction pour sauvegarder la progression
   const saveProgress = () => {
@@ -533,7 +624,18 @@ export default function VidMolyPlayer({
           poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
           controls={false}
           playsInline
-        />
+        >
+          {subtitles.map((sub) => (
+            <track
+              key={sub.id}
+              kind="subtitles"
+              label={sub.label}
+              srcLang={sub.lang}
+              src={convertedSubtitles[sub.url] || sub.url}
+              default={false}
+            />
+          ))}
+        </video>
 
         {/* Contrôles personnalisés pour web */}
         {!isNative && (
@@ -555,6 +657,9 @@ export default function VidMolyPlayer({
             onPictureInPicture={togglePictureInPicture}
             onSeek={handleSeek}
             formatTime={formatTime}
+            subtitles={subtitles}
+            selectedSubtitle={selectedSubtitle}
+            onSubtitleSelect={handleSubtitleSelect}
           />
         )}
 
@@ -580,6 +685,9 @@ export default function VidMolyPlayer({
               onPictureInPicture={togglePictureInPicture}
               onSeek={handleSeek}
               formatTime={formatTime}
+              subtitles={subtitles}
+              selectedSubtitle={selectedSubtitle}
+              onSubtitleSelect={handleSubtitleSelect}
             />
           </div>
         )}

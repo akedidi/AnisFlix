@@ -408,6 +408,7 @@ export default function SeriesDetail() {
                                           backdropPath={series?.backdrop_path}
                                           seasonNumber={selectedSeasonNumber}
                                           episodeNumber={selectedEpisode || undefined}
+                                          imdbId={series?.external_ids?.imdb_id}
                                         />
                                       ) : selectedSource.isDarki ? (
                                         <DarkiPlayer
