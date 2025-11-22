@@ -74,7 +74,6 @@ export default function VideoPlayer({
 
   // Subtitles state
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
-  const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
@@ -388,14 +387,13 @@ export default function VideoPlayer({
     }
   };
 
-  // Cache for converted subtitle URLs
-  const [convertedSubtitles, setConvertedSubtitles] = useState<Record<string, string>>({});
-
-  const handleSubtitleSelect = async (subtitleUrl: string | null) => {
+  // Handle subtitle selection
+  const handleSubtitleSelect = (subtitleUrl: string | null) => {
     setSelectedSubtitle(subtitleUrl);
 
     if (videoRef.current) {
-      const tracks = videoRef.current.textTracks;
+      const video = videoRef.current;
+      const tracks = video.textTracks;
 
       // Disable all tracks first
       for (let i = 0; i < tracks.length; i++) {
@@ -403,77 +401,34 @@ export default function VideoPlayer({
       }
 
       if (subtitleUrl) {
-        // Check if we already have a converted URL
-        let vttUrl = convertedSubtitles[subtitleUrl];
+        // Find the track that matches the selected URL
+        // Since we use the proxy URL in the track src, we need to match by label/lang
+        // or just rely on the index if we knew it.
+        // But here we have the original URL as `subtitleUrl`.
 
-        if (!vttUrl) {
-          console.log('🔄 [VideoPlayer] Converting subtitle to VTT:', subtitleUrl);
-          const converted = await fetchAndConvertSubtitle(subtitleUrl);
-          if (converted) {
-            vttUrl = converted;
-            setConvertedSubtitles(prev => ({ ...prev, [subtitleUrl]: vttUrl }));
-            console.log('✅ [VideoPlayer] Conversion successful:', vttUrl);
-          } else {
-            console.error('❌ [VideoPlayer] Failed to convert subtitle');
-            return;
-          }
+        const selectedSub = subtitles.find(s => s.url === subtitleUrl);
+        if (selectedSub) {
+          // Give a small delay for the DOM to update
+          setTimeout(() => {
+            for (let i = 0; i < tracks.length; i++) {
+              const track = tracks[i];
+              // We match by label and language because the src is proxified
+              if (track.label === selectedSub.label && track.language === selectedSub.lang) {
+                track.mode = 'showing';
+                console.log(`✅ [VideoPlayer] Enabled subtitle track: ${track.label} (${track.language})`);
+                break;
+              }
+            }
+          }, 100);
         }
-
-        // Find the track that matches the selected URL (original URL)
-        // We need to update the src of the track element corresponding to this subtitle
-        // But React renders the track elements based on the subtitles array.
-        // We should update the subtitles array or a separate state that maps original URL to display URL.
-
-        // Better approach: Update the track element directly if possible, or force re-render.
-        // Since we are using React, let's update a state that holds the "display URL" for each subtitle.
-        // But we are iterating over `subtitles` to render `<track>`.
-        // Let's use `convertedSubtitles` in the render loop.
-
-        // We also need to enable the track AFTER the src has been updated and loaded.
-
-        // Let's wait for the state update to reflect in the DOM? 
-        // Actually, if we update `convertedSubtitles`, the component re-renders, 
-        // the `<track>` src changes to the blob URL.
-        // Then we need to set the mode to showing.
-
-        // We can use a useEffect to watch `selectedSubtitle` and `convertedSubtitles`.
       } else {
         console.log('🚫 [VideoPlayer] Subtitles disabled');
       }
     }
   };
 
-  // Effect to enable the track when selectedSubtitle or convertedSubtitles changes
-  useEffect(() => {
-    if (!selectedSubtitle || !videoRef.current) return;
-
-    const vttUrl = convertedSubtitles[selectedSubtitle];
-    if (!vttUrl) return; // Wait for conversion
-
-    const video = videoRef.current;
-    const tracks = video.textTracks;
-
-    // Find the track with the matching VTT URL (or original URL if we map it)
-    // In the render loop below, we will use `convertedSubtitles[sub.url] || sub.url` as src.
-    // So the track's src (if accessible via DOM) would be the blob URL.
-    // However, TextTrack object doesn't always expose src.
-    // We can match by label/language as before.
-
-    const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
-    if (selectedSub) {
-      // Give a small delay for the DOM to update the track src
-      setTimeout(() => {
-        for (let i = 0; i < tracks.length; i++) {
-          const track = tracks[i];
-          if (track.label === selectedSub.label && track.language === selectedSub.lang) {
-            track.mode = 'showing';
-            console.log(`✅ [VideoPlayer] Enabled subtitle track: ${track.label} (${track.language})`);
-            break;
-          }
-        }
-      }, 100);
-    }
-  }, [selectedSubtitle, convertedSubtitles, subtitles]);
+  // Removed unused useEffect for conversion
+  // useEffect(() => { ... }, [selectedSubtitle, convertedSubtitles, subtitles]);
 
   // Removed local formatTime in favor of imported one
   // const formatTime = (time: number) => { ... }
@@ -635,8 +590,8 @@ export default function VideoPlayer({
               kind="subtitles"
               label={sub.label}
               srcLang={sub.lang}
-              src={convertedSubtitles[sub.url] || sub.url}
-              default={selectedSubtitle === sub.url}
+              src={`/api/subtitle-proxy?url=${encodeURIComponent(sub.url)}`}
+              default={false}
             />
           ))}
         </video>
