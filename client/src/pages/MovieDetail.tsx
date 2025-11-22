@@ -522,30 +522,16 @@ export default function MovieDetail() {
                     onClose={handleClosePlayer}
                   />
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium">Lecture en cours</h3>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleClosePlayer}
-                        className="flex items-center gap-2"
-                      >
-                        <X className="w-4 h-4" />
-                        Fermer
-                      </Button>
-                    </div>
-                    <VideoPlayer
-                      src={selectedSource.url}
-                      type={selectedSource.type as "m3u8" | "mp4"}
-                      title={movie.title}
-                      mediaId={movieId}
-                      mediaType="movie"
-                      posterPath={movie.poster_path}
-                      backdropPath={movie.backdrop_path}
-                      imdbId={movie.imdb_id}
-                    />
-                  </div>
+                  <VideoPlayer
+                    src={selectedSource.url}
+                    type={selectedSource.type as "m3u8" | "mp4"}
+                    title={movie.title}
+                    mediaId={movieId}
+                    mediaType="movie"
+                    posterPath={movie.poster_path}
+                    backdropPath={movie.backdrop_path}
+                    imdbId={movie.imdb_id}
+                  />
                 )}
               </div>
             )}
