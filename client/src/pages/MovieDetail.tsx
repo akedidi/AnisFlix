@@ -21,6 +21,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
+import { cn, formatDuration } from "@/lib/utils";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 
 export default function MovieDetail() {
@@ -385,16 +386,16 @@ export default function MovieDetail() {
                     {Math.round(movie.vote_average * 10) / 10}
                   </span>
                 </div>
-                {movie.runtime && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    <span>{movie.runtime} min</span>
-                  </div>
-                )}
-                {movie.release_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
+                {movie.release_date && movie.runtime && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{new Date(movie.release_date).getFullYear()}</span>
+                    <span>•</span>
+                    <span>{formatDuration(movie.runtime)}</span>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                      <span>{movie.vote_average.toFixed(1)}</span>
+                    </div>
                   </div>
                 )}
               </div>

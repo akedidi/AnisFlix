@@ -22,6 +22,7 @@ import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
+import { cn, formatDuration } from "@/lib/utils";
 export default function SeriesDetail() {
   const { id } = useRouteParams<{ id: string }>();
   const { navigate } = useAppNavigation();
@@ -200,19 +201,22 @@ export default function SeriesDetail() {
             <div>
               <h1 className="text-4xl md:text-5xl font-bold mb-4">{series.name}</h1>
               <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span className="text-lg font-semibold">
-                    {Math.round(series.vote_average * 10) / 10}
-                  </span>
-                </div>
-                {series.first_air_date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    <span>{new Date(series.first_air_date).getFullYear()}</span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>{new Date(series.first_air_date).getFullYear()}</span>
+                  <span>•</span>
+                  <span>{series.number_of_seasons} Saisons</span>
+                  {series.episode_run_time && series.episode_run_time.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>{formatDuration(series.episode_run_time[0])}</span>
+                    </>
+                  )}
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                    <span>{series.vote_average.toFixed(1)}</span>
                   </div>
-                )}
-                <Badge variant="secondary">{series.number_of_seasons} saisons</Badge>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2 mb-6">
                 {series.genres?.map((genre: any) => (

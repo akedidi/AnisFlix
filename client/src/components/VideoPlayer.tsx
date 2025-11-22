@@ -613,6 +613,16 @@ export default function VideoPlayer({
           className="w-full h-full object-contain"
           controls={false}
           playsInline={!isNativePlatform()}
+          onClick={(e) => {
+            // Toggle play/pause on click
+            if (videoRef.current) {
+              if (videoRef.current.paused) {
+                videoRef.current.play();
+              } else {
+                videoRef.current.pause();
+              }
+            }
+          }}
           preload="auto"
           crossOrigin="anonymous"
           data-testid="video-player-main"

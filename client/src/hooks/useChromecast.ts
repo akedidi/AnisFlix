@@ -343,7 +343,24 @@ export function useChromecast(): UseChromecastReturn {
           track.trackContentType = 'text/vtt';
           track.subtype = chromeCast.media.TextTrackType.SUBTITLES;
           track.name = sub.label;
-          track.language = sub.lang;
+
+          // Map ISO 639-2 (3 chars) to ISO 639-1 (2 chars) for Chromecast
+          // Chromecast prefers 2-letter codes (RFC 5646)
+          let lang = sub.lang;
+          if (lang === 'fre' || lang === 'fra') lang = 'fr';
+          if (lang === 'eng') lang = 'en';
+          if (lang === 'spa') lang = 'es';
+          if (lang === 'ger' || lang === 'deu') lang = 'de';
+          if (lang === 'ita') lang = 'it';
+          if (lang === 'por') lang = 'pt';
+          if (lang === 'rus') lang = 'ru';
+          if (lang === 'ara') lang = 'ar';
+          if (lang === 'chi' || lang === 'zho') lang = 'zh';
+          if (lang === 'jpn') lang = 'ja';
+          if (lang === 'kor') lang = 'ko';
+          if (lang === 'tur') lang = 'tr';
+
+          track.language = lang;
           track.customData = null;
           return track;
         });
