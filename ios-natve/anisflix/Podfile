@@ -1,0 +1,7 @@
+platform :ios, '16.0'
+
+target 'anisflix' do
+  use_frameworks!
+
+  pod 'google-cast-sdk'
+end

@@ -1,0 +1,424 @@
+//
+//  TVService.swift
+//  anisflix
+//
+//  Created by AI Assistant on 28/11/2025.
+//
+
+import Foundation
+
+class TVService {
+    static let shared = TVService()
+    
+    private init() {}
+    
+    // Cache for Jaruba logos
+    private var jarubaLogos: [String: String] = [:]
+    private var areLogosLoaded = false
+    
+    // Base URL for Proxy
+    private let baseUrl = "https://anisflix.vercel.app"
+    
+    // MARK: - Mappings (from Web)
+    
+    private let channelNameMapping: [String: String] = [
+        // Généraliste
+        "tf1": "tf1",
+        "france2": "france 2",
+        "france3": "france 3",
+        "france4": "france 4",
+        "france5": "france 5",
+        "m6": "m6",
+        "arte": "arte",
+        "tfx": "tfx",
+        "canal-plus": "canal+",
+        "tmc": "tmc",
+        "w9": "w9",
+        "rmc-decouverte": "rmc découverte",
+        "gulli": "gulli",
+        
+        // Info
+        "bfmtv": "bfm tv",
+        "bfm-business": "bfm business",
+        "bfm-paris": "bfm paris",
+        "bfm-lyon": "bfm lyon",
+        "bfm-litoral": "bfm grand littoral",
+        "bfm-alsace": "bfm alsace",
+        "bfm-grand-lille": "bfm grand lille",
+        "rt-france": "rt france",
+        
+        // Sport
+        "bein-sports-1": "bein sports 1",
+        "bein-sports-2": "bein sports 2",
+        "bein-sports-3": "bein sports 3",
+        "canal-plus-foot": "canal+ foot",
+        "canal-plus-sport-360": "canal+ sport 360",
+        "rmc-sport-1": "rmc sport 1",
+        "rmc-sport-2": "rmc sport 2",
+        "rmc-sport-3": "rmc sport 3",
+        "lequipe-tv": "l'équipe tv",
+        
+        // Fiction & Série
+        "syfy": "syfy",
+        
+        // Jeunesse
+        "game-one": "game one",
+        "mangas": "mangas",
+        "boomerang": "boomerang",
+        "cartoon-network": "cartoon network",
+        
+        // Découverte
+        "natgeo": "national geographic",
+        "natgeo-wild": "national geographic wild",
+        
+        // Cinéma
+        "tcm-cinema": "tcm cinema",
+        
+        // Arabe - Sport
+        "elkass-1": "elkass 1",
+        "elkass-2": "elkass 2",
+        "elkass-3": "elkass 3",
+        "elkass-4": "elkass 4",
+        
+        // Arabe - Tunisie
+        "watania-1": "watania 1",
+        "hiwar-tounsi": "hiwar tounsi",
+        
+        // Arabe - Info
+        "eljazira": "al jazeera",
+        "eljazira-english": "al jazeera english",
+        "rt-arabe": "rt arabic",
+        "elarabiya": "al arabiya"
+    ]
+    
+    private let localChannelLogos: [String: String] = [:]
+    
+    // MARK: - Channels Data (Exact copy from Web)
+    
+    private var channels: [TVChannel] = [
+        // ===== SECTION FRANCE =====
+        
+        // Généraliste
+        TVChannel(id: "tf1", name: "TF1", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "mpd", url: "https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-dash/tf1hd.mpd"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/87.m3u8")
+        ]),
+        TVChannel(id: "tf1-serie", name: "TF1 Serie", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1.m3u8")
+        ]),
+        TVChannel(id: "france2", name: "France 2", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://simulcast-p.ftven.fr/ZXhwPTE3NjA3ODM0NjF+YWNsPSUyZip+aG1hYz0wMTMyZjkyODNmZTQ5OGM4M2MwMDY4OGFkYjg1ODA5OGNkMmE0OWYwZjZkMTlhZGNlNjZlNzU5ZWMzMmYyYzAx/simulcast/France_2/hls_fr2/France_2-avc1_2500000=5.m3u8"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/137.m3u8")
+        ]),
+        TVChannel(id: "france3", name: "France 3", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd.m3u8"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/138.m3u8")
+        ]),
+        TVChannel(id: "france4", name: "France 4", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://raw.githubusercontent.com/ipstreet312/freeiptv/master/ressources/ftv/py/fr4.m3u8")
+        ]),
+        TVChannel(id: "france5", name: "France 5", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://simulcast-p.ftven.fr/ZXhwPTE3NjA3ODM0NjF+YWNsPSUyZip+aG1hYz0wMTMyZjkyODNmZTQ5OGM4M2MwMDY4OGFkYjg1ODA5OGNkMmE0OWYwZjZkMTlhZGNlNjZlNzU5ZWMzMmYyYzAx/simulcast/France_5/hls_fr5/France_5-avc1_2500000=5.m3u8")
+        ]),
+        TVChannel(id: "m6", name: "M6", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd.m3u8"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/102.m3u8")
+        ]),
+        TVChannel(id: "arte", name: "Arte", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master_v720.m3u8")
+        ]),
+        TVChannel(id: "tfx", name: "TFX", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/nt1.m3u8"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/77.m3u8")
+        ]),
+        TVChannel(id: "canal-plus", name: "Canal+", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/106.m3u8")
+        ]),
+        TVChannel(id: "tmc", name: "TMC", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/78.m3u8")
+        ]),
+        TVChannel(id: "w9", name: "W9", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/w9.m3u8"),
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/79.m3u8")
+        ]),
+        TVChannel(id: "rmc-decouverte", name: "RMC Découverte", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/90.m3u8")
+        ]),
+        TVChannel(id: "gulli", name: "Gulli", logo: "", streamUrl: "", category: "France", group: "Généraliste", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/gulli.m3u8")
+        ]),
+        
+        // Info
+        TVChannel(id: "bfmtv", name: "BFM TV", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/master.m3u8")
+        ]),
+        TVChannel(id: "bfm-business", name: "BFM Business", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_BUSINESS/index.m3u8?start=LIVE&end=END")
+        ]),
+        TVChannel(id: "bfm-paris", name: "BFM Paris", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://www.viously.com/video/hls/G86AvlqLgXj/index.m3u8")
+        ]),
+        TVChannel(id: "bfm-lyon", name: "BFM Lyon", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_LYON/index.m3u8?start=LIVE&end=END")
+        ]),
+        TVChannel(id: "bfm-litoral", name: "BFM Litoral", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFMGRANDLITTORAL/index.m3u8?start=LIVE&end=END")
+        ]),
+        TVChannel(id: "bfm-alsace", name: "BFM Alsace", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_ALSACE/index.m3u8?start=LIVE&end=END")
+        ]),
+        TVChannel(id: "bfm-grand-lille", name: "BFM Grand Lille", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFMGRANDLILLE/index.m3u8?start=LIVE&end=END")
+        ]),
+        TVChannel(id: "rt-france", name: "RT France", logo: "", streamUrl: "", category: "France", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://rt-fra.rttv.com/live/rtfrance/playlist.m3u8")
+        ]),
+        
+        // Sport
+        TVChannel(id: "bein-sports-1", name: "Bein Sports 1", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/44.m3u8")
+        ]),
+        TVChannel(id: "bein-sports-2", name: "Bein Sports 2", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/49.m3u8")
+        ]),
+        TVChannel(id: "bein-sports-3", name: "Bein Sports 3", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/50.m3u8")
+        ]),
+        TVChannel(id: "canal-plus-foot", name: "Canal+ Foot", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/88.m3u8")
+        ]),
+        TVChannel(id: "canal-plus-sport-360", name: "Canal+ Sport 360", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/58.m3u8")
+        ]),
+        TVChannel(id: "rmc-sport-1", name: "RMC Sport 1", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/33.m3u8")
+        ]),
+        TVChannel(id: "rmc-sport-2", name: "RMC Sport 2", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/40.m3u8")
+        ]),
+        TVChannel(id: "rmc-sport-3", name: "RMC Sport 3", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/42.m3u8")
+        ]),
+        TVChannel(id: "lequipe-tv", name: "L'Équipe TV", logo: "", streamUrl: "", category: "France", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://live2.eu-north-1b.cf.dmcdn.net/sec2(ermuWFoalFOnbKlK1xFl5N6-RFs8TR8ytC0BN_948kQeziLQ1-fkqkfWedz6vwq2pV6cqOmVPXuHrmkEOQaWFwzk0ey6_-rMEdaMlm0fB0xLwngtrfO1pgJlnMjnpi2h)/cloud/3/x2lefik/d/live-720.m3u8")
+        ]),
+        
+        // Fiction & Série
+        TVChannel(id: "syfy", name: "Syfy", logo: "", streamUrl: "", category: "France", group: "Fiction & Série", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/91.m3u8")
+        ]),
+        
+        // Jeunesse
+        TVChannel(id: "game-one", name: "Game One", logo: "", streamUrl: "", category: "France", group: "Jeunesse", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/104.m3u8")
+        ]),
+        TVChannel(id: "mangas", name: "Mangas", logo: "", streamUrl: "", category: "France", group: "Jeunesse", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/97.m3u8")
+        ]),
+        TVChannel(id: "boomerang", name: "Boomerang", logo: "", streamUrl: "", category: "France", group: "Jeunesse", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/180.m3u8")
+        ]),
+        TVChannel(id: "cartoon-network", name: "Cartoon Network", logo: "", streamUrl: "", category: "France", group: "Jeunesse", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/76.m3u8")
+        ]),
+        
+        // Découverte
+        TVChannel(id: "natgeo", name: "National Geographic Channel", logo: "", streamUrl: "", category: "France", group: "Découverte", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/81.m3u8")
+        ]),
+        TVChannel(id: "natgeo-wild", name: "National Geographic Wild", logo: "", streamUrl: "", category: "France", group: "Découverte", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/82.m3u8")
+        ]),
+        
+        // Cinéma
+        TVChannel(id: "tcm-cinema", name: "TCM Cinema", logo: "", streamUrl: "", category: "France", group: "Cinéma", epgId: nil, links: [
+            TVChannelLink(type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/95.m3u8")
+        ]),
+        
+        // ===== SECTION ARABE =====
+        
+        // Sport
+        TVChannel(id: "elkass-1", name: "ElKass 1", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-2", name: "ElKass 2", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-3", name: "ElKass 3", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-4", name: "ElKass 4", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
+        ]),
+        
+        // Tunisie
+        TVChannel(id: "watania-1", name: "Watania 1", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tunisienationale/browser-HLS8/tunisienationale.m3u8")
+        ]),
+        TVChannel(id: "hiwar-tounsi", name: "Hiwar Tounsi", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://live20.bozztv.com/akamaissh101/ssh101/venolie-hiwar/playlist.m3u8")
+        ]),
+        
+        // Info
+        TVChannel(id: "eljazira", name: "ElJazira", logo: "", streamUrl: "", category: "Arab", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://live-hls-web-aja.getaj.net/AJA/04.m3u8")
+        ]),
+        TVChannel(id: "eljazira-english", name: "ElJazira English", logo: "", streamUrl: "", category: "Arab", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://live-hls-web-aje.getaj.net/AJE/04.m3u8")
+        ]),
+        TVChannel(id: "rt-arabe", name: "RT Arabe", logo: "", streamUrl: "", category: "Arab", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://rt-arb.rttv.com/live/rtarab/playlist.m3u8")
+        ]),
+        TVChannel(id: "elarabiya", name: "ElAarabiya", logo: "", streamUrl: "", category: "Arab", group: "Info", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://shls-live-ak.akamaized.net/out/v1/f5f319206ed740f9a831f2097c2ead23/index_37.m3u8")
+        ])
+    ]
+    
+    // MARK: - Methods
+    
+    func fetchChannels() async throws -> [TVChannel] {
+        if !areLogosLoaded {
+            await loadLogos()
+        }
+        
+        // Update channels with logos
+        return channels.map { channel in
+            var updatedChannel = channel
+            if let logo = getLogoUrl(for: channel.id) {
+                updatedChannel = TVChannel(
+                    id: channel.id,
+                    name: channel.name,
+                    logo: logo,
+                    streamUrl: channel.streamUrl,
+                    category: channel.category,
+                    group: channel.group,
+                    epgId: channel.epgId,
+                    links: channel.links
+                )
+            }
+            return updatedChannel
+        }
+    }
+    
+    func fetchGroups(category: String) async throws -> [TVGroup] {
+        let allChannels = try await fetchChannels()
+        
+        // Filter by category (France/Arab)
+        let sectionKey: String
+        if category == "France" {
+            sectionKey = "France"
+        } else if category == "Arab" || category == "Monde Arabe" {
+            sectionKey = "Arab"
+        } else {
+            sectionKey = category
+        }
+        
+        let filtered = allChannels.filter { $0.category == sectionKey }
+        let grouped = Dictionary(grouping: filtered, by: { $0.group })
+        
+        // Custom order based on Web TV_SECTIONS
+        var order: [String] = []
+        if sectionKey == "France" {
+            order = ["Généraliste", "Info", "Sport", "Fiction & Série", "Jeunesse", "Découverte", "Cinéma"]
+        } else {
+            order = ["Sport", "Tunisie", "Info"]
+        }
+        
+        var groups: [TVGroup] = []
+        
+        for name in order {
+            if let items = grouped[name] {
+                groups.append(TVGroup(id: name, name: name, channels: items))
+            }
+        }
+        
+        // Add others if any
+        for (key, items) in grouped {
+            if !order.contains(key) {
+                groups.append(TVGroup(id: key, name: key, channels: items))
+            }
+        }
+        
+        return groups
+    }
+    
+    func searchChannels(query: String) async -> [TVChannel] {
+        guard !query.isEmpty else { return [] }
+        let lowerQuery = query.lowercased()
+        
+        // Ensure logos are loaded
+        if !areLogosLoaded {
+            await loadLogos()
+        }
+        
+        let allChannels = try? await fetchChannels()
+        return (allChannels ?? []).filter { $0.name.lowercased().contains(lowerQuery) }
+    }
+    
+    // MARK: - Proxy & Link Logic
+    
+    func getFilteredLinks(for channel: TVChannel) -> [TVChannelLink] {
+        guard let links = channel.links else { return [] }
+        // On iOS (Native), filter out MPD, keep only HLS
+        return links.filter { $0.type != "mpd" }
+    }
+    
+    func getProxyUrl(originalUrl: String, type: String) -> String {
+        // For hls_segments, ALWAYS use the proxy
+        if type == "hls_segments" {
+            // Extract channel ID from fremtv.lol URLs
+            // Regex: /\/live\/[^\/]+\/(\d+)\.m3u8/
+            if let regex = try? NSRegularExpression(pattern: "/live/[^/]+/(\\d+)\\.m3u8"),
+               let match = regex.firstMatch(in: originalUrl, range: NSRange(originalUrl.startIndex..., in: originalUrl)),
+               let range = Range(match.range(at: 1), in: originalUrl) {
+                let channelId = String(originalUrl[range])
+                return "\(baseUrl)/api/tv?channelId=\(channelId)"
+            }
+        }
+        
+        // For hls_direct, use DIRECT URL (matching Web/Capacitor logic)
+        // The web app uses direct URLs for hls_direct on Capacitor.
+        // We only proxy hls_segments.
+        if type == "hls_direct" {
+            return originalUrl
+        }
+        
+        return originalUrl
+    }
+    
+    // MARK: - Logo Logic
+    
+    private func loadLogos() async {
+        do {
+            let url = URL(string: "https://jaruba.github.io/channel-logos/logo_paths.json")!
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let rawLogos = try JSONDecoder().decode([String: String].self, from: data)
+            // Normalize keys to lowercase for case-insensitive lookup
+            var normalizedLogos: [String: String] = [:]
+            for (key, value) in rawLogos {
+                normalizedLogos[key.lowercased()] = value
+            }
+            jarubaLogos = normalizedLogos
+            areLogosLoaded = true
+        } catch {
+            print("Error loading Jaruba logos: \(error)")
+        }
+    }
+    
+    private func getLogoUrl(for channelId: String) -> String? {
+        // 1. Check local logos
+        if let localLogo = localChannelLogos[channelId] {
+            return localLogo
+        }
+        
+        // 2. Check Jaruba mapping
+        guard let mappedName = channelNameMapping[channelId] else { return nil }
+        
+        // 3. Check Jaruba logos
+        if let logoPath = jarubaLogos[mappedName.lowercased()] {
+            return "https://jaruba.github.io/channel-logos/export/transparent-color\(logoPath)"
+        }
+        
+        return nil
+    }
+}
