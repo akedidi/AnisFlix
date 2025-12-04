@@ -208,9 +208,8 @@ struct MovieDetailView: View {
                                     .padding(.horizontal, 16)
                                 }
                                 
-                                Text(theme.t("detail.streamingSources"))
-                                    .font(.title3)
-                                    .fontWeight(.bold)
+                                Text(theme.t("detail.availableSources"))
+                                    .font(.headline)
                                     .foregroundColor(theme.primaryText)
                                     .padding(.horizontal, 16)
                                 

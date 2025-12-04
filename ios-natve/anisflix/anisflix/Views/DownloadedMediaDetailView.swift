@@ -86,21 +86,7 @@ struct DownloadedMediaDetailView: View {
                                 .frame(width: UIScreen.main.bounds.width, height: 250)
                         }
                         
-                        // Back button
-                        if !isFullscreen {
-                            Button {
-                                presentationMode.wrappedValue.dismiss()
-                            } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundColor(.white)
-                                    .padding(10)
-                                    .background(Color.black.opacity(0.5))
-                                    .clipShape(Circle())
-                            }
-                            .padding(.top, 44)
-                            .padding(.leading, 16)
-                        }
+                        // Back button removed to use system navigation
                     }
                     .frame(width: UIScreen.main.bounds.width)
                     
@@ -244,7 +230,14 @@ struct DownloadedMediaDetailView: View {
                 .zIndex(100)
             }
         }
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundColor(theme.primaryText)
+            }
+        }
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
     }
 }

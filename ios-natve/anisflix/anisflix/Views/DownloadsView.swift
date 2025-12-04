@@ -22,105 +22,101 @@ struct DownloadsView: View {
         downloadManager.downloads.filter { $0.state != .completed }
     }
     
-    @State private var path = NavigationPath()
+    // path removed
     
     @State private var itemToDelete: DownloadItem?
     @State private var showDeleteAlert = false
     
     var body: some View {
-        NavigationStack(path: $path) {
-            ZStack {
-                theme.backgroundColor.ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Header with Picker (matching FavoritesView)
-                    VStack(spacing: 16) {
-                        Picker("Type", selection: $selectedTab) {
-                            Text(theme.t("downloads.completed")).tag(0)
-                            Text(theme.t("downloads.active")).tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal)
-                        .padding(.top, 10)
+        ZStack {
+            theme.backgroundColor.ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with Picker (matching FavoritesView)
+                VStack(spacing: 16) {
+                    Picker("Type", selection: $selectedTab) {
+                        Text(theme.t("downloads.completed")).tag(0)
+                        Text(theme.t("downloads.active")).tag(1)
                     }
-                    .background(theme.backgroundColor)
-                    
-                    if selectedTab == 0 {
-                        // Completed Downloads
-                        if completedDownloads.isEmpty {
-                            EmptyStateView(
-                                icon: "arrow.down.circle",
-                                message: theme.t("downloads.emptyCompleted")
-                            )
-                        } else {
-                            List {
-                                ForEach(completedDownloads) { item in
-                                    ZStack(alignment: .bottomTrailing) {
-                                        NavigationLink(value: item) {
-                                            CompletedDownloadRow(item: item)
-                                                .contentShape(Rectangle())
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                    }
-                                    .listRowSeparator(.hidden)
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button(role: .destructive) {
-                                            itemToDelete = item
-                                            showDeleteAlert = true
-                                        } label: {
-                                            Label(theme.t("downloads.delete"), systemImage: "trash")
-                                        }
-                                        .tint(.red)
-                                    }
-                                }
-                            }
-                            .listStyle(.plain)
-                            .scrollContentBackground(.hidden)
-                            .background(theme.backgroundColor)
-                            .padding(.bottom, 80) // Space for tab bar
-                        }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                }
+                .background(theme.backgroundColor)
+                
+                if selectedTab == 0 {
+                    // Completed Downloads
+                    if completedDownloads.isEmpty {
+                        EmptyStateView(
+                            icon: "arrow.down.circle",
+                            message: theme.t("downloads.emptyCompleted")
+                        )
                     } else {
-                        // Active Downloads
-                        if activeDownloads.isEmpty {
-                            EmptyStateView(
-                                icon: "arrow.down",
-                                message: theme.t("downloads.emptyActive")
-                            )
-                        } else {
-                            ScrollView {
-                                LazyVStack(spacing: 16) {
-                                    ForEach(activeDownloads) { item in
-                                        ActiveDownloadRow(item: item)
+                        List {
+                            ForEach(completedDownloads) { item in
+                                ZStack(alignment: .bottomTrailing) {
+                                    NavigationLink(destination: DownloadedMediaDetailView(item: item)) {
+                                        CompletedDownloadRow(item: item)
+                                            .contentShape(Rectangle())
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .padding()
-                                .padding(.bottom, 80)
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        itemToDelete = item
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label(theme.t("downloads.delete"), systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
                             }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .background(theme.backgroundColor)
+                        .padding(.bottom, 80) // Space for tab bar
+                    }
+                } else {
+                    // Active Downloads
+                    if activeDownloads.isEmpty {
+                        EmptyStateView(
+                            icon: "arrow.down",
+                            message: theme.t("downloads.emptyActive")
+                        )
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(activeDownloads) { item in
+                                    ActiveDownloadRow(item: item)
+                                }
+                            }
+                            .padding()
+                            .padding(.bottom, 80)
                         }
                     }
                 }
             }
-            .navigationBarHidden(true)
-            .navigationDestination(for: DownloadItem.self) { item in
-                DownloadedMediaDetailView(item: item)
-            }
-            .alert(isPresented: $showDeleteAlert) {
-                Alert(
-                    title: Text(theme.t("downloads.deleteAlertTitle")),
-                    message: Text(theme.t("downloads.deleteAlertMessage")),
-                    primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm"))) {
-                        if let item = itemToDelete {
-                            downloadManager.deleteDownload(id: item.id)
-                        }
-                        itemToDelete = nil
-                    },
-                    secondaryButton: .cancel(Text(theme.t("settings.cancel"))) {
-                        itemToDelete = nil
+        }
+        .navigationTitle(theme.t("downloads.title"))
+        .navigationBarHidden(true)
+        .alert(isPresented: $showDeleteAlert) {
+            Alert(
+                title: Text(theme.t("downloads.deleteAlertTitle")),
+                message: Text(theme.t("downloads.deleteAlertMessage")),
+                primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm"))) {
+                    if let item = itemToDelete {
+                        downloadManager.deleteDownload(id: item.id)
                     }
-                )
-            }
+                    itemToDelete = nil
+                },
+                secondaryButton: .cancel(Text(theme.t("settings.cancel"))) {
+                    itemToDelete = nil
+                }
+            )
         }
     }
 

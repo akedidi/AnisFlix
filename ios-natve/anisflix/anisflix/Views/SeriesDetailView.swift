@@ -614,7 +614,7 @@ struct SeriesDetailView: View {
             } else {
                 // Sources List
                 Text(theme.t("detail.availableSources"))
-                    .font(.caption.bold())
+                    .font(.headline)
                     .foregroundColor(theme.secondaryText)
                     .padding(.top, 8)
                 
