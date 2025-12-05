@@ -1,0 +1,759 @@
+[
+  {
+    "isFramework" : true,
+    "moduleName" : "AVFAudio",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/AVFAudio.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "AVFoundation",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/AVFoundation.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "AVKit",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/AVKit.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Accessibility",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Accessibility.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "AudioToolbox",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/AudioToolbox.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Combine",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Combine.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreAudio",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreAudio.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "CoreData",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreData.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreFoundation",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreFoundation.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "CoreGraphics",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreGraphics.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreImage",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreImage.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreMIDI",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreMIDI.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "CoreMedia",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreMedia.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "CoreText",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreText.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "CoreTransferable",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreTransferable.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "CoreVideo",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/CoreVideo.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Darwin",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Darwin.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "DataDetection",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/DataDetection.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "DeveloperToolsSupport",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/DeveloperToolsSupport.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Dispatch",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Dispatch.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Distributed",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Distributed.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "FileProvider",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/FileProvider.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Foundation",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Foundation.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Metal",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Metal.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Network",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Network.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "OSLog",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/OSLog.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "ObjectiveC",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/ObjectiveC.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Observation",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Observation.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "QuartzCore",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/QuartzCore.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "SafariServices",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/SafariServices.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Spatial",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Spatial.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Swift",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Swift.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "SwiftUI",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/SwiftUI.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "SwiftUICore",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/SwiftUICore.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "Symbols",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Symbols.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "Synchronization",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/Synchronization.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "System",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/System.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "TipKit",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/TipKit.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "UIKit",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/UIKit.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "UniformTypeIdentifiers",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/UniformTypeIdentifiers.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "WebKit",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/WebKit.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "XPC",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/XPC.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "_AVKit_SwiftUI",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_AVKit_SwiftUI.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_Builtin_float",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_Builtin_float.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_Concurrency",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_Concurrency.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation1",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_DarwinFoundation1.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation2",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_DarwinFoundation2.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation3",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_DarwinFoundation3.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "_StringProcessing",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_StringProcessing.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : true,
+    "moduleName" : "_WebKit_SwiftUI",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/_WebKit_SwiftUI.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "os",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/os.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "isFramework" : false,
+    "moduleName" : "simd",
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/iphoneos\/prebuilt-modules\/26.0\/simd.swiftmodule\/arm64e-apple-ios.swiftmodule"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/AVFAudio.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/AVFAudio-CM6L8NKWYW0HXE17U2N2W8BPM.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "AVFAudio"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/AVFoundation.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/AVFoundation-54SLDYJ8W5Q7DU71CLEJROV85.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "AVFoundation"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/AVKit.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/AVKit-DYD5909T3VFODWTU8LPQH8L9N.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "AVKit"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/AVRouting.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/AVRouting-CLEMM3DQPZ6ROFEN2CPTZBDMV.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "AVRouting"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Accessibility.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Accessibility-AGRR17CDQ1V7VRK7VQKIOUD65.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Accessibility"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/AudioToolbox.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/AudioToolbox-10CJKAQBXEBG1IZ3D6B1IH0VE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "AudioToolbox"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CFNetwork.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CFNetwork-DYCCLOWB3D4YKU67OYXUJMHOU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CFNetwork"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreAudio.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreAudio-1CR133HOJNBIMD1XZGCF88IOL.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreAudio"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreAudioTypes.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreAudioTypes-1W5FPVG7WZNUVOE52H6C71F5A.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreAudioTypes"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreData.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreData-4TJ5GD3GZHVU1PMEE14MK1H2Y.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreData"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreFoundation.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreFoundation-56ZE5D1RBAS4UWIDR1UIQTW6M.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreFoundation"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreGraphics.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreGraphics-57L38NOJCXLMWYTVE0ENTOFIY.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreGraphics"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreImage.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreImage-1ZUCAQ3L6QZBC9D3AGB65GRU0.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreImage"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreMIDI.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreMIDI-2K84081FENJ3D7UA5YNVMKVGE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreMIDI"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreMedia.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreMedia-7SMTCLB9Q7HKOBB5ODHUK07QZ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreMedia"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreText.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreText-65J3HP5NGWNM3OTX9GRQWJ3J8.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreText"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreTransferable.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreTransferable-1X87VKW44EUHHZJCIFXP7OU92.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreTransferable"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/CoreVideo.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/CoreVideo-5YZ3BS08EN1EA0JLODHRX0XUF.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "CoreVideo"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/Darwin.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Darwin-AMHV3FWFCQDZZ7RKA8OM0YRTY.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Darwin"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/DataDetection.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/DataDetection-EKPB65FC1RMSJB25RR41VTXKF.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "DataDetection"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/DeveloperToolsSupport.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/DeveloperToolsSupport-AA1B46HGKN94BI8OWIS37LNEM.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "DeveloperToolsSupport"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/dispatch.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Dispatch-XONV683ZHI05IZC7FBOWUCB.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Dispatch"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/FileProvider.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/FileProvider-89PK5NDM1KGVPO35J6X2J8VUE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "FileProvider"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Foundation.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Foundation-2WGEJE8XXJ02DDKYFSNFWTV39.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Foundation"
+  },
+  {
+    "clangModuleMapPath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/Build\/Products\/Release-iphoneos\/XCFrameworkIntermediates\/google-cast-sdk\/GoogleCast.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/Build\/Intermediates.noindex\/SwiftExplicitPrecompiledModules\/GoogleCast-BVZC2D91LF20JIIQD4INM06ER.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "GoogleCast"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/IOSurface.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/IOSurface-7JZGH3V0B1EJZ74TIZKOELSMF.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "IOSurface"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/ImageIO.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/ImageIO-1HO935CEL006HTGZ6EW28GJXC.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ImageIO"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinBasic.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/MachO-5PQGR7ZYEHB15D5GELF5KHN7O.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "MachO"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/MediaToolbox.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/MediaToolbox-EPTAO8PH1DB5CCVP090YOYDDJ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "MediaToolbox"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Metal.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Metal-A44XD1YWMOEYMZ24PM2DP16CT.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Metal"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Network.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Network-8DQ0UV9VUJZIA2TIFD1F0HSXR.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Network"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/OSLog.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/OSLog-31RNSB8LS4MSM81B4XZ7MPVD8.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "OSLog"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/ObjectiveC.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/ObjectiveC-690L89A3UW8Z2XIOI5XWLQB7E.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ObjectiveC"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/OpenGLES.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/OpenGLES-CYL0SUDSQEF92P3LATK3V6QWO.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "OpenGLES"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/QuartzCore.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/QuartzCore-7UFWW165ZXON7W7XPBLD7YUOR.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "QuartzCore"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Cryptexes\/OS\/System\/Library\/Frameworks\/SafariServices.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/SafariServices-93BS88Z7ARFU6VJNSNYTPTSOP.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "SafariServices"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Security.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Security-68I1EQPEVAZIFPLL9NNRZEEJT.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Security"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/Spatial\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Spatial-B4I586Q5YQJPWCYO9IEDWM13U.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Spatial"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/lib\/swift\/shims\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/SwiftShims-2WZE7JBWNLRNJJHHTKFWWDQ43.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "SwiftShims"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/SwiftUI.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/SwiftUI-35AQ9I8XNN2JJAOX7VFWMFXVR.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "SwiftUI"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/SwiftUICore.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/SwiftUICore-7HMLYPUXSXLF9DWT9F76323PC.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "SwiftUICore"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/Symbols.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/Symbols-4CJIAQF7NEUKFYC6PAUTJBXFU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "Symbols"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/UIKit.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/UIKit-9DN0O3DH6PTPJ7YOWUNWPKMWU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "UIKit"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/SubFrameworks\/UIUtilities.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/UIUtilities-F1CZ8KRLEJ34Q1H1QXE6CQXOM.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "UIUtilities"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/UniformTypeIdentifiers.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/UniformTypeIdentifiers-7I4FI19HPNL6QUPJ2YD9CPEYM.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "UniformTypeIdentifiers"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Library\/Frameworks\/UserNotifications.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/UserNotifications-5COI042H2KIUVLHE9YNWQ9GIU.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "UserNotifications"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/System\/Cryptexes\/OS\/System\/Library\/Frameworks\/WebKit.framework\/Modules\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/WebKit-7W5PABRHC3T1P5PMEN746NLH2.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "WebKit"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/xpc.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/XPC-D24O8J5XH4UUKCFY9I15C6Z12.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "XPC"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinFoundation1.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_AvailabilityInternal-AG4YZEQOPKIBURF55DWKFHWLO.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_AvailabilityInternal"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_float-9FYH62DGWZZWNYZLXGP7KE3N0.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_float"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_intrinsics-18LKSHZMN3KW05SPHB0O6C3FK.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_intrinsics"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_inttypes-530HBZRCAYLP6JNMRPHOXQ1MA.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_inttypes"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_limits-7GTV1J9BS85VEEAMPNWAVNTK5.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_limits"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_stdarg-1ZKI57ZCCUNF8ZH6MOCVNG9HZ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdarg"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_stdatomic-C7XBOCBL6452DOAJFITV95F9M.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdatomic"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_stdbool-596ER2Y4T4QPW0AH43S2PFR4E.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdbool"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_stddef-E2CJWZNJ0VZURPNDBRYIU9TE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stddef"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_stdint-BTGL1TWX0FJA6OS9PIXVGBV0P.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_stdint"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_Builtin_tgmath-1PO6DYWTZ9ERH002F6KSI5EXA.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_Builtin_tgmath"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinFoundation1.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_DarwinFoundation1-8XA9FUG14E5JEVY7M63KVRE.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation1"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinFoundation2.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_DarwinFoundation2-DJD9Q25FRAKTYCL29E5IIJ5AP.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation2"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinFoundation3.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_DarwinFoundation3-F3WQFMINVUCQYY4YY6K68KHRJ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_DarwinFoundation3"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/lib\/swift\/shims\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/_SwiftConcurrencyShims-D6G3812HEWBAFK85M4WI0KLM5.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "_SwiftConcurrencyShims"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/dnssd.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/dnssd-8VYVMY8S7O2YMIM5HMRHDLYW.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "dnssd"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/os.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/os-EAJM4UUG8XTZUJX622SHT279J.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "os"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/os.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/os_object-61BC6IUH27NGLVUIAW0XCBEVQ.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "os_object"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/os.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/os_workgroup-86QG3WOJOFJZ10KMNWUFT9504.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "os_workgroup"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/ptrauth-4U3440I7RL32600YT3SB2V0I9.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ptrauth"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/17\/include\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/ptrcheck-2GMM8J7LLMZI9JYKYRR9QEYVD.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "ptrcheck"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/simd\/module.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/simd-DAVT18V0VVOKH1W9TO56H07F0.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "simd"
+  },
+  {
+    "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/iPhoneOS.platform\/Developer\/SDKs\/iPhoneOS.sdk\/usr\/include\/DarwinFoundation2.modulemap",
+    "clangModulePath" : "\/Users\/aniskedidi\/Documents\/perso\/AnisFlix\/ios-natve\/anisflix\/build\/ModuleCache.noindex\/sys_types-2B3CV19B56J96X8DMAJFVJMN1.pcm",
+    "isBridgingHeaderDependency" : false,
+    "isFramework" : false,
+    "moduleName" : "sys_types"
+  }
+]

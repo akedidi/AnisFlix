@@ -17,6 +17,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var isConnecting = false
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus?
+    @Published var currentMediaUrl: URL?
     
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
@@ -68,6 +69,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         isConnecting = false
         deviceName = nil
         mediaStatus = nil
+        currentMediaUrl = nil
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didFailToStart session: GCKSession, withError error: Error) {
@@ -79,14 +81,20 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     func sessionManager(_ sessionManager: GCKSessionManager, willStart session: GCKSession) {
         print("🔄 [CastManager] Cast Session Connecting to \(session.device.friendlyName ?? "Unknown")...")
-        isConnecting = true
+        // Ensure we are on main thread
+        DispatchQueue.main.async {
+            self.isConnecting = true
+        }
     }
     
     // MARK: - Media Control
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0) {
         print("📢 [CastManager] Request to load media: \(title)")
         print("📢 [CastManager] URL: \(url.absoluteString)")
+        print("📢 [CastManager] isLive: \(isLive)")
+        
+        self.currentMediaUrl = url
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -107,7 +115,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         let contentType: String
         let streamType: GCKMediaStreamType
         
-        if url.pathExtension == "m3u8" {
+        if isLive {
+            contentType = "application/x-mpegURL"
+            streamType = .live
+        } else if url.pathExtension == "m3u8" {
             contentType = "application/x-mpegURL"
             streamType = .buffered
         } else if url.pathExtension == "mpd" {
@@ -128,9 +139,13 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         for (index, sub) in subtitles.enumerated() {
             // Construct Proxy URL
-            // https://anisflix.vercel.app/api/subtitle-proxy?url=<ENCODED_URL>
+            // https://anisflix.vercel.app/api/subtitle-proxy?url=<ENCODED_URL>&offset=<OFFSET>
             var components = URLComponents(string: "https://anisflix.vercel.app/api/subtitle-proxy")
-            components?.queryItems = [URLQueryItem(name: "url", value: sub.url)]
+            var queryItems = [URLQueryItem(name: "url", value: sub.url)]
+            if subtitleOffset != 0 {
+                queryItems.append(URLQueryItem(name: "offset", value: String(subtitleOffset)))
+            }
+            components?.queryItems = queryItems
             
             guard let proxyUrl = components?.url else {
                 print("⚠️ [CastManager] Failed to construct proxy URL for subtitle: \(sub.label)")
@@ -188,6 +203,24 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         remoteMediaClient.seek(with: seekOptions)
     }
     
+    func play() {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient else { return }
+        remoteMediaClient.play()
+    }
+    
+    func pause() {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient else { return }
+        remoteMediaClient.pause()
+    }
+    
+    func getApproximateStreamPosition() -> TimeInterval {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient else { return 0 }
+        return remoteMediaClient.approximateStreamPosition()
+    }
+
     func setActiveTrack(url: String?) {
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else { return }
@@ -332,8 +365,13 @@ enum GCKMediaPlayerState {
     case unknown
 }
 
+struct GCKMediaInformation {
+    var streamDuration: TimeInterval = 0
+}
+
 struct GCKMediaStatus {
     var playerState: GCKMediaPlayerState = .unknown
+    var mediaInformation: GCKMediaInformation?
 }
 
 class CastManager: NSObject, ObservableObject {
@@ -343,6 +381,7 @@ class CastManager: NSObject, ObservableObject {
     @Published var isConnecting = false
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus?
+    @Published var currentMediaUrl: URL?
     
     override init() {
         super.init()
@@ -352,8 +391,13 @@ class CastManager: NSObject, ObservableObject {
         print("⚠️ Google Cast SDK not available. Casting disabled.")
     }
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0) {
         print("⚠️ Google Cast SDK not available. Cannot load media.")
     }
+    
+    func seek(to time: TimeInterval) {}
+    func play() {}
+    func pause() {}
+    func getApproximateStreamPosition() -> TimeInterval { return 0 }
 }
 #endif

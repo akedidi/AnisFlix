@@ -55,6 +55,11 @@ struct SettingsView: View {
         } message: {
             Text(theme.t("settings.clearAlertMessage"))
         }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                CastButton()
+            }
+        }
     }
 }
 

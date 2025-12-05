@@ -37,9 +37,9 @@ interface StreamingSourcesProps {
   title: string;
   sources: Source[];
   genres?: { id: number; name: string }[];
-  onSourceClick: (source: { 
-    url: string; 
-    type: "m3u8" | "mp4" | "embed"; 
+  onSourceClick: (source: {
+    url: string;
+    type: "m3u8" | "mp4" | "embed";
     name: string;
     isTopStream?: boolean;
     isFStream?: boolean;
@@ -56,13 +56,13 @@ interface StreamingSourcesProps {
   enabled?: boolean; // Nouvelle prop pour désactiver les hooks
 }
 
-const StreamingSources = memo(function StreamingSources({ 
-  type, 
-  id, 
-  title, 
-  sources, 
+const StreamingSources = memo(function StreamingSources({
+  type,
+  id,
+  title,
+  sources,
   genres,
-  onSourceClick, 
+  onSourceClick,
   isLoadingSource,
   season,
   episode,
@@ -71,12 +71,12 @@ const StreamingSources = memo(function StreamingSources({
 }: StreamingSourcesProps) {
   console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
   console.log('🔍 [STREAMING SOURCES] Component render - timestamp:', Date.now());
-  
+
   const { t } = useLanguage();
-  
+
   // État local pour gérer le chargement de chaque source individuellement
   const [loadingSources, setLoadingSources] = useState<Set<string>>(new Set());
-  
+
   // Nettoyer l'état de chargement quand une source est sélectionnée avec succès
   useEffect(() => {
     if (!isLoadingSource) {
@@ -84,7 +84,7 @@ const StreamingSources = memo(function StreamingSources({
       setLoadingSources(new Set());
     }
   }, [isLoadingSource]);
-  
+
   // Désactiver les hooks si enabled est false
   const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
@@ -92,7 +92,7 @@ const StreamingSources = memo(function StreamingSources({
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
-  
+
   // Debug logs pour MovixDownload
   console.log('🔍 [STREAMING SOURCES] MovixDownload Debug:', {
     type,
@@ -104,7 +104,7 @@ const StreamingSources = memo(function StreamingSources({
     hasData: !!movixDownloadData,
     sourcesCount: movixDownloadData?.sources?.length || 0
   });
-  
+
   // Debug spécifique pour comprendre pourquoi le hook n'est pas activé
   console.log('🔍 [STREAMING SOURCES] Hook Activation Check:', {
     hasId: !!id,
@@ -116,7 +116,7 @@ const StreamingSources = memo(function StreamingSources({
     episodeValue: episode,
     shouldBeEnabled: !!id && (type === 'movie' || (type === 'tv' && !!season && !!episode))
   });
-  
+
   // Debug des valeurs passées au hook
   console.log('🔍 [STREAMING SOURCES] Hook Parameters:', {
     type: type,
@@ -134,19 +134,19 @@ const StreamingSources = memo(function StreamingSources({
     seasonTruthy: !!season,
     episodeTruthy: !!episode
   });
-  
+
   // Détecter si c'est une série anime en utilisant les genres TMDB
   console.log('🔍 StreamingSources - Genres reçus:', genres);
   console.log('🔍 StreamingSources - Type:', type);
   console.log('🔍 StreamingSources - Title:', title);
-  
+
   // Détection par genres TMDB
-  const isAnimeByGenre = Boolean(type === 'tv' && genres && genres.some(genre => 
-    genre.name.toLowerCase() === 'animation' || 
+  const isAnimeByGenre = Boolean(type === 'tv' && genres && genres.some(genre =>
+    genre.name.toLowerCase() === 'animation' ||
     genre.name.toLowerCase() === 'anime' ||
     genre.id === 16 // ID du genre Animation dans TMDB
   ));
-  
+
   // Détection de fallback par titre (pour les cas où les genres ne sont pas disponibles)
   const isAnimeByTitle = Boolean(type === 'tv' && title && (
     title.toLowerCase().includes('one punch man') ||
@@ -165,22 +165,22 @@ const StreamingSources = memo(function StreamingSources({
     title.toLowerCase().includes('sword art online') ||
     title.toLowerCase().includes('anime')
   ));
-  
+
   const isAnimeSeries = isAnimeByGenre || isAnimeByTitle;
-  
+
   console.log('🔍 StreamingSources - isAnimeSeries:', isAnimeSeries);
   console.log('🔍 StreamingSources - isAnimeByGenre:', isAnimeByGenre);
   console.log('🔍 StreamingSources - isAnimeByTitle:', isAnimeByTitle);
   console.log('🔍 StreamingSources - Title pour détection:', title);
   console.log('🔍 StreamingSources - Genres pour détection:', genres);
-  
+
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
-    title || '', 
-    season || 1, 
+    title || '',
+    season || 1,
     episode || 1,
     isAnimeSeries // Ajouter la condition pour ne l'appeler que si c'est une série anime
   );
-  
+
   console.log('🔍 StreamingSources - animeVidMolyData:', animeVidMolyData);
   console.log('🔍 StreamingSources - hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
 
@@ -208,12 +208,12 @@ const StreamingSources = memo(function StreamingSources({
     if (language === 'VF' && topStreamData && topStreamData.stream && topStreamData.stream.url) {
       return true;
     }
-    
+
     // Vérifier MovixDownload (VF uniquement)
     if (language === 'VF' && movixDownloadData && movixDownloadData.sources && movixDownloadData.sources.length > 0) {
       return true;
     }
-    
+
     // Vérifier VidMoly (normal)
     if (vidmolyData) {
       if (language === 'VF' && vidmolyData.vf && vidmolyData.vf.length > 0) {
@@ -223,7 +223,7 @@ const StreamingSources = memo(function StreamingSources({
         return true;
       }
     }
-    
+
     // Vérifier VidMoly anime (pour les séries anime)
     if (isAnimeSeries && animeVidMolyData) {
       console.log(`🔍 hasSourcesForLanguage - Vérification ${language} pour anime:`, {
@@ -232,7 +232,7 @@ const StreamingSources = memo(function StreamingSources({
         vfLength: animeVidMolyData.vf?.length,
         vostfrLength: animeVidMolyData.vostfr?.length
       });
-      
+
       if (language === 'VF' && animeVidMolyData.vf && animeVidMolyData.vf.length > 0) {
         console.log('✅ Sources VF anime trouvées');
         return true;
@@ -242,38 +242,38 @@ const StreamingSources = memo(function StreamingSources({
         return true;
       }
     }
-    
+
     // Vérifier Darki (pour les séries uniquement)
     if (type === 'tv' && darkiboxData && darkiboxData.sources) {
-      const hasVFSources = darkiboxData.sources.some(source => 
+      const hasVFSources = darkiboxData.sources.some(source =>
         source.language === 'TrueFrench' || source.language === 'MULTI'
       );
-      const hasVOSTFRSources = darkiboxData.sources.some(source => 
+      const hasVOSTFRSources = darkiboxData.sources.some(source =>
         source.language === 'MULTI' // MULTI peut contenir VOSTFR
       );
-      
+
       if (language === 'VF' && hasVFSources) return true;
       if (language === 'VOSTFR' && hasVOSTFRSources) return true;
     }
-    
+
     // Vérifier Darki (pour les séries uniquement)
     if (type === 'tv' && darkiData && darkiData.sources) {
-      const hasVFSources = darkiData.sources.some(source => 
+      const hasVFSources = darkiData.sources.some(source =>
         source.language === 'TrueFrench' || source.language === 'MULTI'
       );
-      const hasVOSTFRSources = darkiData.sources.some(source => 
+      const hasVOSTFRSources = darkiData.sources.some(source =>
         source.language === 'MULTI' // MULTI peut contenir VOSTFR
       );
-      
+
       if (language === 'VF' && hasVFSources) return true;
       if (language === 'VOSTFR' && hasVOSTFRSources) return true;
     }
-    
+
     // Vérifier FStream
     if (fStreamData && fStreamData.players) {
       if (language === 'VF') {
         // Vérifier les clés VF (VFF, VFQ, Default)
-        const vfKeys = Object.keys(fStreamData.players).filter(key => 
+        const vfKeys = Object.keys(fStreamData.players).filter(key =>
           key.startsWith('VF') || key === 'VF' || key === 'Default'
         );
         return vfKeys.some(key => fStreamData.players![key] && fStreamData.players![key].length > 0);
@@ -282,28 +282,28 @@ const StreamingSources = memo(function StreamingSources({
         return fStreamData.players.VOSTFR && fStreamData.players.VOSTFR.length > 0;
       }
     }
-    
+
     // Vérifier les épisodes pour les séries
     if (type === 'tv' && fStreamData && fStreamData.episodes && episode) {
       const episodeData = fStreamData.episodes[episode.toString()];
       if (episodeData && episodeData.languages) {
         if (language === 'VF') {
-          const vfKeys = Object.keys(episodeData.languages).filter(key => 
+          const vfKeys = Object.keys(episodeData.languages).filter(key =>
             key.startsWith('VF') || key === 'VF' || key === 'Default'
           );
-          return vfKeys.some(key => episodeData.languages![key as keyof typeof episodeData.languages] && 
+          return vfKeys.some(key => episodeData.languages![key as keyof typeof episodeData.languages] &&
             episodeData.languages![key as keyof typeof episodeData.languages]!.length > 0);
         } else {
           return episodeData.languages.VOSTFR && episodeData.languages.VOSTFR.length > 0;
         }
       }
     }
-    
+
     console.log(`❌ hasSourcesForLanguage(${language}) - Aucune source trouvée`);
     return false;
   }, [
-    topStreamData, movixDownloadData, vidmolyData, fStreamData, 
-    darkiboxData, darkiData, animeVidMolyData, isAnimeSeries, 
+    topStreamData, movixDownloadData, vidmolyData, fStreamData,
+    darkiboxData, darkiData, animeVidMolyData, isAnimeSeries,
     type, episode
   ]);
 
@@ -317,7 +317,7 @@ const StreamingSources = memo(function StreamingSources({
 
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];
-  
+
   // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
   if (sources && sources.length > 0) {
     console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
@@ -341,26 +341,26 @@ const StreamingSources = memo(function StreamingSources({
   // Ajouter les sources MovixDownload (nouvelle API) si disponibles
   if (movixDownloadData && movixDownloadData.sources && selectedLanguage === 'VF') {
     console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadData.sources);
-    
+
     // Trier les sources par qualité (du meilleur au moins bon)
     const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
-    
+
     const sortedSources = movixDownloadData.sources.sort((a: any, b: any) => {
       const qualityA = a.quality || 'Unknown';
       const qualityB = b.quality || 'Unknown';
-      
+
       const indexA = qualityOrder.indexOf(qualityA);
       const indexB = qualityOrder.indexOf(qualityB);
-      
+
       // Si les deux qualités sont dans la liste, trier par index
       if (indexA !== -1 && indexB !== -1) {
         return indexA - indexB;
       }
-      
+
       // Si une seule est dans la liste, la prioriser
       if (indexA !== -1) return -1;
       if (indexB !== -1) return 1;
-      
+
       // Si aucune n'est dans la liste, trier alphabétiquement
       return qualityA.localeCompare(qualityB);
     });
@@ -378,13 +378,13 @@ const StreamingSources = memo(function StreamingSources({
     // Ajouter les sources groupées par qualité
     Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
       sources.forEach((source: any, index: number) => {
-        const languageLabel = source.language === 'MULTI' ? 'Multi' : 
-                             source.language === 'FRE' ? 'Français' : 
-                             source.language === 'ENG' ? 'Anglais' : source.language;
+        const languageLabel = source.language === 'MULTI' ? 'Multi' :
+          source.language === 'FRE' ? 'Français' :
+            source.language === 'ENG' ? 'Anglais' : source.language;
 
         // Ajouter un numéro si plusieurs sources de même qualité
         const qualityLabel = sources.length > 1 ? `${quality} #${index + 1}` : quality;
-        
+
         // Modifier l'URL pour forcer les sous-titres français
         let modifiedUrl = source.m3u8;
         if (source.language === 'MULTI' || source.language === 'FRE') {
@@ -410,28 +410,28 @@ const StreamingSources = memo(function StreamingSources({
 
   // Ajouter seulement Vidzy depuis FStream si disponible
   if (fStreamData && fStreamData.players) {
-    
+
     let vidzyCounter = 1;
-    
+
     if (selectedLanguage === 'VF') {
       // Pour VF, traiter chaque clé séparément pour distinguer les sources
       // Default est maintenant considéré comme VF
-      const vfKeys = Object.keys(fStreamData.players).filter(key => 
+      const vfKeys = Object.keys(fStreamData.players).filter(key =>
         key.startsWith('VF') || key === 'VF' || key === 'Default'
       );
-      
+
       console.log('VF keys found (including Default):', vfKeys);
-      
+
       // Traiter toutes les clés VF (VFF, VFQ, Default, etc.)
       vfKeys.forEach(key => {
         if (fStreamData.players![key]) {
           console.log(`Processing players from ${key}:`, fStreamData.players![key]);
-          
+
           // Filtrer seulement Vidzy pour cette clé
-          const vidzyPlayers = fStreamData.players![key].filter((player: any) => 
-            player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
+          const vidzyPlayers = fStreamData.players![key].filter((player: any) =>
+            player.player.toLowerCase() === 'vidzy'
           );
-          
+
           // Ajouter chaque source Vidzy avec une mention distincte
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
@@ -452,11 +452,11 @@ const StreamingSources = memo(function StreamingSources({
       // Pour VOSTFR, utiliser la clé VOSTFR
       const vostfrPlayers = fStreamData.players.VOSTFR || [];
       console.log('VOSTFR players:', vostfrPlayers);
-      
-      const vostfrVidzyPlayers = vostfrPlayers.filter((player: any) => 
-        player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
+
+      const vostfrVidzyPlayers = vostfrPlayers.filter((player: any) =>
+        player.player.toLowerCase() === 'vidzy'
       );
-      
+
       vostfrVidzyPlayers.forEach((player: any) => {
         allSources.push({
           id: `fstream-vidzy-vostfr-${vidzyCounter}`,
@@ -478,22 +478,22 @@ const StreamingSources = memo(function StreamingSources({
     const episodeData = fStreamData.episodes[episode.toString()];
     if (episodeData && episodeData.languages) {
       let episodeVidzyCounter = 1;
-      
+
       if (selectedLanguage === 'VF') {
         // Pour VF, traiter chaque clé séparément pour distinguer les sources
         // Default est maintenant considéré comme VF
-        const vfKeys = Object.keys(episodeData.languages).filter(key => 
+        const vfKeys = Object.keys(episodeData.languages).filter(key =>
           key.startsWith('VF') || key === 'VF' || key === 'Default'
         );
-        
+
         // Traiter toutes les clés VF (VFF, VFQ, Default, etc.)
         vfKeys.forEach(key => {
           if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
             // Filtrer seulement Vidzy pour cette clé
-            const vidzyPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) => 
-              player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
+            const vidzyPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
+              player.player.toLowerCase() === 'vidzy'
             );
-            
+
             // Ajouter chaque source Vidzy avec une mention distincte
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
@@ -514,11 +514,11 @@ const StreamingSources = memo(function StreamingSources({
       } else {
         // Pour VOSTFR, utiliser la clé VOSTFR
         const vostfrPlayers = episodeData.languages.VOSTFR || [];
-        
-        const vostfrVidzyPlayers = vostfrPlayers.filter((player: any) => 
-          player.player === 'VIDZY' || player.player === 'ViDZY' || player.player === 'vidzy'
+
+        const vostfrVidzyPlayers = vostfrPlayers.filter((player: any) =>
+          player.player.toLowerCase() === 'vidzy'
         );
-        
+
         vostfrVidzyPlayers.forEach((player: any) => {
           allSources.push({
             id: `fstream-episode-vidzy-vostfr-${episodeVidzyCounter}`,
@@ -541,10 +541,10 @@ const StreamingSources = memo(function StreamingSources({
   console.log('🔍 StreamingSources - VidMoly data:', vidmolyData);
   console.log('🔍 StreamingSources - hasVidMolyLinks:', hasVidMolyLinks);
   console.log('🔍 StreamingSources - selectedLanguage:', selectedLanguage);
-  
+
   if (vidmolyData && hasVidMolyLinks) {
     let vidmolyCounter = 1;
-    
+
     if (selectedLanguage === 'VF' && vidmolyData.vf) {
       console.log('🔍 Ajout des sources VidMoly VF:', vidmolyData.vf);
       vidmolyData.vf.forEach((player: any) => {
@@ -564,7 +564,7 @@ const StreamingSources = memo(function StreamingSources({
         vidmolyCounter++;
       });
     }
-    
+
     if (selectedLanguage === 'VOSTFR' && vidmolyData.vostfr) {
       console.log('🔍 Ajout des sources VidMoly VOSTFR:', vidmolyData.vostfr);
       vidmolyData.vostfr.forEach((player: any) => {
@@ -591,7 +591,7 @@ const StreamingSources = memo(function StreamingSources({
   if (isAnimeSeries && animeVidMolyData && hasAnimeVidMolyLinks) {
     console.log('🔍 StreamingSources - Anime VidMoly data:', animeVidMolyData);
     let animeVidmolyCounter = 1;
-    
+
     if (selectedLanguage === 'VF' && animeVidMolyData.vf) {
       console.log('🔍 Ajout des sources VidMoly Anime VF:', animeVidMolyData.vf);
       animeVidMolyData.vf.forEach((player: any) => {
@@ -611,7 +611,7 @@ const StreamingSources = memo(function StreamingSources({
         animeVidmolyCounter++;
       });
     }
-    
+
     if (selectedLanguage === 'VOSTFR' && animeVidMolyData.vostfr) {
       console.log('🔍 Ajout des sources VidMoly Anime VOSTFR:', animeVidMolyData.vostfr);
       animeVidMolyData.vostfr.forEach((player: any) => {
@@ -642,11 +642,11 @@ const StreamingSources = memo(function StreamingSources({
       // Filtrer par langue sélectionnée
       const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
       const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
-      
+
       if ((selectedLanguage === 'VF' && isVFSource) || (selectedLanguage === 'VOSTFR' && isVOSTFRSource)) {
         // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
         const cleanM3u8Url = source.m3u8.replace(/,/g, '');
-        
+
         allSources.push({
           id: source.id,
           name: `${source.quality} - ${source.language}`,
@@ -672,10 +672,10 @@ const StreamingSources = memo(function StreamingSources({
     console.log('🔍 Source URL complète:', source.url);
     console.log('🔍 Source type:', source.type);
     console.log('🔍 Source isVidMoly:', source.isVidMoly);
-    
+
     // Marquer cette source comme en cours de chargement
     setLoadingSources(prev => new Set(prev).add(source.id));
-    
+
     try {
       if (source.isTopStream) {
         console.log('✅ Source TopStream détectée');
@@ -787,8 +787,8 @@ const StreamingSources = memo(function StreamingSources({
 
         <div className="text-center py-8 text-muted-foreground">
           <p>
-            {selectedLanguage === 'VF' 
-              ? "Aucune source VF disponible pour ce contenu." 
+            {selectedLanguage === 'VF'
+              ? "Aucune source VF disponible pour ce contenu."
               : "Aucune source VOSTFR disponible pour ce contenu."
             }
           </p>
@@ -838,8 +838,8 @@ const StreamingSources = memo(function StreamingSources({
         {allSources.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>
-              {selectedLanguage === 'VF' 
-                ? "Aucune source VF disponible pour ce contenu." 
+              {selectedLanguage === 'VF'
+                ? "Aucune source VF disponible pour ce contenu."
                 : "Aucune source VOSTFR disponible pour ce contenu."
               }
             </p>
@@ -858,58 +858,58 @@ const StreamingSources = memo(function StreamingSources({
           allSources.map((source) => {
             console.log('🎬 Rendu source:', source);
             return (
-            <div key={source.id} className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-between h-auto py-3"
-                onClick={() => handleSourceClick(source)}
-                disabled={loadingSources.has(source.id)}
-              >
-              <span className="flex items-center gap-2">
-                <Play className="w-4 h-4" />
-                {source.name}
-                {source.isTopStream && (
-                  <Badge variant="secondary" className="text-xs">
-                    TopStream
-                  </Badge>
-                )}
-                {source.isFStream && (
-                  <Badge variant="outline" className="text-xs">
-                    FStream
-                  </Badge>
-                )}
-                {source.isMovixDownload && (
-                  <Badge variant="default" className="text-xs">
-                    Darkibox
-                  </Badge>
-                )}
-                {source.isVidMoly && (
-                  <Badge variant="destructive" className="text-xs">
-                    VidMoly
-                  </Badge>
-                )}
-                {source.isDarki && (
-                  <Badge variant="secondary" className="text-xs">
-                    Darki
-                  </Badge>
-                )}
-                {source.quality && (
-                  <Badge variant="secondary" className="text-xs">
-                    {source.quality}
-                  </Badge>
-                )}
-                {source.language && source.language !== 'MULTI' && (
-                  <Badge variant="outline" className="text-xs">
-                    {source.language}
-                  </Badge>
-                )}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {loadingSources.has(source.id) ? t("topstream.loading") : "Regarder"}
-              </span>
-            </Button>
-          </div>
-          );
+              <div key={source.id} className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-auto py-3"
+                  onClick={() => handleSourceClick(source)}
+                  disabled={loadingSources.has(source.id)}
+                >
+                  <span className="flex items-center gap-2">
+                    <Play className="w-4 h-4" />
+                    {source.name}
+                    {source.isTopStream && (
+                      <Badge variant="secondary" className="text-xs">
+                        TopStream
+                      </Badge>
+                    )}
+                    {source.isFStream && (
+                      <Badge variant="outline" className="text-xs">
+                        FStream
+                      </Badge>
+                    )}
+                    {source.isMovixDownload && (
+                      <Badge variant="default" className="text-xs">
+                        Darkibox
+                      </Badge>
+                    )}
+                    {source.isVidMoly && (
+                      <Badge variant="destructive" className="text-xs">
+                        VidMoly
+                      </Badge>
+                    )}
+                    {source.isDarki && (
+                      <Badge variant="secondary" className="text-xs">
+                        Darki
+                      </Badge>
+                    )}
+                    {source.quality && (
+                      <Badge variant="secondary" className="text-xs">
+                        {source.quality}
+                      </Badge>
+                    )}
+                    {source.language && source.language !== 'MULTI' && (
+                      <Badge variant="outline" className="text-xs">
+                        {source.language}
+                      </Badge>
+                    )}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {loadingSources.has(source.id) ? t("topstream.loading") : "Regarder"}
+                  </span>
+                </Button>
+              </div>
+            );
           })
         )}
       </div>

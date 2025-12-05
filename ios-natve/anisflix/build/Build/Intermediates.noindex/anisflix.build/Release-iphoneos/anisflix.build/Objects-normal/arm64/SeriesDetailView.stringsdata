@@ -1,0 +1,72 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld Saisons",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %lld",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 198
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld. %@",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 259
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lldh %lldm",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 274
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 658
+        }
+      },
+      {
+        "comment": "",
+        "key": "Préparation de la lecture...",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 563
+        }
+      },
+      {
+        "comment": "",
+        "key": "Réessayer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 576
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %lld",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 674
+        }
+      }
+    ]
+  },
+  "version": 1
+}

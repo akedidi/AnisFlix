@@ -33,14 +33,27 @@ struct DownloadsView: View {
             
             VStack(spacing: 0) {
                 // Header with Picker (matching FavoritesView)
+                // Header with Picker
                 VStack(spacing: 16) {
+                    HStack {
+                        Text(theme.t("downloads.title"))
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(theme.primaryText)
+                        
+                        Spacer()
+                        
+                        CastButton()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    
                     Picker("Type", selection: $selectedTab) {
                         Text(theme.t("downloads.completed")).tag(0)
                         Text(theme.t("downloads.active")).tag(1)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
-                    .padding(.top, 10)
                 }
                 .background(theme.backgroundColor)
                 

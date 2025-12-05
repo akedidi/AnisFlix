@@ -35,7 +35,17 @@ export default async function handler(req, res) {
         let subtitleContent = await response.text();
         console.log(`[SUBTITLE PROXY] Fetched ${subtitleContent.length} bytes`);
 
-        // Convert SRT to VTT if needed
+        // Apply offset if provided
+        const { offset } = req.query;
+        if (offset) {
+            const offsetSeconds = parseFloat(offset);
+            if (!isNaN(offsetSeconds) && offsetSeconds !== 0) {
+                console.log(`[SUBTITLE PROXY] Applying offset: ${offsetSeconds}s`);
+                subtitleContent = applyOffset(subtitleContent, offsetSeconds);
+            }
+        }
+
+        // Convert SRT to VTT if needed (after offset, or before? Better before to standardize)
         if (!subtitleContent.trim().startsWith('WEBVTT')) {
             console.log('[SUBTITLE PROXY] Converting SRT to VTT');
             subtitleContent = srtToVtt(subtitleContent);
@@ -72,4 +82,22 @@ function srtToVtt(srtContent) {
         .replace(/\r/g, "\n");
 
     return vtt;
+}
+
+/**
+ * Apply time offset to VTT/SRT content
+ */
+function applyOffset(content, offsetSeconds) {
+    // Regex to find timestamps: 00:00:00,000 or 00:00:00.000
+    return content.replace(/(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/g, (match, h, m, s, ms) => {
+        const totalSeconds = parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s) + parseInt(ms) / 1000;
+        const newTotalSeconds = Math.max(0, totalSeconds + offsetSeconds);
+
+        const newH = Math.floor(newTotalSeconds / 3600);
+        const newM = Math.floor((newTotalSeconds % 3600) / 60);
+        const newS = Math.floor(newTotalSeconds % 60);
+        const newMs = Math.round((newTotalSeconds % 1) * 1000);
+
+        return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}:${String(newS).padStart(2, '0')}.${String(newMs).padStart(3, '0')}`;
+    });
 }

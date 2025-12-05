@@ -1,0 +1,607 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -scheme anisflix -destination "platform=iOS Simulator,name=iPhone 17 Pro" clean build
+
+2025-12-03 15:15:03.764 xcodebuild[68589:7730424] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+** CLEAN SUCCEEDED **
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'anisflix' in project 'anisflix' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: aeb101f678cf0588b91d8ea5e6e0b04f
+Build description path: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/XCBuildData/aeb101f678cf0588b91d8ea5e6e0b04f.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix-8c77cfc3c15a48e8c801f7c0d09e749c-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix-8c77cfc3c15a48e8c801f7c0d09e749c-VFS-iphonesimulator/all-product-headers.yaml
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcodeproj
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyStaticMetadataFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyMetadataFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-project-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-project-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-own-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-generated-files.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-generated-files.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-non-framework-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibPath-normal-arm64.txt (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibInstallName-normal-arm64.txt (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibInstallName-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftConstValuesFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.LinkFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.LinkFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/Entitlements-Simulated.plist (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/Entitlements-Simulated.plist
+
+ProcessProductPackaging "" /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "8JZS9SP533.anis..anisflix";
+}
+    
+    builtin-productPackagingUtility -entitlements -format xml -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent
+
+ProcessProductPackagingDER /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent.der (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /usr/bin/derq query -f xml -i /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent.der --raw
+
+Ld /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/__preview.dylib normal (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -install_name @rpath/anisflix.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_dependency_info.dat -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent.der -Xlinker -no_adhoc_codesign -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/__preview.dylib
+
+GenerateAssetSymbols /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets --compile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_dependencies --output-partial-info-plist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 26.0 --platform iphonesimulator --bundle-identifier anis..anisflix --generate-swift-asset-symbols /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/thinned (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/thinned
+
+CpResource /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/build_log_controls.txt /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/build_log_controls.txt (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/build_log_controls.txt /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/unthinned (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/unthinned
+
+CompileAssetCatalogVariant thinned /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets --compile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone18,1 --filter-for-device-os-version 26.0.1 --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 26.0 --platform iphonesimulator
+objc[68619]: Class _NoAnimationDelegate is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_23A8464/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore (0x143ef0130) and /Library/Developer/CoreSimulator/Volumes/iOS_23A8464/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore (0x141059198). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
+/* com.apple.actool.compilation-results */
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist_thinned
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver anisflix normal arm64 com.apple.xcode.tools.swift.compiler (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name anisflix -Onone -enforce-exclusivity\=checked @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-generated-files.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-own-target-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-target-headers.hmap -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-project-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources-normal/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-Swift.h -working-directory /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ Media.swift,\ TVChannel.swift,\ DownloadManager.swift,\ FavoritesManager.swift,\ StreamingService.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Models/Media.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Models/TVChannel.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/DownloadManager.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/FavoritesManager.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/StreamingService.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Models/Media.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Models/TVChannel.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/DownloadManager.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/FavoritesManager.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/StreamingService.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ SafariView.swift,\ StreamingSourcesView.swift,\ ThemeToggle.swift,\ TrailerPlayerView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/SafariView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/StreamingSourcesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/ThemeToggle.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/TrailerPlayerView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/SafariView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/SafariView.swift:20:18: warning: 'preferredBarTintColor' was deprecated in iOS 26.0: Tinting the bars interferes with background effects that the system provides.
+        safariVC.preferredBarTintColor = UIColor(AppTheme.shared.backgroundColor)
+                 ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/SafariView.swift:21:18: warning: 'preferredControlTintColor' was deprecated in iOS 26.0: Tinting the controls interferes with background effects that the system provides.
+        safariVC.preferredControlTintColor = UIColor(AppTheme.primaryRed)
+                 ^
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/StreamingSourcesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/StreamingSourcesView.swift:102:13: warning: initialization of immutable value 'isDownloading' was never used; consider replacing with assignment to '_' or removing it
+        let isDownloading = downloadManager.isDownloading(mediaId: media.id, season: season, episode: episode)
+        ~~~~^~~~~~~~~~~~~
+        _
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/StreamingSourcesView.swift:104:13: warning: initialization of immutable value 'state' was never used; consider replacing with assignment to '_' or removing it
+        let state = downloadItem?.state ?? .waiting
+        ~~~~^~~~~
+        _
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/StreamingSourcesView.swift:105:13: warning: initialization of immutable value 'progress' was never used; consider replacing with assignment to '_' or removing it
+        let progress = downloadItem?.progress ?? 0.0
+        ~~~~^~~~~~~~
+        _
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/ThemeToggle.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/TrailerPlayerView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ LatestSeriesView.swift,\ MediaListView.swift,\ PopularMoviesView.swift,\ PopularSeriesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestSeriesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/MediaListView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/PopularMoviesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/PopularSeriesView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestSeriesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/MediaListView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/PopularMoviesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/PopularSeriesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ HomeView.swift,\ MovieDetailView.swift,\ MoviesView.swift,\ SeriesDetailView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/HomeView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MoviesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift (in target 'anisflix' from project 'anisflix')
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/HomeView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:60:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 250)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:72:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 250)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:81:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 250)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:101:48: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                        .frame(width: UIScreen.main.bounds.width)
+                                               ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:385:44: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                    .frame(width: UIScreen.main.bounds.width)
+                                           ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:435:44: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
+                                           ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MovieDetailView.swift:435:95: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
+                                                                                              ^
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/MoviesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:67:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 300)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:79:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 300)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:88:68: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                                            .frame(width: UIScreen.main.bounds.width, height: 300)
+                                                                   ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:108:48: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                        .frame(width: UIScreen.main.bounds.width)
+                                               ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:360:44: warning: 'main' was deprecated in iOS 26.0: Use a UIScreen instance found through context instead (i.e, view.window.windowScene.screen), or for properties like UIScreen.scale with trait equivalents, use a traitCollection found through context.
+                    .frame(width: UIScreen.main.bounds.width)
+                                           ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift:561:39: warning: immutable value 'url' was never used; consider replacing with '_' or removing it
+            } else if showPlayer, let url = playerURL {
+                                  ~~~~^~~
+                                  _
+
+SwiftCompile normal arm64 Compiling\ ProviderCategoryListView.swift,\ ProviderMediaListView.swift,\ DownloadsView.swift,\ FavoritesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/ProviderCategoryListView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/ProviderMediaListView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/DownloadsView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/FavoritesView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/ProviderCategoryListView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/ProviderMediaListView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/DownloadsView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/FavoritesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ SeriesView.swift,\ SettingsView.swift,\ TVChannelsView.swift,\ anisflixApp.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SettingsView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/TVChannelsView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/anisflixApp.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SettingsView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/TVChannelsView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/anisflixApp.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ AppTheme.swift,\ ContentView.swift,\ MainTabView.swift,\ GeneratedAssetSymbols.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/AppTheme.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/ContentView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/MainTabView.swift /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/AppTheme.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/ContentView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/MainTabView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ TVHeaderView.swift,\ GenreMediaListView.swift,\ LatestMediaListView.swift,\ LatestMoviesView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/TVHeaderView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/GenreMediaListView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestMediaListView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestMoviesView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/TVHeaderView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/GenreMediaListView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestMediaListView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/LatestMoviesView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 Compiling\ TMDBService.swift,\ TMDBService+Search.swift,\ TVService.swift,\ WatchProgressManager.swift,\ Localizable.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TMDBService.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TMDBService+Search.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TVService.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/WatchProgressManager.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/Localizable.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TMDBService.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TMDBService.swift:199:20: warning: immutable value 'response' was never used; consider replacing with '_' or removing it
+        let (data, response) = try await URLSession.shared.data(from: url)
+                   ^~~~~~~~
+                   _
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TMDBService+Search.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/TVService.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Services/WatchProgressManager.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/Localizable.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ anisflix (in target 'anisflix' from project 'anisflix')
+
+EmitSwiftModule normal arm64 (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling AppTheme.swift, ContentView.swift, MainTabView.swift, GeneratedAssetSymbols.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 Compiling\ CustomHeaderView.swift,\ CustomVideoPlayer.swift,\ LanguagePicker.swift,\ MediaGrid.swift,\ MediaRow.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomHeaderView.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/LanguagePicker.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/MediaGrid.swift /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/MediaRow.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomHeaderView.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:224:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: selectedSubtitle?.id) { _ in
+         ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:231:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: playerVM.currentTime) { time in
+         ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:244:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: isPresented) { presented in
+         ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:255:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: url) { newUrl in
+         ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:57:20: warning: immutable value 'sub' was never used; consider replacing with '_' or removing it
+            if let sub = selectedSubtitle, let text = playerVM.currentSubtitleText {
+               ~~~~^~~
+               _
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:363:120: warning: 'allowBluetooth' was deprecated in iOS 8.0: renamed to 'AVAudioSession.CategoryOptions.allowBluetoothHFP'
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth])
+                                                                                                                       ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:363:120: note: use 'AVAudioSession.CategoryOptions.allowBluetoothHFP' instead
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth])
+                                                                                                                       ^~~~~~~~~~~~~~
+                                                                                                                       AVAudioSession.CategoryOptions.allowBluetoothHFP
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:438:33: warning: no calls to throwing functions occur within 'try' expression
+                pipController = try AVPictureInPictureController(playerLayer: layer)
+                                ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift:442:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+            } catch {
+              ^
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/LanguagePicker.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/MediaGrid.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftCompile normal arm64 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/MediaRow.swift (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling SafariView.swift, StreamingSourcesView.swift, ThemeToggle.swift, TrailerPlayerView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling TMDBService.swift, TMDBService+Search.swift, TVService.swift, WatchProgressManager.swift, Localizable.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling LatestSeriesView.swift, MediaListView.swift, PopularMoviesView.swift, PopularSeriesView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling Media.swift, TVChannel.swift, DownloadManager.swift, FavoritesManager.swift, StreamingService.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for anisflix (in target 'anisflix' from project 'anisflix')
+
+SwiftDriver\ Compilation\ Requirements anisflix normal arm64 com.apple.xcode.tools.swift.compiler (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name anisflix -Onone -enforce-exclusivity\=checked @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-generated-files.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-own-target-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-target-headers.hmap -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-project-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources-normal/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-Swift.h -working-directory /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix -experimental-emit-module-separately -disable-cmo
+
+SwiftMergeGeneratedHeaders /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/anisflix-Swift.h /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-Swift.h (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-swiftHeaderTool -arch arm64 /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-Swift.h -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/anisflix-Swift.h
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.abi.json (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.abi.json /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftdoc (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftdoc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftsourceinfo (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftsourceinfo /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriverJobDiscovery normal arm64 Compiling TVHeaderView.swift, GenreMediaListView.swift, LatestMediaListView.swift, LatestMoviesView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling SeriesView.swift, SettingsView.swift, TVChannelsView.swift, anisflixApp.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ProviderCategoryListView.swift, ProviderMediaListView.swift, DownloadsView.swift, FavoritesView.swift (in target 'anisflix' from project 'anisflix')
+
+LinkAssetCatalog /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-linkAssetCatalog --thinned /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/thinned --thinned-dependencies /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist_unthinned --output /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app --plist-output /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Assets.car (in target 'anisflix' from project 'anisflix')
+
+ProcessInfoPlistFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Info.plist /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Info.plist (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-infoPlistUtility /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/assetcatalog_generated_info.plist -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Info.plist
+
+SwiftDriverJobDiscovery normal arm64 Compiling CustomHeaderView.swift, CustomVideoPlayer.swift, LanguagePicker.swift, MediaGrid.swift, MediaRow.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriverJobDiscovery normal arm64 Compiling HomeView.swift, MovieDetailView.swift, MoviesView.swift, SeriesDetailView.swift (in target 'anisflix' from project 'anisflix')
+
+SwiftDriver\ Compilation anisflix normal arm64 com.apple.xcode.tools.swift.compiler (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name anisflix -Onone -enforce-exclusivity\=checked @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-generated-files.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-own-target-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-all-target-headers.hmap -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-project-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources-normal/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-Swift.h -working-directory /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib normal (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -filelist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.LinkFileList -install_name @rpath/anisflix.debug.dylib -Xlinker -rpath -Xlinker @executable_path/Frameworks -dead_strip -Xlinker -object_path_lto -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix-linker-args.resp -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -Xlinker -no_adhoc_codesign -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib
+
+ConstructStubExecutorLinkFileList /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-ExecutorLinkFileList-normal-arm64.txt (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    construct-stub-executor-link-file-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'anisflix' from project 'anisflix')
+
+Ld /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix normal (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.app-Simulated.xcent.der /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix
+
+CopySwiftLibs /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib --scan-folder /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Frameworks --scan-folder /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/PlugIns --scan-folder /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/SystemExtensions --scan-folder /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+ExtractAppIntentsMetadata (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name anisflix --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --xcode-version 17A400 --platform-family iOS --deployment-target 26.0 --bundle-identifier anis..anisflix --output /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app --target-triple arm64-apple-ios26.0-simulator --binary-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix --dependency-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix_dependency_info.dat --stringsdata-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList --metadata-file-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyMetadataFileList --static-metadata-file-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyStaticMetadataFileList --swift-const-vals-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/Objects-normal/arm64/anisflix.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2025-12-03 15:15:15.437 appintentsmetadataprocessor[68668:7731197] Starting appintentsmetadataprocessor export
+2025-12-03 15:15:15.440 appintentsmetadataprocessor[68668:7731197] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+AppIntentsSSUTraining (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Info.plist --temp-dir-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/ssu --bundle-id anis..anisflix --product-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app --extracted-metadata-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/Metadata.appintents --metadata-file-list /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Intermediates.noindex/anisflix.build/Debug-iphonesimulator/anisflix.build/anisflix.DependencyMetadataFileList --archive-ssu-assets
+2025-12-03 15:15:15.475 appintentsnltrainingprocessor[68669:7731200] Parsing options for appintentsnltrainingprocessor
+2025-12-03 15:15:15.477 appintentsnltrainingprocessor[68669:7731200] No AppShortcuts found - Skipping.
+
+CodeSign /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/anisflix.debug.dylib
+
+CodeSign /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/__preview.dylib (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app/__preview.dylib
+
+CodeSign /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app
+
+RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app
+
+Validate /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-validationUtility /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /usr/bin/touch -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-chetckvbjeotpaecxeokiqtwqtzr/Build/Products/Debug-iphonesimulator/anisflix.app
+
+** BUILD SUCCEEDED **
+

@@ -1,0 +1,16 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/TVChannelsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%@ %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 209
+        }
+      }
+    ]
+  },
+  "version": 1
+}

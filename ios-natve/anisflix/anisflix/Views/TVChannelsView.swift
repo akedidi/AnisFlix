@@ -195,6 +195,7 @@ struct TVChannelsView: View {
                         }),
                         isFullscreen: $isFullscreen,
                         showFullscreenButton: true,
+                        isLive: true,
                         mediaId: nil as Int?,
                         season: nil as Int?,
                         episode: nil as Int?,

@@ -1,0 +1,48 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Components/CustomHeaderView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Rechercher...",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 58,
+          "startingLine": 185
+        }
+      },
+      {
+        "comment": "",
+        "key": "Film",
+        "location": {
+          "startingColumn": 82,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Série",
+        "location": {
+          "startingColumn": 91,
+          "startingLine": 172
+        }
+      }
+    ]
+  },
+  "version": 1
+}

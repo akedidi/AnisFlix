@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>logFormatVersion</key>
+	<integer>11</integer>
+	<key>logs</key>
+	<dict>
+		<key>6D4D8AEF-F0BB-4424-BE79-DE3BD2B1AF90</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>6D4D8AEF-F0BB-4424-BE79-DE3BD2B1AF90.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>8</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>anisflix project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>anisflix</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building workspace anisflix with scheme anisflix and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>786576842.923015</real>
+			<key>timeStoppedRecording</key>
+			<real>786576873.09631002</real>
+			<key>title</key>
+			<string>Building workspace anisflix with scheme anisflix and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>6D4D8AEF-F0BB-4424-BE79-DE3BD2B1AF90</string>
+		</dict>
+		<key>92C64421-1521-4AB9-AD3D-82B2EC4D02C0</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>92C64421-1521-4AB9-AD3D-82B2EC4D02C0.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>S</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>0</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>anisflix project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>anisflix</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building workspace anisflix with scheme anisflix and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>786576090.43398595</real>
+			<key>timeStoppedRecording</key>
+			<real>786576097.51611304</real>
+			<key>title</key>
+			<string>Building workspace anisflix with scheme anisflix and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>92C64421-1521-4AB9-AD3D-82B2EC4D02C0</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

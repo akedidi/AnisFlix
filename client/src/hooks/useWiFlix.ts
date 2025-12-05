@@ -24,7 +24,7 @@ interface WiFlixResponse {
 const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): Promise<WiFlixResponse | null> => {
   try {
     const data = await movixProxy.getWiFlix(type, id, season);
-    
+
     console.log('WiFlix API Response:', {
       type,
       id,
@@ -33,11 +33,11 @@ const fetchWiFlix = async (type: 'movie' | 'tv', id: number, season?: number): P
       players: data.players ? Object.keys(data.players) : 'No players',
       data
     });
-    
+
     if (data.success) {
       return data;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Erreur lors de la récupération des données WiFlix:', error);
@@ -62,7 +62,7 @@ export const useWiFlix = (type: 'movie' | 'tv', id: number, season?: number) => 
 // Hook spécifique pour récupérer les liens VidMoly
 export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: number) => {
   const { data: wiflixData, isLoading, error } = useWiFlix(type, id, season);
-  
+
   const vidmolyLinks = {
     vf: [] as WiFlixPlayer[],
     vostfr: [] as WiFlixPlayer[]
@@ -70,24 +70,32 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
 
   if (wiflixData?.players) {
     console.log('🔍 WiFlix data reçue pour', type, id, ':', wiflixData);
-    
+
     // Filtrer les liens VidMoly
     if (wiflixData.players.vf) {
       console.log('🔍 Players VF disponibles pour', type, id, ':', wiflixData.players.vf.map(p => p.name));
       vidmolyLinks.vf = wiflixData.players.vf.filter(player => {
-          const isVidMoly = player.name === 'vidmoly.net';
-          if (isVidMoly) {
-            console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
-            console.log('🔍 Player complet VidMoly VF:', player);
-          }
-          return isVidMoly;
+        const isVidMoly = player.name === 'vidmoly.net' ||
+          player.name === 'vidmoly.to' ||
+          player.name === 'myvidplay.com' ||
+          player.name === 'christopheruntilpoint.com' ||
+          player.name === 'waaw1.tv';
+        if (isVidMoly) {
+          console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
+          console.log('🔍 Player complet VidMoly VF:', player);
+        }
+        return isVidMoly;
       });
     }
-    
+
     if (wiflixData.players.vostfr) {
       console.log('🔍 Players VOSTFR disponibles pour', type, id, ':', wiflixData.players.vostfr.map(p => p.name));
       vidmolyLinks.vostfr = wiflixData.players.vostfr.filter(player => {
-        const isVidMoly = player.name === 'vidmoly.net';
+        const isVidMoly = player.name === 'vidmoly.net' ||
+          player.name === 'vidmoly.to' ||
+          player.name === 'myvidplay.com' ||
+          player.name === 'christopheruntilpoint.com' ||
+          player.name === 'waaw1.tv';
         if (isVidMoly) {
           console.log('✅ Lien VidMoly VOSTFR trouvé pour', type, id, ':', player.url);
         }

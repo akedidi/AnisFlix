@@ -104,6 +104,9 @@ struct CustomHeaderView: View {
                             .stroke(theme.secondaryText.opacity(0.2), lineWidth: 1)
                     )
                     
+                    // Cast Button
+                    CastButton()
+                    
                     // Language Picker
                     LanguagePicker()
                     

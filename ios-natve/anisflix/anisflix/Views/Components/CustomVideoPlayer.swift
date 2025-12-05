@@ -8,6 +8,9 @@
 import SwiftUI
 import AVKit
 import Combine
+#if canImport(GoogleCast)
+import GoogleCast
+#endif
 
 struct CustomVideoPlayer: View {
     let url: URL
@@ -16,6 +19,7 @@ struct CustomVideoPlayer: View {
     @Binding var isPresented: Bool
     @Binding var isFullscreen: Bool
     let showFullscreenButton: Bool
+    let isLive: Bool
     
     // Progress tracking
     let mediaId: Int?
@@ -27,15 +31,17 @@ struct CustomVideoPlayer: View {
     @State private var showControls = true
     @State private var showSubtitlesMenu = false
     @State private var selectedSubtitle: Subtitle?
-    @State private var showDeviceList = false
+    @State private var subtitleOffset: Double = 0
+    @State private var castReloadDebounceTask: Task<Void, Never>?
     
-    init(url: URL, title: String, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
+    init(url: URL, title: String, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, isLive: Bool = false, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
         self.url = url
         self.title = title
         self.subtitles = subtitles
         self._isPresented = isPresented
         self._isFullscreen = isFullscreen
         self.showFullscreenButton = showFullscreenButton
+        self.isLive = isLive
         self.mediaId = mediaId
         self.season = season
         self.episode = episode
@@ -116,19 +122,16 @@ struct CustomVideoPlayer: View {
                     } else {
                         Button {
                             if castManager.isConnected {
-                                if castManager.mediaStatus?.playerState == .paused {
-                                    CastManager.shared.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime)
+                                if castManager.mediaStatus?.playerState == .paused || castManager.mediaStatus?.playerState == .idle {
+                                    castManager.play()
                                 } else {
-                                    // Handle pause for cast? GCKRemoteMediaClient has pause()
-                                    // For simplicity, we just toggle local playerVM which is paused anyway.
-                                    // We need proper Cast controls.
-                                    // But for now, let's just use the local button to trigger load if needed.
+                                    castManager.pause()
                                 }
                             } else {
                                 playerVM.togglePlayPause()
                             }
                         } label: {
-                            Image(systemName: playerVM.isPlaying ? "pause.fill" : "play.fill")
+                            Image(systemName: (castManager.isConnected ? (castManager.mediaStatus?.playerState == .playing || castManager.mediaStatus?.playerState == .buffering) : playerVM.isPlaying) ? "pause.fill" : "play.fill")
                                 .font(.system(size: 50))
                                 .foregroundColor(.white)
                         }
@@ -174,9 +177,7 @@ struct CustomVideoPlayer: View {
                             }
                             
                             // Chromecast Button (Bottom Right)
-                            CastButton {
-                                showDeviceList = true
-                            }
+                            CastButton()
                                 .frame(width: 44, height: 44)
                             
                             // PiP Button
@@ -218,7 +219,13 @@ struct CustomVideoPlayer: View {
             // Check if we are already playing this URL (fullscreen transition)
             let isAlreadyPlaying = playerVM.currentUrl == url
             
-            if !castManager.isConnected {
+            if castManager.isConnected {
+                // If connected, check if we need to switch media on Cast
+                if castManager.currentMediaUrl != url {
+                    print("📺 Switching Cast media to: \(title)")
+                    castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset)
+                }
+            } else {
                 playerVM.setup(url: url)
             }
             
@@ -241,17 +248,49 @@ struct CustomVideoPlayer: View {
             playerVM.cleanup()
         }
         .sheet(isPresented: $showSubtitlesMenu) {
-            SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle)
+            SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset)
                 .presentationDetents([.medium])
         }
         .onChange(of: selectedSubtitle?.id) { _ in
             if castManager.isConnected {
-                castManager.setActiveTrack(url: selectedSubtitle?.url)
+                // Reload media to apply subtitle selection (and offset if any)
+                // Note: setActiveTrack doesn't support offset change easily if we use proxy.
+                // We might need to reload if offset changed too.
+                // For now, let's assume setActiveTrack is enough if offset didn't change,
+                // BUT our proxy URL includes offset. So if we just switch track, it might use old offset?
+                // Actually, tracks are loaded with a specific URL. If we change offset, we need new URLs.
+                // So changing subtitle might need reload if we want to ensure offset is applied?
+                // But here we just change selection.
+                // Let's just reload to be safe and consistent.
+                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset)
             } else {
                 if let sub = selectedSubtitle, let url = URL(string: sub.url) {
                     playerVM.loadSubtitles(url: url)
                 } else {
                     playerVM.clearSubtitles()
+                }
+            }
+        }
+        .onChange(of: subtitleOffset) { newOffset in
+            print("⏱️ Subtitle offset changed: \(newOffset)s")
+            playerVM.subtitleOffset = newOffset
+            
+            if castManager.isConnected {
+                // Debounce the reload to avoid spamming the Chromecast while adjusting
+                // Cancel previous request
+                // Cancel previous request
+                
+                // We use a Task for debounce in SwiftUI view since we can't easily use performSelector on struct
+                // But actually, let's use a State holding a Task
+                castReloadDebounceTask?.cancel()
+                castReloadDebounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+                    if !Task.isCancelled {
+                        await MainActor.run {
+                            print("📺 Reloading Cast media with new subtitle offset (debounced)...")
+                            castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset)
+                        }
+                    }
                 }
             }
         }
@@ -280,7 +319,10 @@ struct CustomVideoPlayer: View {
             }
         }
         .onChange(of: url) { newUrl in
-            if !castManager.isConnected {
+            if castManager.isConnected {
+                print("📺 URL changed while casting. Loading new media...")
+                castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive)
+            } else {
                 playerVM.setup(url: newUrl)
             }
         }
@@ -288,18 +330,26 @@ struct CustomVideoPlayer: View {
             if connected {
                 print("📺 Cast connected! Switching to Cast mode.")
                 playerVM.player.pause()
-                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime)
+                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
                 playerVM.setup(url: url)
                 playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
             }
         }
-        .sheet(isPresented: $showDeviceList) {
-            CastDeviceSelectionView()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if castManager.isConnected {
+                let time = castManager.getApproximateStreamPosition()
+                if !playerVM.isSeeking {
+                    playerVM.currentTime = time
+                }
+                
+                if let duration = castManager.mediaStatus?.mediaInformation?.streamDuration, duration > 0 {
+                    playerVM.duration = duration
+                }
+            }
         }
+
     }
     
     func formatTime(_ seconds: Double) -> String {
@@ -322,42 +372,74 @@ struct CustomVideoPlayer: View {
 struct SubtitleSelectionView: View {
     let subtitles: [Subtitle]
     @Binding var selectedSubtitle: Subtitle?
+    @Binding var subtitleOffset: Double
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
         NavigationView {
             List {
-                Button {
-                    selectedSubtitle = nil
-                    dismiss()
-                } label: {
+                Section(header: Text("Synchronisation")) {
                     HStack {
-                        Text("Désactivé")
+                        Text("Décalage")
                         Spacer()
-                        if selectedSubtitle == nil {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(AppTheme.primaryRed)
+                        Text(String(format: "%.1f s", subtitleOffset))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    HStack {
+                        Button {
+                            subtitleOffset -= 0.5
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.title2)
                         }
+                        .buttonStyle(.borderless)
+                        
+                        Slider(value: $subtitleOffset, in: -10...10, step: 0.5)
+                        
+                        Button {
+                            subtitleOffset += 0.5
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                        }
+                        .buttonStyle(.borderless)
                     }
                 }
-                .foregroundColor(.primary)
                 
-                ForEach(subtitles, id: \.id) { sub in
+                Section(header: Text("Sous-titres")) {
                     Button {
-                        selectedSubtitle = sub
+                        selectedSubtitle = nil
                         dismiss()
                     } label: {
                         HStack {
-                            Text(sub.flag)
-                            Text(sub.label)
+                            Text("Désactivé")
                             Spacer()
-                            if selectedSubtitle?.id == sub.id {
+                            if selectedSubtitle == nil {
                                 Image(systemName: "checkmark")
                                     .foregroundColor(AppTheme.primaryRed)
                             }
                         }
                     }
                     .foregroundColor(.primary)
+                    
+                    ForEach(subtitles, id: \.id) { sub in
+                        Button {
+                            selectedSubtitle = sub
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Text(sub.flag)
+                                Text(sub.label)
+                                Spacer()
+                                if selectedSubtitle?.id == sub.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(AppTheme.primaryRed)
+                                }
+                            }
+                        }
+                        .foregroundColor(.primary)
+                    }
                 }
             }
             .navigationTitle("Sous-titres")
@@ -386,6 +468,7 @@ class PlayerViewModel: NSObject, ObservableObject {
     @Published var currentTime: Double = 0
     @Published var duration: Double = 1
     @Published var currentSubtitleText: String?
+    @Published var subtitleOffset: Double = 0
     
     var isSeeking = false
     private var timeObserver: Any?
@@ -557,7 +640,11 @@ class PlayerViewModel: NSObject, ObservableObject {
     
     private func updateSubtitle() {
         guard let parser = subtitleParser else { return }
-        currentSubtitleText = parser.text(for: currentTime)
+        // Apply offset: if offset is +1s, it means subtitle should appear 1s later.
+        // So we should ask parser for text at (currentTime - offset).
+        // Example: Subtitle at 10s. Offset +2s. Should appear at 12s.
+        // At 12s, currentTime=12. 12-2 = 10. Parser finds subtitle. Correct.
+        currentSubtitleText = parser.text(for: currentTime - subtitleOffset)
     }
     
     func togglePiP() {
@@ -728,64 +815,7 @@ struct AirPlayView: UIViewRepresentable {
     func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
 }
 
-#if canImport(GoogleCast)
-import GoogleCast
-
-struct HiddenCastButton: UIViewRepresentable {
-    func makeUIView(context: Context) -> GCKUICastButton {
-        let button = GCKUICastButton(frame: .zero)
-        // We don't hide it completely, just make it tiny/invisible so it's "in the hierarchy"
-        button.alpha = 0.01
-        return button
-    }
-    
-    func updateUIView(_ uiView: GCKUICastButton, context: Context) {}
-}
-
-struct CastButton: View {
-    @ObservedObject var castManager = CastManager.shared
-    var onTap: () -> Void
-    
-    var body: some View {
-        ZStack {
-            // Hidden standard button to trigger permissions and SDK behaviors
-            HiddenCastButton()
-                .frame(width: 1, height: 1)
-                .opacity(0)
-            
-            Button {
-                print("🔘 Cast button tapped. Restarting discovery...")
-                castManager.restartDiscovery()
-                onTap()
-            } label: {
-                Image("Chromecast")
-                    .resizable()
-                    .renderingMode(.template)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 30, height: 30)
-                    .foregroundColor(castManager.isConnected ? .blue : .white)
-                    .padding(8)
-            }
-        }
-    }
-}
-#else
-struct CastButton: View {
-    var body: some View {
-        Button {
-            print("⚠️ Google Cast SDK not installed")
-        } label: {
-            Image("Chromecast")
-                .resizable()
-                .renderingMode(.template)
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 30, height: 30) // Adjusted size (approx -15% from 36)
-                .foregroundColor(.white)
-                .padding(8)
-        }
-    }
-}
-#endif
+// CastButton moved to Views/Components/CastButton.swift
 
 struct CustomProgressBar: View {
     @Binding var value: Double
