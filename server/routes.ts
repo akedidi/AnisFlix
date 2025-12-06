@@ -12,6 +12,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
   // prefix all routes with /api
 
+  // ==========================================
+  // SUBTITLE HELPER FUNCTIONS
+  // ==========================================
+
+  function srtToVtt(srtContent: string) {
+    let vtt = "WEBVTT\n\n" + srtContent
+      .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+
+    return vtt;
+  }
+
+  function applyOffset(content: string, offsetSeconds: number) {
+    return content.replace(/(\d{2}):(\d{2}):(\d{2})[.,](\d{3})/g, (match, h, m, s, ms) => {
+      const totalSeconds = parseInt(h) * 3600 + parseInt(m) * 60 + parseInt(s) + parseInt(ms) / 1000;
+      const newTotalSeconds = Math.max(0, totalSeconds + offsetSeconds);
+
+      const newH = Math.floor(newTotalSeconds / 3600);
+      const newM = Math.floor((newTotalSeconds % 3600) / 60);
+      const newS = Math.floor(newTotalSeconds % 60);
+      const newMs = Math.round((newTotalSeconds % 1) * 1000);
+
+      return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}:${String(newS).padStart(2, '0')}.${String(newMs).padStart(3, '0')}`;
+    });
+  }
+
+  // Route proxy unifiée pour les médias (sous-titres, audio TV, etc.)
+  app.get("/api/media-proxy", async (req, res) => {
+    try {
+      const { type, url, offset } = req.query;
+
+      // Handle Subtitle specifically
+      if (type === 'subtitle' && typeof url === 'string') {
+        try {
+          console.log(`[SUBTITLE PROXY] Fetching: ${url}`);
+          const response = await axios.get(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            responseType: 'text'
+          });
+
+          let content = response.data;
+
+          // Apply offset if needed
+          if (offset) {
+            const offsetSec = parseFloat(offset as string);
+            if (!isNaN(offsetSec) && offsetSec !== 0) {
+              content = applyOffset(content, offsetSec);
+            }
+          }
+
+          // Convert to VTT if needed
+          if (!content.trim().startsWith('WEBVTT')) {
+            content = srtToVtt(content);
+          }
+
+          res.setHeader('Content-Type', 'text/vtt; charset=utf-8');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.send(content);
+          return;
+        } catch (err: any) {
+          console.error('[SUBTITLE PROXY ERROR]', err.message);
+          return res.status(500).send('Subtitle fetch failed');
+        }
+      }
+
+      // ... other media handlers could go here if needed ...
+
+      return res.status(400).send('Invalid parameters or unsupported type');
+
+    } catch (error: any) {
+      console.error('[MEDIA PROXY ERROR]', error.message);
+      res.status(500).send('Proxy error');
+    }
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
