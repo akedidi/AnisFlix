@@ -486,40 +486,45 @@ export default function VideoPlayer({
     const video = videoRef.current;
     const tracks = video.textTracks;
 
-    // Find the index of the selected subtitle in our subtitles array
-    const subtitleIndex = subtitles.findIndex(s => s.url === selectedSubtitle);
+    // Find the corresponding track by matching label and language
+    // We cannot rely on index because HLS.js or browser might inject other tracks
+    const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
+    if (!selectedSub) return;
 
-    if (subtitleIndex === -1 || subtitleIndex >= tracks.length) {
-      console.warn(`⚠️ [VideoPlayer] Could not find subtitle track for URL: ${selectedSubtitle}`);
-      return;
-    }
+    let foundTrack: TextTrack | null = null;
 
-    // Disable all tracks first
+    // Disable all tracks and find the matching one
     for (let i = 0; i < tracks.length; i++) {
-      tracks[i].mode = 'hidden';
+      const t = tracks[i];
+      t.mode = 'hidden';
+
+      // Match logic:
+      // HLS.js tracks might complicate things, but our <track> elements come from 'subtitles' array
+      // We match by label and language
+      if (t.label === selectedSub.label && t.language === selectedSub.lang) {
+        foundTrack = t;
+      }
     }
 
-    // Enable the selected track with a delay to ensure cues are loaded
-    const timeoutId = setTimeout(() => {
-      const track = tracks[subtitleIndex];
-      if (track) {
-        track.mode = 'showing';
-        console.log(`✅ [VideoPlayer] Enabled subtitle track at index ${subtitleIndex}: ${track.label} (${track.language})`);
+    if (foundTrack) {
+      const trackToEnable = foundTrack; // Closure capture
+      const timeoutId = setTimeout(() => {
+        console.log(`✅ [VideoPlayer] Enabling track: ${trackToEnable.label} (${trackToEnable.language})`);
+        trackToEnable.mode = 'showing';
 
-        // Force track to stay visible by monitoring it
+        // Monitoring
         const monitorInterval = setInterval(() => {
-          if (track.mode !== 'showing') {
-            console.log(`🔄 [VideoPlayer] Re-enabling subtitle track ${subtitleIndex}`);
-            track.mode = 'showing';
+          if (trackToEnable.mode !== 'showing') {
+            console.log(`🔄 [VideoPlayer] Re-enabling track`);
+            trackToEnable.mode = 'showing';
           }
         }, 500);
-
-        // Clean up monitor after 5 seconds (track should be stable by then)
         setTimeout(() => clearInterval(monitorInterval), 5000);
-      }
-    }, 200);
-
-    return () => clearTimeout(timeoutId);
+      }, 200);
+      return () => clearTimeout(timeoutId);
+    } else {
+      console.warn(`⚠️ [VideoPlayer] Track not found for: ${selectedSub.label}`);
+    }
   }, [selectedSubtitle, subtitles]);
 
   // Removed unused useEffect for conversion
