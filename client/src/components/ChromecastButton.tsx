@@ -53,7 +53,7 @@ export default function ChromecastButton({
   subtitles = [],
   activeSubtitleUrl
 }: ChromecastButtonProps) {
-  const { isAvailable, isConnected, isConnecting, currentDevice, showPicker, cast, disconnect } = useChromecast();
+  const { isAvailable, isConnected, isConnecting, currentDevice, showPicker, cast, disconnect, setActiveSubtitle } = useChromecast();
   const [isCasting, setIsCasting] = useState(false);
   const mediaUrlRef = useRef(mediaUrl);
   const titleRef = useRef(title);
@@ -108,6 +108,14 @@ export default function ChromecastButton({
       setIsCasting(false);
     }
   }, [isConnected, cast, isCasting]);
+
+  // Mettre à jour les sous-titres actifs quand ils changent pendant la session
+  useEffect(() => {
+    if (isConnected && isCasting) {
+      console.log('[ChromecastButton] Mise à jour des sous-titres en direct:', activeSubtitleUrl);
+      setActiveSubtitle(activeSubtitleUrl || null, subtitlesRef.current);
+    }
+  }, [activeSubtitleUrl, isConnected, isCasting, setActiveSubtitle]);
 
   if (!isAvailable) {
     return null; // Ne pas afficher le bouton si Chromecast n'est pas disponible

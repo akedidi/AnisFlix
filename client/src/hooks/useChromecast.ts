@@ -76,6 +76,7 @@ interface UseChromecastReturn {
   ) => Promise<void>;
   disconnect: () => void;
   showPicker: () => void;
+  setActiveSubtitle: (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => Promise<void>;
 }
 
 // Utiliser le Default Media Receiver (compatible avec tous les appareils)
@@ -464,5 +465,32 @@ export function useChromecast(): UseChromecastReturn {
     cast,
     disconnect,
     showPicker,
+    setActiveSubtitle: useCallback(async (activeSubtitleUrl: string | null, subtitles: Subtitle[] = []) => {
+      if (!mediaSessionRef.current || !window.chrome?.cast) {
+        console.warn('[Chromecast] Pas de session média active pour changer les sous-titres');
+        return;
+      }
+
+      try {
+        const chromeCast = window.chrome.cast as any;
+        const tracksInfoRequest = new chromeCast.media.EditTracksInfoRequest(
+          activeSubtitleUrl
+            ? [subtitles.findIndex(s => s.url === activeSubtitleUrl) + 1]
+            : [] // Empty array disable subtitles
+        );
+
+        await new Promise((resolve, reject) => {
+          mediaSessionRef.current.editTracksInfo(
+            tracksInfoRequest,
+            resolve,
+            reject
+          );
+        });
+
+        console.log('[Chromecast] Sous-titres mis à jour:', activeSubtitleUrl ? 'Activé' : 'Désactivé');
+      } catch (error) {
+        console.error('[Chromecast] Erreur lors du changement de sous-titres:', error);
+      }
+    }, [])
   };
 }
