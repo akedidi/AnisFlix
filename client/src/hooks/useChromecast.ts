@@ -52,6 +52,7 @@ declare global {
     getCastDevice: () => CastDevice;
     loadMedia: (request: any) => Promise<any>;
     endSession: (stopCasting: boolean) => void;
+    getMediaSession: () => any;
   }
 
   interface CastDevice {
@@ -139,6 +140,13 @@ export function useChromecast(): UseChromecastReturn {
                 deviceName: device.deviceName,
                 friendlyName: device.friendlyName,
               });
+
+              // Tenter de récupérer la session média existante
+              const mediaSession = session.getMediaSession();
+              if (mediaSession) {
+                console.log('[Chromecast] Session média existante récupérée');
+                mediaSessionRef.current = mediaSession;
+              }
             }
           } else if (castState === castFramework.CastState.CONNECTING) {
             setIsConnecting(true);
@@ -160,7 +168,17 @@ export function useChromecast(): UseChromecastReturn {
           console.log('[Chromecast] État de session:', sessionState);
 
           if (sessionState === castFramework.SessionState.SESSION_STARTED) {
-            sessionRef.current = context.getCurrentSession();
+            const session = context.getCurrentSession();
+            sessionRef.current = session;
+
+            // Tenter de récupérer la session média existante
+            if (session) {
+              const mediaSession = session.getMediaSession();
+              if (mediaSession) {
+                console.log('[Chromecast] Session média récupérée au démarrage de la session');
+                mediaSessionRef.current = mediaSession;
+              }
+            }
           } else if (sessionState === castFramework.SessionState.SESSION_ENDED) {
             sessionRef.current = null;
             mediaSessionRef.current = null;
