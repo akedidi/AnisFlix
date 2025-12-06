@@ -36,10 +36,17 @@ export default async function handler(request: Request) {
 
     const isPlaylist = decodedUrl.includes('.m3u8') || decodedUrl.includes('playlist');
 
+    // Browser-like headers to avoid 403
     const headers: HeadersInit = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://vixsrc.to/',
         'Origin': 'https://vixsrc.to',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity', // Avoid gzip to get raw content
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
     };
 
     // Forward Range header only for segments
