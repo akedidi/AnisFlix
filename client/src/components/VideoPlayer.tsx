@@ -443,45 +443,59 @@ export default function VideoPlayer({
       if (!isNaN(trackIndex)) {
         hlsRef.current.subtitleTrack = trackIndex;
         console.log(`✅ [VideoPlayer] Switched to HLS subtitle track: ${trackIndex}`);
-
-        // Wait for track to switch and cues to load before applying any existing offset (if we wanted to persist it)
         return;
       }
     } else if (hlsRef.current) {
       // Disable HLS subtitles if external or none selected
       hlsRef.current.subtitleTrack = -1;
     }
-
-    if (videoRef.current) {
-      const video = videoRef.current;
-      const tracks = video.textTracks;
-
-      // Disable all tracks first
-      for (let i = 0; i < tracks.length; i++) {
-        tracks[i].mode = 'hidden';
-      }
-
-      if (subtitleUrl && !subtitleUrl.startsWith('hls://')) {
-        // Find the index of the selected subtitle in our subtitles array
-        const subtitleIndex = subtitles.findIndex(s => s.url === subtitleUrl);
-
-        if (subtitleIndex !== -1 && subtitleIndex < tracks.length) {
-          // Match by index since track elements are rendered in the same order as subtitles array
-          setTimeout(() => {
-            const track = tracks[subtitleIndex];
-            if (track) {
-              track.mode = 'showing';
-              console.log(`✅ [VideoPlayer] Enabled subtitle track at index ${subtitleIndex}: ${track.label} (${track.language})`);
-            }
-          }, 100);
-        } else {
-          console.warn(`⚠️ [VideoPlayer] Could not find subtitle track for URL: ${subtitleUrl}`);
-        }
-      } else {
-        console.log('🚫 [VideoPlayer] Subtitles disabled (or switched to HLS)');
-      }
-    }
   };
+
+  // Separate effect to apply external subtitle selection
+  // This runs whenever selectedSubtitle or subtitles array changes
+  useEffect(() => {
+    if (!videoRef.current || !selectedSubtitle || selectedSubtitle.startsWith('hls://')) {
+      return;
+    }
+
+    const video = videoRef.current;
+    const tracks = video.textTracks;
+
+    // Find the index of the selected subtitle in our subtitles array
+    const subtitleIndex = subtitles.findIndex(s => s.url === selectedSubtitle);
+
+    if (subtitleIndex === -1 || subtitleIndex >= tracks.length) {
+      console.warn(`⚠️ [VideoPlayer] Could not find subtitle track for URL: ${selectedSubtitle}`);
+      return;
+    }
+
+    // Disable all tracks first
+    for (let i = 0; i < tracks.length; i++) {
+      tracks[i].mode = 'hidden';
+    }
+
+    // Enable the selected track with a delay to ensure cues are loaded
+    const timeoutId = setTimeout(() => {
+      const track = tracks[subtitleIndex];
+      if (track) {
+        track.mode = 'showing';
+        console.log(`✅ [VideoPlayer] Enabled subtitle track at index ${subtitleIndex}: ${track.label} (${track.language})`);
+
+        // Force track to stay visible by monitoring it
+        const monitorInterval = setInterval(() => {
+          if (track.mode !== 'showing') {
+            console.log(`🔄 [VideoPlayer] Re-enabling subtitle track ${subtitleIndex}`);
+            track.mode = 'showing';
+          }
+        }, 500);
+
+        // Clean up monitor after 5 seconds (track should be stable by then)
+        setTimeout(() => clearInterval(monitorInterval), 5000);
+      }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedSubtitle, subtitles]);
 
   // Removed unused useEffect for conversion
   // useEffect(() => { ... }, [selectedSubtitle, convertedSubtitles, subtitles]);
