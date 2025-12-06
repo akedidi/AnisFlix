@@ -307,14 +307,25 @@ export function useChromecast(): UseChromecastReturn {
         activeSubtitleUrl
       });
 
-      // Vérifier l'accessibilité de l'URL
-      if (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1')) {
-        console.warn('[Chromecast] ⚠️ URL localhost détectée!');
-        console.warn('[Chromecast] Le Chromecast ne pourra pas accéder à cette URL.');
-        // We don't throw error here to allow testing, but it likely won't work
+      // Vérifier l'accessibilité de l'URL et corriger si localhost
+      let finalMediaUrl = mediaUrl;
+      const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+      if (isLocalhost && (mediaUrl.includes('localhost') || mediaUrl.includes('127.0.0.1'))) {
+        console.warn('[Chromecast] ⚠️ URL localhost détectée, tentative de remplacement par l\'URL de production...');
+        const productionUrl = "https://anisflix.vercel.app";
+        finalMediaUrl = mediaUrl.replace(/http:\/\/localhost:\d+/, productionUrl).replace(/http:\/\/127.0.0.1:\d+/, productionUrl);
+        console.log('[Chromecast] Nouvelle URL:', finalMediaUrl);
       }
 
-      const mediaInfo = new chromeCast.media.MediaInfo(mediaUrl, contentType);
+      // Force HLS content type for Vixsrc proxy if not already detected
+      if (finalMediaUrl.includes('vixsrc-proxy')) {
+        contentType = 'application/x-mpegURL';
+        streamType = chromeCast.media.StreamType.BUFFERED;
+        console.log('[Chromecast] Vixsrc proxy ou m3u8 détecté, forçage HLS');
+      }
+
+      const mediaInfo = new chromeCast.media.MediaInfo(finalMediaUrl, contentType);
       mediaInfo.metadata = new chromeCast.media.GenericMediaMetadata();
       mediaInfo.metadata.title = title;
       mediaInfo.streamType = streamType;

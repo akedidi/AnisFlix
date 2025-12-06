@@ -130,7 +130,8 @@ class DownloadManager: NSObject, ObservableObject {
         let isHLS = finalUrl.contains(".m3u8") || 
                     source.type == "hls" ||
                     source.provider == "vidmoly" || 
-                    source.provider == "vidzy"
+                    source.provider == "vidzy" ||
+                    source.provider == "vixsrc"
         
         let item = DownloadItem(
             id: id,
