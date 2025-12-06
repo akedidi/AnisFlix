@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-// Vixsrc Proxy with Streaming Optimization (v3 - Axios)
+// Vixsrc Proxy with Streaming Optimization (v4 - Revert to Fetch with Manual Stream)
 // CORS headers - IMPORTANT pour Chromecast
 res.setHeader('Access-Control-Allow-Origin', '*');
 res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization, *');
@@ -18,7 +16,6 @@ try {
         return res.status(400).json({ error: 'URL Vixsrc requise' });
     }
 
-    // Ne PAS décoder l'URL ici, req.query le fait déjà automatiquement
     let decodedUrl = url;
 
     // Debug intensif pour Chromecast
@@ -29,7 +26,6 @@ try {
         range: req.headers.range
     });
 
-    // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
     if (decodedUrl.includes('/api/vixsrc-proxy')) {
         const urlMatch = decodedUrl.match(/[?&]url=([^&]+)/);
         if (urlMatch) {
@@ -39,124 +35,114 @@ try {
 
     console.log(`[VIXSRC PROXY] Requesting URL: ${decodedUrl}`);
 
-    // Préparer les headers
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://vixsrc.to/',
         'Origin': 'https://vixsrc.to',
-        'Accept': '*/*',
+        'Accept': '*/*, application/x-mpegURL',
         'Accept-Language': 'en-US,en;q=0.9',
-        // Ne PAS forcer identity avec axios, laisser axios gérer
+        // Pas d'encoding identity forcé ici avec fetch, laisser le natif
         'Cache-Control': 'no-cache'
     };
 
-    // Forward Range header if present
     if (req.headers.range) {
         console.log(`[VIXSRC PROXY] Forwarding Range: ${req.headers.range}`);
         headers['Range'] = req.headers.range;
     }
 
-    // Utiliser AXIOS avec responseType: 'stream'
-    const response = await axios.get(decodedUrl, {
-        responseType: 'stream',
-        headers: headers,
-        timeout: 15000,
-        validateStatus: () => true // Accepter tous les status codes pour les gérer nous-mêmes
+    // Utilisation de fetch natif (plus robuste sur Vercel Edge/Serverless pour le streaming basique)
+    const response = await fetch(decodedUrl, {
+        headers: headers
     });
 
     console.log('[Vixsrc Proxy] Vixsrc Response:', {
         status: response.status,
         statusText: response.statusText,
-        contentType: response.headers['content-type'],
-        contentLength: response.headers['content-length']
+        contentType: response.headers.get('content-type'),
+        contentLength: response.headers.get('content-length')
     });
 
+    if (!response.ok) {
+        console.error(`[Vixsrc Proxy] Vixsrc Error Response: ${response.status} ${response.statusText}`);
+        throw new Error(`Vixsrc responded with ${response.status}: ${response.statusText}`);
+    }
+
     // Copier les headers pertinents
-    const headersToForward = ['content-type', 'content-length', 'content-range', 'accept-ranges'];
+    const contentType = response.headers.get('content-type');
+    if (contentType) res.setHeader('Content-Type', contentType);
+
+    const headersToForward = ['content-length', 'content-range', 'accept-ranges'];
     headersToForward.forEach(header => {
-        const value = response.headers[header];
+        const value = response.headers.get(header);
         if (value) {
-            // Formater le header (Content-Type au lieu de content-type)
             const headerName = header.replace(/(^|-)(\w)/g, c => c.toUpperCase());
             res.setHeader(headerName, value);
         }
     });
 
-    if (response.status >= 400) {
-        console.error(`[Vixsrc Proxy] Error from upstream: ${response.status}`);
-        return res.status(response.status).send(response.data); // data est un stream, pipe possible
-    }
-
-    const contentType = response.headers['content-type'];
+    // Gérer les playlists M3U8
     const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
-    console.log(`[VIXSRC PROXY] isM3U8 detected: ${isM3U8}`);
 
     if (isM3U8) {
         console.log(`[VIXSRC PROXY] Processing M3U8 playlist`);
+        const buffer = await response.arrayBuffer();
+        const playlist = Buffer.from(buffer).toString('utf-8');
 
-        // Pour M3U8, on doit lire le stream en mémoire pour le modifier
-        const stream = response.data;
-        const chunks = [];
+        const baseUrl = new URL(decodedUrl);
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host;
+        const origin = `${protocol}://${host}`;
 
-        stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        stream.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            const playlist = buffer.toString('utf-8');
-
-            // Log preview of original playlist
-            console.log(`[VIXSRC PROXY] Original playlist start: ${playlist.substring(0, 50).replace(/\n/g, '\\n')}`);
-
-            const baseUrl = new URL(decodedUrl);
-
-            // Déterminer l'origine pour les URLs réécrites
-            const protocol = req.headers['x-forwarded-proto'] || 'https';
-            const host = req.headers.host;
-            const origin = `${protocol}://${host}`;
-
-            console.log(`[VIXSRC PROXY] Using origin: ${origin}`);
-
-            // Réécrire les URLs
-            const lines = playlist.split(/\r?\n/);
-            const rewritten = lines.map((line) => {
-                // 1. Gérer les lignes qui sont des URLs directes (segments, playlists variantes)
-                if (line && !line.trim().startsWith('#')) {
+        const lines = playlist.split(/\r?\n/);
+        const rewritten = lines.map((line) => {
+            if (line && !line.trim().startsWith('#')) {
+                try {
+                    const absoluteUrl = new URL(line, baseUrl).toString();
+                    return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                } catch (e) {
+                    return line;
+                }
+            }
+            if (line && line.trim().startsWith('#') && line.includes('URI="')) {
+                return line.replace(/URI="([^"]+)"/g, (match, uri) => {
                     try {
-                        const absoluteUrl = new URL(line, baseUrl).toString();
-                        return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                        const absoluteUrl = new URL(uri, baseUrl).toString();
+                        return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}"`;
                     } catch (e) {
-                        return line;
+                        return match;
                     }
-                }
+                });
+            }
+            return line;
+        }).join('\n');
 
-                // 2. Gérer les attributs URI="..." dans les tags
-                if (line && line.trim().startsWith('#') && line.includes('URI="')) {
-                    return line.replace(/URI="([^"]+)"/g, (match, uri) => {
-                        try {
-                            const absoluteUrl = new URL(uri, baseUrl).toString();
-                            return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}"`;
-                        } catch (e) {
-                            return match;
-                        }
-                    });
-                }
-
-                return line;
-            }).join('\n');
-
-            // Envoyer la playlist modifiée
-            res.status(response.status).send(rewritten);
-        });
-
-        stream.on('error', (err) => {
-            console.error('[VIXSRC PROXY] Error reading stream:', err);
-            res.status(500).json({ error: 'Error processing playlist', details: err.message });
-        });
-
+        res.status(response.status).send(rewritten);
     } else {
-        // Pour les segments binaires, piper directement
+        // Streaming binaire manuel avec ReadableStream
         console.log(`[VIXSRC PROXY] Proxying binary data (STREAMING)`);
         res.status(response.status);
-        response.data.pipe(res);
+
+        if (response.body) {
+            // Utiliser un reader pour streamer manuellement
+            // C'est la méthode la plus sûre sur Vercel Node Runtime
+            // si on ne veut pas charger tout le fichier en mémoire
+            const reader = response.body.getReader();
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                }
+                res.end();
+            } catch (streamError) {
+                console.error('[VIXSRC PROXY] Stream error:', streamError);
+                res.end(); // Terminer la réponse même en cas d'erreur
+            }
+        } else {
+            console.log('[VIXSRC PROXY] No body in response');
+            res.end();
+        }
     }
 
 } catch (error) {
