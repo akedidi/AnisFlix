@@ -172,21 +172,19 @@ export const tmdb = {
   },
 
   getLatestSeries: async (page = 1) => {
-    // Découverte des séries récentes disponibles en streaming (flatrate)
+    // Découverte des séries récentes (toutes, sans filtre de provider ou de date passée)
+    // Tri par date de première diffusion (plus récent au plus ancien)
     const today = new Date();
-    const past = new Date();
-    past.setDate(today.getDate() - 60);
-    const firstDateGte = past.toISOString().slice(0, 10);
     const lastDateLte = today.toISOString().slice(0, 10);
-    const region = getRegion();
+
     return tmdbFetch('/discover/tv', {
       sort_by: 'first_air_date.desc',
       include_adult: 'false',
       include_null_first_air_dates: 'false',
-      'first_air_date.gte': firstDateGte,
       'first_air_date.lte': lastDateLte,
-      with_watch_monetization_types: 'flatrate',
-      watch_region: region,
+      // 'first_air_date.gte': ... // REMOVED: On veut tout l'historique
+      // with_watch_monetization_types: 'flatrate', // REMOVED: On veut tout (pas que le streaming)
+      // watch_region: region, // REMOVED
       page: page.toString(),
     } as any);
   },

@@ -603,7 +603,7 @@ export default function VidMolyPlayer({
               kind="subtitles"
               label={sub.label}
               srcLang={sub.lang}
-              src={`/api/subtitle-proxy?url=${encodeURIComponent(sub.url)}`}
+              src={`/api/media-proxy?type=subtitle&url=${encodeURIComponent(sub.url)}`}
               default={false}
             />
           ))}

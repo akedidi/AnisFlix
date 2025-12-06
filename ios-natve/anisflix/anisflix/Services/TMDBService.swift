@@ -50,37 +50,17 @@ class TMDBService {
         
         // Match web client logic:
         // sort_by: 'first_air_date.desc'
-        // first_air_date.gte: 60 days ago
         // first_air_date.lte: today
-        // with_watch_monetization_types: 'flatrate'
-        // watch_region: based on language (FR for fr, US for en, etc.)
+        // REMOVED: first_air_date.gte (Show all history)
+        // REMOVED: with_watch_monetization_types (Show all sources)
+        // REMOVED: watch_region
         
         let today = Date()
-        let pastDate = Calendar.current.date(byAdding: .day, value: -60, to: today) ?? today
-        
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        
         let todayStr = dateFormatter.string(from: today)
-        let pastStr = dateFormatter.string(from: pastDate)
         
-        // Determine region based on language
-        let region: String
-        if lang.starts(with: "en") {
-            region = "US"
-        } else if lang.starts(with: "es") {
-            region = "ES"
-        } else if lang.starts(with: "de") {
-            region = "DE"
-        } else if lang.starts(with: "it") {
-            region = "IT"
-        } else if lang.starts(with: "pt") {
-            region = "PT"
-        } else {
-            region = "FR"
-        }
-        
-        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(lang)&page=\(page)&sort_by=first_air_date.desc&include_adult=false&include_null_first_air_dates=false&first_air_date.gte=\(pastStr)&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=\(region)"
+        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(lang)&page=\(page)&sort_by=first_air_date.desc&include_adult=false&include_null_first_air_dates=false&first_air_date.lte=\(todayStr)"
         
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }

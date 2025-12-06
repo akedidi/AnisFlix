@@ -7,22 +7,22 @@
  */
 export function getBaseUrl(): string {
   // Vérifier si nous sommes dans un environnement Capacitor
-  const isCapacitor = typeof window !== 'undefined' && 
+  const isCapacitor = typeof window !== 'undefined' &&
     (window as any).Capacitor !== undefined;
-  
+
   // Vérifier si nous sommes en développement local
-  const isLocalDev = typeof window !== 'undefined' && 
+  const isLocalDev = typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  
+
   // Vérifier si nous sommes dans Capacitor en développement
-  const isCapacitorDev = typeof window !== 'undefined' && 
+  const isCapacitorDev = typeof window !== 'undefined' &&
     window.location.href.includes('capacitor://localhost');
-  
+
   // En développement local (web uniquement), utiliser l'URL locale
   if (isLocalDev && !isCapacitor) {
     return 'http://localhost:3000';
   }
-  
+
   if (isCapacitor) {
     // En mode natif Capacitor, toujours utiliser l'URL de production Vercel
     return 'https://anisflix.vercel.app';
@@ -46,23 +46,23 @@ export function getApiUrl(endpoint: string): string {
 export function getVidMolyProxyUrl(m3u8Url: string, referer?: string): string {
   // Décoder l'URL si elle est sur-encodée, puis la réencoder correctement
   let decodedUrl = m3u8Url;
-  
+
   // Décoder l'URL jusqu'à ce qu'elle soit correctement décodée
   while (decodedUrl.includes('%25')) {
     decodedUrl = decodeURIComponent(decodedUrl);
     console.log('🔍 getVidMolyProxyUrl - Décodage itératif:', decodedUrl);
   }
-  
+
   // NE PAS réencoder l'URL - utiliser l'URL décodée directement
   const params = new URLSearchParams({
     url: decodedUrl, // Utiliser l'URL décodée directement
     referer: encodeURIComponent(referer || 'https://vidmoly.net/')
   });
-  
+
   console.log('🔍 getVidMolyProxyUrl - URL originale:', m3u8Url);
   console.log('🔍 getVidMolyProxyUrl - URL décodée finale:', decodedUrl);
   console.log('🔍 getVidMolyProxyUrl - URL finale (non encodée):', decodedUrl);
-  
+
   return getApiUrl(`/api/vidmoly?${params.toString()}`);
 }
 
@@ -74,8 +74,8 @@ export function getVidzyProxyUrl(m3u8Url: string, referer?: string): string {
     url: encodeURIComponent(m3u8Url),
     referer: encodeURIComponent(referer || 'https://vidzy.org/')
   });
-  
-  return getApiUrl(`/api/vidzy-proxy?${params.toString()}`);
+
+  return getApiUrl(`/api/vidzy?${params.toString()}`);
 }
 
 /**
@@ -102,12 +102,12 @@ export function convertCapacitorUrl(url: string): string {
  */
 export function debugUrlInfo(): void {
   console.log('🔍 Debug URL Info:');
-  const isCapacitor = typeof window !== 'undefined' && 
+  const isCapacitor = typeof window !== 'undefined' &&
     (window as any).Capacitor !== undefined;
-  
+
   console.log('  - Is Capacitor:', isCapacitor);
   console.log('  - Base URL:', getBaseUrl());
-  
+
   if (typeof window !== 'undefined') {
     console.log('  - Window origin:', window.location.origin);
     console.log('  - Window href:', window.location.href);

@@ -139,8 +139,8 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         for (index, sub) in subtitles.enumerated() {
             // Construct Proxy URL
-            // https://anisflix.vercel.app/api/subtitle-proxy?url=<ENCODED_URL>&offset=<OFFSET>
-            var components = URLComponents(string: "https://anisflix.vercel.app/api/subtitle-proxy")
+            // https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>&offset=<OFFSET>
+            var components = URLComponents(string: "https://anisflix.vercel.app/api/media-proxy")
             var queryItems = [URLQueryItem(name: "url", value: sub.url)]
             if subtitleOffset != 0 {
                 queryItems.append(URLQueryItem(name: "offset", value: String(subtitleOffset)))
@@ -228,9 +228,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         if let url = url {
             // Find track ID for this URL
             // We need to reconstruct the proxy URL to match
-            // https://anisflix.vercel.app/api/subtitle-proxy?url=<ENCODED_URL>
-            var components = URLComponents(string: "https://anisflix.vercel.app/api/subtitle-proxy")
-            components?.queryItems = [URLQueryItem(name: "url", value: url)]
+            // https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>
+            var components = URLComponents(string: "https://anisflix.vercel.app/api/media-proxy")
+            components?.queryItems = [
+                URLQueryItem(name: "type", value: "subtitle"),
+                URLQueryItem(name: "url", value: url)
+            ]
             
             if let proxyUrl = components?.url?.absoluteString,
                let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks {

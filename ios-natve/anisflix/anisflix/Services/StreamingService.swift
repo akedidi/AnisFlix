@@ -489,7 +489,7 @@ class StreamingService {
     }
     
     func extractVidzy(url: String) async throws -> String {
-        let apiUrl = URL(string: "\(baseUrl)/api/vidzy-real")!
+        let apiUrl = URL(string: "\(baseUrl)/api/vidzy")!
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

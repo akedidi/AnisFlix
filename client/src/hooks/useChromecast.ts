@@ -334,12 +334,12 @@ export function useChromecast(): UseChromecastReturn {
 
         if (isLocalhost) {
           console.warn("[Chromecast] Running on localhost. Using production URL for subtitle proxy:", baseUrl);
-          console.warn("[Chromecast] Ensure the production server has the /api/subtitle-proxy route deployed!");
+          console.warn("[Chromecast] Ensure the production server has the /api/media-proxy route deployed!");
         }
 
         const tracks = subtitles.map((sub, index) => {
           const track = new chromeCast.media.Track(index + 1, chromeCast.media.TrackType.TEXT);
-          track.trackContentId = `${baseUrl}/api/subtitle-proxy?url=${encodeURIComponent(sub.url)}`;
+          track.trackContentId = `${baseUrl}/api/media-proxy?type=subtitle&url=${encodeURIComponent(sub.url)}`;
           track.trackContentType = 'text/vtt';
           track.subtype = chromeCast.media.TextTrackType.SUBTITLES;
           track.name = sub.label;
