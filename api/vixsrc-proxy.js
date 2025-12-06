@@ -62,44 +62,55 @@ export default async function handler(req, res) {
             if (val) res.setHeader(h.replace(/(^|-)(\w)/g, c => c.toUpperCase()), val);
         });
 
-        if (isPlaylist) {
-            // --- PLAYLIST MODE ---
-            // Keep proxying headers/content for the manifest
+        if (isPlaylist || decodedUrl.includes('.key')) {
+            // --- PROXY MODE (Playlist & Keys) ---
+            // Playlists satisfy strict CORS/Content-Type needs.
+            // Keys are small and must be proxied to pass Referer/Origin checks (no timeout risk).
+
             const buffer = await response.arrayBuffer();
-            const text = Buffer.from(buffer).toString('utf-8');
 
-            const baseUrl = new URL(decodedUrl);
-            const protocol = req.headers['x-forwarded-proto'] || 'https';
-            const host = req.headers.host;
-            const origin = `${protocol}://${host}`;
+            // Rewrite playlists ONLY (not binary keys)
+            let content = Buffer.from(buffer);
+            if (isPlaylist) {
+                const text = content.toString('utf-8');
+                const baseUrl = new URL(decodedUrl);
+                const protocol = req.headers['x-forwarded-proto'] || 'https';
+                const host = req.headers.host;
+                const origin = `${protocol}://${host}`;
 
-            const rewritten = text.split(/\r?\n/).map(line => {
-                if (!line.trim().startsWith('#') && line.trim().length > 0) {
-                    try {
-                        const abs = new URL(line, baseUrl).toString();
-                        return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}`;
-                    } catch { return line; }
-                }
-                if (line.includes('URI="')) {
-                    return line.replace(/URI="([^"]+)"/g, (_, uri) => {
+                const rewritten = text.split(/\r?\n/).map(line => {
+                    if (!line.trim().startsWith('#') && line.trim().length > 0) {
                         try {
-                            const abs = new URL(uri, baseUrl).toString();
-                            return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}"`;
-                        } catch { return _; }
-                    });
-                }
-                return line;
-            }).join('\n');
+                            const abs = new URL(line, baseUrl).toString();
+                            return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}`;
+                        } catch { return line; }
+                    }
+                    if (line.includes('URI="')) {
+                        return line.replace(/URI="([^"]+)"/g, (_, uri) => {
+                            try {
+                                const abs = new URL(uri, baseUrl).toString();
+                                return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}"`;
+                            } catch { return _; }
+                        });
+                    }
+                    return line;
+                }).join('\n');
 
-            res.setHeader('Content-Length', Buffer.byteLength(rewritten));
-            res.status(response.status).send(rewritten);
+                content = Buffer.from(rewritten);
+                res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            } else {
+                // For keys, forward original content type or default to binary
+                const ct = response.headers.get('content-type');
+                if (ct) res.setHeader('Content-Type', ct);
+            }
+
+            res.setHeader('Content-Length', content.length);
+            res.status(response.status).send(content);
 
         } else {
-            // --- BINARY SEGMENT MODE ---
-            // STRATEGY CHANGE: REDIRECT TO AVOID TIMEOUT
-            // Instead of streaming (which times out after 10s on Vercel Hobby),
-            // we redirect the client to the direct Vixsrc URL.
-            // Since the URL is signed (token=...), it usually doesn't need Referer.
+            // --- REDIRECT MODE (Video Segments) ---
+            // Large .ts files are redirected to bypass Vercel 10s timeout.
+            // Vixsrc signed URLs allows this.
 
             console.log(`[VIXSRC PROXY] Redirecting segment to: ${decodedUrl.substring(0, 50)}...`);
             res.redirect(302, decodedUrl);
