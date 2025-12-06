@@ -64,6 +64,7 @@ export default async function handler(req, res) {
 
         if (isPlaylist) {
             // --- PLAYLIST MODE ---
+            // Keep proxying headers/content for the manifest
             const buffer = await response.arrayBuffer();
             const text = Buffer.from(buffer).toString('utf-8');
 
@@ -94,31 +95,14 @@ export default async function handler(req, res) {
             res.status(response.status).send(rewritten);
 
         } else {
-            // --- BINARY STREAM MODE ---
-            // Force video/mp2t for ts segments
-            if (/\.ts(\?|$)/i.test(decodedUrl)) {
-                res.setHeader('Content-Type', 'video/mp2t');
-            }
+            // --- BINARY SEGMENT MODE ---
+            // STRATEGY CHANGE: REDIRECT TO AVOID TIMEOUT
+            // Instead of streaming (which times out after 10s on Vercel Hobby),
+            // we redirect the client to the direct Vixsrc URL.
+            // Since the URL is signed (token=...), it usually doesn't need Referer.
 
-            res.status(response.status);
-
-            // Stream with reader
-            if (response.body) {
-                const reader = response.body.getReader();
-                try {
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        res.write(value);
-                    }
-                } catch (e) {
-                    console.error('[VIXSRC PROXY] Stream Error:', e);
-                } finally {
-                    res.end();
-                }
-            } else {
-                res.end();
-            }
+            console.log(`[VIXSRC PROXY] Redirecting segment to: ${decodedUrl.substring(0, 50)}...`);
+            res.redirect(302, decodedUrl);
         }
 
     } catch (error) {
