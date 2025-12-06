@@ -50,9 +50,16 @@ class AppTheme: ObservableObject {
         }
     }
     
+    @Published var preferredSourceLanguage: String {
+        didSet {
+            UserDefaults.standard.set(preferredSourceLanguage, forKey: "preferredSourceLanguage")
+        }
+    }
+    
     init() {
         self.isDarkMode = UserDefaults.standard.object(forKey: "isDarkMode") as? Bool ?? true
         self.selectedLanguage = UserDefaults.standard.string(forKey: "selectedLanguage") ?? "fr"
+        self.preferredSourceLanguage = UserDefaults.standard.string(forKey: "preferredSourceLanguage") ?? "VF"
     }
     
     // MARK: - Color Scheme

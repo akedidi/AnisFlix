@@ -1,10 +1,12 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-    // CORS headers
+    // Vixsrc Proxy with Streaming Optimization (v2)
+    // CORS headers - IMPORTANT pour Chromecast
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization, *');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type, Accept-Ranges');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -21,11 +23,15 @@ export default async function handler(req, res) {
         // Si on décode une deuxième fois, on casse les caractères spéciaux (ex: %2B -> + -> ' ')
         let decodedUrl = url;
 
+        // Debug intensif pour Chromecast
         console.log('[Vixsrc Proxy] Incoming Request:', {
             originalUrl: url,
             decodedUrl: decodedUrl,
-            headers: req.headers,
-            method: req.method
+            method: req.method,
+            range: req.headers.range,
+            userAgent: req.headers['user-agent'],
+            origin: req.headers.origin,
+            host: req.headers.host
         });
 
         // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
@@ -51,6 +57,7 @@ export default async function handler(req, res) {
 
         // Forward Range header if present
         if (req.headers.range) {
+            console.log(`[VIXSRC PROXY] Forwarding Range: ${req.headers.range}`);
             headers['Range'] = req.headers.range;
         }
 
@@ -61,11 +68,15 @@ export default async function handler(req, res) {
         console.log('[Vixsrc Proxy] Vixsrc Response:', {
             status: response.status,
             statusText: response.statusText,
-            contentType: response.headers.get('content-type')
+            contentType: response.headers.get('content-type'),
+            contentLength: response.headers.get('content-length'),
+            contentRange: response.headers.get('content-range')
         });
 
         if (!response.ok) {
-            console.error('[Vixsrc Proxy] Vixsrc Error Response:', await response.text());
+            // Ne pas lire le text() ici si c'est un stream binaire, ça peut échouer ou corrompre
+            // On log juste le statut
+            console.error(`[Vixsrc Proxy] Vixsrc Error Response: ${response.status} ${response.statusText}`);
             throw new Error(`Vixsrc responded with ${response.status}: ${response.statusText}`);
         }
 

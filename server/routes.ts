@@ -1049,7 +1049,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Debug intensif pour Chromecast
       console.log(`[VIXSRC PROXY] Requesting URL: ${decodedUrl}`);
+      console.log(`[VIXSRC PROXY] Incoming Headers:`, {
+        range: req.headers.range,
+        userAgent: req.headers['user-agent'],
+        origin: req.headers.origin,
+        host: req.headers.host,
+        accept: req.headers.accept
+      });
 
       const headers: any = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -1062,6 +1070,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (req.headers.range) {
+        console.log(`[VIXSRC PROXY] Forwarding Range: ${req.headers.range}`);
         headers['Range'] = req.headers.range;
       }
 
@@ -1073,7 +1082,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log(`[VIXSRC PROXY] Response status: ${response.status}`);
-      console.log(`[VIXSRC PROXY] Response headers:`, response.headers);
+      console.log(`[VIXSRC PROXY] Response headers:`, {
+        contentType: response.headers['content-type'],
+        contentLength: response.headers['content-length'],
+        contentRange: response.headers['content-range'],
+        acceptRanges: response.headers['accept-ranges']
+      });
 
       if (response.status >= 400) {
         console.error(`[VIXSRC PROXY] Error from upstream: ${response.status}`);
@@ -1082,7 +1096,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Copier les headers pertinents
       const contentType = response.headers['content-type'];
-      console.log(`[VIXSRC PROXY] Upstream Content-Type: ${contentType}`);
 
       if (contentType) res.setHeader('Content-Type', contentType);
 
@@ -1096,7 +1109,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
       }
 
+      // IMPORTANT: CORS pour Chromecast - Headers étendus
       res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type, Accept-Ranges');
 
       const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
       console.log(`[VIXSRC PROXY] isM3U8 detected: ${isM3U8}`);
@@ -1145,8 +1162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.send(rewritten);
       } else {
         // Pour les segments TS ou autres, envoyer directement
-        console.log(`[VIXSRC PROXY] Proxying binary data (${response.data.length} bytes)`);
-        res.send(response.data);
+        console.log(`[VIXSRC PROXY] Proxying binary data (${response.data.length} bytes) - status: ${response.status}`);
+        res.status(response.status).send(response.data);
       }
 
     } catch (error: any) {
