@@ -614,6 +614,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route pour extraire directement le m3u8 depuis Vixsrc
+  app.post("/api/vixsrc/extract", async (req, res) => {
+    try {
+      const { tmdbId, mediaType, season, episode } = req.body;
+
+      if (!tmdbId || !mediaType) {
+        return res.status(400).json({ error: 'Paramètres manquants (tmdbId, mediaType)' });
+      }
+
+      console.log(`[VIXSRC EXTRACT] Extraction pour ${mediaType} ${tmdbId}`);
+
+      const streams = await vixsrcScraper.getStreams(
+        String(tmdbId),
+        mediaType as 'movie' | 'tv',
+        season ? Number(season) : null,
+        episode ? Number(episode) : null
+      );
+
+      if (!streams || streams.length === 0) {
+        return res.status(404).json({ error: 'Aucun stream trouvé' });
+      }
+
+      // Retourner le premier stream (Auto quality)
+      const stream = streams[0];
+      console.log(`[VIXSRC EXTRACT] Stream trouvé: ${stream.url.substring(0, 50)}...`);
+
+      res.json({
+        success: true,
+        m3u8Url: stream.url,
+        source: 'vixsrc'
+      });
+
+    } catch (error: any) {
+      console.error('Erreur lors de l\'extraction Vixsrc:', error.message);
+      res.status(500).json({ error: `Erreur serveur: ${error.message}` });
+    }
+  });
+
   // Route locale pour tester l'extraction VidMoly (utilisée par le player en dev)
   app.post("/api/vidmoly-test", async (req, res) => {
     try {

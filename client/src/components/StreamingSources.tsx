@@ -761,7 +761,7 @@ const StreamingSources = memo(function StreamingSources({
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
-  const handleSourceClick = (source: any) => {
+  const handleSourceClick = async (source: any) => {
     console.log('🔍 StreamingSources handleSourceClick appelé avec source:', source);
     console.log('🔍 Source URL complète:', source.url);
     console.log('🔍 Source type:', source.type);
@@ -833,14 +833,52 @@ const StreamingSources = memo(function StreamingSources({
           language: source.language
         });
       } else if (source.isVixsrc) {
-        console.log('✅ Source Vixsrc détectée');
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const,
-          name: source.name,
-          quality: source.quality,
-          language: source.language
-        });
+        console.log('✅ Source Vixsrc détectée, extraction du lien direct...');
+
+        try {
+          const response = await fetch('/api/vixsrc/extract', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              tmdbId: id,
+              mediaType: type,
+              season: season,
+              episode: episode
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Erreur extraction Vixsrc: ${response.statusText}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success && data.m3u8Url) {
+            console.log('✅ Lien direct Vixsrc extrait:', data.m3u8Url);
+            onSourceClick({
+              url: data.m3u8Url,
+              type: 'm3u8' as const,
+              name: source.name,
+              quality: source.quality,
+              language: source.language,
+              isVixsrc: true
+            });
+          } else {
+            throw new Error('Pas de lien m3u8 dans la réponse');
+          }
+        } catch (error) {
+          console.error('Erreur lors de l\'extraction Vixsrc:', error);
+          alert('Impossible de lire cette source Vixsrc. Veuillez réessayer.');
+          // Retirer du chargement
+          setLoadingSources(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(source.id);
+            return newSet;
+          });
+        }
+
       } else {
         console.log('❌ Type de source non reconnu:', source);
       }
