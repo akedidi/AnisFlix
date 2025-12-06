@@ -90,14 +90,9 @@ export default async function handler(req, res) {
             const baseUrl = new URL(decodedUrl);
 
             // Déterminer l'origine pour les URLs réécrites
-            // Pour Chromecast et autres appareils externes, utiliser l'URL de production
             const protocol = req.headers['x-forwarded-proto'] || 'https';
             const host = req.headers.host;
-
-            // Use production URL if available via environment variable, otherwise construct from headers
-            const origin = process.env.VERCEL_URL
-                ? `https://${process.env.VERCEL_URL}`
-                : `${protocol}://${host}`;
+            const origin = `${protocol}://${host}`;
 
             console.log(`[VIXSRC PROXY] Using origin: ${origin}`);
 
