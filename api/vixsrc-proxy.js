@@ -35,8 +35,11 @@ export default async function handler(req, res) {
             headers['Range'] = req.headers.range;
         }
 
-        // Use standard fetch
-        const response = await fetch(decodedUrl, { headers });
+        // Use standard fetch with method forwarding
+        const response = await fetch(decodedUrl, {
+            method: req.method,
+            headers
+        });
 
         console.log(`[VIXSRC PROXY] Upstream Status: ${response.status}`);
 
@@ -49,6 +52,7 @@ export default async function handler(req, res) {
         if (contentType) res.setHeader('Content-Type', contentType);
 
         // Forward headers safely
+        // REMOVED 'content-length' from forwarding list to avoid mismatch with decompressed streams
         const safeHeaders = ['accept-ranges', 'content-range'];
         safeHeaders.forEach(h => {
             const val = response.headers.get(h);
@@ -57,7 +61,6 @@ export default async function handler(req, res) {
 
         if (isPlaylist) {
             // --- TEXT MODE (Rewrite) ---
-            // DO NOT forward Content-Length here because we change the body size
             const buffer = await response.arrayBuffer();
             const originalText = Buffer.from(buffer).toString('utf-8');
 
@@ -91,12 +94,12 @@ export default async function handler(req, res) {
 
         } else {
             // --- BINARY STREAM MODE ---
-            // Forward Content-Length if available
-            const cl = response.headers.get('content-length');
-            if (cl) res.setHeader('Content-Length', cl);
+            // DO NOT forward Content-Length. Fetch might decompress gzip, making upstream CL invalid.
+            // Let Node/Vercel handle Transfer-Encoding: chunked automatically.
 
             // FORCE Content-Type for .ts segments (Chromecast is strict)
-            if (decodedUrl.includes('.ts')) {
+            // Regex to match .ts extension, case insensitive, allowing query params
+            if (/\.ts(\?|$)/i.test(decodedUrl)) {
                 console.log('[VIXSRC PROXY] Forcing Content-Type: video/mp2t for segment');
                 res.setHeader('Content-Type', 'video/mp2t');
             }
@@ -112,7 +115,6 @@ export default async function handler(req, res) {
                         if (done) break;
                         res.write(value);
                     }
-                    console.log('[VIXSRC PROXY] Segment stream completed');
                 } catch (e) {
                     console.error('[VIXSRC PROXY] Stream Break:', e);
                 } finally {
