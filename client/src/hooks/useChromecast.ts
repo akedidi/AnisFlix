@@ -320,9 +320,10 @@ export function useChromecast(): UseChromecastReturn {
 
       // Force HLS content type for Vixsrc proxy if not already detected
       if (finalMediaUrl.includes('vixsrc-proxy')) {
-        contentType = 'application/x-mpegURL';
+        // Use standard Apple HLS MIME type which is often better supported
+        contentType = 'application/vnd.apple.mpegurl';
         streamType = chromeCast.media.StreamType.BUFFERED;
-        console.log('[Chromecast] Vixsrc proxy ou m3u8 détecté, forçage HLS');
+        console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType: application/vnd.apple.mpegurl');
       }
 
       const mediaInfo = new chromeCast.media.MediaInfo(finalMediaUrl, contentType);
@@ -332,7 +333,7 @@ export function useChromecast(): UseChromecastReturn {
 
       // CRITICAL: Set HLS segment format for Chromecast to correctly decode TS segments
       // Without this, Chromecast may fail to play HLS streams with TS segments
-      if (contentType === 'application/x-mpegURL') {
+      if (contentType === 'application/x-mpegURL' || contentType === 'application/vnd.apple.mpegurl') {
         mediaInfo.hlsSegmentFormat = 'TS';
         mediaInfo.hlsVideoSegmentFormat = 'TS';
         console.log('[Chromecast] Setting hlsSegmentFormat: TS for HLS stream');
