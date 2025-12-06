@@ -117,9 +117,25 @@ export default function CustomVideoControls({
     };
   }, [videoRef, isPlaying, isHovering]);
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = (parseFloat(e.target.value) / 100) * duration;
+  const [isDragging, setIsDragging] = useState(false);
+  const [localProgress, setLocalProgress] = useState(0);
+
+  useEffect(() => {
+    if (!isDragging) {
+      setLocalProgress(progress);
+    }
+  }, [progress, isDragging]);
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value);
+    setLocalProgress(newValue);
+    setIsDragging(true);
+  };
+
+  const handleSeekCommit = () => {
+    const newTime = (localProgress / 100) * duration;
     onSeek(newTime);
+    setIsDragging(false);
   };
 
   return (
@@ -135,11 +151,13 @@ export default function CustomVideoControls({
           type="range"
           min="0"
           max="100"
-          value={progress}
-          onChange={handleSeek}
+          value={localProgress}
+          onChange={handleSeekChange}
+          onMouseUp={handleSeekCommit}
+          onTouchEnd={handleSeekCommit}
           className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer hover:h-1.5 transition-all"
           style={{
-            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${progress}%, #4b5563 ${progress}%, #4b5563 100%)`
+            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${localProgress}%, #4b5563 ${localProgress}%, #4b5563 100%)`
           }}
         />
       </div>

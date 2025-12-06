@@ -155,6 +155,26 @@ export default function VideoPlayer({
           video.play().catch(err => console.warn("Autoplay failed:", err));
         });
 
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
+          console.log('🎬 [VIDEO PLAYER] HLS Subtitles updated:', data.subtitleTracks);
+          if (data.subtitleTracks && data.subtitleTracks.length > 0) {
+            const hlsSubs: Subtitle[] = data.subtitleTracks.map((track, index) => ({
+              id: `hls-${index}`,
+              url: `hls://${index}`, // Special URL scheme for HLS tracks
+              lang: track.lang || 'unknown',
+              label: track.name || track.lang || `Track ${index + 1}`,
+              flag: '🏳️' // Default flag
+            }));
+
+            setSubtitles(prev => {
+              // Avoid duplicates if HLS reloads
+              const existingIds = new Set(prev.map(s => s.id));
+              const newSubs = hlsSubs.filter(s => !existingIds.has(s.id));
+              return [...prev, ...newSubs];
+            });
+          }
+        });
+
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
             console.error("HLS error:", data);
@@ -392,6 +412,19 @@ export default function VideoPlayer({
   const handleSubtitleSelect = (subtitleUrl: string | null) => {
     setSelectedSubtitle(subtitleUrl);
 
+    // Handle HLS internal subtitles
+    if (hlsRef.current && subtitleUrl?.startsWith('hls://')) {
+      const trackIndex = parseInt(subtitleUrl.replace('hls://', ''));
+      if (!isNaN(trackIndex)) {
+        hlsRef.current.subtitleTrack = trackIndex;
+        console.log(`✅ [VideoPlayer] Switched to HLS subtitle track: ${trackIndex}`);
+        return;
+      }
+    } else if (hlsRef.current) {
+      // Disable HLS subtitles if external or none selected
+      hlsRef.current.subtitleTrack = -1;
+    }
+
     if (videoRef.current) {
       const video = videoRef.current;
       const tracks = video.textTracks;
@@ -401,7 +434,7 @@ export default function VideoPlayer({
         tracks[i].mode = 'hidden';
       }
 
-      if (subtitleUrl) {
+      if (subtitleUrl && !subtitleUrl.startsWith('hls://')) {
         // Find the track that matches the selected URL
         // Since we use the proxy URL in the track src, we need to match by label/lang
         // or just rely on the index if we knew it.
@@ -423,7 +456,7 @@ export default function VideoPlayer({
           }, 100);
         }
       } else {
-        console.log('🚫 [VideoPlayer] Subtitles disabled');
+        console.log('🚫 [VideoPlayer] Subtitles disabled (or switched to HLS)');
       }
     }
   };
