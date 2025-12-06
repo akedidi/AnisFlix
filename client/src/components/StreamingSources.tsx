@@ -878,16 +878,6 @@ const StreamingSources = memo(function StreamingSources({
           {t("topstream.sources")}
         </h2>
 
-        {/* DEBUG INFO (Early Return) */}
-        <div className="bg-black/80 text-white p-2 text-xs font-mono overflow-auto max-h-40 mb-4 rounded">
-          <p>EARLY RETURN (No sources for {selectedLanguage})</p>
-          <p>Type: {type}, ID: {id}, Season: {season}, Episode: {episode}</p>
-          <p>Vixsrc Loading: {isLoadingVixsrc ? 'Yes' : 'No'}</p>
-          <p>Vixsrc Data: {vixsrcData ? (vixsrcData.success ? `Success (${vixsrcData.streams?.length} streams)` : 'Failed') : 'None'}</p>
-          <p>Vixsrc Check Logic: {vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0 ? 'TRUE' : 'FALSE'}</p>
-          <p>Has VO Sources: {hasSourcesForLanguage('VO') ? 'Yes' : 'No'}</p>
-        </div>
-
         {/* Sélecteur de langue - toujours afficher les onglets */}
 
         <div className="flex gap-2">

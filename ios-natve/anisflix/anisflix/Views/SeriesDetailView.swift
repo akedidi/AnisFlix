@@ -378,7 +378,7 @@ struct SeriesDetailView: View {
         }
         // .navigationBarHidden(true) removed to show system back button
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
-
+        .navigationBarHidden(isFullscreen)
         .task {
             await loadSeriesDetails()
         }

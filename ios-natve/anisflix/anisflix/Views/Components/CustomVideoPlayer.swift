@@ -84,7 +84,7 @@ struct CustomVideoPlayer: View {
                         .padding(8)
                         .background(Color.black.opacity(0.6))
                         .cornerRadius(8)
-                        .padding(.bottom, 60)
+                        .padding(.bottom, isFullscreen ? 10 : 60)
                 }
                 .transition(.opacity)
             }

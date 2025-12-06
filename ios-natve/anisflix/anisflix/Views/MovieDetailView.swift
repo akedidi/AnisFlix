@@ -465,6 +465,7 @@ struct MovieDetailView: View {
             }
         }
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+        .navigationBarHidden(isFullscreen)
         .task {
             await loadData()
         }

@@ -149,9 +149,10 @@ export default function SeriesDetail() {
       return;
     }
     // Pour Vixsrc, passer par le proxy pour gérer les headers (Referer, User-Agent)
-    if (source.isVixsrc && source.url) {
+    if ((source as any).isVixsrc && source.url) {
       console.log('🎬 Source Vixsrc détectée, utilisation du proxy:', source.url);
-      const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(source.url)}`;
+      // Use absolute URL for Chromecast compatibility
+      const proxyUrl = `${window.location.origin}/api/vixsrc-proxy?url=${encodeURIComponent(source.url)}`;
 
       setSelectedSource({
         url: proxyUrl,
