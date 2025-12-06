@@ -802,16 +802,7 @@ const StreamingSources = memo(function StreamingSources({
           name: source.name,
           isMovixDownload: true
         });
-      } else if (source.isVixsrc) {
-        console.log('✅ Source Vixsrc détectée');
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const,
-          name: source.name,
-          isVixsrc: true,
-          quality: source.quality,
-          language: source.language
-        });
+
       } else if (source.isVidMoly) {
         console.log('✅ Source VidMoly détectée, appel de onSourceClick');
         // Pour VidMoly, on utilise le player dédié
