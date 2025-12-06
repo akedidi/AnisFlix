@@ -28,7 +28,8 @@ struct MovieDetailView: View {
     // Sources
     @State private var sources: [StreamingSource] = []
     @State private var isLoadingSources = false
-    @State private var selectedLanguage = "VF" // VF or VOSTFR
+    // Removed local state to use theme persistence
+    // @State private var selectedLanguage = "VF" // VF or VOSTFR
     @State private var extractionError: String?
     @State private var watchProgress: Double? // Watch progress (0.0 to 1.0)
     
@@ -251,21 +252,22 @@ struct MovieDetailView: View {
                                                 } else if lang == "VOSTFR" {
                                                     return source.language.lowercased().contains("vostfr")
                                                 } else {
-                                                    return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+                                                    // For VO, strictly only allow Vixsrc
+                                                    return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
                                                 }
                                             }
                                             
                                             Button(action: {
                                                 if hasSources {
-                                                    selectedLanguage = lang
+                                                    theme.preferredSourceLanguage = lang
                                                 }
                                             }) {
                                                 VStack(spacing: 8) {
                                                     Text(lang)
                                                         .font(.headline)
-                                                        .foregroundColor(selectedLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
+                                                        .foregroundColor(theme.preferredSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
                                                     
-                                                    if selectedLanguage == lang {
+                                                    if theme.preferredSourceLanguage == lang {
                                                         Rectangle()
                                                             .fill(AppTheme.primaryRed)
                                                             .frame(height: 2)
@@ -284,15 +286,16 @@ struct MovieDetailView: View {
                                     // Sources List (Line by Line)
                                     if !showPlayer {
                                         if sources.filter({ source in
-                                            if selectedLanguage == "VF" {
+                                            if theme.preferredSourceLanguage == "VF" {
                                                 return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                            } else if selectedLanguage == "VOSTFR" {
+                                            } else if theme.preferredSourceLanguage == "VOSTFR" {
                                                 return source.language.lowercased().contains("vostfr")
                                             } else {
-                                                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+                                                // For VO, strictly only allow Vixsrc
+                                                return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
                                             }
                                         }).isEmpty {
-                                            Text("\(theme.t("detail.noSourcesFor")) \(selectedLanguage)")
+                                            Text("\(theme.t("detail.noSourcesFor")) \(theme.preferredSourceLanguage)")
                                                 .foregroundColor(theme.secondaryText)
                                                 .font(.subheadline)
                                                 .padding(.horizontal, 16)
@@ -300,12 +303,13 @@ struct MovieDetailView: View {
                                         } else {
                                             VStack(spacing: 8) {
                                                 ForEach(Array(sources.filter({ source in
-                                                    if selectedLanguage == "VF" {
+                                                    if theme.preferredSourceLanguage == "VF" {
                                                         return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                                    } else if selectedLanguage == "VOSTFR" {
+                                                    } else if theme.preferredSourceLanguage == "VOSTFR" {
                                                         return source.language.lowercased().contains("vostfr")
                                                     } else {
-                                                        return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+                                                        // For VO, strictly only allow Vixsrc
+                                                        return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
                                                     }
                                                 }).enumerated()), id: \.element.id) { index, source in
                                                     HStack(spacing: 8) {
@@ -478,6 +482,20 @@ struct MovieDetailView: View {
             self.similarMovies = similarResult
             self.sources = sourcesResult
             
+            // Auto-select language: VF > VOSTFR > VO
+            let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
+            let hasVOSTFR = sourcesResult.contains { $0.language.lowercased().contains("vostfr") }
+            let hasVO = sourcesResult.contains { $0.provider == "vixsrc" && ($0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english")) }
+            
+            if hasVF {
+                theme.preferredSourceLanguage = "VF"
+            } else if hasVOSTFR {
+                theme.preferredSourceLanguage = "VOSTFR"
+            } else if hasVO {
+                theme.preferredSourceLanguage = "VO"
+            }
+            
+            print("✅ Sources loaded: \(sourcesResult.count)")
             // Load watch progress
             self.watchProgress = WatchProgressManager.shared.getProgress(mediaId: movieId)
             

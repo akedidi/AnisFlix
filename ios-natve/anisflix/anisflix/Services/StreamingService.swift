@@ -480,8 +480,15 @@ class StreamingService {
         
         if let streams = decoded.streams {
             for stream in streams {
+                // Wrap URL in proxy to handle CORS/Headers
+                let originalUrl = stream.url
+                // Use alphanumerics + unreserved to properly encode the nested URL parameter (like JS encodeURIComponent)
+                let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+                let encodedUrl = originalUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? originalUrl
+                let proxyUrl = "\(baseUrl)/api/vixsrc-proxy?url=\(encodedUrl)"
+                
                 let source = StreamingSource(
-                    url: stream.url,
+                    url: proxyUrl,
                     quality: stream.quality,
                     type: stream.type,
                     provider: "vixsrc",

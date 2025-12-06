@@ -78,7 +78,7 @@ struct CustomVideoPlayer: View {
                 VStack {
                     Spacer()
                     Text(text)
-                        .font(.title3)
+                        .font(.callout)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .padding(8)

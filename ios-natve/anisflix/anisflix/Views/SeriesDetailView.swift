@@ -23,10 +23,11 @@ struct SeriesDetailView: View {
     @State private var subtitles: [Subtitle] = []
     @State private var isFullscreen = false
     @StateObject private var playerVM = PlayerViewModel()
-    @State private var selectedSeason = 1
     @State private var seasonDetails: SeasonDetails?
     @State private var isSeasonLoading = false
-    @State private var selectedSourceLanguage = "VF"
+    @State private var selectedSeason = 1
+    // Removed local state to use theme persistence
+    // @State private var selectedSourceLanguage = "VF"
     
     @ObservedObject var favoritesManager = FavoritesManager.shared
     
@@ -543,6 +544,19 @@ struct SeriesDetailView: View {
         }
         
         isLoadingEpisodeSources = false
+        
+        // Auto-select language: VF > VOSTFR > VO
+        let hasVF = episodeSources.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
+        let hasVOSTFR = episodeSources.contains { $0.language.lowercased().contains("vostfr") }
+        let hasVO = episodeSources.contains { $0.provider == "vixsrc" && ($0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english")) }
+        
+        if hasVF {
+            theme.preferredSourceLanguage = "VF"
+        } else if hasVOSTFR {
+            theme.preferredSourceLanguage = "VOSTFR"
+        } else if hasVO {
+            theme.preferredSourceLanguage = "VO"
+        }
     }
     
     // Helper to filter sources by language
@@ -553,7 +567,8 @@ struct SeriesDetailView: View {
             } else if language == "VOSTFR" {
                 return source.language.lowercased().contains("vostfr")
             } else {
-                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+                // For VO, strictly only allow Vixsrc
+                return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
             }
         }
     }
@@ -633,15 +648,15 @@ struct SeriesDetailView: View {
                             
                             Button(action: {
                                 if hasSources {
-                                    selectedSourceLanguage = lang
+                                    theme.preferredSourceLanguage = lang
                                 }
                             }) {
                                 VStack(spacing: 8) {
                                     Text(lang)
                                         .font(.headline)
-                                        .foregroundColor(selectedSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
+                                        .foregroundColor(theme.preferredSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
                                     
-                                    if selectedSourceLanguage == lang {
+                                    if theme.preferredSourceLanguage == lang {
                                         Rectangle()
                                             .fill(AppTheme.primaryRed)
                                             .frame(height: 2)
@@ -658,14 +673,14 @@ struct SeriesDetailView: View {
                     .padding(.bottom, 16)
                     
                     // Filtered Source List
-                    if filterSources(episodeSources, language: selectedSourceLanguage).isEmpty {
-                        Text("\(theme.t("detail.noSourcesFor")) \(selectedSourceLanguage)")
+                    if filterSources(episodeSources, language: theme.preferredSourceLanguage).isEmpty {
+                        Text("\(theme.t("detail.noSourcesFor")) \(theme.preferredSourceLanguage)")
                             .foregroundColor(theme.secondaryText)
                             .font(.subheadline)
                             .padding(.vertical, 20)
                     } else {
                         VStack(spacing: 12) {
-                            ForEach(Array(filterSources(episodeSources, language: selectedSourceLanguage).enumerated()), id: \.element.id) { index, source in
+                            ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage).enumerated()), id: \.element.id) { index, source in
                                 HStack(spacing: 8) {
                                     Button(action: {
                                         handleSourceSelection(source, episode: episode)

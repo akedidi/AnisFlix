@@ -462,21 +462,20 @@ export default function VideoPlayer({
       }
 
       if (subtitleUrl && !subtitleUrl.startsWith('hls://')) {
-        // Find the track that matches the selected URL
-        const selectedSub = subtitles.find(s => s.url === subtitleUrl);
-        if (selectedSub) {
-          // Give a small delay for the DOM to update
+        // Find the index of the selected subtitle in our subtitles array
+        const subtitleIndex = subtitles.findIndex(s => s.url === subtitleUrl);
+
+        if (subtitleIndex !== -1 && subtitleIndex < tracks.length) {
+          // Match by index since track elements are rendered in the same order as subtitles array
           setTimeout(() => {
-            for (let i = 0; i < tracks.length; i++) {
-              const track = tracks[i];
-              // We match by label and language because the src is proxified
-              if (track.label === selectedSub.label && track.language === selectedSub.lang) {
-                track.mode = 'showing';
-                console.log(`✅ [VideoPlayer] Enabled subtitle track: ${track.label} (${track.language})`);
-                break;
-              }
+            const track = tracks[subtitleIndex];
+            if (track) {
+              track.mode = 'showing';
+              console.log(`✅ [VideoPlayer] Enabled subtitle track at index ${subtitleIndex}: ${track.label} (${track.language})`);
             }
           }, 100);
+        } else {
+          console.warn(`⚠️ [VideoPlayer] Could not find subtitle track for URL: ${subtitleUrl}`);
         }
       } else {
         console.log('🚫 [VideoPlayer] Subtitles disabled (or switched to HLS)');
