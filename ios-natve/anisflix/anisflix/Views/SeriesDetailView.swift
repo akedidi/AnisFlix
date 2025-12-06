@@ -550,8 +550,10 @@ struct SeriesDetailView: View {
         return sources.filter { source in
             if language == "VF" {
                 return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-            } else {
+            } else if language == "VOSTFR" {
                 return source.language.lowercased().contains("vostfr")
+            } else {
+                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
             }
         }
     }
@@ -626,7 +628,7 @@ struct SeriesDetailView: View {
                 } else {
                     // Language Tabs
                     HStack(spacing: 20) {
-                        ForEach(["VF", "VOSTFR"], id: \.self) { lang in
+                        ForEach(["VF", "VOSTFR", "VO"], id: \.self) { lang in
                             let hasSources = !filterSources(episodeSources, language: lang).isEmpty
                             
                             Button(action: {

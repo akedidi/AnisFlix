@@ -6,6 +6,7 @@ import { extractVidSrcM3u8, vidsrcScraper } from "./vidsrc-scraper";
 import { registerHLSProxyRoutes } from "./hls-proxy";
 import axios from "axios";
 import https from "https"; // Toujours utilisé pour d'autres routes
+import { vixsrcScraper } from "./vixsrc-scraper";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -1001,6 +1002,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Route pour Vixsrc Scraper
+  app.get("/api/vixsrc", async (req, res) => {
+    try {
+      const { tmdbId, type, season, episode } = req.query;
+
+      if (!tmdbId || !type) {
+        return res.status(400).json({ error: 'Paramètres manquants (tmdbId, type)' });
+      }
+
+      console.log(`🚀 [VIXSRC API] Request: ${type} ${tmdbId} S${season}E${episode}`);
+
+      const streams = await vixsrcScraper.getStreams(
+        tmdbId as string,
+        type as 'movie' | 'tv',
+        season ? parseInt(season as string) : null,
+        episode ? parseInt(episode as string) : null
+      );
+
+      res.json({ success: true, streams });
+
+    } catch (error: any) {
+      console.error('[VIXSRC API] Error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Route proxy pour Vixsrc
+  app.get("/api/vixsrc-proxy", async (req, res) => {
+    try {
+      const { url } = req.query;
+
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL Vixsrc requise' });
+      }
+
+      // Décoder l'URL si elle est encodée
+      let decodedUrl = decodeURIComponent(url);
+
+      // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
+      if (decodedUrl.includes('/api/vixsrc-proxy')) {
+        const urlMatch = decodedUrl.match(/[?&]url=([^&]+)/);
+        if (urlMatch) {
+          decodedUrl = decodeURIComponent(urlMatch[1]);
+        }
+      }
+
+      console.log(`[VIXSRC PROXY] Requesting URL: ${decodedUrl}`);
+
+      const headers: any = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://vixsrc.to/',
+        'Origin': 'https://vixsrc.to',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity', // Force uncompressed response for arraybuffer
+        'Cache-Control': 'no-cache'
+      };
+
+      if (req.headers.range) {
+        headers['Range'] = req.headers.range;
+      }
+
+      const response = await axios.get(decodedUrl, {
+        responseType: 'arraybuffer', // Important pour les segments binaires
+        timeout: 15000,
+        headers: headers,
+        validateStatus: () => true // Accepter tous les status codes
+      });
+
+      console.log(`[VIXSRC PROXY] Response status: ${response.status}`);
+      console.log(`[VIXSRC PROXY] Response headers:`, response.headers);
+
+      if (response.status >= 400) {
+        console.error(`[VIXSRC PROXY] Error from upstream: ${response.status}`);
+        return res.status(response.status).send(response.data);
+      }
+
+      // Copier les headers pertinents
+      const contentType = response.headers['content-type'];
+      console.log(`[VIXSRC PROXY] Upstream Content-Type: ${contentType}`);
+
+      if (contentType) res.setHeader('Content-Type', contentType);
+
+      if (response.headers['content-length']) {
+        res.setHeader('Content-Length', response.headers['content-length']);
+      }
+      if (response.headers['content-range']) {
+        res.setHeader('Content-Range', response.headers['content-range']);
+      }
+      if (response.headers['accept-ranges']) {
+        res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+      }
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
+      console.log(`[VIXSRC PROXY] isM3U8 detected: ${isM3U8}`);
+
+      if (isM3U8) {
+        console.log(`[VIXSRC PROXY] Processing M3U8 playlist`);
+        let playlist = response.data.toString('utf-8');
+
+        // Log preview of original playlist
+        console.log(`[VIXSRC PROXY] Original playlist start: ${playlist.substring(0, 50).replace(/\n/g, '\\n')}`);
+
+        const baseUrl = new URL(decodedUrl);
+        const origin = `${req.protocol}://${req.get('host')}`;
+
+        // Réécrire les URLs
+        const lines = playlist.split(/\r?\n/);
+        const rewritten = lines.map((line: string) => {
+          if (!line || line.trim().startsWith('#')) return line;
+
+          try {
+            // Résoudre l'URL relative
+            const absoluteUrl = new URL(line, baseUrl).toString();
+            // Proxifier
+            return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+          } catch (e) {
+            return line;
+          }
+        }).join('\n');
+
+        // Log preview of rewritten playlist
+        console.log(`[VIXSRC PROXY] Rewritten playlist start: ${rewritten.substring(0, 50).replace(/\n/g, '\\n')}`);
+
+        res.send(rewritten);
+      } else {
+        // Pour les segments TS ou autres, envoyer directement
+        console.log(`[VIXSRC PROXY] Proxying binary data (${response.data.length} bytes)`);
+        res.send(response.data);
+      }
+
+    } catch (error: any) {
+      console.error(`[VIXSRC PROXY] Exception:`, error.message);
+      res.status(500).json({ error: 'Erreur proxy Vixsrc', details: error.message });
+    }
+  });
 
   return httpServer;
 }

@@ -148,6 +148,22 @@ export default function SeriesDetail() {
       }
       return;
     }
+    // Pour Vixsrc, passer par le proxy pour gérer les headers (Referer, User-Agent)
+    if (source.isVixsrc && source.url) {
+      console.log('🎬 Source Vixsrc détectée, utilisation du proxy:', source.url);
+      const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(source.url)}`;
+
+      setSelectedSource({
+        url: proxyUrl,
+        type: "m3u8",
+        name: source.name,
+        quality: source.quality,
+        language: source.language
+      });
+      setIsLoadingSource(false);
+      return;
+    }
+
     // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";

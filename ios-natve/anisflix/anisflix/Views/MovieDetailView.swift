@@ -244,12 +244,14 @@ struct MovieDetailView: View {
                                 } else {
                                     // Language Tabs
                                     HStack(spacing: 20) {
-                                        ForEach(["VF", "VOSTFR"], id: \.self) { lang in
+                                        ForEach(["VF", "VOSTFR", "VO"], id: \.self) { lang in
                                             let hasSources = sources.contains { source in
                                                 if lang == "VF" {
                                                     return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                                } else {
+                                                } else if lang == "VOSTFR" {
                                                     return source.language.lowercased().contains("vostfr")
+                                                } else {
+                                                    return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                                 }
                                             }
                                             
@@ -284,8 +286,10 @@ struct MovieDetailView: View {
                                         if sources.filter({ source in
                                             if selectedLanguage == "VF" {
                                                 return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                            } else {
+                                            } else if selectedLanguage == "VOSTFR" {
                                                 return source.language.lowercased().contains("vostfr")
+                                            } else {
+                                                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                             }
                                         }).isEmpty {
                                             Text("\(theme.t("detail.noSourcesFor")) \(selectedLanguage)")
@@ -298,8 +302,10 @@ struct MovieDetailView: View {
                                                 ForEach(Array(sources.filter({ source in
                                                     if selectedLanguage == "VF" {
                                                         return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                                    } else {
+                                                    } else if selectedLanguage == "VOSTFR" {
                                                         return source.language.lowercased().contains("vostfr")
+                                                    } else {
+                                                        return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                                     }
                                                 }).enumerated()), id: \.element.id) { index, source in
                                                     HStack(spacing: 8) {

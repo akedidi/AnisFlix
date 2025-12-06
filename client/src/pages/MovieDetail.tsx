@@ -291,6 +291,22 @@ export default function MovieDetail() {
         return;
       }
 
+      // Pour Vixsrc, passer par le proxy pour gérer les headers (Referer, User-Agent)
+      if ((source as any).isVixsrc && source.url) {
+        console.log('🎬 Source Vixsrc détectée, utilisation du proxy:', source.url);
+        const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(source.url)}`;
+
+        setSelectedSource({
+          url: proxyUrl,
+          type: "m3u8",
+          name: source.name,
+          isVidMoly: false,
+          isDarki: false
+        });
+        setIsLoadingSource(false);
+        return;
+      }
+
       // Si c'est une source Vidzy via FStream (type marqué m3u8 mais url = page embed), extraire d'abord le vrai m3u8
       if (source.url && source.type === "m3u8" && source.isFStream) {
         console.log("🎬 Extraction Vidzy pour:", source.url);

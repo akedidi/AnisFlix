@@ -145,11 +145,12 @@ class StreamingService {
     // MARK: - Fetch Sources
     
     func fetchSources(movieId: Int) async throws -> [StreamingSource] {
-        // Fetch from both endpoints concurrently
+        // Fetch from all endpoints concurrently
         async let tmdbSources = fetchTmdbSources(movieId: movieId)
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         
-        let (tmdb, fstream) = await (try? tmdbSources, try? fstreamSources)
+        let (tmdb, fstream, vixsrc) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources)
         
         var allSources: [StreamingSource] = []
         
@@ -161,8 +162,12 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for VidMoly and Vidzy
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" }
+        if let vixsrc = vixsrc {
+            allSources.append(contentsOf: vixsrc)
+        }
+        
+        // Filter for VidMoly, Vidzy and Vixsrc
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -209,6 +214,8 @@ class StreamingService {
                         language = "VOSTFR"
                     } else if key == "Default" || key == "VFQ" {
                         language = "VF"
+                    } else if key == "VO" || key == "ENG" || key == "English" {
+                        language = "VO"
                     } else {
                         language = "VF" // Default fallback
                     }
@@ -244,11 +251,12 @@ class StreamingService {
     }
     
     func fetchSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
-        // Fetch from both endpoints concurrently
+        // Fetch from all endpoints concurrently
         async let tmdbSources = fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
-        let (tmdb, fstream) = await (try? tmdbSources, try? fstreamSources)
+        let (tmdb, fstream, vixsrc) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources)
         
         var allSources: [StreamingSource] = []
         
@@ -260,8 +268,12 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for VidMoly and Vidzy
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" }
+        if let vixsrc = vixsrc {
+            allSources.append(contentsOf: vixsrc)
+        }
+        
+        // Filter for VidMoly, Vidzy and Vixsrc
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -316,6 +328,8 @@ class StreamingService {
                         language = "VOSTFR"
                     } else if key == "Default" || key == "VFQ" || key == "VF" {
                         language = "VF"
+                    } else if key == "VO" || key == "ENG" || key == "English" {
+                        language = "VO"
                     } else {
                         language = "VF" // Default fallback
                     }
@@ -427,6 +441,57 @@ class StreamingService {
     func fetchDarkiboxSources(mediaId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
         // TODO: Implement Darkibox fetching
         return []
+    }
+    
+    func fetchVixsrcSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/vixsrc?tmdbId=\(tmdbId)&type=\(type)"
+        if let season = season {
+            urlString += "&season=\(season)"
+        }
+        if let episode = episode {
+            urlString += "&episode=\(episode)"
+        }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        struct VixsrcResponse: Codable {
+            let success: Bool
+            let streams: [VixsrcStream]?
+        }
+        
+        struct VixsrcStream: Codable {
+            let name: String
+            let url: String
+            let quality: String
+            let type: String
+        }
+        
+        let decoded = try JSONDecoder().decode(VixsrcResponse.self, from: data)
+        var sources: [StreamingSource] = []
+        
+        if let streams = decoded.streams {
+            for stream in streams {
+                let source = StreamingSource(
+                    url: stream.url,
+                    quality: stream.quality,
+                    type: stream.type,
+                    provider: "vixsrc",
+                    language: "VO"
+                )
+                sources.append(source)
+            }
+        }
+        
+        return sources
     }
     
     // MARK: - Extractorsion
