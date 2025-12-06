@@ -14,6 +14,7 @@ import CustomVideoControls from "@/components/CustomVideoControls";
 import type { MediaType } from "@shared/schema";
 import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
 import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
+import { useChromecast } from "@/hooks/useChromecast";
 
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -81,6 +82,14 @@ export default function VideoPlayer({
     videoRef,
     isPlayerActive: !!src
   });
+
+  const { isConnected, cast, setActiveSubtitle, play: castPlay, pause: castPause, seek: castSeek } = useChromecast();
+  const [isCasting, setIsCasting] = useState(false);
+
+  // Sync isCasting state with Chromecast connection
+  useEffect(() => {
+    setIsCasting(isConnected);
+  }, [isConnected]);
 
   // Fetch subtitles
   useEffect(() => {
@@ -321,7 +330,15 @@ export default function VideoPlayer({
   }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
 
   const togglePlayPause = () => {
-    if (videoRef.current) {
+    if (isCasting) {
+      if (isPlaying) {
+        castPause();
+        setIsPlaying(false);
+      } else {
+        castPlay();
+        setIsPlaying(true);
+      }
+    } else if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
@@ -403,7 +420,10 @@ export default function VideoPlayer({
   };
 
   const handleSeek = (newTime: number) => {
-    if (videoRef.current) {
+    if (isCasting) {
+      castSeek(newTime);
+      setCurrentTime(newTime);
+    } else if (videoRef.current) {
       videoRef.current.currentTime = newTime;
     }
   };
@@ -448,6 +468,11 @@ export default function VideoPlayer({
     } else if (hlsRef.current) {
       // Disable HLS subtitles if external or none selected
       hlsRef.current.subtitleTrack = -1;
+    }
+
+    // Sync with Chromecast if casting
+    if (isCasting) {
+      setActiveSubtitle(subtitleUrl, subtitles);
     }
   };
 

@@ -33,6 +33,8 @@ declare global {
           GenericMediaMetadata: new () => any;
           LoadRequest: new (mediaInfo: any) => any;
           Image: new (url: string) => any;
+          SeekRequest: new () => any;
+          EditTracksInfoRequest: new (activeTrackIds?: number[], textTrackStyle?: any) => any;
         };
       };
     };
@@ -77,6 +79,10 @@ interface UseChromecastReturn {
   disconnect: () => void;
   showPicker: () => void;
   setActiveSubtitle: (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => Promise<void>;
+  play: () => void;
+  pause: () => void;
+  seek: (time: number) => void;
+  getMediaTime: () => Promise<number>;
 }
 
 // Utiliser le Default Media Receiver (compatible avec tous les appareils)
@@ -465,7 +471,7 @@ export function useChromecast(): UseChromecastReturn {
     cast,
     disconnect,
     showPicker,
-    setActiveSubtitle: useCallback(async (activeSubtitleUrl: string | null, subtitles: Subtitle[] = []) => {
+    setActiveSubtitle: useCallback(async (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => {
       if (!mediaSessionRef.current || !window.chrome?.cast) {
         console.warn('[Chromecast] Pas de session média active pour changer les sous-titres');
         return;
@@ -491,6 +497,29 @@ export function useChromecast(): UseChromecastReturn {
       } catch (error) {
         console.error('[Chromecast] Erreur lors du changement de sous-titres:', error);
       }
+    }, []),
+    play: useCallback(() => {
+      if (mediaSessionRef.current) {
+        mediaSessionRef.current.play();
+      }
+    }, []),
+    pause: useCallback(() => {
+      if (mediaSessionRef.current) {
+        mediaSessionRef.current.pause(null);
+      }
+    }, []),
+    seek: useCallback((time: number) => {
+      if (mediaSessionRef.current && window.chrome?.cast) {
+        const request = new window.chrome.cast.media.SeekRequest();
+        request.currentTime = time;
+        mediaSessionRef.current.seek(request);
+      }
+    }, []),
+    getMediaTime: useCallback(async () => {
+      if (mediaSessionRef.current) {
+        return mediaSessionRef.current.getEstimatedTime();
+      }
+      return 0;
     }, [])
   };
 }
