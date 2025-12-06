@@ -330,6 +330,14 @@ export function useChromecast(): UseChromecastReturn {
       mediaInfo.metadata.title = title;
       mediaInfo.streamType = streamType;
 
+      // CRITICAL: Set HLS segment format for Chromecast to correctly decode TS segments
+      // Without this, Chromecast may fail to play HLS streams with TS segments
+      if (contentType === 'application/x-mpegURL') {
+        mediaInfo.hlsSegmentFormat = 'TS';
+        mediaInfo.hlsVideoSegmentFormat = 'TS';
+        console.log('[Chromecast] Setting hlsSegmentFormat: TS for HLS stream');
+      }
+
       if (posterUrl) {
         mediaInfo.metadata.images = [new chromeCast.Image(posterUrl)];
       }
