@@ -84,14 +84,13 @@ export default async function handler(req, res) {
             }
         });
 
-        const buffer = Buffer.from(await response.arrayBuffer());
-
         // Gérer les playlists M3U8
         const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
         console.log(`[VIXSRC PROXY] isM3U8 detected: ${isM3U8}`);
 
         if (isM3U8) {
             console.log(`[VIXSRC PROXY] Processing M3U8 playlist`);
+            const buffer = Buffer.from(await response.arrayBuffer());
             let playlist = buffer.toString('utf-8');
 
             // Log preview of original playlist
@@ -141,12 +140,26 @@ export default async function handler(req, res) {
         } else if (contentType && (contentType.includes('text/') || contentType.includes('json') || contentType.includes('xml') || contentType.includes('vtt'))) {
             // Handle text-based content (Subtitles, JSON, etc.)
             console.log(`[VIXSRC PROXY] Proxying text data (${contentType})`);
+            const buffer = Buffer.from(await response.arrayBuffer());
             const textData = buffer.toString('utf-8');
             res.status(response.status).send(textData);
         } else {
-            // Pour les segments TS ou autres, envoyer directement
-            console.log(`[VIXSRC PROXY] Proxying binary data (${buffer.length} bytes)`);
-            res.status(response.status).send(buffer);
+            // Pour les segments TS ou autres, streamer directement
+            console.log(`[VIXSRC PROXY] Proxying binary data (STREAMING)`);
+            res.status(response.status);
+
+            // Streamer le corps de la réponse
+            if (response.body) {
+                const reader = response.body.getReader();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                }
+                res.end();
+            } else {
+                res.end();
+            }
         }
 
     } catch (error) {
