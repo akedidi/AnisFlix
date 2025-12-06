@@ -494,7 +494,7 @@ class StreamingService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // api/vidzy-real expects just { "url": "..." }
+        // api/vidzy expects just { "url": "..." }
         let body: [String: String] = ["url": url]
         request.httpBody = try JSONEncoder().encode(body)
         
