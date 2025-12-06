@@ -536,7 +536,6 @@ const TV_CHANNELS: TVChannel[] = [
   },
   {
     id: "france2", name: "France 2", category: "Généraliste", section: "france", links: [
-      { type: "hls_direct", url: "https://simulcast-p.ftven.fr/ZXhwPTE3NjA3ODM0NjF+YWNsPSUyZip+aG1hYz0wMTMyZjkyODNmZTQ5OGM4M2MwMDY4OGFkYjg1ODA5OGNkMmE0OWYwZjZkMTlhZGNlNjZlNzU5ZWMzMmYyYzAx/simulcast/France_2/hls_fr2/France_2-avc1_2500000=5.m3u8" },
       { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/137.m3u8" }
     ]
   },
