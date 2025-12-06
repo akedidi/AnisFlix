@@ -339,7 +339,14 @@ const StreamingSources = memo(function StreamingSources({
   // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
   if (sources && sources.length > 0) {
     console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
-    allSources.push(...sources);
+    // Filter out VidMoly if language is VO
+    const filteredSources = sources.filter(s => {
+      if (selectedLanguage === 'VO' && (s.provider === 'vidmoly' || s.isVidMoly || s.name.toLowerCase().includes('vidmoly'))) {
+        return false;
+      }
+      return true;
+    });
+    allSources.push(...filteredSources);
   }
 
 
@@ -1007,31 +1014,6 @@ const StreamingSources = memo(function StreamingSources({
                   <span className="flex items-center gap-2">
                     <Play className="w-4 h-4" />
                     {source.name}
-                    {source.isTopStream && (
-                      <Badge variant="secondary" className="text-xs">
-                        TopStream
-                      </Badge>
-                    )}
-                    {source.isFStream && (
-                      <Badge variant="outline" className="text-xs">
-                        FStream
-                      </Badge>
-                    )}
-                    {source.isMovixDownload && (
-                      <Badge variant="default" className="text-xs">
-                        Darkibox
-                      </Badge>
-                    )}
-                    {source.isVidMoly && (
-                      <Badge variant="destructive" className="text-xs">
-                        VidMoly
-                      </Badge>
-                    )}
-                    {source.isDarki && (
-                      <Badge variant="secondary" className="text-xs">
-                        Darki
-                      </Badge>
-                    )}
                     {source.isVixsrc && (
                       <Badge variant="default" className="text-xs">
                         Vixsrc
@@ -1057,7 +1039,7 @@ const StreamingSources = memo(function StreamingSources({
           })
         )}
       </div>
-    </div>
+    </div >
   );
 });
 

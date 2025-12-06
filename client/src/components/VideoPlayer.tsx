@@ -408,9 +408,34 @@ export default function VideoPlayer({
     }
   };
 
+  const [subtitleOffset, setSubtitleOffset] = useState(0);
+
+  // Apply subtitle offset
+  const handleSubtitleOffsetChange = (offset: number) => {
+    const diff = offset - subtitleOffset;
+    setSubtitleOffset(offset);
+
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const tracks = Array.from(video.textTracks);
+      const activeTrack = tracks.find(t => t.mode === 'showing');
+
+      if (activeTrack && activeTrack.cues) {
+        Array.from(activeTrack.cues).forEach((cue: any) => {
+          cue.startTime += diff;
+          cue.endTime += diff;
+        });
+        console.log(`✅ [VideoPlayer] Applied subtitle offset: ${diff}s (Total: ${offset}s)`);
+      }
+    }
+  };
+
+  // ... (existing code)
+
   // Handle subtitle selection
   const handleSubtitleSelect = (subtitleUrl: string | null) => {
     setSelectedSubtitle(subtitleUrl);
+    setSubtitleOffset(0); // Reset offset on track change
 
     // Handle HLS internal subtitles
     if (hlsRef.current && subtitleUrl?.startsWith('hls://')) {
@@ -418,6 +443,8 @@ export default function VideoPlayer({
       if (!isNaN(trackIndex)) {
         hlsRef.current.subtitleTrack = trackIndex;
         console.log(`✅ [VideoPlayer] Switched to HLS subtitle track: ${trackIndex}`);
+
+        // Wait for track to switch and cues to load before applying any existing offset (if we wanted to persist it)
         return;
       }
     } else if (hlsRef.current) {
@@ -436,10 +463,6 @@ export default function VideoPlayer({
 
       if (subtitleUrl && !subtitleUrl.startsWith('hls://')) {
         // Find the track that matches the selected URL
-        // Since we use the proxy URL in the track src, we need to match by label/lang
-        // or just rely on the index if we knew it.
-        // But here we have the original URL as `subtitleUrl`.
-
         const selectedSub = subtitles.find(s => s.url === subtitleUrl);
         if (selectedSub) {
           // Give a small delay for the DOM to update
@@ -652,6 +675,8 @@ export default function VideoPlayer({
             subtitles={subtitles}
             selectedSubtitle={selectedSubtitle}
             onSubtitleSelect={handleSubtitleSelect}
+            subtitleOffset={subtitleOffset}
+            onSubtitleOffsetChange={handleSubtitleOffsetChange}
           />
         )}
       </div>

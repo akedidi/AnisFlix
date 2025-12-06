@@ -26,10 +26,47 @@ struct anisflixApp: App {
         CastManager.shared.initialize()
     }
     
+    @State private var showSplash = true
+
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .preferredColorScheme(theme.isDarkMode ? .dark : .light)
+            ZStack {
+                if showSplash {
+                    LaunchScreenView()
+                        .transition(.opacity)
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                withAnimation {
+                                    showSplash = false
+                                }
+                            }
+                        }
+                } else {
+                    MainTabView()
+                        .preferredColorScheme(theme.isDarkMode ? .dark : .light)
+                }
+            }
+        }
+    }
+}
+
+struct LaunchScreenView: View {
+    var body: some View {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+            VStack {
+                Image("AppIcon") // Tente d'utiliser l'icône de l'app
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 120, height: 120)
+                    .cornerRadius(20)
+                
+                Text("AnisFlix")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.red)
+                    .padding(.top, 20)
+            }
         }
     }
 }

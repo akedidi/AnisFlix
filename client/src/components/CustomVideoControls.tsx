@@ -33,6 +33,8 @@ interface CustomVideoControlsProps {
   subtitles?: Subtitle[];
   selectedSubtitle?: string | null;
   onSubtitleSelect?: (url: string | null) => void;
+  subtitleOffset?: number;
+  onSubtitleOffsetChange?: (offset: number) => void;
 }
 
 export default function CustomVideoControls({
@@ -56,6 +58,8 @@ export default function CustomVideoControls({
   subtitles = [],
   selectedSubtitle,
   onSubtitleSelect,
+  subtitleOffset = 0,
+  onSubtitleOffsetChange,
 }: CustomVideoControlsProps) {
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
@@ -135,7 +139,14 @@ export default function CustomVideoControls({
   const handleSeekCommit = () => {
     const newTime = (localProgress / 100) * duration;
     onSeek(newTime);
-    setIsDragging(false);
+    // Don't reset isDragging immediately to prevent jump back
+    // It will be reset when the video updates progress close to the target?
+    // Or better: rely on the fact that we just seeked.
+
+    // Simple fix: keep using localProgress until we get a progress update?
+    // Actually, let's just set isDragging to false. The issue is likely that 'progress' prop is still old.
+    // We can use a timeout to reset isDragging, or better, ignore progress updates for a short time.
+    setTimeout(() => setIsDragging(false), 1000);
   };
 
   return (
@@ -151,13 +162,13 @@ export default function CustomVideoControls({
           type="range"
           min="0"
           max="100"
-          value={localProgress}
+          value={isDragging ? localProgress : progress}
           onChange={handleSeekChange}
           onMouseUp={handleSeekCommit}
           onTouchEnd={handleSeekCommit}
           className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer hover:h-1.5 transition-all"
           style={{
-            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${localProgress}%, #4b5563 ${localProgress}%, #4b5563 100%)`
+            background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${isDragging ? localProgress : progress}%, #4b5563 ${isDragging ? localProgress : progress}%, #4b5563 100%)`
           }}
         />
       </div>
@@ -214,6 +225,40 @@ export default function CustomVideoControls({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
                 <DropdownMenuLabel>Sous-titres</DropdownMenuLabel>
+
+                {selectedSubtitle && (
+                  <div className="px-2 py-2 border-b">
+                    <div className="text-xs text-muted-foreground mb-2">Décalage (synchro)</div>
+                    <div className="flex items-center justify-between gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-8 p-0"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onSubtitleOffsetChange?.(subtitleOffset - 0.5);
+                        }}
+                      >
+                        -
+                      </Button>
+                      <span className="text-xs font-mono w-12 text-center">
+                        {subtitleOffset > 0 ? '+' : ''}{subtitleOffset.toFixed(1)}s
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 w-8 p-0"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onSubtitleOffsetChange?.(subtitleOffset + 0.5);
+                        }}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => onSubtitleSelect(null)}
