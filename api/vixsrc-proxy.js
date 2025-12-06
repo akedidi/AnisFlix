@@ -95,6 +95,12 @@ export default async function handler(req, res) {
             const cl = response.headers.get('content-length');
             if (cl) res.setHeader('Content-Length', cl);
 
+            // FORCE Content-Type for .ts segments (Chromecast is strict)
+            if (decodedUrl.includes('.ts')) {
+                console.log('[VIXSRC PROXY] Forcing Content-Type: video/mp2t for segment');
+                res.setHeader('Content-Type', 'video/mp2t');
+            }
+
             res.status(response.status);
 
             // Manual Pipe
@@ -106,6 +112,7 @@ export default async function handler(req, res) {
                         if (done) break;
                         res.write(value);
                     }
+                    console.log('[VIXSRC PROXY] Segment stream completed');
                 } catch (e) {
                     console.error('[VIXSRC PROXY] Stream Break:', e);
                 } finally {
