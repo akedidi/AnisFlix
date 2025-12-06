@@ -3,7 +3,7 @@ import axios from 'axios';
 export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
+    res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, HEAD, OPTIONS');
 
     if (req.method === 'OPTIONS') {
@@ -17,8 +17,16 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'URL Vixsrc requise' });
         }
 
-        // Décoder l'URL si elle est encodée
-        let decodedUrl = decodeURIComponent(url);
+        // Ne PAS décoder l'URL ici, req.query le fait déjà automatiquement
+        // Si on décode une deuxième fois, on casse les caractères spéciaux (ex: %2B -> + -> ' ')
+        let decodedUrl = url;
+
+        console.log('[Vixsrc Proxy] Incoming Request:', {
+            originalUrl: url,
+            decodedUrl: decodedUrl,
+            headers: req.headers,
+            method: req.method
+        });
 
         // Vérifier si l'URL contient déjà le chemin du proxy (double encodage)
         if (decodedUrl.includes('/api/vixsrc-proxy')) {
@@ -46,22 +54,23 @@ export default async function handler(req, res) {
             headers['Range'] = req.headers.range;
         }
 
-        const response = await axios.get(decodedUrl, {
-            responseType: 'arraybuffer', // Important pour les segments binaires
-            timeout: 15000,
-            headers: headers,
-            validateStatus: () => true // Accepter tous les status codes
+        const response = await fetch(decodedUrl, {
+            headers: headers
         });
 
-        console.log(`[VIXSRC PROXY] Response status: ${response.status}`);
+        console.log('[Vixsrc Proxy] Vixsrc Response:', {
+            status: response.status,
+            statusText: response.statusText,
+            contentType: response.headers.get('content-type')
+        });
 
-        if (response.status >= 400) {
-            console.error(`[VIXSRC PROXY] Error from upstream: ${response.status}`);
-            return res.status(response.status).send(response.data);
+        if (!response.ok) {
+            console.error('[Vixsrc Proxy] Vixsrc Error Response:', await response.text());
+            throw new Error(`Vixsrc responded with ${response.status}: ${response.statusText}`);
         }
 
         // Copier les headers pertinents
-        const contentType = response.headers['content-type'];
+        const contentType = response.headers.get('content-type');
         console.log(`[VIXSRC PROXY] Upstream Content-Type: ${contentType}`);
 
         if (contentType) res.setHeader('Content-Type', contentType);

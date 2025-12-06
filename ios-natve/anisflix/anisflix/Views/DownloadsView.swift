@@ -27,6 +27,9 @@ struct DownloadsView: View {
     @State private var itemToDelete: DownloadItem?
     @State private var showDeleteAlert = false
     
+    @State private var itemToCancel: DownloadItem? // Added for cancellation
+    @State private var showCancelAlert = false     // Added for cancellation
+    
     var body: some View {
         ZStack {
             theme.backgroundColor.ignoresSafeArea()
@@ -104,7 +107,10 @@ struct DownloadsView: View {
                         ScrollView {
                             LazyVStack(spacing: 16) {
                                 ForEach(activeDownloads) { item in
-                                    ActiveDownloadRow(item: item)
+                                    ActiveDownloadRow(item: item) {
+                                        itemToCancel = item
+                                        showCancelAlert = true
+                                    }
                                 }
                             }
                             .padding()
@@ -116,20 +122,42 @@ struct DownloadsView: View {
         }
         .navigationTitle(theme.t("downloads.title"))
         .navigationBarHidden(true)
-        .alert(isPresented: $showDeleteAlert) {
-            Alert(
-                title: Text(theme.t("downloads.deleteAlertTitle")),
-                message: Text(theme.t("downloads.deleteAlertMessage")),
-                primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm"))) {
-                    if let item = itemToDelete {
-                        downloadManager.deleteDownload(id: item.id)
+        .alert(isPresented: Binding<Bool>(
+            get: { showDeleteAlert || showCancelAlert },
+            set: { _ in
+                showDeleteAlert = false
+                showCancelAlert = false
+            }
+        )) {
+            if showDeleteAlert {
+                return Alert(
+                    title: Text(theme.t("downloads.deleteAlertTitle")),
+                    message: Text(theme.t("downloads.deleteAlertMessage")),
+                    primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm"))) {
+                        if let item = itemToDelete {
+                            downloadManager.deleteDownload(id: item.id)
+                        }
+                        itemToDelete = nil
+                    },
+                    secondaryButton: .cancel(Text(theme.t("settings.cancel"))) {
+                        itemToDelete = nil
                     }
-                    itemToDelete = nil
-                },
-                secondaryButton: .cancel(Text(theme.t("settings.cancel"))) {
-                    itemToDelete = nil
-                }
-            )
+                )
+            } else {
+                return Alert(
+                    title: Text(theme.t("downloads.cancelAlertTitle") ?? "Annuler le téléchargement ?"),
+                    message: Text(theme.t("downloads.cancelAlertMessage") ?? "Voulez-vous vraiment annuler ce téléchargement ?"),
+                    primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm") ?? "Supprimer")) {
+                        if let item = itemToCancel {
+                            downloadManager.cancelDownload(id: item.id)
+                        }
+                        itemToCancel = nil
+                    },
+                    secondaryButton: .cancel(Text(theme.t("settings.cancel") ?? "Annuler")) {
+                        itemToCancel = nil
+                    }
+                )
+            }
         }
     }
 
@@ -251,8 +279,11 @@ struct CompletedDownloadRow: View {
 
 struct ActiveDownloadRow: View {
     let item: DownloadItem
+    let onCancel: () -> Void // Callback for cancellation
     @ObservedObject var downloadManager = DownloadManager.shared
     @ObservedObject var theme = AppTheme.shared
+    
+    // showCancelAlert removed from here
     
     var posterUrl: URL? {
         if let localPath = item.localPosterPath {
@@ -293,8 +324,8 @@ struct ActiveDownloadRow: View {
                 
                 if let season = item.season, let episode = item.episode {
                     Text("S\(season) E\(episode)")
-                        .font(.caption)
-                        .foregroundColor(theme.secondaryText)
+                    .font(.caption)
+                    .foregroundColor(theme.secondaryText)
                 }
                 
                 // Progress Bar
@@ -307,7 +338,7 @@ struct ActiveDownloadRow: View {
                         
                         Rectangle()
                             .fill(AppTheme.primaryRed)
-                            .frame(width: geometry.size.width * item.progress, height: 6)
+                            .frame(width: max(0, min(geometry.size.width * item.progress, geometry.size.width)), height: 6)
                             .cornerRadius(3)
                     }
                 }
@@ -347,7 +378,7 @@ struct ActiveDownloadRow: View {
                     }
                     
                     Button {
-                        downloadManager.cancelDownload(id: item.id)
+                        onCancel() // Call parent callback
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
@@ -359,6 +390,7 @@ struct ActiveDownloadRow: View {
         .padding(12)
         .background(theme.cardBackground)
         .cornerRadius(12)
+        // Alert removed from here
     }
     
     var statusText: String {
