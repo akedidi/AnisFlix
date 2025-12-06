@@ -490,6 +490,16 @@ export function useChromecast(): UseChromecastReturn {
     disconnect,
     showPicker,
     setActiveSubtitle: useCallback(async (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => {
+      // Tentative de récupération de secours de la session média
+      if (!mediaSessionRef.current && sessionRef.current) {
+        const session = sessionRef.current;
+        const mediaSession = session.getMediaSession();
+        if (mediaSession) {
+          console.log('[Chromecast] Session média récupérée à la volée (Lazy Load)');
+          mediaSessionRef.current = mediaSession;
+        }
+      }
+
       if (!mediaSessionRef.current || !window.chrome?.cast) {
         console.warn('[Chromecast] Pas de session média active pour changer les sous-titres');
         return;
