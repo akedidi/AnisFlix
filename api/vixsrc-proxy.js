@@ -97,16 +97,29 @@ export default async function handler(req, res) {
             // Réécrire les URLs
             const lines = playlist.split(/\r?\n/);
             const rewritten = lines.map((line) => {
-                if (!line || line.trim().startsWith('#')) return line;
-
-                try {
-                    // Résoudre l'URL relative
-                    const absoluteUrl = new URL(line, baseUrl).toString();
-                    // Proxifier
-                    return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
-                } catch (e) {
-                    return line;
+                // 1. Gérer les lignes qui sont des URLs directes (segments, playlists variantes)
+                if (line && !line.trim().startsWith('#')) {
+                    try {
+                        const absoluteUrl = new URL(line, baseUrl).toString();
+                        return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+                    } catch (e) {
+                        return line;
+                    }
                 }
+
+                // 2. Gérer les attributs URI="..." dans les tags (ex: #EXT-X-MEDIA:...,URI="...")
+                if (line && line.trim().startsWith('#') && line.includes('URI="')) {
+                    return line.replace(/URI="([^"]+)"/g, (match, uri) => {
+                        try {
+                            const absoluteUrl = new URL(uri, baseUrl).toString();
+                            return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}"`;
+                        } catch (e) {
+                            return match;
+                        }
+                    });
+                }
+
+                return line;
             }).join('\n');
 
             // Log preview of rewritten playlist
