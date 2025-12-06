@@ -40,8 +40,6 @@ struct FavoritesView: View {
                             .foregroundColor(theme.primaryText)
                         
                         Spacer()
-                        
-                        CastButton()
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)

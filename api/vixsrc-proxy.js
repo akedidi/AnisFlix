@@ -75,15 +75,16 @@ export default async function handler(req, res) {
 
         if (contentType) res.setHeader('Content-Type', contentType);
 
-        if (response.headers['content-length']) {
-            res.setHeader('Content-Length', response.headers['content-length']);
-        }
-        if (response.headers['content-range']) {
-            res.setHeader('Content-Range', response.headers['content-range']);
-        }
-        if (response.headers['accept-ranges']) {
-            res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
-        }
+        // Copier les headers pertinents
+        const headersToForward = ['content-length', 'content-range', 'accept-ranges'];
+        headersToForward.forEach(header => {
+            const value = response.headers.get(header);
+            if (value) {
+                res.setHeader(header.replace(/(^|-)(\w)/g, c => c.toUpperCase()), value);
+            }
+        });
+
+        const buffer = Buffer.from(await response.arrayBuffer());
 
         // Gérer les playlists M3U8
         const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
 
         if (isM3U8) {
             console.log(`[VIXSRC PROXY] Processing M3U8 playlist`);
-            let playlist = response.data.toString('utf-8');
+            let playlist = buffer.toString('utf-8');
 
             // Log preview of original playlist
             console.log(`[VIXSRC PROXY] Original playlist start: ${playlist.substring(0, 50).replace(/\n/g, '\\n')}`);
@@ -140,12 +141,12 @@ export default async function handler(req, res) {
         } else if (contentType && (contentType.includes('text/') || contentType.includes('json') || contentType.includes('xml') || contentType.includes('vtt'))) {
             // Handle text-based content (Subtitles, JSON, etc.)
             console.log(`[VIXSRC PROXY] Proxying text data (${contentType})`);
-            const textData = response.data.toString('utf-8');
+            const textData = buffer.toString('utf-8');
             res.status(response.status).send(textData);
         } else {
             // Pour les segments TS ou autres, envoyer directement
-            console.log(`[VIXSRC PROXY] Proxying binary data (${response.data.length} bytes)`);
-            res.status(response.status).send(response.data);
+            console.log(`[VIXSRC PROXY] Proxying binary data (${buffer.length} bytes)`);
+            res.status(response.status).send(buffer);
         }
 
     } catch (error) {
