@@ -83,9 +83,92 @@ export default function VideoPlayer({
     isPlayerActive: !!src
   });
 
+
   // Get getMediaTime from hook
   const { isConnected, cast, setActiveSubtitle, play: castPlay, pause: castPause, seek: castSeek, getMediaTime } = useChromecast();
   const [isCasting, setIsCasting] = useState(false);
+
+  // Initialize video source with hls.js or native player
+  useEffect(() => {
+    if (!videoRef.current || !src) return;
+
+    const video = videoRef.current;
+
+    console.log('🎬 [VideoPlayer] Initializing with src:', src, 'type:', type);
+
+    // Destroy previous hls instance if exists
+    if (hlsRef.current) {
+      console.log('🧹 [VideoPlayer] Destroying previous HLS instance');
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    // Determine if we need HLS.js (for m3u8 on non-Safari browsers)
+    const isM3u8 = src.includes('.m3u8') || type === 'm3u8';
+    const needsHls = isM3u8 && !video.canPlayType('application/vnd.apple.mpegurl');
+
+    if (needsHls) {
+      // Use HLS.js for m3u8 streams on browsers that don't natively support it
+      if (Hls.isSupported()) {
+        console.log('📺 [VideoPlayer] Using HLS.js for m3u8 stream');
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          backBufferLength: 90
+        });
+
+        hls.loadSource(src);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('✅ [VideoPlayer] HLS manifest parsed');
+          setSourceType('m3u8');
+          video.play().catch(e => console.log('Play failed:', e));
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('❌ [VideoPlayer] HLS error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('Fatal network error, trying to recover');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('Fatal media error, trying to recover');
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error('Fatal error, cannot recover');
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        hlsRef.current = hls;
+        setFinalMediaUrl(src);
+      } else {
+        console.error('❌ [VideoPlayer] HLS.js not supported on this browser');
+      }
+    } else {
+      // Use native HTML5 player for mp4 or m3u8 on Safari
+      console.log('📺 [VideoPlayer] Using native player for:', type || 'auto');
+      video.src = src;
+      setSourceType(isM3u8 ? 'm3u8' : 'mp4');
+      setFinalMediaUrl(src);
+      video.load();
+      video.play().catch(e => console.log('Play failed:', e));
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        console.log('🧹 [VideoPlayer] Cleanup: destroying HLS instance');
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [src, type]);
 
   // Sync isCasting state with Chromecast connection
   useEffect(() => {
