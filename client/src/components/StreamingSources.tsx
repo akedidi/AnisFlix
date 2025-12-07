@@ -812,6 +812,15 @@ const StreamingSources = memo(function StreamingSources({
           name: source.name,
           isVidMoly: true
         });
+      } else if (source.isVidzy) {
+        console.log('✅ Source Vidzy détectée, appel de onSourceClick');
+        // Pour Vidzy, passer au parent qui extraira le m3u8
+        onSourceClick({
+          url: source.url,
+          type: 'embed' as const,
+          name: source.name,
+          isVidzy: true
+        });
       } else if (source.isDarki) {
         console.log('✅ Source Darki détectée');
         // Pour Darki, on utilise le player dédié
