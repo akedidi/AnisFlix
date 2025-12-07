@@ -187,6 +187,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
+                            id: "cnews",
+                            name: "CNEWS",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/80/CNews_Logo.svg",
+                            links: [
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/itele/browser-HLS8/itele.m3u8" }
+                            ]
+                        },
+                        {
                             id: "bfm-business",
                             name: "BFM Business",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/7/78/BFM_Business_logo_2019.svg",
