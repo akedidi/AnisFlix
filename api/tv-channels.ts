@@ -128,7 +128,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "TMC",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/8/8f/TMC_logo_2016.svg",
                             links: [
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/78.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tmchd/browser-HLS8/tmchd.m3u8" }
                             ]
                         },
                         {
