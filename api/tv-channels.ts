@@ -181,9 +181,18 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "lci",
                             name: "LCI",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/3/33/LCI_logo_2019.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/LCI_-_La_Cha%C3%AEne_Info_%282016%29.svg/800px-LCI_-_La_Cha%C3%AEne_Info_%282016%29.svg.png",
                             links: [
-                                { type: "mpd", url: "https://viamotionhsi.netplus.ch/live/eds/lci/browser-dash/lci.mpd" }
+                                {
+                                    url: "https://live-lci.akamaized.net/hls/live/2038765/lci/master.m3u8",
+                                    type: "hls",
+                                    quality: "HD"
+                                },
+                                {
+                                    url: "https://viamotionhsi.netplus.ch/live/eds/lci/browser-dash/lci.mpd",
+                                    type: "mpd",
+                                    quality: "HD"
+                                }
                             ]
                         },
                         {
