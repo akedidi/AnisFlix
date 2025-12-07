@@ -100,88 +100,78 @@ struct TVHeaderView: View {
             // Autocomplete Results Overlay
             if showingResults && !searchResults.isEmpty {
                 VStack(spacing: 0) {
-                    // Safe area spacer
-                    Color.clear.frame(height: 0)
-                        .background(
-                            GeometryReader { geometry in
-                                Color.clear.preference(
-                                    key: SafeAreaTopKey.self,
-                                    value: geometry.safeAreaInsets.top
-                                )
-                            }
-                        )
+                    // Spacer for header
+                    Color.clear.frame(height: 60)
                     
-                    // Spacer for header (search bar height)
-                    Color.clear.frame(height: 70)
-                    
-                    // Results list - no ScrollView, fits content
-                    VStack(spacing: 0) {
-                        ForEach(searchResults) { channel in
-                            Button {
-                                // Play channel
-                                searchFieldFocused = false
-                                showingResults = false
-                                searchText = ""
-                                onChannelSelect?(channel)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    // Logo
-                                    AsyncImage(url: URL(string: channel.logo)) { phase in
-                                        switch phase {
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 50, height: 50)
-                                                .background(Color.white.opacity(0.1))
-                                                .cornerRadius(6)
-                                        default:
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(theme.cardBackground)
-                                                .frame(width: 50, height: 50)
-                                                .overlay(
-                                                    Image(systemName: "tv")
-                                                        .font(.caption)
-                                                        .foregroundColor(theme.secondaryText)
-                                                )
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            ForEach(searchResults) { channel in
+                                Button {
+                                    // Play channel
+                                    searchFieldFocused = false
+                                    showingResults = false
+                                    searchText = ""
+                                    onChannelSelect?(channel)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        // Logo
+                                        AsyncImage(url: URL(string: channel.logo)) { phase in
+                                            switch phase {
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 50, height: 50)
+                                                    .background(Color.white.opacity(0.1))
+                                                    .cornerRadius(6)
+                                            default:
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .fill(theme.cardBackground)
+                                                    .frame(width: 50, height: 50)
+                                                    .overlay(
+                                                        Image(systemName: "tv")
+                                                            .font(.caption)
+                                                            .foregroundColor(theme.secondaryText)
+                                                    )
+                                            }
                                         }
-                                    }
-                                    
-                                    // Info
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(channel.name)
-                                            .font(.body)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(theme.primaryText)
                                         
-                                        Text(channel.group)
-                                            .font(.caption)
-                                            .foregroundColor(theme.secondaryText)
+                                        // Info
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(channel.name)
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(theme.primaryText)
+                                            
+                                            Text(channel.group)
+                                                .font(.caption)
+                                                .foregroundColor(theme.secondaryText)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "play.circle.fill")
+                                            .font(.title2)
+                                            .foregroundColor(AppTheme.primaryRed)
                                     }
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "play.circle.fill")
-                                        .font(.title2)
-                                        .foregroundColor(AppTheme.primaryRed)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .background(theme.cardBackground)
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
-                                .background(theme.cardBackground)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            if channel.id != searchResults.last?.id {
-                                Divider()
-                                    .background(theme.secondaryText.opacity(0.1))
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                if channel.id != searchResults.last?.id {
+                                    Divider()
+                                        .background(theme.secondaryText.opacity(0.1))
+                                }
                             }
                         }
                     }
+                    .frame(maxHeight: 400)
                     .background(theme.cardBackground)
                     .cornerRadius(12)
                     .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
                     
                     Spacer()
                 }
