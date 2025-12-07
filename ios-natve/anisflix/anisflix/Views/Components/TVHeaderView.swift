@@ -114,69 +114,69 @@ struct TVHeaderView: View {
                     // Spacer for header (search bar height)
                     Color.clear.frame(height: 70)
                     
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(searchResults) { channel in
-                                Button {
-                                    // Play channel
-                                    searchFieldFocused = false
-                                    showingResults = false
-                                    searchText = ""
-                                    onChannelSelect?(channel)
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        // Logo
-                                        AsyncImage(url: URL(string: channel.logo)) { phase in
-                                            switch phase {
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 50, height: 50)
-                                                    .background(Color.white.opacity(0.1))
-                                                    .cornerRadius(6)
-                                            default:
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(theme.cardBackground)
-                                                    .frame(width: 50, height: 50)
-                                                    .overlay(
-                                                        Image(systemName: "tv")
-                                                            .font(.caption)
-                                                            .foregroundColor(theme.secondaryText)
-                                                    )
-                                            }
+                    // Results list - no ScrollView, fits content
+                    VStack(spacing: 0) {
+                        ForEach(searchResults) { channel in
+                            Button {
+                                // Play channel
+                                searchFieldFocused = false
+                                showingResults = false
+                                searchText = ""
+                                onChannelSelect?(channel)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    // Logo
+                                    AsyncImage(url: URL(string: channel.logo)) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 50, height: 50)
+                                                .background(Color.white.opacity(0.1))
+                                                .cornerRadius(6)
+                                        default:
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(theme.cardBackground)
+                                                .frame(width: 50, height: 50)
+                                                .overlay(
+                                                    Image(systemName: "tv")
+                                                        .font(.caption)
+                                                        .foregroundColor(theme.secondaryText)
+                                                )
                                         }
-                                        
-                                        // Info
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(channel.name)
-                                                .font(.body)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(theme.primaryText)
-                                            
-                                            Text(channel.group)
-                                                .font(.caption)
-                                                .foregroundColor(theme.secondaryText)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "play.circle.fill")
-                                            .font(.title2)
-                                            .foregroundColor(AppTheme.primaryRed)
                                     }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(theme.cardBackground)
+                                    
+                                    // Info
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(channel.name)
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(theme.primaryText)
+                                        
+                                        Text(channel.group)
+                                            .font(.caption)
+                                            .foregroundColor(theme.secondaryText)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "play.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(AppTheme.primaryRed)
                                 }
-                                .buttonStyle(PlainButtonStyle())
-                                
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(theme.cardBackground)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            if channel.id != searchResults.last?.id {
                                 Divider()
                                     .background(theme.secondaryText.opacity(0.1))
                             }
                         }
                     }
-                    .frame(maxHeight: 400)
                     .background(theme.cardBackground)
                     .cornerRadius(12)
                     .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
@@ -194,7 +194,7 @@ struct TVHeaderView: View {
                             showingResults = false
                         }
                 )
-                .zIndex(999) // Very high zIndex to be above everything
+                .zIndex(1000) // Higher than player's zIndex (100)
             }
         }
     }
