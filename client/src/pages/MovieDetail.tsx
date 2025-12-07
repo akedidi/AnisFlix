@@ -262,7 +262,7 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean }) => {
     setIsLoadingSource(true);
     try {
       // Pour VidMoly, passer le lien embed original au VidMolyPlayer
@@ -291,6 +291,22 @@ export default function MovieDetail() {
         return;
       }
 
+      // Pour Vidzy, extraire le m3u8
+      if (source.isVidzy && source.type === "embed") {
+        console.log("🎬 Extraction Vidzy pour:", source.url);
+        const m3u8Url = await extractVidzyM3u8(source.url);
+        console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
+        if (!m3u8Url) {
+          console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
+          alert("Aucun lien de streaming trouvé pour cette source Vidzy");
+          setIsLoadingSource(false);
+          return;
+        }
+        setSelectedSource({ url: m3u8Url, type: "m3u8", name: source.name });
+        setIsLoadingSource(false);
+        return;
+      }
+
       // Pour Vixsrc, passer par le proxy pour gérer les headers (Referer, User-Agent)
       if ((source as any).isVixsrc && source.url) {
         console.log('🎬 Source Vixsrc détectée, utilisation du proxy:', source.url);
@@ -314,21 +330,23 @@ export default function MovieDetail() {
         const m3u8Url = await extractVidzyM3u8(source.url);
         console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
         if (!m3u8Url) {
-          console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
+          console.warn("⚠️Aucun lien m3u8 trouvé pour Vidzy");
           alert("Aucun lien de streaming trouvé pour cette source Vidzy");
+          setIsLoadingSource(false);
           return;
         }
         setSelectedSource({ url: m3u8Url, type: "m3u8", name: source.name });
+        setIsLoadingSource(false);
         return;
       }
 
       // Cas général
       setSelectedSource(source);
+      setIsLoadingSource(false);
     } catch (error) {
       console.error("Erreur lors du chargement de la source:", error);
       const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement de la source";
       alert(`Erreur Vidzy: ${errorMessage}`);
-    } finally {
       setIsLoadingSource(false);
     }
   };
