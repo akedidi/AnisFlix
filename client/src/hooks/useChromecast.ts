@@ -490,18 +490,40 @@ export function useChromecast(): UseChromecastReturn {
     disconnect,
     showPicker,
     setActiveSubtitle: useCallback(async (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => {
-      // Tentative de récupération de secours de la session média
-      if (!mediaSessionRef.current && sessionRef.current) {
-        const session = sessionRef.current;
-        const mediaSession = session.getMediaSession();
-        if (mediaSession) {
-          console.log('[Chromecast] Session média récupérée à la volée (Lazy Load)');
-          mediaSessionRef.current = mediaSession;
+      // Aggressively try to find the session from the SDK directly
+      let mediaSession = mediaSessionRef.current;
+
+      if (!mediaSession) {
+        console.log('[Chromecast] mediaSessionRef vide, tentative de récupération via SDK...');
+        try {
+          const context = window.cast?.framework?.CastContext?.getInstance();
+          const session = context?.getCurrentSession();
+
+          if (session) {
+            console.log('[Chromecast] Session SDK trouvée');
+            // Update ref for future use
+            sessionRef.current = session;
+
+            mediaSession = session.getMediaSession();
+            if (mediaSession) {
+              console.log('[Chromecast] Session média récupérée depuis la session SDK:', mediaSession.mediaSessionId);
+              mediaSessionRef.current = mediaSession;
+            } else {
+              console.warn('[Chromecast] La session SDK existe mais getMediaSession() renvoie null');
+            }
+          } else {
+            console.warn('[Chromecast] Pas de session SDK active (getCurrentSession est null)');
+          }
+        } catch (e) {
+          console.error('[Chromecast] Erreur lors de l\'accès au contexte SDK:', e);
         }
       }
 
-      if (!mediaSessionRef.current || !window.chrome?.cast) {
+      if (!mediaSession || !window.chrome?.cast) {
         console.warn('[Chromecast] Pas de session média active pour changer les sous-titres');
+
+        // Final fallback: Check remote player controller?
+        // Sometimes mediaSession is managed by RemotePlayerController
         return;
       }
 
@@ -510,11 +532,11 @@ export function useChromecast(): UseChromecastReturn {
         const tracksInfoRequest = new chromeCast.media.EditTracksInfoRequest(
           activeSubtitleUrl
             ? [subtitles.findIndex(s => s.url === activeSubtitleUrl) + 1]
-            : [] // Empty array disable subtitles
+            : []
         );
 
         await new Promise((resolve, reject) => {
-          mediaSessionRef.current.editTracksInfo(
+          mediaSession.editTracksInfo(
             tracksInfoRequest,
             resolve,
             reject
