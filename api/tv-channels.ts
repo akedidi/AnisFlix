@@ -181,6 +181,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfm-paris",
                             name: "BFM Paris",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/c/c4/BFM_Paris_Ile-de-France_logo_2019.svg",
                             links: [
                                 { type: "hls_direct", url: "https://www.viously.com/video/hls/G86AvlqLgXj/index.m3u8" }
                             ]
@@ -188,6 +189,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfm-lyon",
                             name: "BFM Lyon",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/4/43/BFM_Lyon_logo_2019.svg",
                             links: [
                                 { type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_LYON/index.m3u8?start=LIVE&end=END" }
                             ]
@@ -195,6 +197,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfm-litoral",
                             name: "BFM Litoral",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/6/69/BFM_Grand_Littoral_logo_2019.svg",
                             links: [
                                 { type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFMGRANDLITTORAL/index.m3u8?start=LIVE&end=END" }
                             ]
@@ -202,6 +205,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfm-alsace",
                             name: "BFM Alsace",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/3/35/BFM_Alsace_logo_2020.svg",
                             links: [
                                 { type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFM_ALSACE/index.m3u8?start=LIVE&end=END" }
                             ]
@@ -209,6 +213,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfm-grand-lille",
                             name: "BFM Grand Lille",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/c/c5/BFM_GrandLille_logo_2020.svg",
                             links: [
                                 { type: "hls_direct", url: "https://ncdn-live-bfm.pfd.sfr.net/shls/LIVE$BFMGRANDLILLE/index.m3u8?start=LIVE&end=END" }
                             ]
@@ -238,6 +243,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bein-sports-2",
                             name: "Bein Sports 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/77/BeIN_Sports_logo_%282017%29.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/49.m3u8" }
                             ]
@@ -245,6 +251,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bein-sports-3",
                             name: "Bein Sports 3",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/77/BeIN_Sports_logo_%282017%29.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/50.m3u8" }
                             ]
@@ -252,6 +259,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "canal-plus-foot",
                             name: "Canal+ Foot",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Canal%2B.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/88.m3u8" }
                             ]
@@ -259,6 +267,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "canal-plus-sport-360",
                             name: "Canal+ Sport 360",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Canal%2B.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/58.m3u8" }
                             ]
@@ -266,6 +275,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rmc-sport-1",
                             name: "RMC Sport 1",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/RMC_Sport_logo_2019.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/33.m3u8" }
                             ]
@@ -273,6 +283,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rmc-sport-2",
                             name: "RMC Sport 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/RMC_Sport_logo_2019.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/40.m3u8" }
                             ]
@@ -280,6 +291,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rmc-sport-3",
                             name: "RMC Sport 3",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/RMC_Sport_logo_2019.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/42.m3u8" }
                             ]
@@ -301,6 +313,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "syfy",
                             name: "Syfy",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/b/be/SYFY.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/91.m3u8" }
                             ]
@@ -314,6 +327,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "game-one",
                             name: "Game One",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/c/c7/Game_One_logo_2016.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/104.m3u8" }
                             ]
@@ -321,6 +335,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "mangas",
                             name: "Mangas",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/d/da/Mangas_%28cha%C3%AEne_de_t%C3%A9l%C3%A9vision%29_logo_2017.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/97.m3u8" }
                             ]
@@ -328,6 +343,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "boomerang",
                             name: "Boomerang",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Boomerang_2014_logo.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/180.m3u8" }
                             ]
@@ -335,6 +351,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "cartoon-network",
                             name: "Cartoon Network",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Cartoon_Network_logo_2010.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/76.m3u8" }
                             ]
@@ -356,6 +373,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "natgeo-wild",
                             name: "National Geographic Wild",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/2/27/National_Geographic_Wild_logo.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/82.m3u8" }
                             ]
@@ -369,6 +387,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "tcm-cinema",
                             name: "TCM Cinema",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/8/83/TCM_logo.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/95.m3u8" }
                             ]
@@ -388,6 +407,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-1",
                             name: "ElKass 1",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
                                 { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
                             ]
@@ -395,6 +415,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-2",
                             name: "ElKass 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
                                 { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8" }
                             ]
@@ -402,6 +423,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-3",
                             name: "ElKass 3",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
                                 { type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8" }
                             ]
@@ -409,6 +431,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-4",
                             name: "ElKass 4",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
                                 { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
                             ]
@@ -422,6 +445,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "watania-1",
                             name: "Watania 1",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/3/32/Watania_1.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tunisienationale/browser-HLS8/tunisienationale.m3u8" }
                             ]
@@ -429,6 +453,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "hiwar-tounsi",
                             name: "Hiwar Tounsi",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/76/Hiwar_ettounsi_TV.png",
                             links: [
                                 { type: "hls_direct", url: "https://live20.bozztv.com/akamaissh101/ssh101/venolie-hiwar/playlist.m3u8" }
                             ]
@@ -450,6 +475,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "eljazira-english",
                             name: "ElJazira English",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/7/71/Aljazeera.svg",
                             links: [
                                 { type: "hls_direct", url: "https://live-hls-web-aje.getaj.net/AJE/04.m3u8" }
                             ]
@@ -457,6 +483,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rt-arabe",
                             name: "RT Arabe",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Russia-today-logo.svg",
                             links: [
                                 { type: "hls_direct", url: "https://rt-arb.rttv.com/live/rtarab/playlist.m3u8" }
                             ]
