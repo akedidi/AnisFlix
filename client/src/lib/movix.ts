@@ -157,8 +157,10 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
 
     // Pour Vidzy, utiliser le proxy pour gérer les headers (Referer, User-Agent)
     // Le m3u8 extrait nécessite des headers spécifiques pour fonctionner
-    const proxyUrl = `${window.location.origin}/api/vidzy?url=${encodeURIComponent(m3u8Url)}`;
-    console.log('📺 Vidzy m3u8 URL via proxy:', proxyUrl);
+    // Utiliser une URL absolue pour la compatibilité Chromecast
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://anisflix.vercel.app';
+    const proxyUrl = `${baseUrl}/api/vidzy?url=${encodeURIComponent(m3u8Url)}`;
+    console.log('📺 Vidzy m3u8 URL via proxy (absolute):', proxyUrl);
     return proxyUrl;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
