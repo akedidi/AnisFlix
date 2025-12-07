@@ -354,8 +354,8 @@ class TVService {
     
     func getFilteredLinks(for channel: TVChannel) -> [TVChannelLink] {
         guard let links = channel.links else { return [] }
-        // On iOS (Native), filter out MPD, keep only HLS
-        return links.filter { $0.type != "mpd" }
+        // Return all links - let the player handle compatibility
+        return links
     }
     
     func getProxyUrl(originalUrl: String, type: String) -> String {

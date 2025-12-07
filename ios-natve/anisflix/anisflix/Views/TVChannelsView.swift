@@ -287,7 +287,7 @@ struct TVChannelsView: View {
     }
     
     private func playChannel(_ channel: TVChannel) {
-        // Get filtered links (iOS native logic: remove MPD)
+        // Get all links (no filtering)
         let links = TVService.shared.getFilteredLinks(for: channel)
         
         if let firstLink = links.first {
