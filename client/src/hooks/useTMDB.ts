@@ -123,12 +123,8 @@ export const useLatestProviderSeries = (page = 1) => {
     queryKey: ["series", "latest-provider", page],
     queryFn: async () => {
       const data = await tmdb.getLatestProviderSeries(page);
-
-      // Deduplicate results based on ID
-      const uniqueResults = Array.from(new Map(data.results.map((item: any) => [item.id, item])).values());
-
       return {
-        results: uniqueResults.map(transformSeries),
+        results: data.results.map(transformSeries),
         total_pages: data.total_pages,
         page: data.page,
       };
