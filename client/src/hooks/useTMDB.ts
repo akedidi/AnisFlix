@@ -129,6 +129,8 @@ export const useLatestProviderSeries = (page = 1) => {
         page: data.page,
       };
     },
+    staleTime: 0, // Force fresh data on every mount
+    gcTime: 1000 * 60 * 5, // 5 minutes garbage collection
   });
 };
 
