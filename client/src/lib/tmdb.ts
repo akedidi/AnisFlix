@@ -210,16 +210,31 @@ export const tmdb = {
       page: page.toString(),
     };
 
+    const fetchRegion = (region: string, providers: string) =>
+      tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: providers, watch_region: region } as any);
+
     try {
-      // Parallel requests for each region
-      const [usData, gbData, frData] = await Promise.all([
-        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: usProviders, watch_region: 'US' } as any),
-        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: gbProviders, watch_region: 'GB' } as any),
-        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: frProviders, watch_region: 'FR' } as any)
+      // Parallel requests for each region with allSettled to survive partial failures
+      const results = await Promise.allSettled([
+        fetchRegion('US', usProviders),
+        fetchRegion('GB', gbProviders),
+        fetchRegion('FR', frProviders)
       ]);
 
-      // Combine results
-      const allResults = [...usData.results, ...gbData.results, ...frData.results];
+      const successfulData: any[] = [];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          successfulData.push(result.value);
+        } else {
+          console.warn('⚠️ [TMDB] One region failed:', result.reason);
+        }
+      });
+
+      // If all failed, throw to trigger catch block
+      if (successfulData.length === 0) throw new Error('All regions failed');
+
+      // Combine results from successful requests
+      const allResults = successfulData.flatMap(data => data.results || []);
 
       // Deduplicate based on ID
       const uniqueResultsMap = new Map();
@@ -230,16 +245,16 @@ export const tmdb = {
       });
       const uniqueResults = Array.from(uniqueResultsMap.values());
 
-      // Re-sort because merging might break strict date order
+      // Re-sort because merging might break strict date order logic
       uniqueResults.sort((a: any, b: any) => {
-        if (!a.first_air_date) return 1;
-        if (!b.first_air_date) return -1;
-        return b.first_air_date.localeCompare(a.first_air_date);
+        const dateA = a.first_air_date || '';
+        const dateB = b.first_air_date || '';
+        return dateB.localeCompare(dateA);
       });
 
-      // Pagination Mocking (approximate since we merge)
-      // we take max pages from any response to allow scrolling
-      const maxPages = Math.max(usData.total_pages, gbData.total_pages, frData.total_pages);
+      // Pagination Calculation
+      // Take the max pages from any successful region to allow deep scrolling
+      const maxPages = successfulData.reduce((max, data) => Math.max(max, data.total_pages || 1), 1);
 
       return {
         results: uniqueResults,
@@ -250,7 +265,7 @@ export const tmdb = {
 
     } catch (error) {
       console.error("Error fetching multi-region series:", error);
-      // Fallback to just US if fails
+      // Fallback to just US if everything fails
       return tmdbFetch('/discover/tv', {
         ...baseParams,
         with_watch_providers: usProviders,
