@@ -206,9 +206,9 @@ export default function MovieDetail() {
       name: source.quality, // Utiliser le nom du provider déjà formaté
       provider: source.provider.toUpperCase(),
       url: source.url,
-      type: 'embed' as const,
+      type: isVidzy ? 'm3u8' as const : 'embed' as const, // Vidzy uses m3u8 type like FStream
       isTopStream: false,
-      isFStream: false,
+      isFStream: isVidzy ? true : false, // Vidzy acts like FStream
       isMovixDownload: false,
       isVidMoly: isVidMoly,
       isVidzy: isVidzy,
