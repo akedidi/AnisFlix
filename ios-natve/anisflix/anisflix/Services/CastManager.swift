@@ -188,9 +188,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         let loadOptions = GCKMediaLoadOptions()
         loadOptions.playPosition = startTime
         loadOptions.autoplay = true
-        if !activeTrackIds.isEmpty {
-            loadOptions.activeTrackIDs = activeTrackIds
-        }
+        loadOptions.activeTrackIDs = activeTrackIds
         
         print("📢 [CastManager] Sending load request...")
         remoteMediaClient.loadMedia(mediaInfo, with: loadOptions)
