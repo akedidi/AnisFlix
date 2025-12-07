@@ -56,7 +56,7 @@ struct TVChannelsView: View {
                     // Section Tabs (Dynamic - from API)
                     if sections.count > 1 {
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 0) {
+                            HStack(spacing: 12) {
                                 ForEach(sections, id: \.id) { section in
                                     CategoryTabButton(
                                         title: section.name,
