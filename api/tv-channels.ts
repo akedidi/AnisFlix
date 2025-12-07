@@ -49,6 +49,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
+                            id: "france2",
+                            name: "France 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/78/France_2_2018.svg",
+                            links: [
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france2hd/browser-HLS8/france2hd.m3u8" }
+                            ]
+                        },
+                        {
                             id: "tf1-serie",
                             name: "TF1 Serie",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/d/d6/TF1_S%C3%A9ries_Films_logo_2018.svg",
@@ -69,8 +77,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "France 3",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/France_3_2018.svg",
                             links: [
-                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd.m3u8" },
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/138.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd.m3u8" }
                             ]
                         },
                         {
@@ -78,7 +85,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "France 4",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/8/8b/France_4_2018.svg",
                             links: [
-                                { type: "hls_direct", url: "https://raw.githubusercontent.com/ipstreet312/freeiptv/master/ressources/ftv/py/fr4.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france4hd/browser-HLS8/france4hd.m3u8" }
                             ]
                         },
                         {
