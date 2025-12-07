@@ -57,22 +57,6 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
-                            id: "tf1-serie",
-                            name: "TF1 Serie",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/d/d6/TF1_S%C3%A9ries_Films_logo_2018.svg",
-                            links: [
-                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "france2",
-                            name: "France 2",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/7a/France_2_2018.svg",
-                            links: [
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/137.m3u8" }
-                            ]
-                        },
-                        {
                             id: "france3",
                             name: "France 3",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/France_3_2018.svg",
@@ -101,29 +85,19 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "M6",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/M6_logo_2018.svg",
                             links: [
-                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd.m3u8" },
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/102.m3u8" }
+                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/136.m3u8" }
                             ]
                         },
                         {
                             id: "arte",
                             name: "Arte",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Arte_Logo_2016.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/f/fe/ARTE_Logo_2017.svg",
                             links: [
-                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/artehd/browser-HLS8/artehd.m3u8" }
+                                { type: "hls_direct", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master.m3u8" }
                             ]
                         },
                         {
-                            id: "tfx",
-                            name: "TFX",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/6/68/TFX_logo_2018.svg",
-                            links: [
-                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/nt1/browser-HLS8/nt1.m3u8" },
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/77.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "canal-plus",
+                            id: "canal",
                             name: "Canal+",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Canal%2B.svg",
                             links: [
