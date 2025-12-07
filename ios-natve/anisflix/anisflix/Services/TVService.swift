@@ -340,17 +340,14 @@ class TVService {
         return groups
     }
     
+    
     func searchChannels(query: String) async -> [TVChannel] {
         guard !query.isEmpty else { return [] }
         let lowerQuery = query.lowercased()
         
-        // Ensure logos are loaded
-        if !areLogosLoaded {
-            await loadLogos()
-        }
-        
-        let allChannels = try? await fetchChannels()
-        return (allChannels ?? []).filter { $0.name.lowercased().contains(lowerQuery) }
+        // Fetch from API
+        let allChannels = (try? await fetchChannels()) ?? []
+        return allChannels.filter { $0.name.lowercased().contains(lowerQuery) }
     }
     
     // MARK: - Proxy & Link Logic

@@ -946,7 +946,7 @@ export default function TVChannels() {
       id: index + 1, // Utiliser un ID numérique pour la compatibilité
       title: channel.name,
       mediaType: 'tv' as const,
-      posterPath: channelLogos[channel.id] || '',
+      posterPath: channel.logo || '', // Use logo from API
       year: '',
       section: channel.section,
       category: channel.category,
@@ -1027,32 +1027,7 @@ export default function TVChannels() {
     setSelectedLinkIndex(0);
   }, [selectedChannel]);
 
-  // Charger les logos des chaînes au démarrage
-  useEffect(() => {
-    const loadChannelLogos = async () => {
-      console.log('[LOGO LOADER] Début du chargement des logos...');
-      const logos: Record<string, string> = {};
-
-      for (const channel of TV_CHANNELS) {
-        try {
-          const logoUrl = await getChannelLogoUrl(channel.id);
-          if (logoUrl) {
-            logos[channel.id] = logoUrl;
-            console.log(`[LOGO LOADER] Logo trouvé pour ${channel.name}: ${logoUrl}`);
-          } else {
-            console.log(`[LOGO LOADER] Aucun logo trouvé pour ${channel.name}`);
-          }
-        } catch (error) {
-          console.error(`[LOGO LOADER] Erreur pour ${channel.name}:`, error);
-        }
-      }
-
-      setChannelLogos(logos);
-      console.log(`[LOGO LOADER] ${Object.keys(logos).length} logos chargés sur ${TV_CHANNELS.length} chaînes`);
-    };
-
-    loadChannelLogos();
-  }, []);
+  // Note: Logos are now loaded from API, no need for separate logo loading
 
   // Gestion de la navigation native (iOS swipe back / Android back button)
   // La navigation native est maintenant gérée globalement dans CommonLayout
