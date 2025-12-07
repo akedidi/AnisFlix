@@ -141,7 +141,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             // Construct Proxy URL
             // https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>&offset=<OFFSET>
             var components = URLComponents(string: "https://anisflix.vercel.app/api/media-proxy")
-            var queryItems = [URLQueryItem(name: "url", value: sub.url)]
+            var queryItems = [
+                URLQueryItem(name: "type", value: "subtitle"),
+                URLQueryItem(name: "url", value: sub.url)
+            ]
             if subtitleOffset != 0 {
                 queryItems.append(URLQueryItem(name: "offset", value: String(subtitleOffset)))
             }
