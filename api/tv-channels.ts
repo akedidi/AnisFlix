@@ -91,9 +91,9 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "france5",
                             name: "France 5",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/0/0e/France_5_2018.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/8/85/France_5_2018.svg",
                             links: [
-                                { type: "hls_segments", url: "https://simulcast-p.ftven.fr/ZXhwPTE3NjA3ODM0NjF~YWNsPSUyZip~aG1hYz0wMTMyZjkyODNmZTQ5OGM4M2MwMDY4OGFkYjg1ODA5OGNkMmE0OWYwZjZkMTlhZGNlNjZlNzU5ZWMzMmYyYzAx/simulcast/France_5/hls_fr5/France_5-avc1_2500000=5.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france5hd/browser-HLS8/france5hd.m3u8" }
                             ]
                         },
                         {
