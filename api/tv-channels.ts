@@ -171,6 +171,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
+                            id: "franceinfo",
+                            name: "France Info",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/f/f8/Franceinfo_logo_2018.svg",
+                            links: [
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/franceinfo/browser-HLS8/franceinfo.m3u8" }
+                            ]
+                        },
+                        {
                             id: "bfm-business",
                             name: "BFM Business",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/7/78/BFM_Business_logo_2019.svg",
