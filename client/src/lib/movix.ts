@@ -33,11 +33,11 @@ export async function getMovieStream(
   try {
     const url = `${MOVIX_BASE_URL}/${provider}/movie/${movieId}`;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch ${provider} stream for movie ${movieId}`);
     }
-    
+
     const data = await response.json();
     return data as MovieStreamResponse;
   } catch (error) {
@@ -54,7 +54,7 @@ export async function getSeriesStream(
 ): Promise<SeriesStreamResponse> {
   try {
     let url: string;
-    
+
     switch (provider) {
       case "fstream":
         url = `${MOVIX_BASE_URL}/fstream/tv/${seriesId}/season/${season}`;
@@ -72,13 +72,13 @@ export async function getSeriesStream(
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
-    
+
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch ${provider} stream for series ${seriesId}`);
     }
-    
+
     const data = await response.json();
     return data as SeriesStreamResponse;
   } catch (error) {
@@ -90,7 +90,7 @@ export async function getSeriesStream(
 export async function getAllMovieStreams(movieId: number): Promise<Record<StreamProvider, any>> {
   const providers: StreamProvider[] = ["fstream", "topstream", "wiflix"];
   const results: Record<string, any> = {};
-  
+
   await Promise.allSettled(
     providers.map(async (provider) => {
       try {
@@ -100,7 +100,7 @@ export async function getAllMovieStreams(movieId: number): Promise<Record<Stream
       }
     })
   );
-  
+
   return results as Record<StreamProvider, any>;
 }
 
@@ -111,7 +111,7 @@ export async function getAllSeriesStreams(
 ): Promise<Record<StreamProvider, any>> {
   const providers: StreamProvider[] = ["fstream", "topstream", "wiflix"];
   const results: Record<string, any> = {};
-  
+
   await Promise.allSettled(
     providers.map(async (provider) => {
       try {
@@ -121,7 +121,7 @@ export async function getAllSeriesStreams(
       }
     })
   );
-  
+
   return results as Record<StreamProvider, any>;
 }
 
@@ -135,30 +135,31 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
     // Utiliser l'API client pour la compatibilité iOS/Web
     const { apiClient } = await import('./apiClient');
     const { getVidzyProxyUrl } = await import('../utils/urlUtils');
-    
+
     console.log('🔍 Vidzy extraction avec API client pour:', vidzyUrl);
-    
+
     const data = await apiClient.extractVidzy(vidzyUrl);
     console.log('✅ Vidzy API Response:', data);
-    
+
     // Vérifier si c'est une erreur
     if (data.error) {
       console.error('Erreur API Vidzy:', data.error, data.details);
       throw new Error(data.error);
     }
-    
+
     // Vérifier les deux clés possibles (extractedUrl ou m3u8Url)
     const m3u8Url = data.extractedUrl || data.m3u8Url;
-    
+
     if (!m3u8Url) {
       console.log('⚠️ Aucun lien m3u8 trouvé pour Vidzy');
       return null;
     }
-    
-    // Pour Vidzy, utiliser directement l'URL m3u8 extraite
-    // Pas besoin de proxy car l'URL est déjà extraite et valide
-    console.log('📺 Vidzy m3u8 URL directe:', m3u8Url);
-    return m3u8Url;
+
+    // Pour Vidzy, utiliser le proxy pour gérer les headers (Referer, User-Agent)
+    // Le m3u8 extrait nécessite des headers spécifiques pour fonctionner
+    const proxyUrl = `${window.location.origin}/api/vidzy-proxy?url=${encodeURIComponent(m3u8Url)}`;
+    console.log('📺 Vidzy m3u8 URL via proxy:', proxyUrl);
+    return proxyUrl;
   } catch (error) {
     console.error('Erreur lors de l\'extraction Vidzy:', error);
     // Ne pas re-throw pour éviter les crashes, retourner null à la place
