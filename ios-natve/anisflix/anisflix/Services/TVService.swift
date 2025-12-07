@@ -275,67 +275,66 @@ class TVService {
     
     // MARK: - Methods
     
+    
+    // MARK: - API Methods
+    
+    func fetchSections() async throws -> [TVSection] {
+        let url = URL(string: "\(baseUrl)/api/tv-channels")!
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let response = try JSONDecoder().decode(TVChannelsResponse.self, from: data)
+        return response.sections
+    }
+    
     func fetchChannels() async throws -> [TVChannel] {
-        if !areLogosLoaded {
-            await loadLogos()
+        let sections = try await fetchSections()
+        
+        // Convert API response to flat channel list
+        var allChannels: [TVChannel] = []
+        for section in sections {
+            for category in section.categories {
+                for apiChannel in category.channels {
+                    let channel = TVChannel(
+                        id: apiChannel.id,
+                        name: apiChannel.name,
+                        logo:apiChannel.logo ?? "",
+                        streamUrl: "", // Deprecated
+                        category: section.id, // Using section.id as category
+                        group: category.name,
+                        epgId: nil,
+                        links: apiChannel.links
+                    )
+                    allChannels.append(channel)
+                }
+            }
         }
         
-        // Update channels with logos
-        return channels.map { channel in
-            var updatedChannel = channel
-            if let logo = getLogoUrl(for: channel.id) {
-                updatedChannel = TVChannel(
-                    id: channel.id,
-                    name: channel.name,
-                    logo: logo,
-                    streamUrl: channel.streamUrl,
-                    category: channel.category,
-                    group: channel.group,
-                    epgId: channel.epgId,
-                    links: channel.links
-                )
-            }
-            return updatedChannel
-        }
+        return allChannels
     }
     
     func fetchGroups(category: String) async throws -> [TVGroup] {
-        let allChannels = try await fetchChannels()
+        let sections = try await fetchSections()
         
-        // Filter by category (France/Arab)
-        let sectionKey: String
-        if category == "France" {
-            sectionKey = "France"
-        } else if category == "Arab" || category == "Monde Arabe" {
-            sectionKey = "Arab"
-        } else {
-            sectionKey = category
+        // Find the section matching the category
+        guard let section = sections.first(where: { $0.id == category.lowercased() }) else {
+            return []
         }
         
-        let filtered = allChannels.filter { $0.category == sectionKey }
-        let grouped = Dictionary(grouping: filtered, by: { $0.group })
-        
-        // Custom order based on Web TV_SECTIONS
-        var order: [String] = []
-        if sectionKey == "France" {
-            order = ["Généraliste", "Info", "Sport", "Fiction & Série", "Jeunesse", "Découverte", "Cinéma"]
-        } else {
-            order = ["Sport", "Tunisie", "Info"]
-        }
-        
+        // Convert categories to groups
         var groups: [TVGroup] = []
-        
-        for name in order {
-            if let items = grouped[name] {
-                groups.append(TVGroup(id: name, name: name, channels: items))
+        for category in section.categories {
+            let channels = category.channels.map { apiChannel in
+                TVChannel(
+                    id: apiChannel.id,
+                    name: apiChannel.name,
+                    logo: apiChannel.logo ?? "",
+                    streamUrl: "", // Deprecated
+                    category: section.id,
+                    group: category.name,
+                    epgId: nil,
+                    links: apiChannel.links
+                )
             }
-        }
-        
-        // Add others if any
-        for (key, items) in grouped {
-            if !order.contains(key) {
-                groups.append(TVGroup(id: key, name: key, channels: items))
-            }
+            groups.append(TVGroup(id: category.id, name: category.name, channels: channels))
         }
         
         return groups

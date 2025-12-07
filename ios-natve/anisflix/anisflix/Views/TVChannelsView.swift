@@ -11,7 +11,8 @@ struct TVChannelsView: View {
     @ObservedObject var theme = AppTheme.shared
     
     // Data
-    @State private var selectedCategory: String = "France" // "France" or "Arab"
+    @State private var sections: [TVSection] = []
+    @State private var selectedSection: TVSection?
     @State private var groups: [TVGroup] = []
     @State private var selectedGroup: TVGroup?
     @State private var isLoading = true
@@ -52,17 +53,23 @@ struct TVChannelsView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // Category Tabs (France / Arab)
-                    HStack(spacing: 0) {
-                        CategoryTabButton(title: theme.t("tv.france"), isSelected: selectedCategory == "France") {
-                            switchCategory("France")
+                    // Section Tabs (Dynamic - from API)
+                    if sections.count > 1 {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 0) {
+                                ForEach(sections, id: \.id) { section in
+                                    CategoryTabButton(
+                                        title: section.name,
+                                        isSelected: selectedSection?.id == section.id
+                                    ) {
+                                        switchSection(section)
+                                    }
+                                }
+                            }
                         }
-                        CategoryTabButton(title: theme.t("tv.arabWorld"), isSelected: selectedCategory == "Arab") {
-                            switchCategory("Arab")
-                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
                     
                     // Groups Selector (Horizontal Scroll)
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -236,29 +243,42 @@ struct TVChannelsView: View {
         }
     }
     
+    
     private func loadData() async {
         // Only show loading initially
-        if groups.isEmpty {
+        if sections.isEmpty {
             isLoading = true
         }
         
         do {
-            groups = try await TVService.shared.fetchGroups(category: selectedCategory)
-            if let first = groups.first {
-                selectedGroup = first
+            sections = try await TVService.shared.fetchSections()
+            if let firstSection = sections.first {
+                selectedSection = firstSection
+                await loadGroups(for: firstSection)
             }
             isLoading = false
         } catch {
-            print("Error loading TV data: \(error)")
+            print("Error loading TV sections: \(error)")
             isLoading = false
         }
     }
     
-    private func switchCategory(_ category: String) {
-        guard selectedCategory != category else { return }
-        selectedCategory = category
+    private func loadGroups(for section: TVSection) async {
+        do {
+            groups = try  await TVService.shared.fetchGroups(category: section.id)
+            if let first = groups.first {
+                selectedGroup = first
+            }
+        } catch {
+            print("Error loading groups for section \(section.name): \(error)")
+        }
+    }
+    
+    private func switchSection(_ section: TVSection) {
+        guard selectedSection?.id != section.id else { return }
+        selectedSection = section
         Task {
-            await loadData()
+            await loadGroups(for: section)
         }
     }
     
