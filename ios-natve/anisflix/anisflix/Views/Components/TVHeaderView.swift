@@ -14,6 +14,7 @@ struct TVHeaderView: View {
     @State private var showingResults = false
     @ObservedObject var theme = AppTheme.shared
     @FocusState private var searchFieldFocused: Bool
+    @Binding var isSearchActive: Bool
     
     var onChannelSelect: ((TVChannel) -> Void)?
     
@@ -47,16 +48,18 @@ struct TVHeaderView: View {
                             .submitLabel(.search)
                             .focused($searchFieldFocused)
                             .onChange(of: searchText) { newValue in
-                                if newValue.count >= 1 {
+                                if newValue.count >= 2 {
                                     performSearch(query: newValue)
                                 } else {
                                     searchResults = []
                                     showingResults = false
+                                    isSearchActive = false
                                 }
                             }
                             .onSubmit {
                                 searchFieldFocused = false
                                 showingResults = false
+                                isSearchActive = false
                             }
                         
                         if !searchText.isEmpty {
@@ -64,6 +67,7 @@ struct TVHeaderView: View {
                                 searchText = ""
                                 searchResults = []
                                 showingResults = false
+                                isSearchActive = false
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(theme.secondaryText)
@@ -111,6 +115,7 @@ struct TVHeaderView: View {
                                     searchFieldFocused = false
                                     showingResults = false
                                     searchText = ""
+                                    isSearchActive = false
                                     onChannelSelect?(channel)
                                 } label: {
                                     HStack(spacing: 12) {
@@ -182,6 +187,7 @@ struct TVHeaderView: View {
                         .onTapGesture {
                             searchFieldFocused = false
                             showingResults = false
+                            isSearchActive = false
                         }
                 )
                 .zIndex(1000) // Higher than player's zIndex (100)
@@ -197,6 +203,7 @@ struct TVHeaderView: View {
             await MainActor.run {
                 searchResults = results
                 showingResults = !results.isEmpty
+                isSearchActive = !results.isEmpty
             }
         }
     }

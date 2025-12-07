@@ -21,7 +21,8 @@ struct TVChannelsView: View {
     @State private var playingChannel: TVChannel?
     @State private var currentStreamUrl: URL?
     @State private var isFullscreen = false
-    @StateObject private var playerVM = PlayerViewModel()
+    @StateObject private var playerVM = VideoPlayerViewModel()
+    @State private var isSearchActive = false // Track search overlay state
     
     // Grid Layout
     let columns = [
@@ -178,13 +179,16 @@ struct TVChannelsView: View {
             
             // Header
             if !isFullscreen {
-                TVHeaderView(title: theme.t("nav.tvChannels")) { channel in
+                TVHeaderView(
+                    title: theme.t("nav.tvChannels"),
+                    isSearchActive: $isSearchActive
+                ) { channel in
                     playChannel(channel)
                 }
             }
             
-            // Player Layer (Top of ZStack)
-            if let channel = playingChannel, let url = currentStreamUrl {
+            // Player Layer (Top of ZStack) - Hidden when search is active
+            if let channel = playingChannel, let url = currentStreamUrl, !isSearchActive {
                 VStack(spacing: 0) {
                     if !isFullscreen {
                         // Spacer to push player down below header
