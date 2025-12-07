@@ -96,11 +96,23 @@ struct TVHeaderView: View {
             }
             .background(theme.backgroundColor)
             
+            
             // Autocomplete Results Overlay
             if showingResults && !searchResults.isEmpty {
                 VStack(spacing: 0) {
-                    // Spacer for header
-                    Color.clear.frame(height: 60)
+                    // Safe area spacer
+                    Color.clear.frame(height: 0)
+                        .background(
+                            GeometryReader { geometry in
+                                Color.clear.preference(
+                                    key: SafeAreaTopKey.self,
+                                    value: geometry.safeAreaInsets.top
+                                )
+                            }
+                        )
+                    
+                    // Spacer for header (search bar height)
+                    Color.clear.frame(height: 70)
                     
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -167,19 +179,22 @@ struct TVHeaderView: View {
                     .frame(maxHeight: 400)
                     .background(theme.cardBackground)
                     .cornerRadius(12)
-                    .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 8)
                     .padding(.horizontal, 16)
+                    .padding(.top, 8)
                     
                     Spacer()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(
-                    Color.black.opacity(0.3)
+                    Color.black.opacity(0.5)
                         .ignoresSafeArea()
                         .onTapGesture {
                             searchFieldFocused = false
                             showingResults = false
                         }
                 )
+                .zIndex(999) // Very high zIndex to be above everything
             }
         }
     }
