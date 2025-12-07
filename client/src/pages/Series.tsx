@@ -4,7 +4,7 @@ import MediaCarousel from "@/components/MediaCarousel";
 import CommonLayout from "@/components/CommonLayout";
 import NativeHeader from "@/components/NativeHeader";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { useLatestSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
+import { useLatestProviderSeries, useSeriesByGenre, useMultiSearch } from "@/hooks/useTMDB";
 import { useScrollPosition } from "@/hooks/useScrollPosition";
 import { useNativeDetection } from "@/hooks/useNativeDetection";
 import { navPaths } from "@/lib/nativeNavigation";
@@ -31,7 +31,7 @@ export default function Series() {
   };
 
   // Fetch data from TMDB
-  const { data: latestSeriesData } = useLatestSeries();
+  const { data: latestSeriesData } = useLatestProviderSeries();
   const { data: actionSeriesData } = useSeriesByGenre(GENRES.ACTION);
   const { data: dramaSeriesData } = useSeriesByGenre(GENRES.DRAMA);
   const { data: crimeSeriesData } = useSeriesByGenre(GENRES.CRIME);

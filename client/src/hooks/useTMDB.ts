@@ -22,7 +22,7 @@ const transformMovie = (movie: any) => {
       backdrop_path: movie.backdrop_path
     });
   }
-  
+
   return {
     id: movie.id,
     title: movie.title,
@@ -47,7 +47,7 @@ const transformSeries = (series: any) => {
       backdrop_path: series.backdrop_path
     });
   }
-  
+
   return {
     id: series.id,
     title: series.name,
@@ -111,6 +111,24 @@ export const useLatestSeries = (page = 1) => {
       const data = await tmdb.getLatestSeries(page);
       return {
         results: data.results.map(transformSeries),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
+    },
+  });
+};
+
+export const useLatestProviderSeries = (page = 1) => {
+  return useQuery({
+    queryKey: ["series", "latest-provider", page],
+    queryFn: async () => {
+      const data = await tmdb.getLatestProviderSeries(page);
+
+      // Deduplicate results based on ID
+      const uniqueResults = Array.from(new Map(data.results.map((item: any) => [item.id, item])).values());
+
+      return {
+        results: uniqueResults.map(transformSeries),
         total_pages: data.total_pages,
         page: data.page,
       };
@@ -282,7 +300,7 @@ export const useMultiSearch = (query: string) => {
       console.log('🔍 [USE MULTI SEARCH] Searching for:', query);
       const data = await tmdb.searchMulti(query);
       console.log('🔍 [USE MULTI SEARCH] Raw TMDB data:', data);
-      
+
       const transformedResults = data.results.map((item: any) => {
         console.log('🔍 [USE MULTI SEARCH] Processing item:', {
           id: item.id,
@@ -293,13 +311,13 @@ export const useMultiSearch = (query: string) => {
           backdrop_path: item.backdrop_path,
           first_air_date: item.first_air_date
         });
-        
+
         // Filtrer les films
         if (item.media_type === "movie") {
           const transformed = transformMovie(item);
           console.log('🔍 [USE MULTI SEARCH] Transformed movie:', transformed);
           return transformed;
-        } 
+        }
         // Filtrer les séries TV (pas les chaînes TV)
         else if (item.media_type === "tv" && item.first_air_date) {
           const transformed = transformSeries(item);
@@ -309,20 +327,20 @@ export const useMultiSearch = (query: string) => {
         console.log('🔍 [USE MULTI SEARCH] Item filtered out:', item);
         return null;
       }).filter(Boolean);
-      
+
       console.log('🔍 [USE MULTI SEARCH] Final transformed results:', transformedResults);
-      
+
       // Trier les résultats par popularité (du plus populaire au moins populaire)
       const sortedResults = transformedResults.sort((a: any, b: any) => {
         return (b.popularity || 0) - (a.popularity || 0);
       });
-      
+
       console.log('🔍 [USE MULTI SEARCH] Sorted by popularity:', sortedResults.slice(0, 5).map((item: any) => ({
         title: item.title,
         popularity: item.popularity,
         mediaType: item.mediaType
       })));
-      
+
       // Log spécifique pour One-Punch Man
       const onePunchMan = sortedResults.find((item: any) => item.id === 63926);
       if (onePunchMan) {
@@ -330,7 +348,7 @@ export const useMultiSearch = (query: string) => {
       } else {
         console.log('❌ [USE MULTI SEARCH] One-Punch Man NOT found in transformed results');
       }
-      
+
       return sortedResults;
     },
     enabled: query.length >= 1,
@@ -340,7 +358,7 @@ export const useMultiSearch = (query: string) => {
 export const useProviderCounts = (providerId: number) => {
   const { data: movies } = useMoviesByProvider(providerId);
   const { data: series } = useSeriesByProvider(providerId);
-  
+
   return {
     movieCount: movies?.results?.length || 0,
     tvCount: series?.results?.length || 0,
@@ -353,12 +371,12 @@ export const useMovixPlayerLinks = (imdbId: string | null, mediaType: 'movie' | 
     queryKey: ["movix-player-links", imdbId, mediaType],
     queryFn: async () => {
       if (!imdbId) return null;
-      
+
       const cleanImdbId = extractImdbId(imdbId);
       if (!cleanImdbId) {
         throw new Error('Invalid IMDB ID');
       }
-      
+
       return await getMovixPlayerLinks(cleanImdbId, mediaType);
     },
     enabled: !!imdbId && !!extractImdbId(imdbId),
@@ -373,7 +391,7 @@ export const useHLSProxyUrl = (masterM3u8Url: string | null) => {
     queryKey: ["hls-proxy-url", masterM3u8Url],
     queryFn: async () => {
       if (!masterM3u8Url) return null;
-      
+
       return await getHLSProxyUrl(masterM3u8Url);
     },
     enabled: !!masterM3u8Url && masterM3u8Url.includes('.m3u8'),

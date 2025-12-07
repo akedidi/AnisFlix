@@ -324,10 +324,12 @@ export default function SeriesDetail() {
                         ?.filter((episode: any) => {
                           // Ne montrer que les épisodes déjà diffusés (air_date dans le passé ou aujourd'hui)
                           if (!episode.air_date) return true; // Si pas de date, montrer quand même
-                          const airDate = new Date(episode.air_date);
+
+                          // Comparaison de chaînes de caractères (YYYY-MM-DD) pour éviter les problèmes de fuseau horaire
+                          // new Date("YYYY-MM-DD") est en UTC, alors que new Date() est en local
                           const today = new Date();
-                          today.setHours(0, 0, 0, 0); // Début de journée
-                          return airDate <= today;
+                          const todayStr = today.toISOString().split('T')[0];
+                          return episode.air_date <= todayStr;
                         })
                         ?.map((episode: any) => {
                           // Récupérer la progression de l'épisode

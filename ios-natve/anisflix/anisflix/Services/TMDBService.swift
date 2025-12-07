@@ -48,22 +48,62 @@ class TMDBService {
     func fetchLatestSeries(page: Int = 1, language: String? = nil) async throws -> [Media] {
         let lang = language ?? AppTheme.shared.tmdbLanguageCode
         
-        // Match web client logic:
-        // sort_by: 'first_air_date.desc'
-        // first_air_date.lte: today
-        // REMOVED: first_air_date.gte (Show all history)
-        // REMOVED: with_watch_monetization_types (Show all sources)
-        // REMOVED: watch_region
-        
         let today = Date()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let todayStr = dateFormatter.string(from: today)
         
-        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(lang)&page=\(page)&sort_by=first_air_date.desc&include_adult=false&include_null_first_air_dates=false&first_air_date.lte=\(todayStr)"
+        // Define regions and their providers
+        // US Providers: Netflix(8), Amazon(9), Disney+(337), AppleTV+(350), HBO(384|1899), Hulu(15), Peacock(386), Paramount+(531)
+        let usProviders = "8|9|337|350|384|1899|15|386|531"
         
-        let response: TMDBResponse = try await fetch(from: endpoint)
-        return response.results.map { $0.toMedia(mediaType: .series) }
+        // GB Providers: Netflix(8), Amazon(9), Disney+(337), BBC iPlayer(38), ITVX(41), Channel 4(103), Now TV(39), Sky Go(29), AppleTV+(350)
+        let gbProviders = "8|9|337|38|41|103|39|29|350"
+        
+        // FR Providers: Netflix(8), Amazon FR(119), Disney+(337), Canal+(381), Crunchyroll(283), AppleTV+(350)
+        let frProviders = "8|119|337|381|283|350"
+        
+        let regions = [
+            ("US", usProviders),
+            ("GB", gbProviders),
+            ("FR", frProviders)
+        ]
+        
+        // Use TaskGroup to fetch from all regions in parallel
+        var allResults: [TMDBMedia] = []
+        
+        try await withThrowingTaskGroup(of: TMDBResponse.self) { group in
+            for (region, providers) in regions {
+                let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(lang)&page=\(page)&sort_by=first_air_date.desc&include_adult=false&include_null_first_air_dates=false&first_air_date.lte=\(todayStr)&with_watch_providers=\(providers)&watch_region=\(region)&with_watch_monetization_types=flatrate"
+                
+                group.addTask {
+                    return try await self.fetch(from: endpoint)
+                }
+            }
+            
+            for try await response in group {
+                allResults.append(contentsOf: response.results)
+            }
+        }
+        
+        // Deduplicate results based on ID
+        var seenIds = Set<Int>()
+        let uniqueResults = allResults.filter { media in
+            if seenIds.contains(media.id) {
+                return false
+            } else {
+                seenIds.insert(media.id)
+                return true
+            }
+        }
+        
+        // Sort by date descending (merging might break order)
+        let sortedResults = uniqueResults.sorted { m1, m2 in
+            guard let d1 = m1.firstAirDate, let d2 = m2.firstAirDate else { return false }
+            return d1 > d2
+        }
+        
+        return sortedResults.map { $0.toMedia(mediaType: .series) }
     }
     
     // MARK: - Movies by Provider

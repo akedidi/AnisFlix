@@ -220,7 +220,14 @@ struct SeriesDetailView: View {
                                         .padding()
                                 } else if let season = seasonDetails {
                                     VStack(spacing: 16) {
-                                        ForEach(season.episodes) { episode in
+                                        ForEach(season.episodes.filter { episode in
+                                            // Show episodes with no date or episodes released today or in the past
+                                            guard let airDate = episode.airDate, !airDate.isEmpty else { return true }
+                                            let dateFormatter = DateFormatter()
+                                            dateFormatter.dateFormat = "yyyy-MM-dd"
+                                            let todayStr = dateFormatter.string(from: Date())
+                                            return airDate <= todayStr
+                                        }) { episode in
                                             VStack(alignment: .leading, spacing: 0) {
                                                 Button {
                                                     if selectedEpisodeId == episode.id {

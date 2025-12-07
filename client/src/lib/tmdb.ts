@@ -182,11 +182,81 @@ export const tmdb = {
       include_adult: 'false',
       include_null_first_air_dates: 'false',
       'first_air_date.lte': lastDateLte,
-      // 'first_air_date.gte': ... // REMOVED: On veut tout l'historique
-      // with_watch_monetization_types: 'flatrate', // REMOVED: On veut tout (pas que le streaming)
-      // watch_region: region, // REMOVED
       page: page.toString(),
     } as any);
+  },
+
+  getLatestProviderSeries: async (page = 1) => {
+    // "Smart" discovery: Recent series from major US, GB, and FR providers, sorted by date
+
+    // US Providers: Netflix(8), Amazon(9), Disney+(337), AppleTV+(350), HBO Max(384|1899), Hulu(15), Peacock(386), Paramount+(531)
+    const usProviders = "8|9|337|350|384|1899|15|386|531";
+
+    // GB Providers: Netflix(8), Amazon(9), Disney+(337), BBC iPlayer(38), ITVX(41), Channel 4(103), Now TV(39), Sky Go(29), AppleTV+(350)
+    const gbProviders = "8|9|337|38|41|103|39|29|350";
+
+    // FR Providers: Netflix(8), Amazon FR(119), Disney+(337), Canal+(381), Crunchyroll(283), AppleTV+(350)
+    const frProviders = "8|119|337|381|283|350";
+
+    const today = new Date();
+    const lastDateLte = today.toISOString().slice(0, 10);
+
+    const baseParams = {
+      sort_by: 'first_air_date.desc',
+      include_adult: 'false',
+      include_null_first_air_dates: 'false',
+      'first_air_date.lte': lastDateLte,
+      with_watch_monetization_types: 'flatrate',
+      page: page.toString(),
+    };
+
+    try {
+      // Parallel requests for each region
+      const [usData, gbData, frData] = await Promise.all([
+        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: usProviders, watch_region: 'US' } as any),
+        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: gbProviders, watch_region: 'GB' } as any),
+        tmdbFetch('/discover/tv', { ...baseParams, with_watch_providers: frProviders, watch_region: 'FR' } as any)
+      ]);
+
+      // Combine results
+      const allResults = [...usData.results, ...gbData.results, ...frData.results];
+
+      // Deduplicate based on ID
+      const uniqueResultsMap = new Map();
+      allResults.forEach(item => {
+        if (!uniqueResultsMap.has(item.id)) {
+          uniqueResultsMap.set(item.id, item);
+        }
+      });
+      const uniqueResults = Array.from(uniqueResultsMap.values());
+
+      // Re-sort because merging might break strict date order
+      uniqueResults.sort((a: any, b: any) => {
+        if (!a.first_air_date) return 1;
+        if (!b.first_air_date) return -1;
+        return b.first_air_date.localeCompare(a.first_air_date);
+      });
+
+      // Pagination Mocking (approximate since we merge)
+      // we take max pages from any response to allow scrolling
+      const maxPages = Math.max(usData.total_pages, gbData.total_pages, frData.total_pages);
+
+      return {
+        results: uniqueResults,
+        page: page,
+        total_pages: maxPages,
+        total_results: uniqueResults.length
+      };
+
+    } catch (error) {
+      console.error("Error fetching multi-region series:", error);
+      // Fallback to just US if fails
+      return tmdbFetch('/discover/tv', {
+        ...baseParams,
+        with_watch_providers: usProviders,
+        watch_region: 'US'
+      } as any);
+    }
   },
 
   getSeriesDetails: async (seriesId: number) => {
