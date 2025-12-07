@@ -42,9 +42,9 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "tf1",
                             name: "TF1",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/6/68/Logo_TF1_%282013%29.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/d/da/TF1_logo_2013.svg",
                             links: [
-                                { type: "mpd", url: "https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-dash/tf1hd.mpd" },
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/tf1hd.m3u8" },
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/87.m3u8" }
                             ]
                         },
@@ -184,14 +184,16 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/LCI_-_La_Cha%C3%AEne_Info_%282016%29.svg/800px-LCI_-_La_Cha%C3%AEne_Info_%282016%29.svg.png",
                             links: [
                                 {
-                                    url: "https://live-lci.akamaized.net/hls/live/2038765/lci/master.m3u8",
-                                    type: "hls",
-                                    quality: "HD"
+                                    type: "hls_direct",
+                                    url: "https://viamotionhsi.netplus.ch/live/eds/lci/browser-HLS8/lci.m3u8"
                                 },
                                 {
-                                    url: "https://viamotionhsi.netplus.ch/live/eds/lci/browser-dash/lci.mpd",
+                                    type: "hls_direct",
+                                    url: "https://live-lci.akamaized.net/hls/live/2038765/lci/master.m3u8"
+                                },
+                                {
                                     type: "mpd",
-                                    quality: "HD"
+                                    url: "https://viamotionhsi.netplus.ch/live/eds/lci/browser-dash/lci.mpd"
                                 }
                             ]
                         },
