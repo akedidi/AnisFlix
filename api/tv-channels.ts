@@ -117,7 +117,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "TF1 Serie",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/d/d6/TF1_S%C3%A9ries_Films_logo_2018.svg",
                             links: [
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/135.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/hd1/browser-HLS8/hd1.m3u8" }
                             ]
                         },
                         {
