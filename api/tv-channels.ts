@@ -103,6 +103,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Arte",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Arte_Logo_2016.svg",
                             links: [
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/artehd/browser-HLS8/artehd.m3u8" },
                                 { type: "hls_direct", url: "https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/master_v720.m3u8" }
                             ]
                         },
