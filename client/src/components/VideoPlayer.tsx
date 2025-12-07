@@ -83,7 +83,8 @@ export default function VideoPlayer({
     isPlayerActive: !!src
   });
 
-  const { isConnected, cast, setActiveSubtitle, play: castPlay, pause: castPause, seek: castSeek } = useChromecast();
+  // Get getMediaTime from hook
+  const { isConnected, cast, setActiveSubtitle, play: castPlay, pause: castPause, seek: castSeek, getMediaTime } = useChromecast();
   const [isCasting, setIsCasting] = useState(false);
 
   // Sync isCasting state with Chromecast connection
@@ -91,152 +92,57 @@ export default function VideoPlayer({
     setIsCasting(isConnected);
   }, [isConnected]);
 
-  // Fetch subtitles
+  // Poll Chromecast time when casting
   useEffect(() => {
-    const fetchSubtitles = async () => {
-      if (imdbId && mediaType) {
-        console.log('🔍 [VIDEO PLAYER] Fetching subtitles for IMDB ID:', imdbId);
-        const subs = await getSubtitles(
-          imdbId,
-          mediaType === 'tv' ? 'series' : 'movie',
-          seasonNumber,
-          episodeNumber
-        );
-        setSubtitles(subs);
-      } else {
-        setSubtitles([]);
-      }
-    };
+    if (!isCasting) return;
 
-    fetchSubtitles();
-  }, [imdbId, mediaType, seasonNumber, episodeNumber]);
-
-  useEffect(() => {
-    if (!videoRef.current || !src) return;
-
-    const video = videoRef.current;
-
-    console.log('🎬 [VIDEO PLAYER] URL reçue:', src);
-    console.log('🎬 [VIDEO PLAYER] Type spécifié:', type);
-
-    // Détection automatique du type de source
-    const detectedType = type === "auto"
-      ? (src.includes(".m3u8") || src.includes("m3u8") ? "m3u8" : "mp4")
-      : type;
-
-    console.log('🎬 [VIDEO PLAYER] Type détecté:', detectedType);
-    setSourceType(detectedType);
-
-    if (detectedType === "m3u8") {
-      // Vérifier si c'est une URL Darkibox et utiliser l'ancienne API
-      let finalSrc = src;
-      const isDarkibox = src.includes('darkibox.com');
-      if (isDarkibox) {
-        finalSrc = `/api/darkibox?url=${encodeURIComponent(src)}`;
-        console.log('🎬 [VIDEO PLAYER] URL Darkibox détectée, utilisation de l\'API legacy:', finalSrc);
-      }
-      setFinalMediaUrl(finalSrc);
-
-      // Lecture HLS
-      if (Hls.isSupported()) {
-        const hlsConfig: any = {
-          enableWorker: true,
-          lowLatencyMode: false,
-        };
-
-        // Si c'est Darkibox, proxifier toutes les requêtes (segments, sous-titres, etc.)
-        if (isDarkibox) {
-          hlsConfig.xhrSetup = function (xhr: XMLHttpRequest, url: string) {
-            // Ne proxifier que si l'URL n'est pas déjà proxifiée et contient darkibox.com
-            if (!url.includes('/api/darkibox') && url.includes('darkibox.com')) {
-              const proxyUrl = `/api/darkibox?url=${encodeURIComponent(url)}`;
-              xhr.open('GET', proxyUrl, true);
-            }
-          };
+    const interval = setInterval(async () => {
+      const time = await getMediaTime();
+      if (time > 0) {
+        setCurrentTime(time);
+        if (duration > 0) {
+          setProgress((time / duration) * 100);
         }
 
-        const hls = new Hls(hlsConfig);
-        hlsRef.current = hls;
-        hls.loadSource(finalSrc);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(err => console.warn("Autoplay failed:", err));
-        });
-
-        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
-          console.log('🎬 [VIDEO PLAYER] HLS Subtitles updated:', data.subtitleTracks);
-          if (data.subtitleTracks && data.subtitleTracks.length > 0) {
-            const hlsSubs: Subtitle[] = data.subtitleTracks.map((track, index) => ({
-              id: `hls-${index}`,
-              url: `hls://${index}`, // Special URL scheme for HLS tracks
-              lang: track.lang || 'unknown',
-              label: track.name || track.lang || `Track ${index + 1}`,
-              flag: '🏳️' // Default flag
-            }));
-
-            setSubtitles(prev => {
-              // Avoid duplicates if HLS reloads
-              const existingIds = new Set(prev.map(s => s.id));
-              const newSubs = hlsSubs.filter(s => !existingIds.has(s.id));
-              return [...prev, ...newSubs];
+        // Save progress periodically for Chromecast too
+        const now = Date.now();
+        if (now - lastSaveTimeRef.current >= 5000) {
+          if (duration > 0 && time > 0 && mediaId && mediaType) {
+            const prog = Math.round((time / duration) * 100);
+            saveWatchProgress({
+              mediaId,
+              mediaType,
+              title: title || "Vidéo",
+              posterPath: posterPath || null,
+              backdropPath: backdropPath || null,
+              currentTime: time,
+              duration: duration,
+              progress: prog,
+              seasonNumber,
+              episodeNumber,
             });
+            lastSaveTimeRef.current = now;
           }
-        });
-
-        hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) {
-            console.error("HLS error:", data);
-          }
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = finalSrc;
-        video.addEventListener('loadedmetadata', () => {
-          video.play().catch(err => console.warn("Autoplay failed:", err));
-        });
-      }
-    } else {
-      // Lecture MP4 directe
-      setFinalMediaUrl(src);
-      video.src = src;
-      video.load();
-      video.play().catch(err => console.warn("Autoplay failed:", err));
-    }
-
-    return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-    };
-  }, [src, type]);
-
-  // Restaurer la position de lecture
-  useEffect(() => {
-    if (!videoRef.current || !mediaId || !mediaType) return;
-
-    const video = videoRef.current;
-    const savedProgress = getMediaProgress(mediaId, mediaType, seasonNumber, episodeNumber);
-
-    if (savedProgress && savedProgress.currentTime > 0) {
-      const handleLoadedMetadata = () => {
-        if (video.duration > 0 && savedProgress.currentTime < video.duration - 5) {
-          video.currentTime = savedProgress.currentTime;
         }
-      };
+      }
+    }, 1000);
 
-      video.addEventListener('loadedmetadata', handleLoadedMetadata);
-      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    }
-  }, [mediaId, mediaType, seasonNumber, episodeNumber]);
+    return () => clearInterval(interval);
+  }, [isCasting, duration, mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber, getMediaTime]);
 
-  // Sauvegarder la progression périodiquement
+  // ...
+
+  // Sauvegarder la progression périodiquement (LOCAL VIDEO)
   useEffect(() => {
     if (!videoRef.current || !mediaId || !mediaType) return;
 
     const video = videoRef.current;
 
     const handleTimeUpdate = () => {
+      // Si on cast, on ignore les mises à jour de temps de la vidéo locale
+      // Sauf si on veut garder la vidéo locale synchro (mais elle est souvent en pause)
+      if (isCasting) return;
+
       const now = Date.now();
 
       // Mettre à jour le currentTime pour Chromecast
