@@ -47,6 +47,7 @@ interface StreamingSourcesProps {
     isFStream?: boolean;
     isMovixDownload?: boolean;
     isVidMoly?: boolean;
+    isVidzy?: boolean;
     isDarki?: boolean;
     isVixsrc?: boolean;
     quality?: string;
