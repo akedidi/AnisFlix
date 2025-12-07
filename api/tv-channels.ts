@@ -85,7 +85,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "M6",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/M6_logo_2018.svg",
                             links: [
-                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/136.m3u8" }
+                                { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd.m3u8" }
                             ]
                         },
                         {
