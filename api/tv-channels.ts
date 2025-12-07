@@ -113,6 +113,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
+                            id: "tf1-serie",
+                            name: "TF1 Serie",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/d/d6/TF1_S%C3%A9ries_Films_logo_2018.svg",
+                            links: [
+                                { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/135.m3u8" }
+                            ]
+                        },
+                        {
                             id: "w9",
                             name: "W9",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/3/35/W9_logo_2018.svg",
