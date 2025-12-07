@@ -13,6 +13,7 @@ import ShakaPlayer from "@/components/ShakaPlayer";
 import ChromecastButton from "@/components/ChromecastButton";
 import { apiClient } from "@/lib/apiClient";
 import { useLocation } from "wouter";
+import type { TVChannelsResponse, TVChannel as APITVChannel } from "@/types/tv-channels";
 
 // Extension des types pour window.scrollTimeout
 declare global {
@@ -826,6 +827,12 @@ const getFilteredLinks = (channel: TVChannel): TVChannelLink[] => {
 export default function TVChannels() {
   const { t } = useLanguage();
   const [, setLocation] = useLocation();
+
+  // API data state
+  const [channelsData, setChannelsData] = useState<TVChannelsResponse | null>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [selectedSection, setSelectedSection] = useState<string>("france");
   const [selectedCategory, setSelectedCategory] = useState<string>("Généraliste");
@@ -842,6 +849,56 @@ export default function TVChannels() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+
+  // Fetch TV channels data from API
+  useEffect(() => {
+    const fetchChannelsData = async () => {
+      try {
+        setIsLoadingData(true);
+        const baseUrl = apiClient.getPublicBaseUrl();
+        const response = await fetch(`${baseUrl}/api/tv-channels`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch TV channels');
+        }
+        const data: TVChannelsResponse = await response.json();
+        setChannelsData(data);
+        setDataError(null);
+      } catch (err) {
+        console.error('[TV CHANNELS] Error fetching data:', err);
+        setDataError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+    fetchChannelsData();
+  }, []);
+
+  // Convert API data to flat channel list (compatible with existing code)
+  const TV_CHANNELS: TVChannel[] = useMemo(() => {
+    if (!channelsData) return [];
+    return channelsData.sections.flatMap(section =>
+      section.categories.flatMap(category =>
+        category.channels.map(channel => ({
+          id: channel.id,
+          name: channel.name,
+          logo: channel.logo,
+          category: category.name,
+          section: section.id,
+          links: channel.links
+        }))
+      )
+    );
+  }, [channelsData]);
+
+  // Convert API data to sections list (compatible with existing code)
+  const TV_SECTIONS = useMemo(() => {
+    if (!channelsData) return [];
+    return channelsData.sections.map(section => ({
+      id: section.id,
+      name: section.name,
+      categories: section.categories.map(cat => cat.name)
+    }));
+  }, [channelsData]);
 
   // Mémoïser les liens filtrés pour la chaîne sélectionnée (évite boucle infinie)
   const filteredLinksForSelectedChannel = useMemo(() => {
@@ -1617,240 +1674,257 @@ export default function TVChannels() {
       onCustomSearch={setSearchQuery}
       onCustomSearchSelect={selectChannelFromSearch}
     >
-      <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
-        <div className="grid lg:grid-cols-[1fr_350px] gap-8">
-          <div className="space-y-6">
-            {selectedChannel ? (
-              <div className="space-y-4">
-                {/* Sélecteur de liens */}
-                {filteredLinksForSelectedChannel && filteredLinksForSelectedChannel.length > 1 ? (
-                  <Card className="p-4">
-                    <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {filteredLinksForSelectedChannel.map((link, index) => (
-                        <Button
-                          key={index}
-                          variant={selectedLinkIndex === index ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedLinkIndex(index)}
-                          className="text-xs"
-                        >
-                          Lien {index + 1}
-                        </Button>
-                      ))}
-                    </div>
-                  </Card>
-                ) : null}
+      {isLoadingData ? (
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-lg text-muted-foreground">Chargement des chaînes...</p>
+          </div>
+        </div>
+      ) : dataError ? (
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <p className="text-lg text-destructive mb-2">Erreur de chargement</p>
+              <p className="text-sm text-muted-foreground">{dataError}</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 -mt-12 md:mt-0">
+          <div className="grid lg:grid-cols-[1fr_350px] gap-8">
+            <div className="space-y-6">
+              {selectedChannel ? (
+                <div className="space-y-4">
+                  {/* Sélecteur de liens */}
+                  {filteredLinksForSelectedChannel && filteredLinksForSelectedChannel.length > 1 ? (
+                    <Card className="p-4">
+                      <h4 className="font-semibold mb-3">Choisir le lien de streaming :</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {filteredLinksForSelectedChannel.map((link, index) => (
+                          <Button
+                            key={index}
+                            variant={selectedLinkIndex === index ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedLinkIndex(index)}
+                            className="text-xs"
+                          >
+                            Lien {index + 1}
+                          </Button>
+                        ))}
+                      </div>
+                    </Card>
+                  ) : null}
 
-                <Card className="overflow-hidden">
-                  <div className="aspect-video bg-black relative">
-                    {/* Bouton Chromecast - En haut à droite */}
-                    {/* Afficher uniquement si l'URL est accessible publiquement (pas fremtv.lol ni mpd) */}
-                    {streamUrl && originalStreamUrl &&
-                      !originalStreamUrl.includes('fremtv.lol') &&
-                      !originalStreamUrl.includes('.mpd') && (
-                        <div className="absolute top-4 right-4 z-50">
-                          <ChromecastButton
-                            mediaUrl={originalStreamUrl}
-                            title={selectedChannel.name}
-                            posterUrl={channelLogos[selectedChannel.id]}
-                            currentTime={0}
-                            variant="ghost"
-                            size="icon"
-                            className="bg-black/50 hover:bg-black/70 text-white"
-                          />
+                  <Card className="overflow-hidden">
+                    <div className="aspect-video bg-black relative">
+                      {/* Bouton Chromecast - En haut à droite */}
+                      {/* Afficher uniquement si l'URL est accessible publiquement (pas fremtv.lol ni mpd) */}
+                      {streamUrl && originalStreamUrl &&
+                        !originalStreamUrl.includes('fremtv.lol') &&
+                        !originalStreamUrl.includes('.mpd') && (
+                          <div className="absolute top-4 right-4 z-50">
+                            <ChromecastButton
+                              mediaUrl={originalStreamUrl}
+                              title={selectedChannel.name}
+                              posterUrl={channelLogos[selectedChannel.id]}
+                              currentTime={0}
+                              variant="ghost"
+                              size="icon"
+                              className="bg-black/50 hover:bg-black/70 text-white"
+                            />
+                          </div>
+                        )}
+
+                      {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-white text-xl">Chargement du flux...</div>
+                        </div>
+                      )}
+                      {error && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-red-500 text-xl">{error}</div>
                         </div>
                       )}
 
-                    {isLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-white text-xl">Chargement du flux...</div>
-                      </div>
-                    )}
-                    {error && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-red-500 text-xl">{error}</div>
-                      </div>
-                    )}
-
-                    {/* Affichage conditionnel du player selon le type détecté */}
-                    {playerType === 'hls' && streamUrl ? (
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full"
-                        controls
-                        autoPlay // Activer autoPlay pour démarrer automatiquement
-                        playsInline // Forcer la lecture inline (pas fullscreen automatique)
-                        muted // Muter par défaut pour permettre l'autoPlay sur mobile
-                        data-testid="video-player-hls"
-                      />
-                    ) : playerType === 'shaka' && streamUrl ? (
-                      <ShakaPlayer
-                        url={streamUrl}
-                        title={selectedChannel.name}
-                        onClose={() => setSelectedChannel(null)}
-                        embedded={true}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white">
-                        <div className="text-center">
-                          <Tv className="w-12 h-12 mx-auto mb-2" />
-                          <p>Initialisation du player...</p>
+                      {/* Affichage conditionnel du player selon le type détecté */}
+                      {playerType === 'hls' && streamUrl ? (
+                        <video
+                          ref={videoRef}
+                          className="w-full h-full"
+                          controls
+                          autoPlay // Activer autoPlay pour démarrer automatiquement
+                          playsInline // Forcer la lecture inline (pas fullscreen automatique)
+                          muted // Muter par défaut pour permettre l'autoPlay sur mobile
+                          data-testid="video-player-hls"
+                        />
+                      ) : playerType === 'shaka' && streamUrl ? (
+                        <ShakaPlayer
+                          url={streamUrl}
+                          title={selectedChannel.name}
+                          onClose={() => setSelectedChannel(null)}
+                          embedded={true}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-white">
+                          <div className="text-center">
+                            <Tv className="w-12 h-12 mx-auto mb-2" />
+                            <p>Initialisation du player...</p>
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
-                        <div className="flex gap-2">
-                          <Badge variant="secondary">{selectedChannel.category}</Badge>
-                          <Badge variant="outline">{TV_SECTIONS.find(s => s.id === selectedChannel.section)?.name}</Badge>
-                          {playerType && (
-                            <Badge variant="outline" className="text-xs">
-                              {playerType === 'hls' ? 'HLS Player' : 'Shaka Player'}
-                            </Badge>
-                          )}
+                      )}
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-2xl font-bold mb-2">{selectedChannel.name}</h2>
+                          <div className="flex gap-2">
+                            <Badge variant="secondary">{selectedChannel.category}</Badge>
+                            <Badge variant="outline">{TV_SECTIONS.find(s => s.id === selectedChannel.section)?.name}</Badge>
+                            {playerType && (
+                              <Badge variant="outline" className="text-xs">
+                                {playerType === 'hls' ? 'HLS Player' : 'Shaka Player'}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </div>
-            ) : (
-              <div className="text-center py-20">
-                <Tv className="w-20 h-20 mx-auto mb-6 text-muted-foreground" />
-                <h2 className="text-2xl font-bold mb-2">Sélectionnez une chaîne</h2>
-                <p className="text-muted-foreground">
-                  Choisissez une section, puis une catégorie et une chaîne pour commencer à regarder
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation par sections et catégories */}
-          <div className="space-y-6">
-            {/* Sélection de section */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Sections</h3>
-              <div className="grid grid-cols-1 gap-2">
-                {TV_SECTIONS.map(section => (
-                  <Button
-                    key={section.id}
-                    variant={selectedSection === section.id ? "default" : "outline"}
-                    onClick={() => setSelectedSection(section.id)}
-                    className={`justify-start ${selectedSection === section.id
-                      ? "bg-blue-600 hover:bg-blue-700 text-white"
-                      : "border-blue-200 text-blue-600 hover:bg-blue-50"
-                      }`}
-                    data-testid={`section-${section.id}`}
-                  >
-                    {section.name}
-                  </Button>
-                ))}
-              </div>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-20">
+                  <Tv className="w-20 h-20 mx-auto mb-6 text-muted-foreground" />
+                  <h2 className="text-2xl font-bold mb-2">Sélectionnez une chaîne</h2>
+                  <p className="text-muted-foreground">
+                    Choisissez une section, puis une catégorie et une chaîne pour commencer à regarder
+                  </p>
+                </div>
+              )}
             </div>
 
-            {/* Sélection de catégorie */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Catégories</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {availableCategories.map(category => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`text-sm ${selectedCategory === category
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "border-green-200 text-green-600 hover:bg-green-50"
-                      }`}
-                    data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Liste des chaînes */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                Chaînes {TV_SECTIONS.find(s => s.id === selectedSection)?.name} - {selectedCategory}
-              </h3>
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                {filteredChannels.length > 0 ? (
-                  filteredChannels.map(channel => (
-                    <Card
-                      key={channel.id}
-                      className={`p-3 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedChannel?.id === channel.id
-                        ? 'ring-2 ring-primary border-primary shadow-lg'
-                        : 'border-gray-200 hover:border-gray-300'
+            {/* Navigation par sections et catégories */}
+            <div className="space-y-6">
+              {/* Sélection de section */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Sections</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {TV_SECTIONS.map(section => (
+                    <Button
+                      key={section.id}
+                      variant={selectedSection === section.id ? "default" : "outline"}
+                      onClick={() => setSelectedSection(section.id)}
+                      className={`justify-start ${selectedSection === section.id
+                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                        : "border-blue-200 text-blue-600 hover:bg-blue-50"
                         }`}
-                      onClick={() => {
-                        // Éviter les clics multiples pendant le scroll
-                        if (isScrolling) {
-                          console.log('📱 [TV CHANNELS] Scroll en cours, clic ignoré');
-                          return;
-                        }
-
-                        console.log('📱 [TV CHANNELS] ===== CLIC SUR CHAÎNE =====');
-                        console.log('📱 [TV CHANNELS] Chaîne sélectionnée:', channel.name);
-                        console.log('📱 [TV CHANNELS] Position avant scroll:', window.scrollY);
-
-                        // Sélectionner la chaîne
-                        setSelectedChannel(channel);
-
-                        console.log('📱 [TV CHANNELS] ===== FIN CLIC SUR CHAÎNE =====');
-                      }}
-                      data-testid={`channel-${channel.id}`}
+                      data-testid={`section-${section.id}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {channelLogos[channel.id] ? (
-                            // Logo officiel avec fond blanc pour gérer la transparence
-                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
-                              <img
-                                src={channelLogos[channel.id]}
-                                alt={`Logo ${channel.name}`}
-                                className="w-full h-full object-contain scale-110"
-                                onError={(e) => {
-                                  console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
-                                  // Fallback vers l'icône TV avec cadre si le logo ne charge pas
-                                  e.currentTarget.style.display = 'none';
-                                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                  if (fallback) fallback.style.display = 'block';
-                                }}
-                                onLoad={() => {
-                                  console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
-                                }}
-                              />
+                      {section.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sélection de catégorie */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Catégories</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableCategories.map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`text-sm ${selectedCategory === category
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "border-green-200 text-green-600 hover:bg-green-50"
+                        }`}
+                      data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Liste des chaînes */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">
+                  Chaînes {TV_SECTIONS.find(s => s.id === selectedSection)?.name} - {selectedCategory}
+                </h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                  {filteredChannels.length > 0 ? (
+                    filteredChannels.map(channel => (
+                      <Card
+                        key={channel.id}
+                        className={`p-3 cursor-pointer transition-all duration-200 hover:shadow-md ${selectedChannel?.id === channel.id
+                          ? 'ring-2 ring-primary border-primary shadow-lg'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        onClick={() => {
+                          // Éviter les clics multiples pendant le scroll
+                          if (isScrolling) {
+                            console.log('📱 [TV CHANNELS] Scroll en cours, clic ignoré');
+                            return;
+                          }
+
+                          console.log('📱 [TV CHANNELS] ===== CLIC SUR CHAÎNE =====');
+                          console.log('📱 [TV CHANNELS] Chaîne sélectionnée:', channel.name);
+                          console.log('📱 [TV CHANNELS] Position avant scroll:', window.scrollY);
+
+                          // Sélectionner la chaîne
+                          setSelectedChannel(channel);
+
+                          console.log('📱 [TV CHANNELS] ===== FIN CLIC SUR CHAÎNE =====');
+                        }}
+                        data-testid={`channel-${channel.id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {channelLogos[channel.id] ? (
+                              // Logo officiel avec fond blanc pour gérer la transparence
+                              <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
+                                <img
+                                  src={channelLogos[channel.id]}
+                                  alt={`Logo ${channel.name}`}
+                                  className="w-full h-full object-contain scale-110"
+                                  onError={(e) => {
+                                    console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
+                                    // Fallback vers l'icône TV avec cadre si le logo ne charge pas
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'block';
+                                  }}
+                                  onLoad={() => {
+                                    console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
+                                  }}
+                                />
+                              </div>
+                            ) : null}
+                            {/* Fallback avec cadre seulement si pas de logo */}
+                            <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
+                              <Tv className="w-5 h-5 text-primary" />
                             </div>
-                          ) : null}
-                          {/* Fallback avec cadre seulement si pas de logo */}
-                          <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
-                            <Tv className="w-5 h-5 text-primary" />
+                            <div>
+                              <h4 className="font-semibold text-sm">{channel.name}</h4>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold text-sm">{channel.name}</h4>
-                          </div>
+                          <Play className="w-4 h-4 text-muted-foreground" />
                         </div>
-                        <Play className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    </Card>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Tv className="w-12 h-12 mx-auto mb-2" />
-                    <p>Aucune chaîne disponible</p>
-                    <p className="text-sm">pour cette section et catégorie</p>
-                  </div>
-                )}
+                      </Card>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Tv className="w-12 h-12 mx-auto mb-2" />
+                      <p>Aucune chaîne disponible</p>
+                      <p className="text-sm">pour cette section et catégorie</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </CommonLayout>
   );
 }
