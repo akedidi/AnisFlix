@@ -192,6 +192,15 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         print("📢 [CastManager] Sending load request...")
         remoteMediaClient.loadMedia(mediaInfo, with: loadOptions)
+        
+        // Failsafe: If no tracks selected, explicitly disable again after a short delay
+        // This fixes the issue where Default Receiver might auto-enable the first track
+        if activeTrackIds.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                print("📢 [CastManager] Failsafe: Ensuring subtitles are disabled...")
+                remoteMediaClient.setActiveTrackIDs([])
+            }
+        }
     }
     
     func seek(to time: TimeInterval) {
