@@ -21,7 +21,7 @@ struct TVChannelsView: View {
     @State private var playingChannel: TVChannel?
     @State private var currentStreamUrl: URL?
     @State private var isFullscreen = false
-    @StateObject private var playerVM = VideoPlayerViewModel()
+    @StateObject private var playerVM = PlayerViewModel()
     @State private var isSearchActive = false // Track search overlay state
     
     // Grid Layout
