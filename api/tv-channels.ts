@@ -42,7 +42,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "tf1",
                             name: "TF1",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/d/da/TF1_logo_2013.svg",
+                            logo: "https://jaruba.github.io/channel-logos/fqsd09CrijoGu6qfoNIdgUQmVGO.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tf1hd/browser-HLS8/tf1hd.m3u8" },
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/87.m3u8" }
@@ -51,7 +51,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "france2",
                             name: "France 2",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/78/France_2_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/b1cFa5FcHHnpejKiPybXSPcqKjT.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france2hd/browser-HLS8/france2hd.m3u8" }
                             ]
@@ -59,7 +59,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "france3",
                             name: "France 3",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/4/4a/France_3_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/1ePfTUHHvBlVQxa0Fltx5kWhIs5.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france3hd/browser-HLS8/france3hd.m3u8" }
                             ]
@@ -67,7 +67,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "france4",
                             name: "France 4",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/8/8b/France_4_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/9v9Mink1IVxPNRZOmCZ8N58BOHe.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france4hd/browser-HLS8/france4hd.m3u8" }
                             ]
@@ -75,7 +75,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "france5",
                             name: "France 5",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/8/85/France_5_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/8xK6AdNT6PfRyygRvb2MKCoqrv2.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/france5hd/browser-HLS8/france5hd.m3u8" }
                             ]
@@ -83,7 +83,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "m6",
                             name: "M6",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/89/M6_logo_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/ebCZs9U5Kq1GqOFBT1tlH1lZd8p.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/m6hd/browser-HLS8/m6hd.m3u8" }
                             ]
@@ -91,7 +91,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "arte",
                             name: "Arte",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/f/fe/ARTE_Logo_2017.svg",
+                            logo: "https://jaruba.github.io/channel-logos/6UIpEURdjnmcJPwgTDRzVRuwADr.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/artehd/browser-HLS8/artehd.m3u8" }
                             ]
@@ -99,7 +99,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "canal",
                             name: "Canal+",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a5/Canal%2B.svg",
+                            logo: "https://jaruba.github.io/channel-logos/n7BRwMvmF2xaSAH8PfJzacrhOU8.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/106.m3u8" }
                             ]
@@ -107,7 +107,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "tmc",
                             name: "TMC",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/8/8f/TMC_logo_2016.svg",
+                            logo: "https://jaruba.github.io/channel-logos/mG8AujLo1qacorLWNXqHqMCxlPM.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tmc/browser-HLS8/tmc.m3u8" }
                             ]
@@ -123,7 +123,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "w9",
                             name: "W9",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/3/35/W9_logo_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/e5TTp11V850EmQjoeoTd93NyDHS.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/w9/browser-HLS8/w9.m3u8" },
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/79.m3u8" }
@@ -140,7 +140,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "gulli",
                             name: "Gulli",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/82/Gulli_logo_2018.svg",
+                            logo: "https://jaruba.github.io/channel-logos/4b8ZM73YKqFCJLbQB70Pyw5wQCK.png",
                             links: [
                                 { type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/gulli/browser-HLS8/gulli.m3u8" }
                             ]
@@ -154,7 +154,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "bfmtv",
                             name: "BFM TV",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/8/86/BFM_TV_logo_2019.svg",
+                            logo: "https://jaruba.github.io/channel-logos/49jOrcvbD94I5xOAUch2ShVWXK1.png",
                             links: [
                                 { type: "hls_direct", url: "https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/master.m3u8" }
                             ]
@@ -367,7 +367,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "boomerang",
                             name: "Boomerang",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/2/22/Boomerang_2014_logo.svg",
+                            logo: "https://jaruba.github.io/channel-logos/qU8JGulF6qPqDx5BLzVBeAWILMI.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/180.m3u8" }
                             ]
@@ -375,7 +375,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "cartoon-network",
                             name: "Cartoon Network",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Cartoon_Network_logo_2010.svg",
+                            logo: "https://jaruba.github.io/channel-logos/nDFWFbAHEZ8Towq7fsVCgv4U245.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/76.m3u8" }
                             ]
@@ -491,7 +491,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "eljazira",
                             name: "ElJazira",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/7/71/Aljazeera.svg",
+                            logo: "https://jaruba.github.io/channel-logos/vtEHxJKWedfOLGoibApOrFBBTES.png",
                             links: [
                                 { type: "hls_direct", url: "https://live-hls-web-aja.getaj.net/AJA/04.m3u8" }
                             ]
@@ -499,7 +499,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "eljazira-english",
                             name: "ElJazira English",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/7/71/Aljazeera.svg",
+                            logo: "https://jaruba.github.io/channel-logos/9nAXtejiDQYqkeIWWk5eulSo2c.png",
                             links: [
                                 { type: "hls_direct", url: "https://live-hls-web-aje.getaj.net/AJE/04.m3u8" }
                             ]
@@ -507,7 +507,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rt-arabe",
                             name: "RT Arabe",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Russia-today-logo.svg",
+                            logo: "https://jaruba.github.io/channel-logos/1Jaw3XrH1YIljfYKzreC5vccham.png",
                             links: [
                                 { type: "hls_direct", url: "https://rt-arb.rttv.com/live/rtarab/playlist.m3u8" }
                             ]
