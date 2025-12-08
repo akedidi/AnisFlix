@@ -4,42 +4,42 @@ import * as path from 'path';
 // Base URL for channel logos
 const LOGO_BASE_URL = 'https://jaruba.github.io/channel-logos/export/transparent-color';
 
-// Mapping of channel names to their keys in the logo_paths.json
+// Mapping of channel IDs to their keys in the logo_paths.json
 const CHANNEL_LOGO_MAPPING: Record<string, string> = {
     // France - Généraliste
-    'TF1': 'tf1',
-    'France 2': 'france 2',
-    'France 3': 'france 3',
-    'France 4': 'france 4',
-    'France 5': 'france 5',
-    'M6': 'm6',
-    'Arte': 'arte',
-    'Canal+': 'canal+',
-    'TMC': 'tmc',
-    'W9': 'w9',
+    'tf1': 'tf1',
+    'france2': 'france 2',
+    'france3': 'france 3',
+    'france4': 'france 4',
+    'france5': 'france 5',
+    'm6': 'm6',
+    'arte': 'arte',
+    'canal': 'canal+',
+    'tmc': 'tmc',
+    'w9': 'w9',
 
     // France - Info
-    'BFM TV': 'bfmtv',
-    'France Info': 'franceinfo',
-    'LCI': 'lci',
-    'CNEWS': 'cnews',
-    'BFM Business': 'bfm business',
-    'BFM Paris': 'bfm paris',
-    'BFM Lyon': 'bfm lyon',
-    'RT France': 'rt france',
+    'bfmtv': 'bfmtv',
+    'franceinfo': 'franceinfo',
+    'lci': 'lci',
+    'cnews': 'cnews',
+    'bfm-business': 'bfm business',
+    'bfm-paris': 'bfm paris',
+    'bfm-lyon': 'bfm lyon',
+    'rt-france': 'rt france',
 
     // Sport
-    "L'Équipe TV": 'lequipe tv',
+    'lequipe-tv': 'lequipe tv',
 
     // Jeunesse
-    'Gulli': 'gulli',
-    'Cartoon Network': 'cartoon network',
-    'Boomerang': 'boomerang',
+    'gulli': 'gulli',
+    'cartoon-network': 'cartoon network',
+    'boomerang': 'boomerang',
 
     // Arabe
-    'ElJazira': 'al jazeera',
-    'ElJazira English': 'al jazeera english',
-    'RT Arabe': 'rt',
+    'eljazira': 'al jazeera',
+    'eljazira-english': 'al jazeera english',
+    'rt-arabe': 'rt',
 };
 
 async function fetchLogosPaths(): Promise<Record<string, string>> {
@@ -65,30 +65,30 @@ async function updateChannelLogos() {
     const notFound: string[] = [];
 
     // For each channel in our mapping, try to update its logo
-    for (const [channelName, logoKey] of Object.entries(CHANNEL_LOGO_MAPPING)) {
+    for (const [channelId, logoKey] of Object.entries(CHANNEL_LOGO_MAPPING)) {
         const logoPath = logosPaths[logoKey.toLowerCase()];
 
         if (logoPath) {
             const fullLogoUrl = `${LOGO_BASE_URL}${logoPath}`;
 
-            // Find the channel in the content and update its logo
-            // This is a simple regex replacement - you may need to adjust based on actual content structure
+            // Match by ID for exact matching - this prevents "tf1" from matching "tf1-serie"
+            // Pattern: id: "channelId", ... logo: "..."
             const channelRegex = new RegExp(
-                `(name:\\s*"${channelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",\\s*logo:\\s*)"[^"]*"`,
-                'g'
+                `(id:\\s*"${channelId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",\\s*[^}]*?logo:\\s*)"[^"]*"`,
+                's'
             );
 
             if (channelRegex.test(content)) {
                 content = content.replace(channelRegex, `$1"${fullLogoUrl}"`);
                 updatedCount++;
-                console.log(`✓ Updated ${channelName} -> ${fullLogoUrl}`);
+                console.log(`✓ Updated ${channelId} -> ${fullLogoUrl}`);
             } else {
-                console.log(`⚠ Could not find channel structure for: ${channelName}`);
+                console.log(`⚠ Could not find channel structure for ID: ${channelId}`);
             }
         } else {
             notFoundCount++;
-            notFound.push(channelName);
-            console.log(`✗ Logo not found for: ${channelName} (key: "${logoKey}")`);
+            notFound.push(channelId);
+            console.log(`✗ Logo not found for: ${channelId} (key: "${logoKey}")`);
         }
     }
 
