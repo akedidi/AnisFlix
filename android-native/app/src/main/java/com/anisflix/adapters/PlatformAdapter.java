@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.anisflix.R;
+import com.bumptech.glide.Glide;
 import java.util.List;
 
 public class PlatformAdapter extends RecyclerView.Adapter<PlatformAdapter.ViewHolder> {
@@ -18,11 +19,13 @@ public class PlatformAdapter extends RecyclerView.Adapter<PlatformAdapter.ViewHo
 
     public static class Platform {
         String name;
-        int iconRes;
+        String logoUrl;
+        int id;
         
-        public Platform(String name, int iconRes) {
+        public Platform(String name, String logoPath, int id) {
             this.name = name;
-            this.iconRes = iconRes;
+            this.logoUrl = "https://image.tmdb.org/t/p/w300" + logoPath;
+            this.id = id;
         }
     }
 
@@ -49,8 +52,8 @@ public class PlatformAdapter extends RecyclerView.Adapter<PlatformAdapter.ViewHo
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        private final ImageView iconImage;
-        private final TextView nameText;
+        ImageView iconImage;
+        TextView nameText;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -60,8 +63,18 @@ public class PlatformAdapter extends RecyclerView.Adapter<PlatformAdapter.ViewHo
 
         void bind(Platform platform) {
             nameText.setText(platform.name);
-            // In a real app we'd load images, but for now using a placeholder or drawable
-             iconImage.setBackgroundResource(R.drawable.bg_platform_icon);
+            
+            Glide.with(context)
+                .load(platform.logoUrl)
+                .placeholder(R.drawable.bg_platform_icon)
+                .error(R.drawable.bg_platform_icon)
+                .into(iconImage);
+                
+            iconImage.setBackground(null);
+            
+            itemView.setOnClickListener(v -> {
+                // TODO: Navigate to Provider results
+            });
         }
     }
 }

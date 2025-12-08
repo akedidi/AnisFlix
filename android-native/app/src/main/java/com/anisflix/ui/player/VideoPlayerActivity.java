@@ -43,6 +43,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
     
     public static final String EXTRA_MOVIE_ID = "movie_id";
     public static final String EXTRA_SERIES_ID = "series_id";
+    public static final String EXTRA_EPISODE_ID = "episode_id"; // Added
     public static final String EXTRA_SEASON = "season";
     public static final String EXTRA_EPISODE = "episode";
     public static final String EXTRA_TITLE = "title";

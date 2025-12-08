@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Base URL for channel logos
-const LOGO_BASE_URL = 'https://jaruba.github.io/channel-logos';
+const LOGO_BASE_URL = 'https://jaruba.github.io/channel-logos/export/transparent-color';
 
 // Mapping of channel names to their keys in the logo_paths.json
 const CHANNEL_LOGO_MAPPING: Record<string, string> = {

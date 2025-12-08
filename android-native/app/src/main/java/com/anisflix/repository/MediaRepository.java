@@ -16,6 +16,7 @@ import retrofit2.Response;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import com.anisflix.models.MultiSearchItem;
 
 /**
  * Repository pattern - Single source of truth for data
@@ -63,6 +64,60 @@ public class MediaRepository {
     
     public void getSeriesDetails(int seriesId, Callback<Series> callback) {
         tmdbService.getSeriesDetails(seriesId, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH)
+                .enqueue(callback);
+    }
+
+    // New methods for Home Page parity
+    public void getLatestMovies(int page, Callback<TMDBResponse<Movie>> callback) {
+        tmdbService.getLatestMovies(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+    
+    public void getLatestSeries(int page, Callback<TMDBResponse<Series>> callback) {
+        // Using discover for latest series with filters as seen in TMDBService
+        tmdbService.getLatestSeries(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, 
+            "first_air_date.desc", java.time.LocalDate.now().toString(), 
+            "8|119|337|381|283|350|1899", "FR", "flatrate").enqueue(callback);
+    }
+
+    public void getMoviesByProvider(int providerId, int page, Callback<TMDBResponse<Movie>> callback) {
+        String providerStr = String.valueOf(providerId);
+        String region = "FR";
+        if (providerId == 384) {
+            providerStr = "384|1899";
+            region = "US";
+        } else if (providerId == 9) {
+            region = "US"; // Amazon Prime needs US region for better catalog parity
+        }
+        tmdbService.getMoviesByProvider(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, providerStr, region, "primary_release_date.desc", "flatrate").enqueue(callback);
+    }
+
+    public void getSeriesByProvider(int providerId, int page, Callback<TMDBResponse<Series>> callback) {
+        if (providerId == 9) {
+            // Amazon Prime (9) uses Network filter (Amazon Studios = 1024) instead of provider filter for Series
+            tmdbService.getSeriesByNetwork(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, "1024", "first_air_date.desc", java.time.LocalDate.now().toString(), false, false).enqueue(callback);
+            return;
+        }
+        
+        String providerStr = String.valueOf(providerId);
+        String region = "FR";
+        if (providerId == 384) {
+            providerStr = "384|1899";
+            region = "US";
+        }
+        tmdbService.getSeriesByProvider(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, providerStr, region, "first_air_date.desc", java.time.LocalDate.now().toString(), "flatrate").enqueue(callback);
+    }
+
+    public void getMoviesByGenre(int genreId, int page, Callback<TMDBResponse<Movie>> callback) {
+        tmdbService.getMoviesByGenre(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, genreId, "popularity.desc", java.time.LocalDate.now().toString(), "flatrate", "FR").enqueue(callback);
+    }
+
+    public void getSeriesByGenre(int genreId, int page, Callback<TMDBResponse<Series>> callback) {
+        tmdbService.getSeriesByGenre(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page, genreId, "popularity.desc", java.time.LocalDate.now().toString(), "flatrate", "FR").enqueue(callback);
+    }
+    
+    // Search
+    public void searchMulti(String query, int page, Callback<TMDBResponse<MultiSearchItem>> callback) {
+        tmdbService.searchMulti(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, query, page)
                 .enqueue(callback);
     }
     

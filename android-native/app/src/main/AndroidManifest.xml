@@ -30,8 +30,10 @@
         </activity>
         
         <activity android:name=".ui.detail.MovieDetailActivity" />
-        <activity android:name=".ui.detail.SeriesDetailActivity" />
-        <activity android:name=".ui.player.VideoPlayerActivity"
+        <activity android:name=".ui.detail.SeriesDetailActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".ui.section.SectionContentActivity" android:screenOrientation="portrait"/>
+        <activity
+            android:name=".ui.player.VideoPlayerActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.AnisFlix.NoActionBar" />
             

@@ -32,18 +32,34 @@ public class SearchViewModel extends ViewModel {
         isLoading.setValue(true);
         
         tmdbService.searchMulti(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, query, 1)
-                .enqueue(new Callback<TMDBResponse<Movie>>() {
+                .enqueue(new Callback<TMDBResponse<com.anisflix.models.MultiSearchItem>>() {
                     @Override
-                    public void onResponse(Call<TMDBResponse<Movie>> call, Response<TMDBResponse<Movie>> response) {
+                    public void onResponse(Call<TMDBResponse<com.anisflix.models.MultiSearchItem>> call, Response<TMDBResponse<com.anisflix.models.MultiSearchItem>> response) {
                         isLoading.setValue(false);
                         if (response.isSuccessful() && response.body() != null) {
-                            List<Movie> results = response.body().getResults();
-                            searchResults.setValue(results != null ? results : new ArrayList<>());
+                            List<com.anisflix.models.MultiSearchItem> items = response.body().getResults();
+                            List<Movie> movies = new ArrayList<>();
+                            if (items != null) {
+                                for (com.anisflix.models.MultiSearchItem item : items) {
+                                    if ("movie".equals(item.mediaType)) {
+                                        Movie movie = new Movie();
+                                        movie.setId(item.id);
+                                        movie.setTitle(item.title);
+                                        movie.setPosterPath(item.posterPath);
+                                        movie.setBackdropPath(item.backdropPath);
+                                        movie.setOverview(item.overview);
+                                        movie.setReleaseDate(item.releaseDate);
+                                        movie.setRating(item.voteAverage);
+                                        movies.add(movie);
+                                    }
+                                }
+                            }
+                            searchResults.setValue(movies);
                         }
                     }
                     
                     @Override
-                    public void onFailure(Call<TMDBResponse<Movie>> call, Throwable t) {
+                    public void onFailure(Call<TMDBResponse<com.anisflix.models.MultiSearchItem>> call, Throwable t) {
                         isLoading.setValue(false);
                         searchResults.setValue(new ArrayList<>());
                     }

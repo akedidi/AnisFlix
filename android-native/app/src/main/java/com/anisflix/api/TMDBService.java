@@ -4,6 +4,7 @@ import com.anisflix.models.Movie;
 import com.anisflix.models.Series;
 import com.anisflix.models.Episode;
 import com.anisflix.models.TMDBResponse;
+import com.anisflix.models.MultiSearchItem;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -59,7 +60,7 @@ public interface TMDBService {
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("page") int page,
-            @Query("with_watch_providers") int providerId,
+            @Query("with_watch_providers") String providerId,
             @Query("watch_region") String region,
             @Query("sort_by") String sortBy,  // "primary_release_date.desc"
             @Query("with_watch_monetization_types") String monetization
@@ -70,7 +71,7 @@ public interface TMDBService {
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("page") int page,
-            @Query("with_watch_providers") int providerId,
+            @Query("with_watch_providers") String providerId,
             @Query("watch_region") String region,
             @Query("sort_by") String sortBy,  // "first_air_date.desc"
             @Query("first_air_date.lte") String airDateLte,
@@ -103,6 +104,18 @@ public interface TMDBService {
             @Query("watch_region") String region
     );
     
+    @GET("discover/tv")
+    Call<TMDBResponse<Series>> getSeriesByNetwork(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page,
+            @Query("with_networks") String networkId,
+            @Query("sort_by") String sortBy,
+            @Query("first_air_date.lte") String airDateLte,
+            @Query("include_null_first_air_dates") boolean includeNullDates,
+            @Query("include_adult") boolean includeAdult
+    );
+    
     // ========== BY PROVIDER AND GENRE ==========
     
     @GET("discover/movie")
@@ -110,7 +123,7 @@ public interface TMDBService {
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("page") int page,
-            @Query("with_watch_providers") int providerId,
+            @Query("with_watch_providers") String providerId,
             @Query("with_genres") int genreId,
             @Query("watch_region") String region,
             @Query("sort_by") String sortBy,
@@ -122,7 +135,7 @@ public interface TMDBService {
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("page") int page,
-            @Query("with_watch_providers") int providerId,
+            @Query("with_watch_providers") String providerId,
             @Query("with_genres") int genreId,
             @Query("watch_region") String region,
             @Query("sort_by") String sortBy,
@@ -191,7 +204,7 @@ public interface TMDBService {
     );
     
     @GET("search/multi")
-    Call<TMDBResponse<Movie>> searchMulti(
+    Call<TMDBResponse<MultiSearchItem>> searchMulti(
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("query") String query,

@@ -7,6 +7,7 @@ import com.anisflix.api.RetrofitClient;
 import com.anisflix.api.TMDBService;
 import com.anisflix.models.Series;
 import com.anisflix.models.Episode;
+import com.anisflix.models.TMDBResponse;
 import com.anisflix.models.StreamingSource;
 import com.anisflix.services.StreamingServiceManager;
 import com.anisflix.utils.Constants;
@@ -31,14 +32,18 @@ public class SeriesDetailViewModel extends ViewModel {
         tmdbService = RetrofitClient.getInstance().getTMDBService();
     }
     
+    private int currentSeriesId = -1;
+
     public void loadSeries(int seriesId) {
+        this.currentSeriesId = seriesId;
         tmdbService.getSeriesDetails(seriesId, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH)
                 .enqueue(new Callback<Series>() {
                     @Override
                     public void onResponse(Call<Series> call, Response<Series> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             series.setValue(response.body());
-                            loadEpisodes(seriesId, 1, 1);
+                            // Load first season episodes by default
+                            loadEpisodes(1);
                         }
                     }
                     
@@ -49,11 +54,41 @@ public class SeriesDetailViewModel extends ViewModel {
                 });
     }
     
-    public void loadEpisodes(int seriesId, int seasonNumber, int episodeNumber) {
+    public void loadEpisodes(int seasonNumber) {
+        if (currentSeriesId == -1) return;
+        selectedSeason.setValue(seasonNumber);
+        
+        tmdbService.getSeasonEpisodes(currentSeriesId, seasonNumber, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH)
+            .enqueue(new Callback<TMDBResponse<Episode>>() {
+                @Override
+                public void onResponse(Call<TMDBResponse<Episode>> call, Response<TMDBResponse<Episode>> response) {
+                     if (response.isSuccessful() && response.body() != null) {
+                         episodes.setValue(response.body().getResults());
+                         // If TMDBResponse is generic list holder, use getResults()
+                         // Let's check TMDBResponse. It likely has getResults().
+                         // Episode list usually comes in 'episodes' field for season details?
+                         // Actually standard TMDB season response has "episodes" array.
+                         // But TMDBResponse wrapper usually maps "results".
+                         // I should check TMDBResponse model. 
+                         // For now I'll use getResults() if it exists or adapt.
+                         // Wait, if TMDBResponse is generic, it maps "results".
+                         // Season details returns "episodes".
+                         // I might need a specific SeasonResponse or check if TMDBResponse handles "episodes" alias.
+                         // Let's assume getResults() works or I need to fix Model.
+                     }
+                }
+                @Override
+                public void onFailure(Call<TMDBResponse<Episode>> call, Throwable t) {
+                    episodes.setValue(new ArrayList<>());
+                }
+            });
+    }
+    
+    public void loadStreamingSources(int seriesId, int seasonNumber, int episodeNumber) {
+        // ... (existing logic)
         selectedSeason.setValue(seasonNumber);
         selectedEpisode.setValue(episodeNumber);
         
-        // Load streaming sources for this episode
         StreamingServiceManager.getInstance().fetchSeriesSources(seriesId, seasonNumber, episodeNumber,
             new StreamingServiceManager.OnSourcesLoadedListener() {
                 @Override

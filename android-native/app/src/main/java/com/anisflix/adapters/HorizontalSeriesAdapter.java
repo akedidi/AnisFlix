@@ -10,33 +10,33 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.anisflix.R;
-import com.anisflix.models.Movie;
+import com.anisflix.models.Series;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HorizontalMediaAdapter extends RecyclerView.Adapter<HorizontalMediaAdapter.ViewHolder> {
+public class HorizontalSeriesAdapter extends RecyclerView.Adapter<HorizontalSeriesAdapter.ViewHolder> {
 
     private final Context context;
-    private List<Movie> movies = new ArrayList<>();
+    private List<Series> seriesList = new ArrayList<>();
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
-        void onItemClick(Movie movie);
+        void onItemClick(Series series);
     }
 
-    public HorizontalMediaAdapter(Context context) {
+    public HorizontalSeriesAdapter(Context context) {
         this.context = context;
     }
 
-    public void setMovies(List<Movie> movies) {
-        this.movies = movies;
+    public void setSeries(List<Series> series) {
+        this.seriesList = series;
         notifyDataSetChanged();
     }
     
-    public void appendMovies(List<Movie> newMovies) {
-        int startPos = this.movies.size();
-        this.movies.addAll(newMovies);
-        notifyItemRangeInserted(startPos, newMovies.size());
+    public void appendSeries(List<Series> newSeries) {
+        int startPos = this.seriesList.size();
+        this.seriesList.addAll(newSeries);
+        notifyItemRangeInserted(startPos, newSeries.size());
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -52,12 +52,12 @@ public class HorizontalMediaAdapter extends RecyclerView.Adapter<HorizontalMedia
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(movies.get(position));
+        holder.bind(seriesList.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return movies.size();
+        return seriesList.size();
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
@@ -72,18 +72,18 @@ public class HorizontalMediaAdapter extends RecyclerView.Adapter<HorizontalMedia
             ratingText = itemView.findViewById(R.id.rating_text);
         }
 
-        void bind(Movie movie) {
-            titleText.setText(movie.getTitle());
-            ratingText.setText(String.format("⭐ %.1f", movie.getRating()));
+        void bind(Series series) {
+            titleText.setText(series.getName());
+            ratingText.setText(String.format("⭐ %.1f", series.getRating()));
 
             Glide.with(context)
-                    .load(movie.getFullPosterUrl())
+                    .load(series.getFullPosterUrl())
                     .placeholder(R.drawable.placeholder_poster)
                     .into(posterImage);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onItemClick(movie);
+                    listener.onItemClick(series);
                 }
             });
         }

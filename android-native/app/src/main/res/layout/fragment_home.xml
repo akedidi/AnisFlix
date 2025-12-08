@@ -7,10 +7,11 @@
     android:fillViewport="true">
 
     <LinearLayout
+        android:id="@+id/content_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingBottom="100dp">
+        android:paddingBottom="150dp">
 
         <!-- Header -->
         <LinearLayout
@@ -20,7 +21,7 @@
             android:gravity="center_vertical"
             android:padding="16dp">
 
-            <EditText
+            <AutoCompleteTextView
                 android:id="@+id/search_input"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
@@ -32,7 +33,10 @@
                 android:textColorHint="#99FFFFFF"
                 android:textColor="@android:color/white"
                 android:textSize="14sp"
-                android:inputType="text"
+                android:inputType="textAutoComplete|textNoSuggestions"
+                android:completionThreshold="1"
+                android:dropDownHeight="wrap_content"
+                android:popupBackground="@drawable/bg_search_popup"
                 android:maxLines="1"/>
 
             <ImageView
@@ -95,6 +99,43 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/platforms_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:clipToPadding="false"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+            
+        <!-- Popular Series Section -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Séries Populaires"
+                android:textColor="@android:color/white"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_alignParentStart="true"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Voir tout >"
+                android:textColor="#E50914"
+                android:textSize="14sp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"/>
+        </RelativeLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/popular_series_recycler"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

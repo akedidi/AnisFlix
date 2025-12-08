@@ -16,7 +16,7 @@ public class TMDBResponse<T> {
     @SerializedName("total_results")
     private int totalResults;
     
-    @SerializedName("results")
+    @SerializedName(value = "results", alternate = {"episodes", "cast"})
     private List<T> results;
     
     // Constructors
