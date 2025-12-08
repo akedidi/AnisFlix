@@ -61,6 +61,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         
         initViews();
         setupViewModel();
+        setupTabs(); // Called after ViewModel init to avoid NPE
         loadMovieDetails();
     }
     
@@ -90,8 +91,6 @@ public class MovieDetailActivity extends AppCompatActivity {
         
         backButton.setOnClickListener(v -> finish());
         favoriteButton.setOnClickListener(v -> viewModel.toggleFavorite());
-        
-        setupTabs();
     }
     
     private void setupTabs() {
