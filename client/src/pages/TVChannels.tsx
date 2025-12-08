@@ -373,139 +373,7 @@ interface TVSection {
   categories: string[];
 }
 
-// Mapping des noms de chaînes vers les noms dans l'API jaruba (basé sur le contenu réel de l'API)
-const CHANNEL_NAME_MAPPING: Record<string, string> = {
-  // Généraliste - correspondances exactes trouvées dans l'API
-  "tf1": "tf1",
-  // "tf1-serie" volontairement omis pour éviter confusion avec tf1
-  "france2": "france 2",
-  "france3": "france 3",
-  "france4": "france 4",
-  "france5": "france 5",
-  "m6": "m6",
-  "arte": "arte",
-  "tfx": "tfx",
-  "canal-plus": "canal+",
-  "tmc": "tmc",
-  "w9": "w9",
-  "rmc-decouverte": "rmc découverte",
-  "gulli": "gulli",
 
-  // Info - correspondances exactes
-  "bfmtv": "bfm tv",
-  "bfm-business": "bfm business",
-  "bfm-paris": "bfm paris",
-  "bfm-lyon": "bfm lyon",
-  "bfm-litoral": "bfm grand littoral",
-  "bfm-alsace": "bfm alsace",
-  "bfm-grand-lille": "bfm grand lille",
-  "rt-france": "rt france",
-
-  // Sport - correspondances exactes
-  "bein-sports-1": "bein sports 1",
-  "bein-sports-2": "bein sports 2",
-  "bein-sports-3": "bein sports 3",
-  "canal-plus-foot": "canal+ foot",
-  "canal-plus-sport-360": "canal+ sport 360",
-  "rmc-sport-1": "rmc sport 1",
-  "rmc-sport-2": "rmc sport 2",
-  "rmc-sport-3": "rmc sport 3",
-  "lequipe-tv": "l'équipe tv",
-
-  // Fiction & Série - correspondances exactes
-  "syfy": "syfy",
-
-  // Jeunesse - correspondances exactes
-  "game-one": "game one",
-  "mangas": "mangas",
-  "boomerang": "boomerang",
-  "cartoon-network": "cartoon network",
-
-  // Découverte - correspondances exactes
-  "natgeo": "national geographic",
-  "natgeo-wild": "national geographic wild",
-
-  // Cinéma
-  "tcm-cinema": "tcm cinema",
-
-  // Arabe - Sport
-  "elkass-1": "elkass 1",
-  "elkass-2": "elkass 2",
-  "elkass-3": "elkass 3",
-  "elkass-4": "elkass 4",
-
-  // Arabe - Tunisie
-  "watania-1": "watania 1",
-  "hiwar-tounsi": "hiwar tounsi",
-
-  // Arabe - Info
-  "eljazira": "al jazeera",
-  "eljazira-english": "al jazeera english",
-  "rt-arabe": "rt arabic",
-  "elarabiya": "al arabiya",
-};
-
-// Logos locaux avec fond blanc pour les chaînes principales
-const LOCAL_CHANNEL_LOGOS: Record<string, string> = {
-  "tf1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/TF1_logo_2013.svg/120px-TF1_logo_2013.svg.png",
-  "france2": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/France_2_2018.svg/120px-France_2_2018.svg.png",
-  "france3": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/France_3_2018.svg/120px-France_3_2018.svg.png",
-  "canal-plus": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Canal%2B_logo_2018.svg/120px-Canal%2B_logo_2018.svg.png",
-  "m6": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/M6_logo_2018.svg/120px-M6_logo_2018.svg.png",
-  "arte": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Arte_Logo_2016.svg/120px-Arte_Logo_2016.svg.png",
-  "nt1": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/NT1_logo_2018.svg/120px-NT1_logo_2018.svg.png",
-  "w9": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/W9_logo_2018.svg/120px-W9_logo_2018.svg.png",
-  "gulli": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Gulli_logo_2018.svg/120px-Gulli_logo_2018.svg.png",
-  "bfmtv": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/BFM_TV_logo_2018.svg/120px-BFM_TV_logo_2018.svg.png",
-  "cnews": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/CNEWS_logo_2018.svg/120px-CNEWS_logo_2018.svg.png",
-  "lci": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/LCI_logo_2018.svg/120px-LCI_logo_2018.svg.png",
-  "franceinfo": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Franceinfo_logo_2018.svg/120px-Franceinfo_logo_2018.svg.png",
-};
-
-// Chaînes qui ne doivent PAS chercher de logo (risque de collision avec d'autres chaînes)
-const EXCLUDE_FROM_LOGO_SEARCH = [
-  "tf1-serie", // Éviter confusion avec TF1
-];
-
-// Fonction pour obtenir l'URL du logo depuis l'API jaruba
-const getChannelLogoUrl = async (channelId: string): Promise<string | null> => {
-  try {
-    // Exclure certaines chaînes de la recherche
-    if (EXCLUDE_FROM_LOGO_SEARCH.includes(channelId)) {
-      console.log(`[LOGO API] Chaîne ${channelId} exclue de la recherche de logos`);
-      return null;
-    }
-
-    const channelName = CHANNEL_NAME_MAPPING[channelId];
-    console.log(`[LOGO API] Recherche logo pour ${channelId} -> ${channelName}`);
-
-    if (!channelName) {
-      console.log(`[LOGO API] Aucun mapping trouvé pour ${channelId}`);
-      return null;
-    }
-
-    const response = await fetch('https://jaruba.github.io/channel-logos/logo_paths.json');
-    const logos = await response.json();
-    console.log(`[LOGO API] API chargée, ${Object.keys(logos).length} logos disponibles`);
-
-    // Chercher UNIQUEMENT la correspondance exacte en minuscules
-    const logoPath = logos[channelName.toLowerCase()];
-    console.log(`[LOGO API] Recherche exacte "${channelName.toLowerCase()}" -> ${logoPath ? 'TROUVÉ' : 'NON TROUVÉ'}`);
-
-    if (logoPath) {
-      const fullUrl = `https://jaruba.github.io/channel-logos/export/transparent-color${logoPath}`;
-      console.log(`[LOGO API] URL complète: ${fullUrl}`);
-      return fullUrl;
-    }
-
-    // Si pas trouvé, retourner null (affichage vide)
-    console.log(`[LOGO API] Aucun logo trouvé pour ${channelName.toLowerCase()}`);
-    return null;
-  } catch (error) {
-    console.error(`[LOGO API] Erreur lors du chargement des logos:`, error);
-    return null;
-  }
-};
 
 const TV_SECTIONS: TVSection[] = [
   {
@@ -844,7 +712,7 @@ export default function TVChannels() {
   const [originalStreamUrl, setOriginalStreamUrl] = useState<string | null>(null); // URL originale pour Chromecast
   const [currentTime, setCurrentTime] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [channelLogos, setChannelLogos] = useState<Record<string, string>>({});
+
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -963,7 +831,7 @@ export default function TVChannels() {
   useEffect(() => {
     console.log('🔍 [TV SEARCH EFFECT] ===== DÉCLENCHEMENT EFFECT =====');
     console.log('🔍 [TV SEARCH EFFECT] searchQuery:', `"${searchQuery}"`);
-    console.log('🔍 [TV SEARCH EFFECT] channelLogos chargés:', Object.keys(channelLogos).length);
+
 
     // Ne déclencher la recherche que si la query a au moins 1 caractère
     if (searchQuery.length < 1) {
@@ -981,7 +849,7 @@ export default function TVChannels() {
       console.log('🔍 [TV SEARCH EFFECT] Cleanup - clearTimeout');
       clearTimeout(timeoutId);
     };
-  }, [searchQuery, channelLogos]);
+  }, [searchQuery]);
 
   // Fonction pour sélectionner une chaîne depuis la recherche
   const selectChannelFromSearch = (item: any) => {
@@ -1701,7 +1569,7 @@ export default function TVChannels() {
                             <ChromecastButton
                               mediaUrl={originalStreamUrl}
                               title={selectedChannel.name}
-                              posterUrl={channelLogos[selectedChannel.id]}
+                              posterUrl={selectedChannel.logo}
                               currentTime={0}
                               variant="ghost"
                               size="icon"
@@ -1855,19 +1723,19 @@ export default function TVChannels() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {channelLogos[channel.id] ? (
+                            {channel.logo ? (
                               // Logo officiel avec fond blanc pour gérer la transparence
                               <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
                                 <img
-                                  src={channelLogos[channel.id]}
+                                  src={channel.logo}
                                   alt={`Logo ${channel.name}`}
                                   className="w-full h-full object-contain scale-110"
                                   onError={(e) => {
-                                    console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channelLogos[channel.id]);
+                                    console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channel.logo);
                                     // Fallback vers l'icône TV avec cadre si le logo ne charge pas
                                     e.currentTarget.style.display = 'none';
-                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'block';
+                                    const fallback = e.currentTarget.parentElement?.nextElementSibling as HTMLElement;
+                                    if (fallback) fallback.classList.remove('hidden');
                                   }}
                                   onLoad={() => {
                                     console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
@@ -1876,7 +1744,7 @@ export default function TVChannels() {
                               </div>
                             ) : null}
                             {/* Fallback avec cadre seulement si pas de logo */}
-                            <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channelLogos[channel.id] ? 'hidden' : ''}`}>
+                            <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channel.logo ? 'hidden' : ''}`}>
                               <Tv className="w-5 h-5 text-primary" />
                             </div>
                             <div>
