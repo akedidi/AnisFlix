@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">AnisFlix</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_movies">Films</string>
+    <string name="nav_series">Séries</string>
+    <string name="nav_tv">TV</string>
+    <string name="nav_settings">Paramètres</string>
+    
+    <!-- Actions -->
+    <string name="action_play">Lire</string>
+    <string name="action_cast">Diffuser</string>
+    <string name="action_download">Télécharger</string>
+    <string name="action_favorite">Favoris</string>
+    <string name="action_search">Rechercher</string>
+    <string name="action_retry">Réessayer</string>
+    
+    <!-- Player -->
+    <string name="player_loading">Chargement…</string>
+    <string name="player_buffering">Mise en mémoire tampon…</string>
+    <string name="player_error">Erreur de lecture</string>
+    <string name="player_subtitles">Sous-titres</string>
+    <string name="player_subtitles_off">Désactivé</string>
+    <string name="player_pip">Mini-lecteur</string>
+    
+    <!-- Settings -->
+    <string name="settings_theme">Thème</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_theme_system">Système</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_streaming_language">Langue de streaming</string>
+    <string name="settings_clear_cache">Vider le cache</string>
+    <string name="settings_about">À propos</string>
+    
+    <!-- Continue Watching -->
+    <string name="continue_watching">Continuer à regarder</string>
+    <string name="continue_watching_empty">Aucun contenu en cours</string>
+    
+    <!-- Downloads -->
+    <string name="downloads_title">Téléchargements</string>
+    <string name="downloads_empty">Aucun téléchargement</string>
+    <string name="downloads_in_progress">Téléchargement en cours…</string>
+    <string name="downloads_complete">Téléchargement terminé</string>
+    <string name="downloads_failed">Échec du téléchargement</string>
+    
+    <!-- Search -->
+    <string name="search_hint">Rechercher des films, séries…</string>
+    <string name="search_no_results">Aucun résultat</string>
+    
+    <!-- Errors -->
+    <string name="error_network">Erreur réseau</string>
+    <string name="error_no_sources">Aucune source disponible</string>
+    <string name="error_extraction_failed">Échec de l\'extraction</string>
+    <string name="error_generic">Une erreur est survenue</string>
+    
+    <!-- Empty States -->
+    <string name="empty_favorites">Aucun favori</string>
+    <string name="empty_favorites_message">Ajoutez des films et séries à vos favoris</string>
+    
+    <!-- Streaming Languages -->
+    <string name="lang_vf">VF (Français)</string>
+    <string name="lang_vostfr">VOSTFR (Sous-titré FR)</string>
+    <string name="lang_vo">VO (Version originale)</string>
+    
+    <!-- Detail -->
+    <string name="detail_seasons">Saisons</string>
+    <string name="detail_episodes">Épisodes</string>
+    <string name="detail_select_source">Sélectionner une source</string>
+    <string name="detail_no_sources">Aucune source disponible</string>
+    
+    <!-- Misc -->
+    <string name="loading">Chargement…</string>
+    <string name="close">Fermer</string>
+    <string name="cancel">Annuler</string>
+    <string name="ok">OK</string>
+</resources>

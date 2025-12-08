@@ -25,3 +25,6 @@ babel.config.js
 # Assets temporaires
 assets/
 app/
+
+# Allow android-native development
+!android-native/**
