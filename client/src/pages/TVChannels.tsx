@@ -1723,29 +1723,31 @@ export default function TVChannels() {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            {channel.logo ? (
-                              // Logo officiel avec fond blanc pour gérer la transparence
-                              <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border">
-                                <img
-                                  src={channel.logo}
-                                  alt={`Logo ${channel.name}`}
-                                  className="w-full h-full object-contain scale-110"
-                                  onError={(e) => {
-                                    console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channel.logo);
-                                    // Fallback vers l'icône TV avec cadre si le logo ne charge pas
-                                    e.currentTarget.style.display = 'none';
-                                    const fallback = e.currentTarget.parentElement?.nextElementSibling as HTMLElement;
-                                    if (fallback) fallback.classList.remove('hidden');
-                                  }}
-                                  onLoad={() => {
-                                    console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
-                                  }}
-                                />
-                              </div>
-                            ) : null}
-                            {/* Fallback avec cadre seulement si pas de logo */}
-                            <div className={`w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center p-1 shadow-sm border ${channel.logo ? 'hidden' : ''}`}>
-                              <Tv className="w-5 h-5 text-primary" />
+                            <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center p-0.5 shadow-sm border overflow-hidden relative">
+                              {channel.logo ? (
+                                <>
+                                  <img
+                                    src={channel.logo}
+                                    alt={`Logo ${channel.name}`}
+                                    className="w-full h-full object-contain scale-110"
+                                    onError={(e) => {
+                                      console.log(`[LOGO ERROR] Failed to load logo for ${channel.name}:`, channel.logo);
+                                      e.currentTarget.style.display = 'none';
+                                      // Afficher l'icône de fallback qui est frère de l'image
+                                      const fallbackIcon = e.currentTarget.parentElement?.querySelector('.fallback-icon');
+                                      if (fallbackIcon) fallbackIcon.classList.remove('hidden');
+                                    }}
+                                    onLoad={() => {
+                                      console.log(`[LOGO SUCCESS] Loaded logo for ${channel.name}`);
+                                    }}
+                                  />
+                                  <div className="fallback-icon hidden w-full h-full flex items-center justify-center">
+                                    <Tv className="w-6 h-6 text-primary" />
+                                  </div>
+                                </>
+                              ) : (
+                                <Tv className="w-6 h-6 text-primary" />
+                              )}
                             </div>
                             <div>
                               <h4 className="font-semibold text-sm">{channel.name}</h4>
