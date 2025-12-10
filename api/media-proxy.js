@@ -457,6 +457,15 @@ async function handleTV(req, res) {
                 console.log(`[TV PROXY] Headers JWT appliqués pour segment: ${cleanUrl}`);
             }
 
+            // Headers spécifiques pour Bein Sports (Cloudfront) - SEGMENTS
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) {
+                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Bein Sports`);
+                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+                headers['Accept'] = '*/*';
+                delete headers['Origin'];
+                delete headers['Referer'];
+            }
+
             console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
 
             // Pour les requêtes HEAD, utiliser HEAD au lieu de GET
