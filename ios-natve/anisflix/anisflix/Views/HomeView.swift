@@ -252,7 +252,7 @@ struct HomeView: View {
                                 print("Navigate to Netflix movie: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 8, providerName: "Netflix")
+                            ProviderCategoryListView(providerId: 8, providerName: "Netflix", category: "Films", genreId: nil, mediaType: .movie)
                         }
                     }
                     
@@ -264,7 +264,7 @@ struct HomeView: View {
                                 print("Navigate to Netflix series: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 8, providerName: "Netflix")
+                            ProviderCategoryListView(providerId: 8, providerName: "Netflix", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                     
@@ -277,7 +277,7 @@ struct HomeView: View {
                                 print("Navigate to Amazon movie: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
+                            ProviderCategoryListView(providerId: 9, providerName: "Amazon Prime", category: "Films", genreId: nil, mediaType: .movie)
                         }
                     }
                     
@@ -289,7 +289,7 @@ struct HomeView: View {
                                 print("Navigate to Amazon series: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
+                            ProviderCategoryListView(providerId: 9, providerName: "Amazon Prime", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                     
@@ -302,7 +302,7 @@ struct HomeView: View {
                                 print("Navigate to Apple TV movie: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
+                            ProviderCategoryListView(providerId: 350, providerName: "Apple TV+", category: "Films", genreId: nil, mediaType: .movie)
                         }
                     }
                     
@@ -314,7 +314,7 @@ struct HomeView: View {
                                 print("Navigate to Apple TV series: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
+                            ProviderCategoryListView(providerId: 350, providerName: "Apple TV+", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                     
@@ -327,7 +327,7 @@ struct HomeView: View {
                                 print("Navigate to Disney movie: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 337, providerName: "Disney+")
+                            ProviderCategoryListView(providerId: 337, providerName: "Disney+", category: "Films", genreId: nil, mediaType: .movie)
                         }
                     }
                     
@@ -339,7 +339,7 @@ struct HomeView: View {
                                 print("Navigate to Disney series: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 337, providerName: "Disney+")
+                            ProviderCategoryListView(providerId: 337, providerName: "Disney+", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                     
@@ -352,7 +352,7 @@ struct HomeView: View {
                                 print("Navigate to HBO movie: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 384, providerName: "HBO Max")
+                            ProviderCategoryListView(providerId: 384, providerName: "HBO Max", category: "Films", genreId: nil, mediaType: .movie)
                         }
                     }
                     
@@ -364,7 +364,7 @@ struct HomeView: View {
                                 print("Navigate to HBO series: \(media.id)")
                             }
                         ) {
-                            ProviderMediaListView(providerId: 384, providerName: "HBO Max")
+                            ProviderCategoryListView(providerId: 384, providerName: "HBO Max", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                 }
