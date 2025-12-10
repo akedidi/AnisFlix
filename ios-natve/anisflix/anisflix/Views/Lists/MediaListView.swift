@@ -40,6 +40,9 @@ struct MediaListView: View {
                     }
                 } else {
                     ScrollView(showsIndicators: false) {
+            ZStack {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(items) { media in
                                 MediaGridCard(media: media, onTap: {
@@ -57,7 +60,7 @@ struct MediaListView: View {
                         .padding(16)
                         
                         // Bottom loader for infinite scroll
-                        if isLoading {
+                        if isLoading && !items.isEmpty {
                             HStack {
                                 Spacer()
                                 ProgressView()
@@ -72,6 +75,21 @@ struct MediaListView: View {
                                 Spacer()
                             }
                         }
+                    }
+                }
+                
+                if isLoading && items.isEmpty {
+                    VStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(AppTheme.primaryRed)
+                            .scaleEffect(1.5)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(theme.backgroundColor)
+                }
+            }
                     }
                 }
             }

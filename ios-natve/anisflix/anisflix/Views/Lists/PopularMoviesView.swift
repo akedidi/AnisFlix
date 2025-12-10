@@ -58,15 +58,7 @@ struct PopularMoviesView: View {
                     .background(theme.secondaryText.opacity(0.2))
                 
                 // Content
-                if isLoading && items.isEmpty {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
-                        Text(theme.t("common.loading"))
-                            .foregroundColor(theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
+                ZStack {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 0) {
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
@@ -101,6 +93,18 @@ struct PopularMoviesView: View {
                             Color.clear.frame(height: 20)
                         }
                         .padding(.bottom, 20)
+                    }
+                    
+                    if isLoading && items.isEmpty {
+                        ZStack {
+                            theme.backgroundColor.ignoresSafeArea()
+                            VStack(spacing: 20) {
+                                ProgressView()
+                                    .tint(AppTheme.primaryRed)
+                                Text(theme.t("common.loading"))
+                                    .foregroundColor(theme.secondaryText)
+                            }
+                        }
                     }
                 }
             }
