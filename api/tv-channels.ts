@@ -255,7 +255,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "France 24",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/8/8a/France24.png",
                             links: [
-                                { type: "hls_direct", url: "https://live.france24.com/hls/live/2037179/F24_FR_HI_HLS/master_5000.m3u8" }
+                                { type: "hls_direct", url: "https://live.france24.com/hls/live/2037179/F24_FR_HI_HLS/master_2300.m3u8" }
                             ]
                         }
                     ]
