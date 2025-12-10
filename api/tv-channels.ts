@@ -425,20 +425,6 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         }
                     ]
-                },
-                {
-                    id: "radio",
-                    name: "Radio",
-                    channels: [
-                        {
-                            id: "france-inter",
-                            name: "France Inter",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/9b/France_Inter_logo_2021.svg",
-                            links: [
-                                { type: "hls_direct", url: "https://live.eu-north-1a.cf.dmcdn.net/sec2(snBlwTgX5RsbBW6MSglCm8EPffH1e9v6a-4-lqE6a_XDzypQbAhpWcTsI6vI-BABAspmNLyWnOjRsGyo7H-RZwESEG8-Zo6Qz5th1TioPdLUsEzWImtU-eSut5PZ16k1)/dm/3/x17qw0a/s/live-380.m3u8#cell=lcf-eu-north-1a" }
-                            ]
-                        }
-                    ]
                 }
             ]
         },
@@ -547,7 +533,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "France 24 Arabe",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/8/8a/France24.png",
                             links: [
-                                { type: "hls_direct", url: "https://live.france24.com/hls/live/2111613/F24_AR_HI_HLS/master_5000.m3u8" }
+                                { type: "hls_direct", url: "https://live.france24.com/hls/live/2037222-b/F24_AR_HI_HLS/master_2300.m3u8" }
                             ]
                         }
                     ]
