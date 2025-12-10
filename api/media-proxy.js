@@ -352,8 +352,8 @@ async function handleTV(req, res) {
         console.log(`[TV PROXY] Appel de l'URL: ${cleanUrl}`);
 
         // ===== MODE PLAYLIST M3U8/MPD =====
-        // Traiter explicitement Bein Sports comme une playlist même sans extension
-        if (cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') || cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) {
+        // Traiter explicitement Bein Sports comme une playlist même sans extension (mais PAS les segments .js)
+        if ((cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') || cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) && !cleanUrl.endsWith('.js')) {
             // Headers spécifiques selon le domaine
             let requestHeaders = { ...browserHeaders };
 
