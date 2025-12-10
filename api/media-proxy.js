@@ -481,8 +481,14 @@ async function handleTV(req, res) {
             // Propager quelques headers utiles
             ['content-type', 'content-length', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
                 if (r.headers[h]) {
-                    res.setHeader(h, r.headers[h]);
-                    console.log(`[TV PROXY] Header propagé: ${h} = ${r.headers[h]}`);
+                    // Si c'est un segment .js de Bein Sports, forcer le type MIME vidéo
+                    if (h === 'content-type' && cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') && cleanUrl.endsWith('.js')) {
+                        res.setHeader('Content-Type', 'video/mp2t');
+                        console.log(`[TV PROXY] Correction Content-Type: ${r.headers[h]} -> video/mp2t`);
+                    } else {
+                        res.setHeader(h, r.headers[h]);
+                        console.log(`[TV PROXY] Header propagé: ${h} = ${r.headers[h]}`);
+                    }
                 }
             });
 
