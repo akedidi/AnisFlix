@@ -45,29 +45,30 @@ struct MediaListView: View {
                                 MediaGridCard(media: media, onTap: {
                                     // Navigation is handled by MediaGridCard's internal NavigationLink
                                 })
+                                .onAppear {
+                                    if media.id == items.last?.id {
+                                        Task {
+                                            await loadMore()
+                                        }
+                                    }
+                                }
                             }
                         }
                         .padding(16)
                         
                         // Bottom loader for infinite scroll
-                        if hasMorePages {
+                        if isLoading {
                             HStack {
                                 Spacer()
-                                if isLoading {
-                                    ProgressView()
-                                        .tint(AppTheme.primaryRed)
-                                        .padding(.vertical, 20)
-                                } else {
-                                    // Invisible trigger for infinite scroll
-                                    Color.clear
-                                        .frame(height: 50)
-                                        .padding(.top, 40)
-                                        .onAppear {
-                                            Task {
-                                                await loadMore()
-                                            }
-                                        }
-                                }
+                                ProgressView()
+                                    .tint(AppTheme.primaryRed)
+                                    .padding(.vertical, 20)
+                                Spacer()
+                            }
+                        } else if hasMorePages {
+                             HStack {
+                                Spacer()
+                                Color.clear.frame(height: 20)
                                 Spacer()
                             }
                         }

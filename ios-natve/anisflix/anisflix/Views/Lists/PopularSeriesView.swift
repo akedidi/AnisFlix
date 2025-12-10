@@ -74,30 +74,28 @@ struct PopularSeriesView: View {
                                     MediaGridCard(media: media, onTap: {
                                         print("Navigate to series: \(media.id)")
                                     })
+                                    .onAppear {
+                                        if media.id == items.last?.id {
+                                            loadMoreData()
+                                        }
+                                    }
                                 }
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 20)
                             
                             // Bottom loader for infinite scroll
-                            if hasMore {
+                            if isLoading {
                                 HStack {
                                     Spacer()
-                                    if isLoading {
-                                        ProgressView()
-                                            .tint(AppTheme.primaryRed)
-                                            .padding(.vertical, 20)
-                                    } else {
-                                        // Invisible trigger for infinite scroll
-                                        Color.clear
-                                            .frame(height: 50)
-                                            .padding(.top, 40)
-                                            .onAppear {
-                                                loadMoreData()
-                                            }
-                                    }
+                                    ProgressView()
+                                        .tint(AppTheme.primaryRed)
+                                        .padding(.vertical, 20)
                                     Spacer()
                                 }
+                            } else if hasMore {
+                                // Spacer to ensure scrollability to bottom
+                                Color.clear.frame(height: 20)
                             }
                             
                             Color.clear.frame(height: 20)
