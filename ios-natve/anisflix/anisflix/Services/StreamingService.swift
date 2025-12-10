@@ -166,8 +166,8 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
-        // Filter for VidMoly, Vidzy and Vixsrc
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" }
+        // Filter for Vidzy and Vixsrc (VidMoly disabled temporarily - playback issues on iOS)
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -272,8 +272,8 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
-        // Filter for VidMoly, Vidzy and Vixsrc
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" }
+        // Filter for Vidzy and Vixsrc (VidMoly disabled temporarily - playback issues on iOS)
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -532,6 +532,10 @@ class StreamingService {
             let method: String?
         }
         
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("🎬 VidMoly JSON Response: \(jsonString)")
+        }
+        
         let result = try JSONDecoder().decode(VidMolyResponse.self, from: data)
         print("✅ VidMoly API Response: success=\(result.success)")
         
@@ -607,11 +611,44 @@ class StreamingService {
     // MARK: - Proxy Helpers
     
     func getVidMolyProxyUrl(url: String, referer: String) -> String {
-        var components = URLComponents(string: "\(baseUrl)/api/vidmoly")!
-        components.queryItems = [
-            URLQueryItem(name: "url", value: url),
-            URLQueryItem(name: "referer", value: referer)
-        ]
-        return components.url?.absoluteString ?? url
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        
+        // Match Web: Recursive decode first
+        // Web implementation:
+        // while (decodedUrl.includes('%25')) {
+        //   decodedUrl = decodeURIComponent(decodedUrl);
+        // }
+        // We do semantically equivalent in Swift:
+        
+        var decodedUrl = url
+        // Safety counter to prevent infinite loops
+        var loopCount = 0
+        let maxLoops = 10
+        
+        while decodedUrl.contains("%") && loopCount < maxLoops {
+            if let unescaped = decodedUrl.removingPercentEncoding {
+                if unescaped == decodedUrl {
+                    // No change, stable
+                    break
+                }
+                decodedUrl = unescaped
+            } else {
+                // Decoding failed
+                break
+            }
+            loopCount += 1
+        }
+        
+        print("🔍 Swift VidMoly: Final decoded URL: \(decodedUrl)")
+        
+        let encodedUrl = decodedUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? decodedUrl
+        
+        // Step 1: Encode referer string (equivalent to encodeURIComponent(referer))
+        let step1Referer = referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? referer
+        // Step 2: Encode the result (equivalent to URLSearchParams encoding the value)
+        let finalReferer = step1Referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? step1Referer
+        
+        // Append a dummy parameter forcing .m3u8 extension for AVPlayer detection
+        return "\(baseUrl)/api/vidmoly?url=\(encodedUrl)&referer=\(finalReferer)&_=.m3u8"
     }
 }

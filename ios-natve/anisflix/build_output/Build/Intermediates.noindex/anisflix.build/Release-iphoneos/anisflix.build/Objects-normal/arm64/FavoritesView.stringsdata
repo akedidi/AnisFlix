@@ -1,0 +1,32 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/FavoritesView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 47
+        }
+      },
+      {
+        "comment": "",
+        "key": "Films",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Séries",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 49
+        }
+      }
+    ]
+  },
+  "version": 1
+}

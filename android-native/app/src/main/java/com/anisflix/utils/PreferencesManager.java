@@ -28,7 +28,7 @@ public class PreferencesManager {
     }
     
     public String getTheme() {
-        return prefs.getString(Constants.PREF_THEME, Constants.THEME_SYSTEM);
+        return prefs.getString(Constants.PREF_THEME, Constants.THEME_DARK);
     }
     
     // Language

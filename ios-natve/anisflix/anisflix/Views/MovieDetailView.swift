@@ -89,7 +89,7 @@ struct MovieDetailView: View {
                         }
                         .frame(width: UIScreen.main.bounds.width)
                         
-                        VStack(alignment: .leading, spacing: 64) {
+                        VStack(alignment: .leading, spacing: 16) {
                             // Title & Info
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack(alignment: .top) {
@@ -171,6 +171,32 @@ struct MovieDetailView: View {
                             }
                             .padding(.horizontal, 16)
                             
+                            // Trailer Button
+                            if let trailer = videos.first(where: { $0.type == "Trailer" && $0.site == "YouTube" }) ?? videos.first(where: { $0.site == "YouTube" }) {
+                                Button(action: {
+                                    openTrailer(key: trailer.key)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "play.rectangle.fill")
+                                            .font(.title3)
+                                        Text(theme.t("detail.trailer"))
+                                            .font(.headline)
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [AppTheme.primaryRed, AppTheme.primaryRed.opacity(0.8)]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(8)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                            }
                             }
                             
                             // Overview
@@ -416,6 +442,7 @@ struct MovieDetailView: View {
                     CustomVideoPlayer(
                         url: url,
                         title: movie.title,
+                        posterUrl: movie.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(movie.posterPath!)" : nil,
                         subtitles: subtitles,
                         isPresented: $showPlayer,
                         isFullscreen: $isFullscreen,
@@ -476,12 +503,14 @@ struct MovieDetailView: View {
             async let movieDetail = TMDBService.shared.fetchMovieDetails(movieId: movieId)
             async let similar = TMDBService.shared.fetchSimilarMovies(movieId: movieId)
             async let fetchedSources = StreamingService.shared.fetchSources(movieId: movieId)
+            async let fetchedVideos = TMDBService.shared.fetchVideos(mediaId: movieId, type: .movie)
             
-            let (detail, similarResult, sourcesResult) = try await (movieDetail, similar, fetchedSources)
+            let (detail, similarResult, sourcesResult, videosResult) = try await (movieDetail, similar, fetchedSources, fetchedVideos)
             
             self.movie = detail
             self.similarMovies = similarResult
             self.sources = sourcesResult
+            self.videos = videosResult
             
             // Auto-select language: VF > VOSTFR > VO
             let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
@@ -504,6 +533,19 @@ struct MovieDetailView: View {
         } catch {
             print("Error loading movie data: \(error)")
             self.isLoading = false
+        }
+    }
+    
+    private func openTrailer(key: String) {
+        // Try YouTube app first, fall back to Safari
+        if let youtubeAppURL = URL(string: "youtube://\(key)") {
+            if UIApplication.shared.canOpenURL(youtubeAppURL) {
+                UIApplication.shared.open(youtubeAppURL)
+                return
+            }
+        }
+        if let youtubeWebURL = URL(string: "https://www.youtube.com/watch?v=\(key)") {
+            UIApplication.shared.open(youtubeWebURL)
         }
     }
     

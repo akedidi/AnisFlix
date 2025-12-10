@@ -105,59 +105,54 @@ public class SectionContentActivity extends AppCompatActivity {
 
     private void loadData() {
         isLoading = true;
-        // findViewById(R.id.loading_indicator).setVisibility(android.view.View.VISIBLE); // Optional: show bottom loader
-
         MediaRepository repo = MediaRepository.getInstance(this);
 
         if ("movie".equals(type)) {
             Callback<TMDBResponse<Movie>> callback = new Callback<TMDBResponse<Movie>>() {
-                @Override
-                public void onResponse(Call<TMDBResponse<Movie>> call, Response<TMDBResponse<Movie>> response) {
+                @Override public void onResponse(Call<TMDBResponse<Movie>> call, Response<TMDBResponse<Movie>> response) {
                     isLoading = false;
                     if (response.isSuccessful() && response.body() != null) {
                         List<Movie> results = response.body().getResults();
                         if (results.isEmpty()) isLastPage = true;
                         else {
-                            movieAdapter.appendMovies(results); // Need to add append method to adapter
-                            if (results.size() < 20) isLastPage = true; // Primitive check or use total_pages
-                            currentPage++;
-                        }
-                    }
-                }
-                @Override
-                public void onFailure(Call<TMDBResponse<Movie>> call, Throwable t) {
-                    isLoading = false;
-                }
-            };
-
-            // Dispatch
-            if ("POPULAR".equals(category)) repo.getPopularMovies(currentPage, callback);
-            else if ("LATEST".equals(category)) repo.getLatestMovies(currentPage, callback);
-            else if ("GENRE".equals(category)) repo.getMoviesByGenre(genreId, currentPage, callback);
-            else if ("PROVIDER".equals(category)) repo.getMoviesByProvider(providerId, currentPage, callback);
-
-        } else {
-            Callback<TMDBResponse<Series>> callback = new Callback<TMDBResponse<Series>>() {
-                @Override
-                public void onResponse(Call<TMDBResponse<Series>> call, Response<TMDBResponse<Series>> response) {
-                    isLoading = false;
-                    if (response.isSuccessful() && response.body() != null) {
-                        List<Series> results = response.body().getResults();
-                        if (results.isEmpty()) isLastPage = true;
-                        else {
-                            seriesAdapter.appendSeries(results); // Need to add append
+                            movieAdapter.appendMovies(results);
                             if (results.size() < 20) isLastPage = true;
                             currentPage++;
                         }
                     }
                 }
-                @Override
-                public void onFailure(Call<TMDBResponse<Series>> call, Throwable t) {
+                @Override public void onFailure(Call<TMDBResponse<Movie>> call, Throwable t) { isLoading = false; }
+            };
+
+            if ("POPULAR".equals(category)) repo.getPopularMovies(currentPage, callback);
+            else if ("LATEST".equals(category)) repo.getLatestMovies(currentPage, callback);
+            else if ("TRENDING".equals(category)) repo.getTrendingMovies(currentPage, callback);
+            else if ("TOP_RATED".equals(category)) repo.getTopRatedMovies(currentPage, callback);
+            else if ("UPCOMING".equals(category)) repo.getUpcomingMovies(currentPage, callback);
+            else if ("GENRE".equals(category)) repo.getMoviesByGenre(genreId, currentPage, callback);
+            else if ("PROVIDER".equals(category)) repo.getMoviesByProvider(providerId, currentPage, callback);
+
+        } else {
+            Callback<TMDBResponse<Series>> callback = new Callback<TMDBResponse<Series>>() {
+                @Override public void onResponse(Call<TMDBResponse<Series>> call, Response<TMDBResponse<Series>> response) {
                     isLoading = false;
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Series> results = response.body().getResults();
+                        if (results.isEmpty()) isLastPage = true;
+                        else {
+                            seriesAdapter.appendSeries(results);
+                            if (results.size() < 20) isLastPage = true;
+                            currentPage++;
+                        }
+                    }
                 }
+                @Override public void onFailure(Call<TMDBResponse<Series>> call, Throwable t) { isLoading = false; }
             };
             
             if ("POPULAR".equals(category)) repo.getPopularSeries(currentPage, callback);
+            else if ("TRENDING".equals(category)) repo.getTrendingSeries(currentPage, callback);
+            else if ("TOP_RATED".equals(category)) repo.getTopRatedSeries(currentPage, callback);
+            else if ("AIRING_TODAY".equals(category)) repo.getAiringTodaySeries(currentPage, callback);
             else if ("LATEST".equals(category)) repo.getLatestSeries(currentPage, callback);
             else if ("GENRE".equals(category)) repo.getSeriesByGenre(genreId, currentPage, callback);
             else if ("PROVIDER".equals(category)) repo.getSeriesByProvider(providerId, currentPage, callback);

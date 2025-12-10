@@ -1,0 +1,72 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "8c77cfc3c15a48e8c801f7c0d09e749c208dbaccfaaab9465125255b7d224371"
+    }
+  ],
+  "containerPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix.xcworkspace",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "undefined_arch",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : true,
+      "platform" : "iphoneos",
+      "sdk" : "iphoneos26.0",
+      "sdkVariant" : "iphoneos",
+      "supportedArchitectures" : [
+        "armv4t",
+        "armv5",
+        "armv6",
+        "armv7",
+        "armv7f",
+        "armv7s",
+        "armv7k",
+        "arm64",
+        "arm64e"
+      ],
+      "targetArchitecture" : "undefined_arch"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Products",
+      "derivedDataPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3",
+      "indexDataStoreFolderPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Release",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "CODE_SIGNING_ALLOWED" : "NO",
+          "CODE_SIGNING_REQUIRED" : "NO",
+          "SDKROOT" : "iphoneos26.0"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

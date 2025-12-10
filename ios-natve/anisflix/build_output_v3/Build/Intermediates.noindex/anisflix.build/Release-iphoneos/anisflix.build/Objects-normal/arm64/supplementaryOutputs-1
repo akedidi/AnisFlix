@@ -1,0 +1,12 @@
+{
+  "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Models/Media.swift" : {
+    "abi-baseline-json" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.abi.json",
+    "const-values" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-primary.swiftconstvalues",
+    "dependencies" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-primary.d",
+    "diagnostics" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-primary.dia",
+    "objc-header" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-Swift.h",
+    "swiftdoc" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.swiftdoc",
+    "swiftmodule" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule",
+    "swiftsourceinfo" : "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/build_output_v3/Build/Intermediates.noindex/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.swiftsourceinfo"
+  }
+}

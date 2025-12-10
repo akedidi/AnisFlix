@@ -39,6 +39,9 @@ public class Series {
     @SerializedName("number_of_episodes")
     private int numberOfEpisodes;
     
+    @SerializedName("genres")
+    private java.util.List<Genre> genres;
+    
     // Constructors
     public Series() {}
     
@@ -55,6 +58,7 @@ public class Series {
     public String getOriginalLanguage() { return originalLanguage; }
     public int getNumberOfSeasons() { return numberOfSeasons; }
     public int getNumberOfEpisodes() { return numberOfEpisodes; }
+    public java.util.List<Genre> getGenres() { return genres; }
     
     // Setters
     public void setId(int id) { this.id = id; }
@@ -69,6 +73,7 @@ public class Series {
     public void setOriginalLanguage(String originalLanguage) { this.originalLanguage = originalLanguage; }
     public void setNumberOfSeasons(int numberOfSeasons) { this.numberOfSeasons = numberOfSeasons; }
     public void setNumberOfEpisodes(int numberOfEpisodes) { this.numberOfEpisodes = numberOfEpisodes; }
+    public void setGenres(java.util.List<Genre> genres) { this.genres = genres; }
     
     // Helper methods
     public String getFullPosterUrl() {

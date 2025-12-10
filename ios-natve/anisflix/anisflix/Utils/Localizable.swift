@@ -71,6 +71,8 @@ struct Localizable {
         
         // Series
         "series.latest": "Dernières séries",
+        "series.action": "Action",
+        "series.actions": "Action",
         "series.actionAdventure": "Action & Aventure",
         "series.drama": "Drame",
         "series.crime": "Policier",
@@ -169,6 +171,8 @@ struct Localizable {
         "movies.animation": "Animation",
         
         "series.latest": "Latest Series",
+        "series.action": "Action",
+        "series.actions": "Action",
         "series.actionAdventure": "Action & Adventure",
         "series.drama": "Drama",
         "series.crime": "Crime",
@@ -265,6 +269,8 @@ struct Localizable {
         "movies.animation": "Animación",
         
         "series.latest": "Últimas series",
+        "series.action": "Acción",
+        "series.actions": "Acción",
         "series.actionAdventure": "Acción y Aventura",
         "series.drama": "Drama",
         "series.crime": "Crimen",
@@ -361,6 +367,8 @@ struct Localizable {
         "movies.animation": "رسوم متحركة",
         
         "series.latest": "أحدث المسلسلات",
+        "series.action": "أكشن",
+        "series.actions": "أكشن",
         "series.actionAdventure": "أكشن ومغامرة",
         "series.drama": "دراما",
         "series.crime": "جريمة",

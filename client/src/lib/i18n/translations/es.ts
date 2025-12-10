@@ -49,6 +49,7 @@ export default {
   // Series page
   "series.title": "Series",
   "series.action": "Acción",
+  "series.actions": "Acción",
   "series.adventure": "Aventura",
   "series.actionAdventure": "Acción y Aventura",
   "series.drama": "Drama",
@@ -157,6 +158,7 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  "language.ar": "Árabe",
 
   // Settings page
   "settings.offlineMode": "Modo sin conexión - La configuración está disponible localmente",

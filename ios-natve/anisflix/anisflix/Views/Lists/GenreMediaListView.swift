@@ -17,6 +17,7 @@ struct GenreMediaListView: View {
     @State private var isLoading = false
     @State private var currentPage = 1
     @State private var hasMore = true
+
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -61,20 +62,44 @@ struct GenreMediaListView: View {
                 Divider()
                     .background(theme.secondaryText.opacity(0.2))
                 
-                // Content
-                MediaGrid(
-                    items: items,
-                    columns: 3,
-                    onItemClick: { media in
-                        print("Navigate to \(mediaType == .movie ? "movie" : "series"): \(media.id)")
-                    },
-                    onLoadMore: hasMore ? {
-                        loadMoreData()
-                    } : nil,
-                    isLoading: isLoading,
-                    hasMore: hasMore
-                )
+                if isLoading {
+                     VStack(spacing: 20) {
+                         ProgressView()
+                             .tint(AppTheme.primaryRed)
+                         Text(theme.t("common.loading"))
+                             .foregroundColor(theme.secondaryText)
+                     }
+                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                                ForEach(items) { media in
+                                    MediaGridCard(media: media, onTap: {
+                                        print("Navigate to \(mediaType == .movie ? "movie" : "series"): \(media.id)")
+                                    })
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 20)
+                            
+                            // Invisible trigger for infinite scroll
+                            if hasMore && !isLoading {
+                                Color.clear
+                                    .frame(height: 50)
+                                    .padding(.top, 40)
+                                    .onAppear {
+                                        loadMoreData()
+                                    }
+                            }
+                            
+                            Color.clear.frame(height: 20)
+                        }
+                        .padding(.bottom, 20)
+                    }
+                }
             }
+            .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
         .task {
@@ -84,9 +109,14 @@ struct GenreMediaListView: View {
     
     // MARK: - Data Loading
     
-    private func loadInitialData() async {
-        guard items.isEmpty else { return }
-        isLoading = true
+    private func loadInitialData(showLoadingUI: Bool = true, forceReload: Bool = false) async {
+        if !forceReload {
+            guard items.isEmpty else { return }
+        }
+        
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
@@ -95,20 +125,22 @@ struct GenreMediaListView: View {
         print("🎬 Loading \(genreName) - Genre \(genreId) - Page 1")
         
         do {
+            let newItems: [Media]
             if mediaType == .movie {
-                items = try await TMDBService.shared.fetchMoviesByGenre(
+                newItems = try await TMDBService.shared.fetchMoviesByGenre(
                     genreId: genreId,
                     page: 1,
                     language: language
                 )
             } else {
-                items = try await TMDBService.shared.fetchSeriesByGenre(
+                newItems = try await TMDBService.shared.fetchSeriesByGenre(
                     genreId: genreId,
                     page: 1,
                     language: language
                 )
             }
             
+            items = newItems
             print("✅ Loaded \(items.count) items")
             hasMore = items.count >= 20 // TMDB returns 20 items per page
             currentPage = 1
@@ -116,7 +148,9 @@ struct GenreMediaListView: View {
             print("❌ Error loading \(genreName): \(error)")
         }
         
-        isLoading = false
+        if showLoadingUI {
+            isLoading = false
+        }
     }
     
     private func loadMoreData() {
@@ -159,6 +193,8 @@ struct GenreMediaListView: View {
             isLoading = false
         }
     }
+    
+
 }
 
 #Preview {

@@ -48,6 +48,8 @@ public class MovieDetailActivity extends AppCompatActivity {
     
     // Similar
     private RecyclerView similarRecyclerView;
+    private TextView similarTitle;
+    private com.anisflix.adapters.HorizontalMovieAdapter similarAdapter;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,8 +88,18 @@ public class MovieDetailActivity extends AppCompatActivity {
         sourcesAdapter = new SourcesAdapter();
         sourcesRecyclerView.setAdapter(sourcesAdapter);
         
+        // Similar Content
+        similarTitle = findViewById(R.id.similar_title);
         similarRecyclerView = findViewById(R.id.similar_recycler);
-        // similar setup later
+        
+        similarRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        similarAdapter = new com.anisflix.adapters.HorizontalMovieAdapter(this);
+        similarAdapter.setOnItemClickListener(movie -> {
+             Intent intent = new Intent(this, MovieDetailActivity.class);
+             intent.putExtra(EXTRA_MOVIE_ID, movie.getId());
+             startActivity(intent);
+        });
+        similarRecyclerView.setAdapter(similarAdapter);
         
         backButton.setOnClickListener(v -> finish());
         favoriteButton.setOnClickListener(v -> viewModel.toggleFavorite());
@@ -128,13 +140,41 @@ public class MovieDetailActivity extends AppCompatActivity {
         // For simplicity we just rely on filtering logic update here
         updateSourcesList();
     }
-    
+
     private void setupViewModel() {
         viewModel = new ViewModelProvider(this).get(MovieDetailViewModel.class);
         
         viewModel.getMovie().observe(this, this::displayMovieDetails);
         viewModel.getStreamingSources().observe(this, sources -> {
             updateSourcesList();
+        });
+        
+        viewModel.getSimilarMovies().observe(this, movies -> {
+            if (movies != null && !movies.isEmpty()) {
+                similarAdapter.setMovies(movies);
+                if (similarTitle != null) similarTitle.setVisibility(View.VISIBLE);
+                similarRecyclerView.setVisibility(View.VISIBLE);
+            } else {
+                 if (similarTitle != null) similarTitle.setVisibility(View.GONE);
+                similarRecyclerView.setVisibility(View.GONE);
+            }
+        });
+        
+        viewModel.getIsFavorite().observe(this, isFav -> {
+            if (isFav != null) {
+                // Assuming ic_heart_filled exists now and we can tint it or swap drawable
+                // If using same drawable with tint:
+                // favoriteButton.setColorFilter(isFav ? Color.RED : Color.WHITE);
+                // Better UI: Swap drawable or distinct tint
+                // With ic_heart_filled:
+                 if (isFav) {
+                     favoriteButton.setImageResource(R.drawable.ic_heart_filled);
+                     favoriteButton.setColorFilter(Color.RED);
+                 } else {
+                     favoriteButton.setImageResource(R.drawable.ic_heart);
+                     favoriteButton.setColorFilter(Color.WHITE);
+                 }
+            }
         });
     }
     

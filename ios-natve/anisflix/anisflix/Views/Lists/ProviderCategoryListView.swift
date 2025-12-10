@@ -19,6 +19,7 @@ struct ProviderCategoryListView: View {
     @State private var isLoading = false
     @State private var currentPage = 1
     @State private var hasMore = true
+
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -64,20 +65,44 @@ struct ProviderCategoryListView: View {
                 Divider()
                     .background(theme.secondaryText.opacity(0.2))
                 
-                // Content
-                MediaGrid(
-                    items: items,
-                    columns: 3,
-                    onItemClick: { media in
-                        print("Navigate to \(mediaType == .movie ? "movie" : "series"): \(media.id)")
-                    },
-                    onLoadMore: hasMore ? {
-                        loadMoreData()
-                    } : nil,
-                    isLoading: isLoading,
-                    hasMore: hasMore
-                )
+                if isLoading {
+                     VStack(spacing: 20) {
+                         ProgressView()
+                             .tint(AppTheme.primaryRed)
+                         Text(theme.t("common.loading"))
+                             .foregroundColor(theme.secondaryText)
+                     }
+                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                                ForEach(items) { media in
+                                    MediaGridCard(media: media, onTap: {
+                                        print("Navigate to \(mediaType == .movie ? "movie" : "series"): \(media.id)")
+                                    })
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 20)
+                            
+                            // Invisible trigger for infinite scroll
+                            if hasMore && !isLoading {
+                                Color.clear
+                                    .frame(height: 50)
+                                    .padding(.top, 40)
+                                    .onAppear {
+                                        loadMoreData()
+                                    }
+                            }
+                            
+                            Color.clear.frame(height: 20)
+                        }
+                        .padding(.bottom, 20)
+                    }
+                }
             }
+            .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
         .task {
@@ -87,9 +112,14 @@ struct ProviderCategoryListView: View {
     
     // MARK: - Data Loading
     
-    private func loadInitialData() async {
-        guard items.isEmpty else { return }
-        isLoading = true
+    private func loadInitialData(showLoadingUI: Bool = true, forceReload: Bool = false) async {
+        if !forceReload {
+             guard items.isEmpty else { return }
+        }
+        
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
@@ -97,9 +127,11 @@ struct ProviderCategoryListView: View {
         
         print("📺 Loading \(providerName) - \(category) - Page 1")
         
-        await loadPage(1, language: language)
+        await loadPage(1, language: language, replaceItems: true)
         
-        isLoading = false
+        if showLoadingUI {
+            isLoading = false
+        }
     }
     
     private func loadMoreData() {
@@ -115,12 +147,12 @@ struct ProviderCategoryListView: View {
         print("📄 Loading page \(nextPage) for \(providerName) - \(category)")
         
         Task {
-            await loadPage(nextPage, language: language)
+            await loadPage(nextPage, language: language, replaceItems: false)
             isLoading = false
         }
     }
     
-    private func loadPage(_ page: Int, language: String) async {
+    private func loadPage(_ page: Int, language: String, replaceItems: Bool) async {
         do {
             var newItems: [Media] = []
             
@@ -175,7 +207,7 @@ struct ProviderCategoryListView: View {
                 .filter { ($0.releaseDate ?? "") <= today && !($0.releaseDate ?? "").isEmpty }
                 .sorted { ($0.releaseDate ?? "") > ($1.releaseDate ?? "") }
             
-            if page == 1 {
+            if replaceItems {
                 items = filteredAndSorted
             } else {
                 items.append(contentsOf: filteredAndSorted)
@@ -185,6 +217,9 @@ struct ProviderCategoryListView: View {
             print("✅ Page \(page) loaded - Total: \(items.count)")
         } catch {
             print("❌ Error loading page \(page): \(error)")
+            print("❌ Error loading page \(page): \(error)")
         }
     }
+    
+
 }

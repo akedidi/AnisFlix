@@ -15,6 +15,7 @@ struct MediaListView: View {
     @State private var items: [Media] = []
     @State private var currentPage = 1
     @State private var isLoading = false
+
     @State private var hasMorePages = true
     
     let columns = [
@@ -30,56 +31,89 @@ struct MediaListView: View {
             VStack(spacing: 0) {
                 CustomHeaderView(title: title, showBackButton: true)
                 
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(items) { media in
-                            MediaGridCard(media: media, onTap: {
-                                // Navigation is handled by MediaGridCard's internal NavigationLink
-                            })
-                            .onAppear {
-                                if media.id == items.last?.id && !isLoading && hasMorePages {
-                                    Task {
-                                        await loadMore()
+                if isLoading && items.isEmpty {
+                    VStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(AppTheme.primaryRed)
+                        Spacer()
+                    }
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(items) { media in
+                                MediaGridCard(media: media, onTap: {
+                                    // Navigation is handled by MediaGridCard's internal NavigationLink
+                                })
+                                .onAppear {
+                                    if media.id == items.last?.id && !isLoading && hasMorePages {
+                                        Task {
+                                            await loadMore()
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    .padding(16)
-                    
-                    if isLoading {
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
-                            .padding()
+                        .padding(16)
+                        
+                        if isLoading && !items.isEmpty {
+                            ProgressView()
+                                .tint(AppTheme.primaryRed)
+                                .padding()
+                        }
                     }
                 }
             }
+            .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
         .task {
             if items.isEmpty {
-                await loadMore()
+                await loadData(reset: false, showLoadingUI: true)
             }
         }
     }
     
-    private func loadMore() async {
+    private func loadData(reset: Bool = false, showLoadingUI: Bool = true) async {
+        if reset {
+            currentPage = 1
+            hasMorePages = true
+            // if we want to keep items visible, don't clear them here yet
+        }
+        
         guard !isLoading && hasMorePages else { return }
         
-        isLoading = true
+        if showLoadingUI && items.isEmpty {
+            isLoading = true
+        } else if !showLoadingUI {
+            // Quiet load (refresh or pagination)
+        } else {
+            // Pagination usually implies valid loading state but we handle "bottom loader" separately via view
+            isLoading = true
+        }
         
         do {
             let newItems = try await fetcher(currentPage)
             if newItems.isEmpty {
                 hasMorePages = false
             } else {
-                items.append(contentsOf: newItems)
+                if reset {
+                    items = newItems
+                } else {
+                    items.append(contentsOf: newItems)
+                }
                 currentPage += 1
             }
         } catch {
-            print("Error loading more items: \(error)")
+            print("Error loading items: \(error)")
         }
         
         isLoading = false
     }
+    
+    private func loadMore() async {
+        await loadData(reset: false, showLoadingUI: false) // Pagination doesn't need full screen loader usually, just bottom spinner
+    }
+    
+
 }

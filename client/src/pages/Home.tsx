@@ -233,14 +233,7 @@ export default function Home() {
               </ScrollArea>
             </div>
 
-            {/* Derniers films et dernières séries en premier */}
-            <MediaCarousel
-              title={t("home.latestMovies")}
-              items={latestMovies.slice(0, 10)}
-              onItemClick={(item) => navigate(navPaths.movie(item.id))}
-              seeAllLink="/latest-movies"
-            />
-
+            {/* Dernières séries en premier */}
             <MediaCarousel
               title={t("home.latestSeries")}
               items={latestSeries.slice(0, 10)}
@@ -248,19 +241,27 @@ export default function Home() {
               seeAllLink="/latest-series"
             />
 
-            {/* Films et séries populaires */}
             <MediaCarousel
-              title={t("home.popularMovies")}
-              items={popularMovies.slice(0, 10)}
+              title={t("home.latestMovies")}
+              items={latestMovies.slice(0, 10)}
               onItemClick={(item) => navigate(navPaths.movie(item.id))}
-              seeAllLink="/popular-movies"
+              seeAllLink="/latest-movies"
             />
 
+            {/* Séries populaires */}
             <MediaCarousel
               title={t("home.popularSeries")}
               items={popularSeries.slice(0, 10)}
               onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
               seeAllLink="/popular-series"
+            />
+
+            {/* Films populaires */}
+            <MediaCarousel
+              title={t("home.popularMovies")}
+              items={popularMovies.slice(0, 10)}
+              onItemClick={(item) => navigate(navPaths.movie(item.id))}
+              seeAllLink="/popular-movies"
             />
 
             {/* Catégories Anime */}

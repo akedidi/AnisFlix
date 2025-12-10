@@ -5,8 +5,9 @@ import esTranslations from "./translations/es";
 import deTranslations from "./translations/de";
 import itTranslations from "./translations/it";
 import ptTranslations from "./translations/pt";
+import arTranslations from "./translations/ar";
 
-export type Language = "fr" | "en" | "es" | "de" | "it" | "pt";
+export type Language = "fr" | "en" | "es" | "de" | "it" | "pt" | "ar";
 
 interface LanguageContextType {
   language: Language;
@@ -23,6 +24,7 @@ const translationsMap: Record<Language, Record<string, string>> = {
   de: deTranslations,
   it: itTranslations,
   pt: ptTranslations,
+  ar: arTranslations,
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {

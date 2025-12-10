@@ -42,18 +42,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Favorite Button -->
-            <ImageButton
-                android:id="@+id/favorite_button"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="16dp"
-                android:background="@drawable/bg_back_button"
-                android:src="@drawable/ic_heart"
-                android:padding="8dp"
-                app:tint="@android:color/white"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
 
             <!-- Title & Metadata -->
             <TextView
@@ -62,6 +50,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="220dp"
+                android:layout_marginEnd="60dp"
                 android:textColor="@android:color/white"
                 android:textSize="28sp"
                 android:textStyle="bold"
@@ -72,6 +61,20 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 tools:text="Breaking Bad" />
+
+            <!-- Favorite Button (Moved near title) -->
+            <ImageButton
+                android:id="@+id/favorite_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/bg_back_button"
+                android:src="@drawable/ic_heart"
+                android:padding="10dp"
+                app:tint="@android:color/white"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="@id/title_text"
+                app:layout_constraintBottom_toBottomOf="@id/title_text" />
 
             <LinearLayout
                 android:id="@+id/meta_container"

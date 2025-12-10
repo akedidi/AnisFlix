@@ -1,0 +1,80 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/SeriesDetailView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld Saisons",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 141
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %lld",
+        "location": {
+          "startingColumn": 54,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %@ %lld",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld. %@",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 292
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lldh %lldm",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Préparation de la lecture...",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 630
+        }
+      },
+      {
+        "comment": "",
+        "key": "Réessayer",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 643
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ %lld",
+        "location": {
+          "startingColumn": 50,
+          "startingLine": 741
+        }
+      }
+    ]
+  },
+  "version": 1
+}

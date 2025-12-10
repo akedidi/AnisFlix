@@ -1,0 +1,24 @@
+{
+  "source": "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Views/Lists/ProviderMediaListView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Retour",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retour",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 58
+        }
+      }
+    ]
+  },
+  "version": 1
+}

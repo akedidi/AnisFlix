@@ -201,6 +201,7 @@ struct DownloadedMediaDetailView: View {
                     CustomVideoPlayer(
                         url: url,
                         title: item.title,
+                        posterUrl: posterUrl?.absoluteString,
                         subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
                         isPresented: $showPlayer,
                         isFullscreen: $isFullscreen,

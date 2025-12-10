@@ -212,6 +212,31 @@ struct SeriesDetailView: View {
                                     .padding(.horizontal, 16)
                                 }
                                 .padding(.horizontal, -16)
+                                
+                                // Trailer Button (below season selector)
+                                if let trailer = videos.first(where: { $0.type == "Trailer" && $0.site == "YouTube" }) ?? videos.first(where: { $0.site == "YouTube" }) {
+                                    Button(action: {
+                                        openTrailer(key: trailer.key)
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "play.rectangle.fill")
+                                                .font(.title3)
+                                            Text("\(theme.t("detail.trailer")) \(theme.t("detail.season")) \(selectedSeason)")
+                                                .font(.headline)
+                                        }
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 12)
+                                        .background(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [AppTheme.primaryRed, AppTheme.primaryRed.opacity(0.8)]),
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                        .cornerRadius(8)
+                                    }
+                                }
                                 // Episodes List
                                 if isSeasonLoading {
                                     ProgressView()
@@ -370,6 +395,7 @@ struct SeriesDetailView: View {
                 CustomVideoPlayer(
                     url: url,
                     title: "\(series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber)",
+                    posterUrl: series?.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(series!.posterPath!)" : nil,
                     subtitles: subtitles,
                     isPresented: $showPlayer,
                     isFullscreen: $isFullscreen,
@@ -527,8 +553,24 @@ struct SeriesDetailView: View {
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
         
         do {
-            let details = try await TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: selectedSeason, language: language)
-            self.seasonDetails = details
+            async let details = TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: selectedSeason, language: language)
+            async let semesterVideos = TMDBService.shared.fetchSeasonVideos(seriesId: seriesId, seasonNumber: selectedSeason, language: language)
+            
+            let (season, videos) = try await (details, semesterVideos)
+            self.seasonDetails = season
+            
+            // If season videos exist, use them. Otherwise keep series videos (or clear them?)
+            // Ideally we want specific season trailer.
+            if !videos.isEmpty {
+                self.videos = videos
+            } else {
+                // Should we fallback to series videos?
+                // For now, let's just keep existing videos if no season videos found,
+                // BUT we should probably re-fetch series videos if we want to fallback properly, 
+                // or simpler: just set videos to empty or fetched result.
+                // However, user said "same trailer for all seasons", so we WANT to replace it.
+                self.videos = videos
+            }
         } catch {
             print("❌ Error loading season details: \(error)")
         }

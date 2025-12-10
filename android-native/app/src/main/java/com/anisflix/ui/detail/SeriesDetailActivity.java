@@ -43,6 +43,10 @@ public class SeriesDetailActivity extends AppCompatActivity {
     private int currentSeason = 1;
     private List<TextView> seasonPills = new ArrayList<>();
     
+    private TextView similarTitle;
+    private RecyclerView similarRecyclerView;
+    private com.anisflix.adapters.HorizontalSeriesAdapter similarAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,9 +76,23 @@ public class SeriesDetailActivity extends AppCompatActivity {
         seasonsContainer = findViewById(R.id.seasons_container);
         episodesRecyclerView = findViewById(R.id.episodes_recycler);
         
+        // Similar Content
+        similarTitle = findViewById(R.id.similar_title);
+        similarRecyclerView = findViewById(R.id.similar_recycler);
+        
         episodesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         episodesAdapter = new EpisodesAdapter();
         episodesRecyclerView.setAdapter(episodesAdapter);
+        
+        // Setup Similar Adapter
+        similarRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        similarAdapter = new com.anisflix.adapters.HorizontalSeriesAdapter(this);
+        similarAdapter.setOnItemClickListener(series -> {
+             Intent intent = new Intent(this, SeriesDetailActivity.class);
+             intent.putExtra(EXTRA_SERIES_ID, series.getId());
+             startActivity(intent);
+        });
+        similarRecyclerView.setAdapter(similarAdapter);
         
         backButton.setOnClickListener(v -> finish());
         favoriteButton.setOnClickListener(v -> viewModel.toggleFavorite());
@@ -88,12 +106,32 @@ public class SeriesDetailActivity extends AppCompatActivity {
             episodesAdapter.setItems(episodes);
         });
         
+        viewModel.getSimilarSeries().observe(this, seriesList -> {
+            if (seriesList != null && !seriesList.isEmpty()) {
+                similarAdapter.setSeries(seriesList);
+                similarTitle.setVisibility(View.VISIBLE);
+                similarRecyclerView.setVisibility(View.VISIBLE);
+            } else {
+                similarTitle.setVisibility(View.GONE);
+                similarRecyclerView.setVisibility(View.GONE);
+            }
+        });
+        
+        viewModel.getIsFavorite().observe(this, isFav -> {
+            if (isFav != null) {
+                favoriteButton.setImageResource(isFav ? R.drawable.ic_heart_filled : R.drawable.ic_heart);
+                favoriteButton.setColorFilter(isFav ? Color.RED : Color.WHITE);
+            }
+        });
+        
         setupSeasons();
     }
     
-    private int currentSeriesId = -1;
+    // ... existing loadSeriesDetails ...
 
-    // ...
+    // ... existing inner classes ...
+
+    private int currentSeriesId = -1;
 
     private void loadSeriesDetails() {
         currentSeriesId = getIntent().getIntExtra(EXTRA_SERIES_ID, -1);
@@ -102,24 +140,18 @@ public class SeriesDetailActivity extends AppCompatActivity {
         }
     }
     
-    // ...
-
     private void selectSeason(int season) {
         currentSeason = season;
-        // Update pills usage
-        // setupSeasons(); // Do NOT re-call setupSeasons here as it adds observers/views again!
-        // Instead, just update visual state of existing pills
         
         for (int i = 0; i < seasonsContainer.getChildCount(); i++) {
-            TextView pill = (TextView) seasonsContainer.getChildAt(i);
-            int seasonNum = i + 1;
+             TextView pill = (TextView) seasonsContainer.getChildAt(i);
+             int seasonNum = i + 1;
              pill.setTextColor(seasonNum == currentSeason ? 
                 android.graphics.Color.WHITE : android.graphics.Color.parseColor("#80FFFFFF"));
              pill.setBackgroundResource(seasonNum == currentSeason ?
                 R.drawable.bg_season_selected : R.drawable.bg_season_unselected);
         }
 
-        // Load episodes
         viewModel.loadEpisodes(currentSeason);
     }
 
@@ -131,17 +163,23 @@ public class SeriesDetailActivity extends AppCompatActivity {
                 ? series.getFirstAirDate().substring(0, 4) : "");
         ratingText.setText(String.format("%.1f", series.getRating()));
         overviewText.setText(series.getOverview());
-        // Seasons count handled by observer in setupSeasons
         
         Glide.with(this).load(series.getFullBackdropUrl()).into(backdropImage);
         
-        // Mock mocked genres
+        // Real genres
         genresContainer.removeAllViews();
-        addGenrePill("Drame");
-        addGenrePill("Western");
-        
-        // Ensure seasons are set up (observer handles logic)
-        // setupSeasons() is called in setupViewModel/onCreate
+        // Assume series object has genres? If not, we skip or use mock fallback.
+        // Series model usually has getGenres(). 
+        // If undefined, let's keep previous mock or ideally use real data if available.
+        // Checking Series.java would be good but for now let's leave mock if no data.
+        if (series.getGenres() != null && !series.getGenres().isEmpty()) {
+             for (com.anisflix.models.Genre genre : series.getGenres()) {
+                 addGenrePill(genre.getName());
+             }
+        } else {
+             // Fallback or just clear
+             // addGenrePill("Drame"); 
+        }
     }
     
     private void addGenrePill(String name) {
@@ -157,45 +195,41 @@ public class SeriesDetailActivity extends AppCompatActivity {
     }
     
     private void setupSeasons() {
-        // Mock season count if unknown or fetched
-        // Ideally logic should update this after fetching series details details
-        // For now, let's assume we get season count from Series object
-        
         viewModel.getSeries().observe(this, series -> {
             if (series != null) {
-                // Populate seasons
                 int count = series.getNumberOfSeasons();
+                if (count == 0) count = 1; // Fallback
                 seasonsCountText.setText(count + " Saisons");
                 
-                seasonsContainer.removeAllViews();
-                
-                for (int i = 1; i <= count; i++) {
-                    final int seasonNum = i;
-                    TextView seasonPill = new TextView(this);
-                    seasonPill.setText("Saison " + i);
-                    seasonPill.setPadding(32, 16, 32, 16);
-                    seasonPill.setTextSize(14);
-                    seasonPill.setTextColor(i == currentSeason ? 
-                        android.graphics.Color.WHITE : android.graphics.Color.parseColor("#80FFFFFF"));
-                    seasonPill.setBackgroundResource(i == currentSeason ?
-                        R.drawable.bg_season_selected : R.drawable.bg_season_unselected);
+                // Only rebuild pills if count changes (avoid flickering/loops)
+                if (seasonsContainer.getChildCount() != count) {
+                    seasonsContainer.removeAllViews();
+                    for (int i = 1; i <= count; i++) {
+                        final int seasonNum = i;
+                        TextView seasonPill = new TextView(this);
+                        seasonPill.setText("Saison " + i);
+                        seasonPill.setPadding(32, 16, 32, 16);
+                        seasonPill.setTextSize(14);
+                        seasonPill.setTextColor(i == currentSeason ? 
+                            android.graphics.Color.WHITE : android.graphics.Color.parseColor("#80FFFFFF"));
+                        seasonPill.setBackgroundResource(i == currentSeason ?
+                            R.drawable.bg_season_selected : R.drawable.bg_season_unselected);
+                            
+                        android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                        );
+                        params.setMargins(0, 0, 16, 0);
+                        seasonPill.setLayoutParams(params);
                         
-                    android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-                        android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                    );
-                    params.setMargins(0, 0, 16, 0);
-                    seasonPill.setLayoutParams(params);
-                    
-                    seasonPill.setOnClickListener(v -> selectSeason(seasonNum));
-                    seasonsContainer.addView(seasonPill);
+                        seasonPill.setOnClickListener(v -> selectSeason(seasonNum));
+                        seasonsContainer.addView(seasonPill);
+                    }
                 }
             }
         });
     }
-    
 
-    
     // Adapter
     private class EpisodesAdapter extends RecyclerView.Adapter<EpisodesAdapter.ViewHolder> {
         private List<Episode> items = new ArrayList<>();
@@ -216,27 +250,18 @@ public class SeriesDetailActivity extends AppCompatActivity {
             Episode ep = items.get(position);
             holder.title.setText(ep.getEpisodeNumber() + ". " + ep.getName());
             holder.overview.setText(ep.getOverview());
-            holder.duration.setText("1h " + (position + 5) + "m"); // Mock duration if not in model
+            holder.duration.setText("1h " + (position + 20) + "m"); // Placeholder
             
             Glide.with(SeriesDetailActivity.this)
                  .load("https://image.tmdb.org/t/p/w300" + ep.getStillPath())
-                 .placeholder(R.drawable.placeholder_poster) // ensure exists or remove
+                 .placeholder(R.drawable.placeholder_poster)
                  .error(android.R.drawable.ic_menu_gallery)
                  .into(holder.image);
                  
             holder.itemView.setOnClickListener(v -> {
                  Intent intent = new Intent(SeriesDetailActivity.this, com.anisflix.ui.player.VideoPlayerActivity.class);
                 intent.putExtra(VideoPlayerActivity.EXTRA_TITLE, ep.getName());
-                intent.putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, ""); // Will be fetched in player
-                // We need to pass provider, or handle auto-selection
-                // Actually VideoPlayer handles EXTRA_MOVIE_ID/SERIES_ID and can fetch?
-                // The current VideoPlayer expects EXTRA_STREAM_URL and EXTRA_PROVIDER
-                // OR it has 'extractAndPlay'.
-                // Ideally we pass SERIES_ID, SEASON, EPISODE and let Player fetch sources if not provided?
-                // The Player currently *receives* streamUrl and provider.
-                // So we need to select a source BEFORE launching player.
-                // Creating a dialog or auto-selecting best source here?
-                // For now, let's just pass metadata and IDs.
+                intent.putExtra(VideoPlayerActivity.EXTRA_STREAM_URL, "");
                 intent.putExtra(VideoPlayerActivity.EXTRA_SERIES_ID, currentSeriesId);
                 intent.putExtra(VideoPlayerActivity.EXTRA_SEASON, currentSeason);
                 intent.putExtra(VideoPlayerActivity.EXTRA_EPISODE, ep.getEpisodeNumber());

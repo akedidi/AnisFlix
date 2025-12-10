@@ -8,19 +8,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.anisflix.R;
-import com.anisflix.adapters.MediaGridAdapter;
+import com.anisflix.models.Series;
+import com.anisflix.adapters.HorizontalSeriesAdapter;
+import java.util.List;
 
-/**
- * Series Fragment - Shows TV series with genre filtering
- */
 public class SeriesFragment extends Fragment {
     
     private SeriesViewModel viewModel;
-    private RecyclerView recyclerView;
-    private MediaGridAdapter adapter;
+    private android.widget.LinearLayout container;
     
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,25 +30,50 @@ public class SeriesFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_series, container, false);
-        initViews(view);
-        observeData();
+        this.container = view.findViewById(R.id.series_container);
+        
+        setupSection("Diffusé aujourd'hui", viewModel.getAiringTodaySeries(), "AIRING_TODAY");
+        setupSection("Tendances", viewModel.getTrendingSeries(), "TRENDING");
+        setupSection("Les Mieux Notés", viewModel.getTopRatedSeries(), "TOP_RATED");
+        setupSection("Populaires", viewModel.getPopularSeries(), "POPULAR");
+        
         return view;
     }
     
-    private void initViews(View view) {
-        recyclerView = view.findViewById(R.id.recycler_view);
+    private void setupSection(String title, androidx.lifecycle.LiveData<List<Series>> liveData, String categoryKey) {
+        View sectionView = getLayoutInflater().inflate(R.layout.item_section_layout, container, false);
         
-        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
-        recyclerView.setLayoutManager(layoutManager);
+        android.widget.TextView titleView = sectionView.findViewById(R.id.section_title);
+        titleView.setText(title);
         
-        adapter = new MediaGridAdapter(getContext());
-        recyclerView.setAdapter(adapter);
-    }
-    
-    private void observeData() {
-        viewModel.getSeries().observe(getViewLifecycleOwner(), series -> {
-            if (series != null) {
+         android.widget.TextView seeAllBtn = sectionView.findViewById(R.id.see_all_button);
+        seeAllBtn.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(getContext(), com.anisflix.ui.section.SectionContentActivity.class);
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_TITLE, title);
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_TYPE, "series");
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_CATEGORY, categoryKey);
+            startActivity(intent);
+        });
+        
+        RecyclerView recycler = sectionView.findViewById(R.id.section_recycler);
+        recycler.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext(), RecyclerView.HORIZONTAL, false));
+        
+        HorizontalSeriesAdapter adapter = new HorizontalSeriesAdapter(getContext());
+        adapter.setOnItemClickListener(series -> {
+             android.content.Intent intent = new android.content.Intent(getContext(), com.anisflix.ui.detail.SeriesDetailActivity.class);
+             intent.putExtra("series_id", series.getId());
+             startActivity(intent);
+        });
+        recycler.setAdapter(adapter);
+        
+        View loading = sectionView.findViewById(R.id.section_loading);
+        loading.setVisibility(View.VISIBLE);
+        
+        liveData.observe(getViewLifecycleOwner(), series -> {
+            loading.setVisibility(View.GONE);
+            if (series != null && !series.isEmpty()) {
                 adapter.setSeries(series);
+                container.addView(sectionView);
             }
         });
     }

@@ -8,6 +8,7 @@
 import SwiftUI
 import AVKit
 import Combine
+import MediaPlayer
 #if canImport(GoogleCast)
 import GoogleCast
 #endif
@@ -15,6 +16,7 @@ import GoogleCast
 struct CustomVideoPlayer: View {
     let url: URL
     let title: String
+    let posterUrl: String?
     let subtitles: [Subtitle]
     @Binding var isPresented: Bool
     @Binding var isFullscreen: Bool
@@ -33,10 +35,13 @@ struct CustomVideoPlayer: View {
     @State private var selectedSubtitle: Subtitle?
     @State private var subtitleOffset: Double = 0
     @State private var castReloadDebounceTask: Task<Void, Never>?
+    @State private var showSeekBackwardAnimation = false
+    @State private var showSeekForwardAnimation = false
     
-    init(url: URL, title: String, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, isLive: Bool = false, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
+    init(url: URL, title: String, posterUrl: String? = nil, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, isLive: Bool = false, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
         self.url = url
         self.title = title
+        self.posterUrl = posterUrl
         self.subtitles = subtitles
         self._isPresented = isPresented
         self._isFullscreen = isFullscreen
@@ -66,11 +71,110 @@ struct CustomVideoPlayer: View {
             } else {
                 VideoPlayerView(player: playerVM.player, playerVM: playerVM)
                     .ignoresSafeArea()
-                    .onTapGesture {
+                }
+            
+            // Gesture Overlay (Left/Right Double Tap)
+            HStack(spacing: 0) {
+                // Left Side (Rewind)
+                Rectangle()
+                    .fill(Color.black.opacity(0.001)) // Almost transparent to catch taps
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        print("⏪ Double tab left: Rewind 10s")
+                        
+                        // Show animation
+                        withAnimation {
+                            showSeekBackwardAnimation = true
+                        }
+                        
+                        // Perform seek
+                        let newTime = max(0, playerVM.currentTime - 10)
+                        if castManager.isConnected {
+                            castManager.seek(to: newTime)
+                        } else {
+                            playerVM.seek(to: newTime)
+                        }
+                        
+                        // Hide animation after delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            withAnimation {
+                                showSeekBackwardAnimation = false
+                            }
+                        }
+                    }
+                    .onTapGesture(count: 1) {
                         withAnimation {
                             showControls.toggle()
                         }
                     }
+                
+                // Right Side (Forward)
+                Rectangle()
+                    .fill(Color.black.opacity(0.001))
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        print("⏩ Double tab right: Forward 10s")
+                        
+                        // Show animation
+                        withAnimation {
+                            showSeekForwardAnimation = true
+                        }
+                        
+                        // Perform seek
+                        let newTime = min(playerVM.duration, playerVM.currentTime + 10)
+                         if castManager.isConnected {
+                             castManager.seek(to: newTime)
+                         } else {
+                             playerVM.seek(to: newTime)
+                         }
+                        
+                        // Hide animation after delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                            withAnimation {
+                                showSeekForwardAnimation = false
+                            }
+                        }
+                    }
+                    .onTapGesture(count: 1) {
+                        withAnimation {
+                            showControls.toggle()
+                        }
+                    }
+            }
+            
+             // Seek Animations Overlays
+            if showSeekBackwardAnimation {
+                HStack {
+                    VStack {
+                        Image(systemName: "gobackward.10")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                        Text("-10s")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+            
+            if showSeekForwardAnimation {
+                HStack {
+                    Spacer()
+                    VStack {
+                        Image(systemName: "goforward.10")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                        Text("+10s")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                }
+                .transition(.opacity)
             }
             
             // Subtitles Overlay
@@ -114,26 +218,57 @@ struct CustomVideoPlayer: View {
                     
                     Spacer()
                     
-                    // Center Play/Pause
+                    // Center Controls (Rewind | Play/Pause | Forward)
                     if playerVM.isBuffering {
                         ProgressView()
                             .tint(.white)
                             .scaleEffect(1.5)
                     } else {
-                        Button {
-                            if castManager.isConnected {
-                                if castManager.mediaStatus?.playerState == .paused || castManager.mediaStatus?.playerState == .idle {
-                                    castManager.play()
+                        HStack(spacing: 50) {
+                            // -10s Button
+                            Button {
+                                let newTime = max(0, playerVM.currentTime - 10)
+                                if castManager.isConnected {
+                                    castManager.seek(to: newTime)
                                 } else {
-                                    castManager.pause()
+                                    playerVM.seek(to: newTime)
                                 }
-                            } else {
-                                playerVM.togglePlayPause()
+                            } label: {
+                                Image(systemName: "gobackward.10")
+                                    .font(.system(size: 35))
+                                    .foregroundColor(.white)
                             }
-                        } label: {
-                            Image(systemName: (castManager.isConnected ? (castManager.mediaStatus?.playerState == .playing || castManager.mediaStatus?.playerState == .buffering) : playerVM.isPlaying) ? "pause.fill" : "play.fill")
-                                .font(.system(size: 50))
-                                .foregroundColor(.white)
+                            
+                            // Play/Pause Button
+                            Button {
+                                if castManager.isConnected {
+                                    if castManager.mediaStatus?.playerState == .paused || castManager.mediaStatus?.playerState == .idle {
+                                        castManager.play()
+                                    } else {
+                                        castManager.pause()
+                                    }
+                                } else {
+                                    playerVM.togglePlayPause()
+                                }
+                            } label: {
+                                Image(systemName: (castManager.isConnected ? (castManager.mediaStatus?.playerState == .playing || castManager.mediaStatus?.playerState == .buffering) : playerVM.isPlaying) ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            // +10s Button
+                            Button {
+                                let newTime = min(playerVM.duration, playerVM.currentTime + 10)
+                                if castManager.isConnected {
+                                    castManager.seek(to: newTime)
+                                } else {
+                                    playerVM.seek(to: newTime)
+                                }
+                            } label: {
+                                Image(systemName: "goforward.10")
+                                    .font(.system(size: 35))
+                                    .foregroundColor(.white)
+                            }
                         }
                     }
                     
@@ -226,7 +361,7 @@ struct CustomVideoPlayer: View {
                     castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset)
                 }
             } else {
-                playerVM.setup(url: url)
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl)
             }
             
             // Auto-resume from saved progress ONLY if not already playing
@@ -243,9 +378,28 @@ struct CustomVideoPlayer: View {
                     }
                 }
             }
+            if isFullscreen {
+                // Allow rotation (passive)
+                ScreenRotator.lockOrientation(.allButUpsideDown)
+            } else {
+                // Lock back to portrait (active force)
+                ScreenRotator.rotate(to: .portrait)
+            }
         }
         .onDisappear {
             playerVM.cleanup()
+            // Reset to portrait when player closes
+            ScreenRotator.rotate(to: .portrait)
+        }
+        .onChange(of: isFullscreen) { fullscreen in
+            withAnimation {
+                showControls = true
+            }
+            if fullscreen {
+                ScreenRotator.rotate(to: .landscape)
+            } else {
+                ScreenRotator.rotate(to: .portrait)
+            }
         }
         .sheet(isPresented: $showSubtitlesMenu) {
             SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset)
@@ -323,7 +477,7 @@ struct CustomVideoPlayer: View {
                 print("📺 URL changed while casting. Loading new media...")
                 castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive)
             } else {
-                playerVM.setup(url: newUrl)
+                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl)
             }
         }
         .onChange(of: castManager.isConnected) { connected in
@@ -333,7 +487,7 @@ struct CustomVideoPlayer: View {
                 castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
-                playerVM.setup(url: url)
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl)
                 playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
             }
         }
@@ -477,7 +631,11 @@ class PlayerViewModel: NSObject, ObservableObject {
     private weak var playerLayer: AVPlayerLayer?
     private var observedItem: AVPlayerItem? // Track the item we're observing
     private(set) var currentUrl: URL? // Track current URL to prevent restart
+    private var currentTitle: String? // Track current content title for Now Playing Info
+    private var currentArtwork: MPMediaItemArtwork? // Track downloaded artwork
     var isSwitchingModes = false // Track fullscreen transition
+    
+    private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
     
     override init() {
         super.init()
@@ -519,9 +677,21 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func setup(url: URL) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil) {
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
+        
+        // Store the title if provided
+        if let title = title {
+            currentTitle = title
+        }
+        
+        // Download artwork if poster URL provided
+        if let posterUrl = posterUrl {
+            Task {
+                await downloadArtwork(from: posterUrl)
+            }
+        }
         
         // If same URL, just ensure playing and return
         if url == currentUrl {
@@ -533,10 +703,55 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         currentUrl = url
-        let item = AVPlayerItem(url: url)
+        
+        // VidMoly is disabled on iOS - this code path won't be reached for VidMoly sources
+        var finalUrl = url
+        var useResourceLoader = false
+        
+        print("🎬 Setting up player with URL: \(url)")
+        if let title = currentTitle {
+            print("📺 Content title: \(title)")
+        }
+        if posterUrl != nil {
+            print("🖼️ Poster URL provided, downloading artwork...")
+        }
+        
+        // RE-ACTIVATE AUDIO SESSION (Crucial for Lock Screen)
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth])
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("✅ Audio session re-activated in setup")
+        } catch {
+            print("❌ Failed to re-activate audio session: \(error)")
+        }
+        
+        // Always use AVURLAsset with browser-like User-Agent
+        let headers: [String: String] = [
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ]
+        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+        
+        if useResourceLoader {
+            self.resourceLoaderDelegate = VideoResourceLoaderDelegate()
+            asset.resourceLoader.setDelegate(self.resourceLoaderDelegate, queue: .main)
+        } else {
+            self.resourceLoaderDelegate = nil
+        }
+        
+        let item = AVPlayerItem(asset: asset)
+        
+        // Add observers for debugging - REMOVED due to build issues
+        // We rely on the fact that ResourceLoader is now working
+        
+        // Initialize remote commands
+        setupRemoteCommands()
+        
         player.replaceCurrentItem(with: item)
         player.play()
         isPlaying = true
+        
+        // Update Now Playing Info with proper title
+        updateNowPlayingInfo(title: currentTitle ?? url.lastPathComponent)
         
         // Observe duration
         observedItem = item
@@ -547,9 +762,134 @@ class PlayerViewModel: NSObject, ObservableObject {
             guard let self = self, !self.isSeeking else { return }
             self.currentTime = time.seconds
             self.updateSubtitle()
+            
+            // Sync Now Playing Info periodically
+            self.updateNowPlayingInfo()
         }
         
         // setupPiP will be called separately with the layer
+    }
+    
+    func setupRemoteCommands() {
+        // Tell the system we want to receive remote control events
+        UIApplication.shared.beginReceivingRemoteControlEvents()
+        
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // Clear existing commands first to avoid duplicates
+        commandCenter.playCommand.removeTarget(nil)
+        commandCenter.pauseCommand.removeTarget(nil)
+        commandCenter.skipBackwardCommand.removeTarget(nil)
+        commandCenter.skipForwardCommand.removeTarget(nil)
+        
+        // Play Command
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.playCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.player.play()
+            self.isPlaying = true
+            self.updateNowPlayingInfo() // Update state to Playing
+            return .success
+        }
+        
+        // Pause Command
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.player.pause()
+            self.isPlaying = false
+            self.updateNowPlayingInfo() // Update state to Paused
+            return .success
+        }
+        
+        // Skip Backward 10s
+        commandCenter.skipBackwardCommand.isEnabled = true
+        commandCenter.skipBackwardCommand.preferredIntervals = [10]
+        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.seek(to: max(0, self.currentTime - 10))
+            return .success
+        }
+        
+        // Skip Forward 10s
+        commandCenter.skipForwardCommand.isEnabled = true
+        commandCenter.skipForwardCommand.preferredIntervals = [10]
+        commandCenter.skipForwardCommand.addTarget { [weak self] event in
+            guard let self = self else { return .commandFailed }
+            self.seek(to: min(self.duration, self.currentTime + 10))
+            return .success
+        }
+        
+        // Scrubbing (Slider on lock screen)
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self = self, let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            self.seek(to: event.positionTime)
+            return .success
+        }
+    }
+    
+    func setupRemotyCommands() {
+        // ... (existing code, ensure it aligns with file content) ...
+    }
+    // Note: I will only replace updateNowPlayingInfo and part of setup() to include artwork and audio session activation.
+
+    func updateNowPlayingInfo(title: String? = nil) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+            
+            // Always set title from currentTitle if available
+            let titleToUse = title ?? self.currentTitle ?? self.currentUrl?.lastPathComponent ?? "Unknown"
+            nowPlayingInfo[MPMediaItemPropertyTitle] = titleToUse
+            
+            if self.duration > 0 {
+                nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = self.duration
+            }
+            
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = self.currentTime
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = self.isPlaying ? 1.0 : 0.0
+            
+            // Use downloaded artwork if available, otherwise use app icon
+            if let artwork = self.currentArtwork {
+                nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+            } else if nowPlayingInfo[MPMediaItemPropertyArtwork] == nil {
+                if let image = UIImage(named: "AppIcon") ?? UIImage(systemName: "film") {
+                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                }
+            }
+            
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+            print("🎵 Now Playing Info updated - Title: \(titleToUse)")
+        }
+    }
+    
+    private func downloadArtwork(from urlString: String) async {
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid poster URL: \(urlString)")
+            return
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let image = UIImage(data: data) else {
+                print("❌ Failed to create image from data")
+                return
+            }
+            
+            // Create artwork on main thread
+            await MainActor.run {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+                self.currentArtwork = artwork
+                print("✅ Artwork downloaded and set: \(urlString)")
+                // Update Now Playing Info with new artwork
+                self.updateNowPlayingInfo()
+            }
+        } catch {
+            print("❌ Failed to download artwork: \(error)")
+        }
     }
     
     func setupPiPWithLayer(_ layer: AVPlayerLayer) {
@@ -583,6 +923,12 @@ class PlayerViewModel: NSObject, ObservableObject {
             return
         }
         
+        // Don't cleanup if PiP is active
+        if let pipController = pipController, pipController.isPictureInPictureActive {
+            print("📺 PlayerViewModel: PiP is active, skipping cleanup/pause")
+            return
+        }
+        
         currentUrl = nil
         player.pause()
         if let observer = timeObserver {
@@ -594,6 +940,21 @@ class PlayerViewModel: NSObject, ObservableObject {
             item.removeObserver(self, forKeyPath: "duration")
             observedItem = nil
         }
+        resourceLoaderDelegate = nil
+        
+        // Clear Now Playing Info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        
+        // Remove Remote Commands
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.removeTarget(nil)
+        commandCenter.pauseCommand.removeTarget(nil)
+        commandCenter.skipBackwardCommand.removeTarget(nil)
+        commandCenter.skipForwardCommand.removeTarget(nil)
+        commandCenter.changePlaybackPositionCommand.removeTarget(nil)
+        
+        // Stop receiving remote control events
+        UIApplication.shared.endReceivingRemoteControlEvents()
     }
     
     func reset() {
@@ -800,6 +1161,19 @@ class PlayerView: UIView {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    // Allow becoming first responder to handle remote commands
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+    
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            print("🔑 PlayerView didMoveToWindow: Taking First Responder")
+            becomeFirstResponder()
+        }
     }
 }
 

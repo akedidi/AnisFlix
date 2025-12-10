@@ -74,7 +74,12 @@ public class HorizontalMediaAdapter extends RecyclerView.Adapter<HorizontalMedia
 
         void bind(Movie movie) {
             titleText.setText(movie.getTitle());
-            ratingText.setText(String.format("⭐ %.1f", movie.getRating()));
+            String year = movie.getYear();
+            if (year != null && !year.isEmpty()) {
+                ratingText.setText(String.format("⭐ %.1f • %s", movie.getRating(), year));
+            } else {
+                ratingText.setText(String.format("⭐ %.1f", movie.getRating()));
+            }
 
             Glide.with(context)
                     .load(movie.getFullPosterUrl())

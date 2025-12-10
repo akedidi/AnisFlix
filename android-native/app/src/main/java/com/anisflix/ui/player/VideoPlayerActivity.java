@@ -139,16 +139,23 @@ public class VideoPlayerActivity extends AppCompatActivity {
      * Extract URL based on provider (iOS pattern)
      */
     private void extractAndPlay() {
-        if (streamUrl == null || provider == null) {
-            Toast.makeText(this, "No stream URL or provider", Toast.LENGTH_SHORT).show();
+        if (streamUrl == null) {
+            Toast.makeText(this, "No stream URL provided", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
         
         loadingIndicator.setVisibility(View.VISIBLE);
-        
-        // Extract in background (iOS pattern)
-        new ExtractUrlTask().execute(streamUrl, provider);
+
+        if (provider == null) {
+            // Direct playback (e.g. TV Channels HLS)
+            Log.d(TAG, "Direct playback: " + streamUrl);
+            initializePlayer(streamUrl);
+            loadingIndicator.setVisibility(View.GONE);
+        } else {
+            // Extract in background (iOS pattern)
+            new ExtractUrlTask().execute(streamUrl, provider);
+        }
     }
     
     private class ExtractUrlTask extends AsyncTask<String, Void, String> {

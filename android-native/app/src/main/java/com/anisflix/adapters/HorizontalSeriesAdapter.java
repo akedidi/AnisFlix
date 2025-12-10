@@ -74,7 +74,12 @@ public class HorizontalSeriesAdapter extends RecyclerView.Adapter<HorizontalSeri
 
         void bind(Series series) {
             titleText.setText(series.getName());
-            ratingText.setText(String.format("⭐ %.1f", series.getRating()));
+            String year = series.getYear();
+            if (year != null && !year.isEmpty()) {
+                ratingText.setText(String.format("⭐ %.1f • %s", series.getRating(), year));
+            } else {
+                ratingText.setText(String.format("⭐ %.1f", series.getRating()));
+            }
 
             Glide.with(context)
                     .load(series.getFullPosterUrl())

@@ -35,6 +35,7 @@ struct HomeView: View {
     @State private var hboMaxSeries: [Media] = []
     
     @State private var isLoading = true
+
     @State private var continueWatching: [Media] = [] // Continue Watching data
     @State private var progressByMediaId: [Int: Double] = [:] // Progress for Continue Watching
     
@@ -48,355 +49,350 @@ struct HomeView: View {
     ]
     
     var body: some View {
-        ZStack(alignment: .top) {
-            // Background
-            theme.backgroundColor
-                .ignoresSafeArea()
-            
-            // Content
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Padding for header
-                    Color.clear.frame(height: 60)
+        // Content
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                // Safe Area handled by PullToRefreshScrollView logic usually results in content at top
+                // Ideally we add some padding if needed, but safeAreaInset handles header.
+                
+                if isLoading {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(AppTheme.primaryRed)
+                        Text(theme.t("common.loading"))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 100)
+                } else {
+                    // Continue Watching Section (conditionnelle)
+                    if !continueWatching.isEmpty {
+                        MediaRow(
+                            title: theme.t("home.continueWatching"),
+                            items: Array(continueWatching.prefix(20)),
+                            onItemClick: { media in
+                                print("Continue watching: \(media.id)")
+                            },
+                            progressByMediaId: progressByMediaId
+                        )
+                    }
                     
-                    if isLoading {
-                        VStack(spacing: 20) {
-                            ProgressView()
-                                .scaleEffect(1.5)
-                                .tint(AppTheme.primaryRed)
-                            Text(theme.t("common.loading"))
-                                .foregroundColor(theme.secondaryText)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 100)
-                    } else {
-                        // Continue Watching Section (conditionnelle)
-                        if !continueWatching.isEmpty {
-                            MediaRow(
-                                title: theme.t("home.continueWatching"),
-                                items: Array(continueWatching.prefix(20)),
-                                onItemClick: { media in
-                                    print("Continue watching: \(media.id)")
-                                },
-                                progressByMediaId: progressByMediaId
-                            )
-                        }
+                    // Providers Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(theme.t("home.byProvider"))
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(theme.primaryText)
+                            .padding(.horizontal, 16)
                         
-                        // Providers Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(theme.t("home.byProvider"))
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(theme.primaryText)
-                                .padding(.horizontal, 16)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 16) {
-                                    ForEach(providers, id: \.id) { provider in
-                                        NavigationLink {
-                                            // Navigate to provider list
-                                            ProviderMediaListView(providerId: provider.id, providerName: provider.name)
-                                        } label: {
-                                            VStack(spacing: 8) {
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.white)
-                                                    .frame(width: 90, height: 90)
-                                                    .overlay(
-                                                        AsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w200\(provider.logo)")) { phase in
-                                                            switch phase {
-                                                            case .success(let image):
-                                                                image
-                                                                    .resizable()
-                                                                    .aspectRatio(contentMode: .fit)
-                                                                    .padding(8)
-                                                            case .failure, .empty:
-                                                                VStack(spacing: 4) {
-                                                                    ProgressView()
-                                                                        .tint(AppTheme.primaryRed)
-                                                                    Text(provider.name)
-                                                                        .font(.caption2)
-                                                                        .multilineTextAlignment(.center)
-                                                                }
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 16) {
+                                ForEach(providers, id: \.id) { provider in
+                                    NavigationLink {
+                                        // Navigate to provider list
+                                        ProviderMediaListView(providerId: provider.id, providerName: provider.name)
+                                    } label: {
+                                        VStack(spacing: 8) {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.white)
+                                                .frame(width: 90, height: 90)
+                                                .overlay(
+                                                    AsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w200\(provider.logo)")) { phase in
+                                                        switch phase {
+                                                        case .success(let image):
+                                                            image
+                                                                .resizable()
+                                                                .aspectRatio(contentMode: .fit)
                                                                 .padding(8)
-                                                            @unknown default:
-                                                                EmptyView()
+                                                        case .failure, .empty:
+                                                            VStack(spacing: 4) {
+                                                                ProgressView()
+                                                                    .tint(AppTheme.primaryRed)
+                                                                Text(provider.name)
+                                                                    .font(.caption2)
+                                                                    .multilineTextAlignment(.center)
                                                             }
+                                                            .padding(8)
+                                                        @unknown default:
+                                                            EmptyView()
                                                         }
-                                                    )
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 12)
-                                                            .stroke(AppTheme.borderGray.opacity(0.15), lineWidth: 1)
-                                                    )
-                                                    .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 2)
-                                                
-                                                Text(provider.name)
-                                                    .font(.caption)
-                                                    .foregroundColor(theme.primaryText)
-                                                    .lineLimit(1)
-                                                    .frame(width: 90)
-                                            }
+                                                    }
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .stroke(AppTheme.borderGray.opacity(0.15), lineWidth: 1)
+                                                )
+                                                .shadow(color: .black.opacity(0.08), radius: 3, x: 0, y: 2)
+                                            
+                                            Text(provider.name)
+                                                .font(.caption)
+                                                .foregroundColor(theme.primaryText)
+                                                .lineLimit(1)
+                                                .frame(width: 90)
                                         }
-                                        .buttonStyle(PlainButtonStyle())
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .padding(.horizontal, 16)
                             }
+                            .padding(.horizontal, 16)
                         }
-                        
-                        // Derniers Films
-                        if !latestMovies.isEmpty {
-                            MediaRow(
-                                title: theme.t("movies.latest"),
-                                items: Array(latestMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to movie: \(media.id)")
-                                }
-                            ) {
-                                LatestMoviesView()
+                    }
+                    
+                    // Derniers Films
+                    if !latestMovies.isEmpty {
+                        MediaRow(
+                            title: theme.t("movies.latest"),
+                            items: Array(latestMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to movie: \(media.id)")
                             }
+                        ) {
+                            LatestMoviesView()
                         }
-                        
-                        // Dernières Séries
-                        if !latestSeries.isEmpty {
-                            MediaRow(
-                                title: theme.t("series.latest"),
-                                items: Array(latestSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to series: \(media.id)")
-                                }
-                            ) {
-                                LatestSeriesView()
+                    }
+                    
+                    // Dernières Séries
+                    if !latestSeries.isEmpty {
+                        MediaRow(
+                            title: theme.t("series.latest"),
+                            items: Array(latestSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to series: \(media.id)")
                             }
+                        ) {
+                            LatestSeriesView()
                         }
-                        
-                        // Films Populaires
-                        if !popularMovies.isEmpty {
-                            MediaRow(
-                                title: theme.t("movies.popular"),
-                                items: Array(popularMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to movie: \(media.id)")
-                                }
-                            ) {
-                                PopularMoviesView()
+                    }
+                    
+                    // Films Populaires
+                    if !popularMovies.isEmpty {
+                        MediaRow(
+                            title: theme.t("movies.popular"),
+                            items: Array(popularMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to movie: \(media.id)")
                             }
+                        ) {
+                            PopularMoviesView()
                         }
-                        
-                        // Séries Populaires
-                        if !popularSeries.isEmpty {
-                            MediaRow(
-                                title: theme.t("series.popular"),
-                                items: Array(popularSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to series: \(media.id)")
-                                }
-                            ) {
-                                PopularSeriesView()
+                    }
+                    
+                    // Séries Populaires
+                    if !popularSeries.isEmpty {
+                        MediaRow(
+                            title: theme.t("series.popular"),
+                            items: Array(popularSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to series: \(media.id)")
                             }
+                        ) {
+                            PopularSeriesView()
                         }
-                        
-                        // Anime - Derniers Films
-                        if !animeMoviesLatest.isEmpty {
-                            MediaRow(
-                                title: "Anime - Derniers Films",
-                                items: Array(animeMoviesLatest.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to anime movie: \(media.id)")
-                                }
-                            ) {
-                                GenreMediaListView(genreId: 16, genreName: "Anime - Derniers Films", mediaType: .movie)
+                    }
+                    
+                    // Anime - Derniers Films
+                    if !animeMoviesLatest.isEmpty {
+                        MediaRow(
+                            title: "Anime - Derniers Films",
+                            items: Array(animeMoviesLatest.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to anime movie: \(media.id)")
                             }
+                        ) {
+                            GenreMediaListView(genreId: 16, genreName: "Anime - Derniers Films", mediaType: .movie)
                         }
-                        
-                        // Anime - Dernières Séries
-                        if !animeSeriesLatest.isEmpty {
-                            MediaRow(
-                                title: "Anime - Dernières Séries",
-                                items: Array(animeSeriesLatest.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to anime series: \(media.id)")
-                                }
-                            ) {
-                                GenreMediaListView(genreId: 16, genreName: "Anime - Dernières Séries", mediaType: .series)
+                    }
+                    
+                    // Anime - Dernières Séries
+                    if !animeSeriesLatest.isEmpty {
+                        MediaRow(
+                            title: "Anime - Dernières Séries",
+                            items: Array(animeSeriesLatest.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to anime series: \(media.id)")
                             }
+                        ) {
+                            GenreMediaListView(genreId: 16, genreName: "Anime - Dernières Séries", mediaType: .series)
                         }
-                        
-                        // Anime - Films Populaires
-                        if !animeMoviesPopular.isEmpty {
-                            MediaRow(
-                                title: "Anime - Films Populaires",
-                                items: Array(animeMoviesPopular.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to anime movie: \(media.id)")
-                                }
-                            ) {
-                                GenreMediaListView(genreId: 16, genreName: "Anime - Films Populaires", mediaType: .movie)
+                    }
+                    
+                    // Anime - Films Populaires
+                    if !animeMoviesPopular.isEmpty {
+                        MediaRow(
+                            title: "Anime - Films Populaires",
+                            items: Array(animeMoviesPopular.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to anime movie: \(media.id)")
                             }
+                        ) {
+                            GenreMediaListView(genreId: 16, genreName: "Anime - Films Populaires", mediaType: .movie)
                         }
-                        
-                       // Anime - Séries Populaires
-                        if !animeSeriesPopular.isEmpty {
-                            MediaRow(
-                                title: "Anime - Séries Populaires",
-                                items: Array(animeSeriesPopular.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to anime series: \(media.id)")
-                                }
-                            ) {
-                                GenreMediaListView(genreId: 16, genreName: "Anime - Séries Populaires", mediaType: .series)
+                    }
+                    
+                    // Anime - Séries Populaires
+                    if !animeSeriesPopular.isEmpty {
+                        MediaRow(
+                            title: "Anime - Séries Populaires",
+                            items: Array(animeSeriesPopular.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to anime series: \(media.id)")
                             }
+                        ) {
+                            GenreMediaListView(genreId: 16, genreName: "Anime - Séries Populaires", mediaType: .series)
                         }
-                        
-                        // Netflix
-                        if !netflixMovies.isEmpty {
-                            MediaRow(
-                                title: "Netflix - Films",
-                                items: Array(netflixMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Netflix movie: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 8, providerName: "Netflix")
+                    }
+                    
+                    // Netflix
+                    if !netflixMovies.isEmpty {
+                        MediaRow(
+                            title: "Netflix - Films",
+                            items: Array(netflixMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Netflix movie: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 8, providerName: "Netflix")
                         }
-                        
-                        if !netflixSeries.isEmpty {
-                            MediaRow(
-                                title: "Netflix - Séries",
-                                items: Array(netflixSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Netflix series: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 8, providerName: "Netflix")
+                    }
+                    
+                    if !netflixSeries.isEmpty {
+                        MediaRow(
+                            title: "Netflix - Séries",
+                            items: Array(netflixSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Netflix series: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 8, providerName: "Netflix")
                         }
-                        
-                        // Amazon Prime
-                        if !amazonMovies.isEmpty {
-                            MediaRow(
-                                title: "Amazon Prime - Films",
-                                items: Array(amazonMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Amazon movie: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
+                    }
+                    
+                    // Amazon Prime
+                    if !amazonMovies.isEmpty {
+                        MediaRow(
+                            title: "Amazon Prime - Films",
+                            items: Array(amazonMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Amazon movie: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
                         }
-                        
-                        if !amazonSeries.isEmpty {
-                            MediaRow(
-                                title: "Amazon Prime - Séries",
-                                items: Array(amazonSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Amazon series: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
+                    }
+                    
+                    if !amazonSeries.isEmpty {
+                        MediaRow(
+                            title: "Amazon Prime - Séries",
+                            items: Array(amazonSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Amazon series: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 9, providerName: "Amazon Prime")
                         }
-                        
-                        // Apple TV+
-                        if !appleTVMovies.isEmpty {
-                            MediaRow(
-                                title: "Apple TV+ - Films",
-                                items: Array(appleTVMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Apple TV movie: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
+                    }
+                    
+                    // Apple TV+
+                    if !appleTVMovies.isEmpty {
+                        MediaRow(
+                            title: "Apple TV+ - Films",
+                            items: Array(appleTVMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Apple TV movie: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
                         }
-                        
-                        if !appleTVSeries.isEmpty {
-                            MediaRow(
-                                title: "Apple TV+ - Séries",
-                                items: Array(appleTVSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Apple TV series: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
+                    }
+                    
+                    if !appleTVSeries.isEmpty {
+                        MediaRow(
+                            title: "Apple TV+ - Séries",
+                            items: Array(appleTVSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Apple TV series: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 350, providerName: "Apple TV+")
                         }
-                        
-                        // Disney+
-                        if !disneyMovies.isEmpty {
-                            MediaRow(
-                                title: "Disney+ - Films",
-                                items: Array(disneyMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Disney movie: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 337, providerName: "Disney+")
+                    }
+                    
+                    // Disney+
+                    if !disneyMovies.isEmpty {
+                        MediaRow(
+                            title: "Disney+ - Films",
+                            items: Array(disneyMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Disney movie: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 337, providerName: "Disney+")
                         }
-                        
-                        if !disneySeries.isEmpty {
-                            MediaRow(
-                                title: "Disney+ - Séries",
-                                items: Array(disneySeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to Disney series: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 337, providerName: "Disney+")
+                    }
+                    
+                    if !disneySeries.isEmpty {
+                        MediaRow(
+                            title: "Disney+ - Séries",
+                            items: Array(disneySeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Disney series: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 337, providerName: "Disney+")
                         }
-                        
-                        // HBO Max
-                        if !hboMaxMovies.isEmpty {
-                            MediaRow(
-                                title: "HBO Max - Films",
-                                items: Array(hboMaxMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to HBO movie: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 384, providerName: "HBO Max")
+                    }
+                    
+                    // HBO Max
+                    if !hboMaxMovies.isEmpty {
+                        MediaRow(
+                            title: "HBO Max - Films",
+                            items: Array(hboMaxMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to HBO movie: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 384, providerName: "HBO Max")
                         }
-                        
-                        if !hboMaxSeries.isEmpty {
-                            MediaRow(
-                                title: "HBO Max - Séries",
-                                items: Array(hboMaxSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Navigate to HBO series: \(media.id)")
-                                }
-                            ) {
-                                ProviderMediaListView(providerId: 384, providerName: "HBO Max")
+                    }
+                    
+                    if !hboMaxSeries.isEmpty {
+                        MediaRow(
+                            title: "HBO Max - Séries",
+                            items: Array(hboMaxSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to HBO series: \(media.id)")
                             }
+                        ) {
+                            ProviderMediaListView(providerId: 384, providerName: "HBO Max")
                         }
                     }
                 }
-                .padding(.bottom, 50)  // Tab bar spacing
             }
-            
-            // Custom Header - Fixed at top
-            VStack(spacing: 0) {
-                // Header
-                CustomHeaderView(title: theme.t("nav.home")) { query in
-                    print("Search: \(query)")
-                    // TODO: Implémenter la recherche avec autocomplétion
-                }
-                Spacer()
-            }
+            .padding(.bottom, 50)  // Tab bar spacing
         }
+        .safeAreaInset(edge: .top) {
+            // Header
+            CustomHeaderView(title: theme.t("nav.home")) { query in
+                print("Search: \(query)")
+                // TODO: Implémenter la recherche avec autocomplétion
+            }
+            .background(theme.backgroundColor) // Ensure header is opaque
+        }
+        .background(theme.backgroundColor.ignoresSafeArea())
         .navigationBarHidden(true)
         .task {
-            await loadAllData()
+            await loadAllData(showLoadingUI: true)
         }
     }
     
     // MARK: - Data Loading
     
-    private func loadAllData() async {
+    private func loadAllData(showLoadingUI: Bool = true) async {
         print("🚀 START loadAllData()")
-        isLoading = true
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" : 
                       theme.selectedLanguage == "en" ? "en-US" :
@@ -464,12 +460,16 @@ struct HomeView: View {
             // Load Continue Watching from WatchProgressManager
             await loadContinueWatching()
             
-            isLoading = false
-            print("🏁 loadAllData() completed - isLoading set to false")
+            if showLoadingUI {
+                isLoading = false
+            }
+            print("🏁 loadAllData() completed")
         } catch {
             print("❌ ERROR in loadAllData: \(error)")
             print("❌ Error details: \(error.localizedDescription)")
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         }
     }
     

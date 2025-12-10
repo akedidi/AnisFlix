@@ -202,6 +202,15 @@ struct MediaCard: View {
                         Text(String(format: "%.1f", rating))
                             .font(.caption2)
                             .foregroundColor(theme.secondaryText)
+                        
+                        if let year = media.year, !year.isEmpty {
+                            Text("•")
+                                .font(.caption2)
+                                .foregroundColor(theme.secondaryText)
+                            Text(year)
+                                .font(.caption2)
+                                .foregroundColor(theme.secondaryText)
+                        }
                     }
                 }
             }

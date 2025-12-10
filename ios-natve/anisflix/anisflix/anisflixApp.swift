@@ -35,8 +35,17 @@ struct anisflixApp: App {
 }
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+    
+    /// Global orientation lock. Defaults to portrait.
+    static var orientationLock = UIInterfaceOrientationMask.portrait
+    
     func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
         print("🔄 Handling background session events for: \(identifier)")
         DownloadManager.shared.backgroundCompletionHandler = completionHandler
+    }
+    
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        // print("🔄 AppDelegate: checking supported orientations. Lock: \(AppDelegate.orientationLock.rawValue)")
+        return AppDelegate.orientationLock
     }
 }

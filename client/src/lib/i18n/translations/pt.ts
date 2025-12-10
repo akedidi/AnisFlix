@@ -49,6 +49,7 @@ export default {
   // Series page
   "series.title": "Séries",
   "series.action": "Ação",
+  "series.actions": "Ação",
   "series.adventure": "Aventura",
   "series.actionAdventure": "Ação e Aventura",
   "series.drama": "Drama",
@@ -148,4 +149,5 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  "language.ar": "Árabe",
 };

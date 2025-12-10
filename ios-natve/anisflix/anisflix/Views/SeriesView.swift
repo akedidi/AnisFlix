@@ -21,6 +21,7 @@ struct SeriesView: View {
     @State private var animeSeries: [Media] = []
     
     @State private var isLoading = true
+
     
     // Genre IDs from TMDB for Series (different from movies!)
     let GENRES = (
@@ -34,179 +35,179 @@ struct SeriesView: View {
     )
     
     var body: some View {
-        ZStack(alignment: .top) {
-            VStack(spacing: 0) {
-                // Header
-                CustomHeaderView(title: theme.t("nav.series"))
-                
+        // Content
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
                 if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
-                        Text(theme.t("common.loading"))
-                            .foregroundColor(theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                     VStack(spacing: 20) {
+                         ProgressView()
+                             .tint(AppTheme.primaryRed)
+                         Text(theme.t("common.loading"))
+                             .foregroundColor(theme.secondaryText)
+                     }
+                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                     .padding(.top, 100)
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Padding for header
-                            Color.clear.frame(height: 30)
-                            
-                            // Dernières Séries
-                            MediaRow(
+                    
+                    // Dernières Séries
+                    MediaRow(
+                        title: theme.t("series.latest"),
+                        items: Array(latestSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
                                 title: theme.t("series.latest"),
-                                items: Array(latestSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.latest"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchLatestSeries(page: page)
-                                        }
-                                    )
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchLatestSeries(page: page)
                                 }
                             )
-                            
-                            // Action & Aventure
-                            MediaRow(
-                                title: theme.t("series.actionAdventure"),
-                                items: Array(actionSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.actionAdventure"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ACTION, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Drame
-                            MediaRow(
-                                title: theme.t("series.drama"),
-                                items: Array(dramaSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.drama"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DRAMA, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Crime
-                            MediaRow(
-                                title: theme.t("series.crime"),
-                                items: Array(crimeSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.crime"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.CRIME, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Mystère
-                            MediaRow(
-                                title: theme.t("series.mystery"),
-                                items: Array(mysterySeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.mystery"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.MYSTERY, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Documentaire
-                            MediaRow(
-                                title: theme.t("series.documentary"),
-                                items: Array(documentarySeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.documentary"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DOCUMENTARY, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Sci-Fi & Fantasy
-                            MediaRow(
-                                title: theme.t("series.sciFi"),
-                                items: Array(sciFiSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.sciFi"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.SCI_FI, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Animation
-                            MediaRow(
-                                title: theme.t("series.animation"),
-                                items: Array(animeSeries.prefix(10)),
-                                onItemClick: { media in
-                                    print("Series clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("series.animation"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ANIMATION, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Bottom padding for tab bar
-                            Color.clear.frame(height: 30)
                         }
-                    }
+                    )
+                    
+                    // Action & Adventure
+                    MediaRow(
+                        title: theme.t("series.action"),
+                        items: Array(actionSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.action"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ACTION, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Drama
+                    MediaRow(
+                        title: theme.t("series.drama"),
+                        items: Array(dramaSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.drama"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DRAMA, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Crime
+                    MediaRow(
+                        title: theme.t("series.crime"),
+                        items: Array(crimeSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.crime"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.CRIME, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Mystery
+                    MediaRow(
+                        title: theme.t("series.mystery"),
+                        items: Array(mysterySeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.mystery"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.MYSTERY, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Documentary
+                    MediaRow(
+                        title: theme.t("series.documentary"),
+                        items: Array(documentarySeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.documentary"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DOCUMENTARY, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Sci-Fi & Fantasy
+                    MediaRow(
+                        title: theme.t("series.sciFi"),
+                        items: Array(sciFiSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.sciFi"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.SCI_FI, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Animation
+                    MediaRow(
+                        title: theme.t("series.animation"),
+                        items: Array(animeSeries.prefix(10)),
+                        onItemClick: { media in
+                            print("Series clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("series.animation"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ANIMATION, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
                 }
+                
+                // Bottom padding for tab bar
+                Color.clear.frame(height: 50)
             }
-            .background(theme.backgroundColor)
         }
+        .safeAreaInset(edge: .top) {
+             CustomHeaderView(title: theme.t("nav.series"))
+                .background(theme.backgroundColor)
+        }
+        .background(theme.backgroundColor.ignoresSafeArea())
         .task {
-            await loadAllCategories()
+            await loadAllCategories(showLoadingUI: true)
         }
     }
     
     // MARK: - Data Loading
     
-    private func loadAllCategories() async {
+    private func loadAllCategories(showLoadingUI: Bool = true) async {
         print("🚀 START loadAllCategories() for Series")
-        isLoading = true
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.tmdbLanguageCode
         
@@ -236,10 +237,14 @@ struct SeriesView: View {
             print("✅ All series categories loaded")
             print("📊 Latest: \(latestSeries.count), Action: \(actionSeries.count)")
             
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         } catch {
             print("❌ ERROR in loadAllCategories: \(error)")
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         }
     }
 }

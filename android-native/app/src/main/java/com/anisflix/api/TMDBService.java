@@ -25,6 +25,27 @@ public interface TMDBService {
             @Query("language") String language,
             @Query("page") int page
     );
+
+    @GET("movie/top_rated")
+    Call<TMDBResponse<Movie>> getTopRatedMovies(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
+
+    @GET("movie/upcoming")
+    Call<TMDBResponse<Movie>> getUpcomingMovies(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
+
+    @GET("trending/movie/week")
+    Call<TMDBResponse<Movie>> getTrendingMovies(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
     
     @GET("movie/now_playing")
     Call<TMDBResponse<Movie>> getLatestMovies(
@@ -35,6 +56,27 @@ public interface TMDBService {
     
     @GET("tv/popular")
     Call<TMDBResponse<Series>> getPopularSeries(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
+
+    @GET("tv/top_rated")
+    Call<TMDBResponse<Series>> getTopRatedSeries(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
+
+    @GET("tv/airing_today")
+    Call<TMDBResponse<Series>> getAiringTodaySeries(
+            @Query("api_key") String apiKey,
+            @Query("language") String language,
+            @Query("page") int page
+    );
+
+    @GET("trending/tv/week")
+    Call<TMDBResponse<Series>> getTrendingSeries(
             @Query("api_key") String apiKey,
             @Query("language") String language,
             @Query("page") int page

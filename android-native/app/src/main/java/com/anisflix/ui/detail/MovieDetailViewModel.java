@@ -2,8 +2,9 @@ package com.anisflix.ui.detail;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
-import android.content.Context;
+import android.app.Application;
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import com.anisflix.api.RetrofitClient;
 import com.anisflix.api.TMDBService;
 import com.anisflix.models.Movie;
@@ -17,21 +18,21 @@ import retrofit2.Response;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MovieDetailViewModel extends ViewModel {
+public class MovieDetailViewModel extends AndroidViewModel {
     
     private final MutableLiveData<Movie> movie = new MutableLiveData<>();
     private final MutableLiveData<List<StreamingSource>> streamingSources = new MutableLiveData<>();
     private final MutableLiveData<Boolean> isFavorite = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
+    private final MutableLiveData<List<Movie>> similarMovies = new MutableLiveData<>();
     
     private final TMDBService tmdbService;
     private final FavoritesRepository favoritesRepository;
-    private final Context context;
     
-    public MovieDetailViewModel(Context context) {
-        this.context = context;
+    public MovieDetailViewModel(@NonNull Application application) {
+        super(application);
         tmdbService = RetrofitClient.getInstance().getTMDBService();
-        favoritesRepository = FavoritesRepository.getInstance(context);
+        favoritesRepository = FavoritesRepository.getInstance(application.getApplicationContext());
     }
     
     public void loadMovie(int movieId) {
@@ -47,6 +48,7 @@ public class MovieDetailViewModel extends ViewModel {
                             movie.setValue(response.body());
                             loadStreamingSources(movieId);
                             checkFavoriteStatus(movieId);
+                            loadSimilarMovies(movieId);
                         }
                     }
                     
@@ -58,9 +60,11 @@ public class MovieDetailViewModel extends ViewModel {
     }
     
     private void checkFavoriteStatus(int movieId) {
-        // Check if in favorites
-        boolean isFav = favoritesRepository.isFavoriteSync(movieId);
-        isFavorite.postValue(isFav);
+        // Check if in favorites (Must be done on background thread)
+        new Thread(() -> {
+            boolean isFav = favoritesRepository.isFavoriteSync(movieId);
+            isFavorite.postValue(isFav);
+        }).start();
     }
     
     private void loadStreamingSources(int movieId) {
@@ -74,6 +78,23 @@ public class MovieDetailViewModel extends ViewModel {
                 @Override
                 public void onError(String error) {
                     streamingSources.postValue(new ArrayList<>());
+                }
+            });
+    }
+
+    private void loadSimilarMovies(int movieId) {
+        tmdbService.getSimilarMovies(movieId, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, 1)
+            .enqueue(new Callback<com.anisflix.models.TMDBResponse<Movie>>() {
+                @Override
+                public void onResponse(Call<com.anisflix.models.TMDBResponse<Movie>> call, Response<com.anisflix.models.TMDBResponse<Movie>> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        similarMovies.setValue(response.body().getResults());
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<com.anisflix.models.TMDBResponse<Movie>> call, Throwable t) {
+                    similarMovies.setValue(new ArrayList<>());
                 }
             });
     }
@@ -107,5 +128,9 @@ public class MovieDetailViewModel extends ViewModel {
     
     public LiveData<Boolean> getIsLoading() {
         return isLoading;
+    }
+    
+    public LiveData<List<Movie>> getSimilarMovies() {
+        return similarMovies;
     }
 }

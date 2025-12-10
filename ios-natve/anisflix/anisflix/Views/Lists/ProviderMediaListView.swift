@@ -21,6 +21,7 @@ struct ProviderMediaListView: View {
     @State private var dramaSeries: [Media] = []
     @State private var comedySeries: [Media] = []
     @State private var isLoading = true
+
     @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
@@ -76,7 +77,7 @@ struct ProviderMediaListView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 20) {
                             Color.clear.frame(height: 8)
                             
@@ -217,19 +218,22 @@ struct ProviderMediaListView: View {
                             }
                         }
                     }
-                }
-            }
-        }
+                } // End else
+            } // End VStack
+            .tint(AppTheme.primaryRed)
+        } // End ZStack
         .navigationBarHidden(true)
         .task {
-            await loadAllData()
+            await loadAllData(showLoadingUI: true)
         }
     }
     
     // MARK: - Data Loading
     
-    private func loadAllData() async {
-        isLoading = true
+    private func loadAllData(showLoadingUI: Bool = true) async {
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
@@ -284,7 +288,9 @@ struct ProviderMediaListView: View {
             print("❌ Error loading \(providerName) content: \(error)")
         }
         
-        isLoading = false
+        if showLoadingUI {
+            isLoading = false
+        }
     }
 }
 

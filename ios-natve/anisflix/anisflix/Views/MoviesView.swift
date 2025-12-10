@@ -21,6 +21,7 @@ struct MoviesView: View {
     @State private var animeMovies: [Media] = []
     
     @State private var isLoading = true
+
     
     // Genre IDs from TMDB (same as web)
     let GENRES = (
@@ -34,179 +35,178 @@ struct MoviesView: View {
     )
     
     var body: some View {
-        ZStack(alignment: .top) {
-            VStack(spacing: 0) {
-                // Header
-                CustomHeaderView(title: theme.t("nav.movies"))
-                
+        // Content
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
                 if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
-                        Text(theme.t("common.loading"))
-                            .foregroundColor(theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                     VStack(spacing: 20) {
+                         ProgressView()
+                             .tint(AppTheme.primaryRed)
+                         Text(theme.t("common.loading"))
+                             .foregroundColor(theme.secondaryText)
+                     }
+                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                     .padding(.top, 100)
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            // Padding for header
-                            Color.clear.frame(height: 30)
-                            
-                            // Derniers Films
-                            MediaRow(
+                    
+                    // Derniers Films
+                    MediaRow(
+                        title: theme.t("movies.latest"),
+                        items: Array(latestMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
                                 title: theme.t("movies.latest"),
-                                items: Array(latestMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.latest"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchLatestMovies(page: page)
-                                        }
-                                    )
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchLatestMovies(page: page)
                                 }
                             )
-                            
-                            // Action
-                            MediaRow(
-                                title: theme.t("movies.action"),
-                                items: Array(actionMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.action"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.ACTION, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Drame
-                            MediaRow(
-                                title: theme.t("movies.drama"),
-                                items: Array(dramaMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.drama"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.DRAMA, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Crime
-                            MediaRow(
-                                title: theme.t("movies.crime"),
-                                items: Array(crimeMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.crime"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.CRIME, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Mystère
-                            MediaRow(
-                                title: theme.t("movies.mystery"),
-                                items: Array(mysteryMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.mystery"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.MYSTERY, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Documentaire
-                            MediaRow(
-                                title: theme.t("movies.documentary"),
-                                items: Array(documentaryMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.documentary"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.DOCUMENTARY, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Science-Fiction
-                            MediaRow(
-                                title: theme.t("movies.sciFi"),
-                                items: Array(sciFiMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.sciFi"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.SCI_FI, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Animation
-                            MediaRow(
-                                title: theme.t("movies.animation"),
-                                items: Array(animeMovies.prefix(10)),
-                                onItemClick: { media in
-                                    print("Movie clicked: \(media.id)")
-                                },
-                                seeAllDestination: {
-                                    MediaListView(
-                                        title: theme.t("movies.animation"),
-                                        fetcher: { page in
-                                            try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.ANIMATION, page: page)
-                                        }
-                                    )
-                                }
-                            )
-                            
-                            // Bottom padding for tab bar
-                            Color.clear.frame(height: 30)
                         }
-                    }
+                    )
+                    
+                    // Action
+                    MediaRow(
+                        title: theme.t("movies.action"),
+                        items: Array(actionMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.action"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.ACTION, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Drama
+                    MediaRow(
+                        title: theme.t("movies.drama"),
+                        items: Array(dramaMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.drama"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.DRAMA, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Crime
+                    MediaRow(
+                        title: theme.t("movies.crime"),
+                        items: Array(crimeMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.crime"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.CRIME, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Mystery
+                    MediaRow(
+                        title: theme.t("movies.mystery"),
+                        items: Array(mysteryMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.mystery"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.MYSTERY, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Documentary
+                    MediaRow(
+                        title: theme.t("movies.documentary"),
+                        items: Array(documentaryMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.documentary"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.DOCUMENTARY, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Science-Fiction
+                    MediaRow(
+                        title: theme.t("movies.sciFi"),
+                        items: Array(sciFiMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.sciFi"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.SCI_FI, page: page)
+                                }
+                            )
+                        }
+                    )
+                    
+                    // Animation
+                    MediaRow(
+                        title: theme.t("movies.animation"),
+                        items: Array(animeMovies.prefix(10)),
+                        onItemClick: { media in
+                            print("Movie clicked: \(media.id)")
+                        },
+                        seeAllDestination: {
+                            MediaListView(
+                                title: theme.t("movies.animation"),
+                                fetcher: { page in
+                                    try await TMDBService.shared.fetchMoviesByGenre(genreId: GENRES.ANIMATION, page: page)
+                                }
+                            )
+                        }
+                    )
                 }
+                
+                // Bottom padding for tab bar
+                Color.clear.frame(height: 50)
             }
-            .background(theme.backgroundColor)
         }
+        .safeAreaInset(edge: .top) {
+             CustomHeaderView(title: theme.t("nav.movies"))
+                .background(theme.backgroundColor)
+        }
+        .background(theme.backgroundColor.ignoresSafeArea())
         .task {
-            await loadAllCategories()
+            await loadAllCategories(showLoadingUI: true)
         }
     }
     
     // MARK: - Data Loading
     
-    private func loadAllCategories() async {
+    private func loadAllCategories(showLoadingUI: Bool = true) async {
         print("🚀 START loadAllCategories() for Movies")
-        isLoading = true
+        if showLoadingUI {
+            isLoading = true
+        }
         
         let language = theme.tmdbLanguageCode
         
@@ -236,10 +236,14 @@ struct MoviesView: View {
             print("✅ All movie categories loaded")
             print("📊 Latest: \(latestMovies.count), Action: \(actionMovies.count)")
             
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         } catch {
             print("❌ ERROR in loadAllCategories: \(error)")
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         }
     }
 }

@@ -68,7 +68,7 @@ public class HomeFragment extends Fragment {
         });
 
         langBtn.setOnClickListener(v -> {
-            String[] languages = {"Français", "English"};
+            String[] languages = {"Français", "English", "Espagnol", "Arabe", "Italien", "Allemand"};
             new android.app.AlertDialog.Builder(getContext())
                 .setTitle("Choisir la langue")
                 .setItems(languages, (dialog, which) -> {
@@ -101,26 +101,19 @@ public class HomeFragment extends Fragment {
 
     private void observeData() {
         // Initialize adapters for static sections
-        bindSection(R.id.popular_series_recycler, viewModel.getPopularSeries(), false);
+        // Now top sections are Latest Movies and Latest Series
         bindSection(R.id.latest_movies_recycler, viewModel.getLatestMovies(), true);
-        bindSection(R.id.continue_watching_recycler, viewModel.getPopularMovies(), true); 
+        bindSection(R.id.latest_series_recycler, viewModel.getLatestSeries(), false);
+        bindSection(R.id.continue_watching_recycler, viewModel.getPopularMovies(), true); // Placeholder if continue watching logic is separate or reusing popular
         
-        // Static Headers "See All" Wiring (Available in XML)
-        // Find them by traversing parent of recyclers? Or simpler: find by ID if I had IDs.
-        // The XML doesn't have IDs for headers. I need to find them or update XML.
-        // Assuming user wants this fast, I will rely on the dynamic addSection mostly, 
-        // BUT for the XML ones, I really should add IDs to XML or handle it here.
-        // Wait, "Popular Series" and "Latest Movies" are in XML.
-        // Let's modify the XML to have IDs for "Voir tout" buttons.
-        // Or finding by tag/layout relative.
-        // Let's prioritize the dynamic sections first as they are the bulk.
-        // Actually, easiest is to Find header by ID.
-        // Updating observeData calls below first.
-
+        // Static Headers "See All" Wiring 
+        // We really should use IDs in XML for headers to make "Voir tout" clickable
+        // For now, assuming static is just display
+        
         // Dynamic Sections
+        // Popular Moved here
         addSection("Films Populaires", viewModel.getPopularMovies(), true, "POPULAR", -1, -1);
-        
-        addSection("Séries Derniers Ajouts", viewModel.getLatestSeries(), false, "LATEST", -1, -1);
+        addSection("Séries Populaires", viewModel.getPopularSeries(), false, "POPULAR", -1, -1);
         
         addSection("Anime - Films", viewModel.getAnimeMovies(), true, "GENRE", -1, 16);
         addSection("Anime - Séries", viewModel.getAnimeSeries(), false, "GENRE", -1, 16);

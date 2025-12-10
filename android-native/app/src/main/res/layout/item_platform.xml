@@ -11,7 +11,8 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:scaleType="centerInside"
-        android:padding="0dp"/>
+        android:padding="8dp"
+        android:background="@drawable/bg_platform_border"/>
 
     <TextView
         android:id="@+id/platform_name"

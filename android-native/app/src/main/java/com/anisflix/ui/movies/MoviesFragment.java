@@ -19,8 +19,7 @@ import com.anisflix.adapters.MediaGridAdapter;
 public class MoviesFragment extends Fragment {
     
     private MoviesViewModel viewModel;
-    private RecyclerView recyclerView;
-    private MediaGridAdapter adapter;
+    private android.widget.LinearLayout container;
     
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,31 +32,52 @@ public class MoviesFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_movies, container, false);
-        initViews(view);
-        observeData();
+        this.container = view.findViewById(R.id.movies_container);
+        
+        setupSection("À l'affiche", viewModel.getNowPlayingMovies(), "LATEST");
+        setupSection("Tendances", viewModel.getTrendingMovies(), "TRENDING"); // Wait, check SectionContentActivity constants?
+        setupSection("Les Mieux Notés", viewModel.getTopRatedMovies(), "TOP_RATED"); // Can use GENRE or Specific implementation in SectionContentActivity
+        setupSection("Prochainement", viewModel.getUpcomingMovies(), "UPCOMING");
+        setupSection("Populaires", viewModel.getPopularMovies(), "POPULAR");
+        
         return view;
     }
     
-    private void initViews(View view) {
-        recyclerView = view.findViewById(R.id.recycler_view);
+    private void setupSection(String title, androidx.lifecycle.LiveData<java.util.List<com.anisflix.models.Movie>> liveData, String categoryKey) {
+        View sectionView = getLayoutInflater().inflate(R.layout.item_section_layout, container, false);
         
-        // Grid layout with 2 columns (poster view)
-        GridLayoutManager layoutManager = new GridLayoutManager(getContext(), 2);
-        recyclerView.setLayoutManager(layoutManager);
+        android.widget.TextView titleView = sectionView.findViewById(R.id.section_title);
+        titleView.setText(title);
         
-        adapter = new MediaGridAdapter(getContext());
-        recyclerView.setAdapter(adapter);
-    }
-    
-    private void observeData() {
-        viewModel.getMovies().observe(getViewLifecycleOwner(), movies -> {
-            if (movies != null) {
-                adapter.setMovies(movies);
-            }
+        android.widget.TextView         seeAllBtn = sectionView.findViewById(R.id.see_all_button);
+        seeAllBtn.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(getContext(), com.anisflix.ui.section.SectionContentActivity.class);
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_TITLE, title);
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_TYPE, "movie");
+            intent.putExtra(com.anisflix.ui.section.SectionContentActivity.EXTRA_CATEGORY, categoryKey);
+            startActivity(intent);
         });
         
-        viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
-            // Show/hide loading indicator
+        RecyclerView recycler = sectionView.findViewById(R.id.section_recycler);
+        recycler.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(getContext(), RecyclerView.HORIZONTAL, false));
+        
+        com.anisflix.adapters.HorizontalMediaAdapter adapter = new com.anisflix.adapters.HorizontalMediaAdapter(getContext());
+        adapter.setOnItemClickListener(movie -> {
+             android.content.Intent intent = new android.content.Intent(getContext(), com.anisflix.ui.detail.MovieDetailActivity.class);
+             intent.putExtra("movie_id", movie.getId());
+             startActivity(intent);
+        });
+        recycler.setAdapter(adapter);
+        
+        View loading = sectionView.findViewById(R.id.section_loading);
+        loading.setVisibility(View.VISIBLE);
+        
+        liveData.observe(getViewLifecycleOwner(), movies -> {
+            loading.setVisibility(View.GONE);
+            if (movies != null && !movies.isEmpty()) {
+                adapter.setMovies(movies);
+                container.addView(sectionView);
+            }
         });
     }
 }

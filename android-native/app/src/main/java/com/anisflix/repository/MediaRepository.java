@@ -9,6 +9,8 @@ import com.anisflix.database.AppDatabase;
 import com.anisflix.database.FavoriteDao;
 import com.anisflix.database.FavoriteEntity;
 import com.anisflix.models.*;
+import com.anisflix.models.TVChannel;
+import com.anisflix.models.TVResponse;
 import com.anisflix.utils.Constants;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -65,6 +67,32 @@ public class MediaRepository {
     public void getSeriesDetails(int seriesId, Callback<Series> callback) {
         tmdbService.getSeriesDetails(seriesId, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH)
                 .enqueue(callback);
+    }
+
+    // New methods for Movies Tabs
+    public void getTopRatedMovies(int page, Callback<TMDBResponse<Movie>> callback) {
+        tmdbService.getTopRatedMovies(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+
+    public void getUpcomingMovies(int page, Callback<TMDBResponse<Movie>> callback) {
+        tmdbService.getUpcomingMovies(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+
+    public void getTrendingMovies(int page, Callback<TMDBResponse<Movie>> callback) {
+        tmdbService.getTrendingMovies(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+
+    // New methods for Series Tabs
+    public void getTopRatedSeries(int page, Callback<TMDBResponse<Series>> callback) {
+        tmdbService.getTopRatedSeries(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+
+    public void getAiringTodaySeries(int page, Callback<TMDBResponse<Series>> callback) {
+        tmdbService.getAiringTodaySeries(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
+    }
+
+    public void getTrendingSeries(int page, Callback<TMDBResponse<Series>> callback) {
+        tmdbService.getTrendingSeries(Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH, page).enqueue(callback);
     }
 
     // New methods for Home Page parity
@@ -133,7 +161,7 @@ public class MediaRepository {
     }
     
     // TV Channels
-    public void getTVChannels(Callback<TVChannel[]> callback) {
+    public void getTVChannels(Callback<TVResponse> callback) {
         tvService.getTVChannels().enqueue(callback);
     }
     

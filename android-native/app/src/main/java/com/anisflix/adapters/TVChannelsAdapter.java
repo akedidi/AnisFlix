@@ -9,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.anisflix.R;
 import com.anisflix.models.TVChannel;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ public class TVChannelsAdapter extends RecyclerView.Adapter<TVChannelsAdapter.Vi
     }
 
     public void setChannels(List<TVChannel> channels) {
-        this.channels = channels;
+        this.channels = new ArrayList<>(channels);
         notifyDataSetChanged();
     }
 
@@ -70,6 +71,7 @@ public class TVChannelsAdapter extends RecyclerView.Adapter<TVChannelsAdapter.Vi
             Glide.with(context)
                     .load(channel.getLogo())
                     .placeholder(R.drawable.placeholder_channel)
+                    .fitCenter()
                     .into(logoImage);
 
             itemView.setOnClickListener(v -> {

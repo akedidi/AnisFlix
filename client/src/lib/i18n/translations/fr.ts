@@ -49,6 +49,7 @@ export default {
   // Series page
   "series.title": "Séries",
   "series.action": "Action",
+  "series.actions": "Action",
   "series.adventure": "Aventure",
   "series.actionAdventure": "Action & Aventure",
   "series.drama": "Drame",
@@ -159,6 +160,7 @@ export default {
   "language.de": "Deutsch",
   "language.it": "Italiano",
   "language.pt": "Português",
+  "language.ar": "Arabe",
 
   // Genre pages
   "genre.discoverMovies": "Découvrez les meilleurs films du genre {genre}.",

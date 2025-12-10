@@ -16,6 +16,7 @@ struct TVChannelsView: View {
     @State private var groups: [TVGroup] = []
     @State private var selectedGroup: TVGroup?
     @State private var isLoading = true
+
     
     // Player
     @State private var playingChannel: TVChannel?
@@ -32,81 +33,78 @@ struct TVChannelsView: View {
     
     var body: some View {
         ZStack(alignment: .top) {
-            // Background
-            theme.backgroundColor
-                .ignoresSafeArea()
+            // Background is implicitly handled by themes in subviews or can be placed here if needed,
+            // but safeAreaInset works best on the ScrollView.
+            theme.backgroundColor.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Spacer for Header
-                Color.clear.frame(height: 70)
-                
-                // Inline Player Placeholder (keeps space when not fullscreen)
-                if playingChannel != nil && !isFullscreen {
-                    Color.clear.frame(height: 270) // 220 (Player) + 50 (Close Strip)
+            if isLoading {
+                VStack(spacing: 20) {
+                    ProgressView()
+                        .tint(AppTheme.primaryRed)
+                    Text(theme.t("common.loading"))
+                        .foregroundColor(theme.secondaryText)
                 }
-                
-                if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
-                        Text(theme.t("common.loading"))
-                            .foregroundColor(theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    // Section Tabs (Dynamic - from API)
-                    if sections.count > 1 {
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // Inline Player Placeholder (keeps space when not fullscreen)
+                        if playingChannel != nil && !isFullscreen {
+                            Color.clear.frame(height: 270) // 220 (Player) + 50 (Close Strip)
+                        }
+                        
+                        // Section Tabs (Dynamic - from API)
+                        if sections.count > 1 {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(sections, id: \.id) { section in
+                                        CategoryTabButton(
+                                            title: section.name,
+                                            isSelected: selectedSection?.id == section.id
+                                        ) {
+                                            switchSection(section)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        
+                        // Groups Selector (Horizontal Scroll)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                ForEach(sections, id: \.id) { section in
-                                    CategoryTabButton(
-                                        title: section.name,
-                                        isSelected: selectedSection?.id == section.id
-                                    ) {
-                                        switchSection(section)
+                                ForEach(groups) { group in
+                                    Button {
+                                        withAnimation {
+                                            selectedGroup = group
+                                        }
+                                    } label: {
+                                        Text(group.name)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                selectedGroup?.id == group.id ?
+                                                AppTheme.primaryRed :
+                                                theme.cardBackground
+                                            )
+                                            .foregroundColor(.white)
+                                            .cornerRadius(20)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 20)
+                                                    .stroke(theme.secondaryText.opacity(0.2), lineWidth: 1)
+                                            )
                                     }
                                 }
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
-                    
-                    // Groups Selector (Horizontal Scroll)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(groups) { group in
-                                Button {
-                                    withAnimation {
-                                        selectedGroup = group
-                                    }
-                                } label: {
-                                    Text(group.name)
-                                        .font(.subheadline)
-                                        .fontWeight(.medium)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 8)
-                                        .background(
-                                            selectedGroup?.id == group.id ?
-                                            AppTheme.primaryRed :
-                                            theme.cardBackground
-                                        )
-                                        .foregroundColor(.white)
-                                        .cornerRadius(20)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 20)
-                                                .stroke(theme.secondaryText.opacity(0.2), lineWidth: 1)
-                                        )
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 12)
-                    }
-                    .background(theme.backgroundColor)
-                    
-                    // Channels List (Grid)
-                    ScrollView {
+                        .background(theme.backgroundColor) // Ensure background matches
+                        
+                        // Channels List (Grid)
                         LazyVGrid(columns: columns, spacing: 16) {
                             if let group = selectedGroup {
                                 ForEach(group.channels) { channel in
@@ -176,8 +174,11 @@ struct TVChannelsView: View {
                     }
                 }
             }
-            
-            // Header
+
+
+        }
+        .tint(AppTheme.primaryRed)
+        .safeAreaInset(edge: .top) {
             if !isFullscreen {
                 TVHeaderView(
                     title: theme.t("nav.tvChannels"),
@@ -185,19 +186,25 @@ struct TVChannelsView: View {
                 ) { channel in
                     playChannel(channel)
                 }
+                .background(theme.backgroundColor) // Ensure header is opaque
             }
-            
-            // Player Layer (Top of ZStack) - Hidden when search is active
+        }
+        .overlay {
+            // Player Layer (Overlay) - Hidden when search is active
             if let channel = playingChannel, let url = currentStreamUrl, !isSearchActive {
                 VStack(spacing: 0) {
                     if !isFullscreen {
                         // Spacer to push player down below header
+                        // Since we use safeAreaInset for header, we know it consumes top safe area + height.
+                        // It does NOT affect this ZStack overlay.
+                        // So we still need this spacer to clear the header visually.
                         Color.clear.frame(height: 70)
                     }
                     
                     CustomVideoPlayer(
                         url: url,
                         title: channel.name,
+                        posterUrl: channel.logo,
                         subtitles: [],
                         isPresented: Binding(get: { true }, set: { _ in
                             playingChannel = nil
@@ -238,19 +245,18 @@ struct TVChannelsView: View {
                 }
                 .background(isFullscreen ? Color.black : Color.clear)
                 .transition(.move(edge: .top).combined(with: .opacity))
-                .zIndex(100) // Ensure on top
             }
         }
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
         .task {
-            await loadData()
+            await loadData(showLoadingUI: true)
         }
     }
     
     
-    private func loadData() async {
+    private func loadData(showLoadingUI: Bool = true) async {
         // Only show loading initially
-        if sections.isEmpty {
+        if sections.isEmpty && showLoadingUI {
             isLoading = true
         }
         
@@ -260,10 +266,14 @@ struct TVChannelsView: View {
                 selectedSection = firstSection
                 await loadGroups(for: firstSection)
             }
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         } catch {
             print("Error loading TV sections: \(error)")
-            isLoading = false
+            if showLoadingUI {
+                isLoading = false
+            }
         }
     }
     
