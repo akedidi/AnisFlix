@@ -242,18 +242,6 @@ class TVService {
         // ===== SECTION ARABE =====
         
         // Sport
-        TVChannel(id: "elkass-1", name: "ElKass 1", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
-        ]),
-        TVChannel(id: "elkass-2", name: "ElKass 2", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8")
-        ]),
-        TVChannel(id: "elkass-3", name: "ElKass 3", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8")
-        ]),
-        TVChannel(id: "elkass-4", name: "ElKass 4", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
-        ]),
         TVChannel(id: "bein-sports-1-ar", name: "Bein Sports 1 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein1")
         ]),
@@ -268,6 +256,18 @@ class TVService {
         ]),
         TVChannel(id: "bein-sports-5-ar", name: "Bein Sports 5 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein5")
+        ]),
+        TVChannel(id: "elkass-1", name: "ElKass 1", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-2", name: "ElKass 2", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-3", name: "ElKass 3", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "elkass-4", name: "ElKass 4", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
         ]),
         
         // Tunisie

@@ -437,38 +437,6 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                     name: "Sport",
                     channels: [
                         {
-                            id: "elkass-1",
-                            name: "ElKass 1",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
-                            links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "elkass-2",
-                            name: "ElKass 2",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
-                            links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "elkass-3",
-                            name: "ElKass 3",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
-                            links: [
-                                { type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "elkass-4",
-                            name: "ElKass 4",
-                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
-                            links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
-                            ]
-                        },
-                        {
                             id: "bein-sports-1-ar",
                             name: "Bein Sports 1 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png",
@@ -506,6 +474,38 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png",
                             links: [
                                 { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein5" }
+                            ]
+                        },
+                        {
+                            id: "elkass-1",
+                            name: "ElKass 1",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
+                            links: [
+                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
+                            ]
+                        },
+                        {
+                            id: "elkass-2",
+                            name: "ElKass 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
+                            links: [
+                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8" }
+                            ]
+                        },
+                        {
+                            id: "elkass-3",
+                            name: "ElKass 3",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
+                            links: [
+                                { type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8" }
+                            ]
+                        },
+                        {
+                            id: "elkass-4",
+                            name: "ElKass 4",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
+                            links: [
+                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
                             ]
                         }
                     ]
