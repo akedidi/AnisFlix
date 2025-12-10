@@ -36,60 +36,48 @@ struct MediaListView: View {
                         Spacer()
                         ProgressView()
                             .tint(AppTheme.primaryRed)
-                        Spacer()
-                    }
-                } else {
-                    ScrollView(showsIndicators: false) {
-            ZStack {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(items) { media in
-                                MediaGridCard(media: media, onTap: {
-                                    // Navigation is handled by MediaGridCard's internal NavigationLink
-                                })
-                                .onAppear {
-                                    if media.id == items.last?.id {
-                                        Task {
-                                            await loadMore()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .padding(16)
-                        
-                        // Bottom loader for infinite scroll
-                        if isLoading && !items.isEmpty {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .tint(AppTheme.primaryRed)
-                                    .padding(.vertical, 20)
-                                Spacer()
-                            }
-                        } else if hasMorePages {
-                             HStack {
-                                Spacer()
-                                Color.clear.frame(height: 20)
-                                Spacer()
-                            }
-                        }
-                    }
-                }
-                
-                if isLoading && items.isEmpty {
-                    VStack {
-                        Spacer()
-                        ProgressView()
-                            .tint(AppTheme.primaryRed)
                             .scaleEffect(1.5)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(theme.backgroundColor)
-                }
-            }
+                } else {
+                    ZStack {
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                LazyVGrid(columns: columns, spacing: 16) {
+                                    ForEach(items) { media in
+                                        MediaGridCard(media: media, onTap: {
+                                            // Navigation is handled by MediaGridCard's internal NavigationLink
+                                        })
+                                        .onAppear {
+                                            if media.id == items.last?.id {
+                                                Task {
+                                                    await loadMore()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(16)
+                                
+                                // Bottom loader for infinite scroll
+                                if isLoading && !items.isEmpty {
+                                    HStack {
+                                        Spacer()
+                                        ProgressView()
+                                            .tint(AppTheme.primaryRed)
+                                            .padding(.vertical, 20)
+                                        Spacer()
+                                    }
+                                } else if hasMorePages {
+                                     HStack {
+                                        Spacer()
+                                        Color.clear.frame(height: 20)
+                                        Spacer()
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
