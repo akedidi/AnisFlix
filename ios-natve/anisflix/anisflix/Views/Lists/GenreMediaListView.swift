@@ -62,7 +62,7 @@ struct GenreMediaListView: View {
                 Divider()
                     .background(theme.secondaryText.opacity(0.2))
                 
-                if isLoading {
+                if isLoading && items.isEmpty {
                      VStack(spacing: 20) {
                          ProgressView()
                              .tint(AppTheme.primaryRed)
@@ -83,14 +83,25 @@ struct GenreMediaListView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 20)
                             
-                            // Invisible trigger for infinite scroll
-                            if hasMore && !isLoading {
-                                Color.clear
-                                    .frame(height: 50)
-                                    .padding(.top, 40)
-                                    .onAppear {
-                                        loadMoreData()
+                            // Bottom loader for infinite scroll
+                            if hasMore {
+                                HStack {
+                                    Spacer()
+                                    if isLoading {
+                                        ProgressView()
+                                            .tint(AppTheme.primaryRed)
+                                            .padding(.vertical, 20)
+                                    } else {
+                                        // Invisible trigger for infinite scroll
+                                        Color.clear
+                                            .frame(height: 50)
+                                            .padding(.top, 40)
+                                            .onAppear {
+                                                loadMoreData()
+                                            }
                                     }
+                                    Spacer()
+                                }
                             }
                             
                             Color.clear.frame(height: 20)
