@@ -7,8 +7,13 @@ export const getOptimizedImageUrl = (
   if (!posterPath) {
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='342' height='513'%3E%3Crect fill='%23334155' width='342' height='513'/%3E%3C/svg%3E";
   }
-  
-  // Use smaller sizes for better performance
+
+  // If it's already a full URL (TV channel logos), return it directly
+  if (posterPath.startsWith('http://') || posterPath.startsWith('https://')) {
+    return posterPath;
+  }
+
+  // Use smaller sizes for better performance (TMDB images)
   const optimizedSize = size === 'original' ? 'w500' : size;
   return `https://image.tmdb.org/t/p/${optimizedSize}${posterPath}`;
 };
@@ -20,7 +25,7 @@ export const getOptimizedBackdropUrl = (
   if (!backdropPath) {
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'%3E%3Crect fill='%23334155' width='1280' height='720'/%3E%3C/svg%3E";
   }
-  
+
   // Use smaller sizes for better performance
   const optimizedSize = size === 'original' ? 'w1280' : size;
   return `https://image.tmdb.org/t/p/${optimizedSize}${backdropPath}`;
@@ -33,7 +38,7 @@ export const getCachedImageUrl = (url: string): string => {
   if (imageCache.has(url)) {
     return imageCache.get(url)!;
   }
-  
+
   // Store in cache
   imageCache.set(url, url);
   return url;
