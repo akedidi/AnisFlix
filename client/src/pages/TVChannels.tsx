@@ -814,7 +814,7 @@ export default function TVChannels() {
       id: index + 1, // Utiliser un ID numérique pour la compatibilité
       title: channel.name,
       mediaType: 'tv' as const,
-      posterPath: channel.logo || '', // Use logo from API
+      posterPath: channel.logo || null, // Use null instead of empty string
       year: '',
       section: channel.section,
       category: channel.category,

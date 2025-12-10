@@ -127,16 +127,16 @@ struct TVHeaderView: View {
                                                     .resizable()
                                                     .aspectRatio(contentMode: .fit)
                                                     .frame(width: 50, height: 50)
-                                                    .background(Color.white.opacity(0.1))
+                                                    .background(Color.white)
                                                     .cornerRadius(6)
                                             default:
                                                 RoundedRectangle(cornerRadius: 6)
-                                                    .fill(theme.cardBackground)
+                                                    .fill(Color.white.opacity(0.9))
                                                     .frame(width: 50, height: 50)
                                                     .overlay(
                                                         Image(systemName: "tv")
                                                             .font(.caption)
-                                                            .foregroundColor(theme.secondaryText)
+                                                            .foregroundColor(.gray)
                                                     )
                                             }
                                         }
