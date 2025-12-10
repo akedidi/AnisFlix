@@ -45,21 +45,31 @@ struct MediaListView: View {
                                 MediaGridCard(media: media, onTap: {
                                     // Navigation is handled by MediaGridCard's internal NavigationLink
                                 })
-                                .onAppear {
-                                    if media.id == items.last?.id && !isLoading && hasMorePages {
-                                        Task {
-                                            await loadMore()
-                                        }
-                                    }
-                                }
                             }
                         }
                         .padding(16)
                         
-                        if isLoading && !items.isEmpty {
-                            ProgressView()
-                                .tint(AppTheme.primaryRed)
-                                .padding()
+                        // Bottom loader for infinite scroll
+                        if hasMorePages {
+                            HStack {
+                                Spacer()
+                                if isLoading {
+                                    ProgressView()
+                                        .tint(AppTheme.primaryRed)
+                                        .padding(.vertical, 20)
+                                } else {
+                                    // Invisible trigger for infinite scroll
+                                    Color.clear
+                                        .frame(height: 50)
+                                        .padding(.top, 40)
+                                        .onAppear {
+                                            Task {
+                                                await loadMore()
+                                            }
+                                        }
+                                }
+                                Spacer()
+                            }
                         }
                     }
                 }
@@ -83,14 +93,7 @@ struct MediaListView: View {
         
         guard !isLoading && hasMorePages else { return }
         
-        if showLoadingUI && items.isEmpty {
-            isLoading = true
-        } else if !showLoadingUI {
-            // Quiet load (refresh or pagination)
-        } else {
-            // Pagination usually implies valid loading state but we handle "bottom loader" separately via view
-            isLoading = true
-        }
+        isLoading = true  // Set lock immediately
         
         do {
             let newItems = try await fetcher(currentPage)
