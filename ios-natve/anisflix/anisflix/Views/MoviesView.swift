@@ -36,8 +36,6 @@ struct MoviesView: View {
     
     var body: some View {
         // Content
-    var body: some View {
-        // Content
         ZStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
