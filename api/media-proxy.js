@@ -381,6 +381,19 @@ async function handleTV(req, res) {
                 };
             }
 
+            // Headers spécifiques pour Bein Sports (Cloudfront)
+            // Supprimer Origin et Referer pour éviter les blocages
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) {
+                console.log(`[TV PROXY] Nettoyage des headers pour Bein Sports (Cloudfront)`);
+                requestHeaders = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                    'Accept': '*/*'
+                };
+                // Explicitement supprimer Origin/Referer s'ils étaient copiés
+                delete requestHeaders['Origin'];
+                delete requestHeaders['Referer'];
+            }
+
             const r = await http.get(cleanUrl, {
                 headers: requestHeaders,
                 responseType: 'text'
