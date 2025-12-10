@@ -36,18 +36,11 @@ struct SeriesView: View {
     
     var body: some View {
         // Content
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                if isLoading {
-                     VStack(spacing: 20) {
-                         ProgressView()
-                             .tint(AppTheme.primaryRed)
-                         Text(theme.t("common.loading"))
-                             .foregroundColor(theme.secondaryText)
-                     }
-                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                     .padding(.top, 100)
-                } else {
+    var body: some View {
+        // Content
+        ZStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
                     
                     // Dernières Séries
                     MediaRow(
@@ -190,6 +183,19 @@ struct SeriesView: View {
                 // Bottom padding for tab bar
                 Color.clear.frame(height: 50)
             }
+            
+            if isLoading && latestSeries.isEmpty {
+                 ZStack {
+                     theme.backgroundColor.ignoresSafeArea()
+                     VStack(spacing: 20) {
+                         ProgressView()
+                             .tint(AppTheme.primaryRed)
+                             .scaleEffect(1.5)
+                         Text(theme.t("common.loading"))
+                             .foregroundColor(theme.secondaryText)
+                     }
+                 }
+            }
         }
         .safeAreaInset(edge: .top) {
              CustomHeaderView(title: theme.t("nav.series"))
@@ -197,7 +203,7 @@ struct SeriesView: View {
         }
         .background(theme.backgroundColor.ignoresSafeArea())
         .task {
-            await loadAllCategories(showLoadingUI: true)
+            await loadAllCategories(showLoadingUI: latestSeries.isEmpty)
         }
     }
     
