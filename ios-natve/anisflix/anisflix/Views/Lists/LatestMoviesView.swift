@@ -57,19 +57,53 @@ struct LatestMoviesView: View {
                 Divider()
                     .background(theme.secondaryText.opacity(0.2))
                 
-                // Content
-                MediaGrid(
-                    items: items,
-                    columns: 3,
-                    onItemClick: { media in
-                        print("Navigate to movie: \(media.id)")
-                    },
-                    onLoadMore: hasMore ? {
-                        loadMoreData()
-                    } : nil,
-                    isLoading: isLoading,
-                    hasMore: hasMore
-                )
+                if isLoading && items.isEmpty {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .tint(AppTheme.primaryRed)
+                        Text(theme.t("common.loading"))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                                ForEach(items) { media in
+                                    MediaGridCard(media: media, onTap: {
+                                        print("Navigate to movie: \(media.id)")
+                                    })
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 20)
+                            
+                            // Bottom loader for infinite scroll
+                            if hasMore {
+                                HStack {
+                                    Spacer()
+                                    if isLoading {
+                                        ProgressView()
+                                            .tint(AppTheme.primaryRed)
+                                            .padding(.vertical, 20)
+                                    } else {
+                                        // Invisible trigger for infinite scroll
+                                        Color.clear
+                                            .frame(height: 50)
+                                            .padding(.top, 40)
+                                            .onAppear {
+                                                loadMoreData()
+                                            }
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            
+                            Color.clear.frame(height: 20)
+                        }
+                        .padding(.bottom, 20)
+                    }
+                }
             }
         }
         .navigationBarHidden(true)

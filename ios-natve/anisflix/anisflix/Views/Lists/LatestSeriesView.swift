@@ -58,18 +58,53 @@ struct LatestSeriesView: View {
                     .background(theme.secondaryText.opacity(0.2))
                 
                 // Content
-                MediaGrid(
-                    items: items,
-                    columns: 3,
-                    onItemClick: { media in
-                        print("Navigate to series: \(media.id)")
-                    },
-                    onLoadMore: hasMore ? {
-                        loadMoreData()
-                    } : nil,
-                    isLoading: isLoading,
-                    hasMore: hasMore
-                )
+                if isLoading && items.isEmpty {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .tint(AppTheme.primaryRed)
+                        Text(theme.t("common.loading"))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 16) {
+                                ForEach(items) { media in
+                                    MediaGridCard(media: media, onTap: {
+                                        print("Navigate to series: \(media.id)")
+                                    })
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 20)
+                            
+                            // Bottom loader for infinite scroll
+                            if hasMore {
+                                HStack {
+                                    Spacer()
+                                    if isLoading {
+                                        ProgressView()
+                                            .tint(AppTheme.primaryRed)
+                                            .padding(.vertical, 20)
+                                    } else {
+                                        // Invisible trigger for infinite scroll
+                                        Color.clear
+                                            .frame(height: 50)
+                                            .padding(.top, 40)
+                                            .onAppear {
+                                                loadMoreData()
+                                            }
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            
+                            Color.clear.frame(height: 20)
+                        }
+                        .padding(.bottom, 20)
+                    }
+                }
             }
         }
         .navigationBarHidden(true)
@@ -117,15 +152,20 @@ struct LatestSeriesView: View {
         Task {
             do {
                 let newItems = try await TMDBService.shared.fetchLatestSeries(page: nextPage, language: language)
-                items.append(contentsOf: newItems)
-                currentPage = nextPage
-                hasMore = newItems.count >= 20
-                print("✅ Page \(nextPage) loaded - Total: \(items.count)")
+                
+                await MainActor.run {
+                    items.append(contentsOf: newItems)
+                    currentPage = nextPage
+                    hasMore = newItems.count >= 20
+                    isLoading = false
+                    print("✅ Page \(nextPage) loaded - Total: \(items.count)")
+                }
             } catch {
                 print("❌ Error loading page \(nextPage): \(error)")
+                await MainActor.run {
+                    isLoading = false
+                }
             }
-            
-            isLoading = false
         }
     }
 }
