@@ -50,22 +50,12 @@ struct HomeView: View {
     
     var body: some View {
         // Content
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 20) {
-                // Safe Area handled by PullToRefreshScrollView logic usually results in content at top
-                // Ideally we add some padding if needed, but safeAreaInset handles header.
-                
-                if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(AppTheme.primaryRed)
-                        Text(theme.t("common.loading"))
-                            .foregroundColor(theme.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 100)
-                } else {
+        ZStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Safe Area handled by PullToRefreshScrollView logic usually results in content at top
+                    // Ideally we add some padding if needed, but safeAreaInset handles header.
+                    
                     // Continue Watching Section (conditionnelle)
                     if !continueWatching.isEmpty {
                         MediaRow(
@@ -368,8 +358,21 @@ struct HomeView: View {
                         }
                     }
                 }
+                .padding(.bottom, 50)  // Tab bar spacing
             }
-            .padding(.bottom, 50)  // Tab bar spacing
+            
+            if isLoading && popularMovies.isEmpty {
+                ZStack {
+                    theme.backgroundColor.ignoresSafeArea()
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(AppTheme.primaryRed)
+                        Text(theme.t("common.loading"))
+                            .foregroundColor(theme.secondaryText)
+                    }
+                }
+            }
         }
         .safeAreaInset(edge: .top) {
             // Header
@@ -382,7 +385,8 @@ struct HomeView: View {
         .background(theme.backgroundColor.ignoresSafeArea())
         .navigationBarHidden(true)
         .task {
-            await loadAllData(showLoadingUI: true)
+            // Silent refresh if we already have data
+            await loadAllData(showLoadingUI: popularMovies.isEmpty)
         }
     }
     
