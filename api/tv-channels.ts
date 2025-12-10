@@ -436,46 +436,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                     id: "sport",
                     name: "Sport",
                     channels: [
-                        {
-                            id: "bein-sports-1-ar",
-                            name: "Bein Sports 1 (Ar)",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png",
-                            links: [
-                                { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein1" }
-                            ]
-                        },
-                        {
-                            id: "bein-sports-2-ar",
-                            name: "Bein Sports 2 (Ar)",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/BeIN_SPORTS_2_logo.svg/100px-BeIN_SPORTS_2_logo.svg.png",
-                            links: [
-                                { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein2" }
-                            ]
-                        },
-                        {
-                            id: "bein-sports-3-ar",
-                            name: "Bein Sports 3 (Ar)",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/BeIN_SPORTS_3_logo.svg/100px-BeIN_SPORTS_3_logo.svg.png",
-                            links: [
-                                { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein3" }
-                            ]
-                        },
-                        {
-                            id: "bein-sports-4-ar",
-                            name: "Bein Sports 4 (Ar)",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/BeIN_SPORTS_4_logo_%282014%29.svg",
-                            links: [
-                                { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein4" }
-                            ]
-                        },
-                        {
-                            id: "bein-sports-5-ar",
-                            name: "Bein Sports 5 (Ar)",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png",
-                            links: [
-                                { type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein5" }
-                            ]
-                        },
+
                         {
                             id: "elkass-1",
                             name: "ElKass 1",
