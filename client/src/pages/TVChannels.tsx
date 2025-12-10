@@ -965,6 +965,10 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mobile web détecté - Shaka Player non supporté pour hls_direct`);
           // Fallback vers HLS.js sur mobile web
           playerType = 'hls';
+        } else if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net')) {
+          // Force HLS.js pour Bein Sports (Cloudfront)
+          playerType = 'hls';
+          console.log(`[SELECT LINK] Cloudfront Bein Sports détecté - Force HLS.js`);
         } else {
           playerType = 'shaka';
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour hls_direct`);
@@ -980,7 +984,12 @@ export default function TVChannels() {
       // Logique conditionnelle : proxy seulement pour certains types de liens
       let finalUrl = link.url;
 
-      if (isMobile() && !isCapacitor()) {
+      // Force proxy pour Bein Sports (Cloudfront) pour éviter les blocages 403 (geoblock/referer)
+      if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net')) {
+        console.log(`[SELECT LINK] Bein Sports Cloudfront détecté - Forçage du proxy interne`);
+        finalUrl = getProxyUrl(link.url, link.type);
+      }
+      else if (isMobile() && !isCapacitor()) {
         // Mobile web : proxy pour hls_segments, direct pour hls_direct et mpd
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode mobile web - hls_segments nécessite proxy`);
