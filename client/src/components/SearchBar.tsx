@@ -50,18 +50,18 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
   useEffect(() => {
     if (isCapacitor() && inputRef.current) {
       const input = inputRef.current;
-      
+
       // Fonction pour forcer les attributs
       const forceSearchAttributes = () => {
         input.setAttribute('inputmode', 'search');
         input.setAttribute('enterkeyhint', 'search');
         input.inputMode = 'search';
         input.enterKeyHint = 'search';
-        
+
         // Forcer également via le style
         input.style.setProperty('inputmode', 'search');
         input.style.setProperty('enterkeyhint', 'search');
-        
+
         console.log('🔍 [SEARCH KEYBOARD] Attributs de clavier appliqués:', {
           inputMode: input.inputMode,
           enterKeyHint: input.enterKeyHint,
@@ -72,19 +72,19 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
           }
         });
       };
-      
+
       // Appliquer immédiatement
       forceSearchAttributes();
-      
+
       // Observer les changements pour maintenir les attributs
       const observer = new MutationObserver(() => {
         if (input.getAttribute('inputmode') !== 'search' || input.getAttribute('enterkeyhint') !== 'search') {
           forceSearchAttributes();
         }
       });
-      
+
       observer.observe(input, { attributes: true, attributeFilter: ['inputmode', 'enterkeyhint'] });
-      
+
       return () => observer.disconnect();
     }
   }, []);
@@ -185,9 +185,9 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
       </div>
 
       {showSuggestions && suggestions.length > 0 && createPortal(
-        <Card 
-          className="fixed max-h-96 overflow-y-auto p-2 shadow-2xl border-2 border-border/50" 
-          style={{ 
+        <Card
+          className="fixed max-h-96 overflow-y-auto p-2 shadow-2xl border-2 border-border/50"
+          style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
@@ -207,7 +207,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 backdropPath: item.backdropPath
               });
             }
-            
+
             // Debug pour les affiches manquantes
             if (!item.posterPath && !item.backdropPath) {
               console.warn(`⚠️ [SEARCHBAR] Item sans image:`, {
@@ -218,59 +218,65 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                 backdropPath: item.backdropPath
               });
             }
-            
+
             return (
-            <div
-              key={`${item.mediaType}-${item.id}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleSelectItem(item);
-              }}
-              className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors min-h-[72px]"
-              data-testid={`search-result-${item.id}`}
-            >
-              {item.posterPath || item.backdropPath ? (
+              <div
+                key={`${item.mediaType}-${item.id}`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelectItem(item);
+                }}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-white/10 active:bg-white/20 cursor-pointer transition-colors min-h-[72px]"
+                data-testid={`search-result-${item.id}`}
+              >
+                {item.posterPath || item.backdropPath ? (
                   // Pour les chaînes TV, afficher les logos avec fond blanc
                   item.mediaType === "tv" ? (
-                    <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
-                      <img
-                        src={(() => {
-                          const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
-                          console.log('🖼️ [SEARCHBAR] TV Image URL generated:', {
-                            id: item.id,
-                            title: item.title,
-                            posterPath: item.posterPath,
-                            backdropPath: item.backdropPath,
-                            finalUrl: imageUrl
-                          });
-                          return imageUrl;
-                        })()}
-                        alt={item.title}
-                        className="w-full h-full object-contain scale-110"
-                        onError={(e) => {
-                          console.error('❌ [SEARCHBAR] TV Image failed to load:', {
-                            id: item.id,
-                            title: item.title,
-                            src: e.currentTarget.src,
-                            posterPath: item.posterPath,
-                            backdropPath: item.backdropPath
-                          });
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const fallback = parent.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.style.display = 'flex';
-                            parent.style.display = 'none';
-                          }
-                        }}
-                        onLoad={() => {
-                          console.log('✅ [SEARCHBAR] TV Image loaded successfully:', {
-                            id: item.id,
-                            title: item.title,
-                            src: item.posterPath || item.backdropPath
-                          });
-                        }}
-                      />
-                    </div>
+                    <>
+                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm border">
+                        <img
+                          src={(() => {
+                            const imageUrl = getOptimizedImageUrl(item.posterPath || item.backdropPath || null, 'w92');
+                            console.log('🖼️ [SEARCHBAR] TV Image URL generated:', {
+                              id: item.id,
+                              title: item.title,
+                              posterPath: item.posterPath,
+                              backdropPath: item.backdropPath,
+                              finalUrl: imageUrl
+                            });
+                            return imageUrl;
+                          })()}
+                          alt={item.title}
+                          className="w-full h-full object-contain scale-110"
+                          onError={(e) => {
+                            console.error('❌ [SEARCHBAR] TV Image failed to load:', {
+                              id: item.id,
+                              title: item.title,
+                              src: e.currentTarget.src,
+                              posterPath: item.posterPath,
+                              backdropPath: item.backdropPath
+                            });
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const fallback = parent.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                              parent.style.display = 'none';
+                            }
+                          }}
+                          onLoad={() => {
+                            console.log('✅ [SEARCHBAR] TV Image loaded successfully:', {
+                              id: item.id,
+                              title: item.title,
+                              src: item.posterPath || item.backdropPath
+                            });
+                          }}
+                        />
+                      </div>
+                      {/* Fallback icon for when image fails to load */}
+                      <div className="w-12 h-12 bg-white border border-gray-200 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0" style={{ display: 'none' }}>
+                        <Tv className="w-6 h-6 text-gray-400" />
+                      </div>
+                    </>
                   ) : (
                     // Pour les autres types de contenu, utiliser l'optimisation d'image
                     <img
@@ -308,28 +314,28 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                       }}
                     />
                   )
-              ) : (
-                // Affichage fallback si pas de posterPath ni backdropPath - cadre blanc avec hauteur fixe
-                <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-16'} bg-white border border-gray-200 rounded flex items-center justify-center shadow-sm flex-shrink-0`}>
-                  {item.mediaType === "tv" ? (
-                    <Tv className="w-6 h-6 text-gray-400" />
-                  ) : (
-                    <Film className="w-6 h-6 text-gray-400" />
-                  )}
-                </div>
-              )}
-              <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                <h4 className="font-medium text-sm truncate text-white leading-snug">{item.title}</h4>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                    {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
-                  </Badge>
-                  {item.year && (
-                    <span className="text-xs text-gray-300">{item.year}</span>
-                  )}
+                ) : (
+                  // Affichage fallback si pas de posterPath ni backdropPath - cadre blanc avec hauteur fixe
+                  <div className={`${item.mediaType === "tv" ? 'w-12 h-12' : 'w-12 h-16'} bg-white border border-gray-200 rounded flex items-center justify-center shadow-sm flex-shrink-0`}>
+                    {item.mediaType === "tv" ? (
+                      <Tv className="w-6 h-6 text-gray-400" />
+                    ) : (
+                      <Film className="w-6 h-6 text-gray-400" />
+                    )}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                  <h4 className="font-medium text-sm truncate text-white leading-snug">{item.title}</h4>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                      {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
+                    </Badge>
+                    {item.year && (
+                      <span className="text-xs text-gray-300">{item.year}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
             );
           })}
         </Card>,
