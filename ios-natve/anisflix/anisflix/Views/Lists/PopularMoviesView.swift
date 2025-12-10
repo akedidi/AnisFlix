@@ -120,12 +120,12 @@ struct PopularMoviesView: View {
     private func loadInitialData() async {
         guard items.isEmpty else { return }
         isLoading = true
+        print("📥 [PopularMoviesView] Loading page \(currentPage)...")
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
         
-        print("🎬 Loading Popular Movies - Page 1")
         
         do {
             items = try await TMDBService.shared.fetchPopularMovies(page: 1, language: language)

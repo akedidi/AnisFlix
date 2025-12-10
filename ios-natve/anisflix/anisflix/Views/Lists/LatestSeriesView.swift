@@ -120,6 +120,7 @@ struct LatestSeriesView: View {
     private func loadInitialData() async {
         guard items.isEmpty else { return }
         isLoading = true
+        print("📥 [LatestSeriesView] Loading page \(currentPage)...")
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :

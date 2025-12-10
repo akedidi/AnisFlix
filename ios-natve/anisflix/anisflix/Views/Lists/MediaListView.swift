@@ -101,6 +101,7 @@ struct MediaListView: View {
         guard !isLoading && hasMorePages else { return }
         
         isLoading = true  // Set lock immediately
+        print("📥 [MediaListView] Loading page \(currentPage)...")
         
         do {
             let newItems = try await fetcher(currentPage)

@@ -132,6 +132,7 @@ struct ProviderCategoryListView: View {
         
         if showLoadingUI {
             isLoading = true
+            print("📥 [ProviderCategoryListView] Loading page \(currentPage)...")
         }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :

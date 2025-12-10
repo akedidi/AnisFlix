@@ -129,6 +129,7 @@ struct GenreMediaListView: View {
         
         if showLoadingUI {
             isLoading = true
+            print("📥 [GenreMediaListView] Loading page \(currentPage)...")
         }
         
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
