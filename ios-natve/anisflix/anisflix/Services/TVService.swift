@@ -79,6 +79,11 @@ class TVService {
         "elkass-2": "elkass 2",
         "elkass-3": "elkass 3",
         "elkass-4": "elkass 4",
+        "bein-sports-1-ar": "bein sports 1",
+        "bein-sports-2-ar": "bein sports 2",
+        "bein-sports-3-ar": "bein sports 3",
+        "bein-sports-4-ar": "bein sports 4",
+        "bein-sports-5-ar": "bein sports 5",
         
         // Arabe - Tunisie
         "watania-1": "watania 1",
@@ -248,6 +253,21 @@ class TVService {
         ]),
         TVChannel(id: "elkass-4", name: "ElKass 4", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8")
+        ]),
+        TVChannel(id: "bein-sports-1-ar", name: "Bein Sports 1 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein1")
+        ]),
+        TVChannel(id: "bein-sports-2-ar", name: "Bein Sports 2 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/BeIN_SPORTS_2_logo.svg/100px-BeIN_SPORTS_2_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein2")
+        ]),
+        TVChannel(id: "bein-sports-3-ar", name: "Bein Sports 3 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/BeIN_SPORTS_3_logo.svg/100px-BeIN_SPORTS_3_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein3")
+        ]),
+        TVChannel(id: "bein-sports-4-ar", name: "Bein Sports 4 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/BeIN_SPORTS_4_logo_%282014%29.svg", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein4")
+        ]),
+        TVChannel(id: "bein-sports-5-ar", name: "Bein Sports 5 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dcpv2eq7lu6ve.cloudfront.net/live/bein5")
         ]),
         
         // Tunisie
