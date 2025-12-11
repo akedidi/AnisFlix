@@ -438,11 +438,51 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                     channels: [
 
                         {
+                            id: "bein-sports-1-ar",
+                            name: "Bein Sports 1 (Ar)",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png",
+                            links: [
+                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/h5wZ4LbrsOpz2RAdzhVbaSUHHZabed03UKGIR-d9UPlGmGSoTkMkVYxek63wAO5ZcaZj7ZpJjAhPkYpupwaXjg/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
+                            ]
+                        },
+                        {
+                            id: "bein-sports-2-ar",
+                            name: "Bein Sports 2 (Ar)",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/BeIN_SPORTS_2_logo.svg/100px-BeIN_SPORTS_2_logo.svg.png",
+                            links: [
+                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/xON3S8k7y6LIMC_AThRGIgohPQFNX8SBSAigzXXh10AgMMDt1iTgkc5d73PJjdo3aLEV2Ey8zCRk8sPuB5tMiw/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ180ODBwMzBfMTAiLCJIZWlnaHQiOjQ4MCwiS2JwcyI6MTIwMCwiV2lkdGgiOjg0OH0.0LJi1usWbiPqp0QIcpq7Md5g1WxvJcPqVWNqsKw5nhA/dynamic_delta.m3u8?type=live" }
+                            ]
+                        },
+                        {
+                            id: "bein-sports-3-ar",
+                            name: "Bein Sports 3 (Ar)",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/BeIN_SPORTS_3_logo.svg/100px-BeIN_SPORTS_3_logo.svg.png",
+                            links: [
+                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MuMlnhMrqEpY5eBQLNnoaA7MzAA7z5KODQUhtkRJsvAq0N0ERjRGlSA18O1_6rfMUNyVj9493IDx5RExSUihig/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
+                            ]
+                        },
+                        {
+                            id: "bein-sports-5-ar",
+                            name: "Bein Sports 5 (Ar)",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png",
+                            links: [
+                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MEEM0GKsrHzJvI14RwxWUya0VEZuONNQHo9-EAsQGgo7vRdz3mVaon7RNfRx4IPVIQpCCenBAk2uZPwAxL_vkQ/non_transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/master_dynamic_delta.m3u8?type=live" }
+                            ]
+                        },
+                        {
+                            id: "bein-sports-6-ar",
+                            name: "Bein Sports 6 (Ar)",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png",
+                            links: [
+                                { type: "hls_segments", url: "http://135.125.109.73:9000/beinsport6_.m3u8" }
+                            ]
+                        },
+                        {
                             id: "elkass-1",
                             name: "ElKass 1",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
+                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -450,7 +490,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 2",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164528_live/148164528_296.sdp/playlist.m3u8" }
+                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass2-p/20251112T071253Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -458,7 +498,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 3",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://streamer2.qna.org.qa/148161470_live/148161470_296.sdp/playlist.m3u8" }
+                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass3-p/20251112T072756Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -466,7 +506,15 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 4",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://streamer3.qna.org.qa/148164621_live/148164621_296.sdp/playlist.m3u8" }
+                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass4-p/main.m3u8" }
+                            ]
+                        },
+                        {
+                            id: "elkass-6",
+                            name: "ElKass 6",
+                            logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
+                            links: [
+                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         }
                     ]
