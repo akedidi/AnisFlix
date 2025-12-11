@@ -984,9 +984,9 @@ export default function TVChannels() {
       // Logique conditionnelle : proxy seulement pour certains types de liens
       let finalUrl = link.url;
 
-      // Force proxy pour Bein Sports (Cloudfront) pour éviter les blocages 403 (geoblock/referer)
-      if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net')) {
-        console.log(`[SELECT LINK] Bein Sports Cloudfront détecté - Forçage du proxy interne`);
+      // Force proxy pour Bein Sports (Cloudfront & Periscope) pour éviter les blocages 403 (geoblock/referer)
+      if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net') || link.url.includes('video.pscp.tv')) {
+        console.log(`[SELECT LINK] Bein Sports (Cloudfront/Pscp) détecté - Forçage du proxy interne`);
         finalUrl = getProxyUrl(link.url, link.type);
       }
       else if (isMobile() && !isCapacitor()) {
