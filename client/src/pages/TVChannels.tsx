@@ -183,7 +183,10 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       console.log(`[PROXY URL] URL finale: ${finalUrl}`);
       return finalUrl;
     } else {
-      console.error(`[PROXY URL] ERREUR: Impossible d'extraire le channel ID de: ${originalUrl}`);
+      // Fallback: Proxy générique pour les autres sources (Bein/Periscope, etc.)
+      const finalUrl = `${baseUrl}/api/media-proxy?url=${encodeURIComponent(originalUrl)}`;
+      console.log(`[PROXY URL] Pas de match ID, utilisation du proxy générique: ${finalUrl}`);
+      return finalUrl;
     }
   }
 
@@ -965,10 +968,10 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mobile web détecté - Shaka Player non supporté pour hls_direct`);
           // Fallback vers HLS.js sur mobile web
           playerType = 'hls';
-        } else if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net')) {
-          // Force HLS.js pour Bein Sports (Cloudfront)
+        } else if (link.url.includes('dcpv2eq7lu6ve.cloudfront.net') || link.url.includes('video.pscp.tv')) {
+          // Force HLS.js pour Bein Sports (Cloudfront/Pscp)
           playerType = 'hls';
-          console.log(`[SELECT LINK] Cloudfront Bein Sports détecté - Force HLS.js`);
+          console.log(`[SELECT LINK] Cloudfront/Pscp Bein Sports détecté - Force HLS.js`);
         } else {
           playerType = 'shaka';
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour hls_direct`);
