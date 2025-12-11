@@ -442,7 +442,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Bein Sports 1 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png",
                             links: [
-                                { type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/h5wZ4LbrsOpz2RAdzhVbaSUHHZabed03UKGIR-d9UPlGmGSoTkMkVYxek63wAO5ZcaZj7ZpJjAhPkYpupwaXjg/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
+                                { type: "hls_segments", url: "https://ab.footballii.ir/hls2/bein1.m3u8" }
                             ]
                         },
                         {

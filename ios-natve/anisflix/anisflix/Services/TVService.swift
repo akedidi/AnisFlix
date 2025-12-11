@@ -245,7 +245,7 @@ class TVService {
         
         // Sport
         TVChannel(id: "bein-sports-1-ar", name: "Bein Sports 1 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/h5wZ4LbrsOpz2RAdzhVbaSUHHZabed03UKGIR-d9UPlGmGSoTkMkVYxek63wAO5ZcaZj7ZpJjAhPkYpupwaXjg/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live")
+            TVChannelLink(type: "hls_segments", url: "https://ab.footballii.ir/hls2/bein1.m3u8")
         ]),
         TVChannel(id: "bein-sports-2-ar", name: "Bein Sports 2 (Ar)", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/BeIN_SPORTS_2_logo.svg/100px-BeIN_SPORTS_2_logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/xON3S8k7y6LIMC_AThRGIgohPQFNX8SBSAigzXXh10AgMMDt1iTgkc5d73PJjdo3aLEV2Ey8zCRk8sPuB5tMiw/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ180ODBwMzBfMTAiLCJIZWlnaHQiOjQ4MCwiS2JwcyI6MTIwMCwiV2lkdGgiOjg0OH0.0LJi1usWbiPqp0QIcpq7Md5g1WxvJcPqVWNqsKw5nhA/dynamic_delta.m3u8?type=live")
