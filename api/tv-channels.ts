@@ -442,7 +442,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Bein Sports 1 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/BeIN_SPORTS_1_logo.svg/100px-BeIN_SPORTS_1_logo.svg.png",
                             links: [
-                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/h5wZ4LbrsOpz2RAdzhVbaSUHHZabed03UKGIR-d9UPlGmGSoTkMkVYxek63wAO5ZcaZj7ZpJjAhPkYpupwaXjg/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
+                                { type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/h5wZ4LbrsOpz2RAdzhVbaSUHHZabed03UKGIR-d9UPlGmGSoTkMkVYxek63wAO5ZcaZj7ZpJjAhPkYpupwaXjg/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
                             ]
                         },
                         {
@@ -450,7 +450,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Bein Sports 2 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/BeIN_SPORTS_2_logo.svg/100px-BeIN_SPORTS_2_logo.svg.png",
                             links: [
-                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/xON3S8k7y6LIMC_AThRGIgohPQFNX8SBSAigzXXh10AgMMDt1iTgkc5d73PJjdo3aLEV2Ey8zCRk8sPuB5tMiw/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ180ODBwMzBfMTAiLCJIZWlnaHQiOjQ4MCwiS2JwcyI6MTIwMCwiV2lkdGgiOjg0OH0.0LJi1usWbiPqp0QIcpq7Md5g1WxvJcPqVWNqsKw5nhA/dynamic_delta.m3u8?type=live" }
+                                { type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/xON3S8k7y6LIMC_AThRGIgohPQFNX8SBSAigzXXh10AgMMDt1iTgkc5d73PJjdo3aLEV2Ey8zCRk8sPuB5tMiw/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ180ODBwMzBfMTAiLCJIZWlnaHQiOjQ4MCwiS2JwcyI6MTIwMCwiV2lkdGgiOjg0OH0.0LJi1usWbiPqp0QIcpq7Md5g1WxvJcPqVWNqsKw5nhA/dynamic_delta.m3u8?type=live" }
                             ]
                         },
                         {
@@ -458,7 +458,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Bein Sports 3 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/BeIN_SPORTS_3_logo.svg/100px-BeIN_SPORTS_3_logo.svg.png",
                             links: [
-                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MuMlnhMrqEpY5eBQLNnoaA7MzAA7z5KODQUhtkRJsvAq0N0ERjRGlSA18O1_6rfMUNyVj9493IDx5RExSUihig/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
+                                { type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MuMlnhMrqEpY5eBQLNnoaA7MzAA7z5KODQUhtkRJsvAq0N0ERjRGlSA18O1_6rfMUNyVj9493IDx5RExSUihig/transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsInZlcnNpb24iOiIyIn0.eyJFbmNvZGVyU2V0dGluZyI6ImVuY29kZXJfc2V0dGluZ183MjBwMzBfMTAiLCJIZWlnaHQiOjcyMCwiS2JwcyI6Mjc1MCwiV2lkdGgiOjEyODB9.ldktM4fCFRfkP4ZEBfZPKtlAUNAcTPkoz994YJAzWpE/dynamic_delta.m3u8?type=live" }
                             ]
                         },
                         {
@@ -466,7 +466,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Bein Sports 5 (Ar)",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/1/1a/BeIN_SPORTS_5_logo.png",
                             links: [
-                                { type: "hls_direct", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MEEM0GKsrHzJvI14RwxWUya0VEZuONNQHo9-EAsQGgo7vRdz3mVaon7RNfRx4IPVIQpCCenBAk2uZPwAxL_vkQ/non_transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/master_dynamic_delta.m3u8?type=live" }
+                                { type: "hls_segments", url: "https://prod-fastly-eu-west-1.video.pscp.tv/Transcoding/v1/hls/MEEM0GKsrHzJvI14RwxWUya0VEZuONNQHo9-EAsQGgo7vRdz3mVaon7RNfRx4IPVIQpCCenBAk2uZPwAxL_vkQ/non_transcode/eu-west-1/periscope-replay-direct-prod-eu-west-1-public/master_dynamic_delta.m3u8?type=live" }
                             ]
                         },
                         {

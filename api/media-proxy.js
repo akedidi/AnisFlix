@@ -353,7 +353,7 @@ async function handleTV(req, res) {
 
         // ===== MODE PLAYLIST M3U8/MPD =====
         // Traiter explicitement Bein Sports comme une playlist même sans extension (mais PAS les segments .js)
-        if ((cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') || cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) && !cleanUrl.endsWith('.js')) {
+        if ((cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') || cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) && !cleanUrl.endsWith('.js')) {
             // Headers spécifiques selon le domaine
             let requestHeaders = { ...browserHeaders };
 
@@ -384,8 +384,8 @@ async function handleTV(req, res) {
 
             // Headers spécifiques pour Bein Sports (Cloudfront)
             // Supprimer Origin et Referer pour éviter les blocages
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) {
-                console.log(`[TV PROXY] Nettoyage des headers pour Bein Sports (Cloudfront)`);
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) {
+                console.log(`[TV PROXY] Nettoyage des headers pour Bein Sports (Cloudfront/Pscp)`);
                 requestHeaders = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                     'Accept': '*/*'
@@ -458,8 +458,8 @@ async function handleTV(req, res) {
             }
 
             // Headers spécifiques pour Bein Sports (Cloudfront) - SEGMENTS
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net')) {
-                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Bein Sports`);
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) {
+                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Bein Sports (Cloudfront/Pscp)`);
                 headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
                 headers['Accept'] = '*/*';
                 delete headers['Origin'];
