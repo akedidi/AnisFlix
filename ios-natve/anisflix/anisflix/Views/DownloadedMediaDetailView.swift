@@ -233,5 +233,6 @@ struct DownloadedMediaDetailView: View {
             }
         }
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
     }
 }
