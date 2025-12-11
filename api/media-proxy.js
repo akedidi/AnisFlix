@@ -212,7 +212,7 @@ const browserHeaders = {
     'Connection': 'keep-alive'
 };
 
-const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch', 'dcpv2eq7lu6ve.cloudfront.net', 'video.pscp.tv', '135.125.109.73', 'alkassdigital.net', 'ab.footballii.ir', 'py.dencreak.com'];
+const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch', 'dcpv2eq7lu6ve.cloudfront.net', 'video.pscp.tv', '135.125.109.73', 'alkassdigital.net', 'ab.footballii.ir', 'py.dencreak.com', 'py.online-tv.biz'];
 
 function isAllowedUrl(urlString) {
     try {
