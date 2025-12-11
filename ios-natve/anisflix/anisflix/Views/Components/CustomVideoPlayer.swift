@@ -379,8 +379,8 @@ struct CustomVideoPlayer: View {
                 }
             }
             if isFullscreen {
-                // Allow rotation (passive)
-                ScreenRotator.lockOrientation(.allButUpsideDown)
+                // Force landscape rotation to counter navigation resets or rebuilds
+                ScreenRotator.rotate(to: .landscape)
             } else {
                 // Lock back to portrait (active force)
                 ScreenRotator.rotate(to: .portrait)
