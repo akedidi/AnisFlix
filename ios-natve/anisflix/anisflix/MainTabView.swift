@@ -95,7 +95,9 @@ struct MainTabView: View {
             .tag(4)
             
             // Onglet 6: Téléchargements
-            DownloadsView()
+            NavigationStack {
+                DownloadsView()
+            }
             .tabItem {
                 Label(theme.t("nav.downloads"), systemImage: selectedTab == 5 ? "arrow.down.circle.fill" : "arrow.down.circle")
             }
