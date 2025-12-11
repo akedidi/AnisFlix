@@ -387,7 +387,8 @@ async function handleTV(req, res) {
             if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) {
                 console.log(`[TV PROXY] Nettoyage des headers pour Bein Sports (Cloudfront/Pscp)`);
                 requestHeaders = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                    // Utiliser le User-Agent du client pour éviter d'être détecté comme bot/axios
+                    'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                     'Accept': '*/*'
                 };
                 // Explicitement supprimer Origin/Referer s'ils étaient copiés
@@ -397,7 +398,8 @@ async function handleTV(req, res) {
 
             const r = await http.get(cleanUrl, {
                 headers: requestHeaders,
-                responseType: 'text'
+                responseType: 'text',
+                validateStatus: () => true // Ne pas throw sur 404/500 pour pouvoir lire le body
             });
 
             const ctype = (r.headers['content-type'] || '').toLowerCase();
@@ -411,7 +413,7 @@ async function handleTV(req, res) {
 
             if (r.status >= 400) {
                 console.error(`[TV PROXY] Erreur HTTP: ${r.status}`);
-                return res.status(r.status).send('Erreur distante playlist.');
+                return res.status(r.status).send(`Erreur distante playlist (${r.status}): ${typeof r.data === 'string' ? r.data.substring(0, 200) : 'No body'}`);
             }
             if (typeof r.data !== 'string') {
                 console.error(`[TV PROXY] Données invalides`);
