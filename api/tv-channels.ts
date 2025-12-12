@@ -514,7 +514,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 1",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8" }
+                                { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -522,7 +522,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 2",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass2-p/20251112T071253Z/mux_video_720p_ts/index-1.m3u8" }
+                                { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass2-p/20251112T071253Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -530,7 +530,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 3",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass3-p/20251112T072756Z/mux_video_720p_ts/index-1.m3u8" }
+                                { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass3-p/20251112T072756Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
                         {
@@ -538,7 +538,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 4",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass4-p/main.m3u8" }
+                                { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass4-p/main.m3u8" }
                             ]
                         },
                         {
@@ -546,9 +546,9 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "ElKass 6",
                             logo: "https://upload.wikimedia.org/wikipedia/en/6/6b/Alkass.png",
                             links: [
-                                { type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8" }
+                                { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
-                        }
+                        },
                     ]
                 },
                 {

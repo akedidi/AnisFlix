@@ -273,19 +273,19 @@ class TVService {
         ]),
 
         TVChannel(id: "elkass-1", name: "ElKass 1", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8")
+            TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8")
         ]),
         TVChannel(id: "elkass-2", name: "ElKass 2", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass2-p/20251112T071253Z/mux_video_720p_ts/index-1.m3u8")
+            TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass2-p/20251112T071253Z/mux_video_720p_ts/index-1.m3u8")
         ]),
         TVChannel(id: "elkass-3", name: "ElKass 3", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass3-p/20251112T072756Z/mux_video_720p_ts/index-1.m3u8")
+            TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass3-p/20251112T072756Z/mux_video_720p_ts/index-1.m3u8")
         ]),
         TVChannel(id: "elkass-4", name: "ElKass 4", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass4-p/main.m3u8")
+            TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass4-p/main.m3u8")
         ]),
         TVChannel(id: "elkass-6", name: "ElKass 6", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8")
+            TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8")
         ]),
         
         // Tunisie
