@@ -290,7 +290,7 @@ class TVService {
         
         // Tunisie
         TVChannel(id: "watania-1", name: "Watania 1", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
-            TVChannelLink(type: "hls_direct", url: "https://viamotionhsi.netplus.ch/live/eds/tunisienationale/browser-HLS8/tunisienationale.m3u8")
+            TVChannelLink(type: "hls_direct", url: "https://games2.elahmad.xyz/tv769_www.elahmad.com_watania1/index.m3u8?token=b9d0297eeef834aa66b673fe97e0b29d246eee83-0f18c0ac40653414b0a06c98a6a28998-1765511168-1765500368")
         ]),
         TVChannel(id: "hiwar-tounsi", name: "Hiwar Tounsi", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://live20.bozztv.com/akamaissh101/ssh101/venolie-hiwar/playlist.m3u8")
