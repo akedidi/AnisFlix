@@ -235,29 +235,23 @@ struct DownloadedMediaDetailView: View {
         }
         .fullScreenCover(isPresented: $isFullscreen) {
             if let url = item.localVideoUrl {
-                CustomVideoPlayer(
-                    url: url,
-                    title: item.title,
-                    posterUrl: posterUrl?.absoluteString,
-                    subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                    isPresented: $showPlayer,
-                    isFullscreen: $isFullscreen,
-                    showFullscreenButton: true,
-                    mediaId: item.mediaId,
-                    season: item.season,
-                    episode: item.episode,
-                    playerVM: playerVM
-                )
+                LandscapeView {
+                    CustomVideoPlayer(
+                        url: url,
+                        title: item.title,
+                        posterUrl: posterUrl?.absoluteString,
+                        subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
+                        isPresented: $showPlayer,
+                        isFullscreen: $isFullscreen,
+                        showFullscreenButton: true,
+                        mediaId: item.mediaId,
+                        season: item.season,
+                        episode: item.episode,
+                        playerVM: playerVM
+                    )
+                    .ignoresSafeArea()
+                }
                 .ignoresSafeArea()
-                .onAppear {
-                    // Slight delay to ensure transition is ready before forcing rotation
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        ScreenRotator.rotate(to: .landscape)
-                    }
-                }
-                .onDisappear {
-                     ScreenRotator.rotate(to: .portrait)
-                }
             }
         }
     }
