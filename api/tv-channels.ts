@@ -549,6 +549,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                                 { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
                         },
+                        {
+                            id: "dubai-sports-1",
+                            name: "Dubai Sports 1",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Dubai_Sports_logo.png",
+                            links: [
+                                { type: "hls_direct", url: "https://dmidspta.cdn.mgmlcdn.com/dubaisports/smil:dubaisports.stream.smil/chunklist.m3u8" }
+                            ]
+                        },
                     ]
                 },
                 {

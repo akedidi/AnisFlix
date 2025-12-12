@@ -287,6 +287,9 @@ class TVService {
         TVChannel(id: "elkass-6", name: "ElKass 6", logo: "", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8")
         ]),
+        TVChannel(id: "dubai-sports-1", name: "Dubai Sports 1", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Dubai_Sports_logo.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dmidspta.cdn.mgmlcdn.com/dubaisports/smil:dubaisports.stream.smil/chunklist.m3u8")
+        ]),
         
         // Tunisie
         TVChannel(id: "watania-1", name: "Watania 1", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
