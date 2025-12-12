@@ -14,22 +14,46 @@ class LandscapeHostingController<Content: View>: UIHostingController<Content> {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Critical: Allow the app to rotate so this controller's preference is respected
+        AppDelegate.orientationLock = .allButUpsideDown
+        
         // Force the orientation when the view loads
         if #available(iOS 16.0, *) {
             setNeedsUpdateOfSupportedInterfaceOrientations()
         } else {
-            UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
             UIViewController.attemptRotationToDeviceOrientation()
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // Reinforce the rotation on appear
+        // Reinforce the rotation and lock
+        AppDelegate.orientationLock = .allButUpsideDown
+        
         if #available(iOS 16.0, *) {
-            self.view.window?.windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+            let windowScene = self.view.window?.windowScene
+            windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+            setNeedsUpdateOfSupportedInterfaceOrientations()
         } else {
              UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue, forKey: "orientation")
+             UIViewController.attemptRotationToDeviceOrientation()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Restore portrait lock when closing
+        if isBeingDismissed || isMovingFromParent {
+            AppDelegate.orientationLock = .portrait
+            
+            if #available(iOS 16.0, *) {
+                let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene
+                windowScene?.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+            } else {
+                UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+                UIViewController.attemptRotationToDeviceOrientation()
+            }
         }
     }
 }
