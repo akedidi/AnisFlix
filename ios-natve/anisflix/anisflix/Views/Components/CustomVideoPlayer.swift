@@ -491,15 +491,33 @@ struct CustomVideoPlayer: View {
                 playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
             }
         }
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
-            if castManager.isConnected {
-                let time = castManager.getApproximateStreamPosition()
-                if !playerVM.isSeeking {
-                    playerVM.currentTime = time
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            guard !playerVM.isSwitchingModes else { return }
+            
+            let orientation = UIDevice.current.orientation
+            if orientation.isLandscape {
+                if !isFullscreen {
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = true
+                    }
+                    // Reset switching flag after animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
                 }
-                
-                if let duration = castManager.mediaStatus?.mediaInformation?.streamDuration, duration > 0 {
-                    playerVM.duration = duration
+            } else if orientation.isPortrait {
+                if isFullscreen {
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = false
+                    }
+                    // Reset switching flag after animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
                 }
             }
         }
