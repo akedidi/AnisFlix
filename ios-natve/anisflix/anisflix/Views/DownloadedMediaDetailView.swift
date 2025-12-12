@@ -199,28 +199,29 @@ struct DownloadedMediaDetailView: View {
                             .padding(.top, 350) // Approximate position
                         }
                         
-                        CustomVideoPlayer(
-                            url: url,
-                            title: item.title,
-                            posterUrl: posterUrl?.absoluteString,
-                            subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                            isPresented: $showPlayer,
-                            isFullscreen: $isFullscreen,
-                            showFullscreenButton: true,
-                            mediaId: item.mediaId,
-                            season: item.season,
-                            episode: item.episode,
-                            playerVM: playerVM
-                        )
-                        .frame(width: playerGeo.size.width, height: isFullscreen ? playerGeo.size.height : 250)
+                            if !isFullscreen {
+                                CustomVideoPlayer(
+                                    url: url,
+                                    title: item.title,
+                                    posterUrl: posterUrl?.absoluteString,
+                                    subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
+                                    isPresented: $showPlayer,
+                                    isFullscreen: $isFullscreen,
+                                    showFullscreenButton: true,
+                                    mediaId: item.mediaId,
+                                    season: item.season,
+                                    episode: item.episode,
+                                    playerVM: playerVM
+                                )
+                                .frame(width: playerGeo.size.width, height: 250)
+                            }
                         
                         if !isFullscreen {
                             Spacer()
                         }
                     }
-                    .background(isFullscreen ? Color.black : Color.clear)
                 }
-                .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                .edgesIgnoringSafeArea([])
                 .zIndex(100)
             }
         }
@@ -232,10 +233,23 @@ struct DownloadedMediaDetailView: View {
                     .foregroundColor(theme.primaryText)
             }
         }
-        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
-        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
-        .navigationBarBackButtonHidden(isFullscreen)
-        .navigationBarHidden(isFullscreen) // Legacy/Robust fallback
-        .statusBar(hidden: isFullscreen)
+        .fullScreenCover(isPresented: $isFullscreen) {
+            if let url = item.localVideoUrl {
+                CustomVideoPlayer(
+                    url: url,
+                    title: item.title,
+                    posterUrl: posterUrl?.absoluteString,
+                    subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
+                    isPresented: $showPlayer,
+                    isFullscreen: $isFullscreen,
+                    showFullscreenButton: true,
+                    mediaId: item.mediaId,
+                    season: item.season,
+                    episode: item.episode,
+                    playerVM: playerVM
+                )
+                .ignoresSafeArea()
+            }
+        }
     }
 }
