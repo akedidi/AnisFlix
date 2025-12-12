@@ -557,6 +557,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                                 { type: "hls_direct", url: "https://dmidspta.cdn.mgmlcdn.com/dubaisports/smil:dubaisports.stream.smil/chunklist.m3u8" }
                             ]
                         },
+                        {
+                            id: "dubai-sports-2",
+                            name: "Dubai Sports 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Dubai_Sports_logo.png",
+                            links: [
+                                { type: "hls_direct", url: "https://dmitwlvvll.cdn.mangomolo.com/dubaisportshd/smil:dubaisportshd.smil/chunklist.m3u8" }
+                            ]
+                        },
                     ]
                 },
                 {
