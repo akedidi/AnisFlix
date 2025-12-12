@@ -250,7 +250,10 @@ struct DownloadedMediaDetailView: View {
                 )
                 .ignoresSafeArea()
                 .onAppear {
-                     ScreenRotator.rotate(to: .landscape)
+                    // Slight delay to ensure transition is ready before forcing rotation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        ScreenRotator.rotate(to: .landscape)
+                    }
                 }
                 .onDisappear {
                      ScreenRotator.rotate(to: .portrait)
