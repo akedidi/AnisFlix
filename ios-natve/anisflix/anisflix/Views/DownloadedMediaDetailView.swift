@@ -249,6 +249,12 @@ struct DownloadedMediaDetailView: View {
                     playerVM: playerVM
                 )
                 .ignoresSafeArea()
+                .onAppear {
+                     ScreenRotator.rotate(to: .landscape)
+                }
+                .onDisappear {
+                     ScreenRotator.rotate(to: .portrait)
+                }
             }
         }
     }
