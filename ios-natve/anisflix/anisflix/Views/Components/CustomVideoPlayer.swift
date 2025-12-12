@@ -491,6 +491,16 @@ struct CustomVideoPlayer: View {
                 playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
             }
         }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if castManager.isConnected {
+                let time = castManager.getApproximateStreamPosition()
+                if !playerVM.isSeeking {
+                    playerVM.currentTime = time
+                }
+                
+                if let duration = castManager.mediaStatus?.mediaInformation?.streamDuration, duration > 0 {
+                    playerVM.duration = duration
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
