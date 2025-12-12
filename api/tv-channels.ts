@@ -581,6 +581,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                                 { type: "hls_direct", url: "https://admn-live-cdn-lb.starzplayarabia.com/out/v1/admn_tv_enc/abudhabi_sports_1/abudhabi_sports_1_hls_nd/index.m3u8" }
                             ]
                         },
+                        {
+                            id: "ad-sports-2",
+                            name: "AD Sports 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Abu_Dhabi_Sports_Logo.svg/1024px-Abu_Dhabi_Sports_Logo.svg.png",
+                            links: [
+                                { type: "hls_direct", url: "https://admn-live-cdn-lb.starzplayarabia.com/out/v1/admn_tv_enc/abudhabi_sports_2/abudhabi_sports_2_hls_nd/index.m3u8" }
+                            ]
+                        },
                     ]
                 },
                 {

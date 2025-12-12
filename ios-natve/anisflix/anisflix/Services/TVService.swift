@@ -299,6 +299,9 @@ class TVService {
         TVChannel(id: "ad-sports-1", name: "AD Sports 1", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Abu_Dhabi_Sports_Logo.svg/1024px-Abu_Dhabi_Sports_Logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://admn-live-cdn-lb.starzplayarabia.com/out/v1/admn_tv_enc/abudhabi_sports_1/abudhabi_sports_1_hls_nd/index.m3u8")
         ]),
+        TVChannel(id: "ad-sports-2", name: "AD Sports 2", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Abu_Dhabi_Sports_Logo.svg/1024px-Abu_Dhabi_Sports_Logo.svg.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://admn-live-cdn-lb.starzplayarabia.com/out/v1/admn_tv_enc/abudhabi_sports_2/abudhabi_sports_2_hls_nd/index.m3u8")
+        ]),
         
         // Tunisie
         TVChannel(id: "watania-1", name: "Watania 1", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
