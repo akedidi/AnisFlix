@@ -115,22 +115,7 @@ export const tmdb = {
   },
 
   getLatestMovies: async (page = 1) => {
-    // Découverte des sorties récentes disponibles en streaming (flatrate)
-    const today = new Date();
-    const past = new Date();
-    past.setDate(today.getDate() - 60);
-    const firstDateGte = past.toISOString().slice(0, 10);
-    const lastDateLte = today.toISOString().slice(0, 10);
-    const region = getRegion();
-    return tmdbFetch('/discover/movie', {
-      sort_by: 'release_date.desc',
-      include_adult: 'false',
-      'release_date.gte': firstDateGte,
-      'release_date.lte': lastDateLte,
-      with_watch_monetization_types: 'flatrate',
-      watch_region: region,
-      page: page.toString(),
-    } as any);
+    return tmdbFetch('/movie/now_playing', { page: page.toString() });
   },
 
   getMovieDetails: async (movieId: number) => {
