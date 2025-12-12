@@ -293,6 +293,9 @@ class TVService {
         TVChannel(id: "dubai-sports-2", name: "Dubai Sports 2", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Dubai_Sports_logo.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
             TVChannelLink(type: "hls_direct", url: "https://dmitwlvvll.cdn.mangomolo.com/dubaisportshd/smil:dubaisportshd.smil/chunklist.m3u8")
         ]),
+        TVChannel(id: "dubai-sports-3", name: "Dubai Sports 3", logo: "https://upload.wikimedia.org/wikipedia/commons/e/e3/Dubai_Sports_logo.png", streamUrl: "", category: "Arab", group: "Sport", epgId: nil, links: [
+            TVChannelLink(type: "hls_direct", url: "https://dmitwlvvll.cdn.mgmlcdn.com/dubaisportshd5/smil:dubaisportshd5.smil/chunklist.m3u8")
+        ]),
         
         // Tunisie
         TVChannel(id: "watania-1", name: "Watania 1", logo: "", streamUrl: "", category: "Arab", group: "Tunisie", epgId: nil, links: [
