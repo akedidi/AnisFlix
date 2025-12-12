@@ -1590,6 +1590,23 @@ export default function TVChannels() {
                           </div>
                         )}
 
+                      {/* Bouton Fermer - En haut à gauche */}
+                      <div className="absolute top-4 left-4 z-50">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10"
+                          onClick={() => {
+                            console.log('🎥 [PLAYER] Fermeture manuelle du player');
+                            setSelectedChannel(null);
+                            setStreamUrl(null);
+                          }}
+                          title="Fermer le lecteur"
+                        >
+                          <X className="w-5 h-5" />
+                        </Button>
+                      </div>
+
                       {isLoading && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="text-white text-xl">Chargement du flux...</div>
@@ -1780,8 +1797,9 @@ export default function TVChannels() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </CommonLayout>
+        </div >
+      )
+      }
+    </CommonLayout >
   );
 }
