@@ -1013,11 +1013,26 @@ class PlayerViewModel: NSObject, ObservableObject {
         Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
+                
+                // Try UTF-8 first
                 if let content = String(data: data, encoding: .utf8) {
+                    print("✅ Loaded subtitle (UTF-8) from \(url.lastPathComponent)")
+                    self.subtitleParser = SubtitleParser(content: content)
+                } 
+                // Fallback to Windows-1252 (Latin-1)
+                else if let content = String(data: data, encoding: .windowsCP1252) {
+                    print("⚠️ Loaded subtitle (Windows-1252) from \(url.lastPathComponent)")
                     self.subtitleParser = SubtitleParser(content: content)
                 }
+                // Fallback to ISO Latin 1
+                else if let content = String(data: data, encoding: .isoLatin1) {
+                     print("⚠️ Loaded subtitle (ISO-Latin-1) from \(url.lastPathComponent)")
+                     self.subtitleParser = SubtitleParser(content: content)
+                } else {
+                    print("❌ Failed to decode subtitle content (unknown encoding)")
+                }
             } catch {
-                print("Failed to load subtitles: \(error)")
+                print("❌ Failed to load subtitles: \(error)")
             }
         }
     }
@@ -1029,10 +1044,6 @@ class PlayerViewModel: NSObject, ObservableObject {
     
     private func updateSubtitle() {
         guard let parser = subtitleParser else { return }
-        // Apply offset: if offset is +1s, it means subtitle should appear 1s later.
-        // So we should ask parser for text at (currentTime - offset).
-        // Example: Subtitle at 10s. Offset +2s. Should appear at 12s.
-        // At 12s, currentTime=12. 12-2 = 10. Parser finds subtitle. Correct.
         currentSubtitleText = parser.text(for: currentTime - subtitleOffset)
     }
     
@@ -1072,19 +1083,46 @@ class SubtitleParser {
     private var entries: [Entry] = []
     
     init(content: String) {
-        // Basic VTT/SRT parsing logic
-        // This is a simplified parser
-        let lines = content.components(separatedBy: .newlines)
+        // Normalize line endings
+        let normalizedContent = content.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        let lines = normalizedContent.components(separatedBy: .newlines)
+        
         var currentStart: Double = 0
         var currentEnd: Double = 0
         var currentText = ""
+        var isParsingText = false
         
-        // Regex for timestamps: 00:00:01.000 --> 00:00:04.000
-        let timeRegex = try! NSRegularExpression(pattern: "(\\d{2}:\\d{2}:\\d{2}[.,]\\d{3}) --> (\\d{2}:\\d{2}:\\d{2}[.,]\\d{3})")
+        // Supported Formats:
+        // 00:00:01,000 --> 00:00:04,000 (SRT standard)
+        // 00:00:01.000 --> 00:00:04.000 (VTT standard)
+        // 0:00:01.00 --> 0:00:04.00 (Shortened)
         
+        // Regex to capture start and end timestamps.
+        // Group 1: Start Time
+        // Group 2: End Time
+        // Matches H:MM:SS,mmm or MM:SS,mmm or HH:MM:SS.mmm etc.
+        let pattern = "((?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}[.,]\\d{1,3})\\s*-->\\s*((?:\\d{1,2}:)?\\d{1,2}:\\d{1,2}[.,]\\d{1,3})"
+        let timeRegex = try? NSRegularExpression(pattern: pattern)
+
         for line in lines {
-            if let match = timeRegex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) {
-                if !currentText.isEmpty {
+            let trimLine = line.trimmingCharacters(in: .whitespaces)
+            if trimLine.isEmpty {
+                if isParsingText && !currentText.isEmpty {
+                    // End of an entry
+                    entries.append(Entry(startTime: currentStart, endTime: currentEnd, text: currentText.trimmingCharacters(in: .whitespacesAndNewlines)))
+                    currentText = ""
+                    isParsingText = false
+                }
+                continue
+            }
+            
+            if trimLine == "WEBVTT" { continue }
+            
+            // Check for timestamp line
+            if let regex = timeRegex, let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) {
+                
+                // If we were parsing text (unexpectedly), save previous block
+                 if isParsingText && !currentText.isEmpty {
                     entries.append(Entry(startTime: currentStart, endTime: currentEnd, text: currentText.trimmingCharacters(in: .whitespacesAndNewlines)))
                     currentText = ""
                 }
@@ -1094,23 +1132,49 @@ class SubtitleParser {
                 
                 currentStart = parseTime(startStr)
                 currentEnd = parseTime(endStr)
-            } else if !line.isEmpty && !line.trimmingCharacters(in: .whitespaces).allSatisfy({ $0.isNumber }) && line != "WEBVTT" {
+                isParsingText = true
+                continue
+            }
+            
+            // If it's a number line (index), ignore it
+            if !isParsingText && trimLine.allSatisfy({ $0.isNumber }) {
+                continue
+            }
+            
+            // Otherwise, it is text content
+            if isParsingText {
                 currentText += line + "\n"
             }
         }
+        
+        // Append last entry if file ends without empty line
+        if isParsingText && !currentText.isEmpty {
+             entries.append(Entry(startTime: currentStart, endTime: currentEnd, text: currentText.trimmingCharacters(in: .whitespacesAndNewlines)))
+        }
+        
+        print("📝 SubtitleParser: Parsed \(entries.count) entries")
     }
     
     func text(for time: Double) -> String? {
+        // Binary search could be better, but linear is fine for normal use
         return entries.first { time >= $0.startTime && time <= $0.endTime }?.text
     }
     
     private func parseTime(_ timeStr: String) -> Double {
         let parts = timeStr.replacingOccurrences(of: ",", with: ".").components(separatedBy: ":")
-        guard parts.count == 3 else { return 0 }
         
-        let h = Double(parts[0]) ?? 0
-        let m = Double(parts[1]) ?? 0
-        let s = Double(parts[2]) ?? 0
+        var h: Double = 0
+        var m: Double = 0
+        var s: Double = 0
+        
+        if parts.count == 3 {
+             h = Double(parts[0]) ?? 0
+             m = Double(parts[1]) ?? 0
+             s = Double(parts[2]) ?? 0
+        } else if parts.count == 2 {
+             m = Double(parts[0]) ?? 0
+             s = Double(parts[1]) ?? 0
+        }
         
         return h * 3600 + m * 60 + s
     }
