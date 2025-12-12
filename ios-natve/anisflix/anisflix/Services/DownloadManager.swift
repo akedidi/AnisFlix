@@ -498,8 +498,7 @@ extension DownloadManager: URLSessionTaskDelegate {
 extension DownloadManager: URLSessionDownloadDelegate {
     
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        guard let id = downloadTask.taskDescription,
-              let index = downloads.firstIndex(where: { $0.id == id }) else { return }
+        guard let id = downloadTask.taskDescription else { return }
         
         // Move file to permanent location
         let fileManager = FileManager.default
@@ -514,30 +513,40 @@ extension DownloadManager: URLSessionDownloadDelegate {
             try fileManager.moveItem(at: location, to: destinationURL)
             
             DispatchQueue.main.async {
-                self.downloads[index].state = .completed
-                self.downloads[index].progress = 1.0
-                self.downloads[index].localVideoUrl = destinationURL
-                self.downloadTasks.removeValue(forKey: id)
-                self.saveDownloads()
+                // Determine index safely on main thread to avoid race conditions
+                if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                    self.objectWillChange.send()
+                    
+                    self.downloads[index].state = .completed
+                    self.downloads[index].progress = 1.0
+                    self.downloads[index].localVideoUrl = destinationURL
+                    self.downloadTasks.removeValue(forKey: id)
+                    self.saveDownloads()
+                }
             }
         } catch {
             print("File move error: \(error)")
             DispatchQueue.main.async {
-                self.downloads[index].state = .failed
-                self.saveDownloads()
+                if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                    self.objectWillChange.send()
+                    self.downloads[index].state = .failed
+                    self.saveDownloads()
+                }
             }
         }
     }
     
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        guard let id = downloadTask.taskDescription,
-              let index = downloads.firstIndex(where: { $0.id == id }) else { return }
+        guard let id = downloadTask.taskDescription else { return }
         
         let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
         
         DispatchQueue.main.async {
-            if abs(self.downloads[index].progress - progress) > 0.01 {
-                self.downloads[index].progress = progress
+            // Safe index lookup
+            if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                if abs(self.downloads[index].progress - progress) > 0.01 {
+                    self.downloads[index].progress = progress
+                }
             }
         }
     }
@@ -548,26 +557,28 @@ extension DownloadManager: URLSessionDownloadDelegate {
 extension DownloadManager: AVAssetDownloadDelegate {
     
     func urlSession(_ session: URLSession, assetDownloadTask: AVAssetDownloadTask, didFinishDownloadingTo location: URL) {
-        guard let id = assetDownloadTask.taskDescription,
-              let index = downloads.firstIndex(where: { $0.id == id }) else { return }
+        guard let id = assetDownloadTask.taskDescription else { return }
         
         print("✅ HLS Download finished to: \(location)")
         
         DispatchQueue.main.async {
-            self.downloads[index].state = .completed
-            self.downloads[index].progress = 1.0
-            self.downloads[index].localVideoUrl = location
-            // Store relative path if needed for persistence across launches
-            self.downloads[index].relativePath = location.relativePath
-            
-            self.activeAssetDownloads.removeValue(forKey: id)
-            self.saveDownloads()
+            if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                self.objectWillChange.send()
+                
+                self.downloads[index].state = .completed
+                self.downloads[index].progress = 1.0
+                self.downloads[index].localVideoUrl = location
+                // Store relative path if needed for persistence across launches
+                self.downloads[index].relativePath = location.relativePath
+                
+                self.activeAssetDownloads.removeValue(forKey: id)
+                self.saveDownloads()
+            }
         }
     }
     
     func urlSession(_ session: URLSession, assetDownloadTask: AVAssetDownloadTask, didLoad timeRange: CMTimeRange, totalTimeRangesLoaded loadedTimeRanges: [NSValue], timeRangeExpectedToLoad: CMTimeRange) {
-        guard let id = assetDownloadTask.taskDescription,
-              let index = downloads.firstIndex(where: { $0.id == id }) else { return }
+        guard let id = assetDownloadTask.taskDescription else { return }
         
         var percentComplete = 0.0
         for value in loadedTimeRanges {
@@ -576,8 +587,10 @@ extension DownloadManager: AVAssetDownloadDelegate {
         }
         
         DispatchQueue.main.async {
-            if abs(self.downloads[index].progress - percentComplete) > 0.01 {
-                self.downloads[index].progress = percentComplete
+            if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                if abs(self.downloads[index].progress - percentComplete) > 0.01 {
+                    self.downloads[index].progress = percentComplete
+                }
             }
         }
     }
