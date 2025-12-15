@@ -1009,10 +1009,35 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mode Capacitor - ${link.type} en URL directe: ${finalUrl}`);
         }
       } else {
-        // Desktop : proxy pour hls_segments ET hls_direct (CORS), direct uniquement pour mpd
-        if (link.type === 'hls_segments' || link.type === 'hls_direct') {
-          console.log(`[SELECT LINK] Mode desktop - ${link.type} nécessite proxy (CORS)`);
+        // Desktop : direct pour hls_direct et mpd sauf si CORS, proxy pour hls_segments
+        if (link.type === 'hls_segments') {
+          console.log(`[SELECT LINK] Mode desktop - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
+        } else if (link.type === 'hls_direct') {
+          // Liste des domaines nécessitant un proxy sur desktop (CORS)
+          const corsDomains = [
+            'viamotionhsi.netplus.ch',
+            'simulcast-p.ftven.fr',
+            'artesimulcast.akamaized.net',
+            'ncdn-live-bfm.pfd.sfr.net',
+            'rt-fra.rttv.com',
+            'live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com',
+            'viously.com',
+            'qna.org.qa',
+            'bozztv.com',
+            'getaj.net',
+            'akamaized.net',
+            'raw.githubusercontent.com'
+          ];
+
+          const needsProxy = corsDomains.some(domain => link.url.includes(domain));
+
+          if (needsProxy) {
+            console.log(`[SELECT LINK] Mode desktop - hls_direct sur domaine restreint (${link.url}) nécessite proxy`);
+            finalUrl = getProxyUrl(link.url, link.type);
+          } else {
+            console.log(`[SELECT LINK] Mode desktop - hls_direct sur domaine standard, accès direct: ${finalUrl}`);
+          }
         } else {
           console.log(`[SELECT LINK] Mode desktop - ${link.type} en URL directe: ${finalUrl}`);
         }
