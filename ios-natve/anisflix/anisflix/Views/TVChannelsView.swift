@@ -116,29 +116,35 @@ struct TVChannelsView: View {
                                             ZStack {
                                                 Color.white
                                                 
-                                                AsyncImage(url: URL(string: channel.logo)) { phase in
-                                                    switch phase {
-                                                    case .success(let image):
-                                                        image
-                                                            .resizable()
-                                                            .aspectRatio(contentMode: .fit)
-                                                            .padding(12)
-                                                    case .failure:
-                                                        Image(systemName: "tv")
-                                                            .font(.largeTitle)
-                                                            .foregroundColor(theme.secondaryText)
-                                                    case .empty:
-                                                        if !channel.logo.isEmpty {
-                                                            ProgressView()
-                                                        } else {
+                                                if channel.logo.lowercased().hasSuffix(".svg"), let logoUrl = URL(string: channel.logo) {
+                                                    SVGImageView(url: logoUrl)
+                                                        .frame(height: 80) // SLightly smaller for SVG to avoid overflow
+                                                        .padding(12)
+                                                } else {
+                                                    AsyncImage(url: URL(string: channel.logo)) { phase in
+                                                        switch phase {
+                                                        case .success(let image):
+                                                            image
+                                                                .resizable()
+                                                                .aspectRatio(contentMode: .fit)
+                                                                .padding(12)
+                                                        case .failure:
+                                                            Image(systemName: "tv")
+                                                                .font(.largeTitle)
+                                                                .foregroundColor(theme.secondaryText)
+                                                        case .empty:
+                                                            if !channel.logo.isEmpty {
+                                                                ProgressView()
+                                                            } else {
+                                                                Image(systemName: "tv")
+                                                                    .font(.largeTitle)
+                                                                    .foregroundColor(theme.secondaryText)
+                                                            }
+                                                        @unknown default:
                                                             Image(systemName: "tv")
                                                                 .font(.largeTitle)
                                                                 .foregroundColor(theme.secondaryText)
                                                         }
-                                                    @unknown default:
-                                                        Image(systemName: "tv")
-                                                            .font(.largeTitle)
-                                                            .foregroundColor(theme.secondaryText)
                                                     }
                                                 }
                                             }
