@@ -24,8 +24,9 @@ export default async function handler(req, res) {
     let targetUrl;
 
     // Si c'est une URL complète, l'utiliser directement
+    // req.query.url est déjà décodé par le framework, ne pas re-décoder pour éviter de casser les tokens
     if (url) {
-      targetUrl = decodeURIComponent(url);
+      targetUrl = url;
     } else {
       // Sinon, construire l'URL à partir du domaine et du path
       const { path } = req.query;
@@ -83,14 +84,22 @@ export default async function handler(req, res) {
     // For playlists, we need text to rewrite URLs. For media segments, we need binary stream.
     const responseType = req.method === 'HEAD' ? 'stream' : (isPlaylist ? 'text' : 'stream');
 
+    // Préparer les headers de la requête
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
+    };
+
+    // Propager le header Range s'il est présent (important pour la lecture vidéo et le seek)
+    if (req.headers.range) {
+      headers['Range'] = req.headers.range;
+    }
+
     const response = await axios.get(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      },
+      headers: headers,
       timeout: 10000,
       responseType: responseType
     });
