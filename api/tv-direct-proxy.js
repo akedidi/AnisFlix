@@ -157,6 +157,12 @@ export default async function handler(req, res) {
         // Use generic URL proxying which handles cross-domain (e.g. GitHub -> Dailymotion)
         return `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
       })
+      .replace(/URI="([^"]+\.m3u8)"/g, (match, uri) => {
+        // Handle URI attributes in EXT-X-MEDIA tags (Audio/Subtitles)
+        const resolvedUrl = new URL(uri, targetUrl).href;
+        const proxiedUrl = `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
+        return `URI="${proxiedUrl}"`;
+      })
       .replace(/^([^#\n].*\.ts)$/gm, (match) => {
         // Pour les segments TS, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;

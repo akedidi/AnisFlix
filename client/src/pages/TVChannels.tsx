@@ -1016,7 +1016,7 @@ export default function TVChannels() {
         } else if (link.type === 'hls_direct') {
           // Liste des domaines nécessitant un proxy sur desktop (CORS)
           const corsDomains = [
-            // 'viamotionhsi.netplus.ch', // Disable proxy for this domain as direct access works better
+            'viamotionhsi.netplus.ch',
             'simulcast-p.ftven.fr',
             'artesimulcast.akamaized.net',
             'ncdn-live-bfm.pfd.sfr.net',
