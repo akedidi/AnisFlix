@@ -154,10 +154,8 @@ export default async function handler(req, res) {
           return `/api/tv?url=${encodedUrl}`;
         }
 
-        // Sinon, utiliser le proxy direct
-        const urlObj = new URL(resolvedUrl);
-        const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
-        return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
+        // Use generic URL proxying which handles cross-domain (e.g. GitHub -> Dailymotion)
+        return `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
       })
       .replace(/^([^#\n].*\.ts)$/gm, (match) => {
         // Pour les segments TS, détecter si elles contiennent des tokens JWT
@@ -169,10 +167,8 @@ export default async function handler(req, res) {
           return `/api/tv?url=${encodedUrl}`;
         }
 
-        // Sinon, utiliser le proxy direct
-        const urlObj = new URL(resolvedUrl);
-        const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
-        return `/api/tv-direct-proxy?domain=${domain}&path=${encodeURIComponent(relativePath)}`;
+        // Use generic URL proxying which handles cross-domain (e.g. GitHub -> Dailymotion)
+        return `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
       });
 
     // Headers spécifiques pour les streams live
