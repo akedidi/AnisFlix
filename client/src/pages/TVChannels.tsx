@@ -1010,8 +1010,12 @@ export default function TVChannels() {
         }
       } else {
         // Desktop : direct pour hls_direct et mpd, proxy pour hls_segments
+        // Exception: viamotionhsi nécessite proxy (ERR_CONNECTION_RESET en accès direct)
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode desktop - hls_segments nécessite proxy`);
+          finalUrl = getProxyUrl(link.url, link.type);
+        } else if (link.type === 'hls_direct' && link.url.includes('viamotionhsi.netplus.ch')) {
+          console.log(`[SELECT LINK] Mode desktop - hls_direct viamotionhsi nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
         } else {
           console.log(`[SELECT LINK] Mode desktop - ${link.type} en URL directe: ${finalUrl}`);
