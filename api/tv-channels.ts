@@ -666,7 +666,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elarabiya",
                             name: "ElAarabiya",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/4/4e/Al_Arabiya.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Al-Arabiya_new_logo.svg",
                             links: [
                                 { type: "hls_direct", url: "https://shls-live-ak.akamaized.net/out/v1/f5f319206ed740f9a831f2097c2ead23/index_37.m3u8" }
                             ]
