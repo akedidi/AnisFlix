@@ -745,6 +745,8 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         // Download artwork if poster URL provided
+        // Clear previous artwork immediately to prevent showing stale logo
+        currentArtwork = nil
         if let posterUrl = posterUrl {
             Task {
                 await downloadArtwork(from: posterUrl)
