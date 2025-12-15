@@ -142,17 +142,8 @@ export default async function handler(req, res) {
         // Pour les sous-playlists, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
 
-        // Si l'URL contient un token JWT (cache1a.netplus.ch avec tok_), utiliser l'API TV standard
-        if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
-          const encodedUrl = encodeURIComponent(resolvedUrl);
-          return `/api/tv?url=${encodedUrl}`;
-        }
-
-        // Si c'est une sous-playlist vidéo (contient hd1-avc1_ et =), utiliser l'API TV standard
-        if (resolvedUrl.includes('hd1-avc1_') && resolvedUrl.includes('=')) {
-          const encodedUrl = encodeURIComponent(resolvedUrl);
-          return `/api/tv?url=${encodedUrl}`;
-        }
+        // All sub-playlists go through tv-direct-proxy for consistency
+        // This handles both tokenized and non-tokenized playlists
 
         // Use generic URL proxying which handles cross-domain (e.g. GitHub -> Dailymotion)
         return `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
@@ -167,11 +158,7 @@ export default async function handler(req, res) {
         // Pour les segments TS, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
 
-        // Si l'URL contient un token JWT, utiliser l'API TV standard
-        if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
-          const encodedUrl = encodeURIComponent(resolvedUrl);
-          return `/api/tv?url=${encodedUrl}`;
-        }
+        // All TS segments go through tv-direct-proxy for consistency
 
         // Use generic URL proxying which handles cross-domain (e.g. GitHub -> Dailymotion)
         return `/api/tv-direct-proxy?url=${encodeURIComponent(resolvedUrl)}`;
