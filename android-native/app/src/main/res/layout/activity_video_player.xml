@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
@@ -9,8 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:show_buffering="when_playing"
-        app:show_timeout="5000" 
-        app:controller_layout_id="@layout/custom_player_control_view" /> 
+        app:show_timeout="5000" /> 
         <!-- Note: We are using default controller but adding overlay buttons. 
              Ideally we should use custom controller layout but for speed we overlay. -->
         

@@ -329,6 +329,13 @@ public class StreamingServiceManager {
                 source.setProvider(provider);
                 source.setLanguage(language);
                 
+                // Set Display Name
+                String displayName = provider.substring(0, 1).toUpperCase() + provider.substring(1);
+                if (player.getQuality() != null && !player.getQuality().isEmpty()) {
+                    displayName += " - " + player.getQuality();
+                }
+                source.setName(displayName);
+                
                 sources.add(source);
             }
         }
@@ -351,6 +358,12 @@ public class StreamingServiceManager {
             source.setType(stream.getType());
             source.setProvider("vixsrc");
             source.setLanguage("VO");
+            
+            String displayName = "Vixsrc";
+            if (stream.getQuality() != null && !stream.getQuality().isEmpty()) {
+                displayName += " - " + stream.getQuality();
+            }
+            source.setName(displayName);
             
             sources.add(source);
         }

@@ -161,13 +161,22 @@ public class MovieDetailActivity extends AppCompatActivity {
         });
         
         viewModel.getTrailer().observe(this, video -> {
-            android.webkit.WebView webView = findViewById(com.anisflix.R.id.trailer_webview);
-            if (video != null && webView != null) {
-                webView.setVisibility(View.VISIBLE);
-                webView.getSettings().setJavaScriptEnabled(true);
-                webView.setWebChromeClient(new android.webkit.WebChromeClient());
-                String embedUrl = "https://www.youtube.com/embed/" + video.getKey();
-                webView.loadUrl(embedUrl);
+            android.widget.Button trailerButton = findViewById(com.anisflix.R.id.trailer_button);
+            if (video != null && trailerButton != null) {
+                trailerButton.setVisibility(View.VISIBLE);
+                trailerButton.setOnClickListener(v -> {
+                    if (video.getKey() != null) {
+                        try {
+                            android.content.Intent appIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("vnd.youtube:" + video.getKey()));
+                            startActivity(appIntent);
+                        } catch (android.content.ActivityNotFoundException ex) {
+                            android.content.Intent webIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://www.youtube.com/watch?v=" + video.getKey()));
+                            startActivity(webIntent);
+                        }
+                    }
+                });
+            } else if (trailerButton != null) {
+                trailerButton.setVisibility(View.GONE);
             }
         });
         

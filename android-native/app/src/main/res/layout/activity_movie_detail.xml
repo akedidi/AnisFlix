@@ -148,13 +148,16 @@
                     android:orientation="horizontal" />
             </HorizontalScrollView>
 
-            <!-- Trailer WebView -->
-            <WebView
-                android:id="@+id/trailer_webview"
+            <!-- Trailer Button -->
+            <Button
+                android:id="@+id/trailer_button"
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
+                android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="24dp"
+                android:text="Bande-annonce"
+                android:backgroundTint="#d22f27"
+                android:textColor="@android:color/white"
                 android:visibility="gone"
                 app:layout_constraintTop_toBottomOf="@id/genres_scroll"
                 app:layout_constraintStart_toStartOf="parent"
@@ -171,7 +174,7 @@
                 android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                app:layout_constraintTop_toBottomOf="@id/trailer_webview"
+                app:layout_constraintTop_toBottomOf="@id/trailer_button"
                 app:layout_constraintStart_toStartOf="parent" />
 
             <TextView

@@ -27,7 +27,14 @@ public class MovieDetailViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Movie>> similarMovies = new MutableLiveData<>();
     private final MutableLiveData<com.anisflix.models.Video> trailer = new MutableLiveData<>();
     
-    // ...
+    private final TMDBService tmdbService;
+    private final FavoritesRepository favoritesRepository;
+    
+    public MovieDetailViewModel(@NonNull Application application) {
+        super(application);
+        tmdbService = RetrofitClient.getInstance().getTMDBService();
+        favoritesRepository = FavoritesRepository.getInstance(application.getApplicationContext());
+    }
     
     public void loadMovie(int movieId) {
         isLoading.setValue(true);
@@ -83,6 +90,7 @@ public class MovieDetailViewModel extends AndroidViewModel {
     public LiveData<List<Movie>> getSimilarMovies() {
         return similarMovies;
     }
+    private void checkFavoriteStatus(int movieId) {
         // Check if in favorites (Must be done on background thread)
         new Thread(() -> {
             boolean isFav = favoritesRepository.isFavoriteSync(movieId);
@@ -153,7 +161,5 @@ public class MovieDetailViewModel extends AndroidViewModel {
         return isLoading;
     }
     
-    public LiveData<List<Movie>> getSimilarMovies() {
-        return similarMovies;
-    }
+
 }
