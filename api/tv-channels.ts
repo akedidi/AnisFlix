@@ -441,7 +441,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "radio-nova",
                             name: "Radio Nova",
-                            logo: "https://fr.wikipedia.org/wiki/Radio_Nova#/media/Fichier:Radio_Nova_2024.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Radio_Nova_2024.svg",
                             links: [
                                 { type: "hls_direct", url: "http://novazz.ice.infomaniak.ch/novazz-128.mp3" }
                             ]
@@ -688,7 +688,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "mosaique-fm",
                             name: "Mosaïque FM",
-                            logo: "https://upload.wikimedia.org/wikipedia/fr/0/09/Mosa%C3%AFque_FM_logo_2014.png",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/2/26/Mosaique_fm_logo.png",
                             links: [
                                 { type: "hls_direct", url: "https://webcam.mosaiquefm.net/mosatv/_definst_/studio/playlist.m3u8?DVR" }
                             ]
