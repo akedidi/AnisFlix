@@ -28,30 +28,23 @@ struct DownloadsView: View {
     @State private var itemToCancel: DownloadItem? // Added for cancellation
     @State private var showCancelAlert = false     // Added for cancellation
     
+    @State private var selectedDownload: DownloadItem? // For fullScreenCover presentation
+    
     var body: some View {
         ZStack {
             theme.backgroundColor.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header with Picker
+                // Header with Picker (Title removed)
                 VStack(spacing: 16) {
-                    HStack {
-                        Text(theme.t("downloads.title"))
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(theme.primaryText)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    
                     Picker("Type", selection: $selectedTab) {
                         Text(theme.t("downloads.completed")).tag(0)
                         Text(theme.t("downloads.active")).tag(1)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
+                    .padding(.top, 10) // Added padding since title is gone
+                    .padding(.bottom, 10)
                 }
                 .background(theme.backgroundColor)
                 
@@ -66,7 +59,9 @@ struct DownloadsView: View {
                         List {
                             ForEach(completedDownloads) { item in
                                 ZStack(alignment: .bottomTrailing) {
-                                    NavigationLink(destination: DownloadedMediaDetailView(item: item)) {
+                                    NavigationLink {
+                                        DownloadedMediaDetailView(item: item)
+                                    } label: {
                                         CompletedDownloadRow(item: item)
                                             .contentShape(Rectangle())
                                     }
@@ -115,8 +110,9 @@ struct DownloadsView: View {
                 }
             }
         }
-        .navigationTitle(theme.t("downloads.title"))
-        .navigationBarHidden(true)
+        // Toolbar hidden modifier removed to allow NavigationBar to show if needed (but we have custom header... wait, tab nav)
+        // Actually, we want the system Back button when navigating deeper, but on this root view, we handle header manually.
+        .navigationBarHidden(true) 
         .alert(isPresented: Binding<Bool>(
             get: { showDeleteAlert || showCancelAlert },
             set: { _ in

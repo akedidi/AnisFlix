@@ -1,11 +1,16 @@
 import SwiftUI
+#if canImport(GoogleCast)
 import GoogleCast
+#endif
 
 struct CastDeviceSelectionView: View {
+    #if canImport(GoogleCast)
     @ObservedObject var castManager = CastManager.shared
+    #endif
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
+        #if canImport(GoogleCast)
         VStack(alignment: .leading, spacing: 0) {
             // Header
             Text("Sélectionner un appareil")
@@ -70,14 +75,19 @@ struct CastDeviceSelectionView: View {
                             }
                         }
                     }
-                    
-                    // AirPlay Placeholder (Visual only, as we can't easily merge system AirPlay)
-                    // Or we could put the AVRoutePickerView here if we wrap it properly, 
-                    // but for now let's stick to Chromecast as requested.
                 }
             }
         }
         .padding(.bottom)
         .background(Color(UIColor.systemBackground))
+        #else
+        VStack {
+            Text("Chromecast non disponible")
+                .padding()
+            Button("Fermer") {
+                dismiss()
+            }
+        }
+        #endif
     }
 }

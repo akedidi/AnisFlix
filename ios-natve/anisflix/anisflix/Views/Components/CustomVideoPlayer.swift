@@ -57,6 +57,10 @@ struct CustomVideoPlayer: View {
         ZStack {
             Color.black.ignoresSafeArea()
             
+            // Force Hide TabBar when in Fullscreen
+            TabBarHider(shouldHide: isFullscreen)
+                .frame(width: 0, height: 0)
+            
             // Video Player
             if castManager.isConnected {
                 // Show Cast Placeholder
@@ -378,27 +382,46 @@ struct CustomVideoPlayer: View {
                     }
                 }
             }
-            if isFullscreen {
-                // Force landscape rotation to counter navigation resets or rebuilds
-                ScreenRotator.rotate(to: .landscape)
-            } else {
-                // Lock back to portrait (active force)
-                ScreenRotator.rotate(to: .portrait)
-            }
+            // Orientation is now handled by onChange(of: isFullscreen), not here
+            // This prevents view reconstruction from resetting orientation
         }
         .onDisappear {
-            playerVM.cleanup()
-            // Reset to portrait when player closes
-            ScreenRotator.rotate(to: .portrait)
+            print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
+            // Only reset to portrait if NOT in fullscreen mode
+            // SwiftUI can call onDisappear during view reconstruction even when the view is still visible
+            if !isFullscreen {
+                print("📺 [CustomVideoPlayer] Not in fullscreen, resetting to portrait and cleaning up")
+                playerVM.cleanup()
+                ScreenRotator.rotate(to: .portrait)
+            } else {
+                print("📺 [CustomVideoPlayer] Still in fullscreen, NOT resetting orientation")
+            }
         }
         .onChange(of: isFullscreen) { fullscreen in
+            print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
+            
+            // Set switching flag to prevent orientation notification from reverting our change
+            playerVM.isSwitchingModes = true
+            print("📺 [CustomVideoPlayer] Set isSwitchingModes = true")
+            
             withAnimation {
                 showControls = true
             }
-            if fullscreen {
-                ScreenRotator.rotate(to: .landscape)
-            } else {
-                ScreenRotator.rotate(to: .portrait)
+            
+            // Add a small delay to let SwiftUI settle before forcing rotation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("📺 [CustomVideoPlayer] After 0.1s delay, calling ScreenRotator.rotate(to: \(fullscreen ? "landscape" : "portrait"))")
+                if fullscreen {
+                    ScreenRotator.rotate(to: .landscape)
+                } else {
+                    ScreenRotator.rotate(to: .portrait)
+                }
+            }
+            
+            // Keep the flag active for longer to allow system orientation to fully settle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                print("📺 [CustomVideoPlayer] After 2.0s delay, setting isSwitchingModes = false")
+                playerVM.isSwitchingModes = false
             }
         }
         .sheet(isPresented: $showSubtitlesMenu) {
@@ -504,11 +527,17 @@ struct CustomVideoPlayer: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-            guard !playerVM.isSwitchingModes else { return }
-            
             let orientation = UIDevice.current.orientation
+            print("📱 [CustomVideoPlayer] orientationDidChangeNotification received. Device orientation: \(orientation.rawValue), isLandscape=\(orientation.isLandscape), isPortrait=\(orientation.isPortrait), isSwitchingModes=\(playerVM.isSwitchingModes), isFullscreen=\(isFullscreen)")
+            
+            guard !playerVM.isSwitchingModes else {
+                print("📱 [CustomVideoPlayer] isSwitchingModes=true, IGNORING orientation change")
+                return
+            }
+            
             if orientation.isLandscape {
                 if !isFullscreen {
+                    print("📱 [CustomVideoPlayer] Device is landscape and not fullscreen -> setting isFullscreen=true")
                     playerVM.isSwitchingModes = true
                     withAnimation {
                         isFullscreen = true
@@ -520,6 +549,7 @@ struct CustomVideoPlayer: View {
                 }
             } else if orientation.isPortrait {
                 if isFullscreen {
+                    print("📱 [CustomVideoPlayer] Device is portrait and fullscreen -> setting isFullscreen=false")
                     playerVM.isSwitchingModes = true
                     withAnimation {
                         isFullscreen = false
@@ -912,7 +942,8 @@ class PlayerViewModel: NSObject, ObservableObject {
                 let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
                 self.currentArtwork = artwork
                 print("✅ Artwork downloaded and set: \(urlString)")
-                // Update Now Playing Info with new artwork
+                
+                // Force update of Now Playing Info with the new artwork
                 self.updateNowPlayingInfo()
             }
         } catch {

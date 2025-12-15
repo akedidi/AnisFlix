@@ -407,6 +407,7 @@ struct SeriesDetailView: View {
                 )
                 .matchedGeometryEffect(id: "videoPlayer", in: animation, isSource: false)
                 .zIndex(100)
+                .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
             }
         }
         // .navigationBarHidden(true) removed to show system back button
@@ -701,9 +702,9 @@ struct SeriesDetailView: View {
                                 }
                             }) {
                                 VStack(spacing: 8) {
-                                    Text(lang)
+                                    Text(theme.t(lang))
                                         .font(.headline)
-                                        .foregroundColor(theme.preferredSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
+                                        .foregroundColor(theme.preferredSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.primaryText : theme.secondaryText.opacity(0.3)))
                                     
                                     if theme.preferredSourceLanguage == lang {
                                         Rectangle()

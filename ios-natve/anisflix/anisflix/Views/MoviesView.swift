@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct MoviesView: View {
+    var showHeader: Bool = true
     @ObservedObject var theme = AppTheme.shared
     
     // State for all categories
@@ -195,8 +196,10 @@ struct MoviesView: View {
             }
         }
         .safeAreaInset(edge: .top) {
-             CustomHeaderView(title: theme.t("nav.movies"))
-                .background(theme.backgroundColor)
+             if showHeader {
+                 CustomHeaderView(title: theme.t("nav.movies"))
+                    .background(theme.backgroundColor)
+             }
         }
         .background(theme.backgroundColor.ignoresSafeArea())
         .task {

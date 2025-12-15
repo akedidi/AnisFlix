@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SeriesView: View {
+    var showHeader: Bool = true
     @ObservedObject var theme = AppTheme.shared
     
     // State for all categories
@@ -196,8 +197,10 @@ struct SeriesView: View {
             }
         }
         .safeAreaInset(edge: .top) {
-             CustomHeaderView(title: theme.t("nav.series"))
-                .background(theme.backgroundColor)
+             if showHeader {
+                 CustomHeaderView(title: theme.t("nav.series"))
+                    .background(theme.backgroundColor)
+             }
         }
         .background(theme.backgroundColor.ignoresSafeArea())
         .task {

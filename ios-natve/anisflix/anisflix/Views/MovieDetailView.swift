@@ -284,25 +284,29 @@ struct MovieDetailView: View {
                                             }
                                             
                                             Button(action: {
-                                                if hasSources {
-                                                    theme.preferredSourceLanguage = lang
+                                                if lang == "VF" {
+                                                    theme.preferredSourceLanguage = "VF"
+                                                } else if lang == "VOSTFR" {
+                                                    theme.preferredSourceLanguage = "VOSTFR"
+                                                } else {
+                                                    theme.preferredSourceLanguage = "VO"
                                                 }
                                             }) {
-                                                VStack(spacing: 8) {
-                                                    Text(lang)
-                                                        .font(.headline)
-                                                        .foregroundColor(theme.preferredSourceLanguage == lang ? AppTheme.primaryRed : (hasSources ? theme.secondaryText : theme.secondaryText.opacity(0.3)))
-                                                    
-                                                    if theme.preferredSourceLanguage == lang {
-                                                        Rectangle()
-                                                            .fill(AppTheme.primaryRed)
-                                                            .frame(height: 2)
-                                                    } else {
-                                                        Rectangle()
-                                                            .fill(Color.clear)
-                                                            .frame(height: 2)
-                                                    }
-                                                }
+                                                Text(theme.t(lang))
+                                                    .font(.subheadline.bold())
+                                                    .foregroundColor(theme.preferredSourceLanguage == lang ? .white : (hasSources ? theme.primaryText : theme.secondaryText.opacity(0.3)))
+                                                    .padding(.horizontal, 16)
+                                                    .padding(.vertical, 8)
+                                                    .background(
+                                                        ZStack {
+                                                            if theme.preferredSourceLanguage == lang {
+                                                                AppTheme.primaryRed
+                                                            } else {
+                                                                theme.cardBackground.opacity(hasSources ? 1.0 : 0.5)
+                                                            }
+                                                        }
+                                                    )
+                                                    .cornerRadius(8)
                                             }
                                             .disabled(!hasSources)
                                         }
@@ -461,6 +465,7 @@ struct MovieDetailView: View {
                 }
                 .background(isFullscreen ? Color.black : Color.clear)
                 .zIndex(100)
+                .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
                 // Position logic:
                 // When inline, we want it to appear "in place". 
                 // Since we are in a ZStack, we need to position it correctly.

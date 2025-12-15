@@ -2,7 +2,7 @@
 //  DownloadedMediaDetailView.swift
 //  anisflix
 //
-//  Created by AI Assistant on 03/12/2025.
+//  Created by AI Assistant on 05/12/2025.
 //
 
 import SwiftUI
@@ -18,20 +18,14 @@ struct DownloadedMediaDetailView: View {
     @StateObject private var playerVM = PlayerViewModel()
     
     var backdropUrl: URL? {
-        if let localPath = item.localBackdropPath {
-            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            return documentsURL.appendingPathComponent(localPath)
-        } else if let path = item.backdropPath {
-            return URL(string: "https://image.tmdb.org/t/p/w1280\(path)")
+        if let path = item.backdropPath {
+            return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
         }
         return nil
     }
     
     var posterUrl: URL? {
-        if let localPath = item.localPosterPath {
-            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            return documentsURL.appendingPathComponent(localPath)
-        } else if let path = item.posterPath {
+        if let path = item.posterPath {
             return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
         }
         return nil
@@ -44,51 +38,51 @@ struct DownloadedMediaDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Header with Backdrop/Poster
-                    GeometryReader { geometry in
-                        ZStack(alignment: .topLeading) {
-                            if let url = backdropUrl {
-                                AsyncImage(url: url) { phase in
-                                    if let image = phase.image {
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: geometry.size.width, height: 250)
-                                            .clipped()
-                                            .overlay(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [.clear, theme.backgroundColor]),
-                                                    startPoint: .center,
-                                                    endPoint: .bottom
-                                                )
+                    ZStack(alignment: .topLeading) {
+                        if let url = backdropUrl {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: UIScreen.main.bounds.width, height: 250)
+                                        .clipped()
+                                        .overlay(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [.clear, theme.backgroundColor]),
+                                                startPoint: .center,
+                                                endPoint: .bottom
                                             )
-                                    } else {
-                                        Rectangle()
-                                            .fill(theme.cardBackground)
-                                            .frame(width: geometry.size.width, height: 250)
-                                    }
+                                        )
+                                } else {
+                                    Rectangle()
+                                        .fill(theme.cardBackground)
+                                        .frame(width: UIScreen.main.bounds.width, height: 250)
                                 }
-                            } else if let url = posterUrl {
-                                AsyncImage(url: url) { phase in
-                                    if let image = phase.image {
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: geometry.size.width, height: 250)
-                                            .clipped()
-                                    } else {
-                                        Rectangle()
-                                            .fill(theme.cardBackground)
-                                            .frame(width: geometry.size.width, height: 250)
-                                    }
-                                }
-                            } else {
-                                 Rectangle()
-                                    .fill(theme.cardBackground)
-                                    .frame(width: geometry.size.width, height: 250)
                             }
+                        } else if let url = posterUrl {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: UIScreen.main.bounds.width, height: 250)
+                                        .clipped()
+                                } else {
+                                    Rectangle()
+                                        .fill(theme.cardBackground)
+                                        .frame(width: UIScreen.main.bounds.width, height: 250)
+                                }
+                            }
+                        } else {
+                             Rectangle()
+                                .fill(theme.cardBackground)
+                                .frame(width: UIScreen.main.bounds.width, height: 250)
                         }
+                        
+                        // Back button removed to use system navigation
                     }
-                    .frame(height: 250)
+                    .frame(width: UIScreen.main.bounds.width)
                     
                     VStack(alignment: .leading, spacing: 24) {
                         // Title & Info
@@ -172,70 +166,32 @@ struct DownloadedMediaDetailView: View {
             
             // Player Overlay
             if showPlayer, let url = item.localVideoUrl {
-                GeometryReader { playerGeo in
-                    VStack(spacing: 0) {
-                        // Header above player when inline
-                        if !isFullscreen {
-                            HStack {
-                                Spacer()
-                                
-                                Button(action: {
-                                    showPlayer = false
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "xmark.circle.fill")
-                                        Text(theme.t("detail.close"))
-                                    }
-                                    .font(.subheadline)
-                                    .foregroundColor(theme.secondaryText)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(theme.cardBackground)
-                                    .cornerRadius(16)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 8)
-                            .padding(.top, 350) // Approximate position
-                        }
-                        
-                            if !isFullscreen {
-                                CustomVideoPlayer(
-                                    url: url,
-                                    title: item.title,
-                                    posterUrl: posterUrl?.absoluteString,
-                                    subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                                    isPresented: $showPlayer,
-                                    isFullscreen: $isFullscreen,
-                                    showFullscreenButton: true,
-                                    mediaId: item.mediaId,
-                                    season: item.season,
-                                    episode: item.episode,
-                                    playerVM: playerVM
-                                )
-                                .frame(width: playerGeo.size.width, height: 250)
-                            }
-                        
-                        if !isFullscreen {
+                VStack(spacing: 0) {
+                    // Header above player when inline
+                    if !isFullscreen {
+                        HStack {
                             Spacer()
+                            
+                            Button(action: {
+                                showPlayer = false
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "xmark.circle.fill")
+                                    Text(theme.t("detail.close"))
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(theme.secondaryText)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(theme.cardBackground)
+                                .cornerRadius(16)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .padding(.top, 350) // Approximate position
                     }
-                }
-                .edgesIgnoringSafeArea([])
-                .zIndex(100)
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(item.title)
-                    .font(.headline)
-                    .foregroundColor(theme.primaryText)
-            }
-        }
-        .fullScreenCover(isPresented: $isFullscreen) {
-            if let url = item.localVideoUrl {
-                LandscapeView {
+                    
                     CustomVideoPlayer(
                         url: url,
                         title: item.title,
@@ -249,10 +205,90 @@ struct DownloadedMediaDetailView: View {
                         episode: item.episode,
                         playerVM: playerVM
                     )
-                    .ignoresSafeArea()
+                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
+                    .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                    .onAppear {
+                        print("▶️ Playing local file: \(url.absoluteString)")
+                        // Verify file existence
+                        if FileManager.default.fileExists(atPath: url.path) {
+                            print("✅ File exists at path: \(url.path)")
+                        } else {
+                            print("❌ File NOT found at path: \(url.path)")
+                        }
+                    }
+                    
                 }
-                .ignoresSafeArea()
+            }
+            
+            // Player Overlay
+            if showPlayer, let url = item.localVideoUrl {
+                VStack(spacing: 0) {
+                    // Header above player when inline
+                    if !isFullscreen {
+                        HStack {
+                            Spacer()
+                            
+                            Button(action: {
+                                showPlayer = false
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "xmark.circle.fill")
+                                    Text(theme.t("detail.close"))
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(theme.secondaryText)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(theme.cardBackground)
+                                .cornerRadius(16)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .padding(.top, 350) // Approximate position
+                    }
+                    
+                    CustomVideoPlayer(
+                        url: url,
+                        title: item.title,
+                        subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
+                        isPresented: $showPlayer,
+                        isFullscreen: $isFullscreen,
+                        showFullscreenButton: true,
+                        mediaId: item.mediaId,
+                        season: item.season,
+                        episode: item.episode,
+                        playerVM: playerVM
+                    )
+                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
+                    .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                    .onAppear {
+                        print("▶️ Playing local file: \(url.absoluteString)")
+                        // Verify file existence
+                        if FileManager.default.fileExists(atPath: url.path) {
+                            print("✅ File exists at path: \(url.path)")
+                        } else {
+                            print("❌ File NOT found at path: \(url.path)")
+                        }
+                    }
+                    
+                    if !isFullscreen {
+                        Spacer()
+                    }
+                }
+                .background(isFullscreen ? Color.black : Color.clear)
+                .zIndex(100)
             }
         }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundColor(theme.primaryText)
+            }
+        }
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
+        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
     }
 }
