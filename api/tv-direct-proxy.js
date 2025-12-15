@@ -16,13 +16,13 @@ export default async function handler(req, res) {
 
   try {
     const { url, domain } = req.query;
-    
+
     if (!url && !domain) {
       return res.status(400).json({ error: 'URL or domain parameter is required' });
     }
 
     let targetUrl;
-    
+
     // Si c'est une URL complète, l'utiliser directement
     if (url) {
       targetUrl = decodeURIComponent(url);
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       if (!path) {
         return res.status(400).json({ error: 'Path parameter is required when using domain' });
       }
-      
+
       switch (domain) {
         case 'viamotionhsi':
           targetUrl = `https://viamotionhsi.netplus.ch/live/eds/${path}`;
@@ -75,8 +75,14 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`[TV DIRECT PROXY] Proxifying: ${targetUrl}`);
-    
+    // Determine if we are handling a playlist or a specific media segment
+    const isPlaylist = targetUrl.includes('.m3u8') || targetUrl.includes('.mpd');
+
+    console.log(`[TV DIRECT PROXY] Proxifying: ${targetUrl} (Playlist: ${isPlaylist})`);
+
+    // For playlists, we need text to rewrite URLs. For media segments, we need binary stream.
+    const responseType = req.method === 'HEAD' ? 'stream' : (isPlaylist ? 'text' : 'stream');
+
     const response = await axios.get(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -86,7 +92,7 @@ export default async function handler(req, res) {
         'Pragma': 'no-cache'
       },
       timeout: 10000,
-      responseType: req.method === 'HEAD' ? 'stream' : 'text'
+      responseType: responseType
     });
 
     console.log(`[TV DIRECT PROXY] ${response.status} ${response.headers['content-type']} ← ${targetUrl}`);
@@ -102,6 +108,29 @@ export default async function handler(req, res) {
       return res.status(response.status).end();
     }
 
+    // If not a playlist (binary segment), pipe directly with correct headers
+    if (!isPlaylist) {
+      // Force correct MIME types for known extensions because upstream (e.g. GitHub) might be wrong
+      if (targetUrl.includes('.ts')) {
+        res.setHeader('Content-Type', 'video/mp2t');
+      } else if (targetUrl.includes('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      } else if (targetUrl.includes('.aac')) {
+        res.setHeader('Content-Type', 'audio/aac');
+      } else {
+        // Fallback to upstream content-type or default
+        res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+      }
+
+      // Forward other relevant headers
+      if (response.headers['content-length']) res.setHeader('Content-Length', response.headers['content-length']);
+      if (response.headers['accept-ranges']) res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache long for segments
+
+      response.data.pipe(res);
+      return;
+    }
+
     if (typeof response.data !== 'string') {
       return res.status(502).send('Pas une playlist M3U8.');
     }
@@ -112,19 +141,19 @@ export default async function handler(req, res) {
       .replace(/^([^#\n].*\.m3u8)$/gm, (match) => {
         // Pour les sous-playlists, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
-        
+
         // Si l'URL contient un token JWT (cache1a.netplus.ch avec tok_), utiliser l'API TV standard
         if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
           const encodedUrl = encodeURIComponent(resolvedUrl);
           return `/api/tv?url=${encodedUrl}`;
         }
-        
+
         // Si c'est une sous-playlist vidéo (contient hd1-avc1_ et =), utiliser l'API TV standard
         if (resolvedUrl.includes('hd1-avc1_') && resolvedUrl.includes('=')) {
           const encodedUrl = encodeURIComponent(resolvedUrl);
           return `/api/tv?url=${encodedUrl}`;
         }
-        
+
         // Sinon, utiliser le proxy direct
         const urlObj = new URL(resolvedUrl);
         const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
@@ -133,13 +162,13 @@ export default async function handler(req, res) {
       .replace(/^([^#\n].*\.ts)$/gm, (match) => {
         // Pour les segments TS, détecter si elles contiennent des tokens JWT
         const resolvedUrl = new URL(match, targetUrl).href;
-        
+
         // Si l'URL contient un token JWT, utiliser l'API TV standard
         if (resolvedUrl.includes('cache1a.netplus.ch') && resolvedUrl.includes('tok_')) {
           const encodedUrl = encodeURIComponent(resolvedUrl);
           return `/api/tv?url=${encodedUrl}`;
         }
-        
+
         // Sinon, utiliser le proxy direct
         const urlObj = new URL(resolvedUrl);
         const relativePath = urlObj.pathname.substring(1); // Enlever le slash initial
@@ -151,7 +180,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    
+
     res.status(200).send(rewritten);
   } catch (error) {
     console.error('[TV DIRECT PROXY ERROR]', error.message);
