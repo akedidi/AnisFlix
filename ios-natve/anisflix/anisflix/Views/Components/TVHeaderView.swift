@@ -119,25 +119,32 @@ struct TVHeaderView: View {
                                     onChannelSelect?(channel)
                                 } label: {
                                     HStack(spacing: 12) {
-                                        // Logo
-                                        AsyncImage(url: URL(string: channel.logo)) { phase in
-                                            switch phase {
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 50, height: 50)
-                                                    .background(Color.white)
-                                                    .cornerRadius(6)
-                                            default:
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .fill(Color.white.opacity(0.9))
-                                                    .frame(width: 50, height: 50)
-                                                    .overlay(
-                                                        Image(systemName: "tv")
-                                                            .font(.caption)
-                                                            .foregroundColor(.gray)
-                                                    )
+                                        // Logo with SVG support
+                                        if channel.logo.lowercased().hasSuffix(".svg"), let logoUrl = URL(string: channel.logo) {
+                                            SVGImageView(url: logoUrl)
+                                                .frame(width: 50, height: 50)
+                                                .background(Color.white)
+                                                .cornerRadius(6)
+                                        } else {
+                                            AsyncImage(url: URL(string: channel.logo)) { phase in
+                                                switch phase {
+                                                case .success(let image):
+                                                    image
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fit)
+                                                        .frame(width: 50, height: 50)
+                                                        .background(Color.white)
+                                                        .cornerRadius(6)
+                                                default:
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .fill(Color.white.opacity(0.9))
+                                                        .frame(width: 50, height: 50)
+                                                        .overlay(
+                                                            Image(systemName: "tv")
+                                                                .font(.caption)
+                                                                .foregroundColor(.gray)
+                                                        )
+                                                }
                                             }
                                         }
                                         
