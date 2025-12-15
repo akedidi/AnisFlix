@@ -435,7 +435,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "France Inter",
                             logo: "https://upload.wikimedia.org/wikipedia/fr/thumb/3/34/Logo_France_Inter_2021.svg/1200px-Logo_France_Inter_2021.svg.png",
                             links: [
-                                { type: "hls_direct", url: "https://raw.githubusercontent.com/Sibprod/streams/main/ressources/dm/py/hls/franceinter.m3u8" }
+                                { type: "hls_direct", url: "https://icecast.radiofrance.fr/franceinter-midfi.mp3" }
                             ]
                         },
                         {
