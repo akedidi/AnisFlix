@@ -1577,7 +1577,7 @@ export default function TVChannels() {
                       {streamUrl && originalStreamUrl &&
                         !originalStreamUrl.includes('fremtv.lol') &&
                         !originalStreamUrl.includes('.mpd') && (
-                          <div className="absolute top-4 right-4 z-50">
+                          <div className="absolute top-4 left-4 z-50">
                             <ChromecastButton
                               mediaUrl={originalStreamUrl}
                               title={selectedChannel.name}
@@ -1591,7 +1591,7 @@ export default function TVChannels() {
                         )}
 
                       {/* Bouton Fermer - En haut à gauche */}
-                      <div className="absolute top-4 left-4 z-50">
+                      <div className="absolute top-4 right-4 z-50">
                         <Button
                           variant="ghost"
                           size="icon"
