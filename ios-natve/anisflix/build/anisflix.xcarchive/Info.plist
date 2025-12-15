@@ -5,13 +5,13 @@
 	<key>ApplicationProperties</key>
 	<dict>
 		<key>ApplicationPath</key>
-		<string>Applications/anisflix.app</string>
+		<string>Applications/AnisFlix.app</string>
 		<key>Architectures</key>
 		<array>
 			<string>arm64</string>
 		</array>
 		<key>CFBundleIdentifier</key>
-		<string>anis..anisflix</string>
+		<string>com.anis.anisflix</string>
 		<key>CFBundleShortVersionString</key>
 		<string>1.0</string>
 		<key>CFBundleVersion</key>
@@ -24,10 +24,10 @@
 	<key>ArchiveVersion</key>
 	<integer>2</integer>
 	<key>CreationDate</key>
-	<date>2025-12-11T23:05:19Z</date>
+	<date>2025-12-15T17:29:15Z</date>
 	<key>Name</key>
-	<string>anisflix</string>
+	<string>AnisFlix</string>
 	<key>SchemeName</key>
-	<string>anisflix</string>
+	<string>AnisFlix</string>
 </dict>
 </plist>

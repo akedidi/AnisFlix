@@ -7,7 +7,7 @@
         "key": "Casting to %@",
         "location": {
           "startingColumn": 26,
-          "startingLine": 65
+          "startingLine": 71
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "-10s",
         "location": {
           "startingColumn": 30,
-          "startingLine": 150
+          "startingLine": 156
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "+10s",
         "location": {
           "startingColumn": 30,
-          "startingLine": 168
+          "startingLine": 174
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Sous-titres",
         "location": {
           "startingColumn": 30,
-          "startingLine": 597
+          "startingLine": 631
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "Synchronisation",
         "location": {
           "startingColumn": 38,
-          "startingLine": 533
+          "startingLine": 567
         }
       },
       {
@@ -47,7 +47,7 @@
         "key": "Sous-titres",
         "location": {
           "startingColumn": 38,
-          "startingLine": 562
+          "startingLine": 596
         }
       },
       {
@@ -55,7 +55,7 @@
         "key": "Décalage",
         "location": {
           "startingColumn": 30,
-          "startingLine": 535
+          "startingLine": 569
         }
       },
       {
@@ -63,7 +63,7 @@
         "key": "Désactivé",
         "location": {
           "startingColumn": 34,
-          "startingLine": 568
+          "startingLine": 602
         }
       },
       {
@@ -71,7 +71,7 @@
         "key": "Fermer",
         "location": {
           "startingColumn": 28,
-          "startingLine": 601
+          "startingLine": 635
         }
       }
     ]

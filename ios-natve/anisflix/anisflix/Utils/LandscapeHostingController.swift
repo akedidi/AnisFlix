@@ -56,6 +56,10 @@ class LandscapeHostingController<Content: View>: UIHostingController<Content> {
             }
         }
     }
+    
+    deinit {
+        // Explicit deinit to work around Xcode 26 beta compiler crash
+    }
 }
 
 /// A wrapper to present a SwiftUI view inside a LandscapeHostingController

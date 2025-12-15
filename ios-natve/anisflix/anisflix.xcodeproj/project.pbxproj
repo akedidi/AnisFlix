@@ -12,18 +12,18 @@
 
 /* Begin PBXFileReference section */
 		7480EFD32F71F843709F2C98 /* Pods-anisflix.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-anisflix.debug.xcconfig"; path = "Target Support Files/Pods-anisflix/Pods-anisflix.debug.xcconfig"; sourceTree = "<group>"; };
-		A2B5868C2ED51B8300FF2D68 /* anisflix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = anisflix.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A2B5868C2ED51B8300FF2D68 /* AnisFlix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AnisFlix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC5E42BEAA806709856EF82D /* Pods_anisflix.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_anisflix.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E3EEE1098C76EC40872B6AE9 /* Pods-anisflix.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-anisflix.release.xcconfig"; path = "Target Support Files/Pods-anisflix/Pods-anisflix.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A2F553FB2EDE4EA800884BB7 /* Exceptions for "anisflix" folder in "anisflix" target */ = {
+		A2F553FB2EDE4EA800884BB7 /* Exceptions for "anisflix" folder in "AnisFlix" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = A2B5868B2ED51B8300FF2D68 /* anisflix */;
+			target = A2B5868B2ED51B8300FF2D68 /* AnisFlix */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -31,7 +31,7 @@
 		A2B5868E2ED51B8300FF2D68 /* anisflix */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				A2F553FB2EDE4EA800884BB7 /* Exceptions for "anisflix" folder in "anisflix" target */,
+				A2F553FB2EDE4EA800884BB7 /* Exceptions for "anisflix" folder in "AnisFlix" target */,
 			);
 			path = anisflix;
 			sourceTree = "<group>";
@@ -80,7 +80,7 @@
 		A2B5868D2ED51B8300FF2D68 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A2B5868C2ED51B8300FF2D68 /* anisflix.app */,
+				A2B5868C2ED51B8300FF2D68 /* AnisFlix.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -88,9 +88,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		A2B5868B2ED51B8300FF2D68 /* anisflix */ = {
+		A2B5868B2ED51B8300FF2D68 /* AnisFlix */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = A2B586972ED51B8600FF2D68 /* Build configuration list for PBXNativeTarget "anisflix" */;
+			buildConfigurationList = A2B586972ED51B8600FF2D68 /* Build configuration list for PBXNativeTarget "AnisFlix" */;
 			buildPhases = (
 				1790A3715E29867B52AC5134 /* [CP] Check Pods Manifest.lock */,
 				A2B586882ED51B8300FF2D68 /* Sources */,
@@ -105,9 +105,9 @@
 			fileSystemSynchronizedGroups = (
 				A2B5868E2ED51B8300FF2D68 /* anisflix */,
 			);
-			name = anisflix;
+			name = AnisFlix;
 			productName = anisflix;
-			productReference = A2B5868C2ED51B8300FF2D68 /* anisflix.app */;
+			productReference = A2B5868C2ED51B8300FF2D68 /* AnisFlix.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -139,7 +139,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				A2B5868B2ED51B8300FF2D68 /* anisflix */,
+				A2B5868B2ED51B8300FF2D68 /* AnisFlix */,
 			);
 		};
 /* End PBXProject section */
@@ -337,8 +337,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LWM8C85Y26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = anisflix/Info.plist;
@@ -348,7 +350,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -356,8 +359,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = anis..anisflix;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anis.anisflix;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -375,8 +379,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = LWM8C85Y26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = anisflix/Info.plist;
@@ -386,7 +392,8 @@
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -394,8 +401,9 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = anis..anisflix;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anis.anisflix;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -418,7 +426,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A2B586972ED51B8600FF2D68 /* Build configuration list for PBXNativeTarget "anisflix" */ = {
+		A2B586972ED51B8600FF2D68 /* Build configuration list for PBXNativeTarget "AnisFlix" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A2B586982ED51B8600FF2D68 /* Debug */,

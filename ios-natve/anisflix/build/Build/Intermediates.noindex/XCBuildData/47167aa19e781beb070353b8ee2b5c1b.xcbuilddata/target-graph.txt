@@ -1,8 +1,0 @@
-Target dependency graph (4 targets)
-Target 'anisflix' in project 'anisflix'
-➜ Implicit dependency on target 'Pods-anisflix' in project 'Pods' via file 'Pods_anisflix.framework' in build phase 'Link Binary'
-Target 'Pods-anisflix' in project 'Pods'
-➜ Explicit dependency on target 'google-cast-sdk' in project 'Pods'
-Target 'google-cast-sdk' in project 'Pods'
-➜ Explicit dependency on target 'google-cast-sdk-GoogleCast' in project 'Pods'
-Target 'google-cast-sdk-GoogleCast' in project 'Pods' (no dependencies)

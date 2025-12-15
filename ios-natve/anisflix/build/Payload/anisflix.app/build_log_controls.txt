@@ -1,5 +1,0 @@
-Command line invocation:
-    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project anisflix.xcodeproj -scheme anisflix -destination "generic/platform=iOS Simulator" build
-
-2025-11-30 18:08:01.185 xcodebuild[55892:5400636] Writing error result bundle to /var/folders/5n/8bqj71ls731721nymrrw18tc0000gn/T/ResultBundle_2025-30-11_18-08-0001.xcresult
-xcodebuild: error: 'anisflix.xcodeproj' does not exist.

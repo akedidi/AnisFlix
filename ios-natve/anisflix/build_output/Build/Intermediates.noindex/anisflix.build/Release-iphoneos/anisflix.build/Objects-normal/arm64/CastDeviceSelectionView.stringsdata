@@ -7,7 +7,7 @@
         "key": "Sélectionner un appareil",
         "location": {
           "startingColumn": 18,
-          "startingLine": 11
+          "startingLine": 16
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Déconnecter",
         "location": {
           "startingColumn": 38,
-          "startingLine": 30
+          "startingLine": 35
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Recherche d'appareils...",
         "location": {
           "startingColumn": 34,
-          "startingLine": 46
+          "startingLine": 51
         }
       }
     ]

@@ -1,0 +1,1265 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -workspace anisflix.xcworkspace -scheme anisflix -configuration Release -archivePath ./build/anisflix.xcarchive -destination generic/platform=iOS archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=
+
+Build settings from command line:
+    CODE_SIGN_IDENTITY = 
+    CODE_SIGNING_ALLOWED = NO
+    CODE_SIGNING_REQUIRED = NO
+
+2025-12-15 00:10:09.185 xcodebuild[48468:23979312] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+note: Using codesigning identity override: 
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (4 targets)
+    Target 'anisflix' in project 'anisflix'
+        ➜ Implicit dependency on target 'Pods-anisflix' in project 'Pods' via file 'Pods_anisflix.framework' in build phase 'Link Binary'
+    Target 'Pods-anisflix' in project 'Pods'
+        ➜ Explicit dependency on target 'google-cast-sdk' in project 'Pods'
+    Target 'google-cast-sdk' in project 'Pods'
+        ➜ Explicit dependency on target 'google-cast-sdk-GoogleCast' in project 'Pods'
+    Target 'google-cast-sdk-GoogleCast' in project 'Pods' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x objective-c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/libtool -V
+
+Build description signature: 8b4c30a0a62162d2e9d4127dc587abd5
+Build description path: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/XCBuildData/8b4c30a0a62162d2e9d4127dc587abd5.xcbuilddata
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/SwiftExplicitPrecompiledModules
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/EagerLinkingTBDs/Release-iphoneos
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/EagerLinkingTBDs/Release-iphoneos
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-8699adb1dd336b26511df848a716bd42-VFS-iphoneos/all-product-headers.yaml
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-8699adb1dd336b26511df848a716bd42-VFS-iphoneos/all-product-headers.yaml
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix-8c77cfc3c15a48e8c801f7c0d09e749c-VFS-iphoneos/all-product-headers.yaml
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix-8c77cfc3c15a48e8c801f7c0d09e749c-VFS-iphoneos/all-product-headers.yaml
+
+CreateBuildDirectory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/google-cast-sdk
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-create-build-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/google-cast-sdk
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/InputFileList-3FA3970859354AFA2BCAA5FE66757895-google-cast-sdk-xcframeworks-input-files-c751b6e268ad959a9744a5f49fbb6974-resolved.xcfilelist (in target 'google-cast-sdk' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/InputFileList-3FA3970859354AFA2BCAA5FE66757895-google-cast-sdk-xcframeworks-input-files-c751b6e268ad959a9744a5f49fbb6974-resolved.xcfilelist
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/Script-3FA3970859354AFA2BCAA5FE66757895.sh (in target 'google-cast-sdk' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/Script-3FA3970859354AFA2BCAA5FE66757895.sh
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/OutputFileList-3FA3970859354AFA2BCAA5FE66757895-google-cast-sdk-xcframeworks-output-files-06326feb72231e42e18630a342649023-resolved.xcfilelist (in target 'google-cast-sdk' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/OutputFileList-3FA3970859354AFA2BCAA5FE66757895-google-cast-sdk-xcframeworks-output-files-06326feb72231e42e18630a342649023-resolved.xcfilelist
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.DependencyMetadataFileList (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-project-headers.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-project-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-generated-files.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-generated-files.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-own-target-headers.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.DependencyStaticMetadataFileList (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-target-headers.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-non-framework-target-headers.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-non-framework-target-headers.hmap
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/module.modulemap /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix.modulemap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix.modulemap /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/module.modulemap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.hmap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.DependencyStaticMetadataFileList (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.DependencyMetadataFileList (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-project-headers.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-project-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-generated-files.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-generated-files.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-all-target-headers.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-own-target-headers.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-all-non-framework-target-headers.hmap (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk-GoogleCast.build/GoogleCast-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.DependencyStaticMetadataFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.DependencyMetadataFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-project-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-project-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-own-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-own-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-generated-files.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-generated-files.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-all-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-all-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-all-non-framework-target-headers.hmap (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-D62600697EA85DE07F964912.sh (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-D62600697EA85DE07F964912.sh
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-1790A3715E29867B52AC5134.sh (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-1790A3715E29867B52AC5134.sh
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/OutputFileList-D62600697EA85DE07F964912-Pods-anisflix-resources-Release-output-files-9ed98416f107bc779a6e5ddd8a9cd305-resolved.xcfilelist (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/OutputFileList-D62600697EA85DE07F964912-Pods-anisflix-resources-Release-output-files-9ed98416f107bc779a6e5ddd8a9cd305-resolved.xcfilelist
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.LinkFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.LinkFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.SwiftConstValuesFileList (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/InputFileList-D62600697EA85DE07F964912-Pods-anisflix-resources-Release-input-files-5d07d7472a72b3d2d4bbc7a2d436bf96-resolved.xcfilelist (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/InputFileList-D62600697EA85DE07F964912-Pods-anisflix-resources-Release-input-files-5d07d7472a72b3d2d4bbc7a2d436bf96-resolved.xcfilelist
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp
+-target arm64-apple-ios16.0 '-std=gnu11' -fobjc-arc -fmodules -gmodules '-fmodules-cache-path=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex' '-fmodule-name=Pods_anisflix' -fpascal-strings -Os -fno-common '-DPOD_CONFIGURATION_RELEASE=1' '-DCOCOAPODS=1' '-DNS_BLOCK_ASSERTIONS=1' '-DOBJC_OLD_DISPATCH_PROTOTYPES=0' -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -g -iquote /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-generated-files.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-own-target-headers.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-non-framework-target-headers.hmap -ivfsoverlay /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-8699adb1dd336b26511df848a716bd42-VFS-iphoneos/all-product-headers.yaml -iquote /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-project-headers.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/include -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources-normal/arm64 -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/arm64 -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos -F/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/XCFrameworkIntermediates/google-cast-sdk
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix.LinkFileList (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix.LinkFileList
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+-target arm64-apple-ios16.0 '-std=gnu11' -fmodules -gmodules '-fmodules-cache-path=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex' '-fmodule-name=Pods_anisflix' -fpascal-strings -Os -fno-common '-DPOD_CONFIGURATION_RELEASE=1' '-DCOCOAPODS=1' -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -g -iquote /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-generated-files.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-own-target-headers.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-all-non-framework-target-headers.hmap -ivfsoverlay /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-8699adb1dd336b26511df848a716bd42-VFS-iphoneos/all-product-headers.yaml -iquote /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Pods_anisflix-project-headers.hmap -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/include -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources-normal/arm64 -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/arm64 -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos -F/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework -F/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/XCFrameworkIntermediates/google-cast-sdk
+
+SymLink /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/google-cast-sdk/GoogleCast.bundle ../../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/ln -sfh ../../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/google-cast-sdk/GoogleCast.bundle
+
+WriteAuxiliaryFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    write-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c
+
+CpHeader /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Headers/Pods-anisflix-umbrella.h /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-umbrella.h (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-umbrella.h /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Headers
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+SymLink /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/anisflix.app ../../InstallationBuildProductsLocation/Applications/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/ln -sfh ../../InstallationBuildProductsLocation/Applications/anisflix.app /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/anisflix.app
+
+SymLink /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/Pods_anisflix.framework ../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/ln -sfh ../../IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/Pods_anisflix.framework
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Headers (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Headers
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app
+
+Copy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Modules/module.modulemap /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/module.modulemap (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/module.modulemap /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Modules
+
+ProcessInfoPlistFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle/Info.plist /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/google-cast-sdk/ResourceBundle-GoogleCast-google-cast-sdk-Info.plist (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-infoPlistUtility /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/google-cast-sdk/ResourceBundle-GoogleCast-google-cast-sdk-Info.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64 -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle/Info.plist
+
+CpResource /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle/PrivacyInfo.xcprivacy /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework/GoogleCast.xcframework/ios-arm64/GoogleCast.framework/PrivacyInfo.xcprivacy (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework/GoogleCast.xcframework/ios-arm64/GoogleCast.framework/PrivacyInfo.xcprivacy /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+SetOwnerAndGroup aniskedidi:staff /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /usr/sbin/chown -RH aniskedidi:staff /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+SetMode u+w,go-w,a+rX /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/chmod -RH u+w,go-w,a+rX /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+Touch /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle (in target 'google-cast-sdk-GoogleCast' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /usr/bin/touch -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/GoogleCast.bundle
+
+PhaseScriptExecution [CP]\ Copy\ XCFrameworks /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/Script-3FA3970859354AFA2BCAA5FE66757895.sh (in target 'google-cast-sdk' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/sh -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/google-cast-sdk.build/Script-3FA3970859354AFA2BCAA5FE66757895.sh
+Selected xcframework slice ios-arm64
+rsync --delete -av --filter P .*.?????? --links --filter "- CVS/" --filter "- .svn/" --filter "- .git/" --filter "- .hg/" "/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework/GoogleCast.xcframework/ios-arm64/*" "/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/XCFrameworkIntermediates/google-cast-sdk"
+Transfer starting: 723 files
+GoogleCast.framework/
+GoogleCast.framework/GoogleCast
+GoogleCast.framework/Info.plist
+GoogleCast.framework/PrivacyInfo.xcprivacy
+GoogleCast.framework/GoogleCastCoreResources.bundle/
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB01.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB02.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB03.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB04.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB05.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB06.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB07.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB08.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB09.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB10.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB11.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB12.mom
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/CastFrameworkDB12.omo
+GoogleCast.framework/GoogleCastCoreResources.bundle/CastFrameworkDB.momd/VersionInfo.plist
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_disconnected_24pt.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_disconnected_24pt@2x.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_disconnected_24pt@3x.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_logo_385_64.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_logo_385_64@2x.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/Icons/cast_logo_385_64@3x.png
+GoogleCast.framework/GoogleCastCoreResources.bundle/af.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/af.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ar.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ar.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/bg.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/bg.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/bn.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/bn.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ca.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ca.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/cs.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/cs.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/da.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/da.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/de.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/de.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/el.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/el.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/en.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/en.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/en_GB.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/en_GB.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/es.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/es.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/es_419.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/es_419.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/et.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/et.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/fa.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/fa.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/fi.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/fi.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/fil.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/fil.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/fr.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/fr.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/hi.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/hi.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/hr.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/hr.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/hu.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/hu.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/hy.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/hy.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/id.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/id.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/is.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/is.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/it.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/it.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/iw.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/iw.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ja.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ja.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ka.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ka.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/km.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/km.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ko.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ko.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/lo.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/lo.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/lt.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/lt.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/lv.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/lv.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/mk.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/mk.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/mn.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/mn.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/mr.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/mr.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ms.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ms.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/my.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/my.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ne.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ne.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/nl.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/nl.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/no.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/no.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/pl.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/pl.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/pt.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/pt.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/pt_PT.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/pt_PT.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ro.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ro.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ru.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ru.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/si.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/si.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/sk.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/sk.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/sl.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/sl.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/sr.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/sr.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/sv.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/sv.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/sw.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/sw.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/ta.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/ta.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/th.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/th.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/tr.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/tr.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/uk.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/uk.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/vi.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/vi.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh_CN.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh_CN.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh_TW.lproj/
+GoogleCast.framework/GoogleCastCoreResources.bundle/zh_TW.lproj/CoreLocalizable.strings
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/audio_track_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/audio_track_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/audio_track_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_connected_24pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_connected_24pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_connected_24pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on0.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on0@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on0@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on1.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on1@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on1@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on2.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on2@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/cast_on2@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/closed_caption_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/collapse_arrow_24pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/collapse_arrow_24pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/collapse_arrow_24pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/forward_30_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_24pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_24pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_24pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_group_24pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_group_24pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_speaker_group_24pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_tv_24pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_tv_24pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/hardware_tv_24pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/ic_close_icon.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/ic_close_icon@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/ic_close_icon@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_circle_filled_64pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_circle_filled_64pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/pause_circle_filled_64pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_circle_filled_64pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_circle_filled_64pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/play_circle_filled_64pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/replay_30_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_next_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/skip_previous_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_focused_light.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_focused_light@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_focused_light@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_normal_light.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_normal_light@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/sliderthumb_normal_light@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/stop_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_mute_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_off_48pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_36pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_36pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_36pt@3x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_48pt.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_48pt@2x.png
+GoogleCast.framework/GoogleCastOptionalUIResources.bundle/Icons/volume_up_48pt@3x.png
+GoogleCast.framework/GoogleCastUIResources.bundle/
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/4HD-aa-FNo-view-1HP-BM-J3I.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/6is-ze-qoP-view-Vah-jq-ZgN.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/9V7-ce-5KJ-view-WQF-my-40r.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/9Yh-4v-Jy8-view-eLu-zi-ufs.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/C87-rF-Kff-view-Z93-bw-eCT.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/CastContainer.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/CastInstructions.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/CastTerms.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/DeviceConnectionNavigation.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/ExpandedMediaControlsViewController.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/Info.plist
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/MediaTrackSelectionController.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/MediaTrackSelectionNavigation.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/MiniMediaControlsViewController.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/a4H-bv-VbH-view-Xbz-9K-eDJ.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/egs-hj-bEX-view-MTY-Nw-q8O.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/Base.lproj/CastComponents.storyboardc/mzQ-08-M2L-view-QcC-yO-nhF.nib
+GoogleCast.framework/GoogleCastUIResources.bundle/af.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/af.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/af.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ar.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ar.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ar.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/bg.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/bg.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/bg.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/bn.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/bn.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/bn.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ca.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ca.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ca.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/cs.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/cs.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/cs.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/da.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/da.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/da.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/de.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/de.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/de.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/el.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/el.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/el.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/en.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/en.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/en.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/en_GB.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/en_GB.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/en_GB.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/es.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/es.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/es.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/es_419.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/es_419.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/es_419.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/et.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/et.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/et.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fa.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/fa.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fa.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fi.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/fi.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fi.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fil.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/fil.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fil.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fr.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/fr.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/fr.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hi.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/hi.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hi.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hr.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/hr.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hr.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hu.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/hu.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hu.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hy.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/hy.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/hy.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/id.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/id.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/id.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/is.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/is.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/is.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/it.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/it.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/it.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/iw.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/iw.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/iw.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ja.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ja.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ja.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ka.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ka.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ka.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/km.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/km.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/km.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ko.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ko.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ko.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lo.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/lo.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lo.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lt.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/lt.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lt.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lv.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/lv.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/lv.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mk.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/mk.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mk.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mn.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/mn.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mn.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mr.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/mr.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/mr.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ms.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ms.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ms.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/my.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/my.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/my.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ne.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ne.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ne.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/nl.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/nl.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/nl.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/no.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/no.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/no.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pl.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/pl.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pl.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pt.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/pt.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pt.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pt_PT.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/pt_PT.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/pt_PT.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ro.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ro.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ro.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ru.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ru.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ru.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/si.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/si.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/si.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sk.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/sk.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sk.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sl.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/sl.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sl.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sr.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/sr.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sr.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sv.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/sv.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sv.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sw.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/sw.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/sw.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ta.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/ta.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/ta.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/th.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/th.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/th.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/tr.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/tr.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/tr.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/uk.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/uk.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/uk.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/vi.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/vi.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/vi.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/zh.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_CN.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_CN.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_CN.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_TW.lproj/
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_TW.lproj/CastComponents.strings
+GoogleCast.framework/GoogleCastUIResources.bundle/zh_TW.lproj/UILocalizable.strings
+GoogleCast.framework/GoogleSansBold.bundle/
+GoogleCast.framework/GoogleSansBold.bundle/GoogleSans-Bold.nohints.ttf
+GoogleCast.framework/GoogleSansMedium.bundle/
+GoogleCast.framework/GoogleSansMedium.bundle/GoogleSans-Medium.nohints.ttf
+GoogleCast.framework/GoogleSansRegular.bundle/
+GoogleCast.framework/GoogleSansRegular.bundle/GoogleSans-Regular.nohints.ttf
+GoogleCast.framework/Headers/
+GoogleCast.framework/Headers/GCKAdBreakClipInfo.h
+GoogleCast.framework/Headers/GCKAdBreakInfo.h
+GoogleCast.framework/Headers/GCKAdBreakStatus.h
+GoogleCast.framework/Headers/GCKApplicationMetadata.h
+GoogleCast.framework/Headers/GCKCastChannel.h
+GoogleCast.framework/Headers/GCKCastContext+UI.h
+GoogleCast.framework/Headers/GCKCastContext.h
+GoogleCast.framework/Headers/GCKCastOptions.h
+GoogleCast.framework/Headers/GCKCastSession.h
+GoogleCast.framework/Headers/GCKColor.h
+GoogleCast.framework/Headers/GCKCommon.h
+GoogleCast.framework/Headers/GCKCredentialsData.h
+GoogleCast.framework/Headers/GCKDefines.h
+GoogleCast.framework/Headers/GCKDevice.h
+GoogleCast.framework/Headers/GCKDeviceProvider+Protected.h
+GoogleCast.framework/Headers/GCKDeviceProvider.h
+GoogleCast.framework/Headers/GCKDiscoveryCriteria.h
+GoogleCast.framework/Headers/GCKDiscoveryManager.h
+GoogleCast.framework/Headers/GCKDynamicDevice.h
+GoogleCast.framework/Headers/GCKError.h
+GoogleCast.framework/Headers/GCKGenericChannel.h
+GoogleCast.framework/Headers/GCKHLSSegmentFormat.h
+GoogleCast.framework/Headers/GCKHLSVideoSegmentFormat.h
+GoogleCast.framework/Headers/GCKImage.h
+GoogleCast.framework/Headers/GCKJSONUtils.h
+GoogleCast.framework/Headers/GCKLaunchOptions.h
+GoogleCast.framework/Headers/GCKLogger.h
+GoogleCast.framework/Headers/GCKLoggerCommon.h
+GoogleCast.framework/Headers/GCKLoggerFilter.h
+GoogleCast.framework/Headers/GCKMediaCommon.h
+GoogleCast.framework/Headers/GCKMediaInformation.h
+GoogleCast.framework/Headers/GCKMediaLiveSeekableRange.h
+GoogleCast.framework/Headers/GCKMediaLoadOptions.h
+GoogleCast.framework/Headers/GCKMediaLoadRequestData.h
+GoogleCast.framework/Headers/GCKMediaMetadata.h
+GoogleCast.framework/Headers/GCKMediaQueue.h
+GoogleCast.framework/Headers/GCKMediaQueueContainerMetadata.h
+GoogleCast.framework/Headers/GCKMediaQueueData.h
+GoogleCast.framework/Headers/GCKMediaQueueItem.h
+GoogleCast.framework/Headers/GCKMediaQueueLoadOptions.h
+GoogleCast.framework/Headers/GCKMediaRequestItem.h
+GoogleCast.framework/Headers/GCKMediaSeekOptions.h
+GoogleCast.framework/Headers/GCKMediaStatus.h
+GoogleCast.framework/Headers/GCKMediaTextTrackStyle.h
+GoogleCast.framework/Headers/GCKMediaTrack.h
+GoogleCast.framework/Headers/GCKMultizoneDevice.h
+GoogleCast.framework/Headers/GCKMultizoneStatus.h
+GoogleCast.framework/Headers/GCKNetworkAddress.h
+GoogleCast.framework/Headers/GCKOpenURLOptions.h
+GoogleCast.framework/Headers/GCKRemoteMediaClient+Protected.h
+GoogleCast.framework/Headers/GCKRemoteMediaClient.h
+GoogleCast.framework/Headers/GCKRequest.h
+GoogleCast.framework/Headers/GCKSenderApplicationInfo.h
+GoogleCast.framework/Headers/GCKSession+Protected.h
+GoogleCast.framework/Headers/GCKSession.h
+GoogleCast.framework/Headers/GCKSessionManager.h
+GoogleCast.framework/Headers/GCKSessionOptions.h
+GoogleCast.framework/Headers/GCKSessionTraits.h
+GoogleCast.framework/Headers/GCKUIButton.h
+GoogleCast.framework/Headers/GCKUICastButton.h
+GoogleCast.framework/Headers/GCKUICastContainerViewController.h
+GoogleCast.framework/Headers/GCKUIDeviceVolumeController.h
+GoogleCast.framework/Headers/GCKUIExpandedMediaControlsViewController.h
+GoogleCast.framework/Headers/GCKUIImageCache.h
+GoogleCast.framework/Headers/GCKUIImageHints.h
+GoogleCast.framework/Headers/GCKUIImagePicker.h
+GoogleCast.framework/Headers/GCKUIMediaButtonBarProtocol.h
+GoogleCast.framework/Headers/GCKUIMediaController.h
+GoogleCast.framework/Headers/GCKUIMediaTrackSelectionViewController.h
+GoogleCast.framework/Headers/GCKUIMiniMediaControlsViewController.h
+GoogleCast.framework/Headers/GCKUIMultistateButton.h
+GoogleCast.framework/Headers/GCKUIPlayPauseToggleController.h
+GoogleCast.framework/Headers/GCKUIPlaybackRateController.h
+GoogleCast.framework/Headers/GCKUIStreamPositionController.h
+GoogleCast.framework/Headers/GCKUIStyle.h
+GoogleCast.framework/Headers/GCKUIStyleAttributes.h
+GoogleCast.framework/Headers/GCKUIUtils.h
+GoogleCast.framework/Headers/GCKVastAdsRequest.h
+GoogleCast.framework/Headers/GCKVideoInfo.h
+GoogleCast.framework/Headers/GoogleCast.h
+GoogleCast.framework/Headers/NSDictionary+GCKAdditions.h
+GoogleCast.framework/Headers/NSMutableDictionary+GCKAdditions.h
+GoogleCast.framework/Headers/NSTimer+GCKAdditions.h
+GoogleCast.framework/MaterialDialogs.bundle/
+GoogleCast.framework/MaterialDialogs.bundle/am.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/am.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ar.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ar.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/az.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/az.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/be.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/be.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/bg.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/bg.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/bn.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/bn.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/bs.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/bs.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ca.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ca.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/cs.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/cs.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/cy.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/cy.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/da.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/da.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/de.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/de.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/el.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/el.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/en.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/en.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/en_AU.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/en_AU.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/en_GB.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/en_GB.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/en_IN.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/en_IN.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/es.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/es.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/es_419.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/es_419.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/es_MX.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/es_MX.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/et.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/et.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/eu.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/eu.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/fa.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/fa.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/fi.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/fi.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/fil.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/fil.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/fr.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/fr.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/fr_CA.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/fr_CA.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ga.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ga.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/gl.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/gl.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/gu.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/gu.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/he.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/he.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/hi.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/hi.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/hr.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/hr.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/hu.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/hu.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/hy.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/hy.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/id.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/id.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/is.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/is.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/it.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/it.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ja.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ja.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/jv.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/jv.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ka.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ka.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/kk.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/kk.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/km.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/km.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/kn.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/kn.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ko.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ko.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ky.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ky.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/lo.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/lo.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/lt.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/lt.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/lv.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/lv.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/mk.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/mk.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ml.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ml.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/mn.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/mn.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/mr.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/mr.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ms.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ms.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/my.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/my.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/nb.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/nb.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ne.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ne.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/nl.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/nl.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/pa.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/pa.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/pl.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/pl.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ps.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ps.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/pt_BR.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/pt_BR.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/pt_PT.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/pt_PT.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ro.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ro.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ru.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ru.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sd.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sd.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/si.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/si.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sk.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sk.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sl.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sl.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/so.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/so.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sq.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sq.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sr.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sr.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sr_Latn.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sr_Latn.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sv.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sv.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/sw.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/sw.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ta.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ta.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/te.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/te.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/th.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/th.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/tk.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/tk.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/tr.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/tr.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/uk.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/uk.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/ur.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/ur.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/uz.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/uz.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/vi.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/vi.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/yue_HK.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/yue_HK.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/zh_CN.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/zh_CN.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/zh_HK.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/zh_HK.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/zh_TW.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/zh_TW.lproj/MaterialDialogs.strings
+GoogleCast.framework/MaterialDialogs.bundle/zu.lproj/
+GoogleCast.framework/MaterialDialogs.bundle/zu.lproj/MaterialDialogs.strings
+GoogleCast.framework/Modules/
+GoogleCast.framework/Modules/module.modulemap
+
+sent 24060612 bytes  received 12342 bytes  58273914 bytes/sec
+total size is 23964185  speedup is 1.00
+Copied /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework/GoogleCast.xcframework/ios-arm64 to /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/XCFrameworkIntermediates/google-cast-sdk
+
+ProcessInfoPlistFile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Info.plist /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-Info.plist (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-infoPlistUtility /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-Info.plist -producttype com.apple.product-type.framework -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64 -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Info.plist
+
+ScanDependencies /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c normal arm64 c com.apple.compilers.llvm.clang.1_0.compiler (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    
+    Using response file: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+    
+    builtin-ScanDependencies -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.o.scan -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.d --serialize-diagnostics /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.dia -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.o
+
+ScanDependencies /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.o /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-dummy.m normal arm64 objective-c com.apple.compilers.llvm.clang.1_0.compiler (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    
+    Using response file: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp
+    
+    builtin-ScanDependencies -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.o.scan -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x objective-c -ivfsstatcache /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wno-implicit-atomic-properties -Werror\=deprecated-objc-isa-usage -Wno-objc-interface-ivars -Werror\=objc-root-class -Wno-arc-repeated-use-of-weak -Wimplicit-retain-self -Wduplicate-method-match -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-selector -Wno-strict-selector-match -Wundeclared-selector -Wdeprecated-implementations -Wno-implicit-fallthrough -fstrict-aliasing -Wprotocol -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp -MMD -MT dependencies -MF /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.d --serialize-diagnostics /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.dia -c /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-dummy.m -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.o
+
+CompileC /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c normal arm64 c com.apple.compilers.llvm.clang.1_0.compiler (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    
+    Using response file: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp
+    
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x c -ivfsstatcache /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Werror\=deprecated-objc-isa-usage -Werror\=objc-root-class -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-implicit-fallthrough -fstrict-aliasing -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/7187679823f38a2a940e0043cdf9d637-common-args.resp -MMD -MT dependencies -MF /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.d --serialize-diagnostics /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.dia -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/DerivedSources/Pods_anisflix_vers.c -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_vers.o
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ptrauth-3B9QMY99KH2RD44M56LZH9LAN.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ptrauth-3B9QMY99KH2RD44M56LZH9LAN.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdbool-AOP5F8FA5MYF7R6ZBUNRJYPBN.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdbool-AOP5F8FA5MYF7R6ZBUNRJYPBN.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_float-79IB3A8MGSISQ2UOQFBTFOJV.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_float-79IB3A8MGSISQ2UOQFBTFOJV.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdarg-UAG4SKPIB8JK79EUMCPM1FW1.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdarg-UAG4SKPIB8JK79EUMCPM1FW1.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stddef-DD3RC8LEGD7BSMEB5Z8W1VG4F.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stddef-DD3RC8LEGD7BSMEB5Z8W1VG4F.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ptrcheck-ENRBFWA19FMH80S9ZYZO28ASX.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ptrcheck-ENRBFWA19FMH80S9ZYZO28ASX.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_AvailabilityInternal-6RARD7UPRXMVXND240G8T4J6R.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_AvailabilityInternal-6RARD7UPRXMVXND240G8T4J6R.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation1-5W57PC2EWEX5MVHNOMMKX4SIK.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation1-5W57PC2EWEX5MVHNOMMKX4SIK.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_limits-3YFPRVNWHQ5LDZI24H9L15MQJ.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_limits-3YFPRVNWHQ5LDZI24H9L15MQJ.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation2-AW42552DCB8NFVSCX9WLAFH9V.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation2-AW42552DCB8NFVSCX9WLAFH9V.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdint-AB2QLAKSGGRQK74IAHSF9LFAD.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_stdint-AB2QLAKSGGRQK74IAHSF9LFAD.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation3-3OS9CLCJP39Z6MCXOCD25SDQO.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_DarwinFoundation3-3OS9CLCJP39Z6MCXOCD25SDQO.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_inttypes-NAYB3548AS6PXUGACSRK09RB.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/_Builtin_inttypes-NAYB3548AS6PXUGACSRK09RB.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Darwin-8V9BJ9RQ7QU04DTJ5BTQL5SIC.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Darwin-8V9BJ9RQ7QU04DTJ5BTQL5SIC.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ObjectiveC-IBHNP5NPNSDCDIC49KFA19N8.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/ObjectiveC-IBHNP5NPNSDCDIC49KFA19N8.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/os_object-4VG97N6OGJULNDQYWI0835V4P.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/os_object-4VG97N6OGJULNDQYWI0835V4P.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/os_workgroup-2SB1J03R3RJLY920Y6U9BFREW.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/os_workgroup-2SB1J03R3RJLY920Y6U9BFREW.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Dispatch-D91F5TKEZ82JLYOED7ZM4YDR9.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Dispatch-D91F5TKEZ82JLYOED7ZM4YDR9.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/XPC-EOPPGAC2TA0UONQMJ24HMUNMD.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/XPC-EOPPGAC2TA0UONQMJ24HMUNMD.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/CoreFoundation-22UAWBUQB8O924M9YU3SGEDRV.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/CoreFoundation-22UAWBUQB8O924M9YU3SGEDRV.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/CFNetwork-52FW2WZZBK7NYR9JQSDI0WDTC.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/CFNetwork-52FW2WZZBK7NYR9JQSDI0WDTC.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Security-3O47NQ0DILACEPNXFXDMDLVPN.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Security-3O47NQ0DILACEPNXFXDMDLVPN.scan
+
+PrecompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Foundation-DUZ0TKDKOBKUTIGQWMBTEDJ60.scan
+    cd /
+    builtin-precompileModule /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/ExplicitPrecompiledModules/Foundation-DUZ0TKDKOBKUTIGQWMBTEDJ60.scan
+
+CompileC /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.o /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-dummy.m normal arm64 objective-c com.apple.compilers.llvm.clang.1_0.compiler (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    
+    Using response file: /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp
+    
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -x objective-c -ivfsstatcache /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -fmessage-length\=0 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit\=0 -fno-color-diagnostics -fmodules-prune-interval\=86400 -fmodules-prune-after\=345600 -fbuild-session-file\=/Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -fmodules-validate-once-per-build-session -Wnon-modular-include-in-framework-module -Werror\=non-modular-include-in-framework-module -Wno-trigraphs -Wno-missing-field-initializers -Wno-missing-prototypes -Werror\=return-type -Wdocumentation -Wunreachable-code -Wno-implicit-atomic-properties -Werror\=deprecated-objc-isa-usage -Wno-objc-interface-ivars -Werror\=objc-root-class -Wno-arc-repeated-use-of-weak -Wimplicit-retain-self -Wduplicate-method-match -Wno-missing-braces -Wparentheses -Wswitch -Wunused-function -Wno-unused-label -Wno-unused-parameter -Wunused-variable -Wunused-value -Wempty-body -Wuninitialized -Wconditional-uninitialized -Wno-unknown-pragmas -Wno-shadow -Wno-four-char-constants -Wno-conversion -Wconstant-conversion -Wint-conversion -Wbool-conversion -Wenum-conversion -Wno-float-conversion -Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wpointer-sign -Wno-newline-eof -Wno-selector -Wno-strict-selector-match -Wundeclared-selector -Wdeprecated-implementations -Wno-implicit-fallthrough -fstrict-aliasing -Wprotocol -Wdeprecated-declarations -Wno-sign-conversion -Winfinite-recursion -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes -Wno-semicolon-before-method-body -Wunguarded-availability @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/e6072d4f65d7061329687fe24e3d63a7-common-args.resp -MMD -MT dependencies -MF /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.d --serialize-diagnostics /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.dia -c /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/Target\ Support\ Files/Pods-anisflix/Pods-anisflix-dummy.m -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods-anisflix-dummy.o
+
+Libtool /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Pods_anisflix normal (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/libtool -static -arch_only arm64 -D -syslibroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -L/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos -filelist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix.LinkFileList -framework Foundation -dependency_info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/Pods.build/Release-iphoneos/Pods-anisflix.build/Objects-normal/arm64/Pods_anisflix_libtool_dependency_info.dat -o /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework/Pods_anisflix
+
+SetOwnerAndGroup aniskedidi:staff /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /usr/sbin/chown -RH aniskedidi:staff /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework
+
+SetMode u+w,go-w,a+rX /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /bin/chmod -RH u+w,go-w,a+rX /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework
+
+RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    builtin-RegisterExecutionPolicyException /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework
+
+Touch /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework (in target 'Pods-anisflix' from project 'Pods')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods
+    /usr/bin/touch -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/UninstalledProducts/iphoneos/Pods_anisflix.framework
+
+PhaseScriptExecution [CP]\ Check\ Pods\ Manifest.lock /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-1790A3715E29867B52AC5134.sh (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/sh -c /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Script-1790A3715E29867B52AC5134.sh
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_output/thinned (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_output/thinned
+
+MkDir /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_output/unthinned (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /bin/mkdir -p /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_output/unthinned
+
+GenerateAssetSymbols /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets --compile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_dependencies --output-partial-info-plist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 16.0 --platform iphoneos --bundle-identifier anis..anisflix --generate-swift-asset-symbols /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CpResource /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app/build_log_controls.txt /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/build_log_controls.txt (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/build_log_controls.txt /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app
+
+CompileStoryboard /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/LaunchScreen.storyboard (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/usr/bin/ibtool --errors --warnings --notices --module anisflix --output-partial-info-plist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/LaunchScreen-SBPartialInfo.plist --auto-activate-custom-fonts --target-device iphone --target-device ipad --minimum-deployment-target 16.0 --output-format human-readable-text /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/LaunchScreen.storyboard --compilation-directory /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:59:5: error: deinitializers may only be declared within a class, actor, or noncopyable type
+    deinit {
+    ^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:84:1: error: expected '}' in class
+
+^
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:5:79: note: to match this opening '{'
+class LandscapeHostingController<Content: View>: UIHostingController<Content> {
+                                                                              ^
+
+CompileAssetCatalogVariant thinned /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/InstallationBuildProductsLocation/Applications/anisflix.app /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Assets.xcassets --compile /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 16.0 --platform iphoneos
+
+SwiftDriver anisflix normal arm64 com.apple.xcode.tools.swift.compiler (in target 'anisflix' from project 'anisflix')
+    cd /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name anisflix -O -whole-module-optimization -enforce-exclusivity\=checked @/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.SwiftFileList -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -target arm64-apple-ios16.0 -g -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos -F /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos -F /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/Pods/google-cast-sdk/GoogleCastSDK-ios-4.8.4_static_xcframework -F /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/XCFrameworkIntermediates/google-cast-sdk -emit-localized-strings -emit-localized-strings-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64 -c -num-threads 10 -Xcc -ivfsstatcache -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -output-file-map /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/aniskedidi/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix_const_extract_protocols.json -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-generated-files.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-own-target-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix-8c77cfc3c15a48e8c801f7c0d09e749c-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/anisflix-project-headers.hmap -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/BuildProductsPath/Release-iphoneos/include -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources-normal/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources/arm64 -Xcc -I/Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/DerivedSources -Xcc -DCOCOAPODS\=1 -emit-objc-header -emit-objc-header-path /Users/aniskedidi/Library/Developer/Xcode/DerivedData/anisflix-hhqtjtgkehjzwhfmetqsazeobjhe/Build/Intermediates.noindex/ArchiveIntermediates/anisflix/IntermediateBuildFilesPath/anisflix.build/Release-iphoneos/anisflix.build/Objects-normal/arm64/anisflix-Swift.h -working-directory /Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix -no-emit-module-separately-wmo
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:59:5: error: Deinitializers may only be declared within a class, actor, or noncopyable type
+    deinit {
+    ^ (in target 'anisflix' from project 'anisflix')
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:84:1: error: Expected '}' in class
+
+^ (in target 'anisflix' from project 'anisflix')
+/Users/aniskedidi/Documents/perso/AnisFlix/ios-natve/anisflix/anisflix/Utils/LandscapeHostingController.swift:5:79: note: To match this opening '{'
+class LandscapeHostingController<Content: View>: UIHostingController<Content> {
+                                                                              ^ (in target 'anisflix' from project 'anisflix')
+
+** ARCHIVE FAILED **
+
+
+The following build commands failed:
+	SwiftDriver anisflix normal arm64 com.apple.xcode.tools.swift.compiler (in target 'anisflix' from project 'anisflix')
+	Archiving workspace anisflix with scheme anisflix
+(2 failures)

@@ -138,6 +138,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "Supprimer le téléchargement ?",
         "downloads.deleteAlertMessage": "Êtes-vous sûr de vouloir supprimer ce téléchargement ? Cette action est irréversible.",
         "downloads.deleteConfirm": "Supprimer",
+        
+        // Sources
+        "VF": "VF",
+        "VOSTFR": "VOSTFR",
+        "VO": "VO",
     ]
     
     // MARK: - English Translations
@@ -210,8 +215,8 @@ struct Localizable {
         "detail.player": "Player",
         "detail.close": "Close",
         "detail.noSourcesFor": "No sources available for",
-        "detail.availableSources": "Available Sources",
-        "detail.favorites": "Add to Favorites",
+        "detail.availableSources": "Available sources",
+        "detail.favorites": "Add to favorites",
         
         // TV
         "tv.france": "France",
@@ -236,6 +241,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "Delete Download?",
         "downloads.deleteAlertMessage": "Are you sure you want to delete this download? This action cannot be undone.",
         "downloads.deleteConfirm": "Delete",
+        
+        // Sources
+        "VF": "French Dub",
+        "VOSTFR": "French Sub",
+        "VO": "Original",
     ]
     
     // MARK: - Spanish Translations
@@ -334,6 +344,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "¿Eliminar descarga?",
         "downloads.deleteAlertMessage": "¿Estás seguro de que quieres eliminar esta descarga? Esta acción no se puede deshacer.",
         "downloads.deleteConfirm": "Eliminar",
+        
+        // Sources
+        "VF": "Doblaje Francés",
+        "VOSTFR": "Subtítulos en Francés",
+        "VO": "Original",
     ]
     
     // MARK: - Arabic Translations
@@ -432,6 +447,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "حذف التحميل؟",
         "downloads.deleteAlertMessage": "هل أنت متأكد أنك تريد حذف هذا التحميل؟ هذا الإجراء لا يمكن التراجع عنه.",
         "downloads.deleteConfirm": "حذف",
+        
+        // Sources
+        "VF": "مدبلج فرنسي",
+        "VOSTFR": "مترجم فرنسي",
+        "VO": "أصلي",
     ]
     
     // MARK: - German Translations
@@ -530,6 +550,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "Download löschen?",
         "downloads.deleteAlertMessage": "Möchten Sie diesen Download wirklich löschen?",
         "downloads.deleteConfirm": "Löschen",
+        
+        // Sources
+        "VF": "Franz. Synchro",
+        "VOSTFR": "Franz. Untertitel",
+        "VO": "Original",
     ]
     
     // MARK: - Italian Translations
@@ -628,6 +653,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "Eliminare?",
         "downloads.deleteAlertMessage": "Sei sicuro di voler eliminare questo download?",
         "downloads.deleteConfirm": "Elimina",
+        
+        // Sources
+        "VF": "Doppiaggio Francese",
+        "VOSTFR": "Sottotitoli in Francese",
+        "VO": "Originale",
     ]
     
     // MARK: - Portuguese Translations
@@ -726,6 +756,11 @@ struct Localizable {
         "downloads.deleteAlertTitle": "Apagar download?",
         "downloads.deleteAlertMessage": "Tem a certeza de que deseja apagar?",
         "downloads.deleteConfirm": "Apagar",
+        
+        // Sources
+        "VF": "Dobragem Francesa",
+        "VOSTFR": "Legendas em Francês",
+        "VO": "Original",
     ]
 }
 

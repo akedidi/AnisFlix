@@ -12,6 +12,7 @@ import AVFoundation
 struct anisflixApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var theme = AppTheme.shared
+    @AppStorage("mainSelectedTab") private var selectedTab = 0
     
     init() {
         // Configure Audio Session for Playback (AirPlay, PiP, Background)
@@ -28,7 +29,7 @@ struct anisflixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            MainTabView(selectedTab: $selectedTab)
                 .preferredColorScheme(theme.isDarkMode ? .dark : .light)
         }
     }
@@ -45,7 +46,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
     
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
-        // print("🔄 AppDelegate: checking supported orientations. Lock: \(AppDelegate.orientationLock.rawValue)")
+        print("🔄 AppDelegate: supportedInterfaceOrientationsFor called. Lock: \(AppDelegate.orientationLock.rawValue)")
         return AppDelegate.orientationLock
     }
 }
