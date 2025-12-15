@@ -315,7 +315,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "rmc-sport-2",
                             name: "RMC Sport 2",
-                            logo: "https://fr.wikipedia.org/wiki/Fichier:Logo_RMC_Sport_2_2018.svg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Logo_RMC_Sport_2_2018.svg",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/40.m3u8" }
                             ]
