@@ -534,7 +534,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-1",
                             name: "ElKass 1",
-                            logo: "https://fr.wikipedia.org/wiki/Al-Kass_Sports_Channel#/media/Fichier:%D8%B4%D8%B9%D8%A7%D8%B1_%D9%82%D9%86%D9%88%D8%A7%D8%AA_%D8%A7%D9%84%D9%83%D8%A7%D8%B3.jpg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/%D8%B4%D8%B9%D8%A7%D8%B1_%D9%82%D9%86%D9%88%D8%A7%D8%AA_%D8%A7%D9%84%D9%83%D8%A7%D8%B3.jpg",
                             links: [
                                 { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass1-p/20251112T070231Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
@@ -566,7 +566,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "elkass-6",
                             name: "ElKass 6",
-                            logo: "https://fr.wikipedia.org/wiki/Al-Kass_Sports_Channel#/media/Fichier:%D8%B4%D8%B9%D8%A7%D8%B1_%D9%82%D9%86%D9%88%D8%A7%D8%AA_%D8%A7%D9%84%D9%83%D8%A7%D8%B3.jpg",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/93/%D8%B4%D8%B9%D8%A7%D8%B1_%D9%82%D9%86%D9%88%D8%A7%D8%AA_%D8%A7%D9%84%D9%83%D8%A7%D8%B3.jpg",
                             links: [
                                 { type: "hls_segments", url: "https://liveeu-gcp.alkassdigital.net/alkass6-p/20251112T064254Z/mux_video_720p_ts/index-1.m3u8" }
                             ]
