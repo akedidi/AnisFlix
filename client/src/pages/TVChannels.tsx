@@ -1009,9 +1009,9 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Mode Capacitor - ${link.type} en URL directe: ${finalUrl}`);
         }
       } else {
-        // Desktop : direct pour hls_direct et mpd, proxy pour hls_segments
-        if (link.type === 'hls_segments') {
-          console.log(`[SELECT LINK] Mode desktop - hls_segments nécessite proxy`);
+        // Desktop : proxy pour hls_segments ET hls_direct (CORS), direct uniquement pour mpd
+        if (link.type === 'hls_segments' || link.type === 'hls_direct') {
+          console.log(`[SELECT LINK] Mode desktop - ${link.type} nécessite proxy (CORS)`);
           finalUrl = getProxyUrl(link.url, link.type);
         } else {
           console.log(`[SELECT LINK] Mode desktop - ${link.type} en URL directe: ${finalUrl}`);
