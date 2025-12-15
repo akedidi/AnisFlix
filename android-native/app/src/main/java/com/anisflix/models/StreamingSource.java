@@ -50,6 +50,14 @@ public class StreamingSource {
     public void setLanguage(String language) { this.language = language; }
     public void setSubtitles(Subtitle[] subtitles) { this.subtitles = subtitles; }
     
+    @SerializedName("name")
+    private String name;
+
+    // ... existing fields ...
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
     // Subtitle class
     public static class Subtitle {
         @SerializedName("lang")

@@ -25,15 +25,9 @@ public class MovieDetailViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> isFavorite = new MutableLiveData<>(false);
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     private final MutableLiveData<List<Movie>> similarMovies = new MutableLiveData<>();
+    private final MutableLiveData<com.anisflix.models.Video> trailer = new MutableLiveData<>();
     
-    private final TMDBService tmdbService;
-    private final FavoritesRepository favoritesRepository;
-    
-    public MovieDetailViewModel(@NonNull Application application) {
-        super(application);
-        tmdbService = RetrofitClient.getInstance().getTMDBService();
-        favoritesRepository = FavoritesRepository.getInstance(application.getApplicationContext());
-    }
+    // ...
     
     public void loadMovie(int movieId) {
         isLoading.setValue(true);
@@ -49,6 +43,7 @@ public class MovieDetailViewModel extends AndroidViewModel {
                             loadStreamingSources(movieId);
                             checkFavoriteStatus(movieId);
                             loadSimilarMovies(movieId);
+                            loadTrailer(movieId);
                         }
                     }
                     
@@ -58,8 +53,36 @@ public class MovieDetailViewModel extends AndroidViewModel {
                     }
                 });
     }
+
+    private void loadTrailer(int movieId) {
+        tmdbService.getMovieVideos(movieId, Constants.TMDB_API_KEY, Constants.LANGUAGE_FRENCH)
+                .enqueue(new Callback<com.anisflix.models.TMDBResponse<com.anisflix.models.Video>>() {
+                    @Override
+                    public void onResponse(Call<com.anisflix.models.TMDBResponse<com.anisflix.models.Video>> call, Response<com.anisflix.models.TMDBResponse<com.anisflix.models.Video>> response) {
+                         if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
+                             for (com.anisflix.models.Video video : response.body().getResults()) {
+                                 if ("Trailer".equals(video.getType()) && "YouTube".equals(video.getSite())) {
+                                     trailer.setValue(video);
+                                     break; 
+                                 }
+                             }
+                         }
+                    }
+
+                    @Override
+                    public void onFailure(Call<com.anisflix.models.TMDBResponse<com.anisflix.models.Video>> call, Throwable t) {
+                        // Ignore errors
+                    }
+                });
+    }
     
-    private void checkFavoriteStatus(int movieId) {
+    // ...
+    
+    public LiveData<com.anisflix.models.Video> getTrailer() { return trailer; }
+    
+    public LiveData<List<Movie>> getSimilarMovies() {
+        return similarMovies;
+    }
         // Check if in favorites (Must be done on background thread)
         new Thread(() -> {
             boolean isFav = favoritesRepository.isFavoriteSync(movieId);

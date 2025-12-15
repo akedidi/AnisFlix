@@ -80,7 +80,7 @@ public class VideoPlayerActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN
         );
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        // setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE); // Removed to allow portrait
         
         setContentView(R.layout.activity_video_player);
         
@@ -120,6 +120,19 @@ public class VideoPlayerActivity extends AppCompatActivity {
         
         // Subtitle button
         subtitlesButton.setOnClickListener(v -> showSubtitleSelector());
+        
+        // Fullscreen button
+        ImageButton fullscreenButton = findViewById(R.id.fullscreen_button);
+        fullscreenButton.setOnClickListener(v -> toggleFullscreen());
+    }
+    
+    private void toggleFullscreen() {
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        } else {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        }
     }
     
     private void getIntentExtras() {

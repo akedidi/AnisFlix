@@ -7,7 +7,12 @@
     <com.google.android.exoplayer2.ui.StyledPlayerView
         android:id="@+id/player_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:show_buffering="when_playing"
+        app:show_timeout="5000" 
+        app:controller_layout_id="@layout/custom_player_control_view" /> 
+        <!-- Note: We are using default controller but adding overlay buttons. 
+             Ideally we should use custom controller layout but for speed we overlay. -->
         
     <ProgressBar
         android:id="@+id/loading_indicator"
@@ -15,10 +20,82 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:visibility="gone"/>
+
+    <!-- Overlay Controls Container -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- Top Left: Close (Back) -->
+        <ImageButton 
+            android:id="@+id/back_button" 
+            android:layout_width="40dp" 
+            android:layout_height="40dp" 
+            android:src="@drawable/ic_arrow_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@android:color/white"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true" />
+
+        <!-- Top Right Cluster: Cast, PiP, Subtitles -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentTop="true"
+            android:gravity="center_vertical">
+            
+            <ImageButton 
+                android:id="@+id/subtitles_button" 
+                android:layout_width="40dp" 
+                android:layout_height="40dp" 
+                android:src="@drawable/ic_subtitles"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@android:color/white"
+                android:layout_marginEnd="8dp"/>
+
+            <ImageButton 
+                android:id="@+id/pip_button" 
+                android:layout_width="40dp" 
+                android:layout_height="40dp" 
+                android:src="@drawable/ic_pip"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@android:color/white"
+                android:layout_marginEnd="8dp"/>
+                
+            <ImageButton 
+                android:id="@+id/cast_button" 
+                android:layout_width="40dp" 
+                android:layout_height="40dp" 
+                android:src="@drawable/ic_cast_connected"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@android:color/white" />
+                
+        </LinearLayout>
         
-    <ImageButton android:id="@+id/back_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_download"/>
-    <ImageButton android:id="@+id/cast_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_download"/>
-    <ImageButton android:id="@+id/pip_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_download"/>
-    <ImageButton android:id="@+id/subtitles_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_download"/>
+        <!-- Bottom Right: Fullscreen (Custom addition) -->
+        <!-- We overlay it above the bottom bar location? Or Top Right?
+             User asked for it. Top Right with others is safer. -->
+             
+    </RelativeLayout>
+    
+    <!-- Fullscreen Button separate container or added to Top Right cluster? 
+         Let's add it to the cluster for consistency -->
+         
+    <ImageButton
+        android:id="@+id/fullscreen_button"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/ic_fullscreen"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:tint="@android:color/white"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:layout_marginBottom="60dp" /> 
+        <!-- Margin bottom to avoid conflict with progress bar -->
 
 </FrameLayout>

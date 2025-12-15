@@ -227,6 +227,13 @@ public interface TMDBService {
             @Query("page") int page
     );
     
+    @GET("movie/{movie_id}/videos")
+    Call<TMDBResponse<com.anisflix.models.Video>> getMovieVideos(
+            @Path("movie_id") int movieId,
+            @Query("api_key") String apiKey,
+            @Query("language") String language
+    );
+
     // ========== SEARCH ==========
     
     @GET("search/movie")

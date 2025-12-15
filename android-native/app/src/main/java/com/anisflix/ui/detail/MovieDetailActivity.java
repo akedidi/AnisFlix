@@ -160,6 +160,17 @@ public class MovieDetailActivity extends AppCompatActivity {
             }
         });
         
+        viewModel.getTrailer().observe(this, video -> {
+            android.webkit.WebView webView = findViewById(com.anisflix.R.id.trailer_webview);
+            if (video != null && webView != null) {
+                webView.setVisibility(View.VISIBLE);
+                webView.getSettings().setJavaScriptEnabled(true);
+                webView.setWebChromeClient(new android.webkit.WebChromeClient());
+                String embedUrl = "https://www.youtube.com/embed/" + video.getKey();
+                webView.loadUrl(embedUrl);
+            }
+        });
+        
         viewModel.getIsFavorite().observe(this, isFav -> {
             if (isFav != null) {
                 // Assuming ic_heart_filled exists now and we can tint it or swap drawable
@@ -253,7 +264,7 @@ public class MovieDetailActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             StreamingSource source = items.get(position);
-            holder.name.setText(source.getSource() + " - " + source.getQuality());
+            holder.name.setText(source.getName() != null ? source.getName() : (source.getSource() + " - " + source.getQuality()));
             holder.itemView.setOnClickListener(v -> {
                  Intent intent = new Intent(MovieDetailActivity.this, VideoPlayerActivity.class);
                  // Pass source URL
