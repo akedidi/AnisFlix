@@ -1010,9 +1010,33 @@ export default function TVChannels() {
         }
       } else {
         // Desktop : direct pour hls_direct et mpd, proxy pour hls_segments
+        // Exception: Certains domaines hls_direct nécessitent un proxy à cause de CORS/User-Agent
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode desktop - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
+        } else if (link.type === 'hls_direct') {
+          // Liste des domaines nécessitant un proxy sur desktop
+          const needsProxy = [
+            'viamotionhsi.netplus.ch',
+            'simulcast-p.ftven.fr',
+            'artesimulcast.akamaized.net',
+            'ncdn-live-bfm.pfd.sfr.net',
+            'rt-fra.rttv.com',
+            'live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com',
+            'viously.com',
+            'qna.org.qa',
+            'bozztv.com',
+            'getaj.net',
+            'akamaized.net',
+            'raw.githubusercontent.com'
+          ].some(domain => link.url.includes(domain));
+
+          if (needsProxy) {
+            console.log(`[SELECT LINK] Mode desktop - hls_direct sur domaine restreint (${link.url}) nécessite proxy`);
+            finalUrl = getProxyUrl(link.url, link.type);
+          } else {
+            console.log(`[SELECT LINK] Mode desktop - hls_direct standard, accès direct: ${finalUrl}`);
+          }
         } else {
           console.log(`[SELECT LINK] Mode desktop - ${link.type} en URL directe: ${finalUrl}`);
         }
