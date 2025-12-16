@@ -963,7 +963,7 @@ export default function TVChannels() {
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour MPD`);
         }
       } else if (link.type === 'hls_direct') {
-        // Pour les M3U8 directs, utiliser Shaka Player (meilleur support)
+        // Pour les M3U8 directs, choisir le bon player selon la source
         if (isMobile() && !isCapacitor()) {
           console.log(`[SELECT LINK] Mobile web détecté - Shaka Player non supporté pour hls_direct`);
           // Fallback vers HLS.js sur mobile web
@@ -972,6 +972,11 @@ export default function TVChannels() {
           // Force HLS.js pour Bein Sports (Cloudfront/Pscp)
           playerType = 'hls';
           console.log(`[SELECT LINK] Cloudfront/Pscp Bein Sports détecté - Force HLS.js`);
+        } else if (link.url.includes('viamotionhsi.netplus.ch')) {
+          // Force HLS.js pour viamotionhsi car Shaka ne supporte pas le codec MP2T audio
+          // Erreur Shaka: NotSupportedError: Failed to execute 'addSourceBuffer': audio/MP2T not supported
+          playerType = 'hls';
+          console.log(`[SELECT LINK] Viamotionhsi détecté - Force HLS.js (Shaka ne supporte pas MP2T audio)`);
         } else {
           playerType = 'shaka';
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour hls_direct`);
