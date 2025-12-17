@@ -500,7 +500,7 @@ async function handleTV(req, res) {
             }
 
             // Propager quelques headers utiles
-            ['content-type', 'content-length', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
+            ['content-type', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
                 if (r.headers[h]) {
                     // Si c'est un segment .js de Bein Sports, forcer le type MIME vidéo
                     if (h === 'content-type' && cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') && cleanUrl.endsWith('.js')) {
