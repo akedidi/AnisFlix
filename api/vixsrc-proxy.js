@@ -70,15 +70,14 @@ export default async function handler(req, res) {
                 contentType.includes('audio/mpegurl')
             ));
 
-        if (isHlsContent || decodedUrl.includes('.key')) {
-            // --- PROXY MODE (Playlist & Keys) ---
-
-            // Playlists satisfy strict CORS/Content-Type needs.
-            // Keys are small and must be proxied to pass Referer/Origin checks (no timeout risk).
+        if (true) {
+            // --- PROXY MODE (Everything) ---
+            // We now proxy segments too to avoid CORS/Referer issues on web.
+            // Vercel 10s timeout is a risk but segments are usually small.
 
             const buffer = await response.arrayBuffer();
 
-            // Rewrite playlists ONLY (not binary keys)
+            // Rewrite playlists ONLY
             let content = Buffer.from(buffer);
             if (isHlsContent) {
                 const text = content.toString('utf-8');
@@ -108,7 +107,7 @@ export default async function handler(req, res) {
                 content = Buffer.from(rewritten);
                 res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             } else {
-                // For keys, forward original content type or default to binary
+                // For keys and segments, forward original content type or default to binary
                 const ct = response.headers.get('content-type');
                 if (ct) res.setHeader('Content-Type', ct);
             }
@@ -117,12 +116,7 @@ export default async function handler(req, res) {
             res.status(response.status).send(content);
 
         } else {
-            // --- REDIRECT MODE (Video Segments) ---
-            // Large .ts files are redirected to bypass Vercel 10s timeout.
-            // Vixsrc signed URLs allows this.
-
-            console.log(`[VIXSRC PROXY] Redirecting segment to: ${decodedUrl.substring(0, 50)}...`);
-            res.redirect(302, decodedUrl);
+            // Dead code removed
         }
 
     } catch (error) {
