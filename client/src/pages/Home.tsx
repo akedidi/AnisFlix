@@ -233,19 +233,18 @@ export default function Home() {
               </ScrollArea>
             </div>
 
-            {/* Dernières séries en premier */}
-            <MediaCarousel
-              title={t("home.latestSeries")}
-              items={latestSeries.slice(0, 10)}
-              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
-              seeAllLink="/latest-series"
-            />
-
             <MediaCarousel
               title={t("home.latestMovies")}
               items={latestMovies.slice(0, 10)}
               onItemClick={(item) => navigate(navPaths.movie(item.id))}
               seeAllLink="/latest-movies"
+            />
+
+            <MediaCarousel
+              title={t("home.latestSeries")}
+              items={latestSeries.slice(0, 10)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+              seeAllLink="/latest-series"
             />
 
             {/* Séries populaires */}
