@@ -850,7 +850,8 @@ const StreamingSources = memo(function StreamingSources({
             console.log('✅ Stream Vixsrc extrait:', stream.url);
 
             // IMPORTANT: Like iOS, wrap the URL in vixsrc-proxy to handle CORS/Headers
-            const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}`;
+            // AND append .m3u8 extension hint for Safari/Browsers which are pickier than AVPlayer
+            const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}&ext=.m3u8`;
             console.log('✅ URL proxifiée:', proxyUrl);
             onSourceClick({
               url: proxyUrl,
