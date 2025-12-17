@@ -86,17 +86,29 @@ export default async function handler(req, res) {
                 const origin = `${protocol}://${host}`;
 
                 const rewritten = text.split(/\r?\n/).map(line => {
-                    if (!line.trim().startsWith('#') && line.trim().length > 0) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('#') && trimmed.length > 0) {
                         try {
-                            const abs = new URL(line, baseUrl).toString();
-                            return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}`;
+                            const abs = new URL(trimmed, baseUrl).toString();
+                            // Detect extension for hint
+                            let ext = '';
+                            if (abs.includes('.m3u8')) ext = '&ext=.m3u8';
+                            else if (abs.includes('.ts')) ext = '&ext=.ts';
+                            else ext = '&ext=.m3u8'; // Default to m3u8 for unknown (likely variant playlist)
+
+                            return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}${ext}`;
                         } catch { return line; }
                     }
                     if (line.includes('URI="')) {
                         return line.replace(/URI="([^"]+)"/g, (_, uri) => {
                             try {
                                 const abs = new URL(uri, baseUrl).toString();
-                                return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}"`;
+                                // Detect extension for hint
+                                let ext = '';
+                                if (abs.includes('.m3u8')) ext = '&ext=.m3u8';
+                                else if (abs.includes('.vtt')) ext = '&ext=.vtt';
+
+                                return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(abs)}${ext}"`;
                             } catch { return _; }
                         });
                     }

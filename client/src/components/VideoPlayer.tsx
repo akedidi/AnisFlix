@@ -133,12 +133,20 @@ export default function VideoPlayer({
 
     // Determine if we need HLS.js (for m3u8 on non-Safari browsers)
     const isM3u8 = src.includes('.m3u8') || type === 'm3u8';
-    const needsHls = isM3u8 && !video.canPlayType('application/vnd.apple.mpegurl');
+
+    // STRICT CHECK: Safari is the only major browser with reliable native HLS
+    // Chrome/Firefox often report "maybe" or "probably" but fail with complex streams or proxies
+    // So we FORCE hls.js on anything that isn't Safari (if hls.js is supported)
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const needsHls = isM3u8 && (Hls.isSupported() && !isSafari);
+
+    // Fallback: If HLS.js is NOT supported (e.g. old iOS), we try native
+    // Or if it IS Safari, we use native
 
     if (needsHls) {
-      // Use HLS.js for m3u8 streams on browsers that don't natively support it
+      // Use HLS.js for m3u8 streams on browsers that don't natively support it (or where we force it)
       if (Hls.isSupported()) {
-        console.log('📺 [VideoPlayer] Using HLS.js for m3u8 stream');
+        console.log('📺 [VideoPlayer] Using HLS.js for m3u8 stream (Not Safari)');
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
