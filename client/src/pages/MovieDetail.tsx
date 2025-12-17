@@ -307,14 +307,11 @@ export default function MovieDetail() {
         return;
       }
 
-      // Pour Vixsrc, passer par le proxy pour gérer les headers (Referer, User-Agent)
+      // Logic moved to StreamingSources.tsx to handle proxy wrapping and extensions
+      // We now treat Vixsrc as a standard source
       if ((source as any).isVixsrc && source.url) {
-        console.log('🎬 Source Vixsrc détectée, utilisation du proxy:', source.url);
-        // Use absolute URL for Chromecast compatibility
-        const proxyUrl = `${window.location.origin}/api/vixsrc-proxy?url=${encodeURIComponent(source.url)}`;
-
         setSelectedSource({
-          url: proxyUrl,
+          url: source.url,
           type: "m3u8",
           name: source.name,
           isVidMoly: false,
