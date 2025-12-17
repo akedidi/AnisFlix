@@ -828,18 +828,16 @@ const StreamingSources = memo(function StreamingSources({
         console.log('✅ Source Vixsrc détectée, extraction du lien direct...');
 
         try {
-          const response = await fetch('/api/vixsrc/extract', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              tmdbId: id,
-              mediaType: type,
-              season: season,
-              episode: episode
-            })
+          // Use the same API as iOS - GET /api/vixsrc with query params
+          const params = new URLSearchParams({
+            tmdbId: id.toString(),
+            type: type
           });
+
+          if (season) params.append('season', season.toString());
+          if (episode) params.append('episode', episode.toString());
+
+          const response = await fetch(`/api/vixsrc?${params.toString()}`);
 
           if (!response.ok) {
             throw new Error(`Erreur extraction Vixsrc: ${response.statusText}`);
@@ -847,18 +845,20 @@ const StreamingSources = memo(function StreamingSources({
 
           const data = await response.json();
 
-          if (data.success && data.m3u8Url) {
-            console.log('✅ Lien direct Vixsrc extrait:', data.m3u8Url);
+          if (data.success && data.streams && data.streams.length > 0) {
+            // Use the first stream (usually Auto quality)
+            const stream = data.streams[0];
+            console.log('✅ Lien direct Vixsrc extrait:', stream.url);
             onSourceClick({
-              url: data.m3u8Url,
+              url: stream.url,
               type: 'm3u8' as const,
               name: source.name,
-              quality: source.quality,
+              quality: stream.quality || source.quality,
               language: source.language,
               isVixsrc: true
             });
           } else {
-            throw new Error('Pas de lien m3u8 dans la réponse');
+            throw new Error('Pas de streams dans la réponse');
           }
         } catch (error) {
           console.error('Erreur lors de l\'extraction Vixsrc:', error);
