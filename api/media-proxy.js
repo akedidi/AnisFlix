@@ -384,19 +384,18 @@ async function handleTV(req, res) {
             if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
                 console.log(`[TV PROXY] Nettoyage des headers pour Source Sensible (Cloudfront/Pscp/Google)`);
                 requestHeaders = {
-                    // Utiliser le User-Agent du client pour éviter d'être détecté comme bot/axios
-                    'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                    // Pour Google Video, utiliser un UA fixe (Desktop Chrome) pour imiter un navigateur propre
+                    // Pour Bein, utiliser celui du client
+                    'User-Agent': (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev'))
+                        ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        : (req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'),
                     'Accept': '*/*'
                 };
 
-                // Spoof Origin pour Google Video/YouTube
-                if (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
-                    requestHeaders['Origin'] = 'https://www.youtube.com';
-                    requestHeaders['Referer'] = 'https://www.youtube.com/';
-                } else {
-                    delete requestHeaders['Origin'];
-                    delete requestHeaders['Referer'];
-                }
+                // Supprimer systématiquement Origin et Referer
+                // (Spoofing youtube.com a causé des problèmes, le mode 'sans origine' est plus fiable comme curl)
+                delete requestHeaders['Origin'];
+                delete requestHeaders['Referer'];
             }
 
             const r = await http.get(cleanUrl, {
@@ -465,17 +464,15 @@ async function handleTV(req, res) {
             // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video - SEGMENTS
             if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
                 console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Source Sensible (Cloudfront/Pscp/Google)`);
-                headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+                headers['User-Agent'] = (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev'))
+                    ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
                 headers['Accept'] = '*/*';
 
-                // Spoof Origin pour Google Video/YouTube
-                if (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
-                    headers['Origin'] = 'https://www.youtube.com';
-                    headers['Referer'] = 'https://www.youtube.com/';
-                } else {
-                    delete headers['Origin'];
-                    delete headers['Referer'];
-                }
+                // Supprimer systématiquement Origin et Referer
+                delete headers['Origin'];
+                delete headers['Referer'];
             }
 
             console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
