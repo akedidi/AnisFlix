@@ -247,20 +247,20 @@ export default function Home() {
               seeAllLink="/latest-series"
             />
 
-            {/* Séries populaires */}
-            <MediaCarousel
-              title={t("home.popularSeries")}
-              items={popularSeries.slice(0, 10)}
-              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
-              seeAllLink="/popular-series"
-            />
-
             {/* Films populaires */}
             <MediaCarousel
               title={t("home.popularMovies")}
               items={popularMovies.slice(0, 10)}
               onItemClick={(item) => navigate(navPaths.movie(item.id))}
               seeAllLink="/popular-movies"
+            />
+
+            {/* Séries populaires */}
+            <MediaCarousel
+              title={t("home.popularSeries")}
+              items={popularSeries.slice(0, 10)}
+              onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+              seeAllLink="/popular-series"
             />
 
             {/* Catégories Anime */}
