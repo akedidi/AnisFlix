@@ -691,16 +691,7 @@ export default function VideoPlayer({
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
-      {/* DEBUG OVERLAY - REMOVE AFTER FIX */}
-      <div id="hls-debug-info" style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999, background: 'rgba(0,0,0,0.8)', color: 'lime', padding: '10px', fontSize: '12px' }}>
-        <p>Src: {src}</p>
-        <p>Type: {type}</p>
-        <p>isM3u8: {String(src.includes('.m3u8') || type === 'm3u8')}</p>
-        <p>Hls.isSupported: {String(Hls.isSupported())}</p>
-        <p>isSafari: {String(/^((?!chrome|android).)*safari/i.test(navigator.userAgent))}</p>
-        <p>needsHls: {String((src.includes('.m3u8') || type === 'm3u8') && (Hls.isSupported() && !/^((?!chrome|android).)*safari/i.test(navigator.userAgent)))}</p>
-        <p>UA: {navigator.userAgent}</p>
-      </div>
+
 
       <div className="relative group w-full h-full" ref={containerRef}>
         <video
