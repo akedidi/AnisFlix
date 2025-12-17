@@ -367,7 +367,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "mangas",
                             name: "Mangas",
-                            logo: "https://fr.wikipedia.org/wiki/Mangas#/media/Fichier:Logo-mangaschaine2022.png",
+                            logo: "https://upload.wikimedia.org/wikipedia/fr/9/96/Logo-mangaschaine2022.png",
                             links: [
                                 { type: "hls_segments", url: "https://fremtv.lol/live/5A24C0D16059EDCC6A20E0CE234C7A25/97.m3u8" }
                             ]
