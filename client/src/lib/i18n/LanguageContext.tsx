@@ -44,7 +44,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("app-language", lang);
-    window.location.reload();
+    // Removed window.location.reload() - translations update via useEffect
   };
 
   const t = (key: string): string => {
