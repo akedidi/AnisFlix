@@ -77,6 +77,34 @@ export default function VideoPlayer({
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
+  // Fetch subtitles from OpenSubtitles
+  useEffect(() => {
+    const fetchSubtitles = async () => {
+      if (imdbId && mediaType) {
+        console.log('🔍 [VIDEO PLAYER] Fetching subtitles for IMDB ID:', imdbId);
+        try {
+          const subs = await getSubtitles(
+            imdbId,
+            mediaType === 'tv' ? 'series' : 'movie',
+            seasonNumber,
+            episodeNumber
+          );
+          console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles:`, subs);
+          setSubtitles(subs);
+        } catch (error) {
+          console.error('❌ [VIDEO PLAYER] Error fetching subtitles:', error);
+          setSubtitles([]);
+        }
+      } else {
+        console.log('⚠️ [VIDEO PLAYER] No IMDB ID or mediaType, skipping subtitles');
+        setSubtitles([]);
+      }
+    };
+
+    fetchSubtitles();
+  }, [imdbId, mediaType, seasonNumber, episodeNumber]);
+
+
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
     videoRef,
