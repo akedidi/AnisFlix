@@ -1109,7 +1109,15 @@ export default function TVChannels() {
     console.log(`🎥 [HLS PLAYER] Élément video trouvé:`, video);
 
     // L'URL est déjà convertie en URL proxy par selectLinkByIndex si nécessaire
-    const finalStreamUrl = streamUrl;
+    let finalStreamUrl = streamUrl;
+    console.log(`🎥 [HLS PLAYER] URL initiale: ${finalStreamUrl}`);
+
+    // Force proxy for Google Video / YouTube Live manifests due to strict CORS
+    if (finalStreamUrl.includes('googlevideo.com') || finalStreamUrl.includes('youtube.jitendraunatti.workers.dev')) {
+      console.log(`🎥 [HLS PLAYER] URL Google Video détectée - Forçage du proxy local`);
+      finalStreamUrl = `/api/media-proxy?url=${encodeURIComponent(finalStreamUrl)}`;
+    }
+
     console.log(`🎥 [HLS PLAYER] URL finale pour le player: ${finalStreamUrl}`);
 
     if (Hls.isSupported()) {
