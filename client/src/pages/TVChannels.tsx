@@ -1154,7 +1154,7 @@ export default function TVChannels() {
           !originalUrl.includes('/api/media-proxy?url=') &&
           !originalUrl.includes('viamotionhsi.netplus.ch/api/media-proxy') &&
           !originalUrl.includes('undefined') && // Éviter les URLs avec undefined
-          (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_'))) {
+          (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_') || originalUrl.includes('googlevideo.com') || originalUrl.includes('workers.dev'))) {
 
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
           let resolvedUrl = originalUrl;
@@ -1212,7 +1212,7 @@ export default function TVChannels() {
           !originalUrl.includes('/api/media-proxy?url=') &&
           !originalUrl.includes('viamotionhsi.netplus.ch/api/media-proxy') &&
           !originalUrl.includes('undefined') && // Éviter les URLs avec undefined
-          (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_'))) {
+          (originalUrl.includes('hd1-mp4a_') || originalUrl.includes('fra=') || originalUrl.includes('.m3u8') || originalUrl.includes('cachehsi') || originalUrl.includes('tok_') || originalUrl.includes('googlevideo.com') || originalUrl.includes('workers.dev'))) {
 
           // Si c'est une URL relative, la résoudre par rapport au domaine de base
           let resolvedUrl = originalUrl;

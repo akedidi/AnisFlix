@@ -388,9 +388,15 @@ async function handleTV(req, res) {
                     'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
                     'Accept': '*/*'
                 };
-                // Explicitement supprimer Origin/Referer s'ils étaient copiés
-                delete requestHeaders['Origin'];
-                delete requestHeaders['Referer'];
+
+                // Spoof Origin pour Google Video/YouTube
+                if (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
+                    requestHeaders['Origin'] = 'https://www.youtube.com';
+                    requestHeaders['Referer'] = 'https://www.youtube.com/';
+                } else {
+                    delete requestHeaders['Origin'];
+                    delete requestHeaders['Referer'];
+                }
             }
 
             const r = await http.get(cleanUrl, {
@@ -461,8 +467,15 @@ async function handleTV(req, res) {
                 console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Source Sensible (Cloudfront/Pscp/Google)`);
                 headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
                 headers['Accept'] = '*/*';
-                delete headers['Origin'];
-                delete headers['Referer'];
+
+                // Spoof Origin pour Google Video/YouTube
+                if (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
+                    headers['Origin'] = 'https://www.youtube.com';
+                    headers['Referer'] = 'https://www.youtube.com/';
+                } else {
+                    delete headers['Origin'];
+                    delete headers['Referer'];
+                }
             }
 
             console.log(`[TV PROXY] Appel de l'URL segment: ${cleanUrl}`);
