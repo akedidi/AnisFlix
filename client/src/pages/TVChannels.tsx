@@ -998,10 +998,33 @@ export default function TVChannels() {
         finalUrl = getProxyUrl(link.url, link.type);
       }
       else if (isMobile() && !isCapacitor()) {
-        // Mobile web : proxy pour hls_segments, direct pour hls_direct et mpd
+        // Mobile web : proxy pour hls_segments ET certains hls_direct (viamotionhsi, etc.)
         if (link.type === 'hls_segments') {
           console.log(`[SELECT LINK] Mode mobile web - hls_segments nécessite proxy`);
           finalUrl = getProxyUrl(link.url, link.type);
+        } else if (link.type === 'hls_direct') {
+          // Les mêmes domaines que desktop nécessitent aussi un proxy sur mobile
+          const needsProxy = [
+            'viamotionhsi.netplus.ch',
+            'simulcast-p.ftven.fr',
+            'artesimulcast.akamaized.net',
+            'ncdn-live-bfm.pfd.sfr.net',
+            'rt-fra.rttv.com',
+            'live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com',
+            'viously.com',
+            'qna.org.qa',
+            'bozztv.com',
+            'getaj.net',
+            'akamaized.net',
+            'raw.githubusercontent.com'
+          ].some(domain => link.url.includes(domain));
+
+          if (needsProxy) {
+            console.log(`[SELECT LINK] Mode mobile web - hls_direct sur domaine restreint (${link.url}) nécessite proxy`);
+            finalUrl = getProxyUrl(link.url, link.type);
+          } else {
+            console.log(`[SELECT LINK] Mode mobile web - ${link.type} en URL directe: ${finalUrl}`);
+          }
         } else {
           console.log(`[SELECT LINK] Mode mobile web - ${link.type} en URL directe: ${finalUrl}`);
         }
