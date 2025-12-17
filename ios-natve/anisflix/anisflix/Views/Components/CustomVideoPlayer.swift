@@ -387,14 +387,16 @@ struct CustomVideoPlayer: View {
         }
         .onDisappear {
             print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
-            // Only reset to portrait if NOT in fullscreen mode
-            // SwiftUI can call onDisappear during view reconstruction even when the view is still visible
-            if !isFullscreen {
-                print("📺 [CustomVideoPlayer] Not in fullscreen, resetting to portrait and cleaning up")
+            // Only cleanup if:
+            // 1. Not in fullscreen mode
+            // 2. This view still owns the player (currentUrl matches)
+            // This prevents cleanup from stopping playback when switching channels via .id()
+            if !isFullscreen && playerVM.currentUrl == url {
+                print("📺 [CustomVideoPlayer] Not in fullscreen and URL matches, cleaning up")
                 playerVM.cleanup()
                 ScreenRotator.rotate(to: .portrait)
             } else {
-                print("📺 [CustomVideoPlayer] Still in fullscreen, NOT resetting orientation")
+                print("📺 [CustomVideoPlayer] Skipping cleanup - fullscreen=\(isFullscreen), urlMatch=\(playerVM.currentUrl == url)")
             }
         }
         .onChange(of: isFullscreen) { fullscreen in
@@ -494,6 +496,12 @@ struct CustomVideoPlayer: View {
                     duration: playerVM.duration
                 )
             }
+        }
+        .onChange(of: title) { newTitle in
+            playerVM.updateMetadata(title: newTitle, posterUrl: posterUrl)
+        }
+        .onChange(of: posterUrl) { newPosterUrl in
+            playerVM.updateMetadata(title: title, posterUrl: newPosterUrl)
         }
         .onChange(of: url) { newUrl in
             if castManager.isConnected {
@@ -694,6 +702,7 @@ class PlayerViewModel: NSObject, ObservableObject {
     var isSwitchingModes = false // Track fullscreen transition
     
     private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
+    private var artworkTask: Task<Void, Never>?
     
     override init() {
         super.init()
@@ -735,6 +744,24 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
+    func updateMetadata(title: String, posterUrl: String?) {
+        print("📝 Updating metadata: \(title)")
+        currentTitle = title
+        
+        // Update artwork if poster URL changed (and not just nil)
+        // Or if we want to force refresh
+        if let posterUrl = posterUrl {
+             // Cancel previous artwork download
+             artworkTask?.cancel()
+             currentArtwork = nil
+             artworkTask = Task {
+                 await downloadArtwork(from: posterUrl)
+             }
+        }
+        
+        updateNowPlayingInfo(title: title)
+    }
+    
     func setup(url: URL, title: String? = nil, posterUrl: String? = nil) {
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
@@ -746,9 +773,12 @@ class PlayerViewModel: NSObject, ObservableObject {
         
         // Download artwork if poster URL provided
         // Clear previous artwork immediately to prevent showing stale logo
+        // Cancel previous artwork download
+        artworkTask?.cancel()
+        
         currentArtwork = nil
         if let posterUrl = posterUrl {
-            Task {
+            artworkTask = Task {
                 await downloadArtwork(from: posterUrl)
             }
         }
@@ -845,20 +875,24 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Play Command
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] event in
+            print("🎧 [REMOTE] Play command received from headphones")
             guard let self = self else { return .commandFailed }
             self.player.play()
             self.isPlaying = true
             self.updateNowPlayingInfo() // Update state to Playing
+            print("🎧 [REMOTE] Play command executed - isPlaying: true")
             return .success
         }
         
         // Pause Command
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] event in
+            print("🎧 [REMOTE] Pause command received from headphones")
             guard let self = self else { return .commandFailed }
             self.player.pause()
             self.isPlaying = false
             self.updateNowPlayingInfo() // Update state to Paused
+            print("🎧 [REMOTE] Pause command executed - isPlaying: false")
             return .success
         }
         
@@ -889,11 +923,6 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func setupRemotyCommands() {
-        // ... (existing code, ensure it aligns with file content) ...
-    }
-    // Note: I will only replace updateNowPlayingInfo and part of setup() to include artwork and audio session activation.
-
     func updateNowPlayingInfo(title: String? = nil) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -912,9 +941,11 @@ class PlayerViewModel: NSObject, ObservableObject {
             nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = self.isPlaying ? 1.0 : 0.0
             
             // Use downloaded artwork if available, otherwise use app icon
+            // IMPORTANT: Always replace artwork to prevent showing stale logo from previous channel
             if let artwork = self.currentArtwork {
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
-            } else if nowPlayingInfo[MPMediaItemPropertyArtwork] == nil {
+            } else {
+                // Clear existing artwork and use default icon while new artwork downloads
                 if let image = UIImage(named: "AppIcon") ?? UIImage(systemName: "film") {
                     let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
                     nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
@@ -934,6 +965,9 @@ class PlayerViewModel: NSObject, ObservableObject {
         
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
+            
+            if Task.isCancelled { return }
+            
             guard let image = UIImage(data: data) else {
                 print("❌ Failed to create image from data")
                 return
@@ -1002,6 +1036,7 @@ class PlayerViewModel: NSObject, ObservableObject {
             observedItem = nil
         }
         resourceLoaderDelegate = nil
+        artworkTask?.cancel()
         
         // Clear Now Playing Info
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -1032,10 +1067,15 @@ class PlayerViewModel: NSObject, ObservableObject {
     func togglePlayPause() {
         if isPlaying {
             player.pause()
+            isPlaying = false
         } else {
             player.play()
+            isPlaying = true
         }
-        isPlaying.toggle()
+        
+        // Update Now Playing Info to sync with system
+        updateNowPlayingInfo()
+        print("🎧 [TOGGLE] Play/Pause toggled - isPlaying: \(isPlaying)")
     }
     
     func seek(to time: Double) {

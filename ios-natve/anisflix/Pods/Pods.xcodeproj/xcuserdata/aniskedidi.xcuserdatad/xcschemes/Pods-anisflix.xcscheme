@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "9AE56B88DFA6DCE87BB1205092C5496E"
-               BuildableName = "Pods_anisflix.framework"
-               BlueprintName = "Pods-anisflix"
+               BlueprintIdentifier = "767D0C4AE096F25901146C1CCF94C3FD"
+               BuildableName = "Pods_AnisFlix.framework"
+               BlueprintName = "Pods-AnisFlix"
                ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

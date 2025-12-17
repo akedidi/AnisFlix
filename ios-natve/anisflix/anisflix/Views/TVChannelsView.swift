@@ -225,6 +225,7 @@ struct TVChannelsView: View {
                         episode: nil as Int?,
                         playerVM: playerVM
                     )
+                    .id(channel.id) // Force view reconstruction on channel change
                     .frame(height: isFullscreen ? nil : 220)
                     .ignoresSafeArea(edges: isFullscreen ? .all : [])
                     

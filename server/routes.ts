@@ -80,6 +80,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // ... other media handlers could go here if needed ...
 
+      // TV Proxy handler (for Google Video, Bein Sports, etc.)
+      if (typeof url === 'string') {
+        const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch', 'dcpv2eq7lu6ve.cloudfront.net', 'video.pscp.tv', '135.125.109.73', 'alkassdigital.net', 'ab.footballii.ir', 'py.dencreak.com', 'py.online-tv.biz', 'googlevideo.com', 'manifest.googlevideo.com', 'jitendraunatti.workers.dev', 'workers.dev'];
+
+        const isAllowedUrl = (urlString: string): boolean => {
+          try {
+            const urlObj = new URL(urlString);
+            return ALLOWED_HOSTS.some(host => urlObj.hostname === host || urlObj.hostname.endsWith('.' + host));
+          } catch {
+            return false;
+          }
+        };
+
+        // Decode URL
+        let cleanUrl = url;
+        if (cleanUrl.toLowerCase().startsWith('http%')) {
+          cleanUrl = decodeURIComponent(cleanUrl);
+        }
+
+        // Check for infinite loops
+        if (cleanUrl.includes('/api/media-proxy?url=')) {
+          return res.status(400).send('Infinite loop detected');
+        }
+
+        // Check if URL is allowed
+        if (!isAllowedUrl(cleanUrl)) {
+          return res.status(403).send('URL not allowed');
+        }
+
+        console.log(`[TV PROXY] Proxying: ${cleanUrl.substring(0, 80)}...`);
+
+        try {
+          // Function to rewrite playlist URLs
+          const rewritePlaylistUrls = (playlistText: string, baseUrl: string): string => {
+            return playlistText.split('\n').map((line) => {
+              const t = line.trim();
+              if (!t) return line;
+
+              // Handle segment lines (not starting with #)
+              if (!t.startsWith('#')) {
+                const abs = t.startsWith('http') ? t : new URL(t, baseUrl).toString();
+                return `/api/media-proxy?url=${encodeURIComponent(abs)}`;
+              }
+
+              // Handle #EXT-X-MEDIA URI tags (audio tracks)
+              if (t.startsWith('#EXT-X-MEDIA:') && t.includes('URI=')) {
+                const uriMatch = t.match(/URI="([^"]+)"/);
+                if (uriMatch) {
+                  const audioUrl = uriMatch[1];
+                  const abs = audioUrl.startsWith('http') ? audioUrl : new URL(audioUrl, baseUrl).toString();
+                  const proxifiedUrl = `/api/media-proxy?url=${encodeURIComponent(abs)}`;
+                  return t.replace(/URI="[^"]+"/, `URI="${proxifiedUrl}"`);
+                }
+              }
+
+              return line;
+            }).join('\n');
+          };
+
+          // Determine if this is a playlist (M3U8/MPD) or segment
+          // For Google Video: manifest URLs contain 'manifest.googlevideo.com' or 'hls_playlist'/'hls_variant'
+          // Segment URLs contain 'videoplayback' and/or end with 'file/seg.ts' - they should be treated as binary streams
+          // even if they contain '.m3u8' in their path (Google uses embedded paths like /playlist/index.m3u8/sq/1234/)
+          const isGoogleVideoSegment = cleanUrl.includes('videoplayback') || cleanUrl.includes('file/seg.ts');
+          const isGoogleVideoManifest = (cleanUrl.includes('manifest.googlevideo.com') ||
+            cleanUrl.includes('hls_playlist') || cleanUrl.includes('hls_variant')) &&
+            !isGoogleVideoSegment;
+          const isPlaylist = !isGoogleVideoSegment && (cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') ||
+            isGoogleVideoManifest || cleanUrl.includes('workers.dev') ||
+            cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv'));
+
+          if (isPlaylist && !cleanUrl.endsWith('.js')) {
+            // Fetch playlist
+            const requestHeaders: Record<string, string> = {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*'
+            };
+
+            const response = await axios.get(cleanUrl, {
+              headers: requestHeaders,
+              responseType: 'text',
+              timeout: 15000,
+              validateStatus: () => true
+            });
+
+            if (response.status >= 400) {
+              console.error(`[TV PROXY] HTTP error: ${response.status}`);
+              return res.status(response.status).send(`Remote error: ${response.status}`);
+            }
+
+            if (typeof response.data !== 'string') {
+              return res.status(502).send('Invalid playlist');
+            }
+
+            // Get final URL after redirects
+            const finalUrl = response.request?.res?.responseUrl || cleanUrl;
+
+            // Rewrite URLs in playlist
+            const rewrittenPlaylist = rewritePlaylistUrls(response.data, finalUrl);
+
+            console.log(`[TV PROXY] Playlist rewritten successfully`);
+
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            return res.send(rewrittenPlaylist);
+          } else {
+            // Fetch segment (stream as binary)
+            const headers: Record<string, string> = {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Accept': '*/*'
+            };
+
+            if (req.headers.range) {
+              headers['Range'] = req.headers.range as string;
+            }
+
+            const response = await axios.get(cleanUrl, {
+              headers,
+              responseType: 'stream',
+              timeout: 30000,
+              validateStatus: () => true
+            });
+
+            if (response.status >= 400) {
+              console.error(`[TV PROXY] Segment error: ${response.status}`);
+              return res.status(response.status).send('Segment error');
+            }
+
+            // Propagate useful headers
+            ['content-type', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
+              if (response.headers[h]) {
+                res.setHeader(h, response.headers[h]);
+              }
+            });
+
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.status(response.status);
+            response.data.pipe(res);
+            return;
+          }
+        } catch (err: any) {
+          console.error('[TV PROXY ERROR]', err.message);
+          return res.status(500).send(`Proxy error: ${err.message}`);
+        }
+      }
+
       return res.status(400).send('Invalid parameters or unsupported type');
 
     } catch (error: any) {

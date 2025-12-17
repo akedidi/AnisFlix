@@ -977,6 +977,10 @@ export default function TVChannels() {
           // Erreur Shaka: NotSupportedError: Failed to execute 'addSourceBuffer': audio/MP2T not supported
           playerType = 'hls';
           console.log(`[SELECT LINK] Viamotionhsi détecté - Force HLS.js (Shaka ne supporte pas MP2T audio)`);
+        } else if (link.url.includes('googlevideo.com') || link.url.includes('workers.dev')) {
+          // Force HLS.js pour Google Video / YouTube Live car ces sources nécessitent un proxy CORS
+          playerType = 'hls';
+          console.log(`[SELECT LINK] Google Video/Workers.dev détecté - Force HLS.js (nécessite proxy CORS)`);
         } else {
           playerType = 'shaka';
           console.log(`[SELECT LINK] Desktop/Capacitor - Utilisation Shaka pour hls_direct`);

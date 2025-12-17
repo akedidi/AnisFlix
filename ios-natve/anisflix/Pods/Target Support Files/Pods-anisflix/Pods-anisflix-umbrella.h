@@ -11,6 +11,6 @@
 #endif
 
 
-FOUNDATION_EXPORT double Pods_anisflixVersionNumber;
-FOUNDATION_EXPORT const unsigned char Pods_anisflixVersionString[];
+FOUNDATION_EXPORT double Pods_AnisFlixVersionNumber;
+FOUNDATION_EXPORT const unsigned char Pods_AnisFlixVersionString[];
 

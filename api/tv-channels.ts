@@ -620,25 +620,9 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                         {
                             id: "watania-1",
                             name: "Watania 1",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/3/32/Watania_1.png",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/1/1c/Logo_T%C3%A9l%C3%A9vision_tunisienne_1%2C_2017.svg",
                             links: [
                                 { type: "hls_direct", url: "https://manifest.googlevideo.com/api/manifest/hls_variant/expire/1765999972/ei/BLFCabL7FfCG6dsPwKGq6QE/ip/172.71.119.29/id/mOai8w7DMtE.4/source/yt_live_broadcast/requiressl/yes/xpc/EgVo2aDSNQ%3D%3D/hfr/1/playlist_duration/30/manifest_duration/30/maudio/1/ss/1/ssa/1/bui/AYUSA3Cdekx_jETqQ4qN3zKPoKpHhCujO8Y-t_5OYpi4fa_pfHzGxd2QP-IX8YB5OLjfrcODL8z7giPA/spc/wH4Qq2bZ_J-wjwA93Lg2PliPf2a6tk5L8wqHcXsyZ-DW9O9VhlyHeKQoviRvChe0l1Y/vprv/1/go/1/ns/IDqiBGpP5zlLww4-WwXUM2sR/rqh/5/pacing/0/nvgoi/1/ncsapi/1/keepalive/yes/fexp/51355912%2C51552689%2C51565116%2C51565681%2C51580968/dover/11/n/SXRkmW8AJBrHSiQuiMT/itag/0/playlist_type/DVR/sparams/expire%2Cei%2Cip%2Cid%2Csource%2Crequiressl%2Cxpc%2Chfr%2Cplaylist_duration%2Cmanifest_duration%2Cmaudio%2Css%2Cssa%2Cbui%2Cspc%2Cvprv%2Cgo%2Cns%2Crqh%2Citag%2Cplaylist_type/sig/AJfQdSswRQIgarzFNLo-H5SYcM5jGbtgBhxjhmBYgvSbBHf_Xpkdyi4CIQDU1SZfhx-ogALnsTpVSH6Q4TO-WM38Yv-KADbDgvdNEQ%3D%3D/file/index.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "watania-2",
-                            name: "Watania 2",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/91/Watania_2.png",
-                            links: [
-                                { type: "hls_direct", url: "https://manifest.googlevideo.com/api/manifest/hls_variant/expire/1766000400/ei/sLJCaeTiCbaDi9oPgJzjiAM/ip/172.71.119.30/id/0R5UH1Mplgg.19/source/yt_live_broadcast/requiressl/yes/xpc/EgVo2aDSNQ%3D%3D/hfr/1/playlist_duration/30/manifest_duration/30/maudio/1/bui/AYUSA3ACqYTueGvTMT5CCqJYK-SYQE8naC-ErI9KrlT3o4Ef6Hiph86DzEucnZwyzDBhP-G20ReK2CkF/spc/wH4Qq5qBHhAv9AQdlrDNwlyigX2pqrD55VjbaWtgM2IFz5HRrbxiRy16d25U2R9bF_Q/vprv/1/go/1/ns/n6smvRJvCescFs1s4RPTrOER/rqh/5/pacing/0/nvgoi/1/ncsapi/1/keepalive/yes/fexp/51355912%2C51552689%2C51565116%2C51565682%2C51580968/dover/11/n/8xJ1xIlbP9zaip1DyzR/itag/0/playlist_type/DVR/sparams/expire%2Cei%2Cip%2Cid%2Csource%2Crequiressl%2Cxpc%2Chfr%2Cplaylist_duration%2Cmanifest_duration%2Cmaudio%2Cbui%2Cspc%2Cvprv%2Cgo%2Cns%2Crqh%2Citag%2Cplaylist_type/sig/AJfQdSswRQIgO-6StxKNFoxHR-WMYZDnMJRdKyin14koWD9zudpp3NECIQD-Zt3k4kq8X_XLmVzTwL0WiSM5azm3uffksSGh8ZtrFg%3D%3D/file/index.m3u8" }
-                            ]
-                        },
-                        {
-                            id: "hiwar-tounsi",
-                            name: "Hiwar Tounsi",
-                            logo: "https://upload.wikimedia.org/wikipedia/commons/7/76/Hiwar_ettounsi_TV.png",
-                            links: [
-                                { type: "hls_direct", url: "https://live20.bozztv.com/akamaissh101/ssh101/venolie-hiwar/playlist.m3u8" }
                             ]
                         }
                     ]
