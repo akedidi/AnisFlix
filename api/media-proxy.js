@@ -322,15 +322,12 @@ async function handleTV(req, res) {
     // Décoder l'URL pour nettoyer les encodages multiples
     let cleanUrl = url;
     try {
-        // Décoder jusqu'à 3 fois pour nettoyer les encodages multiples
-        for (let i = 0; i < 3; i++) {
-            if (cleanUrl.includes('%')) {
-                cleanUrl = decodeURIComponent(cleanUrl);
-            } else {
-                break;
-            }
+        // S'assurer que l'URL est bien décodée si elle commence par http% (encodée)
+        // Mais NE PAS décoder agressivement si c'est déjà une URL valide avec des % (ex: signatures Google)
+        if (cleanUrl.toLowerCase().startsWith('http%')) {
+            cleanUrl = decodeURIComponent(cleanUrl);
+            console.log(`[TV PROXY] URL encodée détectée, décodée: ${cleanUrl}`);
         }
-        console.log(`[TV PROXY] URL nettoyée: ${cleanUrl}`);
 
         // Détecter les boucles infinies (URLs qui pointent vers notre propre API)
         if (cleanUrl.includes('/api/media-proxy?url=') || cleanUrl.includes('anisflix.vercel.app/api/media-proxy')) {
@@ -382,10 +379,10 @@ async function handleTV(req, res) {
                 };
             }
 
-            // Headers spécifiques pour Bein Sports (Cloudfront)
+            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video
             // Supprimer Origin et Referer pour éviter les blocages
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) {
-                console.log(`[TV PROXY] Nettoyage des headers pour Bein Sports (Cloudfront/Pscp)`);
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
+                console.log(`[TV PROXY] Nettoyage des headers pour Source Sensible (Cloudfront/Pscp/Google)`);
                 requestHeaders = {
                     // Utiliser le User-Agent du client pour éviter d'être détecté comme bot/axios
                     'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -459,9 +456,9 @@ async function handleTV(req, res) {
                 console.log(`[TV PROXY] Headers JWT appliqués pour segment: ${cleanUrl}`);
             }
 
-            // Headers spécifiques pour Bein Sports (Cloudfront) - SEGMENTS
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv')) {
-                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Bein Sports (Cloudfront/Pscp)`);
+            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video - SEGMENTS
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
+                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Source Sensible (Cloudfront/Pscp/Google)`);
                 headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
                 headers['Accept'] = '*/*';
                 delete headers['Origin'];
