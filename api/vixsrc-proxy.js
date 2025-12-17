@@ -24,7 +24,9 @@ export default async function handler(req, res) {
 
         console.log(`[VIXSRC PROXY] Request: ${decodedUrl.substring(0, 80)}...`);
 
-        const isPlaylist = decodedUrl.includes('.m3u8') || decodedUrl.includes('playlist');
+        // Check for playlist indicators in URL OR explicit extension param
+        const isPlaylist = decodedUrl.includes('.m3u8') ||
+            decodedUrl.includes('playlist');
 
         // Browser-like headers
         const headers = {

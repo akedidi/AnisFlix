@@ -509,46 +509,52 @@ export default function VideoPlayer({
     }
 
     const video = videoRef.current;
-    const tracks = video.textTracks;
 
-    // Find the corresponding track by matching label and language
-    // We cannot rely on index because HLS.js or browser might inject other tracks
-    const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
-    if (!selectedSub) return;
-
-    let foundTrack: TextTrack | null = null;
-
-    // Disable all tracks and find the matching one
-    for (let i = 0; i < tracks.length; i++) {
-      const t = tracks[i];
+    // Disable all text tracks first to ensure clean state
+    Array.from(video.textTracks).forEach(t => {
       t.mode = 'hidden';
+    });
 
-      // Match logic:
-      // HLS.js tracks might complicate things, but our <track> elements come from 'subtitles' array
-      // We match by label and language
-      if (t.label === selectedSub.label && t.language === selectedSub.lang) {
-        foundTrack = t;
-      }
-    }
+    // Find the track element that matches the selected subtitle URL
+    // This is much more robust than matching by label/language which can be inconsistent
+    const trackElements = Array.from(video.querySelectorAll('track'));
+    const matchingElement = trackElements.find((el: any) =>
+      el.src && el.src.includes(encodeURIComponent(selectedSubtitle))
+    );
 
-    if (foundTrack) {
-      const trackToEnable = foundTrack; // Closure capture
+    if (matchingElement && (matchingElement as any).track) {
+      const trackToEnable = (matchingElement as any).track;
+
+      console.log(`✅ [VideoPlayer] Found DOM track for url: ${selectedSubtitle}`);
+      console.log(`✅ [VideoPlayer] Enabling track: ${trackToEnable.label} (${trackToEnable.language})`);
+
       const timeoutId = setTimeout(() => {
-        console.log(`✅ [VideoPlayer] Enabling track: ${trackToEnable.label} (${trackToEnable.language})`);
         trackToEnable.mode = 'showing';
 
-        // Monitoring
+        // Monitoring to ensure it sticks (browser might sometimes reset it)
         const monitorInterval = setInterval(() => {
           if (trackToEnable.mode !== 'showing') {
-            console.log(`🔄 [VideoPlayer] Re-enabling track`);
+            console.log(`🔄 [VideoPlayer] Re-enabling track (persistence check)`);
             trackToEnable.mode = 'showing';
           }
         }, 500);
         setTimeout(() => clearInterval(monitorInterval), 5000);
-      }, 200);
+      }, 100);
+
       return () => clearTimeout(timeoutId);
     } else {
-      console.warn(`⚠️ [VideoPlayer] Track not found for: ${selectedSub.label}`);
+      console.warn(`⚠️ [VideoPlayer] No DOM track found for: ${selectedSubtitle}`);
+      // Fallback to old logic if DOM matching fails (unlikely)
+      const tracks = video.textTracks;
+      const selectedSub = subtitles.find(s => s.url === selectedSubtitle);
+      if (selectedSub) {
+        for (let i = 0; i < tracks.length; i++) {
+          if (tracks[i].label === selectedSub.label && tracks[i].language === selectedSub.lang) {
+            tracks[i].mode = 'showing';
+            break;
+          }
+        }
+      }
     }
   }, [selectedSubtitle, subtitles]);
 
@@ -685,7 +691,18 @@ export default function VideoPlayer({
 
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
-      <div className="relative w-full aspect-video bg-black" ref={containerRef}>
+      {/* DEBUG OVERLAY - REMOVE AFTER FIX */}
+      <div id="hls-debug-info" style={{ position: 'absolute', top: 0, left: 0, zIndex: 9999, background: 'rgba(0,0,0,0.8)', color: 'lime', padding: '10px', fontSize: '12px' }}>
+        <p>Src: {src}</p>
+        <p>Type: {type}</p>
+        <p>isM3u8: {String(src.includes('.m3u8') || type === 'm3u8')}</p>
+        <p>Hls.isSupported: {String(Hls.isSupported())}</p>
+        <p>isSafari: {String(/^((?!chrome|android).)*safari/i.test(navigator.userAgent))}</p>
+        <p>needsHls: {String((src.includes('.m3u8') || type === 'm3u8') && (Hls.isSupported() && !/^((?!chrome|android).)*safari/i.test(navigator.userAgent)))}</p>
+        <p>UA: {navigator.userAgent}</p>
+      </div>
+
+      <div className="relative group w-full h-full" ref={containerRef}>
         <video
           ref={videoRef}
           className="w-full h-full object-contain"
