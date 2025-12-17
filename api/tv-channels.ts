@@ -622,7 +622,7 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             name: "Watania 1",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/3/32/Watania_1.png",
                             links: [
-                                { type: "hls_direct", url: "https://games2.elahmad.xyz/tv769_www.elahmad.com_watania1/index.m3u8?token=b9d0297eeef834aa66b673fe97e0b29d246eee83-0f18c0ac40653414b0a06c98a6a28998-1765511168-1765500368" }
+                                { type: "hls_direct", url: "https://youtube.jitendraunatti.workers.dev/wanda.m3u8?id=mOai8w7DMtE" }
                             ]
                         },
                         {
