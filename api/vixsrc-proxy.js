@@ -62,8 +62,17 @@ export default async function handler(req, res) {
             if (val) res.setHeader(h.replace(/(^|-)(\w)/g, c => c.toUpperCase()), val);
         });
 
-        if (isPlaylist || decodedUrl.includes('.key')) {
+        // Determine if content is playlist based on URL OR Content-Type
+        const isHlsContent = isPlaylist ||
+            (contentType && (
+                contentType.includes('application/vnd.apple.mpegurl') ||
+                contentType.includes('application/x-mpegURL') ||
+                contentType.includes('audio/mpegurl')
+            ));
+
+        if (isHlsContent || decodedUrl.includes('.key')) {
             // --- PROXY MODE (Playlist & Keys) ---
+
             // Playlists satisfy strict CORS/Content-Type needs.
             // Keys are small and must be proxied to pass Referer/Origin checks (no timeout risk).
 
@@ -71,7 +80,7 @@ export default async function handler(req, res) {
 
             // Rewrite playlists ONLY (not binary keys)
             let content = Buffer.from(buffer);
-            if (isPlaylist) {
+            if (isHlsContent) {
                 const text = content.toString('utf-8');
                 const baseUrl = new URL(decodedUrl);
                 const protocol = req.headers['x-forwarded-proto'] || 'https';
