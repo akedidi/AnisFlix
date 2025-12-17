@@ -75,11 +75,10 @@ export default async function handler(req, res) {
             // We now proxy segments too to avoid CORS/Referer issues on web.
             // Vercel 10s timeout is a risk but segments are usually small.
 
-            const buffer = await response.arrayBuffer();
-
-            // Rewrite playlists ONLY
-            let content = Buffer.from(buffer);
             if (isHlsContent) {
+                // --- BUFFER & REWRITE PLAYLIST ---
+                const buffer = await response.arrayBuffer();
+                let content = Buffer.from(buffer);
                 const text = content.toString('utf-8');
                 const baseUrl = new URL(decodedUrl);
                 const protocol = req.headers['x-forwarded-proto'] || 'https';
@@ -106,14 +105,30 @@ export default async function handler(req, res) {
 
                 content = Buffer.from(rewritten);
                 res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+                res.setHeader('Content-Length', content.length);
+                res.status(response.status).send(content);
+
             } else {
-                // For keys and segments, forward original content type or default to binary
+                // --- STREAM SEGMENTS/KEYS (No 4.5MB Limit) ---
+                // For segments, we pipe the response directly to bypass Vercel's body size limit.
+
+                // Forward content type
                 const ct = response.headers.get('content-type');
                 if (ct) res.setHeader('Content-Type', ct);
-            }
 
-            res.setHeader('Content-Length', content.length);
-            res.status(response.status).send(content);
+                res.removeHeader('Content-Length'); // Let it be chunked
+                res.status(response.status);
+
+                // Pipe the Web Stream (fetch) to Node Stream (res)
+                // Using a manual reader loop for compatibility
+                const reader = response.body.getReader();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    res.write(value);
+                }
+                res.end();
+            }
 
         } else {
             // Dead code removed
