@@ -626,6 +626,14 @@ const TV_CHANNELS_DATA: TVChannelsResponse = {
                             ]
                         },
                         {
+                            id: "watania-2",
+                            name: "Watania 2",
+                            logo: "https://upload.wikimedia.org/wikipedia/commons/9/91/Watania_2.png",
+                            links: [
+                                { type: "hls_direct", url: "https://manifest.googlevideo.com/api/manifest/hls_variant/expire/1766000400/ei/sLJCaeTiCbaDi9oPgJzjiAM/ip/172.71.119.30/id/0R5UH1Mplgg.19/source/yt_live_broadcast/requiressl/yes/xpc/EgVo2aDSNQ%3D%3D/hfr/1/playlist_duration/30/manifest_duration/30/maudio/1/bui/AYUSA3ACqYTueGvTMT5CCqJYK-SYQE8naC-ErI9KrlT3o4Ef6Hiph86DzEucnZwyzDBhP-G20ReK2CkF/spc/wH4Qq5qBHhAv9AQdlrDNwlyigX2pqrD55VjbaWtgM2IFz5HRrbxiRy16d25U2R9bF_Q/vprv/1/go/1/ns/n6smvRJvCescFs1s4RPTrOER/rqh/5/pacing/0/nvgoi/1/ncsapi/1/keepalive/yes/fexp/51355912%2C51552689%2C51565116%2C51565682%2C51580968/dover/11/n/8xJ1xIlbP9zaip1DyzR/itag/0/playlist_type/DVR/sparams/expire%2Cei%2Cip%2Cid%2Csource%2Crequiressl%2Cxpc%2Chfr%2Cplaylist_duration%2Cmanifest_duration%2Cmaudio%2Cbui%2Cspc%2Cvprv%2Cgo%2Cns%2Crqh%2Citag%2Cplaylist_type/sig/AJfQdSswRQIgO-6StxKNFoxHR-WMYZDnMJRdKyin14koWD9zudpp3NECIQD-Zt3k4kq8X_XLmVzTwL0WiSM5azm3uffksSGh8ZtrFg%3D%3D/file/index.m3u8" }
+                            ]
+                        },
+                        {
                             id: "hiwar-tounsi",
                             name: "Hiwar Tounsi",
                             logo: "https://upload.wikimedia.org/wikipedia/commons/7/76/Hiwar_ettounsi_TV.png",
