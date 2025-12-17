@@ -846,11 +846,14 @@ const StreamingSources = memo(function StreamingSources({
           const data = await response.json();
 
           if (data.success && data.streams && data.streams.length > 0) {
-            // Use the first stream (usually Auto quality)
             const stream = data.streams[0];
-            console.log('✅ Lien direct Vixsrc extrait:', stream.url);
+            console.log('✅ Stream Vixsrc extrait:', stream.url);
+
+            // IMPORTANT: Like iOS, wrap the URL in vixsrc-proxy to handle CORS/Headers
+            const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}`;
+            console.log('✅ URL proxifiée:', proxyUrl);
             onSourceClick({
-              url: stream.url,
+              url: proxyUrl,
               type: 'm3u8' as const,
               name: source.name,
               quality: stream.quality || source.quality,
