@@ -350,7 +350,15 @@ async function handleTV(req, res) {
 
         // ===== MODE PLAYLIST M3U8/MPD =====
         // Traiter explicitement Bein Sports et Google Video comme une playlist même sans extension (mais PAS les segments .js)
-        if ((cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') || cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) && !cleanUrl.endsWith('.js')) {
+        // IMPORTANT: Les segments Google Video (videoplayback, file/seg.ts) doivent être exclus car ils sont binaires
+        const isGoogleVideoSegment = cleanUrl.includes('videoplayback') || cleanUrl.includes('file/seg.ts');
+        const isGoogleVideoManifest = (cleanUrl.includes('manifest.googlevideo.com') ||
+            cleanUrl.includes('hls_playlist') || cleanUrl.includes('hls_variant')) && !isGoogleVideoSegment;
+        const isPlaylist = !isGoogleVideoSegment && (cleanUrl.includes('.m3u8') || cleanUrl.includes('.mpd') ||
+            cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') ||
+            isGoogleVideoManifest || cleanUrl.includes('workers.dev'));
+
+        if (isPlaylist && !cleanUrl.endsWith('.js')) {
 
             // Headers spécifiques selon le domaine
             let requestHeaders = { ...browserHeaders };
