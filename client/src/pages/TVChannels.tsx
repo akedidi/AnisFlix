@@ -1324,37 +1324,6 @@ export default function TVChannels() {
       video.addEventListener('pause', handlePause);
       video.addEventListener('ended', handleEnded);
 
-      // Méthode alternative : vérification périodique de l'état
-      let fullscreenCheckInterval: NodeJS.Timeout | null = null;
-      const startFullscreenCheck = () => {
-        if (fullscreenCheckInterval) return;
-        console.log('🎥 [FULLSCREEN CHECK] Démarrage de la vérification périodique');
-        fullscreenCheckInterval = setInterval(() => {
-          const isFullscreen = document.fullscreenElement ||
-            (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement ||
-            (document as any).msFullscreenElement;
-
-          if (!isFullscreen && (video.paused || video.ended)) {
-            console.log('🎥 [FULLSCREEN CHECK] Détection de pause en mode normal - reprise');
-            video.play().catch(err => {
-              console.error('🎥 [FULLSCREEN CHECK] Erreur reprise:', err);
-            });
-          }
-        }, 1000); // Vérifier toutes les secondes
-      };
-
-      const stopFullscreenCheck = () => {
-        if (fullscreenCheckInterval) {
-          console.log('🎥 [FULLSCREEN CHECK] Arrêt de la vérification périodique');
-          clearInterval(fullscreenCheckInterval);
-          fullscreenCheckInterval = null;
-        }
-      };
-
-      // Démarrer la vérification
-      startFullscreenCheck();
-
       // Nettoyer les listeners lors de la destruction
       const cleanup = () => {
         document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -1362,7 +1331,6 @@ export default function TVChannels() {
         video.removeEventListener('play', handlePlay);
         video.removeEventListener('pause', handlePause);
         video.removeEventListener('ended', handleEnded);
-        stopFullscreenCheck();
       };
 
       // Stocker la fonction de nettoyage pour l'utiliser plus tard
