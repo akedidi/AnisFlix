@@ -328,7 +328,7 @@ export default function SearchBar({ onSearch, onSelect, suggestions = [], placeh
                   <h4 className="font-medium text-sm truncate text-white leading-snug">{item.title}</h4>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                      {item.mediaType === "tv" ? "Série" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
+                      {item.mediaType === "tv" ? "TV" : item.mediaType === "anime" ? "Anime" : item.mediaType === "documentary" ? "Doc" : "Film"}
                     </Badge>
                     {item.year && (
                       <span className="text-xs text-gray-300">{item.year}</span>
