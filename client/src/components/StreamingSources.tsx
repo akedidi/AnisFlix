@@ -759,6 +759,40 @@ const StreamingSources = memo(function StreamingSources({
   }
 
 
+  // Trie final des sources : Vidzy > Vidmoly > Reste
+  allSources.sort((a, b) => {
+    // Helper pour déterminer le rang
+    const getRank = (source: Source) => {
+      // Rang 0: Vidzy (priorité absolue)
+      if (source.isVidzy ||
+        source.name.toLowerCase().includes('vidzy') ||
+        source.provider.toLowerCase() === 'vidzy' ||
+        (source.player && source.player.toLowerCase().includes('vidzy'))) {
+        return 0;
+      }
+
+      // Rang 1: VidMoly
+      if (source.isVidMoly ||
+        source.provider.toLowerCase() === 'vidmoly' ||
+        source.name.toLowerCase().includes('vidmoly')) {
+        return 1;
+      }
+
+      // Rang 2: Le reste (TopStream, Darki, Movix, Vixsrc, etc.)
+      return 2;
+    };
+
+    const rankA = getRank(a);
+    const rankB = getRank(b);
+
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+
+    return 0;
+  });
+
+
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
