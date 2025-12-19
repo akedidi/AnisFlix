@@ -1358,17 +1358,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Copier les headers pertinents
       const contentType = response.headers['content-type'];
+      const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
 
       if (contentType) res.setHeader('Content-Type', contentType);
 
-      if (response.headers['content-length']) {
-        res.setHeader('Content-Length', response.headers['content-length']);
-      }
-      if (response.headers['content-range']) {
-        res.setHeader('Content-Range', response.headers['content-range']);
-      }
-      if (response.headers['accept-ranges']) {
-        res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+      // IMPORTANT: Ne PAS copier Content-Length pour les playlists M3U8 car on va les réécrire (taille modifiée)
+      // On ne copie les headers de taille/range que pour les segments binaires
+      if (!isM3U8) {
+        if (response.headers['content-length']) {
+          res.setHeader('Content-Length', response.headers['content-length']);
+        }
+        if (response.headers['content-range']) {
+          res.setHeader('Content-Range', response.headers['content-range']);
+        }
+        if (response.headers['accept-ranges']) {
+          res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+        }
       }
 
       // IMPORTANT: CORS pour Chromecast - Headers étendus
@@ -1377,7 +1382,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization');
       res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Content-Type, Accept-Ranges');
 
-      const isM3U8 = (contentType && contentType.includes('mpegurl')) || decodedUrl.includes('.m3u8');
       console.log(`[VIXSRC PROXY] isM3U8 detected: ${isM3U8}`);
 
       if (isM3U8) {
