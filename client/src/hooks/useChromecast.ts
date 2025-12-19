@@ -356,7 +356,13 @@ export function useChromecast(): UseChromecastReturn {
         // Use standard Apple HLS MIME type which is often better supported
         contentType = 'application/vnd.apple.mpegurl';
         streamType = chromeCast.media.StreamType.BUFFERED;
-        console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType: application/vnd.apple.mpegurl');
+
+        // CRITICAL: Add .m3u8 extension hint for Chromecast to properly detect HLS
+        // Some Chromecast receivers use URL extension to determine media type
+        if (!finalMediaUrl.includes('_=')) {
+          finalMediaUrl = finalMediaUrl + (finalMediaUrl.includes('?') ? '&' : '?') + '_=.m3u8';
+        }
+        console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType + extension .m3u8:', finalMediaUrl);
       }
 
       const mediaInfo = new chromeCast.media.MediaInfo(finalMediaUrl, contentType);
@@ -450,7 +456,8 @@ export function useChromecast(): UseChromecastReturn {
       }
 
       console.log('[Chromecast] Envoi de la requête de cast...', {
-        url: mediaUrl,
+        url: finalMediaUrl,  // Use finalMediaUrl to show the actual URL being sent
+        originalUrl: mediaUrl,
         contentType,
         streamType,
         currentTime: request.currentTime,
@@ -458,20 +465,31 @@ export function useChromecast(): UseChromecastReturn {
         activeTrackIds: request.activeTrackIds
       });
 
-      const mediaSession = await session.loadMedia(request);
-      mediaSessionRef.current = mediaSession;
+      try {
+        const mediaSession = await session.loadMedia(request);
+        mediaSessionRef.current = mediaSession;
 
-      console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType);
+        if (!mediaSession) {
+          console.error('[Chromecast] loadMedia returned null - the media could not be loaded');
+          throw new Error('Le média n\'a pas pu être chargé sur le Chromecast. Vérifiez que l\'URL est accessible.');
+        }
 
-      // Écouter les erreurs de média si la session existe
-      if (mediaSession && typeof mediaSession.addUpdateListener === 'function') {
-        mediaSession.addUpdateListener((isAlive: boolean) => {
-          if (!isAlive) {
-            console.error('[Chromecast] La session média n\'est plus active');
-          }
-        });
-      } else {
-        console.warn('[Chromecast] addUpdateListener non disponible sur mediaSession');
+        console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType, 'Session:', mediaSession);
+
+        // Écouter les erreurs de média si la session existe
+        if (mediaSession && typeof mediaSession.addUpdateListener === 'function') {
+          mediaSession.addUpdateListener((isAlive: boolean) => {
+            if (!isAlive) {
+              console.error('[Chromecast] La session média n\'est plus active');
+            }
+          });
+        } else {
+          console.warn('[Chromecast] addUpdateListener non disponible sur mediaSession');
+        }
+      } catch (loadError: any) {
+        console.error('[Chromecast] Erreur loadMedia:', loadError);
+        console.error('[Chromecast] URL qui a échoué:', finalMediaUrl);
+        throw new Error(`Erreur de chargement Chromecast: ${loadError.message || 'Format non supporté ou URL inaccessible'}`);
       }
 
     } catch (error) {
