@@ -22,6 +22,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
     
+    // Progress Tracking
+    private var progressTimer: Timer?
+    private var currentMediaId: Int?
+    private var currentSeason: Int?
+    private var currentEpisode: Int?
+    
     override init() {
         super.init()
     }
@@ -70,6 +76,8 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         deviceName = nil
         mediaStatus = nil
         currentMediaUrl = nil
+        
+        stopProgressTracking()
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didFailToStart session: GCKSession, withError error: Error) {
@@ -89,12 +97,15 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     // MARK: - Media Control
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
         print("📢 [CastManager] URL: \(url.absoluteString)")
         print("📢 [CastManager] isLive: \(isLive)")
         
         self.currentMediaUrl = url
+        self.currentMediaId = mediaId
+        self.currentSeason = season
+        self.currentEpisode = episode
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -267,6 +278,54 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         self.mediaStatus = mediaStatus
         if let status = mediaStatus {
             print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue)")
+            
+            if status.playerState == .playing {
+                startProgressTracking()
+            } else {
+                saveCurrentProgress() // Save one last time before pause/stop
+                if status.playerState != .buffering {
+                     stopProgressTracking()
+                }
+            }
+        }
+    }
+    
+    // MARK: - Progress Tracking
+    
+    private func startProgressTracking() {
+        if progressTimer == nil {
+            print("⏱️ [CastManager] Starting progress tracking")
+            progressTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+                self?.saveCurrentProgress()
+            }
+        }
+    }
+    
+    private func stopProgressTracking() {
+        if progressTimer != nil {
+            print("⏱️ [CastManager] Stopping progress tracking")
+            progressTimer?.invalidate()
+            progressTimer = nil
+        }
+    }
+    
+    private func saveCurrentProgress() {
+        guard let mediaId = currentMediaId else { return }
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient else { return }
+        
+        let currentTime = remoteMediaClient.approximateStreamPosition()
+        let duration = remoteMediaClient.mediaStatus?.mediaInformation?.streamDuration ?? 0
+        
+        if currentTime > 0 && duration > 0 {
+             WatchProgressManager.shared.saveProgress(
+                mediaId: mediaId,
+                season: currentSeason,
+                episode: currentEpisode,
+                currentTime: currentTime,
+                duration: duration
+            )
+            print("⏱️ [CastManager] Saved progress: \(Int(currentTime))/\(Int(duration))s (ID: \(mediaId))")
         }
     }
     
@@ -404,7 +463,7 @@ class CastManager: NSObject, ObservableObject {
         print("⚠️ Google Cast SDK not available. Casting disabled.")
     }
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("⚠️ Google Cast SDK not available. Cannot load media.")
     }
     

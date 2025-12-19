@@ -223,26 +223,7 @@ export default function VideoPlayer({
           setProgress((time / duration) * 100);
         }
 
-        // Save progress periodically for Chromecast too
-        const now = Date.now();
-        if (now - lastSaveTimeRef.current >= 5000) {
-          if (duration > 0 && time > 0 && mediaId && mediaType) {
-            const prog = Math.round((time / duration) * 100);
-            saveWatchProgress({
-              mediaId,
-              mediaType,
-              title: title || "Vidéo",
-              posterPath: posterPath || null,
-              backdropPath: backdropPath || null,
-              currentTime: time,
-              duration: duration,
-              progress: prog,
-              seasonNumber,
-              episodeNumber,
-            });
-            lastSaveTimeRef.current = now;
-          }
-        }
+
       }
     }, 1000);
 
@@ -753,6 +734,10 @@ export default function VideoPlayer({
             onSubtitleSelect={handleSubtitleSelect}
             subtitleOffset={subtitleOffset}
             onSubtitleOffsetChange={handleSubtitleOffsetChange}
+            mediaId={mediaId}
+            mediaType={mediaType}
+            season={seasonNumber}
+            episode={episodeNumber}
           />
         )}
       </div>

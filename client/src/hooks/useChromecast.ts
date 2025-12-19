@@ -75,7 +75,11 @@ interface UseChromecastReturn {
     posterUrl?: string,
     currentTime?: number,
     subtitles?: Subtitle[],
-    activeSubtitleUrl?: string
+    activeSubtitleUrl?: string,
+    mediaId?: number,
+    mediaType?: string,
+    season?: number,
+    episode?: number
   ) => Promise<void>;
   disconnect: () => void;
   showPicker: () => void;
@@ -282,7 +286,11 @@ export function useChromecast(): UseChromecastReturn {
     posterUrl?: string,
     currentTime: number = 0,
     subtitles: Subtitle[] = [],
-    activeSubtitleUrl?: string
+    activeSubtitleUrl?: string,
+    mediaId?: number,
+    mediaType?: string,
+    season?: number,
+    episode?: number
   ) => {
     if (!castContextRef.current || !sessionRef.current || !window.chrome?.cast) {
       console.error('[Chromecast] Pas de session active ou SDK non chargé');
@@ -366,6 +374,19 @@ export function useChromecast(): UseChromecastReturn {
 
       if (posterUrl) {
         mediaInfo.metadata.images = [new chromeCast.Image(posterUrl)];
+      }
+
+      // Add custom data for progress tracking
+      if (mediaId && mediaType) {
+        mediaInfo.customData = {
+          mediaId,
+          mediaType,
+          season,
+          episode,
+          title, // Save title for history
+          posterPath: posterUrl // Save poster for history
+        };
+        console.log('[Chromecast] customData set:', mediaInfo.customData);
       }
 
       // Add subtitles if provided

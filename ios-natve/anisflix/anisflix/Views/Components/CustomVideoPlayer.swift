@@ -362,7 +362,7 @@ struct CustomVideoPlayer: View {
                 // If connected, check if we need to switch media on Cast
                 if castManager.currentMediaUrl != url {
                     print("📺 Switching Cast media to: \(title)")
-                    castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset)
+                    castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
                 }
             } else {
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl)
@@ -441,7 +441,7 @@ struct CustomVideoPlayer: View {
                 // So changing subtitle might need reload if we want to ensure offset is applied?
                 // But here we just change selection.
                 // Let's just reload to be safe and consistent.
-                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset)
+                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 if let sub = selectedSubtitle, let url = URL(string: sub.url) {
                     playerVM.loadSubtitles(url: url)
@@ -467,7 +467,7 @@ struct CustomVideoPlayer: View {
                     if !Task.isCancelled {
                         await MainActor.run {
                             print("📺 Reloading Cast media with new subtitle offset (debounced)...")
-                            castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset)
+                            castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
                         }
                     }
                 }
@@ -506,7 +506,7 @@ struct CustomVideoPlayer: View {
         .onChange(of: url) { newUrl in
             if castManager.isConnected {
                 print("📺 URL changed while casting. Loading new media...")
-                castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive)
+                castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl)
             }
@@ -515,7 +515,7 @@ struct CustomVideoPlayer: View {
             if connected {
                 print("📺 Cast connected! Switching to Cast mode.")
                 playerVM.player.pause()
-                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive)
+                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl)

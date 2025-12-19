@@ -8,6 +8,7 @@ import { useDarkiSeries } from '@/hooks/useDarkiSeries';
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink } from 'lucide-react';
@@ -24,6 +25,7 @@ interface Source {
   isTopStream?: boolean;
   isMovixDownload?: boolean;
   isVidMoly?: boolean;
+  isVidzy?: boolean;
   isDarkibox?: boolean;
   isDarki?: boolean;
   isVixsrc?: boolean;
@@ -31,6 +33,7 @@ interface Source {
   isEpisode?: boolean;
   quality?: string;
   language?: string;
+
 }
 
 interface StreamingSourcesProps {
@@ -52,6 +55,7 @@ interface StreamingSourcesProps {
     isVixsrc?: boolean;
     quality?: string;
     language?: string;
+
   }) => void;
   isLoadingSource: boolean;
   season?: number;
@@ -97,6 +101,7 @@ const StreamingSources = memo(function StreamingSources({
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, type === 'movie' ? 0 : id, season, episode, title);
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
+
 
   console.log('🔍 [VIXSRC DEBUG]', {
     type, id, season, episode,
@@ -759,6 +764,8 @@ const StreamingSources = memo(function StreamingSources({
   }
 
 
+
+
   // Trie final des sources : Vidzy > Vidmoly > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
@@ -908,6 +915,7 @@ const StreamingSources = memo(function StreamingSources({
             return newSet;
           });
         }
+
 
       } else {
         console.log('❌ Type de source non reconnu:', source);

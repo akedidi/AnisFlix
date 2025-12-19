@@ -14,6 +14,7 @@ import "@/styles/tabbar.css";
 // Lazy load des composants App selon la plateforme
 const AppWeb = lazy(() => import("@/AppWeb"));
 const AppNative = lazy(() => import("@/AppNative"));
+import CastProgressManager from "@/components/CastProgressManager";
 
 /**
  * Détecte si on est dans une app Capacitor native (iOS/Android)
@@ -51,7 +52,7 @@ const queryClient = new QueryClient({
 function App() {
   // Enregistrer le service worker pour le cache offline
   useServiceWorker();
-  
+
   // Gérer les liens profonds
   useDeepLinks();
 
@@ -63,11 +64,12 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="dark" storageKey="anisflix-theme">
           <LanguageProvider>
+            <CastProgressManager />
             <Suspense fallback={(
-              <div style={{ 
-                minHeight: '100vh', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: 'hsl(220, 15%, 8%)',
                 color: 'hsl(0, 0%, 95%)',

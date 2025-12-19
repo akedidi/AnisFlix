@@ -15,6 +15,10 @@ interface ChromecastButtonProps {
   size?: "sm" | "icon" | "lg";
   subtitles?: Subtitle[];
   activeSubtitleUrl?: string;
+  mediaId?: number;
+  mediaType?: string;
+  season?: number;
+  episode?: number;
 }
 
 // Fonction pour convertir les URLs en URLs accessibles par Chromecast
@@ -42,6 +46,8 @@ const getAccessibleUrl = (url: string): string => {
   return url;
 };
 
+// ...
+
 export default function ChromecastButton({
   mediaUrl,
   title,
@@ -51,7 +57,11 @@ export default function ChromecastButton({
   variant = "ghost",
   size = "icon",
   subtitles = [],
-  activeSubtitleUrl
+  activeSubtitleUrl,
+  mediaId,
+  mediaType,
+  season,
+  episode
 }: ChromecastButtonProps) {
   const { isAvailable, isConnected, isConnecting, currentDevice, showPicker, cast, disconnect, setActiveSubtitle } = useChromecast();
   const [isCasting, setIsCasting] = useState(false);
@@ -61,6 +71,10 @@ export default function ChromecastButton({
   const currentTimeRef = useRef(currentTime);
   const subtitlesRef = useRef(subtitles);
   const activeSubtitleUrlRef = useRef(activeSubtitleUrl);
+  const mediaIdRef = useRef(mediaId);
+  const mediaTypeRef = useRef(mediaType);
+  const seasonRef = useRef(season);
+  const episodeRef = useRef(episode);
 
   // Mettre à jour les refs quand les props changent
   useEffect(() => {
@@ -70,7 +84,11 @@ export default function ChromecastButton({
     currentTimeRef.current = currentTime;
     subtitlesRef.current = subtitles;
     activeSubtitleUrlRef.current = activeSubtitleUrl;
-  }, [mediaUrl, title, posterUrl, currentTime, subtitles, activeSubtitleUrl]);
+    mediaIdRef.current = mediaId;
+    mediaTypeRef.current = mediaType;
+    seasonRef.current = season;
+    episodeRef.current = episode;
+  }, [mediaUrl, title, posterUrl, currentTime, subtitles, activeSubtitleUrl, mediaId, mediaType, season, episode]);
 
   // Si on est déjà connecté et qu'on n'est pas en train de caster, caster automatiquement
   useEffect(() => {
@@ -92,7 +110,11 @@ export default function ChromecastButton({
         accessiblePosterUrl,
         currentTimeRef.current,
         subtitlesRef.current,
-        activeSubtitleUrlRef.current
+        activeSubtitleUrlRef.current,
+        mediaIdRef.current,
+        mediaTypeRef.current,
+        seasonRef.current,
+        episodeRef.current
       )
         .then(() => {
           setIsCasting(true);

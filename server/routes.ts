@@ -805,6 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   // Route pour récupérer le lien m3u8 depuis VidSrc
   app.post("/api/vidsrc/extract", async (req, res) => {
     try {

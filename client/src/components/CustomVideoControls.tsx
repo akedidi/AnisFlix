@@ -35,6 +35,10 @@ interface CustomVideoControlsProps {
   onSubtitleSelect?: (url: string | null) => void;
   subtitleOffset?: number;
   onSubtitleOffsetChange?: (offset: number) => void;
+  mediaId?: number;
+  mediaType?: string;
+  season?: number;
+  episode?: number;
 }
 
 export default function CustomVideoControls({
@@ -60,6 +64,10 @@ export default function CustomVideoControls({
   onSubtitleSelect,
   subtitleOffset = 0,
   onSubtitleOffsetChange,
+  mediaId,
+  mediaType,
+  season,
+  episode,
 }: CustomVideoControlsProps) {
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
@@ -296,6 +304,10 @@ export default function CustomVideoControls({
                 className="text-white hover:bg-white/20 h-full w-full"
                 subtitles={subtitles}
                 activeSubtitleUrl={selectedSubtitle || undefined}
+                mediaId={mediaId}
+                mediaType={mediaType}
+                season={season}
+                episode={episode}
               />
             </div>
           )}

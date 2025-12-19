@@ -67,6 +67,7 @@ export class VixSrcScraper {
 
     /**
      * Helper function to extract stream URL from Vixsrc page
+     * Based on Kotlin VixSrcExtractor logic for better Chromecast compatibility
      */
     private async extractStreamFromPage(url: string | null, contentType: 'movie' | 'tv', contentId: string, seasonNum: number | null, episodeNum: number | null) {
         let vixsrcUrl;
@@ -94,9 +95,50 @@ export class VixSrcScraper {
 
             let masterPlaylistUrl = null;
 
-            // Method 1: Look for window.masterPlaylist (primary method)
-            if (html.includes('window.masterPlaylist')) {
-                console.log('[Vixsrc] Found window.masterPlaylist');
+            // NEW METHOD: Extract videoId from window.video (like Kotlin implementation)
+            // This is more robust and produces cleaner URLs for Chromecast
+            if (html.includes('window.video')) {
+                console.log('[Vixsrc] Found window.video - using Kotlin extraction method');
+
+                // Extract video ID: window.video = { id: '12345', ...
+                const videoIdMatch = html.match(/window\.video\s*=\s*\{[^}]*id:\s*['"]?(\d+)['"]?/);
+
+                // Extract token and expires from window.masterPlaylist
+                const tokenMatch = html.match(/['"]token['"]\s*:\s*['"]([^'"]+)['"]/);
+                const expiresMatch = html.match(/['"]expires['"]\s*:\s*['"]([^'"]+)['"]/);
+
+                // Check for optional params
+                const hasBParam = html.includes("b=1") || html.includes("'b': '1'") || html.includes("b: 1");
+                const canPlayFHD = html.includes("window.canPlayFHD = true");
+
+                if (videoIdMatch && tokenMatch && expiresMatch) {
+                    const videoId = videoIdMatch[1];
+                    const token = tokenMatch[1];
+                    const expires = expiresMatch[1];
+
+                    console.log('[Vixsrc] Extracted (Kotlin method):');
+                    console.log(`  - Video ID: ${videoId}`);
+                    console.log(`  - Token: ${token.substring(0, 20)}...`);
+                    console.log(`  - Expires: ${expires}`);
+                    console.log(`  - Has B param: ${hasBParam}`);
+                    console.log(`  - Can Play FHD: ${canPlayFHD}`);
+
+                    // Construct master playlist URL like Kotlin
+                    const params = new URLSearchParams();
+                    params.set('token', token);
+                    params.set('expires', expires);
+                    if (hasBParam) params.set('b', '1');
+                    if (canPlayFHD) params.set('h', '1');
+                    params.set('lang', 'en'); // Force English audio track
+
+                    masterPlaylistUrl = `https://vixsrc.to/playlist/${videoId}?${params.toString()}`;
+                    console.log(`[Vixsrc] Constructed playlist URL (Kotlin style): ${masterPlaylistUrl}`);
+                }
+            }
+
+            // Fallback Method 1: Look for window.masterPlaylist URL directly
+            if (!masterPlaylistUrl && html.includes('window.masterPlaylist')) {
+                console.log('[Vixsrc] Fallback: Found window.masterPlaylist');
 
                 const urlMatch = html.match(/url:\s*['"]([^'"]+)['"]/);
                 const tokenMatch = html.match(/['"]?token['"]?\s*:\s*['"]([^'"]+)['"]/);
@@ -107,43 +149,21 @@ export class VixSrcScraper {
                     const token = tokenMatch[1];
                     const expires = expiresMatch[1];
 
-                    console.log('[Vixsrc] Extracted tokens:');
-                    console.log(`  - Base URL: ${baseUrl}`);
-                    console.log(`  - Token: ${token.substring(0, 20)}...`);
-                    console.log(`  - Expires: ${expires}`);
-
-                    // Construct the master playlist URL
                     if (baseUrl.includes('?b=1')) {
                         masterPlaylistUrl = `${baseUrl}&token=${token}&expires=${expires}&h=1&lang=en`;
                     } else {
                         masterPlaylistUrl = `${baseUrl}?token=${token}&expires=${expires}&h=1&lang=en`;
                     }
-
-                    console.log(`[Vixsrc] Constructed master playlist URL: ${masterPlaylistUrl}`);
+                    console.log(`[Vixsrc] Fallback URL: ${masterPlaylistUrl}`);
                 }
             }
 
-            // Method 2: Look for direct .m3u8 URLs
+            // Fallback Method 2: Look for direct .m3u8 URLs
             if (!masterPlaylistUrl) {
                 const m3u8Match = html.match(/(https?:\/\/[^'"\s]+\.m3u8[^'"\s]*)/);
                 if (m3u8Match) {
                     masterPlaylistUrl = m3u8Match[1];
                     console.log('[Vixsrc] Found direct .m3u8 URL:', masterPlaylistUrl);
-                }
-            }
-
-            // Method 3: Look for stream URLs in script tags
-            if (!masterPlaylistUrl) {
-                const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gs);
-                if (scriptMatches) {
-                    for (const script of scriptMatches) {
-                        const streamMatch = script.match(/['"]?(https?:\/\/[^'"\s]+(?:\.m3u8|playlist)[^'"\s]*)/);
-                        if (streamMatch) {
-                            masterPlaylistUrl = streamMatch[1];
-                            console.log('[Vixsrc] Found stream in script:', masterPlaylistUrl);
-                            break;
-                        }
-                    }
                 }
             }
 
