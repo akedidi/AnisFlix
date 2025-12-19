@@ -1291,8 +1291,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Route proxy pour Vixsrc
-  app.get("/api/vixsrc-proxy", async (req, res) => {
+  // Route proxy pour Vixsrc - Supporte aussi /api/vixsrc-proxy/master.m3u8 pour Chromecast
+  app.get(["/api/vixsrc-proxy", "/api/vixsrc-proxy/:filename"], async (req, res) => {
     try {
       const { url } = req.query;
 
@@ -1387,7 +1387,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Log preview of original playlist
         console.log(`[VIXSRC PROXY] Original playlist start: ${playlist.substring(0, 50).replace(/\n/g, '\\n')}`);
 
-        const baseUrl = new URL(decodedUrl);
+        // Tenter d'obtenir l'URL finale pour résoudre correctement les liens relatifs (redirections)
+        let finalUrl = decodedUrl;
+        // @ts-ignore - Accès aux propriétés internes d'Axios/Node pour récupérer l'URL finale après redirects
+        if (response.request && response.request.res && response.request.res.responseUrl) {
+          finalUrl = response.request.res.responseUrl;
+          console.log(`[VIXSRC PROXY] Redirect detected. Base URL updated to: ${finalUrl}`);
+        }
+
+        const baseUrl = new URL(finalUrl);
         const origin = `${req.protocol}://${req.get('host')}`;
 
         // Réécrire les URLs
@@ -1397,7 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (line && !line.trim().startsWith('#')) {
             try {
               const absoluteUrl = new URL(line, baseUrl).toString();
-              return `${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+              return `${origin}/api/vixsrc-proxy/playlist.m3u8?url=${encodeURIComponent(absoluteUrl)}`;
             } catch (e) {
               return line;
             }
@@ -1408,7 +1416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return line.replace(/URI="([^"]+)"/g, (match, uri) => {
               try {
                 const absoluteUrl = new URL(uri, baseUrl).toString();
-                return `URI="${origin}/api/vixsrc-proxy?url=${encodeURIComponent(absoluteUrl)}"`;
+                return `URI="${origin}/api/vixsrc-proxy/playlist.m3u8?url=${encodeURIComponent(absoluteUrl)}"`;
               } catch (e) {
                 return match;
               }

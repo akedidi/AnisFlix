@@ -352,17 +352,18 @@ export function useChromecast(): UseChromecastReturn {
       }
 
       // Force HLS content type for Vixsrc proxy if not already detected
+      // Force HLS content type for Vixsrc proxy if not already detected
       if (finalMediaUrl.includes('vixsrc-proxy')) {
         // Use standard Apple HLS MIME type which is often better supported
         contentType = 'application/vnd.apple.mpegurl';
         streamType = chromeCast.media.StreamType.BUFFERED;
 
-        // CRITICAL: Add .m3u8 extension hint for Chromecast to properly detect HLS
-        // Some Chromecast receivers use URL extension to determine media type
-        if (!finalMediaUrl.includes('_=')) {
-          finalMediaUrl = finalMediaUrl + (finalMediaUrl.includes('?') ? '&' : '?') + '_=.m3u8';
+        // CRITICAL: Rewrite to use .m3u8 path for Chromecast to properly detect HLS
+        // We replace /api/vixsrc-proxy with /api/vixsrc-proxy/master.m3u8 if it doesn't already have an extension
+        if (finalMediaUrl.includes('/api/vixsrc-proxy') && !finalMediaUrl.includes('.m3u8')) {
+          finalMediaUrl = finalMediaUrl.replace('/api/vixsrc-proxy', '/api/vixsrc-proxy/master.m3u8');
         }
-        console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType + extension .m3u8:', finalMediaUrl);
+        console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType + path rewrite:', finalMediaUrl);
       }
 
       const mediaInfo = new chromeCast.media.MediaInfo(finalMediaUrl, contentType);
