@@ -360,7 +360,9 @@ export function useChromecast(): UseChromecastReturn {
 
         // CRITICAL: Rewrite to use .m3u8 path for Chromecast to properly detect HLS
         // We replace /api/vixsrc-proxy with /api/vixsrc-proxy/master.m3u8 if it doesn't already have an extension
-        if (finalMediaUrl.includes('/api/vixsrc-proxy') && !finalMediaUrl.includes('.m3u8')) {
+        // Rewrite to use .m3u8 path for Chromecast HLS detection.
+        // We ensure we don't double-write if the path is already set.
+        if (finalMediaUrl.includes('/api/vixsrc-proxy') && !finalMediaUrl.includes('/master.m3u8') && !finalMediaUrl.includes('/playlist.m3u8')) {
           finalMediaUrl = finalMediaUrl.replace('/api/vixsrc-proxy', '/api/vixsrc-proxy/master.m3u8');
         }
         console.log('[Chromecast] Vixsrc proxy détecté, forçage contentType + path rewrite:', finalMediaUrl);
