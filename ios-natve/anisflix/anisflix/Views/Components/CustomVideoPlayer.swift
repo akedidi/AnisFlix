@@ -61,6 +61,10 @@ struct CustomVideoPlayer: View {
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
             
+            // Hide Home Indicator when controls are hidden in fullscreen
+            HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
+                .frame(width: 0, height: 0)
+            
             // Video Player
             if castManager.isConnected {
                 // Show Cast Placeholder
