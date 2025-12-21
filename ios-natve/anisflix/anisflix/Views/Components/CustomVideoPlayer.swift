@@ -17,6 +17,7 @@ struct CustomVideoPlayer: View {
     let url: URL
     let title: String
     let posterUrl: String?
+    let localPosterPath: String? // Local poster file path for offline artwork
     let subtitles: [Subtitle]
     @Binding var isPresented: Bool
     @Binding var isFullscreen: Bool
@@ -38,10 +39,11 @@ struct CustomVideoPlayer: View {
     @State private var showSeekBackwardAnimation = false
     @State private var showSeekForwardAnimation = false
     
-    init(url: URL, title: String, posterUrl: String? = nil, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, isLive: Bool = false, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
+    init(url: URL, title: String, posterUrl: String? = nil, localPosterPath: String? = nil, subtitles: [Subtitle] = [], isPresented: Binding<Bool>, isFullscreen: Binding<Bool>, showFullscreenButton: Bool = true, isLive: Bool = false, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, playerVM: PlayerViewModel) {
         self.url = url
         self.title = title
         self.posterUrl = posterUrl
+        self.localPosterPath = localPosterPath
         self.subtitles = subtitles
         self._isPresented = isPresented
         self._isFullscreen = isFullscreen
@@ -369,7 +371,7 @@ struct CustomVideoPlayer: View {
                     castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
                 }
             } else {
-                playerVM.setup(url: url, title: title, posterUrl: posterUrl)
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             }
             
             // Auto-resume from saved progress ONLY if not already playing
@@ -512,7 +514,7 @@ struct CustomVideoPlayer: View {
                 print("📺 URL changed while casting. Loading new media...")
                 castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
-                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl)
+                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             }
         }
         .onChange(of: castManager.isConnected) { connected in
@@ -522,7 +524,7 @@ struct CustomVideoPlayer: View {
                 castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
-                playerVM.setup(url: url, title: title, posterUrl: posterUrl)
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
                 playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
             }
         }
@@ -748,25 +750,29 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func updateMetadata(title: String, posterUrl: String?) {
+    func updateMetadata(title: String, posterUrl: String?, localPosterPath: String? = nil) {
         print("📝 Updating metadata: \(title)")
         currentTitle = title
         
-        // Update artwork if poster URL changed (and not just nil)
-        // Or if we want to force refresh
-        if let posterUrl = posterUrl {
-             // Cancel previous artwork download
-             artworkTask?.cancel()
-             currentArtwork = nil
-             artworkTask = Task {
-                 await downloadArtwork(from: posterUrl)
-             }
+        // Update artwork with priority: local file → remote URL
+        artworkTask?.cancel()
+        currentArtwork = nil
+        
+        // Priority 1: Local file
+        if let localPath = localPosterPath {
+            loadArtworkFromLocalFile(at: localPath)
+        }
+        // Priority 2: Remote URL
+        else if let posterUrl = posterUrl {
+            artworkTask = Task {
+                await downloadArtwork(from: posterUrl)
+            }
         }
         
         updateNowPlayingInfo(title: title)
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil) {
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
         
@@ -775,13 +781,17 @@ class PlayerViewModel: NSObject, ObservableObject {
             currentTitle = title
         }
         
-        // Download artwork if poster URL provided
-        // Clear previous artwork immediately to prevent showing stale logo
+        // Artwork Loading with Priority
         // Cancel previous artwork download
         artworkTask?.cancel()
-        
         currentArtwork = nil
-        if let posterUrl = posterUrl {
+        
+        // Priority 1: Load from local file (offline-compatible)
+        if let localPath = localPosterPath {
+            loadArtworkFromLocalFile(at: localPath)
+        }
+        // Priority 2: Download from URL (online only)
+        else if let posterUrl = posterUrl {
             artworkTask = Task {
                 await downloadArtwork(from: posterUrl)
             }
@@ -958,6 +968,32 @@ class PlayerViewModel: NSObject, ObservableObject {
             
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
             print("🎵 Now Playing Info updated - Title: \(titleToUse)")
+        }
+    }
+    
+    private func loadArtworkFromLocalFile(at localPath: String) {
+        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let fileURL = documentsURL.appendingPathComponent(localPath)
+        
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            print("❌ Local artwork file not found: \(fileURL.path)")
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: fileURL)
+            guard let image = UIImage(data: data) else {
+                print("❌ Failed to create image from local file")
+                return
+            }
+            
+            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+            self.currentArtwork = artwork
+            print("✅ Artwork loaded from local file: \(localPath)")
+            
+            self.updateNowPlayingInfo()
+        } catch {
+            print("❌ Failed to load local artwork: \(error)")
         }
     }
     
