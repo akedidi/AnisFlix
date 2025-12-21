@@ -104,76 +104,90 @@ struct TVChannelsView: View {
                         }
                         .background(theme.backgroundColor) // Ensure background matches
                         
-                        // Channels List (Grid)
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            if let group = selectedGroup {
-                                ForEach(group.channels) { channel in
-                                    Button {
-                                        playChannel(channel)
-                                    } label: {
-                                        VStack(spacing: 12) {
-                                            // Logo Container
-                                            ZStack {
-                                                Color.white
-                                                
-                                                if channel.logo.lowercased().hasSuffix(".svg"), let logoUrl = URL(string: channel.logo) {
-                                                    SVGImageView(url: logoUrl)
-                                                        .frame(height: 80) // SLightly smaller for SVG to avoid overflow
-                                                        .padding(12)
-                                                } else {
-                                                    AsyncImage(url: URL(string: channel.logo)) { phase in
-                                                        switch phase {
-                                                        case .success(let image):
-                                                            image
-                                                                .resizable()
-                                                                .aspectRatio(contentMode: .fit)
-                                                                .padding(12)
-                                                        case .failure:
-                                                            Image(systemName: "tv")
-                                                                .font(.largeTitle)
-                                                                .foregroundColor(theme.secondaryText)
-                                                        case .empty:
-                                                            if !channel.logo.isEmpty {
-                                                                ProgressView()
+                        // Channels List (Grid) - Eager loading to fix SVG display
+                        if let group = selectedGroup {
+                            let channelArray = Array(group.channels)
+                            VStack(spacing: 16) {
+                                ForEach(0..<(channelArray.count + 1) / 2, id: \.self) { rowIndex in
+                                    HStack(spacing: 16) {
+                                        ForEach(0..<2, id: \.self) { colIndex in
+                                            let channelIndex = rowIndex * 2 + colIndex
+                                            if channelIndex < channelArray.count {
+                                                let channel = channelArray[channelIndex]
+                                                Button {
+                                                    playChannel(channel)
+                                                } label: {
+                                                    VStack(spacing: 12) {
+                                                        // Logo Container
+                                                        ZStack {
+                                                            Color.white
+                                                            
+                                                            if channel.logo.lowercased().hasSuffix(".svg"), let logoUrl = URL(string: channel.logo) {
+                                                                SVGImageView(url: logoUrl)
+                                                                    .frame(height: 80)
+                                                                    .padding(12)
                                                             } else {
-                                                                Image(systemName: "tv")
-                                                                    .font(.largeTitle)
-                                                                    .foregroundColor(theme.secondaryText)
+                                                                AsyncImage(url: URL(string: channel.logo)) { phase in
+                                                                    switch phase {
+                                                                    case .success(let image):
+                                                                        image
+                                                                            .resizable()
+                                                                            .aspectRatio(contentMode: .fit)
+                                                                            .padding(12)
+                                                                    case .failure:
+                                                                        Image(systemName: "tv")
+                                                                            .font(.largeTitle)
+                                                                            .foregroundColor(theme.secondaryText)
+                                                                    case .empty:
+                                                                        if !channel.logo.isEmpty {
+                                                                            ProgressView()
+                                                                        } else {
+                                                                            Image(systemName: "tv")
+                                                                                .font(.largeTitle)
+                                                                                .foregroundColor(theme.secondaryText)
+                                                                        }
+                                                                    @unknown default:
+                                                                        Image(systemName: "tv")
+                                                                            .font(.largeTitle)
+                                                                            .foregroundColor(theme.secondaryText)
+                                                                    }
+                                                                }
                                                             }
-                                                        @unknown default:
-                                                            Image(systemName: "tv")
-                                                                .font(.largeTitle)
-                                                                .foregroundColor(theme.secondaryText)
                                                         }
+                                                        .frame(height: 100)
+                                                        .cornerRadius(12)
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 12)
+                                                                .stroke(
+                                                                    playingChannel?.id == channel.id ? AppTheme.primaryRed : theme.secondaryText.opacity(0.1),
+                                                                    lineWidth: playingChannel?.id == channel.id ? 2 : 1
+                                                                )
+                                                        )
+                                                        
+                                                        // Channel Name
+                                                        Text(channel.name)
+                                                            .font(.subheadline)
+                                                            .fontWeight(.medium)
+                                                            .foregroundColor(playingChannel?.id == channel.id ? AppTheme.primaryRed : theme.primaryText)
+                                                            .lineLimit(1)
                                                     }
+                                                    .padding(8)
+                                                    .background(theme.cardBackground.opacity(0.5))
+                                                    .cornerRadius(16)
+                                                    .frame(maxWidth: .infinity)
                                                 }
+                                                .buttonStyle(PlainButtonStyle())
+                                            } else {
+                                                // Empty spacer for last row if odd number of channels
+                                                Color.clear
+                                                    .frame(maxWidth: .infinity)
                                             }
-                                            .frame(height: 100)
-                                            .cornerRadius(12)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(
-                                                        playingChannel?.id == channel.id ? AppTheme.primaryRed : theme.secondaryText.opacity(0.1),
-                                                        lineWidth: playingChannel?.id == channel.id ? 2 : 1
-                                                    )
-                                            )
-                                            
-                                            // Channel Name
-                                            Text(channel.name)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(playingChannel?.id == channel.id ? AppTheme.primaryRed : theme.primaryText)
-                                                .lineLimit(1)
                                         }
-                                        .padding(8)
-                                        .background(theme.cardBackground.opacity(0.5))
-                                        .cornerRadius(16)
                                     }
-                                    .buttonStyle(PlainButtonStyle())
                                 }
                             }
+                            .padding(16)
                         }
-                        .padding(16)
                         
                         // Bottom padding
                         Color.clear.frame(height: 80)
