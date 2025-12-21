@@ -191,7 +191,7 @@ struct MediaCard: View {
                     .fontWeight(.medium)
                     .foregroundColor(theme.primaryText)
                     .lineLimit(2)
-                    .frame(width: 120, alignment: .leading)
+                    .frame(width: 120, height: 32, alignment: .topLeading) // Fixed height for 2 lines
                 
                 // Rating
                 if let rating = media.rating, rating > 0 {
