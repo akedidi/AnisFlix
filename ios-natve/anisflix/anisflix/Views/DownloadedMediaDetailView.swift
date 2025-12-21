@@ -18,13 +18,25 @@ struct DownloadedMediaDetailView: View {
     @StateObject private var playerVM = PlayerViewModel()
     
     var backdropUrl: URL? {
+        // Priority 1: Local downloaded file
+        if let localPath = item.localBackdropPath {
+            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            return documentsURL.appendingPathComponent(localPath)
+        }
+        // Fallback: Remote TMDB (if download not yet completed)
         if let path = item.backdropPath {
-            return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
+            return URL(string: "https://image.tmdb.org/t/p/w780\(path)")
         }
         return nil
     }
     
     var posterUrl: URL? {
+        // Priority 1: Local downloaded file
+        if let localPath = item.localPosterPath {
+            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            return documentsURL.appendingPathComponent(localPath)
+        }
+        // Fallback: Remote TMDB (if download not yet completed)
         if let path = item.posterPath {
             return URL(string: "https://image.tmdb.org/t/p/w500\(path)")
         }
