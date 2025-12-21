@@ -67,6 +67,10 @@ struct CustomHeaderView: View {
                             .keyboardType(.webSearch)
                             .submitLabel(.search)
                             .focused($searchFieldFocused)
+                            .onAppear {
+                                // Explicitly prevent auto-focus on tab switch
+                                searchFieldFocused = false
+                            }
                             .onChange(of: searchText) { newValue in
                                 onSearch?(newValue)
                                 if newValue.count >= 2 {
