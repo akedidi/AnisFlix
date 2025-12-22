@@ -83,12 +83,13 @@ struct CustomVideoPlayer: View {
                         .font(.title2)
                         .foregroundColor(.white)
                 }
-            // Video Player Layer
-            if let player = playerVM.player {
-                VideoPlayerView(player: player)
+            } else {
+                // Video Player Layer
+                VideoPlayerView(player: playerVM.player, playerVM: playerVM)
                     .background(Color.black)
                     .ignoresSafeArea(.all, edges: .all)
-                    .onTapGesture {         
+            }
+                     
             // Gesture Overlay (Left/Right Double Tap)
             HStack(spacing: 0) {
                 // Left Side (Rewind)
