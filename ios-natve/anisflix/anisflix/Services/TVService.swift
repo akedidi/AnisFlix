@@ -121,4 +121,3 @@ class TVService {
         return "\(baseUrl)/api/media-proxy?url=\(encodedUrl)"
     }
 }
-```
