@@ -57,15 +57,20 @@ struct CustomVideoPlayer: View {
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
             
             // Force Hide TabBar when in Fullscreen
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
             
+            ZStack {
+            // Full black background - especially important in fullscreen
+            Color.black
+                .ignoresSafeArea(.all, edges: .all)
+            
             // Hide Home Indicator when controls are hidden in fullscreen
             HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
                 .frame(width: 0, height: 0)
+                .zIndex(999)
             
             // Video Player
             if castManager.isConnected {
@@ -78,11 +83,12 @@ struct CustomVideoPlayer: View {
                         .font(.title2)
                         .foregroundColor(.white)
                 }
-            } else {
-                VideoPlayerView(player: playerVM.player, playerVM: playerVM)
-                    .ignoresSafeArea()
-                }
-            
+            // Video Player Layer
+            if let player = playerVM.player {
+                VideoPlayerView(player: player)
+                    .background(Color.black)
+                    .ignoresSafeArea(.all, edges: .all)
+                    .onTapGesture {         
             // Gesture Overlay (Left/Right Double Tap)
             HStack(spacing: 0) {
                 // Left Side (Rewind)

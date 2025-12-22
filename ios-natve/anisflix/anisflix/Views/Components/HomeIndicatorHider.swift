@@ -8,28 +8,37 @@
 import SwiftUI
 import UIKit
 
+/// A view that hides the iOS Home Indicator (white bar at bottom) when needed
 struct HomeIndicatorHider: UIViewControllerRepresentable {
-    let shouldHide: Bool
+    var shouldHide: Bool
     
-    func makeUIViewController(context: Context) -> UIViewController {
-        let controller = HomeIndicatorHidingController()
-        controller.shouldHideIndicator = shouldHide
-        return controller
+    func makeUIViewController(context: Context) -> HomeIndicatorHiderViewController {
+        return HomeIndicatorHiderViewController()
     }
     
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        if let controller = uiViewController as? HomeIndicatorHidingController {
-            controller.shouldHideIndicator = shouldHide
-            controller.setNeedsUpdateOfHomeIndicatorAutoHidden()
-        }
+    func updateUIViewController(_ uiViewController: HomeIndicatorHiderViewController, context: Context) {
+        uiViewController.shouldHideHomeIndicator = shouldHide
     }
 }
 
-class HomeIndicatorHidingController: UIViewController {
-    var shouldHideIndicator: Bool = false
+class HomeIndicatorHiderViewController: UIViewController {
+    var shouldHideHomeIndicator: Bool = false {
+        didSet {
+            setNeedsUpdateOfHomeIndicatorAutoHidden()
+            setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+        }
+    }
     
     override var prefersHomeIndicatorAutoHidden: Bool {
-        return shouldHideIndicator
+        return shouldHideHomeIndicator
+    }
+    
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+        return shouldHideHomeIndicator ? .bottom : []
+    }
+    
+    override var prefersStatusBarHidden: Bool {
+        return shouldHideHomeIndicator
     }
     
     override func viewDidLoad() {
