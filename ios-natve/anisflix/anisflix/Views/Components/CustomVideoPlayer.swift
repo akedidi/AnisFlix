@@ -67,11 +67,6 @@ struct CustomVideoPlayer: View {
             Color.black
                 .ignoresSafeArea(.all, edges: .all)
             
-            // Hide Home Indicator when controls are hidden in fullscreen
-            HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
-                .frame(width: 0, height: 0)
-                .zIndex(999)
-            
             // Video Player
             if castManager.isConnected {
                 // Show Cast Placeholder
@@ -368,6 +363,7 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
+        .persistentSystemOverlays(isFullscreen && !showControls ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
             let isAlreadyPlaying = playerVM.currentUrl == url
