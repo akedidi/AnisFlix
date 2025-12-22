@@ -219,7 +219,8 @@ struct DownloadedMediaDetailView: View {
                         playerVM: playerVM
                     )
                     .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
-                    .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                    .ignoresSafeArea(isFullscreen ? .all : [])
+                    .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
                     .onAppear {
                         print("▶️ Playing local file: \(url.absoluteString)")
                         // Verify file existence
@@ -275,7 +276,8 @@ struct DownloadedMediaDetailView: View {
                         playerVM: playerVM
                     )
                     .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
-                    .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                    .ignoresSafeArea(isFullscreen ? .all : [])
+                    .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
                     .onAppear {
                         print("▶️ Playing local file: \(url.absoluteString)")
                         // Verify file existence
