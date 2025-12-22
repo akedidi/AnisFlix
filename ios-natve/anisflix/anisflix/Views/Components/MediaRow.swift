@@ -112,10 +112,7 @@ struct MediaCard: View {
                 print("🔵 NavigationLink ACTIVATED for: \(media.title) (ID: \(media.id), Type: \(media.mediaType == .movie ? "Movie" : "Series"))")
             }
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                // Debug: Print URL
-
-                
+            VStack(alignment: .leading, spacing: 8) {
                 // Poster  
                 AsyncImage(url: media.posterURL) { phase in
                     switch phase {
@@ -185,34 +182,43 @@ struct MediaCard: View {
                     }
                 )
                 
-                // Titre
-                Text(media.title)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(theme.primaryText)
-                    .lineLimit(2)
-                    .frame(width: 120, height: 32, alignment: .topLeading) // Fixed height for 2 lines
-                
-                // Rating
-                if let rating = media.rating, rating > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .font(.caption2)
-                            .foregroundColor(.yellow)
-                        Text(String(format: "%.1f", rating))
+                // Info container with fixed height
+                VStack(alignment: .leading, spacing: 4) {
+                    // Titre
+                    Text(media.title)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(theme.primaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(width: 120, alignment: .topLeading)
+                    
+                    // Rating & Year
+                    if let rating = media.rating, rating > 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "star.fill")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                            Text(String(format: "%.1f", rating))
+                                .font(.caption2)
+                                .foregroundColor(theme.secondaryText)
+                            
+                            if let year = media.year, !year.isEmpty {
+                                Text("•")
+                                    .font(.caption2)
+                                    .foregroundColor(theme.secondaryText)
+                                Text(year)
+                                    .font(.caption2)
+                                    .foregroundColor(theme.secondaryText)
+                            }
+                        }
+                    } else if let year = media.year, !year.isEmpty {
+                        Text(year)
                             .font(.caption2)
                             .foregroundColor(theme.secondaryText)
-                        
-                        if let year = media.year, !year.isEmpty {
-                            Text("•")
-                                .font(.caption2)
-                                .foregroundColor(theme.secondaryText)
-                            Text(year)
-                                .font(.caption2)
-                                .foregroundColor(theme.secondaryText)
-                        }
                     }
                 }
+                .frame(width: 120, height: 60, alignment: .topLeading)
             }
             .frame(width: 120)
         }
