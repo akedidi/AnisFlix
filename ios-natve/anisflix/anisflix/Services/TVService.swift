@@ -98,7 +98,9 @@ class TVService {
     }
     
     func getProxyUrl(originalUrl: String, type: String) -> String {
-        // For hls_segments, ALWAYS use the proxy
+        // ALWAYS use the proxy for ALL channel types to bypass regional restrictions
+        
+        // For hls_segments, use channelId-based proxy if available
         if type == "hls_segments" {
             // Extract channel ID from fremtv.lol URLs
             // Regex: /\/live\/[^\/]+\/(\d+)\.m3u8/
@@ -110,13 +112,13 @@ class TVService {
             }
         }
         
-        // For hls_direct, use DIRECT URL (matching Web/Capacitor logic)
-        // The web app uses direct URLs for hls_direct on Capacitor.
-        // We only proxy hls_segments.
-        if type == "hls_direct" {
+        // For ALL types (hls_direct, hls_segments without channelId, etc.), use URL-based proxy
+        // This bypasses regional restrictions for all channels
+        guard let encodedUrl = originalUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return originalUrl
         }
         
-        return originalUrl
+        return "\(baseUrl)/api/media-proxy?url=\(encodedUrl)"
     }
 }
+```
