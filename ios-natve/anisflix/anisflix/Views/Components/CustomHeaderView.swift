@@ -10,6 +10,7 @@ import SwiftUI
 struct CustomHeaderView: View {
     let title: String
     var showBackButton: Bool = false
+    var autoFocus: Bool = false // Auto-focus searchbar on appear
     
     @State private var searchText: String = ""
     @State private var searchResults: [Media] = []
@@ -68,8 +69,12 @@ struct CustomHeaderView: View {
                             .submitLabel(.search)
                             .focused($searchFieldFocused)
                             .onAppear {
-                                // Explicitly prevent auto-focus on tab switch
-                                searchFieldFocused = false
+                                // Auto-focus if enabled (e.g., for Explorer tab)
+                                if autoFocus {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        searchFieldFocused = true
+                                    }
+                                }
                             }
                             .onChange(of: searchText) { newValue in
                                 onSearch?(newValue)

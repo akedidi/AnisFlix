@@ -18,7 +18,7 @@ struct ExploreView: View {
             VStack(spacing: 0) {
                 // Header with Search and Picker
                 VStack(spacing: 0) {
-                    CustomHeaderView(title: "Explorer") { query in
+                    CustomHeaderView(title: "Explorer", autoFocus: true) { query in
                         print("Search query: \(query)")
                         // TODO: Implement search
                     }
