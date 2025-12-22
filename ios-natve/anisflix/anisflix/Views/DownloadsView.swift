@@ -157,6 +157,7 @@ struct DownloadsView: View {
 struct CompletedDownloadRow: View {
     let item: DownloadItem
     @ObservedObject var theme = AppTheme.shared
+    @ObservedObject var watchProgressManager = WatchProgressManager.shared
     
     var posterUrl: URL? {
         if let localPath = item.localPosterPath {
@@ -195,6 +196,27 @@ struct CompletedDownloadRow: View {
                 .frame(width: 100, height: 150)
                 .cornerRadius(8)
                 .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+                .overlay(
+                    // Progress bar overlay
+                    VStack {
+                        Spacer()
+                        if watchProgress > 0 && watchProgress < 1 {
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    Rectangle()
+                                        .fill(Color.black.opacity(0.6))
+                                        .frame(height: 4)
+                                    
+                                    Rectangle()
+                                        .fill(AppTheme.primaryRed)
+                                        .frame(width: geometry.size.width * CGFloat(watchProgress), height: 4)
+                                }
+                            }
+                            .frame(height: 4)
+                        }
+                    }
+                    .cornerRadius(8)
+                )
             } else {
                 Rectangle()
                     .fill(Color.gray.opacity(0.3))
@@ -245,6 +267,15 @@ struct CompletedDownloadRow: View {
         .background(theme.cardBackground)
         .cornerRadius(12)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+    }
+    
+    // Compute watch progress for this item
+    private var watchProgress: Double {
+        watchProgressManager.getProgress(
+            mediaId: item.mediaId,
+            season: item.season,
+            episode: item.episode
+        )
     }
     
     private func getFileSize(for item: DownloadItem) -> String? {

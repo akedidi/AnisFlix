@@ -11,6 +11,7 @@ import AVKit
 struct DownloadedMediaDetailView: View {
     let item: DownloadItem
     @ObservedObject var theme = AppTheme.shared
+    @ObservedObject var watchProgressManager = WatchProgressManager.shared
     @Environment(\.presentationMode) var presentationMode
     
     @State private var showPlayer = false
