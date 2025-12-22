@@ -359,11 +359,12 @@ struct CustomVideoPlayer: View {
                                 .font(.caption)
                                 .foregroundColor(.white)
                         }
+                            .padding()
+                            .background(
+                                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                            )
+                        }
                     }
-                    .padding()
-                    .background(
-                        LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                    )
                 }
             }
         }
