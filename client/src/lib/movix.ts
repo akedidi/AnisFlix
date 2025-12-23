@@ -1,6 +1,6 @@
 const MOVIX_BASE_URL = "https://api.movix.site/api";
 
-export type StreamProvider = "fstream" | "topstream" | "wiflix";
+export type StreamProvider = "fstream" | "wiflix";
 
 export interface StreamSource {
   provider: StreamProvider;
@@ -28,7 +28,7 @@ export interface SeriesStreamResponse {
 
 export async function getMovieStream(
   movieId: number,
-  provider: StreamProvider = "topstream"
+  provider: StreamProvider = "fstream"
 ): Promise<MovieStreamResponse> {
   try {
     const url = `${MOVIX_BASE_URL}/${provider}/movie/${movieId}`;
@@ -50,7 +50,7 @@ export async function getSeriesStream(
   seriesId: number,
   season: number,
   episode?: number,
-  provider: StreamProvider = "topstream"
+  provider: StreamProvider = "fstream"
 ): Promise<SeriesStreamResponse> {
   try {
     let url: string;
@@ -61,13 +61,6 @@ export async function getSeriesStream(
         break;
       case "wiflix":
         url = `${MOVIX_BASE_URL}/wiflix/tv/${seriesId}/${season}`;
-        break;
-      case "topstream":
-        if (episode !== undefined) {
-          url = `${MOVIX_BASE_URL}/topstream/tv/${seriesId}?season=${season}&episode=${episode}`;
-        } else {
-          url = `${MOVIX_BASE_URL}/topstream/tv/${seriesId}?season=${season}`;
-        }
         break;
       default:
         throw new Error(`Unknown provider: ${provider}`);
@@ -88,7 +81,7 @@ export async function getSeriesStream(
 }
 
 export async function getAllMovieStreams(movieId: number): Promise<Record<StreamProvider, any>> {
-  const providers: StreamProvider[] = ["fstream", "topstream", "wiflix"];
+  const providers: StreamProvider[] = ["fstream", "wiflix"];
   const results: Record<string, any> = {};
 
   await Promise.allSettled(
@@ -109,7 +102,7 @@ export async function getAllSeriesStreams(
   season: number,
   episode?: number
 ): Promise<Record<StreamProvider, any>> {
-  const providers: StreamProvider[] = ["fstream", "topstream", "wiflix"];
+  const providers: StreamProvider[] = ["fstream", "wiflix"];
   const results: Record<string, any> = {};
 
   await Promise.allSettled(

@@ -28,8 +28,8 @@ const fetchVixsrcStreams = async (type: 'movie' | 'tv', id: number, season?: num
 
         const response = await axios.get('/api/movix-proxy', {
             params: {
-                ...params,
-                path: 'vixsrc'
+                path: 'vixsrc',
+                ...params
             }
         });
         return response.data;

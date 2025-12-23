@@ -8,13 +8,13 @@ export class MovixProxyClient {
 
   constructor() {
     // En mode natif Capacitor, TOUJOURS utiliser l'URL de production Vercel
-    const isCapacitor = typeof window !== 'undefined' && 
+    const isCapacitor = typeof window !== 'undefined' &&
       (window as any).Capacitor !== undefined;
-    
+
     // Vérifier si nous sommes en développement local
-    const isLocalDev = typeof window !== 'undefined' && 
+    const isLocalDev = typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    
+
     if (isCapacitor) {
       // En mode natif Capacitor, toujours utiliser l'URL de production Vercel
       this.baseUrl = 'https://anisflix.vercel.app';
@@ -28,7 +28,7 @@ export class MovixProxyClient {
       this.baseUrl = 'https://anisflix.vercel.app';
       console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel (mode web)');
     }
-    
+
     console.log('🔍 MovixProxyClient - baseUrl:', this.baseUrl);
   }
 
@@ -38,14 +38,14 @@ export class MovixProxyClient {
   async request(path: string, queryParams: Record<string, string | number> = {}): Promise<any> {
     const url = new URL(`${this.baseUrl}/api/movix-proxy`);
     url.searchParams.append('path', path);
-    
+
     // Ajouter les query parameters
     Object.entries(queryParams).forEach(([key, value]) => {
       url.searchParams.append(key, String(value));
     });
 
     console.log(`🌐 Movix Proxy Request: ${url.toString()}`);
-    
+
     try {
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -55,7 +55,7 @@ export class MovixProxyClient {
       });
 
       console.log(`📡 Movix Proxy Response: ${response.status} ${response.statusText}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(`Movix Proxy Error: ${response.status} - ${errorData.message || response.statusText}`);
@@ -75,19 +75,6 @@ export class MovixProxyClient {
    */
   async search(title: string): Promise<any> {
     return this.request('search', { title });
-  }
-
-  /**
-   * Récupère les liens TopStream
-   */
-  async getTopStream(type: 'movie' | 'tv', id: number, season?: number, episode?: number): Promise<any> {
-    if (type === 'tv' && season && episode) {
-      return this.request(`topstream/${type}/${id}?season=${season}&episode=${episode}`);
-    } else if (type === 'tv' && season) {
-      return this.request(`topstream/${type}/${id}?season=${season}`);
-    } else {
-      return this.request(`topstream/${type}/${id}`);
-    }
   }
 
   /**
@@ -143,7 +130,7 @@ export class MovixProxyClient {
     // Remplacer les tirets par des espaces pour correspondre à l'API
     const finalTitle = cleanTitle.replace(/-/g, ' ');
     console.log('🔍 MovixProxy - Recherche anime avec titre:', finalTitle);
-    
+
     // Essayer d'abord l'endpoint anime/search
     try {
       // Ne pas encoder le titre car il sera encodé par l'URL

@@ -1,5 +1,4 @@
 import { useState, useEffect, memo, useCallback } from 'react';
-import { useTopStream } from '@/hooks/useTopStream';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
@@ -22,7 +21,6 @@ interface Source {
   type?: "m3u8" | "mp4" | "embed";
   player?: string;
   isFStream?: boolean;
-  isTopStream?: boolean;
   isMovixDownload?: boolean;
   isVidMoly?: boolean;
   isVidzy?: boolean;
@@ -46,7 +44,6 @@ interface StreamingSourcesProps {
     url: string;
     type: "m3u8" | "mp4" | "embed";
     name: string;
-    isTopStream?: boolean;
     isFStream?: boolean;
     isMovixDownload?: boolean;
     isVidMoly?: boolean;
@@ -94,7 +91,6 @@ const StreamingSources = memo(function StreamingSources({
   }, [isLoadingSource]);
 
   // Désactiver les hooks si enabled est false
-  const { data: topStreamData, isLoading: isLoadingTopStream } = useTopStream(type, id, season, episode);
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
@@ -208,27 +204,15 @@ const StreamingSources = memo(function StreamingSources({
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
   const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR' | 'VO') => {
     console.log(`🔍 hasSourcesForLanguage(${language}) - Debug:`, {
-      topStreamData: !!topStreamData,
       movixDownloadData: !!movixDownloadData,
       vidmolyData: !!vidmolyData,
       fStreamData: !!fStreamData,
       darkiboxData: !!darkiboxData,
       darkiData: !!darkiData,
       animeVidMolyData: !!animeVidMolyData,
-      isLoadingTopStream,
-      isLoadingMovixDownload,
-      isLoadingVidMoly,
-      isLoadingFStream,
-      isLoadingDarkibox,
-      isLoadingDarki,
       isLoadingAnimeVidMoly,
       vixsrcData
     });
-    // Vérifier TopStream (VF uniquement)
-    if (language === 'VF' && topStreamData && topStreamData.stream && topStreamData.stream.url) {
-      return true;
-    }
-
     // Vérifier MovixDownload (VF uniquement)
     if (language === 'VF' && movixDownloadData && movixDownloadData.sources && movixDownloadData.sources.length > 0) {
       return true;
@@ -353,19 +337,6 @@ const StreamingSources = memo(function StreamingSources({
       return true;
     });
     allSources.push(...filteredSources);
-  }
-
-
-  // Ajouter TopStream en premier si disponible (VF uniquement)
-  if (topStreamData && topStreamData.stream && topStreamData.stream.url && selectedLanguage === 'VF') {
-    allSources.push({
-      id: 'topstream',
-      name: topStreamData.stream.label,
-      provider: 'topstream',
-      url: topStreamData.stream.url,
-      type: 'mp4' as const,
-      isTopStream: true
-    });
   }
 
 
@@ -785,7 +756,7 @@ const StreamingSources = memo(function StreamingSources({
         return 1;
       }
 
-      // Rang 2: Le reste (TopStream, Darki, Movix, Vixsrc, etc.)
+      // Rang 2: Le reste (Darki, Movix, Vixsrc, etc.)
       return 2;
     };
 
@@ -820,7 +791,6 @@ const StreamingSources = memo(function StreamingSources({
           url: source.url,
           type: source.type,
           name: source.name,
-          isTopStream: true
         });
       } else if (source.isFStream) {
         console.log('✅ Source FStream détectée');
@@ -931,16 +901,16 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingTopStream || isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingVixsrc) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingVixsrc) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Play className="w-5 h-5" />
-          {t("topstream.sources")}
+          {t("streaming.sources")}
         </h2>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          <span className="text-muted-foreground">{t("topstream.searching")}</span>
+          <span className="text-muted-foreground">{t("streaming.searching")}</span>
         </div>
       </div>
     );
@@ -963,7 +933,7 @@ const StreamingSources = memo(function StreamingSources({
             onClick={() => setSelectedLanguage('VF')}
             disabled={!hasSourcesForLanguage('VF')}
           >
-            {t("topstream.vf")}
+            {t("streaming.vf")}
           </Button>
           <Button
             variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
@@ -971,7 +941,7 @@ const StreamingSources = memo(function StreamingSources({
             onClick={() => setSelectedLanguage('VOSTFR')}
             disabled={!hasSourcesForLanguage('VOSTFR')}
           >
-            {t("topstream.vostfr")}
+            {t("streaming.vostfr")}
           </Button>
           <Button
             variant={selectedLanguage === 'VO' ? 'default' : 'outline'}
@@ -1011,7 +981,7 @@ const StreamingSources = memo(function StreamingSources({
     <div className="space-y-4">
       <h2 className="text-xl font-semibold flex items-center gap-2">
         <Play className="w-5 h-5" />
-        {t("topstream.sources")}
+        {t("streaming.sources")}
       </h2>
 
 
@@ -1024,7 +994,7 @@ const StreamingSources = memo(function StreamingSources({
           onClick={() => setSelectedLanguage('VF')}
           disabled={!hasSourcesForLanguage('VF')}
         >
-          {t("topstream.vf")}
+          {t("streaming.vf")}
         </Button>
         <Button
           variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
@@ -1032,7 +1002,7 @@ const StreamingSources = memo(function StreamingSources({
           onClick={() => setSelectedLanguage('VOSTFR')}
           disabled={!hasSourcesForLanguage('VOSTFR')}
         >
-          {t("topstream.vostfr")}
+          {t("streaming.vostfr")}
         </Button>
         <Button
           variant={selectedLanguage === 'VO' ? 'default' : 'outline'}
@@ -1097,7 +1067,7 @@ const StreamingSources = memo(function StreamingSources({
                     )}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {loadingSources.has(source.id) ? t("topstream.loading") : "Regarder"}
+                    {loadingSources.has(source.id) ? t("streaming.loading") : "Regarder"}
                   </span>
                 </Button>
               </div>

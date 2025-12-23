@@ -119,17 +119,17 @@ export default {
   "provider.streaming": "Streaming",
   "provider.contentsAvailable": "contenus disponibles",
 
-  // TopStream
-  "topstream.sources": "Sources de streaming",
-  "topstream.searching": "Recherche de sources...",
-  "topstream.match": "Correspondance",
-  "topstream.providedBy": "Source fournie par TopStream",
-  "topstream.openNewTab": "Ouvrir dans un nouvel onglet",
-  "topstream.watchNow": "Regarder maintenant",
-  "topstream.loading": "Chargement...",
-  "topstream.otherSources": "Autres sources",
-  "topstream.vf": "VF",
-  "topstream.vostfr": "VOSTFR",
+  // Streaming
+  "streaming.sources": "Sources de streaming",
+  "streaming.searching": "Recherche de sources...",
+  "streaming.match": "Correspondance",
+  "streaming.providedBy": "Source fournie",
+  "streaming.openNewTab": "Ouvrir dans un nouvel onglet",
+  "streaming.watchNow": "Regarder maintenant",
+  "streaming.loading": "Chargement...",
+  "streaming.otherSources": "Autres sources",
+  "streaming.vf": "VF",
+  "streaming.vostfr": "VOSTFR",
 
   // Common
   "common.loading": "Chargement...",
