@@ -715,6 +715,40 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
+  // Ajouter les sources Darki pour les séries si disponibles (hook avec conversion ID)
+  if (type === 'tv' && darkiData && darkiData.sources) {
+    console.log('🔍 [DARKISeries] Sources trouvées:', darkiData.sources.length, darkiData.sources);
+    darkiData.sources.forEach((source: any) => {
+      // Filtrer par langue sélectionnée
+      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
+      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
+      const isVOSource = source.language === 'English' || source.language === 'VO';
+
+      if ((selectedLanguage === 'VF' && isVFSource) ||
+        (selectedLanguage === 'VOSTFR' && isVOSTFRSource) ||
+        (selectedLanguage === 'VO' && isVOSource)) {
+        // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
+        const cleanM3u8Url = source.m3u8.replace(/,/g, '');
+
+        // Éviter les doublons si déjà présent dans darkiboxData
+        if (!allSources.some(s => s.url === cleanM3u8Url)) {
+          allSources.push({
+            id: `darki-series-${source.id}`,
+            name: `${source.quality} - ${source.language} (M)`,
+            provider: 'darkibox',
+            url: cleanM3u8Url,
+            type: 'm3u8' as const,
+            player: 'darkibox',
+            isDarkibox: true,
+            sourceKey: selectedLanguage,
+            quality: source.quality,
+            language: source.language
+          });
+        }
+      }
+    });
+  }
+
   // Ajouter les sources Vixsrc (VO uniquement)
   if (selectedLanguage === 'VO' && vixsrcData && vixsrcData.success && vixsrcData.streams) {
     console.log('🔍 [VIXSRC] Sources trouvées:', vixsrcData.streams);
@@ -824,14 +858,15 @@ const StreamingSources = memo(function StreamingSources({
           name: source.name,
           isVidMoly: true
         });
-      } else if (source.isDarki) {
-        console.log('✅ Source Darki détectée');
-        // Pour Darki, on utilise le player dédié
+      } else if (source.isDarki || source.isDarkibox) {
+        console.log(`✅ Source ${source.isDarki ? 'Darki' : 'Darkibox'} détectée`);
+        // Pour Darki ou Darkibox, on utilise le player dédié (m3u8)
         onSourceClick({
           url: source.url,
           type: 'm3u8' as const,
           name: source.name,
-          isDarki: true,
+          isDarki: source.isDarki,
+          isDarkibox: source.isDarkibox,
           quality: source.quality,
           language: source.language
         });
