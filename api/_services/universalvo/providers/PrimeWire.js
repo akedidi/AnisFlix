@@ -161,7 +161,7 @@ async function fromPrimewireToProvider(primwireObject) {
         return mediaobject.data.link;
     }
 
-    throw new ErrorObject(
+    return new ErrorObject(
         'Failed to extract media link from Primewire',
         'Primewire',
         500,
