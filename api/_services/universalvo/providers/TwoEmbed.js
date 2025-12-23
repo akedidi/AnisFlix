@@ -52,7 +52,7 @@ export async function getTwoEmbed(params) {
             );
         }
 
-        const data = await response.text();
+        const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
         const match =
             data.match(/swish\?id=(?<id>[\w\d]+)/) ||
             data.match(/'(.*?player4u.*?)'/);
