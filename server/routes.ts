@@ -250,6 +250,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Décoder le path pour éviter le double encodage
       const decodedPath = decodeURIComponent(path as string);
 
+      // GÉRER VIXSRC ICI
+      if (decodedPath === 'vixsrc') {
+        const { tmdbId, type, season, episode } = req.query;
+        if (!tmdbId || !type) {
+          return res.status(400).json({ error: 'Paramètres manquants pour vixsrc (tmdbId, type)' });
+        }
+
+        // Rediriger vers la route vixsrc locale déjà existante
+        const internalUrl = `http://localhost:3000/api/vixsrc?tmdbId=${tmdbId}&type=${type}${season ? `&season=${season}` : ''}${episode ? `&episode=${episode}` : ''}`;
+        const response = await axios.get(internalUrl);
+        return res.json(response.data);
+      }
+
       // Déterminer le type de requête pour améliorer les logs
       const isTmdbRequest = decodedPath.startsWith('tmdb/');
       const isAnimeRequest = decodedPath.startsWith('anime/search/');

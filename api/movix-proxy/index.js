@@ -16,6 +16,170 @@ const MOVIX_HEADERS = {
   'Origin': 'https://movix.site',
 };
 
+class VixSrcScraper {
+  constructor() {
+    this.tmdbApiKey = "68e094699525b18a70bab2f86b1fa706";
+    this.baseUrl = 'https://vixsrc.to';
+    this.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
+  async makeRequest(url, options = {}) {
+    const defaultHeaders = {
+      'User-Agent': this.userAgent,
+      'Accept': 'application/json,*/*',
+      'Accept-Language': 'en-US,en;q=0.5',
+      'Accept-Encoding': 'gzip, deflate',
+      'Connection': 'keep-alive',
+      ...options.headers
+    };
+
+    try {
+      const response = await axios({
+        method: options.method || 'GET',
+        url,
+        headers: defaultHeaders,
+        ...options
+      });
+      return response;
+    } catch (error) {
+      console.error(`[Vixsrc] Request failed for ${url}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async getTmdbInfo(tmdbId, mediaType) {
+    const url = `https://api.themoviedb.org/3/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}?api_key=${this.tmdbApiKey}`;
+
+    try {
+      const response = await this.makeRequest(url);
+      const data = response.data;
+      const title = mediaType === 'tv' ? data.name : data.title;
+      const year = mediaType === 'tv' ? data.first_air_date?.substring(0, 4) : data.release_date?.substring(0, 4);
+
+      return { title, year, data };
+    } catch (error) {
+      return { title: 'Unknown', year: 'Unknown', data: {} };
+    }
+  }
+
+  async extractStreamFromPage(url, contentType, contentId, seasonNum, episodeNum) {
+    let vixsrcUrl;
+    let subtitleApiUrl;
+
+    if (contentType === 'movie') {
+      vixsrcUrl = `${this.baseUrl}/movie/${contentId}`;
+      subtitleApiUrl = `https://sub.wyzie.ru/search?id=${contentId}`;
+    } else {
+      vixsrcUrl = `${this.baseUrl}/tv/${contentId}/${seasonNum}/${episodeNum}`;
+      subtitleApiUrl = `https://sub.wyzie.ru/search?id=${contentId}&season=${seasonNum}&episode=${episodeNum}`;
+    }
+
+    try {
+      const response = await this.makeRequest(vixsrcUrl, {
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
+
+      const html = response.data;
+      let masterPlaylistUrl = null;
+
+      if (html.includes('window.masterPlaylist')) {
+        const urlMatch = html.match(/url:\s*['"]([^'"]+)['"]/);
+        const tokenMatch = html.match(/['"]?token['"]?\s*:\s*['"]([^'"]+)['"]/);
+        const expiresMatch = html.match(/['"]?expires['"]?\s*:\s*['"]([^'"]+)['"]/);
+
+        if (urlMatch && tokenMatch && expiresMatch) {
+          const baseUrl = urlMatch[1];
+          const token = tokenMatch[1];
+          const expires = expiresMatch[1];
+
+          if (baseUrl.includes('?b=1')) {
+            masterPlaylistUrl = `${baseUrl}&token=${token}&expires=${expires}&h=1&lang=en`;
+          } else {
+            masterPlaylistUrl = `${baseUrl}?token=${token}&expires=${expires}&h=1&lang=en`;
+          }
+        }
+      }
+
+      if (!masterPlaylistUrl) {
+        const m3u8Match = html.match(/(https?:\/\/[^'"\s]+\.m3u8[^'"\s]*)/);
+        if (m3u8Match) {
+          masterPlaylistUrl = m3u8Match[1];
+        }
+      }
+
+      if (!masterPlaylistUrl) {
+        const scriptMatches = html.match(/<script[^>]*>(.*?)<\/script>/gs);
+        if (scriptMatches) {
+          for (const script of scriptMatches) {
+            const streamMatch = script.match(/['"]?(https?:\/\/[^'"\s]+(?:\.m3u8|playlist)[^'"\s]*)/);
+            if (streamMatch) {
+              masterPlaylistUrl = streamMatch[1];
+              break;
+            }
+          }
+        }
+      }
+
+      return masterPlaylistUrl ? { masterPlaylistUrl, subtitleApiUrl } : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async getSubtitles(subtitleApiUrl) {
+    try {
+      const response = await this.makeRequest(subtitleApiUrl);
+      const subtitleData = response.data;
+
+      if (!Array.isArray(subtitleData)) {
+        return '';
+      }
+
+      let subtitleTrack = subtitleData.find((track) =>
+        track.display.includes('English') && (track.encoding === 'ASCII' || track.encoding === 'UTF-8')
+      );
+
+      if (!subtitleTrack) {
+        subtitleTrack = subtitleData.find((track) => track.display.includes('English') && track.encoding === 'CP1252');
+      }
+
+      return subtitleTrack ? subtitleTrack.url : '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  async getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = null) {
+    try {
+      const streamData = await this.extractStreamFromPage(null, mediaType, tmdbId, seasonNum, episodeNum);
+
+      if (!streamData) {
+        return [];
+      }
+
+      const { masterPlaylistUrl, subtitleApiUrl } = streamData;
+
+      return [{
+        name: "Vixsrc",
+        title: "Auto Quality Stream",
+        url: masterPlaylistUrl,
+        quality: 'Auto',
+        type: 'm3u8',
+        headers: {
+          'Referer': this.baseUrl,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        }
+      }];
+    } catch (error) {
+      return [];
+    }
+  }
+}
+
+const vixsrcScraper = new VixSrcScraper();
+
 export default async function handler(req, res) {
   // Configuration CORS
   Object.entries(CORS_HEADERS).forEach(([key, value]) => {
@@ -32,7 +196,7 @@ export default async function handler(req, res) {
 
   try {
     const { path, ...queryParams } = req.query;
-    
+
     if (!path) {
       return res.status(400).json({ error: 'Paramètre "path" manquant' });
     }
@@ -40,18 +204,43 @@ export default async function handler(req, res) {
     // Construire l'URL Movix
     // Décoder le path pour éviter le double encodage
     const decodedPath = decodeURIComponent(path);
-    
+
+    // GÉRER VIXSRC ICI
+    if (decodedPath === 'vixsrc') {
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({ error: 'Paramètres manquants pour vixsrc (tmdbId, type)' });
+        }
+
+        console.log(`🚀 [MOVIX PROXY VIXSRC] Request: ${type} ${tmdbId} S${season}E${episode}`);
+
+        const streams = await vixsrcScraper.getStreams(
+          tmdbId,
+          type,
+          season ? parseInt(season) : null,
+          episode ? parseInt(episode) : null
+        );
+
+        return res.status(200).json({ success: true, streams });
+      } catch (vixError) {
+        console.error('[MOVIX PROXY VIXSRC ERROR]', vixError.message);
+        return res.status(500).json({ error: 'Erreur proxy Vixsrc', details: vixError.message });
+      }
+    }
+
     // Déterminer le type de requête pour améliorer les logs
     const isTmdbRequest = decodedPath.startsWith('tmdb/');
     const isAnimeRequest = decodedPath.startsWith('anime/search/');
-    
+
     if (isTmdbRequest) {
       console.log(`🚀 [MOVIX TMDB] Fetching sources for: ${decodedPath}`);
     } else {
       console.log(`[MOVIX PROXY] Path original: ${path}`);
       console.log(`[MOVIX PROXY] Path décodé: ${decodedPath}`);
     }
-    
+
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
     if (isAnimeRequest) {
@@ -60,7 +249,7 @@ export default async function handler(req, res) {
       movixUrl = `https://api.movix.site/api/${decodedPath}`;
     }
     const url = new URL(movixUrl);
-    
+
     // Ajouter les query parameters
     Object.entries(queryParams).forEach(([key, value]) => {
       if (key !== 'path') {
@@ -103,14 +292,14 @@ export default async function handler(req, res) {
   } catch (error) {
     const isTmdbRequest = req.query.path && decodeURIComponent(req.query.path).startsWith('tmdb/');
     const errorPrefix = isTmdbRequest ? '[MOVIX TMDB ERROR]' : '[MOVIX PROXY ERROR]';
-    
+
     console.error(errorPrefix, error.message);
-    
+
     if (error.response) {
       // Erreur de réponse HTTP
       console.error(`${errorPrefix} Status: ${error.response.status}`);
       console.error(`${errorPrefix} Data:`, error.response.data);
-      
+
       res.status(502).json({
         error: isTmdbRequest ? 'Erreur proxy Movix TMDB' : 'Erreur proxy Movix',
         status: error.response.status,
@@ -120,7 +309,7 @@ export default async function handler(req, res) {
     } else if (error.request) {
       // Erreur de réseau
       console.error(`${errorPrefix} Pas de réponse reçue`);
-      
+
       res.status(502).json({
         error: isTmdbRequest ? 'Erreur réseau Movix TMDB' : 'Erreur réseau Movix',
         message: `Impossible de contacter l'API Movix${isTmdbRequest ? ' TMDB' : ''}`,
@@ -129,7 +318,7 @@ export default async function handler(req, res) {
     } else {
       // Autre erreur
       console.error(`${errorPrefix} Erreur inconnue:`, error.message);
-      
+
       res.status(500).json({
         error: isTmdbRequest ? 'Erreur serveur proxy Movix TMDB' : 'Erreur serveur proxy Movix',
         message: 'Erreur interne du serveur',

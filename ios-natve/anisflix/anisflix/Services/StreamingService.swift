@@ -444,7 +444,7 @@ class StreamingService {
     }
     
     func fetchVixsrcSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/vixsrc?tmdbId=\(tmdbId)&type=\(type)"
+        var urlString = "\(baseUrl)/api/movix-proxy?path=vixsrc&tmdbId=\(tmdbId)&type=\(type)"
         if let season = season {
             urlString += "&season=\(season)"
         }

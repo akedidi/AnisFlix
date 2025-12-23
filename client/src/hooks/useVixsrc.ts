@@ -26,7 +26,12 @@ const fetchVixsrcStreams = async (type: 'movie' | 'tv', id: number, season?: num
         if (season) params.season = season;
         if (episode) params.episode = episode;
 
-        const response = await axios.get('/api/vixsrc', { params });
+        const response = await axios.get('/api/movix-proxy', {
+            params: {
+                ...params,
+                path: 'vixsrc'
+            }
+        });
         return response.data;
     } catch (error) {
         console.error('Error fetching Vixsrc streams:', error);
