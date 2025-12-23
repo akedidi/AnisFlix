@@ -95,7 +95,7 @@ const StreamingSources = memo(function StreamingSources({
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
   const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
   const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
-  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, type === 'movie' ? 0 : id, season, episode, title);
+  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
 
 
@@ -771,6 +771,29 @@ const StreamingSources = memo(function StreamingSources({
 
 
 
+  /**
+   * Compare deux chaînes de qualité (ex: "4K", "1080p", "720p")
+   * Retourne > 0 si b > a, < 0 si a > b, 0 si égal (pour trier du meilleur au pire)
+   */
+  const compareQuality = (a: string = '', b: string = ''): number => {
+    const getQualityValue = (q: string): number => {
+      const lowerQ = q.toLowerCase();
+      if (lowerQ.includes('4k') || lowerQ.includes('2160p') || lowerQ.includes('uhd')) return 2160;
+      if (lowerQ.includes('1080p') || lowerQ.includes('fhd') || lowerQ.includes('full hd')) return 1080;
+      if (lowerQ.includes('720p') || lowerQ.includes('hd')) return 720;
+      if (lowerQ.includes('480p') || lowerQ.includes('sd')) return 480;
+      if (lowerQ.includes('360p')) return 360;
+
+      // Essayer d'extraire n'importe quel nombre
+      const match = lowerQ.match(/(\d+)/);
+      if (match) return parseInt(match[1]);
+
+      return 0; // Inconnu
+    };
+
+    return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
+  };
+
   // Trie final des sources : Vidzy > Vidmoly > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
@@ -801,7 +824,8 @@ const StreamingSources = memo(function StreamingSources({
       return rankA - rankB;
     }
 
-    return 0;
+    // Même rang, trier par qualité
+    return compareQuality(a.quality, b.quality);
   });
 
 
