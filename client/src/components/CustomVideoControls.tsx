@@ -237,6 +237,82 @@ export default function CustomVideoControls({
                 {selectedSubtitle && (
                   <div className="px-2 py-2 border-b">
                     <div className="text-xs text-muted-foreground mb-2">Décalage (synchro)</div>
+
+                    {/* Quick offset buttons */}
+                    <div className="flex flex-col gap-1 mb-2">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.max(-30, subtitleOffset - 30));
+                          }}
+                        >
+                          -30s
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.max(-30, subtitleOffset - 10));
+                          }}
+                        >
+                          -10s
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.max(-30, subtitleOffset - 5));
+                          }}
+                        >
+                          -5s
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.min(30, subtitleOffset + 5));
+                          }}
+                        >
+                          +5s
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.min(30, subtitleOffset + 10));
+                          }}
+                        >
+                          +10s
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 flex-1 p-0 text-xs"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onSubtitleOffsetChange?.(Math.min(30, subtitleOffset + 30));
+                          }}
+                        >
+                          +30s
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Fine adjustment */}
                     <div className="flex items-center justify-between gap-2">
                       <Button
                         variant="outline"
