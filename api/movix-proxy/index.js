@@ -236,7 +236,18 @@ export default async function handler(req, res) {
 
     // GÉRER UNIVERSALVO ICI
     if (decodedPath === 'universalvo') {
-      return await handleUniversalVO(req, res);
+      console.log('🚀 [Movix Proxy] Routing to UniversalVO handler');
+      try {
+        await handleUniversalVO(req, res);
+      } catch (error) {
+        console.error('❌ [Movix Proxy] UniversalVO Handler Error:', error);
+        res.status(500).json({
+          error: 'Internal Server Error in UniversalVO handler',
+          details: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      }
+      return;
     }
 
 

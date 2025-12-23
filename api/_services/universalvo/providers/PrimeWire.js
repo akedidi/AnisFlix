@@ -1,7 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import * as crypto from 'crypto';
-import fetch from 'node-fetch';
 import { extract } from '../utils/Extractor.js';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 
@@ -109,8 +108,8 @@ async function lookupPage(info) {
 
 async function loadServers(link) {
     try {
-        let website = await fetch(link);
-        website = await website.text();
+        const response = await axios.get(link);
+        const website = response.data;
         const urls = Array.from(website.matchAll(/data-wp-menu="(.+?)"/g)).map(
             (match) => ({
                 url: `https://primewire.tf/links/gos/${match[1]}`,

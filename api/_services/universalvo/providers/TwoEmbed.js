@@ -1,8 +1,8 @@
-import fetch from 'node-fetch';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 import { extract } from '../utils/Extractor.js';
 import * as cheerio from 'cheerio';
 import JsUnpacker from '../utils/JsUnpacker.js';
+import axios from 'axios';
 
 const DOMAIN = 'https://www.2embed.cc';
 const PLAYER_URL = 'https://uqloads.xyz';
@@ -33,17 +33,15 @@ export async function getTwoEmbed(params) {
             : `${DOMAIN}/embed/${tmdb}`;
 
     try {
-        const response = await fetch(url, {
-            method: 'POST',
+        const response = await axios.post(url, new URLSearchParams({ pls: 'pls' }), {
             headers: {
                 Referer: url,
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': headers['User-Agent']
-            },
-            body: 'pls=pls'
+            }
         });
 
-        if (!response.ok) {
+        if (response.status !== 200) {
             return new ErrorObject(
                 `HTTP error fetching initial URL! Status: ${response.status}`,
                 '2Embed',
@@ -109,13 +107,13 @@ export async function getTwoEmbed(params) {
                 subtitles: []
             };
         } else {
-            const listPageResponse = await fetch(extractedValue, {
+            const listPageResponse = await axios.get(extractedValue, {
                 headers: {
                     Referer: url
                 }
             });
 
-            if (!listPageResponse.ok) {
+            if (listPageResponse.status !== 200) {
                 return new ErrorObject(
                     `Failed to fetch player4u list page ${extractedValue}: ${listPageResponse.status}`,
                     '2Embed',
@@ -126,7 +124,7 @@ export async function getTwoEmbed(params) {
                 );
             }
 
-            const listPageHtml = await listPageResponse.text();
+            const listPageHtml = typeof listPageResponse.data === 'string' ? listPageResponse.data : JSON.stringify(listPageResponse.data);
 
             const $ = cheerio.load(listPageHtml);
             let highestQuality = -1;
@@ -221,14 +219,14 @@ export async function getTwoEmbed(params) {
 
 async function resolve(url, referer) {
     try {
-        const response = await fetch(url, {
+        const response = await axios.get(url, {
             headers: {
                 Referer: referer,
                 'User-Agent': headers['User-Agent']
             }
         });
 
-        if (!response.ok) {
+        if (response.status !== 200) {
             return new ErrorObject(
                 `Resolve failed for ${url}: Status ${response.status}`,
                 '2Embed',
@@ -239,7 +237,7 @@ async function resolve(url, referer) {
             );
         }
 
-        const data = await response.text();
+        const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
         const packedDataRegex = /eval\(function(.*?)split.*\)\)\)/s;
         const packedDataMatch = data.match(packedDataRegex);
 

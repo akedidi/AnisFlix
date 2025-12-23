@@ -1,10 +1,10 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 import JsUnpacker from '../utils/JsUnpacker.js';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 
 export async function extract_streamwish(url, referer) {
     try {
-        const response = await fetch(url, {
+        const response = await axios.get(url, {
             headers: {
                 Referer: referer,
                 'User-Agent':
@@ -12,7 +12,7 @@ export async function extract_streamwish(url, referer) {
             }
         });
 
-        if (!response.ok) {
+        if (response.status !== 200) {
             return new ErrorObject(
                 `Resolve failed for ${url}: Status ${response.status}`,
                 'streamwish',
@@ -23,7 +23,7 @@ export async function extract_streamwish(url, referer) {
             );
         }
 
-        const data = await response.text();
+        const data = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
         const packedDataRegex = /eval\(function(.*?)split.*\)\)\)/s;
         const packedDataMatch = data.match(packedDataRegex);
 

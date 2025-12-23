@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import axios from 'axios';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 
 //TODO: not finished yet... check: https://github.com/Gujal00/ResolveURL/blob/master/script.module.resolveurl/lib/resolveurl/plugins/streamtape.py
@@ -7,7 +7,7 @@ export async function extract_streamtape(url) {
     try {
         let hostname = url.match(/https?:\/\/([^\/]+)/)[1];
 
-        const response = await fetch(url, {
+        const response = await axios.get(url, {
             headers: {
                 'User-Agent':
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/y130.0.0.0 Safari/537.36',
@@ -20,7 +20,7 @@ export async function extract_streamtape(url) {
             }
         });
 
-        if (!response.ok) {
+        if (response.status !== 200) {
             return new ErrorObject(
                 `Failed to fetch Streamtape URL: Status ${response.status}`,
                 'Streamtape',
@@ -31,7 +31,7 @@ export async function extract_streamtape(url) {
             );
         }
 
-        const html = await response.text();
+        const html = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
 
         const fullUrlRegex = /ById\('.+?=\s*(["']\/\/[^;<]+)/g;
         const allMatches = html.match(fullUrlRegex);
