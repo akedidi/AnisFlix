@@ -8,10 +8,12 @@ async function runTest() {
         method: 'GET',
         query: {
             path: 'universalvo',
-            tmdbId: '798645',
-            type: 'movie'
+            tmdbId: '66732',
+            type: 'tv',
+            season: '1',
+            episode: '1'
         },
-        url: '/api/movix-proxy?path=universalvo&tmdbId=798645&type=movie',
+        url: '/api/movix-proxy?path=universalvo&tmdbId=66732&type=tv&season=1&episode=1',
         headers: {
             host: 'localhost:3000'
         },
