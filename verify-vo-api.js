@@ -1,4 +1,4 @@
-import { handleUniversalVO } from './services/universalvo/index.js';
+import { handleUniversalVO } from './api/_services/universalvo/index.js';
 
 async function runTest() {
     console.log('--- Testing MOVIE (Gladiator 2) ---');
