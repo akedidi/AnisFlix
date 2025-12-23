@@ -97,51 +97,6 @@ export default function MovieDetail() {
   }
 
   // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
-  const { data: filmsDownloadSources } = useQuery({
-    queryKey: ['films-download', movieId, matchingResult?.id, matchingResult?.tmdb_id],
-    queryFn: async () => {
-      // TRIPLE vérification pour s'assurer qu'on a le bon résultat
-      if (!matchingResult) {
-        console.error(`❌ [FILMS DOWNLOAD] FATAL: No matching result found`);
-        throw new Error('No matching result found in search');
-      }
-
-      if (matchingResult.tmdb_id !== movieId) {
-        console.error(`❌ [FILMS DOWNLOAD] FATAL: tmdb_id mismatch (${matchingResult.tmdb_id} !== ${movieId})`);
-        throw new Error(`TMDB ID mismatch: search returned ${matchingResult.tmdb_id} but expected ${movieId}`);
-      }
-
-      // Utiliser l'ID Movix du résultat correspondant
-      const movixId = matchingResult.id;
-      if (!movixId) {
-        console.error(`❌ [FILMS DOWNLOAD] FATAL: No Movix ID found`);
-        throw new Error('No Movix ID found in matching result');
-      }
-
-      // Dernière vérification avant l'appel API
-      console.log(`✅ [FILMS DOWNLOAD] Confirmed: Using Movix ID ${movixId} for TMDB ID ${movieId}`);
-      const response = await fetch(`/api/movix-proxy?path=films/download/${movixId}`);
-      if (!response.ok) {
-        console.log(`❌ [FILMS DOWNLOAD] Response not OK: ${response.status}`);
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log(`✅ [FILMS DOWNLOAD] Sources retrieved:`, data);
-
-      // Vérifier que la réponse ne contient pas un tmdb_id différent
-      if (data.tmdb_id && data.tmdb_id !== movieId) {
-        console.log(`❌ [FILMS DOWNLOAD] Response tmdb_id mismatch (${data.tmdb_id} !== ${movieId})`);
-        throw new Error(`TMDB ID mismatch in response: ${data.tmdb_id} !== ${movieId}`);
-      }
-
-      return data;
-    },
-    enabled: !!movieId && !!matchingResult && matchingResult.tmdb_id === movieId && !!matchingResult.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: false // Ne pas réessayer si ça échoue
-  });
 
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
@@ -202,24 +157,9 @@ export default function MovieDetail() {
     };
   }) || [];
 
-  // Ajouter les sources films/download si disponibles
-  const filmsDownloadSourcesList = filmsDownloadSources?.sources?.map((source: any, index: number) => ({
-    id: `films-download-${index}`,
-    name: 'Films Download',
-    provider: 'Films Download',
-    url: source.m3u8 || source.src,
-    type: 'm3u8' as const,
-    isFStream: false,
-    isMovixDownload: true,
-    isVidMoly: false,
-    isVidzy: false,
-    isDarki: false,
-    quality: source.quality || 'HD',
-    language: source.language || 'Français'
-  })) || [];
 
   // Filtrer les sources pour exclure celles avec isDarki (mais garder les sources darkibox normales)
-  const allSources = [...sources, ...tmdbSources, ...filmsDownloadSourcesList].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources].filter(source => !source.isDarki);
 
   // Debug logs pour les sources TMDB
   console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {

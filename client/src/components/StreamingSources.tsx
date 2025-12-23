@@ -203,7 +203,34 @@ const StreamingSources = memo(function StreamingSources({
 
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
   const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR' | 'VO') => {
-    console.log(`🔍 hasSourcesForLanguage(${language}) - Debug:`, {
+    // Vérifier les sources passées en paramètre (props)
+    if (sources && sources.length > 0) {
+      const hasMatchedPropSource = sources.some(s => {
+        if (!s.language) return language === 'VF'; // Par défaut VF si non spécifié
+
+        const lang = s.language.toLowerCase();
+        if (language === 'VF') {
+          return lang.includes('french') ||
+            lang.includes('français') ||
+            lang === 'vf' ||
+            lang === 'multi' ||
+            lang === 'truefrench';
+        }
+        if (language === 'VOSTFR') {
+          return lang.includes('vostfr') || lang === 'multi';
+        }
+        if (language === 'VO') {
+          return lang.includes('english') ||
+            lang === 'vo' ||
+            lang === 'eng' ||
+            lang.includes('original');
+        }
+        return false;
+      });
+      if (hasMatchedPropSource) return true;
+    }
+
+    console.log(`🔍 [DEBUG LANG] hasSourcesForLanguage(${language}) - Checking scrapers...`, {
       movixDownloadData: !!movixDownloadData,
       vidmolyData: !!vidmolyData,
       fStreamData: !!fStreamData,
@@ -329,13 +356,31 @@ const StreamingSources = memo(function StreamingSources({
   // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
   if (sources && sources.length > 0) {
     console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
-    // Filter out VidMoly if language is VO
+    // Filtrage par langue pour les sources passées en paramètre
     const filteredSources = sources.filter(s => {
-      if (selectedLanguage === 'VO' && (s.provider === 'vidmoly' || s.isVidMoly || s.name.toLowerCase().includes('vidmoly'))) {
-        return false;
+      // Si pas de langue spécifiée par TMDB, on la met dans VF par défaut
+      if (!s.language) return selectedLanguage === 'VF';
+
+      const lang = s.language.toLowerCase();
+      if (selectedLanguage === 'VF') {
+        return lang.includes('french') ||
+          lang.includes('français') ||
+          lang === 'vf' ||
+          lang === 'multi' ||
+          lang === 'truefrench';
       }
-      return true;
+      if (selectedLanguage === 'VOSTFR') {
+        return lang.includes('vostfr') || lang === 'multi';
+      }
+      if (selectedLanguage === 'VO') {
+        return lang.includes('english') ||
+          lang === 'vo' ||
+          lang === 'eng' ||
+          lang.includes('original');
+      }
+      return false;
     });
+    console.log(`🔍 [STREAMING SOURCES] Filtered sources for ${selectedLanguage}:`, filteredSources.length);
     allSources.push(...filteredSources);
   }
 
