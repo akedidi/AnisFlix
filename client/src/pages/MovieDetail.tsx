@@ -14,6 +14,8 @@ import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
+import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
+
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getMovieStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -43,6 +45,10 @@ export default function MovieDetail() {
 
   // Fetch Movix player links
   const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
+
+  // Fetch UniversalVO sources
+  const { data: universalVOSources } = useUniversalVOSources('movie', movieId);
+
 
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
   console.log('🔍 [MOVIE DETAIL] About to call useMovixTmdbSources with movieId:', movieId);
@@ -157,9 +163,28 @@ export default function MovieDetail() {
     };
   }) || [];
 
+  // Add UniversalVO sources
+  const universalSources = universalVOSources?.files?.map((source, index) => ({
+    id: `universal-${source.provider}-${index}`,
+    name: `${source.provider} (${source.extractor})`,
+    provider: source.provider || 'UniversalVO',
+    url: source.file,
+    type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+    isFStream: false,
+    isMovixDownload: false,
+    isVidMoly: false,
+    isDarki: false,
+    isUniversal: true,
+    quality: 'HD',
+    language: 'VO', // Assume VO for now as requested
+    headers: source.headers
+  })) || [];
+
+
 
   // Filtrer les sources pour exclure celles avec isDarki (mais garder les sources darkibox normales)
-  const allSources = [...sources, ...tmdbSources].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources, ...universalSources].filter(source => !source.isDarki);
+
 
   // Debug logs pour les sources TMDB
   console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {

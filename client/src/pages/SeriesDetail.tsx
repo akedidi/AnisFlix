@@ -14,6 +14,8 @@ import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
+import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
+
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
@@ -65,6 +67,15 @@ export default function SeriesDetail() {
     series?.imdb_id || null,
     'tv'
   );
+
+  // Fetch UniversalVO sources
+  const { data: universalVOSources } = useUniversalVOSources(
+    'tv',
+    seriesId,
+    selectedSeasonNumber,
+    selectedEpisode || undefined
+  );
+
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for series:', series?.name, movixLinks);
@@ -77,7 +88,24 @@ export default function SeriesDetail() {
   // Navigation au clavier pour contrôler la lecture vidéo
   const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
-  const episodeSources: any[] = [];
+  const episodeSources: any[] = [
+    ...(universalVOSources?.files?.map((source, index) => ({
+      id: `universal-${source.provider}-${index}`,
+      name: `${source.provider} (${source.extractor})`,
+      provider: source.provider || 'UniversalVO',
+      url: source.file,
+      type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      isUniversal: true,
+      quality: 'HD',
+      language: 'VO',
+      headers: source.headers
+    })) || [])
+  ];
+
   const handleSourceClick = async (source: {
     url: string;
     type: "m3u8" | "mp4" | "embed";

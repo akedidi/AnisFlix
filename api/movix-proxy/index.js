@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { handleUniversalVO } from './universalvo/index.js';
+
 
 // Configuration CORS
 const CORS_HEADERS = {
@@ -207,6 +209,7 @@ export default async function handler(req, res) {
 
     // GÉRER VIXSRC ICI
     if (decodedPath === 'vixsrc') {
+
       try {
         const { tmdbId, type, season, episode } = queryParams;
 
@@ -229,6 +232,12 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Erreur proxy Vixsrc', details: vixError.message });
       }
     }
+
+    // GÉRER UNIVERSALVO ICI
+    if (decodedPath === 'universalvo') {
+      return await handleUniversalVO(req, res);
+    }
+
 
     // Déterminer le type de requête pour améliorer les logs
     const isTmdbRequest = decodedPath.startsWith('tmdb/');

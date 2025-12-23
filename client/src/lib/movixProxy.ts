@@ -155,7 +155,17 @@ export class MovixProxyClient {
   async getSeriesDetails(seriesId: number): Promise<any> {
     return this.request(`anime/${seriesId}`);
   }
+  /**
+   * Récupère les liens UniversalVO (Vidsrc 2Embed/PrimeWire)
+   */
+  async getUniversalVO(type: 'movie' | 'tv', id: number, season?: number, episode?: number): Promise<any> {
+    const params: any = { tmdbId: id, type };
+    if (season) params.season = season;
+    if (episode) params.episode = episode;
+    return this.request('universalvo', params);
+  }
 }
+
 
 // Instance singleton
 export const movixProxy = new MovixProxyClient();
