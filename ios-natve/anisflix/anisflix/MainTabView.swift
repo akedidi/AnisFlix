@@ -39,7 +39,7 @@ struct MainTabView: View {
                 TVChannelsView()
             }
             .tabItem {
-                Label(theme.t("nav.tvChannels"), systemImage: selectedTab == 2 ? "radio.fill" : "radio")
+                Label(theme.t("nav.tvChannels"), systemImage: selectedTab == 2 ? "tv.fill" : "tv")
             }
             .tag(2)
             
