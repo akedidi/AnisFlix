@@ -136,6 +136,40 @@ struct DownloadedMediaDetailView: View {
                         }
                         .padding(.horizontal, 16)
                         
+                        
+                        // Watch Progress Bar
+                        if watchProgress > 0 {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: watchProgress >= 1 ? "checkmark.circle.fill" : "clock.fill")
+                                        .font(.caption)
+                                        .foregroundColor(watchProgress >= 1 ? .green : AppTheme.primaryRed)
+                                    Text(watchProgress >= 1 ? "Vu" : "En cours")
+                                        .font(.caption)
+                                        .foregroundColor(theme.secondaryText)
+                                    Spacer()
+                                    Text("\(Int(watchProgress * 100))%")
+                                        .font(.caption)
+                                        .foregroundColor(theme.secondaryText)
+                                }
+                                
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .fill(theme.secondaryText.opacity(0.3))
+                                            .frame(height: 4)
+                                        
+                                        Rectangle()
+                                            .fill(AppTheme.primaryRed)
+                                            .frame(width: geometry.size.width * CGFloat(watchProgress), height: 4)
+                                    }
+                                    .cornerRadius(2)
+                                }
+                                .frame(height: 4)
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                        
                         // Play Button (Big)
                         if !showPlayer {
                             Button(action: {
@@ -307,5 +341,14 @@ struct DownloadedMediaDetailView: View {
         }
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+    }
+    
+    // Compute watch progress for this item
+    private var watchProgress: Double {
+        watchProgressManager.getProgress(
+            mediaId: item.mediaId,
+            season: item.season,
+            episode: item.episode
+        )
     }
 }
