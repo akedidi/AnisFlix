@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { handleUniversalVO } from './universalvo/index.js';
+import { handleVixSrc } from "./vixsrc.js";
+import { handleUniversalVO } from "../../services/universalvo/index.js";
 
 
 // Configuration CORS
