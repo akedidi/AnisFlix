@@ -641,13 +641,17 @@ struct MovieDetailView: View {
     // Helper to filter sources by language
     private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
         return sources.filter { source in
+            let lang = source.language.lowercased()
             if language == "VF" {
-                return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
+                return lang.contains("french") || lang.contains("vf")
             } else if language == "VOSTFR" {
-                return source.language.lowercased().contains("vostfr")
+                return lang.contains("vostfr")
             } else {
-                // Allow all providers for VO
-                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+                // VO: Only sources that are NOT VF and NOT VOSTFR
+                let isVF = lang.contains("french") || lang.contains("vf")
+                let isVOSTFR = lang.contains("vostfr")
+                // Accept VO, English, or any source that isn't explicitly VF/VOSTFR
+                return !isVF && !isVOSTFR
             }
         }
     }

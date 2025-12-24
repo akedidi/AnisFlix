@@ -243,7 +243,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         // This is required for correct playback and enables TV remote control (HDMI-CEC) on some receivers.
         if contentType == "application/x-mpegURL" || contentType == "application/vnd.apple.mpegurl" {
             mediaInfoBuilder.hlsSegmentFormat = .TS
-            mediaInfoBuilder.hlsVideoSegmentFormat = .TS
         }
         
         let mediaInfo = mediaInfoBuilder.build()
