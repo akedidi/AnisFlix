@@ -174,6 +174,24 @@ struct AfterDarkSource: Codable {
     }
 }
 
+// MARK: - Cpasmal Response Structures
+struct CpasmalResponse: Codable {
+    let success: Bool?
+    let sources: [CpasmalSource]?
+    let count: Int?
+    let title: String?
+    let year: String?
+}
+
+struct CpasmalSource: Codable {
+    let url: String
+    let quality: String?
+    let type: String?
+    let provider: String?
+    let language: String?
+    let server: String?
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}
@@ -188,6 +206,7 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
+        async let cpasmalSources = fetchCpasmalSources(tmdbId: movieId, type: "movie")
         
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
@@ -207,7 +226,7 @@ class StreamingService {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
+        let (tmdb, fstream, vixsrc, universalVO, cpasmal) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? cpasmalSources)
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -215,8 +234,14 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
+        print("   - Cpasmal: \(cpasmal?.count ?? 0)")
         
         var allSources: [StreamingSource] = []
+        
+        // Cpasmal first (prioritized)
+        if let cpasmal = cpasmal {
+            allSources.append(contentsOf: cpasmal)
+        }
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -237,8 +262,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider ==  "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
+        // Filter for allowed providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "cpasmal" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -327,6 +352,7 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let cpasmalSources = fetchCpasmalSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -347,7 +373,7 @@ class StreamingService {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
+        let (tmdb, fstream, vixsrc, universalVO, cpasmal) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? cpasmalSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -355,8 +381,14 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
+        print("   - Cpasmal: \(cpasmal?.count ?? 0)")
         
         var allSources: [StreamingSource] = []
+        
+        // Cpasmal first (prioritized)
+        if let cpasmal = cpasmal {
+            allSources.append(contentsOf: cpasmal)
+        }
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -377,8 +409,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
+        // Filter for allowed providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "cpasmal" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -794,6 +826,60 @@ class StreamingService {
             return sources
         } catch {
             print("❌ [AfterDark] Error fetching/decoding: \(error)")
+            return []
+        }
+    }
+    
+    // MARK: - Cpasmal Sources
+    
+    func fetchCpasmalSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        print("🎬 [Cpasmal] Fetching sources for \(type) \(tmdbId)")
+        
+        var urlString = "\(baseUrl)/api/movix-proxy?path=cpasmal&tmdbId=\(tmdbId)&type=\(type)"
+        if let season = season, let episode = episode {
+            urlString += "&season=\(season)&episode=\(episode)"
+        }
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ [Cpasmal] Invalid URL")
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 15
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                print("❌ [Cpasmal] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                return []
+            }
+            
+            let decoder = JSONDecoder()
+            let cpasmalResponse = try decoder.decode(CpasmalResponse.self, from: data)
+            
+            print("✅ [Cpasmal] Decoded response. Sources: \(cpasmalResponse.sources?.count ?? 0)")
+            
+            var sources: [StreamingSource] = []
+            
+            if let cpasmalSources = cpasmalResponse.sources {
+                for source in cpasmalSources {
+                    let streamSource = StreamingSource(
+                        url: source.url,
+                        quality: source.quality ?? "HD",
+                        type: "embed",
+                        provider: "cpasmal",
+                        language: source.language ?? "VF"
+                    )
+                    sources.append(streamSource)
+                }
+            }
+            
+            return sources
+        } catch {
+            print("❌ [Cpasmal] Error fetching/decoding: \(error)")
             return []
         }
     }

@@ -185,6 +185,21 @@ export class MovixProxyClient {
     if (episode) params.episode = episode;
     return this.request('afterdark', params);
   }
+
+  /**
+   * Récupère les liens Cpasmal (Sources VF/VOSTFR)
+   */
+  async getCpasmal(
+    type: 'movie' | 'tv',
+    id: number,
+    season?: number,
+    episode?: number
+  ): Promise<any> {
+    const params: any = { tmdbId: id, type };
+    if (season) params.season = season;
+    if (episode) params.episode = episode;
+    return this.request('cpasmal', params);
+  }
 }
 
 

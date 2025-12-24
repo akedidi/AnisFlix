@@ -249,6 +249,114 @@ export default async function handler(req, res) {
       return;
     }
 
+    // GÉRER CPASMAL ICI
+    if (decodedPath === 'cpasmal') {
+      console.log('🎬 [Movix Proxy] Routing to Cpasmal handler');
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({
+            error: 'Paramètres manquants pour Cpasmal (tmdbId, type)'
+          });
+        }
+
+        let cpasmalUrl;
+        const baseUrl = 'https://api.movix.club/api/cpasmal';
+
+        if (type === 'movie') {
+          cpasmalUrl = `${baseUrl}/movie/${tmdbId}`;
+        } else if (type === 'tv') {
+          if (!season || !episode) {
+            return res.status(400).json({
+              error: 'Paramètres season et episode requis pour les séries'
+            });
+          }
+          cpasmalUrl = `${baseUrl}/tv/${tmdbId}/${season}/${episode}`;
+        } else {
+          return res.status(400).json({ error: 'Type invalide (movie ou tv)' });
+        }
+
+        console.log(`🎬 [Cpasmal] Request: ${cpasmalUrl}`);
+
+        const response = await axios.get(cpasmalUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+            'Referer': 'https://www.cpasmal.rip/'
+          },
+          timeout: 15000
+        });
+
+        // Transformer la réponse Cpasmal au format attendu
+        const sources = [];
+        if (response.data && response.data.links) {
+          const { vf, vostfr } = response.data.links;
+
+          // Traiter les sources VF
+          if (vf && Array.isArray(vf)) {
+            for (const item of vf) {
+              sources.push({
+                url: item.url,
+                quality: 'HD',
+                type: 'embed',
+                provider: 'cpasmal',
+                language: 'VF',
+                server: item.server
+              });
+            }
+          }
+
+          // Traiter les sources VOSTFR
+          if (vostfr && Array.isArray(vostfr)) {
+            for (const item of vostfr) {
+              sources.push({
+                url: item.url,
+                quality: 'HD',
+                type: 'embed',
+                provider: 'cpasmal',
+                language: 'VOSTFR',
+                server: item.server
+              });
+            }
+          }
+        }
+
+        console.log(`🎬 [Cpasmal] Found ${sources.length} sources (VF: ${response.data?.links?.vf?.length || 0}, VOSTFR: ${response.data?.links?.vostfr?.length || 0})`);
+        return res.status(200).json({
+          success: true,
+          sources,
+          count: sources.length,
+          title: response.data?.title,
+          year: response.data?.year
+        });
+
+      } catch (cpasmalError) {
+        console.error('❌ [Cpasmal Error]', cpasmalError.message);
+
+        if (cpasmalError.response) {
+          const status = cpasmalError.response.status;
+          console.error('❌ [Cpasmal] HTTP Status:', status);
+
+          // Si pas trouvé, retourner une réponse vide
+          if (status === 404) {
+            return res.status(200).json({
+              success: true,
+              sources: [],
+              count: 0,
+              warning: 'Content not found on Cpasmal'
+            });
+          }
+        }
+
+        return res.status(500).json({
+          error: 'Erreur proxy Cpasmal',
+          details: cpasmalError.message,
+          statusCode: cpasmalError.response?.status
+        });
+      }
+    }
+
     // GÉRER AFTERDARK ICI
     if (decodedPath === 'afterdark') {
       console.log('🌙 [Movix Proxy] Routing to AfterDark handler');
