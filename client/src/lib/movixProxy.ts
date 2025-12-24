@@ -164,6 +164,27 @@ export class MovixProxyClient {
     if (episode) params.episode = episode;
     return this.request('universalvo', params);
   }
+
+  /**
+   * Récupère les liens AfterDark (Sources VF)
+   */
+  async getAfterDark(
+    type: 'movie' | 'tv',
+    id: number,
+    title?: string,
+    year?: string,
+    originalTitle?: string,
+    season?: number,
+    episode?: number
+  ): Promise<any> {
+    const params: any = { tmdbId: id, type };
+    if (title) params.title = title;
+    if (year) params.year = year;
+    if (originalTitle) params.originalTitle = originalTitle;
+    if (season) params.season = season;
+    if (episode) params.episode = episode;
+    return this.request('afterdark', params);
+  }
 }
 
 

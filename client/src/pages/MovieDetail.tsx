@@ -15,6 +15,7 @@ import CommonLayout from "@/components/CommonLayout";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
+import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -48,6 +49,15 @@ export default function MovieDetail() {
 
   // Fetch UniversalVO sources
   const { data: universalVOSources, isLoading: isLoadingUniversalVOSources } = useUniversalVOSources('movie', movieId);
+
+  // Fetch AfterDark VF sources
+  const { data: afterDarkSources, isLoading: isLoadingAfterDark } = useAfterDarkSources(
+    'movie',
+    movieId,
+    movie?.title,
+    movie?.release_date?.substring(0, 4),
+    movie?.original_title
+  );
 
 
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
@@ -181,9 +191,23 @@ export default function MovieDetail() {
   })) || [];
 
 
-
   // Filtrer les sources pour exclure celles avec isDarki (mais garder les sources darkibox normales)
-  const allSources = [...sources, ...tmdbSources, ...universalSources].filter(source => !source.isDarki);
+  const afterDarkMappedSources = (afterDarkSources?.sources || []).map((source, index) => ({
+    id: `afterdark-${index}`,
+    name: source.server || 'AfterDark',
+    provider: 'AfterDark',
+    url: source.url,
+    type: source.type === 'm3u8' ? 'm3u8' as const : 'mp4' as const,
+    isFStream: false,
+    isMovixDownload: false,
+    isVidMoly: false,
+    isDarki: false,
+    isAfterDark: true,
+    quality: source.quality || 'HD',
+    language: 'VF'
+  }));
+
+  const allSources = [...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB
@@ -464,7 +488,7 @@ export default function MovieDetail() {
                   genres={movie.genres}
                   onSourceClick={handleSourceSelect}
                   isLoadingSource={isLoadingSource}
-                  isLoadingExternal={isLoadingUniversalVOSources}
+                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark}
                 />
               </div>
             ) : (

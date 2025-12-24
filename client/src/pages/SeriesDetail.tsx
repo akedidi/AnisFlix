@@ -15,6 +15,7 @@ import StreamingSources from "@/components/StreamingSources";
 import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
+import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -76,6 +77,17 @@ export default function SeriesDetail() {
     selectedEpisode || undefined
   );
 
+  // Fetch AfterDark VF sources
+  const { data: afterDarkSources, isLoading: isLoadingAfterDark } = useAfterDarkSources(
+    'tv',
+    seriesId,
+    series?.name,
+    undefined, // year not needed for TV
+    undefined, // originalTitle not needed
+    selectedSeasonNumber,
+    selectedEpisode || undefined
+  );
+
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for series:', series?.name, movixLinks);
@@ -103,7 +115,21 @@ export default function SeriesDetail() {
       quality: 'HD',
       language: 'VO',
       headers: source.headers
-    })) || [])
+    })) || []),
+    ...(afterDarkSources?.sources?.map((source, index) => ({
+      id: `afterdark-${index}`,
+      name: source.server || 'AfterDark',
+      provider: 'AfterDark',
+      url: source.url,
+      type: source.type === 'm3u8' ? 'm3u8' as const : 'mp4' as const,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      isAfterDark: true,
+      quality: source.quality || 'HD',
+      language: 'VF'
+    })) || []),
   ];
 
   const handleSourceClick = async (source: {
@@ -420,7 +446,7 @@ export default function SeriesDetail() {
                                         genres={series?.genres}
                                         onSourceClick={handleSourceClick}
                                         isLoadingSource={isLoadingSource}
-                                        isLoadingExternal={isLoadingUniversalVOSources}
+                                        isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark}
                                         season={selectedSeasonNumber}
                                         episode={episode.episode_number}
                                         imdbId={series?.imdb_id}

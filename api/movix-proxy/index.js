@@ -246,6 +246,98 @@ export default async function handler(req, res) {
           stack: error.stack
         });
       }
+      return;
+    }
+
+    // GÉRER AFTERDARK ICI
+    if (decodedPath === 'afterdark') {
+      console.log('🌙 [Movix Proxy] Routing to AfterDark handler');
+      try {
+        const { tmdbId, type, season, episode, title, year, originalTitle } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({
+            error: 'Paramètres manquants pour AfterDark (tmdbId, type)'
+          });
+        }
+
+        // Headers pour éviter le 403
+        const afterdarkHeaders = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+          'Referer': 'https://afterdark.mom/',
+          'Origin': 'https://afterdark.mom',
+          'Connection': 'keep-alive'
+        };
+
+        let afterdarkUrl;
+        const baseUrl = 'https://afterdark.mom/api/sources';
+
+        if (type === 'movie') {
+          const params = new URLSearchParams({
+            tmdbId,
+            ...(title && { title }),
+            ...(year && { year }),
+            ...(originalTitle && { originalTitle })
+          });
+          afterdarkUrl = `${baseUrl}/movies?${params}`;
+        } else if (type === 'tv') {
+          if (!season || !episode) {
+            return res.status(400).json({
+              error: 'Paramètres season et episode requis pour les séries'
+            });
+          }
+          const params = new URLSearchParams({
+            tmdbId,
+            season,
+            episode,
+            ...(title && { title })
+          });
+          afterdarkUrl = `${baseUrl}/shows?${params}`;
+        } else {
+          return res.status(400).json({ error: 'Type invalide (movie ou tv)' });
+        }
+
+        console.log(`🌙 [AfterDark] Request: ${afterdarkUrl}`);
+
+        const response = await axios.get(afterdarkUrl, {
+          headers: afterdarkHeaders,
+          timeout: 15000
+        });
+
+        // Transformer la réponse AfterDark au format attendu
+        const sources = [];
+        if (response.data && Array.isArray(response.data)) {
+          for (const item of response.data) {
+            // AfterDark retourne 'kind' au lieu de 'type'
+            const streamType = item.kind || (item.url?.includes('.m3u8') ? 'hls' : 'mp4');
+
+            sources.push({
+              url: item.url || item.link,
+              quality: item.quality || 'HD',
+              type: streamType === 'hls' ? 'm3u8' : streamType,
+              provider: 'afterdark',
+              language: 'VF',
+              server: item.server || item.name || 'AfterDark'
+            });
+          }
+        }
+
+        console.log(`🌙 [AfterDark] Found ${sources.length} sources`);
+        return res.status(200).json({
+          success: true,
+          sources,
+          count: sources.length
+        });
+
+      } catch (afterdarkError) {
+        console.error('❌ [AfterDark Error]', afterdarkError.message);
+        return res.status(500).json({
+          error: 'Erreur proxy AfterDark',
+          details: afterdarkError.message
+        });
+      }
     }
 
     // GÉRER PROXY HLS (Streaming avec headers personnalisés)
