@@ -5,10 +5,10 @@ import { ErrorObject } from './_services/universalvo/helpers/ErrorObject.js';
 /**
  * Unified Extractor Endpoint
  * 
- * Supports: vidzy, vidmoly, voe, darkibox
+ * Supports: vidzy, vidmoly, voe, darkibox, vixsrc
  * 
  * Usage: POST /api/extract
- * Body: { type: "vidzy"|"vidmoly"|"voe"|"darkibox", url: "..." }
+ * Body: { type: "vidzy"|"vidmoly"|"voe"|"darkibox"|"vixsrc", url: "...", tmdbId?: number, mediaType?: string, season?: number, episode?: number }
  * 
  * Returns: { success: true, m3u8Url: "...", type: "hls" }
  */
@@ -229,6 +229,72 @@ async function extractDarkibox(url) {
   throw new Error('No m3u8 URL found in Darkibox page');
 }
 
+// ==================== VIXSRC EXTRACTOR ====================
+
+async function extractVixsrc(tmdbId, mediaType = 'movie', season = null, episode = null) {
+  console.log(`[VIXSRC] Extracting TMDB ID: ${tmdbId}, Type: ${mediaType}`);
+
+  const baseUrl = 'https://vixsrc.to';
+  let vixsrcUrl;
+
+  if (mediaType === 'movie') {
+    vixsrcUrl = `${baseUrl}/movie/${tmdbId}`;
+  } else {
+    if (!season || !episode) {
+      throw new Error('Season and episode required for TV shows');
+    }
+    vixsrcUrl = `${baseUrl}/tv/${tmdbId}/${season}/${episode}`;
+  }
+
+  console.log(`[VIXSRC] Fetching: ${vixsrcUrl}`);
+
+  const response = await axios.get(vixsrcUrl, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+    },
+    timeout: 15000
+  });
+
+  const html = response.data;
+  let masterPlaylistUrl = null;
+
+  // Method 1: Look for window.masterPlaylist
+  if (html.includes('window.masterPlaylist')) {
+    const urlMatch = html.match(/url:\s*['"]([^'"]+)['"]/);
+    const tokenMatch = html.match(/['"]?token['"]?\s*:\s*['"]([^'"]+)['"]/);
+    const expiresMatch = html.match(/['"]?expires['"]?\s*:\s*['"]([^'"]+)['"]/);
+
+    if (urlMatch && tokenMatch && expiresMatch) {
+      const baseStreamUrl = urlMatch[1];
+      const token = tokenMatch[1];
+      const expires = expiresMatch[1];
+
+      if (baseStreamUrl.includes('?b=1')) {
+        masterPlaylistUrl = `${baseStreamUrl}&token=${token}&expires=${expires}&h=1&lang=en`;
+      } else {
+        masterPlaylistUrl = `${baseStreamUrl}?token=${token}&expires=${expires}&h=1&lang=en`;
+      }
+      console.log(`[VIXSRC] Constructed master playlist URL`);
+    }
+  }
+
+  // Method 2: Look for direct .m3u8 URLs
+  if (!masterPlaylistUrl) {
+    const m3u8Match = html.match(/(https?:\/\/[^'"\s]+\.m3u8[^'"\s]*)/);
+    if (m3u8Match) {
+      masterPlaylistUrl = m3u8Match[1];
+      console.log(`[VIXSRC] Found direct m3u8:`, masterPlaylistUrl);
+    }
+  }
+
+  if (!masterPlaylistUrl) {
+    throw new Error('No master playlist URL found in Vixsrc page');
+  }
+
+  return masterPlaylistUrl;
+}
+
 // ==================== MAIN HANDLER ====================
 
 export default async function handler(req, res) {
@@ -245,30 +311,33 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { type, url } = req.body;
+    const { type, url, tmdbId, mediaType, season, episode } = req.body;
 
-    if (!type || !url) {
+    if (!type) {
       return res.status(400).json({
         success: false,
-        error: 'Parameters "type" and "url" are required',
-        supported: ['vidzy', 'vidmoly', 'voe', 'darkibox']
+        error: 'Parameter "type" is required',
+        supported: ['vidzy', 'vidmoly', 'voe', 'darkibox', 'vixsrc']
       });
     }
 
-    console.log(`🎬 [EXTRACT] Type: ${type}, URL: ${url}`);
+    console.log(`🎬 [EXTRACT] Type: ${type}, URL: ${url || 'N/A'}, TMDB: ${tmdbId || 'N/A'}`);
 
     let m3u8Url;
 
     switch (type.toLowerCase()) {
       case 'vidzy':
+        if (!url) throw new Error('URL required for vidzy');
         m3u8Url = await extractVidzy(url);
         break;
 
       case 'vidmoly':
+        if (!url) throw new Error('URL required for vidmoly');
         m3u8Url = await extractVidMoly(url);
         break;
 
       case 'voe':
+        if (!url) throw new Error('URL required for voe');
         const voeResult = await extract_voe(url);
         if (voeResult instanceof ErrorObject) {
           throw new Error(voeResult.message);
@@ -277,14 +346,22 @@ export default async function handler(req, res) {
         break;
 
       case 'darkibox':
+        if (!url) throw new Error('URL required for darkibox');
         m3u8Url = await extractDarkibox(url);
+        break;
+
+      case 'vixsrc':
+        if (!tmdbId || !mediaType) {
+          throw new Error('tmdbId and mediaType required for vixsrc');
+        }
+        m3u8Url = await extractVixsrc(tmdbId, mediaType, season, episode);
         break;
 
       default:
         return res.status(400).json({
           success: false,
           error: `Unknown extractor type: ${type}`,
-          supported: ['vidzy', 'vidmoly', 'voe', 'darkibox']
+          supported: ['vidzy', 'vidmoly', 'voe', 'darkibox', 'vixsrc']
         });
     }
 
@@ -305,3 +382,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
