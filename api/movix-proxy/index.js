@@ -246,7 +246,64 @@ export default async function handler(req, res) {
           stack: error.stack
         });
       }
-      return;
+    }
+
+    // GÉRER PROXY HLS (Streaming avec headers personnalisés)
+    if (decodedPath === 'proxy/hls') {
+      try {
+        const { link, headers } = queryParams;
+
+        if (!link) {
+          return res.status(400).json({ error: 'Paramètre "link" manquant' });
+        }
+
+        const targetUrl = decodeURIComponent(link);
+        let proxyHeaders = {};
+
+        if (headers) {
+          try {
+            proxyHeaders = JSON.parse(decodeURIComponent(headers));
+          } catch (e) {
+            console.error('[PROXY HLS] Erreur parsing headers:', e);
+          }
+        }
+
+        console.log(`🚀 [PROXY HLS] Streaming: ${targetUrl}`);
+        // console.log(`🚀 [PROXY HLS] Headers:`, proxyHeaders);
+
+        const response = await axios({
+          method: 'GET',
+          url: targetUrl,
+          headers: {
+            ...proxyHeaders,
+            'User-Agent': proxyHeaders['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          },
+          responseType: 'stream',
+          validateStatus: (status) => status < 500
+        });
+
+        // Copier les headers pertinents de la réponse source
+        if (response.headers['content-type']) {
+          res.setHeader('Content-Type', response.headers['content-type']);
+        }
+        if (response.headers['content-length']) {
+          res.setHeader('Content-Length', response.headers['content-length']);
+        }
+
+        // Headers CORS (déjà définis au début mais on s'assure)
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        // Pipe le stream vers la réponse
+        response.data.pipe(res);
+        return;
+
+      } catch (error) {
+        console.error('❌ [PROXY HLS] Error:', error.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Erreur proxy HLS', details: error.message });
+        }
+        return;
+      }
     }
 
 
