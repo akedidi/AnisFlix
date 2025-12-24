@@ -474,7 +474,12 @@ struct SeriesDetailView: View {
                     print("🔍 [SeriesDetailView] Extracting VidMoly...")
                     let extracted = try await StreamingService.shared.extractVidMoly(url: source.url)
                     finalURL = URL(string: extracted)
+                } else if source.provider == "primewire" || source.provider == "2embed" || source.provider == "vixsrc" {
+                    // UniversalVO and Vixsrc sources are already proxied, use directly
+                    print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
+                    finalURL = URL(string: source.url)
                 } else {
+                    // Fallback for other providers
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
                     finalURL = URL(string: source.url)
                 }

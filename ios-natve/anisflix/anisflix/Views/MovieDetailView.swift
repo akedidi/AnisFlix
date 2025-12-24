@@ -596,8 +596,12 @@ struct MovieDetailView: View {
                 } else if source.provider == "vidzy" {
                     print("🔍 [MovieDetailView] Extracting Vidzy...")
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
+                } else if source.provider == "primewire" || source.provider == "2embed" || source.provider == "vixsrc" {
+                    // UniversalVO and Vixsrc sources are already proxied, use directly
+                    print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")
+                    streamUrl = source.url
                 } else {
-                    // Fallback or other providers
+                    // Fallback for other providers
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")
                     streamUrl = source.url
                 }

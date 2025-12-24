@@ -136,6 +136,25 @@ struct FStreamResponse: Codable {
     let players: [String: [FStreamPlayer]]?
 }
 
+struct UniversalVOResponse: Codable {
+    let files: [UniversalVOFile]?
+    let errors: [UniversalVOError]?
+}
+
+struct UniversalVOFile: Codable {
+    let file: String
+    let type: String
+    let lang: String?
+    let quality: String?
+    let extractor: String?
+    let provider: String?
+}
+
+struct UniversalVOError: Codable {
+    let provider: String
+    let message: String
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}
@@ -149,8 +168,9 @@ class StreamingService {
         async let tmdbSources = fetchTmdbSources(movieId: movieId)
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
+        async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         
-        let (tmdb, fstream, vixsrc) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources)
+        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
         var allSources: [StreamingSource] = []
         
@@ -166,8 +186,12 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
-        // Filter for Vidzy and Vixsrc (VidMoly disabled temporarily - playback issues on iOS)
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" }
+        if let universalVO = universalVO {
+            allSources.append(contentsOf: universalVO)
+        }
+        
+        // Filter for Vidzy, Vixsrc, and UniversalVO providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -255,8 +279,9 @@ class StreamingService {
         async let tmdbSources = fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
-        let (tmdb, fstream, vixsrc) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources)
+        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
         var allSources: [StreamingSource] = []
         
@@ -272,8 +297,12 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
-        // Filter for Vidzy and Vixsrc (VidMoly disabled temporarily - playback issues on iOS)
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" }
+        if let universalVO = universalVO {
+            allSources.append(contentsOf: universalVO)
+        }
+        
+        // Filter for Vidzy, Vixsrc, and UniversalVO providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -493,6 +522,75 @@ class StreamingService {
                     type: stream.type,
                     provider: "vixsrc",
                     language: "VO"
+                )
+                sources.append(source)
+            }
+        }
+        
+        return sources
+    }
+    
+    func fetchUniversalVOSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=universalvo&tmdbId=\(tmdbId)&type=\(type)"
+        if let season = season {
+            urlString += "&season=\(season)"
+        }
+        if let episode = episode {
+            urlString += "&episode=\(episode)"
+        }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let decoded = try JSONDecoder().decode(UniversalVOResponse.self, from: data)
+        var sources: [StreamingSource] = []
+        
+        if let files = decoded.files {
+            for file in files {
+                let provider = file.provider?.lowercased() ?? file.extractor?.lowercased() ?? "unknown"
+                let normalizedProvider: String
+                
+                if provider.contains("primewire") || provider.contains("streamtape") {
+                    normalizedProvider = "primewire"
+                } else if provider.contains("2embed") || provider.contains("twoembed") {
+                    normalizedProvider = "2embed"
+                } else {
+                    normalizedProvider = provider
+                }
+                
+                let quality = file.quality ?? "HD"
+                let language: String
+                
+                // Map language codes
+                if let lang = file.lang {
+                    if lang.lowercased().contains("fr") || lang.lowercased().contains("vf") {
+                        language = "VF"
+                    } else if lang.lowercased().contains("vostfr") {
+                        language = "VOSTFR"
+                    } else if lang.lowercased().contains("en") || lang.lowercased().contains("vo") {
+                        language = "VO"
+                    } else {
+                        language = "VO" // Default
+                    }
+                } else {
+                    language = "VO" // Default for UniversalVO
+                }
+                
+                let source = StreamingSource(
+                    url: file.file,
+                    quality: quality,
+                    type: file.type,
+                    provider: normalizedProvider,
+                    language: language
                 )
                 sources.append(source)
             }
