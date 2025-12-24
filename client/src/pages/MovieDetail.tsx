@@ -47,7 +47,7 @@ export default function MovieDetail() {
   const { data: movixLinks } = useMovixPlayerLinks(movieId.toString(), 'movie');
 
   // Fetch UniversalVO sources
-  const { data: universalVOSources } = useUniversalVOSources('movie', movieId);
+  const { data: universalVOSources, isLoading: isLoadingUniversalVOSources } = useUniversalVOSources('movie', movieId);
 
 
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
@@ -464,6 +464,7 @@ export default function MovieDetail() {
                   genres={movie.genres}
                   onSourceClick={handleSourceSelect}
                   isLoadingSource={isLoadingSource}
+                  isLoadingExternal={isLoadingUniversalVOSources}
                 />
               </div>
             ) : (

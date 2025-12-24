@@ -59,6 +59,7 @@ interface StreamingSourcesProps {
   episode?: number;
   imdbId?: string;
   enabled?: boolean; // Nouvelle prop pour désactiver les hooks
+  isLoadingExternal?: boolean;
 }
 
 const StreamingSources = memo(function StreamingSources({
@@ -72,7 +73,8 @@ const StreamingSources = memo(function StreamingSources({
   season,
   episode,
   imdbId,
-  enabled = true
+  enabled = true,
+  isLoadingExternal = false
 }: StreamingSourcesProps) {
   console.log('🚀 StreamingSources chargé avec:', { type, id, title, season, episode });
   console.log('🔍 [STREAMING SOURCES] Component render - timestamp:', Date.now());
@@ -1005,7 +1007,7 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingVixsrc) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">

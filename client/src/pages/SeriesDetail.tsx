@@ -69,7 +69,7 @@ export default function SeriesDetail() {
   );
 
   // Fetch UniversalVO sources
-  const { data: universalVOSources } = useUniversalVOSources(
+  const { data: universalVOSources, isLoading: isLoadingUniversalVOSources } = useUniversalVOSources(
     'tv',
     seriesId,
     selectedSeasonNumber,
@@ -420,6 +420,7 @@ export default function SeriesDetail() {
                                         genres={series?.genres}
                                         onSourceClick={handleSourceClick}
                                         isLoadingSource={isLoadingSource}
+                                        isLoadingExternal={isLoadingUniversalVOSources}
                                         season={selectedSeasonNumber}
                                         episode={episode.episode_number}
                                         imdbId={series?.imdb_id}
