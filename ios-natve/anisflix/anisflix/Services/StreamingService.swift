@@ -352,7 +352,6 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-        async let cpasmalSources = fetchCpasmalSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -373,7 +372,7 @@ class StreamingService {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, cpasmal) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? cpasmalSources)
+        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -381,14 +380,8 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
-        print("   - Cpasmal: \(cpasmal?.count ?? 0)")
         
         var allSources: [StreamingSource] = []
-        
-        // Cpasmal first (prioritized)
-        if let cpasmal = cpasmal {
-            allSources.append(contentsOf: cpasmal)
-        }
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -410,7 +403,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "cpasmal" }
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {

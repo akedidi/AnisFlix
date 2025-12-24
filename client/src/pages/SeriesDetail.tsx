@@ -16,7 +16,6 @@ import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
-import { useCpasmalSources } from "@/hooks/useCpasmalSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -89,14 +88,6 @@ export default function SeriesDetail() {
     selectedEpisode || undefined
   );
 
-  // Fetch Cpasmal VF/VOSTFR sources
-  const { data: cpasmalSources, isLoading: isLoadingCpasmal } = useCpasmalSources(
-    'tv',
-    seriesId,
-    selectedSeasonNumber,
-    selectedEpisode || undefined
-  );
-
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
     console.log('Movix player links for series:', series?.name, movixLinks);
@@ -110,21 +101,6 @@ export default function SeriesDetail() {
   const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [
-    // Cpasmal sources first (prioritized)
-    ...(cpasmalSources?.sources?.map((source, index) => ({
-      id: `cpasmal-${source.server}-${index}`,
-      name: source.server?.toUpperCase() || 'Cpasmal',
-      provider: 'Cpasmal',
-      url: source.url,
-      type: 'embed' as const,
-      isFStream: false,
-      isMovixDownload: false,
-      isVidMoly: false,
-      isDarki: false,
-      isCpasmal: true,
-      quality: source.quality || 'HD',
-      language: source.language
-    })) || []),
     ...(universalVOSources?.files?.map((source, index) => ({
       id: `universal-${source.provider}-${index}`,
       name: `${source.provider}`,
