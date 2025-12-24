@@ -279,28 +279,48 @@ export default async function handler(req, res) {
 
         console.log(`🎬 [Cpasmal] Request: ${cpasmalUrl}`);
 
-        const response = await axios.get(cpasmalUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Referer': 'https://www.cpasmal.rip/',
-            'Origin': 'https://www.cpasmal.rip',
-            'Connection': 'keep-alive',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'cross-site',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
-          timeout: 15000
-        });
+        let response;
+        let cpasmalData;
+
+        // Try direct request first
+        try {
+          response = await axios.get(cpasmalUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+              'Accept': 'application/json, text/plain, */*',
+              'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Referer': 'https://www.cpasmal.rip/',
+              'Origin': 'https://www.cpasmal.rip'
+            },
+            timeout: 10000
+          });
+          cpasmalData = response.data;
+          console.log(`🎬 [Cpasmal] Direct request successful`);
+        } catch (directError) {
+          console.log(`⚠️ [Cpasmal] Direct request failed (${directError.response?.status || directError.message}), trying CORS proxy...`);
+
+          // Fallback: Use allorigins CORS proxy
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(cpasmalUrl)}`;
+          const proxyResponse = await axios.get(proxyUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 15000
+          });
+
+          // allorigins returns { contents: "...", status: {...} }
+          if (proxyResponse.data && proxyResponse.data.contents) {
+            cpasmalData = JSON.parse(proxyResponse.data.contents);
+            console.log(`🎬 [Cpasmal] CORS proxy successful`);
+          } else {
+            throw new Error('Invalid response from CORS proxy');
+          }
+        }
 
         // Transformer la réponse Cpasmal au format attendu
         const sources = [];
-        if (response.data && response.data.links) {
-          const { vf, vostfr } = response.data.links;
+        if (cpasmalData && cpasmalData.links) {
+          const { vf, vostfr } = cpasmalData.links;
 
           // Traiter les sources VF
           if (vf && Array.isArray(vf)) {
@@ -331,13 +351,13 @@ export default async function handler(req, res) {
           }
         }
 
-        console.log(`🎬 [Cpasmal] Found ${sources.length} sources (VF: ${response.data?.links?.vf?.length || 0}, VOSTFR: ${response.data?.links?.vostfr?.length || 0})`);
+        console.log(`🎬 [Cpasmal] Found ${sources.length} sources (VF: ${cpasmalData?.links?.vf?.length || 0}, VOSTFR: ${cpasmalData?.links?.vostfr?.length || 0})`);
         return res.status(200).json({
           success: true,
           sources,
           count: sources.length,
-          title: response.data?.title,
-          year: response.data?.year
+          title: cpasmalData?.title,
+          year: cpasmalData?.year
         });
 
       } catch (cpasmalError) {
