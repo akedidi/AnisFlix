@@ -16,19 +16,19 @@ export class ApiClient {
    */
   private determineBaseUrl(): string {
     // Déterminer l'URL de base selon la plateforme
-    const isCapacitor = typeof window !== 'undefined' && 
+    const isCapacitor = typeof window !== 'undefined' &&
       (window as any).Capacitor !== undefined;
-    
+
     console.log('🔍 [API CLIENT] determineBaseUrl called at:', new Date().toISOString());
-    
+
     // Vérifier si nous sommes en développement local
-    const isLocalDev = typeof window !== 'undefined' && 
+    const isLocalDev = typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    
+
     // Vérifier si nous sommes dans Capacitor en développement
-    const isCapacitorDev = typeof window !== 'undefined' && 
+    const isCapacitorDev = typeof window !== 'undefined' &&
       window.location.href.includes('capacitor://localhost');
-    
+
     console.log(`[API CLIENT] Platform detection:`, {
       isCapacitor,
       isLocalDev,
@@ -36,7 +36,7 @@ export class ApiClient {
       hostname: typeof window !== 'undefined' ? window.location.hostname : 'undefined',
       href: typeof window !== 'undefined' ? window.location.href : 'undefined'
     });
-    
+
     // En développement local (web uniquement), utiliser l'URL locale
     if (isLocalDev && !isCapacitor) {
       const url = 'http://localhost:3000';
@@ -68,7 +68,7 @@ export class ApiClient {
   async request(endpoint: string, options: RequestInit = {}): Promise<Response> {
     const baseUrl = this.getBaseUrl();
     const url = `${baseUrl}${endpoint}`;
-    
+
     const defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -86,12 +86,12 @@ export class ApiClient {
     console.log(`🌐 [API CLIENT] request() called with endpoint: ${endpoint}`);
     console.log(`🌐 [API CLIENT] Calculated URL: ${url}`);
     console.log(`🌐 API Request: ${config.method || 'GET'} ${url}`);
-    
+
     // Vérifier si nous sommes dans Capacitor
-    const isCapacitor = typeof window !== 'undefined' && 
+    const isCapacitor = typeof window !== 'undefined' &&
       (window as any).Capacitor !== undefined;
     console.log(`🔍 [API CLIENT] isCapacitor: ${isCapacitor}`);
-    
+
     try {
       console.log(`🔍 [API CLIENT] About to call fetch...`);
       const response = await fetch(url, config);
@@ -126,25 +126,25 @@ export class ApiClient {
    * Extrait VidMoly avec gestion Capacitor
    */
   async extractVidMoly(url: string, method: string = 'auto'): Promise<any> {
-    const response = await this.post('/api/vidmoly', { url, method });
-    
+    const response = await this.post('/api/extract', { type: 'vidmoly', url });
+
     if (!response.ok) {
       throw new Error(`VidMoly extraction failed: ${response.status}`);
     }
-    
+
     return response.json();
   }
 
   /**
    * Extrait Vidzy avec gestion Capacitor
    */
-    async extractVidzy(url: string): Promise<any> {
-      const response = await this.post('/api/extract', { type: 'vidzy', url });
-    
+  async extractVidzy(url: string): Promise<any> {
+    const response = await this.post('/api/extract', { type: 'vidzy', url });
+
     if (!response.ok) {
       throw new Error(`Vidzy extraction failed: ${response.status}`);
     }
-    
+
     return response.json();
   }
 
@@ -153,11 +153,11 @@ export class ApiClient {
    */
   async extractVidSrc(url: string): Promise<any> {
     const response = await this.post('/api/extract', { type: 'vidsrc', url });
-    
+
     if (!response.ok) {
       throw new Error(`VidSrc extraction failed: ${response.status}`);
     }
-    
+
     return response.json();
   }
 
@@ -170,7 +170,7 @@ export class ApiClient {
       url: encodeURIComponent(url),
       referer: encodeURIComponent(referer || 'https://vidmoly.net/')
     });
-    
+
     return `${baseUrl}/api/vidmoly?${params.toString()}`;
   }
 

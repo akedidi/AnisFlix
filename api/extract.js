@@ -1,137 +1,307 @@
 import axios from 'axios';
+import { extract_voe } from './_services/universalvo/extractors/voe.js';
+import { ErrorObject } from './_services/universalvo/helpers/ErrorObject.js';
 
-// Fonction de désobfuscation Vidzy (version JavaScript)
-function deobfuscate(packedCode) {
-    const matches = packedCode.match(/eval\(function\(p,a,c,k,e,d\)\{[\s\S]*return p\}\('(.*)',(\d+),(\d+),'(.*)'\.split\('\|'\)\)\)/);
+/**
+ * Unified Extractor Endpoint
+ * 
+ * Supports: vidzy, vidmoly, voe, darkibox
+ * 
+ * Usage: POST /api/extract
+ * Body: { type: "vidzy"|"vidmoly"|"voe"|"darkibox", url: "..." }
+ * 
+ * Returns: { success: true, m3u8Url: "...", type: "hls" }
+ */
 
-    if (!matches) {
-        throw new Error("Le format du code obfusqué n'a pas pu être reconnu.");
-    }
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': process.env.PUBLIC_SITE_ORIGIN || '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+// ==================== VIDZY EXTRACTOR ====================
+
+function deobfuscateVidzy(packedCode) {
+  try {
+    const matches = packedCode.match(/eval\(function\(p,a,c,k,e,d\)\{.*return p\}\('(.*)',(\d+),(\d+),'(.*)'.split\('\|'\)\)\)/s);
+    if (!matches) throw new Error("Format du code obfusqué non reconnu");
 
     let p = matches[1];
     const a = parseInt(matches[2], 10);
     const c = parseInt(matches[3], 10);
     const k = matches[4].split('|');
 
-    const getIdentifier = (index) => {
-        return index.toString(a);
-    };
+    if (isNaN(a) || isNaN(c) || !Array.isArray(k)) {
+      throw new Error("Paramètres de désobfuscation invalides");
+    }
+
+    const getIdentifier = (index) => index.toString(a);
 
     for (let i = c - 1; i >= 0; i--) {
-        if (k[i]) {
-            const regex = new RegExp('\\b' + getIdentifier(i) + '\\b', 'g');
-            p = p.replace(regex, k[i]);
-        }
+      if (k[i]) {
+        const identifier = getIdentifier(i);
+        const regex = new RegExp('\\b' + identifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'g');
+        p = p.replace(regex, k[i]);
+      }
     }
-
     return p;
+  } catch (error) {
+    console.log("[VIDZY] Deobfuscation error:", error.message);
+    throw error;
+  }
 }
 
-async function getVidzyM3u8Link(url) {
-    try {
-        console.log(`[VIDZY SCRAPER] Récupération du HTML depuis Vidzy : ${url}`);
-        const response = await axios.get(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://vidzy.org/'
-            },
-            timeout: 15000
-        });
-        
-        const htmlContent = response.data;
-        
-        // Cherche le script contenant le code obfusqué
-        const scriptRegex = /<script[^>]*>[\s\S]*?eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?return p\}[\s\S]*?\)[\s\S]*?<\/script>/;
-        const scriptMatch = htmlContent.match(scriptRegex);
-        
-        if (!scriptMatch) {
-            throw new Error('Aucun code obfusqué trouvé sur la page');
-        }
-        
-        console.log('[VIDZY SCRAPER] Code obfusqué trouvé, désobfuscation...');
-        const deobfuscatedCode = deobfuscate(scriptMatch[0]);
-        
-        // Extrait le lien m3u8 du code désobfusqué
-        const m3u8Match = deobfuscatedCode.match(/['"](https?:\/\/[^'"]*\.m3u8[^'"]*)['"]/);
-        
-        if (m3u8Match) {
-            const m3u8Url = m3u8Match[1];
-            console.log(`[VIDZY SCRAPER] Lien m3u8 extrait: ${m3u8Url}`);
-            return m3u8Url;
-        } else {
-            console.log('[VIDZY SCRAPER] Code désobfusqué:', deobfuscatedCode.substring(0, 500) + '...');
-            throw new Error('Aucun lien m3u8 trouvé dans le code désobfusqué');
-        }
-        
-    } catch (error) {
-        console.error('[VIDZY SCRAPER] Erreur lors de l\'extraction Vidzy:', error.message);
-        return null;
+async function extractVidzy(url) {
+  console.log(`[VIDZY] Extracting from: ${url}`);
+
+  const response = await axios.get(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Referer': 'https://vidzy.org/'
+    },
+    timeout: 15000
+  });
+
+  const html = response.data;
+  let m3u8Link = null;
+
+  // Method 1: Deobfuscation
+  const packedScriptRegex = /<script type='text\/javascript'>\s*(eval\(function\(p,a,c,k,e,d\){.*?}\(.*?\)))\s*<\/script>/s;
+  const scriptMatch = html.match(packedScriptRegex);
+
+  if (scriptMatch && scriptMatch[1]) {
+    console.log("[VIDZY] Found obfuscated script, deobfuscating...");
+    const deobfuscatedCode = deobfuscateVidzy(scriptMatch[1]);
+
+    const m3u8Patterns = [
+      /src:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+      /file:"(https?:\/\/[^"]+\.m3u8[^"]*)"/,
+      /url:"(https?:\/\/[^"]+\.m3u8[^"]*)"/
+    ];
+
+    for (const pattern of m3u8Patterns) {
+      const match = deobfuscatedCode.match(pattern);
+      if (match) {
+        m3u8Link = match[1];
+        console.log("[VIDZY] Found via deobfuscation:", m3u8Link);
+        return m3u8Link;
+      }
     }
+  }
+
+  // Method 2: Direct patterns
+  const directPatterns = [
+    /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]*master\.m3u8[^"'\s]*/gi,
+    /https:\/\/v4\.vidzy\.org\/hls2\/[^"'\s]+\.m3u8[^"'\s]*/gi,
+    /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
+  ];
+
+  for (const pattern of directPatterns) {
+    const match = html.match(pattern);
+    if (match) {
+      m3u8Link = match[0];
+      console.log("[VIDZY] Found via direct pattern:", m3u8Link);
+      return m3u8Link;
+    }
+  }
+
+  throw new Error('No m3u8 URL found in Vidzy page');
 }
+
+// ==================== VIDMOLY EXTRACTOR ====================
+
+async function extractVidMoly(url) {
+  console.log(`[VIDMOLY] Extracting from: ${url}`);
+
+  const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
+
+  // Try with CORS proxy first
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
+    const response = await axios.get(proxyUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      timeout: 8000
+    });
+
+    const html = response.data.contents;
+
+    const patterns = [
+      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+      /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
+      /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        let rawUrl = (match[1] || match[0]).trim();
+        if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
+          rawUrl = rawUrl.replace(/,/g, '');
+        }
+        console.log("[VIDMOLY] Found:", rawUrl);
+        return rawUrl;
+      }
+    }
+  } catch (error) {
+    console.log("[VIDMOLY] CORS proxy failed:", error.message);
+  }
+
+  // Fallback: Direct request
+  try {
+    const response = await axios.get(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://vidmoly.net/'
+      },
+      timeout: 5000
+    });
+
+    const html = response.data;
+    const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+    if (match) {
+      let rawUrl = match[1].trim();
+      if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
+        rawUrl = rawUrl.replace(/,/g, '');
+      }
+      console.log("[VIDMOLY] Found via fallback:", rawUrl);
+      return rawUrl;
+    }
+  } catch (error) {
+    console.log("[VIDMOLY] Fallback failed:", error.message);
+  }
+
+  throw new Error('No m3u8 URL found in VidMoly page');
+}
+
+// ==================== DARKIBOX EXTRACTOR ====================
+
+async function extractDarkibox(url) {
+  console.log(`[DARKIBOX] Extracting from: ${url}`);
+
+  // Try with CORS proxy
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const response = await axios.get(proxyUrl, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      timeout: 10000
+    });
+
+    const html = response.data.contents;
+
+    const patterns = [
+      /sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
+      /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
+    ];
+
+    for (const pattern of patterns) {
+      const match = html.match(pattern);
+      if (match) {
+        const m3u8Url = (match[1] || match[0]).trim();
+        console.log("[DARKIBOX] Found:", m3u8Url);
+        return m3u8Url;
+      }
+    }
+  } catch (error) {
+    console.log("[DARKIBOX] CORS proxy failed:", error.message);
+  }
+
+  // Direct request fallback
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://darkibox.com/'
+      },
+      timeout: 8000
+    });
+
+    const html = response.data;
+    const match = html.match(/sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+    if (match) {
+      console.log("[DARKIBOX] Found via fallback:", match[1]);
+      return match[1];
+    }
+  } catch (error) {
+    console.log("[DARKIBOX] Fallback failed:", error.message);
+  }
+
+  throw new Error('No m3u8 URL found in Darkibox page');
+}
+
+// ==================== MAIN HANDLER ====================
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+    res.setHeader(key, value);
+  });
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
   }
 
   try {
     const { type, url } = req.body;
 
     if (!type || !url) {
-      return res.status(400).json({ error: 'Type and URL are required' });
+      return res.status(400).json({
+        success: false,
+        error: 'Parameters "type" and "url" are required',
+        supported: ['vidzy', 'vidmoly', 'voe', 'darkibox']
+      });
     }
 
-    console.log(`[EXTRACT] Type: ${type}, URL: ${url}`);
+    console.log(`🎬 [EXTRACT] Type: ${type}, URL: ${url}`);
 
-    // Configuration selon le type d'extraction
-    switch (type) {
+    let m3u8Url;
+
+    switch (type.toLowerCase()) {
       case 'vidzy':
-        console.log(`[EXTRACT VIDZY] Début extraction pour: ${url}`);
-        const m3u8Url = await getVidzyM3u8Link(url);
-        
-        if (m3u8Url) {
-          console.log(`[EXTRACT VIDZY] M3U8 extrait: ${m3u8Url}`);
-          res.json({
-            success: true,
-            extractedUrl: m3u8Url,
-            message: 'Vidzy M3U8 extracted successfully'
-          });
-        } else {
-          console.log(`[EXTRACT VIDZY] Échec extraction pour: ${url}`);
-          res.json({
-            success: false,
-            extractedUrl: url,
-            message: 'Failed to extract Vidzy M3U8'
-          });
+        m3u8Url = await extractVidzy(url);
+        break;
+
+      case 'vidmoly':
+        m3u8Url = await extractVidMoly(url);
+        break;
+
+      case 'voe':
+        const voeResult = await extract_voe(url);
+        if (voeResult instanceof ErrorObject) {
+          throw new Error(voeResult.message);
         }
+        m3u8Url = voeResult;
         break;
-        
-      case 'vidsrc':
-        // Pour VidSrc, retourner l'URL directement
-        res.json({
-          success: true,
-          extractedUrl: url,
-          message: 'VidSrc URL processed'
-        });
+
+      case 'darkibox':
+        m3u8Url = await extractDarkibox(url);
         break;
-        
+
       default:
-        return res.status(400).json({ error: 'Invalid extraction type' });
+        return res.status(400).json({
+          success: false,
+          error: `Unknown extractor type: ${type}`,
+          supported: ['vidzy', 'vidmoly', 'voe', 'darkibox']
+        });
     }
+
+    console.log(`✅ [EXTRACT] Success: ${m3u8Url}`);
+    return res.status(200).json({
+      success: true,
+      m3u8Url,
+      type: 'hls',
+      extractor: type
+    });
 
   } catch (error) {
-    console.error(`[EXTRACT ERROR] Type: ${req.body?.type}, Error:`, error.message);
-    res.status(500).json({ 
-      error: `Failed to extract ${req.body?.type || 'unknown'}`,
-      details: error.message 
+    console.error(`❌ [EXTRACT] Error:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+      extractor: req.body?.type || 'unknown'
     });
   }
 }

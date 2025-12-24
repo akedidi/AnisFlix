@@ -43,28 +43,37 @@ export default function DarkiPlayer({
 
   useEffect(() => {
     console.log('🌑 [DARKI PLAYER] Initialisation avec URL:', darkiUrl);
-    
+
     const extractM3u8FromDarki = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Utiliser l'URL de base appropriée
+        // Step 1: Extract m3u8 URL from darkibox embed
         const baseUrl = apiClient.getPublicBaseUrl();
-        const proxyUrl = `${baseUrl}/api/darkibox?url=${encodeURIComponent(darkiUrl)}`;
         console.log('🌑 [DARKI PLAYER] Base URL:', baseUrl);
-        console.log('🌑 [DARKI PLAYER] Proxy URL complète:', proxyUrl);
-        
-        // Vérifier d'abord si l'API retourne une erreur
-        const response = await fetch(proxyUrl);
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('🌑 [DARKI PLAYER] Erreur API:', errorData);
+
+        const extractResponse = await fetch(`${baseUrl}/api/extract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'darkibox', url: darkiUrl })
+        });
+
+        if (!extractResponse.ok) {
+          const errorData = await extractResponse.json();
+          console.error('🌑 [DARKI PLAYER] Extraction failed:', errorData);
           setError(errorData.error || 'Erreur lors de l\'extraction du stream');
           setIsLoading(false);
           return;
         }
-        
+
+        const { m3u8Url: extractedUrl } = await extractResponse.json();
+        console.log('🌑 [DARKI PLAYER] Extracted m3u8:', extractedUrl);
+
+        // Step 2: Use proxy for streaming
+        const proxyUrl = `${baseUrl}/api/movix-proxy?path=proxy/hls&link=${encodeURIComponent(extractedUrl)}`;
+        console.log('🌑 [DARKI PLAYER] Proxy URL:', proxyUrl);
+
         setM3u8Url(proxyUrl);
         setIsLoading(false);
       } catch (error) {
@@ -92,12 +101,12 @@ export default function DarkiPlayer({
       hlsRef.current = hls;
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('🌑 [DARKI PLAYER] Manifest HLS chargé');
         video.play().catch(err => console.warn("Autoplay failed:", err));
       });
-      
+
       hls.on(Hls.Events.ERROR, (_, data) => {
         console.error('🌑 [DARKI PLAYER] Erreur HLS:', data);
         if (data.fatal) {
@@ -148,13 +157,13 @@ export default function DarkiPlayer({
 
     const handleTimeUpdate = () => {
       const now = Date.now();
-      
+
       // Sauvegarder toutes les 5 secondes
       if (now - lastSaveTimeRef.current < 5000) return;
-      
+
       if (video.duration > 0 && video.currentTime > 0) {
         const progress = Math.round((video.currentTime / video.duration) * 100);
-        
+
         saveWatchProgress({
           mediaId,
           mediaType,
@@ -165,7 +174,7 @@ export default function DarkiPlayer({
           duration: video.duration,
           progress,
         });
-        
+
         lastSaveTimeRef.current = now;
       }
     };
@@ -235,7 +244,7 @@ export default function DarkiPlayer({
           />
         )}
       </div>
-      
+
       <div className="p-4 space-y-4">
         <div className="flex gap-2 flex-wrap">
           <Button
@@ -246,7 +255,7 @@ export default function DarkiPlayer({
             <ExternalLink className="w-4 h-4" />
             Ouvrir dans un nouvel onglet
           </Button>
-          
+
           {onClose && (
             <Button
               onClick={onClose}
