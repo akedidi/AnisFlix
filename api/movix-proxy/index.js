@@ -333,11 +333,18 @@ export default async function handler(req, res) {
 
       } catch (afterdarkError) {
         console.error('❌ [AfterDark Error]', afterdarkError.message);
+        console.error('❌ [AfterDark] Stack:', afterdarkError.stack);
+        if (afterdarkError.response) {
+          console.error('❌ [AfterDark] HTTP Status:', afterdarkError.response.status);
+          console.error('❌ [AfterDark] Response Data:', afterdarkError.response.data);
+        }
         return res.status(500).json({
           error: 'Erreur proxy AfterDark',
-          details: afterdarkError.message
+          details: afterdarkError.message,
+          statusCode: afterdarkError.response?.status
         });
       }
+      return; // CRITICAL FIX: prevent fallthrough to other handlers
     }
 
     // GÉRER PROXY HLS (Streaming avec headers personnalisés)
