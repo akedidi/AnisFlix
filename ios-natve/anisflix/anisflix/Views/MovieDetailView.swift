@@ -316,6 +316,12 @@ struct MovieDetailView: View {
                                     // Sources List (Line by Line)
                                     if !showPlayer {
                                         let filteredSources = filterSources(sources, language: theme.preferredSourceLanguage)
+                                            .sorted { s1, s2 in
+                                                // Vidzy first, then others
+                                                let rank1 = s1.provider.lowercased() == "vidzy" ? 0 : 1
+                                                let rank2 = s2.provider.lowercased() == "vidzy" ? 0 : 1
+                                                return rank1 < rank2
+                                            }
                                         
                                         if filteredSources.isEmpty {
                                             Text("\(theme.t("detail.noSourcesFor")) \(theme.preferredSourceLanguage)")
