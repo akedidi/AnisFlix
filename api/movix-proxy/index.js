@@ -261,12 +261,12 @@ export default async function handler(req, res) {
           });
         }
 
-        // Headers pour éviter le 403 - Mimicking real browser
+        // Headers pour éviter le 403 - Maximum browser mimicry
         const afterdarkHeaders = {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Accept-Encoding': 'gzip, deflate, br',
+          'Accept-Encoding': 'gzip, deflate, br, zstd',
           'Referer': 'https://afterdark.mom/',
           'Origin': 'https://afterdark.mom',
           'Connection': 'keep-alive',
@@ -276,9 +276,12 @@ export default async function handler(req, res) {
           'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
           'Sec-Ch-Ua-Mobile': '?0',
           'Sec-Ch-Ua-Platform': '"Windows"',
+          'Priority': 'u=1, i',
           'DNT': '1',
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          // Add cookie to appear more like a real browser session
+          'Cookie': '_ga=GA1.1.123456789.1234567890; _ga_XXXXXXXXXX=GS1.1.1234567890.1.0.1234567890.0.0.0'
         };
 
         let afterdarkUrl;
