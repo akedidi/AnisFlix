@@ -155,6 +155,20 @@ struct UniversalVOError: Codable {
     let message: String
 }
 
+// MARK: - AfterDark Response Structures
+struct AfterDarkResponse: Codable {
+    let sources: [AfterDarkSource]?
+}
+
+struct AfterDarkSource: Codable {
+    let url: String
+    let quality: String?
+    let kind: String?  // AfterDark uses 'kind' instead of 'type'
+    let server: String?
+    let name: String?
+    let proxied: Bool?
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}
@@ -169,6 +183,19 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
+        
+        // Fetch TMDB info for AfterDark (needs title and year)
+        let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
+        var afterDarkSources: [StreamingSource] = []
+        if let title = tmdbInfo?.title, let year = tmdbInfo?.year {
+            afterDarkSources = (try? await fetchAfterDarkSources(
+                tmdbId: movieId,
+                type: "movie",
+                title: title,
+                year: year,
+                originalTitle: tmdbInfo?.originalTitle
+            )) ?? []
+        }
         
         let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
@@ -190,8 +217,11 @@ class StreamingService {
             allSources.append(contentsOf: universalVO)
         }
         
-        // Filter for Vidzy, Vixsrc, and UniversalVO providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" }
+        // Add AfterDark sources
+        allSources.append(contentsOf: afterDarkSources)
+        
+        // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider ==  "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -281,6 +311,20 @@ class StreamingService {
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
+        // Fetch TMDB info for AfterDark (needs title)
+        let tmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+        var afterDarkSources: [StreamingSource] = []
+        if let title = tmdbInfo?.title {
+            afterDarkSources = (try? await fetchAfterDarkSources(
+                tmdbId: seriesId,
+                type: "tv",
+                title: title,
+                year: nil,
+                season: season,
+                episode: episode
+            )) ?? []
+        }
+        
         let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
         var allSources: [StreamingSource] = []
@@ -301,8 +345,11 @@ class StreamingService {
             allSources.append(contentsOf: universalVO)
         }
         
-        // Filter for Vidzy, Vixsrc, and UniversalVO providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" }
+        // Add AfterDark sources
+        allSources.append(contentsOf: afterDarkSources)
+        
+        // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -599,7 +646,104 @@ class StreamingService {
         return sources
     }
     
-    // MARK: - Extractorsion
+    
+    // MARK: - AfterDark API
+    func fetchAfterDarkSources(
+        tmdbId: Int,
+        type: String,
+        title: String?,
+        year: String?,
+        originalTitle: String? = nil,
+        season: Int? = nil,
+        episode: Int? = nil
+    ) async throws -> [StreamingSource] {
+        var urlString = "https://afterdark.mom/api/sources"
+        
+        if type == "movie" {
+            urlString += "/movies?"
+            var params: [String] = []
+            params.append("tmdbId=\(tmdbId)")
+            if let title = title {
+                let encoded = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
+                params.append("title=\(encoded)")
+            }
+            if let year = year {
+                params.append("year=\(year)")
+            }
+            if let originalTitle = originalTitle {
+                let encoded = originalTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? originalTitle
+                params.append("originalTitle=\(encoded)")
+            }
+            urlString += params.joined(separator: "&")
+        } else if type == "tv" {
+            urlString += "/shows?"
+            var params: [String] = []
+            params.append("tmdbId=\(tmdbId)")
+            if let season = season {
+                params.append("season=\(season)")
+            }
+            if let episode = episode {
+                params.append("episode=\(episode)")
+            }
+            if let title = title {
+                let encoded = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
+                params.append("title=\(encoded)")
+            }
+            urlString += params.joined(separator: "&")
+        }
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        
+        // Add headers to mimic browser request
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let decoder = JSONDecoder()
+        let afterdarkResponse = try decoder.decode(AfterDarkResponse.self, from: data)
+        
+        var sources: [StreamingSource] = []
+        
+        if let afterdarkSources = afterdarkResponse.sources {
+            for source in afterdarkSources {
+                // Filter out proxied links
+                if source.proxied != false {
+                    continue
+                }
+                
+                // Map 'kind' to type
+                let streamType: String
+                if let kind = source.kind {
+                    streamType = kind == "hls" ? "m3u8" : kind
+                } else {
+                    streamType = source.url.contains(".m3u8") ? "m3u8" : "mp4"
+                }
+                
+                let streamSource = StreamingSource(
+                    url: source.url,
+                    quality: source.quality ?? "HD",
+                    type: streamType,
+                    provider: "afterdark",
+                    language: "VF"
+                )
+                sources.append(streamSource)
+            }
+        }
+        
+        return sources
+    }
+    
+    // MARK: - Extractors
     
     func extractVidMoly(url: String) async throws -> String {
         // 1. Check if it's already an m3u8 (pre-extracted)
@@ -748,5 +892,56 @@ class StreamingService {
         
         // Append a dummy parameter forcing .m3u8 extension for AVPlayer detection
         return "\(baseUrl)/api/vidmoly?url=\(encodedUrl)&referer=\(finalReferer)&_=.m3u8"
+    }
+    
+    // MARK: - TMDB Info Helpers
+    struct TmdbMovieInfo {
+        let title: String
+        let year: String
+        let originalTitle: String?
+    }
+    
+    struct TmdbSeriesInfo {
+        let title: String
+    }
+    
+    private func fetchMovieTmdbInfo(movieId: Int) async throws -> TmdbMovieInfo {
+        let apiKey = "68e094699525b18a70bab2f86b1fa706"
+        let urlString = "https://api.themoviedb.org/3/movie/\(movieId)?api_key=\(apiKey)"
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let title = json["title"] as? String ?? ""
+            let releaseDate = json["release_date"] as? String ?? ""
+            let year = String(releaseDate.prefix(4))
+            let originalTitle = json["original_title"] as? String
+            
+            return TmdbMovieInfo(title: title, year: year, originalTitle: originalTitle)
+        }
+        
+        throw URLError(.cannotParseResponse)
+    }
+    
+    private func fetchSeriesTmdbInfo(seriesId: Int) async throws -> TmdbSeriesInfo {
+        let apiKey = "68e094699525b18a70bab2f86b1fa706"
+        let urlString = "https://api.themoviedb.org/3/tv/\(seriesId)?api_key=\(apiKey)"
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let title = json["name"] as? String ?? ""
+            return TmdbSeriesInfo(title: title)
+        }
+        
+        throw URLError(.cannotParseResponse)
     }
 }
