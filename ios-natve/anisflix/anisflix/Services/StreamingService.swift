@@ -138,7 +138,7 @@ struct FStreamResponse: Codable {
 
 struct UniversalVOResponse: Codable {
     let files: [UniversalVOFile]?
-    let errors: [UniversalVOError]?
+    // errors field removed to prevent decoding failures if error objects structure changes
 }
 
 struct UniversalVOFile: Codable {
