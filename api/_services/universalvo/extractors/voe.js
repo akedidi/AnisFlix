@@ -5,22 +5,29 @@ const USER_AGENT =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36';
 
 /**
+ * Known VOE domain patterns - these domains all redirect to the actual player
+ */
+const VOE_DOMAINS = [
+    'voe.sx', 'vocancellario.com', 'ralphysuccessfull.org',
+    'walterprettytheir.com', 'primevideos.net', 'highmountainstream.xyz'
+];
+
+/**
  * Extract m3u8 URL from VOE embed pages
- * Uses pure HTTP requests without Puppeteer for Vercel compatibility
  * 
- * VOE URLs are typically encoded in the page source or in a base64/obfuscated format
+ * VOE uses multiple redirections and obfuscation:
+ * 1. Initial domain (e.g., voe.sx) -> redirects via JS to actual player domain
+ * 2. Player page contains obfuscated HLS URL
  */
 export async function extract_voe(url, referer = '') {
     try {
         console.log('[VOE] Extracting from:', url);
 
-        // Normalize VOE URL domains
-        const normalizedUrl = url
-            .replace('voe.sx', 'voe.sx')
-            .replace('vocancellario.com', 'voe.sx')
-            .replace('ralphysuccessfull.org', 'voe.sx');
+        let finalUrl = url;
+        let html = '';
 
-        const response = await axios.get(normalizedUrl, {
+        // Step 1: Fetch initial page and follow JS redirects
+        const response1 = await axios.get(url, {
             headers: {
                 'User-Agent': USER_AGENT,
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -31,20 +38,40 @@ export async function extract_voe(url, referer = '') {
             maxRedirects: 5
         });
 
-        const html = response.data;
-        console.log('[VOE] Fetched page, length:', html.length);
+        html = response1.data;
+        console.log('[VOE] Initial page length:', html.length);
+
+        // Check for JS redirect pattern
+        const jsRedirect = html.match(/window\.location\.href\s*=\s*['"]([^'"]+)['"]/);
+        if (jsRedirect) {
+            finalUrl = jsRedirect[1];
+            console.log('[VOE] Following JS redirect to:', finalUrl);
+
+            const response2 = await axios.get(finalUrl, {
+                headers: {
+                    'User-Agent': USER_AGENT,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Referer': url,
+                },
+                timeout: 15000,
+                maxRedirects: 5
+            });
+            html = response2.data;
+            console.log('[VOE] Final page length:', html.length);
+        }
 
         let m3u8Url = null;
 
-        // Method 1: Look for direct m3u8 URLs
-        const directM3u8 = html.match(/(https?:\/\/[^\s'"]+\.m3u8[^\s'"]*)/i);
+        // Method 1: Look for direct m3u8 URLs in the page
+        const directM3u8 = html.match(/(https?:\/\/[^\s'"<>]+\.m3u8[^\s'"<>]*)/i);
         if (directM3u8) {
             m3u8Url = directM3u8[1];
             console.log('[VOE] Found direct m3u8:', m3u8Url);
             return m3u8Url;
         }
 
-        // Method 2: Look for 'sources' JSON pattern (common in JWPlayer)
+        // Method 2: Look for 'sources' JSON pattern
         const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
         if (sourcesMatch) {
             m3u8Url = sourcesMatch[1];
@@ -52,7 +79,7 @@ export async function extract_voe(url, referer = '') {
             return m3u8Url;
         }
 
-        // Method 3: Look for 'hls' or 'mp4' in JSON
+        // Method 3: Look for 'hls' or 'mp4' patterns
         const hlsMatch = html.match(/'hls'\s*:\s*['"]([^'"]+)['"]/i) ||
             html.match(/"hls"\s*:\s*"([^"]+)"/i);
         if (hlsMatch) {
@@ -61,62 +88,48 @@ export async function extract_voe(url, referer = '') {
             return m3u8Url;
         }
 
-        // Method 4: Look for base64 encoded data that might contain URLs
-        const base64Match = html.match(/atob\s*\(\s*['"]([A-Za-z0-9+/=]+)['"]\s*\)/);
-        if (base64Match) {
+        // Method 4: Look for video source tags
+        const videoSrcMatch = html.match(/<video[^>]*src=['"]([^'"]+)['"]/i) ||
+            html.match(/<source[^>]*src=['"]([^'"]+)['"]/i);
+        if (videoSrcMatch && videoSrcMatch[1].match(/\.(m3u8|mp4|webm)/)) {
+            m3u8Url = videoSrcMatch[1];
+            console.log('[VOE] Found video src:', m3u8Url);
+            return m3u8Url;
+        }
+
+        // Method 5: Look for Base64 encoded URLs
+        const base64Matches = html.matchAll(/(?:atob|decode)\s*\(\s*['"]([A-Za-z0-9+/=]{30,})['"]\s*\)/g);
+        for (const match of base64Matches) {
             try {
-                const decoded = Buffer.from(base64Match[1], 'base64').toString('utf-8');
-                const m3u8InDecoded = decoded.match(/(https?:\/\/[^\s'"]+\.m3u8[^\s'"]*)/i);
-                if (m3u8InDecoded) {
-                    m3u8Url = m3u8InDecoded[1];
-                    console.log('[VOE] Found base64 decoded m3u8:', m3u8Url);
-                    return m3u8Url;
+                const decoded = Buffer.from(match[1], 'base64').toString('utf-8');
+                if (decoded.includes('.m3u8') || decoded.includes('http')) {
+                    const extractedUrl = decoded.match(/(https?:\/\/[^\s'"<>]+)/);
+                    if (extractedUrl) {
+                        m3u8Url = extractedUrl[1];
+                        console.log('[VOE] Found base64 decoded URL:', m3u8Url);
+                        return m3u8Url;
+                    }
                 }
             } catch (e) {
-                console.log('[VOE] Base64 decode failed:', e.message);
+                // Continue to next match
             }
         }
 
-        // Method 5: Look for MP4 fallback
-        const mp4Match = html.match(/(https?:\/\/[^\s'"]+\.mp4[^\s'"]*)/i);
+        // Method 6: Look for MP4 fallback
+        const mp4Match = html.match(/(https?:\/\/[^\s'"<>]+\.mp4[^\s'"<>]*)/i);
         if (mp4Match) {
             m3u8Url = mp4Match[1];
             console.log('[VOE] Found MP4 fallback:', m3u8Url);
             return m3u8Url;
         }
 
-        // Method 6: Look for video source tag
-        const videoSrcMatch = html.match(/<video[^>]*src=['"]([^'"]+)['"]/i) ||
-            html.match(/<source[^>]*src=['"]([^'"]+)['"]/i);
-        if (videoSrcMatch) {
-            m3u8Url = videoSrcMatch[1];
-            console.log('[VOE] Found video src:', m3u8Url);
-            return m3u8Url;
-        }
-
-        // Method 7: Look for window.sources or similar
-        const windowSourcesMatch = html.match(/window\.sources\s*=\s*['"]([^'"]+)['"]/i) ||
-            html.match(/var\s+sources\s*=\s*['"]([^'"]+)['"]/i);
-        if (windowSourcesMatch) {
-            m3u8Url = windowSourcesMatch[1];
-            console.log('[VOE] Found window.sources:', m3u8Url);
-            return m3u8Url;
-        }
-
-        // Method 8: Look for common VOE patterns (protocol-relative URLs)
-        const protocolRelative = html.match(/['"]\/\/[^\s'"]+\.m3u8[^\s'"]*['"]/i);
-        if (protocolRelative) {
-            m3u8Url = 'https:' + protocolRelative[0].replace(/['"]/g, '');
-            console.log('[VOE] Found protocol-relative m3u8:', m3u8Url);
-            return m3u8Url;
-        }
-
-        console.log('[VOE] No m3u8 found, returning error');
+        // No extraction possible - return error
+        console.log('[VOE] Could not extract stream URL');
         return new ErrorObject(
-            'Could not extract VOE source',
+            'VOE extraction requires JavaScript execution',
             'voe',
-            500,
-            'No m3u8 URL found in page. The video may be protected or the page structure has changed.',
+            501,
+            'This VOE link uses obfuscation that requires a browser. Please use the WebView player.',
             true,
             true
         );
@@ -127,7 +140,7 @@ export async function extract_voe(url, referer = '') {
             `VOE extraction error: ${error.message}`,
             'voe',
             500,
-            'Request failed. Check URL or network.',
+            'Request failed. The URL may be invalid or expired.',
             true,
             true
         );
