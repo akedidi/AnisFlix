@@ -163,10 +163,15 @@ struct AfterDarkResponse: Codable {
 struct AfterDarkSource: Codable {
     let url: String
     let quality: String?
-    let kind: String?  // AfterDark uses 'kind' instead of 'type'
+    let kind: String?
     let server: String?
     let name: String?
     let proxied: Bool?
+    
+    enum CodingKeys: String, CodingKey {
+        case url = "file" // Map JSON 'file' to 'url'
+        case quality, kind, server, name, proxied
+    }
 }
 
 class StreamingService {
@@ -761,18 +766,19 @@ class StreamingService {
             
             if let afterdarkSources = afterdarkResponse.sources {
             for source in afterdarkSources {
-                // Filter out proxied links
+                // Filter requested by user: kind=hls and proxied=false
                 if source.proxied != false {
+                    print("⚠️ [AfterDark] Skipping proxied source: \(source.name ?? "unknown")")
                     continue
                 }
                 
-                // Map 'kind' to type
-                let streamType: String
-                if let kind = source.kind {
-                    streamType = kind == "hls" ? "m3u8" : kind
-                } else {
-                    streamType = source.url.contains(".m3u8") ? "m3u8" : "mp4"
+                if source.kind != "hls" {
+                    print("⚠️ [AfterDark] Skipping non-hls source: \(source.kind ?? "nil")")
+                    continue
                 }
+
+                // Map 'kind' to type
+                let streamType = "m3u8" // Since we filter for hls, it's always m3u8
                 
                 let streamSource = StreamingSource(
                     url: source.url,
