@@ -91,7 +91,7 @@ export default function SeriesDetail() {
   const episodeSources: any[] = [
     ...(universalVOSources?.files?.map((source, index) => ({
       id: `universal-${source.provider}-${index}`,
-      name: `${source.provider} (${source.extractor})`,
+      name: `${source.provider}`,
       provider: source.provider || 'UniversalVO',
       url: source.file,
       type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
