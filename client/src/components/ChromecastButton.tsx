@@ -40,6 +40,13 @@ const getAccessibleUrl = (url: string): string => {
       original: url,
       vercel: vercelUrl
     });
+    // Hack: Append &ext=.mp4 to trick Chromecast into thinking it's a file
+    // Check if it's a proxy URL that handles MP4
+    if (url.includes('movix-proxy') && (url.includes('streamtape') || url.includes('streamta') || url.includes('mp4'))) {
+      if (!url.includes('.mp4')) {
+        return `${vercelUrl}&ext=.mp4`;
+      }
+    }
     return vercelUrl;
   }
 
