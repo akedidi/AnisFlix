@@ -616,70 +616,10 @@ struct SubtitleSelectionView: View {
                             .foregroundColor(.gray)
                     }
                     
-                    // Quick offset buttons
-                    VStack(spacing: 8) {
-                        HStack(spacing: 8) {
-                            Button {
-                                subtitleOffset = max(-30, subtitleOffset - 30)
-                            } label: {
-                                Text("-30s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button {
-                                subtitleOffset = max(-30, subtitleOffset - 10)
-                            } label: {
-                                Text("-10s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button {
-                                subtitleOffset = max(-30, subtitleOffset - 5)
-                            } label: {
-                                Text("-5s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        
-                        HStack(spacing: 8) {
-                            Button {
-                                subtitleOffset = min(30, subtitleOffset + 5)
-                            } label: {
-                                Text("+5s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button {
-                                subtitleOffset = min(30, subtitleOffset + 10)
-                            } label: {
-                                Text("+10s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button {
-                                subtitleOffset = min(30, subtitleOffset + 30)
-                            } label: {
-                                Text("+30s")
-                                    .font(.caption)
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                    
+                    // Fine adjustment with slider
                     HStack {
                         Button {
-                            subtitleOffset -= 0.5
+                            subtitleOffset = max(-30, subtitleOffset - 0.5)
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
@@ -689,7 +629,7 @@ struct SubtitleSelectionView: View {
                         Slider(value: $subtitleOffset, in: -30...30, step: 0.5)
                         
                         Button {
-                            subtitleOffset += 0.5
+                            subtitleOffset = min(30, subtitleOffset + 0.5)
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
