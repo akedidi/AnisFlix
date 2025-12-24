@@ -155,7 +155,9 @@ export async function handleUniversalVO(req, res) {
         return handleErrorResponse(res, output);
     }
 
-    const serverUrl = `${req.protocol}://${req.get('host')}`;
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const host = req.headers['host'];
+    const serverUrl = `${protocol}://${host}`;
     const processedOutput = processApiResponse(output, serverUrl);
 
     return res.status(200).json(processedOutput);
