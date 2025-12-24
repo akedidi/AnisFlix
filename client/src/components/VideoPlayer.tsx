@@ -692,6 +692,7 @@ export default function VideoPlayer({
           }}
           preload="auto"
           crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
           data-testid="video-player-main"
           {...(isNativePlatform() && {
             'webkit-playsinline': 'false',

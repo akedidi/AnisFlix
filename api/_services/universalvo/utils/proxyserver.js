@@ -5,11 +5,7 @@ const PROXY_DOMAINS = [
     'orbitproxy.cc',
     'hls3.vid1.site',
     'hls2.vid1.site',
-    'proxy-m3u8.uira.live',
-    'streamta.site',
-    'streamtape.com',
-    'streamtape.to',
-    'streamtape.net'
+    'proxy-m3u8.uira.live'
 ];
 
 // defaultt user agent i think adding the user agent in the url it self wil mess things up
@@ -65,20 +61,10 @@ export function processApiResponse(apiResponse, serverUrl) {
             if (
                 urlObj.hostname === 'hls1.vid1.site' ||
                 urlObj.hostname === 'hls2.vid1.site' ||
-                urlObj.hostname === 'hls3.vid1.site' ||
-                urlObj.hostname === 'streamta.site' ||
-                urlObj.hostname.includes('streamtape') ||
-                urlObj.hostname.includes('tape')
+                urlObj.hostname === 'hls3.vid1.site'
             ) {
-                // Determine origin based on hostname
-                let m3u8Origin;
-                if (urlObj.hostname === 'streamta.site' || urlObj.hostname.includes('streamtape') || urlObj.hostname.includes('tape')) {
-                    // For Streamtape, the origin/referer is usually the page itself or streamtape.com
-                    // But we can try using the hostname itself
-                    m3u8Origin = `https://${urlObj.hostname}`;
-                } else {
-                    m3u8Origin = new URL(originalUrl).origin;
-                }
+                // Use the M3U8's origin as the referer, not the provider's domain
+                const m3u8Origin = new URL(originalUrl).origin;
                 console.log(
                     `[HLS Proxy Replacement] Original URL: ${originalUrl}`
                 );
@@ -104,16 +90,10 @@ export function processApiResponse(apiResponse, serverUrl) {
                     `[HLS Proxy Headers] ${JSON.stringify(proxyHeaders)}`
                 );
 
-                // Determine type based on hostname
-                let streamType = 'hls';
-                if (urlObj.hostname === 'streamta.site' || urlObj.hostname.includes('streamtape') || urlObj.hostname.includes('tape')) {
-                    streamType = 'mp4';
-                }
-
                 return {
                     ...file,
                     file: localProxyUrl,
-                    type: streamType,
+                    type: 'hls',
                     headers: proxyHeaders
                 };
             }
