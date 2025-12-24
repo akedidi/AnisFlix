@@ -278,8 +278,8 @@ struct MovieDetailView: View {
                                                 } else if lang == "VOSTFR" {
                                                     return source.language.lowercased().contains("vostfr")
                                                 } else {
-                                                    // For VO, strictly only allow Vixsrc
-                                                    return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
+                                                    // Allow all providers for VO
+                                                    return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                                 }
                                             }
                                             
@@ -321,8 +321,8 @@ struct MovieDetailView: View {
                                             } else if theme.preferredSourceLanguage == "VOSTFR" {
                                                 return source.language.lowercased().contains("vostfr")
                                             } else {
-                                                // For VO, strictly only allow Vixsrc
-                                                return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
+                                                // Allow all providers for VO
+                                                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                             }
                                         }).isEmpty {
                                             Text("\(theme.t("detail.noSourcesFor")) \(theme.preferredSourceLanguage)")
@@ -338,8 +338,8 @@ struct MovieDetailView: View {
                                                     } else if theme.preferredSourceLanguage == "VOSTFR" {
                                                         return source.language.lowercased().contains("vostfr")
                                                     } else {
-                                                        // For VO, strictly only allow Vixsrc
-                                                        return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
+                                                        // Allow all providers for VO
+                                                        return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
                                                     }
                                                 }).enumerated()), id: \.element.id) { index, source in
                                                     HStack(spacing: 8) {
@@ -520,7 +520,7 @@ struct MovieDetailView: View {
             // Auto-select language: VF > VOSTFR > VO
             let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
             let hasVOSTFR = sourcesResult.contains { $0.language.lowercased().contains("vostfr") }
-            let hasVO = sourcesResult.contains { $0.provider == "vixsrc" && ($0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english")) }
+            let hasVO = sourcesResult.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
             
             if hasVF {
                 theme.preferredSourceLanguage = "VF"

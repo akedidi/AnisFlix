@@ -603,7 +603,7 @@ struct SeriesDetailView: View {
         // Auto-select language: VF > VOSTFR > VO
         let hasVF = episodeSources.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
         let hasVOSTFR = episodeSources.contains { $0.language.lowercased().contains("vostfr") }
-        let hasVO = episodeSources.contains { $0.provider == "vixsrc" && ($0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english")) }
+        let hasVO = episodeSources.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
         
         if hasVF {
             theme.preferredSourceLanguage = "VF"
@@ -622,8 +622,8 @@ struct SeriesDetailView: View {
             } else if language == "VOSTFR" {
                 return source.language.lowercased().contains("vostfr")
             } else {
-                // For VO, strictly only allow Vixsrc
-                return source.provider == "vixsrc" && (source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english"))
+                // Allow all providers for VO
+                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
             }
         }
     }
