@@ -828,13 +828,13 @@ class StreamingService {
             return getVidMolyProxyUrl(url: url, referer: "https://vidmoly.net/")
         }
         
-        // 2. Call extraction API
-        let apiUrl = URL(string: "\(baseUrl)/api/vidmoly")!
+        // 2. Call unified extraction API
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body: [String: String] = ["url": url, "method": "auto"]
+        let body: [String: String] = ["type": "vidmoly", "url": url]
         request.httpBody = try JSONEncoder().encode(body)
         
         print("🌐 Calling VidMoly API: \(url)")
@@ -845,17 +845,18 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         
-        struct VidMolyResponse: Codable {
+        struct ExtractResponse: Codable {
             let success: Bool
             let m3u8Url: String?
-            let method: String?
+            let error: String?
+            let type: String?
         }
         
         if let jsonString = String(data: data, encoding: .utf8) {
             print("🎬 VidMoly JSON Response: \(jsonString)")
         }
         
-        let result = try JSONDecoder().decode(VidMolyResponse.self, from: data)
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
         print("✅ VidMoly API Response: success=\(result.success)")
         
         guard result.success, let m3u8Url = result.m3u8Url else {
@@ -870,27 +871,29 @@ class StreamingService {
         }
         
         // Check if proxy is needed (Real VidMoly links)
-        let isRealVidMoly = (result.method == "extracted_real" ||
-                             result.method == "direct_master_m3u8" ||
-                             (result.method?.starts(with: "direct_pattern_") ?? false) ||
-                             cleanedUrl.contains("vmwesa.online") ||
-                             cleanedUrl.contains("vmeas.cloud"))
+        // With api/extract, we assume it returns the direct/proxied m3u8 or needs our proxy
+        // The unified api usually returns a usable m3u8Url
         
-        if isRealVidMoly {
-            return getVidMolyProxyUrl(url: cleanedUrl, referer: url)
+        // We still need to check if we should proxy it through our backend or play direct
+        let isRealVidMoly = cleanedUrl.contains("vidmoly") || 
+                            cleanedUrl.contains("vmeas") ||
+                            cleanedUrl.contains("to_be_proxied") // Adjust based on api/extract response
+        
+        // For now, trust the URL returned by api/extract, but if it's a raw vidmoly link, proxy it
+        if cleanedUrl.contains("vidmoly.net/hls") || cleanedUrl.contains("vidmoly.to/hls") {
+             return getVidMolyProxyUrl(url: cleanedUrl, referer: url)
         } else {
-            return cleanedUrl
+             return cleanedUrl
         }
     }
     
     func extractVidzy(url: String) async throws -> String {
-        let apiUrl = URL(string: "\(baseUrl)/api/vidzy")!
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // api/vidzy expects just { "url": "..." }
-        let body: [String: String] = ["url": url]
+        let body: [String: String] = ["type": "vidzy", "url": url]
         request.httpBody = try JSONEncoder().encode(body)
         
         print("📤 Extracting Vidzy: \(url)")
@@ -909,12 +912,14 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         
-        struct VidzyRealResponse: Codable {
+        struct ExtractResponse: Codable {
+            let success: Bool
             let m3u8Url: String?
             let error: String?
+            let type: String?
         }
         
-        let result = try JSONDecoder().decode(VidzyRealResponse.self, from: data)
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
         
         if let m3u8 = result.m3u8Url {
             print("✅ Vidzy extracted: \(m3u8)")

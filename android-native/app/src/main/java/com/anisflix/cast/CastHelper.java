@@ -61,7 +61,10 @@ public class CastHelper {
         MediaInfo.Builder mediaInfoBuilder = new MediaInfo.Builder(url)
                 .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
                 .setContentType("application/x-mpegURL") // HLS
-                .setMetadata(metadata);
+                .setMetadata(metadata)
+                // CRITICAL: Set HLS segment format to TS for remote control support
+                .setHlsSegmentFormat(MediaInfo.HLS_SEGMENT_FORMAT_TS)
+                .setHlsVideoSegmentFormat(MediaInfo.HLS_VIDEO_SEGMENT_FORMAT_MPEG2_TS);
         
         // Add subtitle track if available
         if (subtitleUrl != null && !subtitleUrl.isEmpty()) {

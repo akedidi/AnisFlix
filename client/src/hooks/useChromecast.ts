@@ -21,6 +21,18 @@ declare global {
           SESSION_STARTED: string;
           SESSION_ENDED: string;
         };
+        RemotePlayer: new () => any;
+        RemotePlayerController: new (player: any) => any;
+        RemotePlayerEventType: {
+          IS_CONNECTED_CHANGED: string;
+          IS_MEDIA_LOADED_CHANGED: string;
+          DURATION_CHANGED: string;
+          CURRENT_TIME_CHANGED: string;
+          IS_PAUSED_CHANGED: string;
+          VOLUME_LEVEL_CHANGED: string;
+          IS_MUTED_CHANGED: string;
+          PLAYER_STATE_CHANGED: string;
+        };
       };
     };
     chrome?: {
@@ -69,6 +81,15 @@ interface UseChromecastReturn {
   isConnecting: boolean;
   currentDevice: CastDevice | null;
   devices: CastDevice[];
+  // Player state from RemotePlayerController
+  playerState: {
+    currentTime: number;
+    duration: number;
+    isPaused: boolean;
+    isMediaLoaded: boolean;
+    volumeLevel: number;
+    isMuted: boolean;
+  };
   cast: (
     mediaUrl: string,
     title: string,
@@ -101,9 +122,22 @@ export function useChromecast(): UseChromecastReturn {
   const [isConnecting, setIsConnecting] = useState(false);
   const [currentDevice, setCurrentDevice] = useState<CastDevice | null>(null);
   const [devices, setDevices] = useState<CastDevice[]>([]);
+
+  // Player state from RemotePlayerController
+  const [playerState, setPlayerState] = useState({
+    currentTime: 0,
+    duration: 0,
+    isPaused: true,
+    isMediaLoaded: false,
+    volumeLevel: 1,
+    isMuted: false,
+  });
+
   const castContextRef = useRef<any>(null);
   const sessionRef = useRef<any>(null);
   const mediaSessionRef = useRef<any>(null);
+  const remotePlayerRef = useRef<any>(null);
+  const remotePlayerControllerRef = useRef<any>(null);
 
   const initializeCast = useCallback(() => {
     try {
@@ -194,6 +228,91 @@ export function useChromecast(): UseChromecastReturn {
 
       setIsAvailable(true);
       console.log('[Chromecast] Framework initialisé avec succès');
+
+      // Initialize RemotePlayer and RemotePlayerController for bidirectional control
+      try {
+        const player = new castFramework.RemotePlayer();
+        const playerController = new castFramework.RemotePlayerController(player);
+        remotePlayerRef.current = player;
+        remotePlayerControllerRef.current = playerController;
+
+        console.log('[Chromecast] RemotePlayerController initialisé');
+
+        // Listen for player state changes
+        const eventTypes = castFramework.RemotePlayerEventType;
+
+        // Current Time changed - update progress
+        playerController.addEventListener(
+          eventTypes.CURRENT_TIME_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              currentTime: player.currentTime || 0,
+            }));
+          }
+        );
+
+        // Duration changed
+        playerController.addEventListener(
+          eventTypes.DURATION_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              duration: player.duration || 0,
+            }));
+          }
+        );
+
+        // Pause state changed
+        playerController.addEventListener(
+          eventTypes.IS_PAUSED_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              isPaused: player.isPaused,
+            }));
+            console.log('[Chromecast] Pause state changed:', player.isPaused);
+          }
+        );
+
+        // Media loaded changed
+        playerController.addEventListener(
+          eventTypes.IS_MEDIA_LOADED_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              isMediaLoaded: player.isMediaLoaded,
+              duration: player.duration || 0,
+            }));
+            console.log('[Chromecast] Media loaded:', player.isMediaLoaded);
+          }
+        );
+
+        // Volume changed
+        playerController.addEventListener(
+          eventTypes.VOLUME_LEVEL_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              volumeLevel: player.volumeLevel || 1,
+            }));
+          }
+        );
+
+        // Muted changed
+        playerController.addEventListener(
+          eventTypes.IS_MUTED_CHANGED,
+          () => {
+            setPlayerState(prev => ({
+              ...prev,
+              isMuted: player.isMuted,
+            }));
+          }
+        );
+
+      } catch (playerError) {
+        console.warn('[Chromecast] Impossible d\'initialiser RemotePlayerController:', playerError);
+      }
     } catch (error) {
       console.error('[Chromecast] Erreur lors de l\'initialisation:', error);
       setIsAvailable(false);
@@ -562,6 +681,7 @@ export function useChromecast(): UseChromecastReturn {
     isConnecting,
     currentDevice,
     devices,
+    playerState,
     cast,
     disconnect,
     showPicker,
@@ -625,23 +745,46 @@ export function useChromecast(): UseChromecastReturn {
       }
     }, []),
     play: useCallback(() => {
-      if (mediaSessionRef.current) {
+      // Use RemotePlayerController if available (recommended)
+      if (remotePlayerControllerRef.current && remotePlayerRef.current?.isPaused) {
+        console.log('[Chromecast] Playing via RemotePlayerController');
+        remotePlayerControllerRef.current.playOrPause();
+      } else if (mediaSessionRef.current) {
+        // Fallback to direct mediaSession
+        console.log('[Chromecast] Playing via mediaSession fallback');
         mediaSessionRef.current.play();
       }
     }, []),
     pause: useCallback(() => {
-      if (mediaSessionRef.current) {
+      // Use RemotePlayerController if available (recommended)
+      if (remotePlayerControllerRef.current && !remotePlayerRef.current?.isPaused) {
+        console.log('[Chromecast] Pausing via RemotePlayerController');
+        remotePlayerControllerRef.current.playOrPause();
+      } else if (mediaSessionRef.current) {
+        // Fallback to direct mediaSession
+        console.log('[Chromecast] Pausing via mediaSession fallback');
         mediaSessionRef.current.pause(null);
       }
     }, []),
     seek: useCallback((time: number) => {
-      if (mediaSessionRef.current && window.chrome?.cast) {
+      // Use RemotePlayerController if available
+      if (remotePlayerControllerRef.current && remotePlayerRef.current) {
+        console.log('[Chromecast] Seeking via RemotePlayerController to:', time);
+        remotePlayerRef.current.currentTime = time;
+        remotePlayerControllerRef.current.seek();
+      } else if (mediaSessionRef.current && window.chrome?.cast) {
+        // Fallback to direct mediaSession
+        console.log('[Chromecast] Seeking via mediaSession fallback to:', time);
         const request = new window.chrome.cast.media.SeekRequest();
         request.currentTime = time;
         mediaSessionRef.current.seek(request);
       }
     }, []),
     getMediaTime: useCallback(async () => {
+      // Prefer RemotePlayer's currentTime (synced)
+      if (remotePlayerRef.current?.isMediaLoaded) {
+        return remotePlayerRef.current.currentTime || 0;
+      }
       if (mediaSessionRef.current) {
         return mediaSessionRef.current.getEstimatedTime();
       }
