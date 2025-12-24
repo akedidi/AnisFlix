@@ -273,12 +273,13 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Movix Download sources first (VF priority)
-        allSources.append(contentsOf: movixDownloadSources)
-        
+        // Add TMDB sources FIRST (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
+        
+        // Add Movix/Darkibox Download sources second
+        allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
             allSources.append(contentsOf: universalVO)
@@ -295,8 +296,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "movix")
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" }
+        // Filter for allowed providers (added "darkibox")
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -430,12 +431,13 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Movix Download sources first (VF priority)
-        allSources.append(contentsOf: movixDownloadSources)
-        
+        // Add TMDB sources FIRST (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
+        
+        // Add Movix/Darkibox Download sources second
+        allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
             allSources.append(contentsOf: universalVO)
@@ -452,8 +454,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "movix")
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" }
+        // Filter for allowed providers (added "darkibox")
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -1164,12 +1166,20 @@ class StreamingService {
                 let streamUrl = source.m3u8 ?? source.src ?? ""
                 guard !streamUrl.isEmpty else { continue }
                 
+                // Detect provider from URL: darkibox.com = Darkibox, otherwise = Movix
+                let detectedProvider: String
+                if streamUrl.lowercased().contains("darkibox.com") {
+                    detectedProvider = "darkibox"
+                } else {
+                    detectedProvider = "movix"
+                }
+                
                 let streamingSource = StreamingSource(
-                    id: "movix-download-\(movixId)-\(index)",
+                    id: "\(detectedProvider)-download-\(movixId)-\(index)",
                     url: streamUrl,
                     quality: source.quality ?? "HD",
                     type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
-                    provider: "movix",
+                    provider: detectedProvider,
                     // Convert "Multi" to "VF" as Multi sources are actually French
                     language: (source.language?.lowercased().contains("multi") == true) ? "VF" : (source.language ?? "VF")
                 )
