@@ -66,7 +66,7 @@ async function extractVidzy(url) {
   let m3u8Link = null;
 
   // Method 1: Deobfuscation
-  const packedScriptRegex = /<script type='text\/javascript'>\s*(eval\(function\(p,a,c,k,e,d\){.*?}\(.*?\)))\s*<\/script>/s;
+  const packedScriptRegex = /<script type='text\/javascript'>\s*(eval\(function\(p,a,c,k,e,d\)\{.*?\}\(.*?\)\))\s*<\/script>/s;
   const scriptMatch = html.match(packedScriptRegex);
 
   if (scriptMatch && scriptMatch[1]) {
