@@ -34,7 +34,7 @@ export async function scrapeMedia(media) {
     };
 
     const providers = [
-        { TwoEmbed: () => getTwoEmbed(media) },
+        // { TwoEmbed: () => getTwoEmbed(media) }, // Disabled to reduce timeouts
         { Primewire: () => getPrimewire(media) }
     ];
 
