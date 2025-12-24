@@ -441,7 +441,7 @@ export default function SeriesDetail() {
                                       <StreamingSources
                                         type="tv"
                                         id={seriesId}
-                                        title={`${series?.name} - Saison ${selectedSeasonNumber} Épisode ${episode.episode_number}`}
+                                        title={series?.name || ''}
                                         sources={episodeSources}
                                         genres={series?.genres}
                                         onSourceClick={handleSourceClick}
