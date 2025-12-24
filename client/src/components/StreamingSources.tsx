@@ -2,8 +2,7 @@ import { useState, useEffect, memo, useCallback } from 'react';
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
-import { useDarkiboxSeries } from '@/hooks/useDarkiboxSeries';
-import { useDarkiSeries } from '@/hooks/useDarkiSeries';
+
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
@@ -95,8 +94,7 @@ const StreamingSources = memo(function StreamingSources({
   // Désactiver les hooks si enabled est false
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
   const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
-  const { data: darkiboxData, isLoading: isLoadingDarkibox } = useDarkiboxSeries(type === 'tv' ? id : 0, season || 1, episode || 1);
-  const { data: darkiData, isLoading: isLoadingDarki } = useDarkiSeries(type === 'tv' ? id : 0, season || 1, episode || 1, title);
+
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
 
@@ -734,70 +732,7 @@ const StreamingSources = memo(function StreamingSources({
     console.log('❌ Pas de sources VidMoly Anime - animeVidMolyData:', animeVidMolyData, 'hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
   }
 
-  // Ajouter les sources Darki pour les séries si disponibles
-  if (type === 'tv' && darkiboxData && darkiboxData.sources) {
-    console.log('🔍 [DARKIBOX] Sources trouvées:', darkiboxData.sources.length, darkiboxData.sources);
-    darkiboxData.sources.forEach((source: any) => {
-      // Filtrer par langue sélectionnée
-      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
-      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
-      const isVOSource = source.language === 'English' || source.language === 'VO';
 
-      if ((selectedLanguage === 'VF' && isVFSource) ||
-        (selectedLanguage === 'VOSTFR' && isVOSTFRSource) ||
-        (selectedLanguage === 'VO' && isVOSource)) {
-        // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
-        const cleanM3u8Url = source.m3u8.replace(/,/g, '');
-
-        allSources.push({
-          id: source.id,
-          name: `${source.quality} - ${source.language}`,
-          provider: 'darkibox',
-          url: cleanM3u8Url,
-          type: 'm3u8' as const,
-          player: 'darkibox',
-          isDarkibox: true,
-          sourceKey: selectedLanguage,
-          quality: source.quality,
-          language: source.language
-        });
-      }
-    });
-  }
-
-  // Ajouter les sources Darki pour les séries si disponibles (hook avec conversion ID)
-  if (type === 'tv' && darkiData && darkiData.sources) {
-    console.log('🔍 [DARKISeries] Sources trouvées:', darkiData.sources.length, darkiData.sources);
-    darkiData.sources.forEach((source: any) => {
-      // Filtrer par langue sélectionnée
-      const isVFSource = source.language === 'TrueFrench' || source.language === 'MULTI';
-      const isVOSTFRSource = source.language === 'MULTI'; // MULTI peut contenir VOSTFR
-      const isVOSource = source.language === 'English' || source.language === 'VO';
-
-      if ((selectedLanguage === 'VF' && isVFSource) ||
-        (selectedLanguage === 'VOSTFR' && isVOSTFRSource) ||
-        (selectedLanguage === 'VO' && isVOSource)) {
-        // Nettoyer l'URL M3U8 en supprimant les virgules problématiques
-        const cleanM3u8Url = source.m3u8.replace(/,/g, '');
-
-        // Éviter les doublons si déjà présent dans darkiboxData
-        if (!allSources.some(s => s.url === cleanM3u8Url)) {
-          allSources.push({
-            id: `darki-series-${source.id}`,
-            name: `${source.quality} - ${source.language} (M)`,
-            provider: 'darkibox',
-            url: cleanM3u8Url,
-            type: 'm3u8' as const,
-            player: 'darkibox',
-            isDarkibox: true,
-            sourceKey: selectedLanguage,
-            quality: source.quality,
-            language: source.language
-          });
-        }
-      }
-    });
-  }
 
   // Ajouter les sources Vixsrc (VO uniquement)
   if (selectedLanguage === 'VO' && vixsrcData && vixsrcData.success && vixsrcData.streams) {
