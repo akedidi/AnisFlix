@@ -104,10 +104,16 @@ export function processApiResponse(apiResponse, serverUrl) {
                     `[HLS Proxy Headers] ${JSON.stringify(proxyHeaders)}`
                 );
 
+                // Determine type based on hostname
+                let streamType = 'hls';
+                if (urlObj.hostname === 'streamta.site' || urlObj.hostname.includes('streamtape') || urlObj.hostname.includes('tape')) {
+                    streamType = 'mp4';
+                }
+
                 return {
                     ...file,
                     file: localProxyUrl,
-                    type: 'hls',
+                    type: streamType,
                     headers: proxyHeaders
                 };
             }
