@@ -243,7 +243,7 @@ export default async function handler(req, res) {
         res.status(500).json({
           error: 'Internal Server Error in UniversalVO handler',
           details: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          stack: error.stack
         });
       }
       return;
