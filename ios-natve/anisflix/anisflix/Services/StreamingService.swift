@@ -192,6 +192,29 @@ struct CpasmalSource: Codable {
     let server: String?
 }
 
+// MARK: - Movix Download Response Structures (for TMDB ID matching)
+struct MovixSearchResult: Codable {
+    let id: Int
+    let name: String?
+    let tmdb_id: Int?
+    let type: String?
+}
+
+struct MovixSearchResponse: Codable {
+    let results: [MovixSearchResult]?
+}
+
+struct MovixDownloadSource: Codable {
+    let src: String?
+    let language: String?
+    let quality: String?
+    let m3u8: String?
+}
+
+struct MovixDownloadResponse: Codable {
+    let sources: [MovixDownloadSource]?
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}
@@ -206,21 +229,33 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
-        // fetchCpasmalSources removed
         
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
-        // Fetch TMDB info for AfterDark (needs title and year)
+        // Fetch TMDB info for AfterDark and Movix Download (needs title)
         let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
         var afterDarkSources: [StreamingSource] = []
-        if let title = tmdbInfo?.title, let year = tmdbInfo?.year {
-            print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(year))")
-            afterDarkSources = (try? await fetchAfterDarkSources(
+        var movixDownloadSources: [StreamingSource] = []
+        
+        if let title = tmdbInfo?.title {
+            print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
+            
+            // Fetch AfterDark sources
+            if let year = tmdbInfo?.year {
+                afterDarkSources = (try? await fetchAfterDarkSources(
+                    tmdbId: movieId,
+                    type: "movie",
+                    title: title,
+                    year: year,
+                    originalTitle: tmdbInfo?.originalTitle
+                )) ?? []
+            }
+            
+            // Fetch Movix Download sources (TMDB ID matching)
+            movixDownloadSources = (try? await fetchMovixDownloadSources(
                 tmdbId: movieId,
                 type: "movie",
-                title: title,
-                year: year,
-                originalTitle: tmdbInfo?.originalTitle
+                title: title
             )) ?? []
         } else {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
@@ -234,9 +269,12 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
+        print("   - Movix Download: \(movixDownloadSources.count)")
         
         var allSources: [StreamingSource] = []
         
+        // Add Movix Download sources first (VF priority)
+        allSources.append(contentsOf: movixDownloadSources)
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -257,8 +295,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
+        // Filter for allowed providers (added "movix")
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -350,16 +388,29 @@ class StreamingService {
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
-        // Fetch TMDB info for AfterDark (needs title)
+        // Fetch TMDB info for AfterDark and Movix Download (needs title)
         let tmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
         var afterDarkSources: [StreamingSource] = []
+        var movixDownloadSources: [StreamingSource] = []
+        
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title)")
+            
+            // Fetch AfterDark sources
             afterDarkSources = (try? await fetchAfterDarkSources(
                 tmdbId: seriesId,
                 type: "tv",
                 title: title,
                 year: nil,
+                season: season,
+                episode: episode
+            )) ?? []
+            
+            // Fetch Movix Download sources (TMDB ID matching)
+            movixDownloadSources = (try? await fetchMovixDownloadSources(
+                tmdbId: seriesId,
+                type: "tv",
+                title: title,
                 season: season,
                 episode: episode
             )) ?? []
@@ -375,8 +426,12 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
+        print("   - Movix Download: \(movixDownloadSources.count)")
         
         var allSources: [StreamingSource] = []
+        
+        // Add Movix Download sources first (VF priority)
+        allSources.append(contentsOf: movixDownloadSources)
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -397,8 +452,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
+        // Filter for allowed providers (added "movix")
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -1025,5 +1080,103 @@ class StreamingService {
         }
         
         throw URLError(.cannotParseResponse)
+    }
+    
+    // MARK: - Movix Download Sources (TMDB ID Matching)
+    
+    /// Search Movix API by title
+    private func searchMovix(title: String) async throws -> MovixSearchResponse {
+        guard let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "\(baseUrl)/api/movix-proxy?path=search&title=\(encodedTitle)") else {
+            throw URLError(.badURL)
+        }
+        
+        print("🔍 [Movix] Searching for: \(title)")
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        return try JSONDecoder().decode(MovixSearchResponse.self, from: data)
+    }
+    
+    /// Get Movix ID from TMDB ID by searching and matching
+    private func getMovixIdFromTmdb(tmdbId: Int, type: String, title: String) async throws -> Int? {
+        let searchResponse = try await searchMovix(title: title)
+        
+        guard let results = searchResponse.results else {
+            print("⚠️ [Movix] No search results for: \(title)")
+            return nil
+        }
+        
+        // Find matching result by TMDB ID and type
+        let matchingResult = results.first { result in
+            result.tmdb_id == tmdbId && result.type == type
+        }
+        
+        if let match = matchingResult {
+            print("✅ [Movix] Found matching ID: \(match.id) for TMDB \(tmdbId)")
+            return match.id
+        }
+        
+        print("⚠️ [Movix] No matching TMDB ID found in search results")
+        return nil
+    }
+    
+    /// Fetch download sources using Movix ID
+    func fetchMovixDownloadSources(tmdbId: Int, type: String, title: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        // Step 1: Get Movix ID from TMDB ID
+        guard let movixId = try await getMovixIdFromTmdb(tmdbId: tmdbId, type: type, title: title) else {
+            return []
+        }
+        
+        // Step 2: Build download URL
+        let path: String
+        if type == "movie" {
+            path = "films/download/\(movixId)"
+        } else {
+            guard let s = season, let e = episode else {
+                print("❌ [Movix] Season and episode required for TV shows")
+                return []
+            }
+            path = "series/download/\(movixId)/season/\(s)/episode/\(e)"
+        }
+        
+        guard let url = URL(string: "\(baseUrl)/api/movix-proxy?path=\(path)") else {
+            throw URLError(.badURL)
+        }
+        
+        print("📥 [Movix] Fetching download sources: \(path)")
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let downloadResponse = try JSONDecoder().decode(MovixDownloadResponse.self, from: data)
+        
+        // Step 3: Convert to StreamingSource
+        var sources: [StreamingSource] = []
+        if let downloadSources = downloadResponse.sources {
+            for (index, source) in downloadSources.enumerated() {
+                // Use m3u8 URL if available, otherwise use src
+                let streamUrl = source.m3u8 ?? source.src ?? ""
+                guard !streamUrl.isEmpty else { continue }
+                
+                let streamingSource = StreamingSource(
+                    id: "movix-download-\(movixId)-\(index)",
+                    url: streamUrl,
+                    quality: source.quality ?? "HD",
+                    type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: "movix",
+                    language: source.language ?? "VF"
+                )
+                sources.append(streamingSource)
+            }
+        }
+        
+        print("✅ [Movix] Found \(sources.count) download sources")
+        return sources
     }
 }
