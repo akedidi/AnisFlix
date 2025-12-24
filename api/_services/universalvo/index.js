@@ -81,28 +81,20 @@ export async function scrapeMedia(media) {
 
     // Build final result without subtitles
     let finalResult;
-    if (shouldDebug) {
-        results
-            .filter(
-                ({ data }) =>
-                    data instanceof Error || data instanceof ErrorObject
-            )
-            .forEach(({ data }) => {
-                if (data instanceof ErrorObject) console.error(data.toString());
-                else console.error(data);
-            });
+    // Build final result
+    // Always include errors for debugging "no results" issues
+    let errors = results
+        .filter(
+            ({ data }) =>
+                data instanceof Error || data instanceof ErrorObject || data === null
+        )
+        .map(({ data, provider }) => {
+            if (data instanceof ErrorObject) return { provider, ...data.toJSON() };
+            if (data instanceof Error) return { provider, message: data.message, stack: data.stack };
+            return { provider, message: 'Unknown error (null data)' };
+        });
 
-        let errors = results
-            .filter(
-                ({ data }) =>
-                    data instanceof Error || data instanceof ErrorObject
-            )
-            .map(({ data }) => data);
-
-        finalResult = { files, errors };
-    } else {
-        finalResult = { files };
-    }
+    finalResult = { files, errors };
 
     return finalResult;
 }
