@@ -1,5 +1,4 @@
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import axios from 'axios';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 
 const USER_AGENT =
@@ -7,140 +6,128 @@ const USER_AGENT =
 
 /**
  * Extract m3u8 URL from VOE embed pages
- * Uses puppeteer-core + @sparticuz/chromium for serverless compatibility
+ * Uses pure HTTP requests without Puppeteer for Vercel compatibility
+ * 
+ * VOE URLs are typically encoded in the page source or in a base64/obfuscated format
  */
 export async function extract_voe(url, referer = '') {
-    let browser;
     try {
-        console.log('[VOE] Launching browser for:', url);
+        console.log('[VOE] Extracting from:', url);
 
-        // Use serverless-compatible chromium
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
+        // Normalize VOE URL domains
+        const normalizedUrl = url
+            .replace('voe.sx', 'voe.sx')
+            .replace('vocancellario.com', 'voe.sx')
+            .replace('ralphysuccessfull.org', 'voe.sx');
+
+        const response = await axios.get(normalizedUrl, {
+            headers: {
+                'User-Agent': USER_AGENT,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': referer || 'https://voe.sx/',
+            },
+            timeout: 15000,
+            maxRedirects: 5
         });
 
-        const page = await browser.newPage();
-        await page.setUserAgent(USER_AGENT);
+        const html = response.data;
+        console.log('[VOE] Fetched page, length:', html.length);
 
-        if (referer) {
-            await page.setExtraHTTPHeaders({ 'Referer': referer });
+        let m3u8Url = null;
+
+        // Method 1: Look for direct m3u8 URLs
+        const directM3u8 = html.match(/(https?:\/\/[^\s'"]+\.m3u8[^\s'"]*)/i);
+        if (directM3u8) {
+            m3u8Url = directM3u8[1];
+            console.log('[VOE] Found direct m3u8:', m3u8Url);
+            return m3u8Url;
         }
 
-        const m3u8Urls = [];
-
-        // Intercept network requests
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            const reqUrl = req.url();
-            if (reqUrl.includes('.m3u8')) {
-                m3u8Urls.push(reqUrl);
-                console.log('[VOE] Intercepted m3u8:', reqUrl);
-            }
-            req.continue();
-        });
-
-        // Navigate to page
-        await page.goto(url, {
-            waitUntil: 'networkidle2',
-            timeout: 30000
-        });
-
-        // Wait for potential redirects
-        await new Promise(r => setTimeout(r, 2000));
-
-        // Try to click play button
-        try {
-            const playButton = await page.$('button.vjs-big-play-button, .play-btn, #player, [aria-label*="play"]');
-            if (playButton) {
-                console.log('[VOE] Clicking play button...');
-                await playButton.click();
-                await new Promise(r => setTimeout(r, 3000));
-            }
-        } catch (e) {
-            console.log('[VOE] No play button found');
+        // Method 2: Look for 'sources' JSON pattern (common in JWPlayer)
+        const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{[^}]*file\s*:\s*['"]([^'"]+)['"]/i);
+        if (sourcesMatch) {
+            m3u8Url = sourcesMatch[1];
+            console.log('[VOE] Found sources pattern:', m3u8Url);
+            return m3u8Url;
         }
 
-        // Also try clicking the main video container
-        try {
-            await page.click('#player, .jw-video, video');
-            await new Promise(r => setTimeout(r, 2000));
-        } catch (e) {
-            // Video element not found or not clickable
+        // Method 3: Look for 'hls' or 'mp4' in JSON
+        const hlsMatch = html.match(/'hls'\s*:\s*['"]([^'"]+)['"]/i) ||
+            html.match(/"hls"\s*:\s*"([^"]+)"/i);
+        if (hlsMatch) {
+            m3u8Url = hlsMatch[1];
+            console.log('[VOE] Found hls pattern:', m3u8Url);
+            return m3u8Url;
         }
 
-        // Check if we got any m3u8 URLs
-        if (m3u8Urls.length > 0) {
-            // Prefer master.m3u8 if available
-            const masterUrl = m3u8Urls.find(u => u.includes('master.m3u8'));
-            const result = masterUrl || m3u8Urls[0];
-            console.log('[VOE] Found m3u8:', result);
-            await browser.close();
-            return result;
-        }
-
-        // If no network request, try to extract from page
-        const pageData = await page.evaluate(() => {
-            const sources = [];
-
-            // JWPlayer
-            if (typeof jwplayer !== 'undefined') {
-                try {
-                    const playlist = jwplayer().getPlaylist();
-                    if (playlist && playlist[0] && playlist[0].sources) {
-                        playlist[0].sources.forEach(s => {
-                            if (s.file) sources.push(s.file);
-                        });
-                    }
-                } catch (e) { }
-            }
-
-            // HTML5 video
-            const videos = document.querySelectorAll('video source, video');
-            videos.forEach(v => {
-                if (v.src) sources.push(v.src);
-            });
-
-            // Check for inline scripts with HLS URLs
-            const scripts = document.querySelectorAll('script');
-            scripts.forEach(script => {
-                const text = script.textContent || '';
-                const m3u8Match = text.match(/(https?:\/\/[^'"]+\.m3u8[^'"]*)/);
-                if (m3u8Match) {
-                    sources.push(m3u8Match[1]);
+        // Method 4: Look for base64 encoded data that might contain URLs
+        const base64Match = html.match(/atob\s*\(\s*['"]([A-Za-z0-9+/=]+)['"]\s*\)/);
+        if (base64Match) {
+            try {
+                const decoded = Buffer.from(base64Match[1], 'base64').toString('utf-8');
+                const m3u8InDecoded = decoded.match(/(https?:\/\/[^\s'"]+\.m3u8[^\s'"]*)/i);
+                if (m3u8InDecoded) {
+                    m3u8Url = m3u8InDecoded[1];
+                    console.log('[VOE] Found base64 decoded m3u8:', m3u8Url);
+                    return m3u8Url;
                 }
-            });
-
-            return { sources };
-        });
-
-        if (pageData.sources.length > 0) {
-            const m3u8Source = pageData.sources.find(s => s.includes('.m3u8')) || pageData.sources[0];
-            console.log('[VOE] Found source from page:', m3u8Source);
-            await browser.close();
-            return m3u8Source;
+            } catch (e) {
+                console.log('[VOE] Base64 decode failed:', e.message);
+            }
         }
 
-        await browser.close();
+        // Method 5: Look for MP4 fallback
+        const mp4Match = html.match(/(https?:\/\/[^\s'"]+\.mp4[^\s'"]*)/i);
+        if (mp4Match) {
+            m3u8Url = mp4Match[1];
+            console.log('[VOE] Found MP4 fallback:', m3u8Url);
+            return m3u8Url;
+        }
+
+        // Method 6: Look for video source tag
+        const videoSrcMatch = html.match(/<video[^>]*src=['"]([^'"]+)['"]/i) ||
+            html.match(/<source[^>]*src=['"]([^'"]+)['"]/i);
+        if (videoSrcMatch) {
+            m3u8Url = videoSrcMatch[1];
+            console.log('[VOE] Found video src:', m3u8Url);
+            return m3u8Url;
+        }
+
+        // Method 7: Look for window.sources or similar
+        const windowSourcesMatch = html.match(/window\.sources\s*=\s*['"]([^'"]+)['"]/i) ||
+            html.match(/var\s+sources\s*=\s*['"]([^'"]+)['"]/i);
+        if (windowSourcesMatch) {
+            m3u8Url = windowSourcesMatch[1];
+            console.log('[VOE] Found window.sources:', m3u8Url);
+            return m3u8Url;
+        }
+
+        // Method 8: Look for common VOE patterns (protocol-relative URLs)
+        const protocolRelative = html.match(/['"]\/\/[^\s'"]+\.m3u8[^\s'"]*['"]/i);
+        if (protocolRelative) {
+            m3u8Url = 'https:' + protocolRelative[0].replace(/['"]/g, '');
+            console.log('[VOE] Found protocol-relative m3u8:', m3u8Url);
+            return m3u8Url;
+        }
+
+        console.log('[VOE] No m3u8 found, returning error');
         return new ErrorObject(
             'Could not extract VOE source',
             'voe',
             500,
-            'No m3u8 URL found',
+            'No m3u8 URL found in page. The video may be protected or the page structure has changed.',
             true,
             true
         );
 
     } catch (error) {
         console.error('[VOE] Extraction error:', error.message);
-        if (browser) await browser.close();
         return new ErrorObject(
             `VOE extraction error: ${error.message}`,
             'voe',
             500,
-            'Check implementation or server status.',
+            'Request failed. Check URL or network.',
             true,
             true
         );
