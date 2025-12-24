@@ -302,29 +302,44 @@ export function useChromecast(): UseChromecastReturn {
       const chromeCast = window.chrome.cast as any;
 
       // Détecter le type de média avec plus de précision
-      const isHLS = mediaUrl.includes('.m3u8') || mediaUrl.includes('m3u8');
-      const isDASH = mediaUrl.includes('.mpd') || mediaUrl.includes('mpd') || mediaUrl.includes('dash');
-      const isMP4 = mediaUrl.includes('.mp4');
+      let innerUrl = mediaUrl;
+      try {
+        if (mediaUrl.includes('movix-proxy') || mediaUrl.includes('proxy')) {
+          const urlObj = new URL(mediaUrl);
+          const link = urlObj.searchParams.get('link') || urlObj.searchParams.get('url');
+          if (link) innerUrl = decodeURIComponent(link);
+        }
+      } catch (e) {
+        console.warn('Erreur parsing proxy URL:', e);
+      }
+
+      const isHLS = innerUrl.includes('.m3u8') || innerUrl.includes('m3u8');
+      const isDASH = innerUrl.includes('.mpd') || innerUrl.includes('mpd') || innerUrl.includes('dash');
+      const isMP4 = innerUrl.includes('.mp4') ||
+        innerUrl.includes('streamtape') ||
+        innerUrl.includes('streamta') ||
+        innerUrl.includes('get_video') ||
+        innerUrl.includes('mp4'); // Generic check
 
       let contentType: string;
       let streamType: any;
 
       if (isDASH) {
         contentType = 'application/dash+xml';
-        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED to allow seeking
+        streamType = chromeCast.media.StreamType.BUFFERED;
         console.log('[Chromecast] Stream DASH/MPD détecté');
       } else if (isHLS) {
         contentType = 'application/x-mpegURL';
-        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED to allow seeking
+        streamType = chromeCast.media.StreamType.BUFFERED;
         console.log('[Chromecast] Stream HLS détecté');
       } else if (isMP4) {
         contentType = 'video/mp4';
         streamType = chromeCast.media.StreamType.BUFFERED;
-        console.log('[Chromecast] Vidéo MP4 détectée');
+        console.log('[Chromecast] Vidéo MP4 détectée (Direct ou Proxy)');
       } else {
-        // Par défaut, essayer HLS pour les streams TV
+        // Par défaut, essayer HLS pour les streams TV, sauf si c'est clairement un proxy MP4
         contentType = 'application/x-mpegURL';
-        streamType = chromeCast.media.StreamType.BUFFERED; // Changed from LIVE to BUFFERED
+        streamType = chromeCast.media.StreamType.BUFFERED;
         console.log('[Chromecast] Format inconnu, utilisation de HLS par défaut');
       }
 
