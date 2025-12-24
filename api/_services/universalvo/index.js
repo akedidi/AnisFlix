@@ -24,7 +24,7 @@ export async function scrapeMedia(media) {
         console.log(`Work starts now for media...`);
     }
     // Timeout helper to prevent slow providers from blocking
-    const withTimeout = (promise, timeoutMs = 7000) => {
+    const withTimeout = (promise, timeoutMs = 25000) => {
         return Promise.race([
             promise,
             new Promise((_, reject) =>
@@ -43,7 +43,7 @@ export async function scrapeMedia(media) {
             const providerName = Object.keys(provider)[0];
 
             try {
-                const data = await withTimeout(provider[providerName](), 7000);
+                const data = await withTimeout(provider[providerName](), 25000);
                 return {
                     data: data,
                     provider: providerName
