@@ -350,10 +350,25 @@ export default async function handler(req, res) {
       } catch (afterdarkError) {
         console.error('❌ [AfterDark Error]', afterdarkError.message);
         console.error('❌ [AfterDark] Stack:', afterdarkError.stack);
+
         if (afterdarkError.response) {
-          console.error('❌ [AfterDark] HTTP Status:', afterdarkError.response.status);
+          const status = afterdarkError.response.status;
+          console.error('❌ [AfterDark] HTTP Status:', status);
           console.error('❌ [AfterDark] Response Data:', afterdarkError.response.data);
+
+          // Si c'est un 403, retourner une réponse vide au lieu d'une erreur
+          // Car AfterDark bloque souvent les IPs de datacenter
+          if (status === 403) {
+            console.warn('⚠️ [AfterDark] 403 Forbidden - Returning empty sources (likely IP blocked)');
+            return res.status(200).json({
+              success: true,
+              sources: [],
+              count: 0,
+              warning: 'AfterDark API blocked request (403)'
+            });
+          }
         }
+
         return res.status(500).json({
           error: 'Erreur proxy AfterDark',
           details: afterdarkError.message,
