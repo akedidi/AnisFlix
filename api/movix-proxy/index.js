@@ -271,6 +271,12 @@ export default async function handler(req, res) {
         console.log(`🚀 [PROXY HLS] Streaming: ${targetUrl}`);
         // console.log(`🚀 [PROXY HLS] Headers:`, proxyHeaders);
 
+        // Gestion du header Range pour le support du seek et du streaming partiel
+        if (req.headers.range) {
+          proxyHeaders['Range'] = req.headers.range;
+          console.log(`🚀 [PROXY HLS] Range request: ${req.headers.range}`);
+        }
+
         const response = await axios({
           method: 'GET',
           url: targetUrl,
@@ -282,13 +288,23 @@ export default async function handler(req, res) {
           validateStatus: (status) => status < 500
         });
 
-        // Copier les headers pertinents de la réponse source
-        if (response.headers['content-type']) {
-          res.setHeader('Content-Type', response.headers['content-type']);
-        }
-        if (response.headers['content-length']) {
-          res.setHeader('Content-Length', response.headers['content-length']);
-        }
+        // Forward status code (crucial for 206 Partial Content)
+        res.status(response.status);
+
+        // Forward important headers
+        const headersToForward = [
+          'content-type',
+          'content-length',
+          'content-range',
+          'accept-ranges',
+          'cache-control'
+        ];
+
+        headersToForward.forEach(header => {
+          if (response.headers[header]) {
+            res.setHeader(header.replace(/\b\w/g, l => l.toUpperCase()), response.headers[header]); // Ensure proper casing if needed, though usually automatic
+          }
+        });
 
         // Headers CORS (déjà définis au début mais on s'assure)
         res.setHeader('Access-Control-Allow-Origin', '*');
