@@ -478,18 +478,35 @@ export function useChromecast(): UseChromecastReturn {
 
       try {
         const mediaSession = await session.loadMedia(request);
-        mediaSessionRef.current = mediaSession;
 
+        // Sometimes loadMedia returns null but the media actually loads
+        // Try to get the session from the session object directly
         if (!mediaSession) {
-          console.error('[Chromecast] loadMedia returned null - the media could not be loaded');
-          throw new Error('Le média n\'a pas pu être chargé sur le Chromecast. Vérifiez que l\'URL est accessible.');
+          console.warn('[Chromecast] loadMedia returned null, trying to get session directly...');
+
+          // Wait a bit for the media to load
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
+          const retrievedSession = session.getMediaSession();
+          if (retrievedSession) {
+            console.log('[Chromecast] ✅ Successfully retrieved media session from session object');
+            mediaSessionRef.current = retrievedSession;
+          } else {
+            console.error('[Chromecast] ❌ Could not retrieve media session, but media might still be playing');
+            // Don't throw error if we can't get the session - the media might still play
+            // We just won't have controls
+            console.warn('[Chromecast] Continuing without media session controls');
+            return;
+          }
+        } else {
+          mediaSessionRef.current = mediaSession;
         }
 
-        console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType, 'Session:', mediaSession);
+        console.log('[Chromecast] Média chargé avec succès:', title, 'Type:', contentType, 'Session:', mediaSessionRef.current);
 
         // Écouter les erreurs de média si la session existe
-        if (mediaSession && typeof mediaSession.addUpdateListener === 'function') {
-          mediaSession.addUpdateListener((isAlive: boolean) => {
+        if (mediaSessionRef.current && typeof mediaSessionRef.current.addUpdateListener === 'function') {
+          mediaSessionRef.current.addUpdateListener((isAlive: boolean) => {
             if (!isAlive) {
               console.error('[Chromecast] La session média n\'est plus active');
             }
@@ -500,6 +517,15 @@ export function useChromecast(): UseChromecastReturn {
       } catch (loadError: any) {
         console.error('[Chromecast] Erreur loadMedia:', loadError);
         console.error('[Chromecast] URL qui a échoué:', finalMediaUrl);
+
+        // Try one more time to get the media session before giving up
+        const retrievedSession = session.getMediaSession();
+        if (retrievedSession) {
+          console.log('[Chromecast] ✅ Retrieved media session after error');
+          mediaSessionRef.current = retrievedSession;
+          return; // Don't throw error if we managed to get the session
+        }
+
         throw new Error(`Erreur de chargement Chromecast: ${loadError.message || 'Format non supporté ou URL inaccessible'}`);
       }
 
