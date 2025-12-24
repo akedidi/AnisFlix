@@ -336,7 +336,23 @@ struct MovieDetailView: View {
                                                                     .font(.title3)
                                                                 
                                                                 let providerIndex = (filteredSources.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
-                                                                Text("\(source.provider.capitalized) \(providerIndex)")
+                                                                
+                                                                // For Movix sources, show quality + language. For streaming sources, show provider + index
+                                                                let displayText: String
+                                                                if source.provider.lowercased() == "movix" {
+                                                                    let quality = formatQualityDisplay(source.quality)
+                                                                    let sameSources = filteredSources.filter { $0.provider == source.provider && formatQualityDisplay($0.quality) == quality }
+                                                                    if sameSources.count > 1 {
+                                                                        let qualityIndex = sameSources.firstIndex(where: { $0.url == source.url }) ?? 0
+                                                                        displayText = "\(quality) #\(qualityIndex + 1) (\(source.language))"
+                                                                    } else {
+                                                                        displayText = "\(quality) (\(source.language))"
+                                                                    }
+                                                                } else {
+                                                                    displayText = "\(source.provider.capitalized) \(providerIndex)"
+                                                                }
+                                                                
+                                                                Text(displayText)
                                                                     .font(.headline)
                                                                     .fontWeight(.medium)
                                                                     .foregroundColor(theme.primaryText)
@@ -653,6 +669,24 @@ struct MovieDetailView: View {
                 // Accept VO, English, or any source that isn't explicitly VF/VOSTFR
                 return !isVF && !isVOSTFR
             }
+        }
+    }
+    
+    // Helper to format quality display for Movix sources
+    private func formatQualityDisplay(_ quality: String) -> String {
+        let q = quality.uppercased()
+        if q.contains("4K") || q.contains("2160") {
+            return "4K"
+        } else if q.contains("1080") {
+            return "1080p"
+        } else if q.contains("720") {
+            return "720p"
+        } else if q.contains("480") {
+            return "480p"
+        } else if q.contains("360") {
+            return "360p"
+        } else {
+            return quality
         }
     }
 }
