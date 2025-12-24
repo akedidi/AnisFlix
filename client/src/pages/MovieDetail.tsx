@@ -16,7 +16,6 @@ import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useM
 import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
-import { useCpasmalSources } from "@/hooks/useCpasmalSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -60,8 +59,7 @@ export default function MovieDetail() {
     movie?.original_title
   );
 
-  // Fetch Cpasmal VF/VOSTFR sources
-  const { data: cpasmalSources, isLoading: isLoadingCpasmal } = useCpasmalSources('movie', movieId);
+  // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
 
 
   // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
@@ -212,22 +210,7 @@ export default function MovieDetail() {
   }));
 
   // Map Cpasmal sources
-  const cpasmalMappedSources = (cpasmalSources?.sources || []).map((source, index) => ({
-    id: `cpasmal-${source.server}-${index}`,
-    name: source.server?.toUpperCase() || 'Cpasmal',
-    provider: 'Cpasmal',
-    url: source.url,
-    type: 'embed' as const,
-    isFStream: false,
-    isMovixDownload: false,
-    isVidMoly: false,
-    isDarki: false,
-    isCpasmal: true,
-    quality: source.quality || 'HD',
-    language: source.language
-  }));
-
-  const allSources = [...cpasmalMappedSources, ...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB

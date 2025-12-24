@@ -206,7 +206,7 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
-        async let cpasmalSources = fetchCpasmalSources(tmdbId: movieId, type: "movie")
+        // fetchCpasmalSources removed
         
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
@@ -226,7 +226,7 @@ class StreamingService {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, cpasmal) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? cpasmalSources)
+        let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -234,14 +234,9 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
-        print("   - Cpasmal: \(cpasmal?.count ?? 0)")
         
         var allSources: [StreamingSource] = []
         
-        // Cpasmal first (prioritized)
-        if let cpasmal = cpasmal {
-            allSources.append(contentsOf: cpasmal)
-        }
         
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
@@ -263,7 +258,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "cpasmal" }
+        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -823,60 +818,8 @@ class StreamingService {
         }
     }
     
-    // MARK: - Cpasmal Sources
-    
-    func fetchCpasmalSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        print("🎬 [Cpasmal] Fetching sources for \(type) \(tmdbId)")
         
-        var urlString = "\(baseUrl)/api/movix-proxy?path=cpasmal&tmdbId=\(tmdbId)&type=\(type)"
-        if let season = season, let episode = episode {
-            urlString += "&season=\(season)&episode=\(episode)"
-        }
         
-        guard let url = URL(string: urlString) else {
-            print("❌ [Cpasmal] Invalid URL")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 15
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                print("❌ [Cpasmal] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-                return []
-            }
-            
-            let decoder = JSONDecoder()
-            let cpasmalResponse = try decoder.decode(CpasmalResponse.self, from: data)
-            
-            print("✅ [Cpasmal] Decoded response. Sources: \(cpasmalResponse.sources?.count ?? 0)")
-            
-            var sources: [StreamingSource] = []
-            
-            if let cpasmalSources = cpasmalResponse.sources {
-                for source in cpasmalSources {
-                    let streamSource = StreamingSource(
-                        url: source.url,
-                        quality: source.quality ?? "HD",
-                        type: "embed",
-                        provider: "cpasmal",
-                        language: source.language ?? "VF"
-                    )
-                    sources.append(streamSource)
-                }
-            }
-            
-            return sources
-        } catch {
-            print("❌ [Cpasmal] Error fetching/decoding: \(error)")
-            return []
-        }
-    }
-    
     // MARK: - Extractors
     
     func extractVidMoly(url: String) async throws -> String {
