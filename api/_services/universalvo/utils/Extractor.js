@@ -1,11 +1,16 @@
 import { extract_streamwish } from '../extractors/streamwish.js';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 import { extract_streamtape } from '../extractors/streamtape.js';
+import { extract_voe } from '../extractors/voe.js';
 
 const streamwish =
-    /(?:\/\/|\.)((…|ajmidyad|atabkhha|atabknha|atabknhk|atabknhs|abkrzkr|abkrzkz|vidmoviesb|kharabnahs|hayaatieadhab|cilootv|tuktukcinema|doodporn|ankrzkz|volvovideo|strmwis|ankrznm|yadmalik|khadhnayad|eghjrutf|eghzrutw|playembed|egsyxurh|egtpgrvh|uqloads|javsw|cinemathek|trgsfjll|fsdcmo|anime4low|mohahhda|ma2d|dancima|swhoi|gsfqzmqu|jodwish|swdyu|katomen|iplayerhls|hlsflast|4yftwvrdz7|ghbrisk)\.(?:com|to|sbs|pro|xyz|store|top|site|online|me|shop|fun))(?:\/e\/|\/f\/|\/d\/)?([0-9a-zA-Z$:\/.]+)/;
+    /(?:\/\/|\.)((?:…|ajmidyad|atabkhha|atabknha|atabknhk|atabknhs|abkrzkr|abkrzkz|vidmoviesb|kharabnahs|hayaatieadhab|cilootv|tuktukcinema|doodporn|ankrzkz|volvovideo|strmwis|ankrznm|yadmalik|khadhnayad|eghjrutf|eghzrutw|playembed|egsyxurh|egtpgrvh|uqloads|javsw|cinemathek|trgsfjll|fsdcmo|anime4low|mohahhda|ma2d|dancima|swhoi|gsfqzmqu|jodwish|swdyu|katomen|iplayerhls|hlsflast|4yftwvrdz7|ghbrisk)\.(?:com|to|sbs|pro|xyz|store|top|site|online|me|shop|fun))(?:\/e\/|\/f\/|\/d\/)?([0-9a-zA-Z$:\/.]+)/;
 const streamtape =
     /(?:\/\/|\.)((?:s(?:tr)?(?:eam|have)?|tapewith|watchadson)?(?:adblock(?:er|plus)?|antiad|noads)?(?:ta?p?e?|cloud)?(?:blocker|advertisement|adsenjoyer)?\.(?:com|cloud|net|pe|site|link|cc|online|fun|cash|to|xyz|org|wiki|club|tech))\/(?:e|v)\/([0-9a-zA-Z]+)/;
+
+// VOE patterns - matches voe.sx, ralphysuccessfull.org, and other VOE mirrors
+const voe =
+    /(?:\/\/|\.)((?:voe|ralphysuccessfull|voeunblk|voeunblock|voembed|voeplayer|markstreamz|lfrfrws|mfrfrws|tfrfrws)\.(?:sx|org|com|net|to|cc|tv|co))\/(?:e\/)?([0-9a-zA-Z]+)/;
 
 export async function extract(url, DOMAIN = '') {
     if (streamwish.test(url)) {
@@ -29,6 +34,16 @@ export async function extract(url, DOMAIN = '') {
             type: 'mp4',
             extractor: 'streamtape'
         };
+    } else if (voe.test(url)) {
+        let result = await extract_voe(url, DOMAIN);
+        if (result instanceof ErrorObject) {
+            return result;
+        }
+        return {
+            file: result,
+            type: 'hls',
+            extractor: 'voe'
+        };
     }
 
     // if (process.argv.includes('--debug')) {
@@ -45,3 +60,4 @@ export async function extract(url, DOMAIN = '') {
         true
     );
 }
+
