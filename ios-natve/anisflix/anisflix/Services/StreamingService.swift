@@ -625,7 +625,7 @@ class StreamingService {
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.timeoutInterval = 15
+        request.timeoutInterval = 30 // Increased to 30s to allow backend scraping time
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -743,7 +743,7 @@ class StreamingService {
         print("🌐 [AfterDark] Fetching URL: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 15
+        request.timeoutInterval = 30 // Increased to 30s
         
         // Add headers to mimic browser request
         request.setValue("application/json", forHTTPHeaderField: "Accept")
