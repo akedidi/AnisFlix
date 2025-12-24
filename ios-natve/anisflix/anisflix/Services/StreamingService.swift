@@ -184,10 +184,13 @@ class StreamingService {
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         
+        print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
+        
         // Fetch TMDB info for AfterDark (needs title and year)
         let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
         var afterDarkSources: [StreamingSource] = []
         if let title = tmdbInfo?.title, let year = tmdbInfo?.year {
+            print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(year))")
             afterDarkSources = (try? await fetchAfterDarkSources(
                 tmdbId: movieId,
                 type: "movie",
@@ -195,9 +198,18 @@ class StreamingService {
                 year: year,
                 originalTitle: tmdbInfo?.originalTitle
             )) ?? []
+        } else {
+             print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
         let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
+        
+        print("📊 [StreamingService] Sources fetched:")
+        print("   - TMDB: \(tmdb?.count ?? 0)")
+        print("   - FStream: \(fstream?.count ?? 0)")
+        print("   - Vixsrc: \(vixsrc?.count ?? 0)")
+        print("   - UniversalVO: \(universalVO?.count ?? 0)")
+        print("   - AfterDark: \(afterDarkSources.count)")
         
         var allSources: [StreamingSource] = []
         
@@ -311,10 +323,13 @@ class StreamingService {
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
+        print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
+
         // Fetch TMDB info for AfterDark (needs title)
         let tmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
         var afterDarkSources: [StreamingSource] = []
         if let title = tmdbInfo?.title {
+            print("ℹ️ [StreamingService] TMDB Info found: \(title)")
             afterDarkSources = (try? await fetchAfterDarkSources(
                 tmdbId: seriesId,
                 type: "tv",
@@ -323,9 +338,18 @@ class StreamingService {
                 season: season,
                 episode: episode
             )) ?? []
+        } else {
+            print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
         let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
+        
+        print("📊 [StreamingService] Series Sources fetched:")
+        print("   - TMDB: \(tmdb?.count ?? 0)")
+        print("   - FStream: \(fstream?.count ?? 0)")
+        print("   - Vixsrc: \(vixsrc?.count ?? 0)")
+        print("   - UniversalVO: \(universalVO?.count ?? 0)")
+        print("   - AfterDark: \(afterDarkSources.count)")
         
         var allSources: [StreamingSource] = []
         
@@ -573,40 +597,6 @@ class StreamingService {
                 sources.append(source)
             }
         }
-        
-        return sources
-    }
-    
-    func fetchUniversalVOSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/movix-proxy?path=universalvo&tmdbId=\(tmdbId)&type=\(type)"
-        if let season = season {
-            urlString += "&season=\(season)"
-        }
-        if let episode = episode {
-            urlString += "&episode=\(episode)"
-        }
-        
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 15
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        
-        let decoded = try JSONDecoder().decode(UniversalVOResponse.self, from: data)
-        var sources: [StreamingSource] = []
-        
-        if let files = decoded.files {
-            for file in files {
-                let provider = file.provider?.lowercased() ?? file.extractor?.lowercased() ?? "unknown"
-                let normalizedProvider: String
-                
-                if provider.contains("primewire") || provider.contains("streamtape") {
                     normalizedProvider = "primewire"
                 } else if provider.contains("2embed") || provider.contains("twoembed") {
                     normalizedProvider = "2embed"
@@ -696,6 +686,9 @@ class StreamingService {
             throw URLError(.badURL)
         }
         
+        
+        print("🌐 [AfterDark] Fetching URL: \(url.absoluteString)")
+        
         var request = URLRequest(url: url)
         request.timeoutInterval = 15
         
@@ -703,18 +696,22 @@ class StreamingService {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
         
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        
-        let decoder = JSONDecoder()
-        let afterdarkResponse = try decoder.decode(AfterDarkResponse.self, from: data)
-        
-        var sources: [StreamingSource] = []
-        
-        if let afterdarkSources = afterdarkResponse.sources {
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                 print("❌ [AfterDark] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                throw URLError(.badServerResponse)
+            }
+            
+            let decoder = JSONDecoder()
+            let afterdarkResponse = try decoder.decode(AfterDarkResponse.self, from: data)
+            
+            print("✅ [AfterDark] Decoded response. Sources: \(afterdarkResponse.sources?.count ?? 0)")
+            
+            var sources: [StreamingSource] = []
+            
+            if let afterdarkSources = afterdarkResponse.sources {
             for source in afterdarkSources {
                 // Filter out proxied links
                 if source.proxied != false {
