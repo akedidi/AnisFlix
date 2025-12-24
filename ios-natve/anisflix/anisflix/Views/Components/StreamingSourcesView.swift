@@ -57,7 +57,8 @@ struct StreamingSourcesView: View {
                                             HStack {
                                                 Image(systemName: "play.circle.fill")
                                                     .foregroundColor(AppTheme.primaryRed)
-                                                Text(source.quality)
+                                                // Display quality with provider-specific formatting
+                                                Text(displayQuality(for: source))
                                                     .font(.subheadline.bold())
                                                     .foregroundColor(theme.primaryText)
                                             }
@@ -86,6 +87,35 @@ struct StreamingSourcesView: View {
             }
         }
         .padding(.vertical)
+    }
+    
+    // Helper function to format quality display based on provider
+    private func displayQuality(for source: StreamingSource) -> String {
+        let streamingProviders = ["vidzy", "vidmoly", "vixsrc", "primewire", "2embed", "afterdark"]
+        
+        if streamingProviders.contains(source.provider.lowercased()) {
+            // For streaming providers, show HD as default
+            return "HD"
+        } else if source.provider.lowercased() == "movix" {
+            // For Movix download sources, show actual quality (4K, 1080p, 360p, etc.)
+            let quality = source.quality.uppercased()
+            if quality.contains("4K") || quality.contains("2160") {
+                return "4K"
+            } else if quality.contains("1080") {
+                return "1080p"
+            } else if quality.contains("720") {
+                return "720p"
+            } else if quality.contains("480") {
+                return "480p"
+            } else if quality.contains("360") {
+                return "360p"
+            } else {
+                return source.quality
+            }
+        } else {
+            // Fallback to original quality
+            return source.quality
+        }
     }
 }
 
