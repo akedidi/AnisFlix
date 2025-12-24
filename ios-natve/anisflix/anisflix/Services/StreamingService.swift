@@ -597,43 +597,91 @@ class StreamingService {
                 sources.append(source)
             }
         }
-                    normalizedProvider = "primewire"
-                } else if provider.contains("2embed") || provider.contains("twoembed") {
-                    normalizedProvider = "2embed"
-                } else {
-                    normalizedProvider = provider
-                }
-                
-                let quality = file.quality ?? "HD"
-                let language: String
-                
-                // Map language codes
-                if let lang = file.lang {
-                    if lang.lowercased().contains("fr") || lang.lowercased().contains("vf") {
-                        language = "VF"
-                    } else if lang.lowercased().contains("vostfr") {
-                        language = "VOSTFR"
-                    } else if lang.lowercased().contains("en") || lang.lowercased().contains("vo") {
-                        language = "VO"
-                    } else {
-                        language = "VO" // Default
-                    }
-                } else {
-                    language = "VO" // Default for UniversalVO
-                }
-                
-                let source = StreamingSource(
-                    url: file.file,
-                    quality: quality,
-                    type: file.type,
-                    provider: normalizedProvider,
-                    language: language
-                )
-                sources.append(source)
-            }
-        }
         
         return sources
+    }
+    
+
+    func fetchUniversalVOSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=universalvo&tmdbId=\(tmdbId)&type=\(type)"
+        if let season = season {
+            urlString += "&season=\(season)"
+        }
+        if let episode = episode {
+            urlString += "&episode=\(episode)"
+        }
+        
+        print("🌐 [UniversalVO] Fetching URL: \(urlString)")
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ [UniversalVO] Invalid URL")
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 15
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                print("❌ [UniversalVO] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                throw URLError(.badServerResponse)
+            }
+            
+            let decoded = try JSONDecoder().decode(UniversalVOResponse.self, from: data)
+            print("✅ [UniversalVO] Decoded response. Sources count: \(decoded.files?.count ?? 0)")
+            
+            var sources: [StreamingSource] = []
+            
+            if let files = decoded.files {
+                for file in files {
+                    let provider = file.provider?.lowercased() ?? file.extractor?.lowercased() ?? "unknown"
+                    let normalizedProvider: String
+                    
+                    if provider.contains("primewire") || provider.contains("streamtape") {
+                        normalizedProvider = "primewire"
+                    } else if provider.contains("2embed") || provider.contains("twoembed") {
+                        normalizedProvider = "2embed"
+                    } else {
+                        normalizedProvider = provider
+                    }
+                    
+                    let quality = file.quality ?? "HD"
+                    let language: String
+                    
+                    // Map language codes
+                    if let lang = file.lang {
+                        if lang.lowercased().contains("fr") || lang.lowercased().contains("vf") {
+                            language = "VF"
+                        } else if lang.lowercased().contains("vostfr") {
+                            language = "VOSTFR"
+                        } else if lang.lowercased().contains("en") || lang.lowercased().contains("vo") {
+                            language = "VO"
+                        } else {
+                            language = "VO" // Default
+                        }
+                    } else {
+                        language = "VO" // Default for UniversalVO
+                    }
+                    
+                    let source = StreamingSource(
+                        url: file.file,
+                        quality: quality,
+                        type: file.type,
+                        provider: normalizedProvider,
+                        language: language
+                    )
+                    sources.append(source)
+                }
+            }
+            
+            return sources
+        } catch {
+             print("❌ [UniversalVO] Error fetching/decoding: \(error)")
+             return []
+        }
     }
     
     
@@ -737,7 +785,11 @@ class StreamingService {
             }
         }
         
-        return sources
+            return sources
+        } catch {
+            print("❌ [AfterDark] Error fetching/decoding: \(error)")
+            return []
+        }
     }
     
     // MARK: - Extractors
