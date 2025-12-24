@@ -1113,8 +1113,9 @@ class StreamingService {
         }
         
         // Find matching result by TMDB ID and type
+        // Note: Movix API returns 'series' for TV shows, while we use 'tv'
         let matchingResult = results.first { result in
-            result.tmdb_id == tmdbId && result.type == type
+            result.tmdb_id == tmdbId && (result.type == type || (type == "tv" && result.type == "series"))
         }
         
         if let match = matchingResult {
