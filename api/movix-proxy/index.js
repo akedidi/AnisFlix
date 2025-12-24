@@ -163,10 +163,17 @@ class VixSrcScraper {
 
       const { masterPlaylistUrl, subtitleApiUrl } = streamData;
 
+      // Wrap URL in proxy to fix CORS/403 issues (matches iOS implementation)
+      // Use encodeURIComponent for the nested URL
+      // Base URL depends on environment (Vercel or localhost)
+      const appBaseUrl = process.env.PUBLIC_SITE_URL || 'https://anisflix.vercel.app';
+      const proxyUrl = `${appBaseUrl}/api/vixsrc-proxy?url=${encodeURIComponent(masterPlaylistUrl)}`;
+
       return [{
         name: "Vixsrc",
         title: "Auto Quality Stream",
-        url: masterPlaylistUrl,
+        url: proxyUrl,
+        originalUrl: masterPlaylistUrl,
         quality: 'Auto',
         type: 'm3u8',
         headers: {
