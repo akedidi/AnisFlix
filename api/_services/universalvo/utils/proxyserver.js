@@ -85,7 +85,8 @@ export function processApiResponse(apiResponse, serverUrl) {
                     `[HLS Proxy Replacement] M3U8 Origin: ${m3u8Origin}`
                 );
 
-                const proxyHeaders = {
+                // Use headers from the file object if available, otherwise construct them
+                const proxyHeaders = file.headers || {
                     Referer: m3u8Origin,
                     Origin: m3u8Origin
                 };
