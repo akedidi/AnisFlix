@@ -1170,7 +1170,8 @@ class StreamingService {
                     quality: source.quality ?? "HD",
                     type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
                     provider: "movix",
-                    language: source.language ?? "VF"
+                    // Convert "Multi" to "VF" as Multi sources are actually French
+                    language: (source.language?.lowercased().contains("multi") == true) ? "VF" : (source.language ?? "VF")
                 )
                 sources.append(streamingSource)
             }

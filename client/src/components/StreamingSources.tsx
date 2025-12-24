@@ -427,7 +427,9 @@ const StreamingSources = memo(function StreamingSources({
     // Ajouter les sources groupées par qualité
     Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
       sources.forEach((source: any, index: number) => {
-        const languageLabel = source.language === 'MULTI' ? 'Multi' :
+        // Convert MULTI to VF as Multi sources are actually French
+        const isMulti = source.language === 'MULTI' || source.language?.toLowerCase() === 'multi';
+        const languageLabel = isMulti ? 'VF' :
           source.language === 'FRE' ? 'Français' :
             source.language === 'ENG' ? 'Anglais' : source.language;
 
@@ -436,7 +438,7 @@ const StreamingSources = memo(function StreamingSources({
 
         // Modifier l'URL pour forcer les sous-titres français
         let modifiedUrl = source.m3u8;
-        if (source.language === 'MULTI' || source.language === 'FRE') {
+        if (isMulti || source.language === 'FRE') {
           // Ajouter le paramètre pour forcer les sous-titres français
           const url = new URL(source.m3u8);
           url.searchParams.set('subtitle', 'fr');
@@ -451,7 +453,8 @@ const StreamingSources = memo(function StreamingSources({
           type: 'm3u8' as const,
           isMovixDownload: true,
           quality: quality,
-          language: source.language
+          // Store as VF for Multi sources
+          language: isMulti ? 'VF' : source.language
         });
       });
     });
