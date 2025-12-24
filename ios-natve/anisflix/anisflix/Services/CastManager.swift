@@ -27,9 +27,54 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     private var currentMediaId: Int?
     private var currentSeason: Int?
     private var currentEpisode: Int?
+    private var lastSavedTime: TimeInterval = 0
     
     override init() {
         super.init()
+        setupLifecycleObservers()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    private func setupLifecycleObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appWillTerminate),
+            name: UIApplication.willTerminateNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func appWillResignActive() {
+        print("📢 [CastManager] App going to background, saving progress...")
+        saveCurrentProgress()
+    }
+    
+    @objc private func appDidBecomeActive() {
+        print("📢 [CastManager] App returning to foreground")
+        // Restart timer if casting is active
+        if isConnected, let status = mediaStatus, status.playerState == .playing {
+            startProgressTracking()
+        }
+    }
+    
+    @objc private func appWillTerminate() {
+        print("📢 [CastManager] App terminating, saving final progress...")
+        saveCurrentProgress()
     }
     
     func initialize() {
@@ -279,10 +324,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         if let status = mediaStatus {
             print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue)")
             
+            // Always save progress on status update (works in background too)
+            saveCurrentProgress()
+            
             if status.playerState == .playing {
                 startProgressTracking()
             } else {
-                saveCurrentProgress() // Save one last time before pause/stop
                 if status.playerState != .buffering {
                      stopProgressTracking()
                 }
@@ -294,10 +341,13 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     private func startProgressTracking() {
         if progressTimer == nil {
-            print("⏱️ [CastManager] Starting progress tracking")
-            progressTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            print("⏱️ [CastManager] Starting progress tracking (background-safe)")
+            let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
                 self?.saveCurrentProgress()
             }
+            // Add to common RunLoop mode so it works in background
+            RunLoop.current.add(timer, forMode: .common)
+            progressTimer = timer
         }
     }
     
@@ -317,8 +367,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         let currentTime = remoteMediaClient.approximateStreamPosition()
         let duration = remoteMediaClient.mediaStatus?.mediaInformation?.streamDuration ?? 0
         
-        if currentTime > 0 && duration > 0 {
-             WatchProgressManager.shared.saveProgress(
+        // Debounce: only save if time changed by at least 2 seconds
+        if currentTime > 0 && duration > 0 && abs(currentTime - lastSavedTime) >= 2.0 {
+            lastSavedTime = currentTime
+            WatchProgressManager.shared.saveProgress(
                 mediaId: mediaId,
                 season: currentSeason,
                 episode: currentEpisode,
