@@ -945,8 +945,17 @@ const StreamingSources = memo(function StreamingSources({
           language: source.language
         });
       } else if (source.isVixsrc) {
-        console.log('✅ Source Vixsrc détectée, extraction du lien direct...');
-
+        console.log('✅ Source Vixsrc détectée, URL:', source.url);
+        // L'URL est déjà proxifiée par le serveur (via api/movix-proxy/index.js)
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const,
+          name: source.name,
+          quality: source.quality,
+          language: source.language,
+          isVixsrc: true
+        });
+        /* REMOVED MANUAL FETCH
         try {
           // Use the same API as iOS - GET /api/vixsrc with query params
           const params = new URLSearchParams({
@@ -993,7 +1002,7 @@ const StreamingSources = memo(function StreamingSources({
             newSet.delete(source.id);
             return newSet;
           });
-        }
+        } */
 
 
       } else if (source.url) {
