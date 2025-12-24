@@ -320,6 +320,12 @@ export default async function handler(req, res) {
         const sources = [];
         if (response.data && Array.isArray(response.data)) {
           for (const item of response.data) {
+            // Filtrer uniquement les liens non-proxifiés
+            if (item.proxied !== false) {
+              console.log(`🌙 [AfterDark] Skipping proxied link: ${item.url || item.link}`);
+              continue;
+            }
+
             // AfterDark retourne 'kind' au lieu de 'type'
             const streamType = item.kind || (item.url?.includes('.m3u8') ? 'hls' : 'mp4');
 
