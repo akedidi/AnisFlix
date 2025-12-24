@@ -222,20 +222,20 @@ class StreamingService {
             allSources.append(contentsOf: tmdb)
         }
         
-        if let fstream = fstream {
-            allSources.append(contentsOf: fstream)
-        }
-        
-        if let vixsrc = vixsrc {
-            allSources.append(contentsOf: vixsrc)
-        }
-        
         if let universalVO = universalVO {
             allSources.append(contentsOf: universalVO)
         }
         
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
+        
+        if let vixsrc = vixsrc {
+            allSources.append(contentsOf: vixsrc)
+        }
+        
+        if let fstream = fstream {
+            allSources.append(contentsOf: fstream)
+        }
         
         // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
         return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider ==  "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }
@@ -362,20 +362,20 @@ class StreamingService {
             allSources.append(contentsOf: tmdb)
         }
         
-        if let fstream = fstream {
-            allSources.append(contentsOf: fstream)
-        }
-        
-        if let vixsrc = vixsrc {
-            allSources.append(contentsOf: vixsrc)
-        }
-        
         if let universalVO = universalVO {
             allSources.append(contentsOf: universalVO)
         }
         
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
+        
+        if let vixsrc = vixsrc {
+            allSources.append(contentsOf: vixsrc)
+        }
+        
+        if let fstream = fstream {
+            allSources.append(contentsOf: fstream)
+        }
         
         // Filter for Vidzy, Vixsrc, UniversalVO, and AfterDark providers
         return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" }

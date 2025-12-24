@@ -745,7 +745,9 @@ struct SeriesDetailView: View {
                                                 .foregroundColor(AppTheme.primaryRed)
                                                 .font(.title3)
                                             
-                                            Text("\(source.provider.capitalized) \(index + 1)")
+                                            let filtered = filterSources(episodeSources, language: theme.preferredSourceLanguage)
+                                            let providerIndex = (filtered.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
+                                            Text("\(source.provider.capitalized) \(providerIndex)")
                                                 .font(.headline)
                                                 .fontWeight(.medium)
                                                 .foregroundColor(theme.primaryText)

@@ -315,16 +315,9 @@ struct MovieDetailView: View {
                                     
                                     // Sources List (Line by Line)
                                     if !showPlayer {
-                                        if sources.filter({ source in
-                                            if theme.preferredSourceLanguage == "VF" {
-                                                return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                            } else if theme.preferredSourceLanguage == "VOSTFR" {
-                                                return source.language.lowercased().contains("vostfr")
-                                            } else {
-                                                // Allow all providers for VO
-                                                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
-                                            }
-                                        }).isEmpty {
+                                        let filteredSources = filterSources(sources, language: theme.preferredSourceLanguage)
+                                        
+                                        if filteredSources.isEmpty {
                                             Text("\(theme.t("detail.noSourcesFor")) \(theme.preferredSourceLanguage)")
                                                 .foregroundColor(theme.secondaryText)
                                                 .font(.subheadline)
@@ -332,16 +325,7 @@ struct MovieDetailView: View {
                                                 .padding(.vertical, 20)
                                         } else {
                                             VStack(spacing: 8) {
-                                                ForEach(Array(sources.filter({ source in
-                                                    if theme.preferredSourceLanguage == "VF" {
-                                                        return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                                    } else if theme.preferredSourceLanguage == "VOSTFR" {
-                                                        return source.language.lowercased().contains("vostfr")
-                                                    } else {
-                                                        // Allow all providers for VO
-                                                        return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
-                                                    }
-                                                }).enumerated()), id: \.element.id) { index, source in
+                                                ForEach(Array(filteredSources.enumerated()), id: \.element.id) { index, source in
                                                     HStack(spacing: 8) {
                                                         Button(action: {
                                                             playSource(source)
@@ -351,7 +335,8 @@ struct MovieDetailView: View {
                                                                     .foregroundColor(AppTheme.primaryRed)
                                                                     .font(.title3)
                                                                 
-                                                                Text("\(source.provider.capitalized) \(index + 1)")
+                                                                let providerIndex = (filteredSources.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
+                                                                Text("\(source.provider.capitalized) \(providerIndex)")
                                                                     .font(.headline)
                                                                     .fontWeight(.medium)
                                                                     .foregroundColor(theme.primaryText)
@@ -651,6 +636,20 @@ struct MovieDetailView: View {
             originalLanguage: nil,
             releaseDate: movie.releaseDate
         )
+    }
+    
+    // Helper to filter sources by language
+    private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
+        return sources.filter { source in
+            if language == "VF" {
+                return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
+            } else if language == "VOSTFR" {
+                return source.language.lowercased().contains("vostfr")
+            } else {
+                // Allow all providers for VO
+                return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
+            }
+        }
     }
 }
 
