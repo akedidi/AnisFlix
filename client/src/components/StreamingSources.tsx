@@ -950,7 +950,7 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingDarkibox || isLoadingDarki || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
