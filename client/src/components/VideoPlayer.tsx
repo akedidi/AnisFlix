@@ -691,7 +691,8 @@ export default function VideoPlayer({
             }
           }}
           preload="auto"
-          crossOrigin="anonymous"
+          preload="auto"
+          crossOrigin={type === 'm3u8' ? "anonymous" : undefined}
           referrerPolicy="no-referrer"
           data-testid="video-player-main"
           {...(isNativePlatform() && {
