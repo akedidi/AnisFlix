@@ -649,6 +649,26 @@ struct SeriesDetailView: View {
             return quality
         }
     }
+    
+    // Helper to build source display text (extracted to simplify view builder)
+    private func getSourceDisplayText(source: StreamingSource, filteredSources: [StreamingSource]) -> String {
+        let providerIndex = (filteredSources.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
+        
+        // For Movix/Darkibox sources, show quality + language
+        if source.provider.lowercased() == "movix" || source.provider.lowercased() == "darkibox" {
+            let quality = formatQualityDisplay(source.quality)
+            let sameSources = filteredSources.filter { $0.provider == source.provider && formatQualityDisplay($0.quality) == quality }
+            if sameSources.count > 1 {
+                let qualityIndex = sameSources.firstIndex(where: { $0.url == source.url }) ?? 0
+                return "\(quality) #\(qualityIndex + 1) (\(source.language))"
+            } else {
+                return "\(quality) (\(source.language))"
+            }
+        } else {
+            // For streaming sources, show provider + index
+            return "\(source.provider.capitalized) \(providerIndex)"
+        }
+    }
     @ViewBuilder
     private func sourcesView(for episode: Episode) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -767,23 +787,7 @@ struct SeriesDetailView: View {
                                                 .foregroundColor(AppTheme.primaryRed)
                                                 .font(.title3)
                                             
-                                            let filtered = filterSources(episodeSources, language: theme.preferredSourceLanguage)
-                                            let providerIndex = (filtered.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
-                                            
-                                            // For Movix sources, show quality + language. For streaming sources, show provider + index
-                                            let displayText: String
-                                            if source.provider.lowercased() == "movix" {
-                                                let quality = formatQualityDisplay(source.quality)
-                                                let sameSources = filtered.filter { $0.provider == source.provider && formatQualityDisplay($0.quality) == quality }
-                                                if sameSources.count > 1 {
-                                                    let qualityIndex = sameSources.firstIndex(where: { $0.url == source.url }) ?? 0
-                                                    displayText = "\(quality) #\(qualityIndex + 1) (\(source.language))"
-                                                } else {
-                                                    displayText = "\(quality) (\(source.language))"
-                                                }
-                                            } else {
-                                                displayText = "\(source.provider.capitalized) \(providerIndex)"
-                                            }
+                                            let displayText = getSourceDisplayText(source: source, filteredSources: filterSources(episodeSources, language: theme.preferredSourceLanguage))
                                             
                                             Text(displayText)
                                                 .font(.headline)
