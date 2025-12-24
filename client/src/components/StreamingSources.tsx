@@ -234,8 +234,6 @@ const StreamingSources = memo(function StreamingSources({
       movixDownloadData: !!movixDownloadData,
       vidmolyData: !!vidmolyData,
       fStreamData: !!fStreamData,
-      darkiboxData: !!darkiboxData,
-      darkiData: !!darkiData,
       animeVidMolyData: !!animeVidMolyData,
       isLoadingAnimeVidMoly,
       vixsrcData
@@ -275,18 +273,7 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
 
-    // Vérifier Darki (pour les séries uniquement)
-    if (type === 'tv' && darkiData && darkiData.sources) {
-      const hasVFSources = darkiData.sources.some(source =>
-        source.language === 'TrueFrench' || source.language === 'MULTI'
-      );
-      const hasVOSTFRSources = darkiData.sources.some(source =>
-        source.language === 'MULTI' // MULTI peut contenir VOSTFR
-      );
 
-      if (language === 'VF' && hasVFSources) return true;
-      if (language === 'VOSTFR' && hasVOSTFRSources) return true;
-    }
 
     // Vérifier FStream
     if (fStreamData && fStreamData.players) {
