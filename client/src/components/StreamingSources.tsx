@@ -993,6 +993,15 @@ const StreamingSources = memo(function StreamingSources({
         }
 
 
+      } else if (source.url) {
+        console.log('✅ Source générique détectée (UniversalVO/Autre)');
+        // Pour les sources génériques avec URL (UniversalVO, PrimeWire, etc.)
+        onSourceClick({
+          url: source.url,
+          type: source.type || 'mp4',
+          name: source.name,
+          language: source.language
+        });
       } else {
         console.log('❌ Type de source non reconnu:', source);
       }
