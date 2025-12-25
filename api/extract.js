@@ -114,21 +114,23 @@ async function extractVidMoly(url) {
   console.log(`[VIDMOLY] Extracting from: ${url}`);
 
   const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
+  console.log(`[VIDMOLY] Normalized URL: ${normalizedUrl}`);
 
   // Try with CORS proxy first
   try {
+    console.log(`[VIDMOLY] Trying CORS proxy...`);
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
     const response = await axios.get(proxyUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      timeout: 8000
+      timeout: 15000
     });
 
     const html = response.data.contents;
 
     const patterns = [
-      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/,
-      /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
-      /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
+      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*[\"']([^\"']+)[\"']/,
+      /sources:\s*\[\s*\{\s*file:\s*\"([^\"]+)\"\s*\}/,
+      /https?:\/\/[^\"'\s]+\.m3u8[^\"'\s]*/
     ];
 
     for (const pattern of patterns) {
@@ -138,26 +140,30 @@ async function extractVidMoly(url) {
         if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
           rawUrl = rawUrl.replace(/,/g, '');
         }
-        console.log("[VIDMOLY] Found:", rawUrl);
+        console.log("[VIDMOLY] Found via CORS proxy:", rawUrl);
         return rawUrl;
       }
     }
+
+    console.log("[VIDMOLY] CORS proxy succeeded but no m3u8 found in response");
   } catch (error) {
     console.log("[VIDMOLY] CORS proxy failed:", error.message);
+    console.log("[VIDMOLY] Error details:", error.response?.status, error.response?.statusText);
   }
 
   // Fallback: Direct request
   try {
+    console.log(`[VIDMOLY] Trying direct request...`);
     const response = await axios.get(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Referer': 'https://vidmoly.net/'
       },
-      timeout: 5000
+      timeout: 10000
     });
 
     const html = response.data;
-    const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
+    const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*[\"']([^\"']+)[\"']/);
     if (match) {
       let rawUrl = match[1].trim();
       if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
@@ -166,11 +172,14 @@ async function extractVidMoly(url) {
       console.log("[VIDMOLY] Found via fallback:", rawUrl);
       return rawUrl;
     }
+
+    console.log("[VIDMOLY] Fallback succeeded but no m3u8 found");
   } catch (error) {
     console.log("[VIDMOLY] Fallback failed:", error.message);
+    console.log("[VIDMOLY] Error details:", error.response?.status, error.response?.statusText);
   }
 
-  throw new Error('No m3u8 URL found in VidMoly page');
+  throw new Error('Could not extract m3u8 URL from VidMoly. The page structure may have changed or the video is unavailable.');
 }
 
 // ==================== DARKIBOX EXTRACTOR ====================
