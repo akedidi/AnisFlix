@@ -174,7 +174,7 @@ export const useSeasonDetails = (seriesId: number, seasonNumber: number) => {
   return useQuery({
     queryKey: ["series", seriesId, "season", seasonNumber],
     queryFn: () => tmdb.getSeasonDetails(seriesId, seasonNumber),
-    enabled: !!seriesId && !!seasonNumber,
+    enabled: !!seriesId && seasonNumber !== undefined && seasonNumber !== null,
     ...CACHE_OPTIONS,
   });
 };
