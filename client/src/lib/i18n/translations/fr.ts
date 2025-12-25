@@ -263,6 +263,12 @@ export default {
   "platform.disney": "Disney+",
   "platform.hboMax": "HBO Max",
   "platform.crunchyroll": "Crunchyroll",
+  "platform.canal": "Canal+",
+  "platform.adn": "ADN",
+  "platform.arte": "Arte",
+  "platform.mubi": "MUBI",
+  "platform.tf1": "TF1+",
+  "platform.m6": "M6+",
 
   // 404 page
   "notFound.title": "404 Page Not Found",

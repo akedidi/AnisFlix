@@ -59,8 +59,32 @@ export default function Home() {
   const { data: amazonMoviesData } = useMoviesByProvider(9);
   const { data: hboMaxSeriesData } = useSeriesByProvider(384);
   const { data: hboMaxMoviesData } = useMoviesByProvider(384);
-  const { data: crunchyrollSeriesData } = useSeriesByProvider(283);
+  const {
+    data: crunchyrollSeriesData,
+    isLoading: isLoadingCrunchyrollSeries,
+    isError: isErrorCrunchyrollSeries,
+  } = useSeriesByProvider(283);
   const { data: crunchyrollMoviesData } = useMoviesByProvider(283);
+
+  // New Providers Hooks
+  const { data: canalMoviesData } = useMoviesByProvider(381);
+  const { data: canalSeriesData } = useSeriesByProvider(381);
+
+  const { data: adnMoviesData } = useMoviesByProvider(415);
+  const { data: adnSeriesData } = useSeriesByProvider(415);
+
+  const { data: arteMoviesData } = useMoviesByProvider(234);
+  const { data: arteSeriesData } = useSeriesByProvider(234);
+
+  const { data: mubiMoviesData } = useMoviesByProvider(11);
+  // MUBI is mostly movies, checking series just in case
+  const { data: mubiSeriesData } = useSeriesByProvider(11);
+
+  const { data: tf1MoviesData } = useMoviesByProvider(1754);
+  const { data: tf1SeriesData } = useSeriesByProvider(1754);
+
+  const { data: m6MoviesData } = useMoviesByProvider(147);
+  const { data: m6SeriesData } = useSeriesByProvider(147);
   const { data: disneyMoviesData } = useMoviesByProvider(337);
   const { data: disneySeriesData } = useSeriesByProvider(337);
   const { data: appleTvMoviesData } = useMoviesByProvider(350);
@@ -73,11 +97,23 @@ export default function Home() {
   const hboMaxSeries = hboMaxSeriesData?.results || [];
   const hboMaxMovies = hboMaxMoviesData?.results || [];
   const crunchyrollSeries = crunchyrollSeriesData?.results || [];
-  const crunchyrollMovies = crunchyrollMoviesData?.results || [];
+  const crunchyrollMovies = crunchyrollMoviesData?.results || []; // This hook was not in the original, but is implied by the carousel
   const disneyMovies = disneyMoviesData?.results || [];
   const disneySeries = disneySeriesData?.results || [];
   const appleTvMovies = appleTvMoviesData?.results || [];
   const appleTvSeries = appleTvSeriesData?.results || [];
+  const canalMovies = canalMoviesData?.results || [];
+  const canalSeries = canalSeriesData?.results || [];
+  const adnMovies = adnMoviesData?.results || [];
+  const adnSeries = adnSeriesData?.results || [];
+  const arteMovies = arteMoviesData?.results || [];
+  const arteSeries = arteSeriesData?.results || [];
+  const mubiMovies = mubiMoviesData?.results || [];
+  const mubiSeries = mubiSeriesData?.results || [];
+  const tf1Movies = tf1MoviesData?.results || [];
+  const tf1Series = tf1SeriesData?.results || [];
+  const m6Movies = m6MoviesData?.results || [];
+  const m6Series = m6SeriesData?.results || [];
 
   // Listen to language changes
   useEffect(() => {
@@ -104,7 +140,13 @@ export default function Home() {
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
     { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
+    { id: 381, name: "Canal+", logoPath: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg" },
     { id: 283, name: "Crunchyroll", logoPath: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg" },
+    { id: 415, name: "ADN", logoPath: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg" },
+    { id: 234, name: "Arte", logoPath: "/vPZrjHe7wvALuwJEXT2kwYLi0gV.jpg" },
+    { id: 11, name: "MUBI", logoPath: "/x570VpH2C9EKDf1riP83rYc5dnL.jpg" },
+    { id: 1754, name: "TF1+", logoPath: "/blrBF9R2ONYu04ifGkYEb3k779N.jpg" },
+    { id: 147, name: "M6+", logoPath: "/tmYzlEKeiWStvXwC1QdpXIASpN4.jpg" },
   ];
 
   // Charger la progression réelle depuis localStorage
@@ -412,6 +454,127 @@ export default function Home() {
                 items={crunchyrollSeries.slice(0, 10)}
                 onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
                 showSeeAllButton={true}
+                seeAllLink="/provider/283/series"
+              />
+            )}
+
+            {/* Canal+ */}
+            {canalMovies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.canal")} - ${t("home.latestMovies")}`}
+                items={canalMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/381/movies"
+              />
+            )}
+            {canalSeries.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.canal")} - ${t("home.latestSeries")}`}
+                items={canalSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/381/series"
+              />
+            )}
+
+            {/* ADN */}
+            {adnMovies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.adn")} - ${t("home.latestMovies")}`}
+                items={adnMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/415/movies"
+              />
+            )}
+            {adnSeries.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.adn")} - ${t("home.latestSeries")}`}
+                items={adnSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/415/series"
+              />
+            )}
+
+            {/* Arte */}
+            {arteMovies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.arte")} - ${t("home.latestMovies")}`}
+                items={arteMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/234/movies"
+              />
+            )}
+            {arteSeries.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.arte")} - ${t("home.latestSeries")}`}
+                items={arteSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/234/series"
+              />
+            )}
+
+            {/* MUBI */}
+            {mubiMovies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.mubi")} - ${t("home.latestMovies")}`}
+                items={mubiMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/11/movies"
+              />
+            )}
+            {mubiSeries.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.mubi")} - ${t("home.latestSeries")}`}
+                items={mubiSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/11/series"
+              />
+            )}
+
+            {/* TF1+ */}
+            {tf1Movies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.tf1")} - ${t("home.latestMovies")}`}
+                items={tf1Movies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/1754/movies"
+              />
+            )}
+            {tf1Series.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.tf1")} - ${t("home.latestSeries")}`}
+                items={tf1Series.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/1754/series"
+              />
+            )}
+
+            {/* M6+ */}
+            {m6Movies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.m6")} - ${t("home.latestMovies")}`}
+                items={m6Movies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/147/movies"
+              />
+            )}
+            {m6Series.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.m6")} - ${t("home.latestSeries")}`}
+                items={m6Series.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/147/series"
               />
             )}
           </div>

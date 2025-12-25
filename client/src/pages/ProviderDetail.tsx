@@ -71,6 +71,42 @@ const providers: Record<number, Provider> = {
     description:
       "Crunchyroll est la plateforme de référence pour l'anime, proposant des milliers de séries et films d'animation japonaise.",
   },
+  381: {
+    id: 381,
+    name: "Canal+",
+    logoPath: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg",
+    description: "Canal+ propose une large sélection de films récents, de séries originales Création Originale et de sports.",
+  },
+  415: {
+    id: 415,
+    name: "ADN",
+    logoPath: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg",
+    description: "Animation Digital Network (ADN) est dédié à l'animation japonaise et franco-belge en streaming.",
+  },
+  234: {
+    id: 234,
+    name: "Arte",
+    logoPath: "/vPZrjHe7wvALuwJEXT2kwYLi0gV.jpg",
+    description: "Arte offre des programmes culturels, des documentaires, et du cinéma d'auteur européen et international.",
+  },
+  11: {
+    id: 11,
+    name: "MUBI",
+    logoPath: "/x570VpH2C9EKDf1riP83rYc5dnL.jpg",
+    description: "MUBI est un service de streaming de films d’auteur, classiques et indépendants, choisis par des experts.",
+  },
+  1754: {
+    id: 1754,
+    name: "TF1+",
+    logoPath: "/blrBF9R2ONYu04ifGkYEb3k779N.jpg",
+    description: "TF1+ est la plateforme de streaming du groupe TF1, proposant replay, films et séries exclusifs.",
+  },
+  147: {
+    id: 147,
+    name: "M6+",
+    logoPath: "/tmYzlEKeiWStvXwC1QdpXIASpN4.jpg",
+    description: "M6+ est la plateforme de streaming du groupe M6, avec replay, direct et contenus inédits.",
+  },
 };
 
 export default function ProviderDetail() {

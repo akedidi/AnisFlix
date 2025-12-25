@@ -33,8 +33,20 @@ struct HomeView: View {
     @State private var disneySeries: [Media] = []
     @State private var hboMaxMovies: [Media] = []
     @State private var hboMaxSeries: [Media] = []
+    @State private var canalMovies: [Media] = []
+    @State private var canalSeries: [Media] = []
     @State private var crunchyrollMovies: [Media] = []
     @State private var crunchyrollSeries: [Media] = []
+    @State private var adnMovies: [Media] = []
+    @State private var adnSeries: [Media] = []
+    @State private var arteMovies: [Media] = []
+    @State private var arteSeries: [Media] = []
+    @State private var mubiMovies: [Media] = []
+    @State private var mubiSeries: [Media] = []
+    @State private var tf1Movies: [Media] = []
+    @State private var tf1Series: [Media] = []
+    @State private var m6Movies: [Media] = []
+    @State private var m6Series: [Media] = []
     
     @State private var isLoading = true
 
@@ -48,7 +60,13 @@ struct HomeView: View {
         (id: 531, name: "Paramount+", logo: "/xbhHHa1YgtpwhC8lb1NQ3ACVcLd.jpg"),
         (id: 337, name: "Disney+", logo: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg"),
         (id: 1899, name: "HBO Max", logo: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg"),
-        (id: 283, name: "Crunchyroll", logo: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg")
+        (id: 381, name: "Canal+", logo: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg"),
+        (id: 283, name: "Crunchyroll", logo: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg"),
+        (id: 415, name: "ADN", logo: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg"),
+        (id: 234, name: "Arte", logo: "/vPZrjHe7wvALuwJEXT2kwYLi0gV.jpg"),
+        (id: 11, name: "MUBI", logo: "/x570VpH2C9EKDf1riP83rYc5dnL.jpg"),
+        (id: 1754, name: "TF1+", logo: "/blrBF9R2ONYu04ifGkYEb3k779N.jpg"),
+        (id: 147, name: "M6+", logo: "/tmYzlEKeiWStvXwC1QdpXIASpN4.jpg")
     ]
     
     var body: some View {
@@ -361,6 +379,31 @@ struct HomeView: View {
                         }
                     }
                     
+                    // Canal+
+                    if !canalMovies.isEmpty {
+                        MediaRow(
+                            title: "Canal+ - Films",
+                            items: Array(canalMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Canal+ movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 381, providerName: "Canal+", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !canalSeries.isEmpty {
+                        MediaRow(
+                            title: "Canal+ - Séries",
+                            items: Array(canalSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Canal+ series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 381, providerName: "Canal+", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
                     // Crunchyroll
                     if !crunchyrollMovies.isEmpty {
                         MediaRow(
@@ -383,6 +426,131 @@ struct HomeView: View {
                             }
                         ) {
                             ProviderCategoryListView(providerId: 283, providerName: "Crunchyroll", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
+                    // ADN
+                    if !adnMovies.isEmpty {
+                        MediaRow(
+                            title: "ADN - Films",
+                            items: Array(adnMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to ADN movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 415, providerName: "ADN", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !adnSeries.isEmpty {
+                        MediaRow(
+                            title: "ADN - Séries",
+                            items: Array(adnSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to ADN series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 415, providerName: "ADN", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
+                    // Arte
+                    if !arteMovies.isEmpty {
+                        MediaRow(
+                            title: "Arte - Films",
+                            items: Array(arteMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Arte movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 234, providerName: "Arte", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !arteSeries.isEmpty {
+                        MediaRow(
+                            title: "Arte - Séries",
+                            items: Array(arteSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Arte series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 234, providerName: "Arte", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
+                    // MUBI
+                    if !mubiMovies.isEmpty {
+                        MediaRow(
+                            title: "MUBI - Films",
+                            items: Array(mubiMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to MUBI movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 11, providerName: "MUBI", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !mubiSeries.isEmpty {
+                        MediaRow(
+                            title: "MUBI - Séries",
+                            items: Array(mubiSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to MUBI series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 11, providerName: "MUBI", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
+                    // TF1+
+                    if !tf1Movies.isEmpty {
+                        MediaRow(
+                            title: "TF1+ - Films",
+                            items: Array(tf1Movies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to TF1+ movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 1754, providerName: "TF1+", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !tf1Series.isEmpty {
+                        MediaRow(
+                            title: "TF1+ - Séries",
+                            items: Array(tf1Series.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to TF1+ series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 1754, providerName: "TF1+", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
+                    
+                    // M6+
+                    if !m6Movies.isEmpty {
+                        MediaRow(
+                            title: "M6+ - Films",
+                            items: Array(m6Movies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to M6+ movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 147, providerName: "M6+", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !m6Series.isEmpty {
+                        MediaRow(
+                            title: "M6+ - Séries",
+                            items: Array(m6Series.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to M6+ series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 147, providerName: "M6+", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
                 }
@@ -454,8 +622,20 @@ struct HomeView: View {
         async let disneySer = TMDBService.shared.fetchSeriesByProvider(providerId: 337, language: language)
         async let hboMov = TMDBService.shared.fetchMoviesByProvider(providerId: 384, language: language)
         async let hboSer = TMDBService.shared.fetchSeriesByProvider(providerId: 384, language: language)
+        async let canalMov = TMDBService.shared.fetchMoviesByProvider(providerId: 381, language: language)
+        async let canalSer = TMDBService.shared.fetchSeriesByProvider(providerId: 381, language: language)
         async let crunchyrollMov = TMDBService.shared.fetchMoviesByProvider(providerId: 283, language: language)
         async let crunchyrollSer = TMDBService.shared.fetchSeriesByProvider(providerId: 283, language: language)
+        async let adnMov = TMDBService.shared.fetchMoviesByProvider(providerId: 415, language: language)
+        async let adnSer = TMDBService.shared.fetchSeriesByProvider(providerId: 415, language: language)
+        async let arteMov = TMDBService.shared.fetchMoviesByProvider(providerId: 234, language: language)
+        async let arteSer = TMDBService.shared.fetchSeriesByProvider(providerId: 234, language: language)
+        async let mubiMov = TMDBService.shared.fetchMoviesByProvider(providerId: 11, language: language)
+        async let mubiSer = TMDBService.shared.fetchSeriesByProvider(providerId: 11, language: language)
+        async let tf1Mov = TMDBService.shared.fetchMoviesByProvider(providerId: 1754, language: language)
+        async let tf1Ser = TMDBService.shared.fetchSeriesByProvider(providerId: 1754, language: language)
+        async let m6Mov = TMDBService.shared.fetchMoviesByProvider(providerId: 147, language: language)
+        async let m6Ser = TMDBService.shared.fetchSeriesByProvider(providerId: 147, language: language)
         
         print("⏳ Waiting for all API calls...")
         
@@ -465,7 +645,9 @@ struct HomeView: View {
                 animeMoviesLat, animeMoviesPop, animeSeriesLat, animeSeriesPop,
                 netflixMov, netflixSer, amazonMov, amazonSer,
                 appleMov, appleSer, disneyMov, disneySer,
-                hboMov, hboSer, crunchyrollMov, crunchyrollSer
+                hboMov, hboSer, canalMov, canalSer, crunchyrollMov, crunchyrollSer,
+                adnMov, adnSer, arteMov, arteSer, mubiMov, mubiSer,
+                tf1Mov, tf1Ser, m6Mov, m6Ser
             )
             
             print("✅ All API calls completed successfully!")
@@ -490,8 +672,20 @@ struct HomeView: View {
             disneySeries = results.15
             hboMaxMovies = results.16
             hboMaxSeries = results.17
-            crunchyrollMovies = results.18
-            crunchyrollSeries = results.19
+            canalMovies = results.18
+            canalSeries = results.19
+            crunchyrollMovies = results.20
+            crunchyrollSeries = results.21
+            adnMovies = results.22
+            adnSeries = results.23
+            arteMovies = results.24
+            arteSeries = results.25
+            mubiMovies = results.26
+            mubiSeries = results.27
+            tf1Movies = results.28
+            tf1Series = results.29
+            m6Movies = results.30
+            m6Series = results.31
             
             // Load Continue Watching from WatchProgressManager
             await loadContinueWatching()

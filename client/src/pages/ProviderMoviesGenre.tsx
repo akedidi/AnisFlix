@@ -73,6 +73,12 @@ const PROVIDERS = {
   531: 'Paramount+',  // ID correct pour Paramount+
   384: 'HBO Max',  // ID correct pour HBO Max
   283: 'Crunchyroll',
+  381: 'Canal+',
+  415: 'ADN',
+  234: 'Arte',
+  11: 'MUBI',
+  1754: 'TF1+',
+  147: 'M6+',
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
