@@ -77,7 +77,14 @@ export const extractVidMolyFromAnime = (
     episodeNumber: number,
     seriesId: number
 ) => {
-    if (!anime || !anime.seasons) return [];
+    console.log('🎯 [EXTRACT VIDMOLY] Called with:', { anime: anime?.name, seasonNumber, episodeNumber, seriesId });
+
+    if (!anime || !anime.seasons) {
+        console.log('🎯 [EXTRACT VIDMOLY] No anime or seasons data');
+        return [];
+    }
+
+    console.log('🎯 [EXTRACT VIDMOLY] Available seasons:', anime.seasons.map(s => s.name));
 
     let targetSeason: Season | undefined;
     let targetEpisode: Episode | undefined;
@@ -127,7 +134,15 @@ export const extractVidMolyFromAnime = (
         }
     }
 
-    if (!targetEpisode || !targetEpisode.streaming_links) return [];
+    console.log('🎯 [EXTRACT VIDMOLY] Target season found:', targetSeason?.name);
+    console.log('🎯 [EXTRACT VIDMOLY] Target episode found:', targetEpisode?.name, 'index:', targetEpisode?.index);
+
+    if (!targetEpisode || !targetEpisode.streaming_links) {
+        console.log('🎯 [EXTRACT VIDMOLY] No target episode or streaming_links found');
+        return [];
+    }
+
+    console.log('🎯 [EXTRACT VIDMOLY] Episode streaming_links:', targetEpisode.streaming_links);
 
     const sources: any[] = [];
 
@@ -139,6 +154,7 @@ export const extractVidMolyFromAnime = (
             if (playerUrl.includes('vidmoly')) {
                 // Transform .to to .net
                 const transformedUrl = playerUrl.replace('vidmoly.to', 'vidmoly.net');
+                console.log('🎯 [EXTRACT VIDMOLY] Found VidMoly link:', playerUrl, '-> transformed:', transformedUrl);
 
                 sources.push({
                     id: `movix-anime-vidmoly-${language}-${idx}`,
@@ -154,5 +170,7 @@ export const extractVidMolyFromAnime = (
         });
     });
 
+    console.log('🎯 [EXTRACT VIDMOLY] Final sources:', sources);
     return sources;
 };
+
