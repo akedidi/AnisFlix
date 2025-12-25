@@ -533,7 +533,7 @@ struct MovieDetailView: View {
         }
         
         do {
-            let sourcesResult = await StreamingService.shared.fetchSources(movieId: movieId)
+            let sourcesResult = try await StreamingService.shared.fetchSources(movieId: movieId)
             
             await MainActor.run {
                 self.sources = sourcesResult
