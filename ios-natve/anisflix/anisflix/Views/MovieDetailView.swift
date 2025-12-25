@@ -497,39 +497,68 @@ struct MovieDetailView: View {
     
     private func loadData() async {
         do {
+            // Phase 1: Load essential data (fast) - movie details, similar movies, videos
             async let movieDetail = TMDBService.shared.fetchMovieDetails(movieId: movieId)
             async let similar = TMDBService.shared.fetchSimilarMovies(movieId: movieId)
-            async let fetchedSources = StreamingService.shared.fetchSources(movieId: movieId)
             async let fetchedVideos = TMDBService.shared.fetchVideos(mediaId: movieId, type: .movie)
             
-            let (detail, similarResult, sourcesResult, videosResult) = try await (movieDetail, similar, fetchedSources, fetchedVideos)
+            let (detail, similarResult, videosResult) = try await (movieDetail, similar, fetchedVideos)
             
-            self.movie = detail
-            self.similarMovies = similarResult
-            self.sources = sourcesResult
-            self.videos = videosResult
-            
-            // Auto-select language: VF > VOSTFR > VO
-            let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
-            let hasVOSTFR = sourcesResult.contains { $0.language.lowercased().contains("vostfr") }
-            let hasVO = sourcesResult.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
-            
-            if hasVF {
-                theme.preferredSourceLanguage = "VF"
-            } else if hasVOSTFR {
-                theme.preferredSourceLanguage = "VOSTFR"
-            } else if hasVO {
-                theme.preferredSourceLanguage = "VO"
+            await MainActor.run {
+                self.movie = detail
+                self.similarMovies = similarResult
+                self.videos = videosResult
+                
+                // Load watch progress
+                self.watchProgress = WatchProgressManager.shared.getProgress(mediaId: movieId)
+                
+                // Show UI immediately
+                self.isLoading = false
             }
             
-            print("✅ Sources loaded: \(sourcesResult.count)")
-            // Load watch progress
-            self.watchProgress = WatchProgressManager.shared.getProgress(mediaId: movieId)
+            // Phase 2: Load sources asynchronously (can be slow)
+            await loadSources()
             
-            self.isLoading = false
         } catch {
             print("Error loading movie data: \(error)")
-            self.isLoading = false
+            await MainActor.run {
+                self.isLoading = false
+            }
+        }
+    }
+    
+    private func loadSources() async {
+        await MainActor.run {
+            self.isLoadingSources = true
+        }
+        
+        do {
+            let sourcesResult = await StreamingService.shared.fetchSources(movieId: movieId)
+            
+            await MainActor.run {
+                self.sources = sourcesResult
+                
+                // Auto-select language: VF > VOSTFR > VO
+                let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
+                let hasVOSTFR = sourcesResult.contains { $0.language.lowercased().contains("vostfr") }
+                let hasVO = sourcesResult.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
+                
+                if hasVF {
+                    theme.preferredSourceLanguage = "VF"
+                } else if hasVOSTFR {
+                    theme.preferredSourceLanguage = "VOSTFR"
+                } else if hasVO {
+                    theme.preferredSourceLanguage = "VO"
+                }
+                
+                print("✅ Sources loaded: \(sourcesResult.count)")
+                self.isLoadingSources = false
+            }
+        } catch {
+            print("Error loading sources: \(error)")
+            await MainActor.run {
+                self.isLoadingSources = false
+            }
         }
     }
     
