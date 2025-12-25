@@ -369,7 +369,7 @@ export default function SeriesDetail() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
+              {series.seasons?.filter((s: any) => s.season_number >= 0).map((season: any) => (
                 <TabsContent key={season.id} value={`season-${season.season_number}`} className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}</h3>
