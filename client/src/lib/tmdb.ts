@@ -96,7 +96,9 @@ const tmdbFetch = async (endpoint: string, params: Record<string, string> = {}) 
   const language = getLanguage();
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   url.searchParams.append('api_key', TMDB_API_KEY);
-  url.searchParams.append('language', getLanguageCode(language));
+  if (!params.language) {
+    url.searchParams.append('language', getLanguageCode(language));
+  }
 
   Object.entries(params).forEach(([key, value]) => {
     url.searchParams.append(key, value);
@@ -199,8 +201,8 @@ export const tmdb = {
     return tmdbFetch(`/tv/${seriesId}/videos`);
   },
 
-  getSeasonDetails: async (seriesId: number, seasonNumber: number) => {
-    return tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`);
+  getSeasonDetails: async (seriesId: number, seasonNumber: number, language?: string) => {
+    return tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, language ? { language } : {});
   },
 
   getSimilarSeries: async (seriesId: number) => {

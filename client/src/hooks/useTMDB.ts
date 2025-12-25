@@ -173,7 +173,43 @@ export const useSeriesVideos = (seriesId: number) => {
 export const useSeasonDetails = (seriesId: number, seasonNumber: number) => {
   return useQuery({
     queryKey: ["series", seriesId, "season", seasonNumber],
-    queryFn: () => tmdb.getSeasonDetails(seriesId, seasonNumber),
+    queryFn: async () => {
+      const frData = await tmdb.getSeasonDetails(seriesId, seasonNumber);
+
+      // Check for generic episode names in the French response
+      const hasGenericNames = frData.episodes?.some((ep: any) =>
+        (ep.name && ep.name.match(/^(Episode|Épisode|Episodio) \d+$/i)) ||
+        ep.name === `Episode ${ep.episode_number}`
+      );
+
+      if (hasGenericNames) {
+        console.log(`⚠️ [useSeasonDetails] Generic names detected for season ${seasonNumber}, fetching English fallback...`);
+        try {
+          // Fetch English data
+          const enData = await tmdb.getSeasonDetails(seriesId, seasonNumber, 'en-US');
+
+          if (enData && enData.episodes) {
+            // Merge English names where French ones are generic
+            frData.episodes = frData.episodes.map((frEp: any) => {
+              // Logic to detect generic name
+              if ((frEp.name && frEp.name.match(/^(Episode|Épisode|Episodio) \d+$/i)) || frEp.name === `Episode ${frEp.episode_number}`) {
+                const enEp = enData.episodes.find((e: any) => e.id === frEp.id);
+                if (enEp && enEp.name) {
+                  console.log(`✅ [useSeasonDetails] Replaced generic "${frEp.name}" with "${enEp.name}"`);
+                  // Inject as original_name too for safety with SeriesDetail logic
+                  return { ...frEp, name: enEp.name, original_name: enEp.name };
+                }
+              }
+              return frEp;
+            });
+          }
+        } catch (e) {
+          console.error("❌ [useSeasonDetails] Failed to fetch English fallback:", e);
+        }
+      }
+
+      return frData;
+    },
     enabled: !!seriesId && seasonNumber !== undefined && seasonNumber !== null,
     ...CACHE_OPTIONS,
   });
