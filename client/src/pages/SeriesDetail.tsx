@@ -62,8 +62,25 @@ export default function SeriesDetail() {
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
 
-  // Determine the first available season
-  const firstAvailableSeason = series?.seasons?.filter((s: any) => s.season_number >= 0)?.[0]?.season_number ?? 1;
+  // Sort seasons: Regular seasons first (1, 2, ...), then Specials (0) at the end
+  const sortedSeasons = series?.seasons
+    ?.filter((s: any) => s.season_number >= 0)
+    .sort((a: any, b: any) => {
+      const numA = Number(a.season_number);
+      const numB = Number(b.season_number);
+
+      // If both are 0, equal
+      if (numA === 0 && numB === 0) return 0;
+      // If a is 0, it goes after b (return 1)
+      if (numA === 0) return 1;
+      // If b is 0, it goes after a (return -1)
+      if (numB === 0) return -1;
+      // Otherwise regular ascending sort
+      return numA - numB;
+    }) || [];
+
+  // Determine the first available season from the sorted list
+  const firstAvailableSeason = sortedSeasons.length > 0 ? sortedSeasons[0].season_number : 1;
 
   // Update initial season when series loads
   useEffect(() => {
@@ -208,9 +225,33 @@ export default function SeriesDetail() {
       setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;
     }
-    // Pour VidMoly, passer le lien embed original au VidMolyPlayer
+    // Pour VidMoly, essayer d'extraire le m3u8 pour le lecteur natif
     if (source.isVidMoly) {
-      console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
+      console.log('🎬 Source VidMoly détectée, tentative d\'extraction m3u8:', source.url);
+
+      try {
+        const { extractVidMolyM3u8 } = await import("@/lib/movix");
+        const m3u8Url = await extractVidMolyM3u8(source.url);
+
+        if (m3u8Url) {
+          console.log("✅ Extraction VidMoly réussie:", m3u8Url);
+          setSelectedSource({
+            url: m3u8Url,
+            type: "m3u8",
+            name: source.name,
+            isVidMoly: false, // On traite comme une source normale maintenant
+            quality: source.quality,
+            language: source.language
+          });
+          setIsLoadingSource(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Erreur extraction VidMoly, fallback vers lecteur web:", e);
+      }
+
+      // Fallback: utiliser le lecteur web (iframe) si l'extraction échoue
+      console.log('⚠️ Extraction VidMoly échouée, passage au VidMolyPlayer:', source.url);
       setSelectedSource({
         url: source.url, // Lien embed original
         type: "embed",
@@ -384,7 +425,7 @@ export default function SeriesDetail() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
               <TabsList className="flex-wrap h-auto">
-                {series.seasons?.filter((s: any) => s.season_number >= 0).map((season: any) => (
+                {sortedSeasons.map((season: any) => (
                   <TabsTrigger
                     key={season.id}
                     value={`season-${season.season_number}`}
@@ -394,7 +435,7 @@ export default function SeriesDetail() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-              {series.seasons?.filter((s: any) => s.season_number >= 0).map((season: any) => (
+              {sortedSeasons.map((season: any) => (
                 <TabsContent key={season.id} value={`season-${season.season_number}`} className="space-y-6">
                   <div>
                     <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}</h3>

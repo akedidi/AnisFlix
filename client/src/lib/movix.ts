@@ -158,3 +158,41 @@ export async function extractVidzyM3u8(vidzyUrl: string): Promise<string | null>
     return null;
   }
 }
+
+/**
+ * Extrait le lien m3u8 depuis une URL VidMoly en utilisant l'API backend
+ * @param vidmolyUrl - URL complète de la page VidMoly (ex: https://vidmoly.to/embed-xxxxx.html)
+ * @returns Le lien m3u8 extrait ou null si échec
+ */
+export async function extractVidMolyM3u8(vidmolyUrl: string): Promise<string | null> {
+  try {
+    // Utiliser l'API client pour la compatibilité iOS/Web
+    const { apiClient } = await import('./apiClient');
+
+    console.log('🔍 VidMoly extraction avec API client pour:', vidmolyUrl);
+
+    const data = await apiClient.extractVidMoly(vidmolyUrl);
+    console.log('✅ VidMoly API Response:', data);
+
+    // Vérifier si c'est une erreur
+    if (data.error) {
+      console.error('Erreur API VidMoly:', data.error);
+      throw new Error(data.error);
+    }
+
+    // Vérifier les clés possibles (m3u8, file, etc.)
+    const m3u8Url = data.data?.file || data.file || data.m3u8;
+
+    if (!m3u8Url) {
+      console.log('⚠️ Aucun lien m3u8 trouvé pour VidMoly');
+      return null;
+    }
+
+    console.log('📺 VidMoly m3u8 URL directe:', m3u8Url);
+    return m3u8Url;
+  } catch (error) {
+    console.error('Erreur lors de l\'extraction VidMoly:', error);
+    // Ne pas re-throw pour éviter les crashes, retourner null à la place
+    return null;
+  }
+}

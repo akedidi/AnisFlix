@@ -1,58 +1,34 @@
+import { apiClient } from './apiClient';
+
 /**
  * Client proxy pour l'API Movix
  * Remplace les appels directs vers api.movix.site pour éviter les erreurs CORS/403
  */
 
 export class MovixProxyClient {
-  private baseUrl: string;
 
   constructor() {
-    // En mode natif Capacitor, TOUJOURS utiliser l'URL de production Vercel
-    const isCapacitor = typeof window !== 'undefined' &&
-      (window as any).Capacitor !== undefined;
-
-    // Vérifier si nous sommes en développement local
-    const isLocalDev = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-    if (isCapacitor) {
-      // En mode natif Capacitor, toujours utiliser l'URL de production Vercel
-      this.baseUrl = 'https://anisflix.vercel.app';
-      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel (mode natif)');
-    } else if (isLocalDev) {
-      // En développement local web, utiliser localhost
-      this.baseUrl = 'http://localhost:3000';
-      console.log('🔍 MovixProxyClient - Utilisation du proxy local (mode développement)');
-    } else {
-      // En production web, utiliser Vercel
-      this.baseUrl = 'https://anisflix.vercel.app';
-      console.log('🔍 MovixProxyClient - Utilisation du proxy Vercel (mode web)');
-    }
-
-    console.log('🔍 MovixProxyClient - baseUrl:', this.baseUrl);
+    // Le constructeur est maintenant vide car apiClient gère l'URL de base
+    console.log('🔍 MovixProxyClient - Initialisé (utilise apiClient)');
   }
 
   /**
    * Effectue une requête vers l'API Movix via le proxy
    */
   async request(path: string, queryParams: Record<string, string | number> = {}): Promise<any> {
-    const url = new URL(`${this.baseUrl}/api/movix-proxy`);
-    url.searchParams.append('path', path);
+    const params = new URLSearchParams();
+    params.append('path', path);
 
     // Ajouter les query parameters
     Object.entries(queryParams).forEach(([key, value]) => {
-      url.searchParams.append(key, String(value));
+      params.append(key, String(value));
     });
 
-    console.log(`🌐 Movix Proxy Request: ${url.toString()}`);
+    const endpoint = `/api/movix-proxy?${params.toString()}`;
+    console.log(`🌐 Movix Proxy Request via ApiClient: ${endpoint}`);
 
     try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      });
+      const response = await apiClient.get(endpoint);
 
       console.log(`📡 Movix Proxy Response: ${response.status} ${response.statusText}`);
 

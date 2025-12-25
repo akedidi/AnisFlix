@@ -33,19 +33,19 @@ interface ProcessedSource {
 // Fonction pour analyser la qualité et déterminer le provider
 function analyzeQuality(quality: string): 'vidmoly' | 'vidzy' | 'darki' | 'unknown' {
   const qualityLower = quality.toLowerCase();
-  
+
   if (qualityLower.includes('vidmoly')) {
     return 'vidmoly';
   }
-  
+
   if (qualityLower.includes('vidzy')) {
     return 'vidzy';
   }
-  
+
   if (qualityLower.includes('darki')) {
     return 'darki';
   }
-  
+
   return 'unknown';
 }
 
@@ -61,7 +61,7 @@ function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
   return playerLinks.map(link => {
     const provider = analyzeQuality(link.quality);
     const providerName = extractProviderName(link.quality);
-    
+
     return {
       url: link.decoded_url,
       quality: providerName, // Nom du provider (ex: "DARKI")
@@ -75,37 +75,40 @@ function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
 export const useMovixTmdbSources = (movieId: number) => {
   console.log('🔍 [MOVIX TMDB] Hook initialized with movieId:', movieId);
   console.log('🔍 [MOVIX TMDB] Hook enabled check:', !!movieId, 'movieId type:', typeof movieId);
-  
+
   const queryResult = useQuery({
     queryKey: ['movix-tmdb-sources', movieId],
     queryFn: async (): Promise<MovixTmdbResponse & { processedSources: ProcessedSource[] }> => {
       console.log('🚀 [MOVIX TMDB] Fetching sources for movie:', movieId);
       console.log('🔍 [MOVIX TMDB] queryFn started - movieId:', movieId, 'type:', typeof movieId);
-      
+
       try {
         console.log('🔍 [MOVIX TMDB] Entered try block');
         // Utiliser l'API unifiée movix-proxy avec le paramètre path
         console.log('🔍 [MOVIX TMDB] About to call apiClient.request...');
+
         const url = `/api/movix-proxy?path=tmdb/movie/${movieId}`;
+
         console.log('🔍 [MOVIX TMDB] Request URL:', url);
+        // Use .request() method to be consistent with previous code
         const response = await apiClient.request(url);
         console.log('✅ [MOVIX TMDB] Got response from apiClient, status:', response.status);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch Movix TMDB sources: ${response.status}`);
         }
-        
+
         const data = await response.json();
         console.log('✅ [MOVIX TMDB] Sources fetched:', data);
-        
+
         // Traiter les player_links pour analyser les providers
         const processedSources = processPlayerLinks(data.player_links || []);
-        
+
         // Filtrer les sources par provider (vidmoly, vidzy, darki)
-        const filteredSources = processedSources.filter(source => 
+        const filteredSources = processedSources.filter(source =>
           source.provider !== 'unknown'
         );
-        
+
         console.log('🔍 [MOVIX TMDB] Processed sources:', {
           total: processedSources.length,
           filtered: filteredSources.length,
@@ -115,7 +118,7 @@ export const useMovixTmdbSources = (movieId: number) => {
             darki: filteredSources.filter(s => s.provider === 'darki').length,
           }
         });
-        
+
         return {
           ...data,
           processedSources: filteredSources,
@@ -143,7 +146,7 @@ export const useMovixTmdbSources = (movieId: number) => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-  
+
   console.log('🔍 [MOVIX TMDB] Query result:', {
     isLoading: queryResult.isLoading,
     isError: queryResult.isError,
@@ -151,6 +154,6 @@ export const useMovixTmdbSources = (movieId: number) => {
     hasData: !!queryResult.data,
     error: queryResult.error
   });
-  
+
   return queryResult;
 };

@@ -28,11 +28,24 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         
         guard let realUrl = components?.url else { return false }
         
+        // Strip the virtual suffix (used only for AVPlayer detection) before making request
+        var cleanUrl = realUrl
+        if var cleanComponents = URLComponents(url: realUrl, resolvingAgainstBaseURL: false),
+           var items = cleanComponents.queryItems {
+            // Remove 'virtual' param
+            items.removeAll { $0.name == "virtual" }
+            cleanComponents.queryItems = items.isEmpty ? nil : items
+            if let url = cleanComponents.url {
+                 cleanUrl = url
+            }
+        }
+        
         print("🔄 [VidMolyLoader] Intercepting request: \(realUrl)")
+        print("   - Cleaned URL for network: \(cleanUrl)")
         
         // request.allHTTPHeaderFields = loadingRequest.request.allHTTPHeaderFields // Avoid copying all headers blindly
         
-        var request = URLRequest(url: realUrl)
+        var request = URLRequest(url: cleanUrl)
         
         let dataRequest = loadingRequest.dataRequest
         if let dataRequest = dataRequest {
@@ -86,28 +99,38 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         lines = lines.filter { !($0.contains("EXT-X-I-FRAME-STREAM-INF")) }
                         playlistContent = lines.joined(separator: "\n")
                         
-                        // 2. Rewrite URLs to custom scheme
-                        // First, normalize any absolute URLs to relative to avoid duplication or misses
+                        // 2. Rewrite URLs
+                        // Goal: 
+                        // - Playlists (.m3u8) -> vidmoly-custom:// (Use ResourceLoader to fix extension/parsing issues)
+                        // - Segments (.ts) -> https:// (Use Native AVPlayer networking for efficiency and standard generic handling)
+                        
+                        // First, ensure all relative paths are absolute HTTPS
                         playlistContent = playlistContent.replacingOccurrences(
-                            of: "https://anisflix.vercel.app/api/vidmoly?",
-                            with: "/api/vidmoly?"
+                            of: "/api/vidmoly?",
+                            with: "https://anisflix.vercel.app/api/vidmoly?"
                         )
                         
                         // Remove HDR VIDEO-RANGE tags that might confuse the player or simulator
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=PQ", with: "")
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=SDR", with: "")
                         
-                        // Remove CODECS tags to force player to probe content (Fixes Simulator issues with High Profile)
-                        if let regex = try? NSRegularExpression(pattern: "CODECS=\"[^\"]+\"(,?)", options: []) {
-                            playlistContent = regex.stringByReplacingMatches(in: playlistContent, options: [], range: NSRange(location: 0, length: playlistContent.utf16.count), withTemplate: "")
-                        }
+                        // Codecs preservation (already correctly active)
                         
-                        // Then rewrite relative URLs to absolute URLs with custom scheme
-                        // This ensures ALL sub-requests (variants and segments) go through our ResourceLoader
-                        playlistContent = playlistContent.replacingOccurrences(
-                            of: "/api/vidmoly?",
-                            with: "vidmoly-custom://anisflix.vercel.app/api/vidmoly?"
-                        )
+                        // Now, convert ONLY .m3u8 URLs to custom scheme
+                        // We look for the pattern: https://anisflix.vercel.app/api/vidmoly?url=...m3u8...
+                        // And replace 'https' with 'vidmoly-custom'
+                        
+                        // Simple approach: Iterate lines, if line contains .m3u8 and starts with https, swap scheme.
+                         var finalLines = [String]()
+                         playlistContent.enumerateLines { line, _ in
+                             if line.contains(".m3u8") && line.contains("anisflix.vercel.app/api/vidmoly") {
+                                 let text = line.replacingOccurrences(of: "https://", with: "vidmoly-custom://")
+                                 finalLines.append(text)
+                             } else {
+                                 finalLines.append(line)
+                             }
+                         }
+                         playlistContent = finalLines.joined(separator: "\n")
                         
                         if let modifiedData = playlistContent.data(using: .utf8) {
                             finalData = modifiedData

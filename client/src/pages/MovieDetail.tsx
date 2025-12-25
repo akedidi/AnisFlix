@@ -240,8 +240,31 @@ export default function MovieDetail() {
     setIsLoadingSource(true);
     try {
       // Pour VidMoly, passer le lien embed original au VidMolyPlayer
+      // Pour VidMoly, essayer d'extraire le m3u8 pour le lecteur natif
       if (source.isVidMoly) {
-        console.log('🎬 Source VidMoly détectée, passage au VidMolyPlayer:', source.url);
+        console.log('🎬 Source VidMoly détectée, tentative d\'extraction m3u8:', source.url);
+
+        try {
+          const { extractVidMolyM3u8 } = await import("@/lib/movix");
+          const m3u8Url = await extractVidMolyM3u8(source.url);
+
+          if (m3u8Url) {
+            console.log("✅ Extraction VidMoly réussie:", m3u8Url);
+            setSelectedSource({
+              url: m3u8Url,
+              type: "m3u8",
+              name: source.name,
+              isVidMoly: false // On traite comme une source normale maintenant
+            });
+            setIsLoadingSource(false);
+            return;
+          }
+        } catch (e) {
+          console.error("Erreur extraction VidMoly, fallback vers lecteur web:", e);
+        }
+
+        // Fallback: utiliser le lecteur web (iframe) si l'extraction échoue
+        console.log('⚠️ Extraction VidMoly échouée, passage au VidMolyPlayer:', source.url);
         setSelectedSource({
           url: source.url, // Lien embed original
           type: "embed",

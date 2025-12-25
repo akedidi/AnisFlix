@@ -215,6 +215,35 @@ struct MovixDownloadResponse: Codable {
     let sources: [MovixDownloadSource]?
 }
 
+// MARK: - Movix Anime Structures (Added for Anime Support)
+
+struct MovixAnimeResponse: Codable {
+    // Top level is array of Anime
+    // We don't have a wrapper, so we'll decode directly as [MovixAnime]
+}
+
+struct MovixAnime: Codable {
+    let name: String
+    let seasons: [MovixAnimeSeason]?
+}
+
+struct MovixAnimeSeason: Codable {
+    let name: String
+    let index: Int?
+    let episodes: [MovixAnimeEpisode]?
+}
+
+struct MovixAnimeEpisode: Codable {
+    let name: String
+    let index: Int?
+    let streaming_links: [MovixAnimePlayer]?
+}
+
+struct MovixAnimePlayer: Codable {
+    let language: String
+    let players: [String]?
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}
@@ -297,7 +326,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers (added "darkibox")
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -393,9 +422,14 @@ class StreamingService {
         let tmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
         var afterDarkSources: [StreamingSource] = []
         var movixDownloadSources: [StreamingSource] = []
+        // Add Anime sources
+        var animeSources: [StreamingSource] = []
         
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title)")
+            
+            // Start Anime fetch concurrently if we have title
+            async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode)
             
             // Fetch AfterDark sources
             afterDarkSources = (try? await fetchAfterDarkSources(
@@ -415,6 +449,9 @@ class StreamingService {
                 season: season,
                 episode: episode
             )) ?? []
+            
+             // Await Anime sources
+            animeSources = (try? await fetchedAnime) ?? []
         } else {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
@@ -428,8 +465,12 @@ class StreamingService {
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
+        print("   - Movix Anime: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
+        
+        // Add Anime sources FIRST (High Priority for VidMoly)
+        allSources.append(contentsOf: animeSources)
         
         // Add TMDB sources FIRST (includes Vidzy)
         if let tmdb = tmdb {
@@ -455,7 +496,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers (added "darkibox")
-        return allSources.filter { $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -882,16 +923,22 @@ class StreamingService {
     func extractVidMoly(url: String) async throws -> String {
         // 1. Check if it's already an m3u8 (pre-extracted)
         if url.contains(".m3u8") || url.contains("unified-streaming.com") || url.contains("vmeas.cloud") {
-            return getVidMolyProxyUrl(url: url, referer: "https://vidmoly.net/")
+            // Check for vidmoly/vmeas manually to ensure normalization
+            if url.contains("vidmoly.to") {
+                 let normalized = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+                 return getVidMolyProxyUrl(url: normalized, referer: "https://vidmoly.net/")
+            }
+             return getVidMolyProxyUrl(url: url, referer: "https://vidmoly.net/")
         }
         
-        // 2. Call unified extraction API
+        // Normalize .to -> .net BEFORE calling API
+        let normalizedUrl = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
         let apiUrl = URL(string: "\(baseUrl)/api/extract")!
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body: [String: String] = ["type": "vidmoly", "url": url]
+        let body: [String: String] = ["type": "vidmoly", "url": normalizedUrl]
         request.httpBody = try JSONEncoder().encode(body)
         
         print("🌐 Calling VidMoly API: \(url)")
@@ -923,9 +970,10 @@ class StreamingService {
         
         // Clean URL
         var cleanedUrl = m3u8Url
-        if cleanedUrl.contains(",") && cleanedUrl.contains(".urlset") {
-            cleanedUrl = cleanedUrl.replacingOccurrences(of: ",", with: "")
-        }
+        // Commas should NOT be removed as they are part of the path in some VidMoly variations (as per user/web behavior)
+        // if cleanedUrl.contains(",") && cleanedUrl.contains(".urlset") {
+        //    cleanedUrl = cleanedUrl.replacingOccurrences(of: ",", with: "")
+        // }
         
         // Check if proxy is needed (Real VidMoly links)
         // With api/extract, we assume it returns the direct/proxied m3u8 or needs our proxy
@@ -937,11 +985,9 @@ class StreamingService {
                             cleanedUrl.contains("to_be_proxied") // Adjust based on api/extract response
         
         // For now, trust the URL returned by api/extract, but if it's a raw vidmoly link, proxy it
-        if cleanedUrl.contains("vidmoly.net/hls") || cleanedUrl.contains("vidmoly.to/hls") {
-             return getVidMolyProxyUrl(url: cleanedUrl, referer: url)
-        } else {
-             return cleanedUrl
-        }
+        // Always proxy through our backend to ensure headers (User-Agent, Referer) are correct for AVPlayer
+        // The API returns the raw direct link (e.g. vmwesa.online), which fails without proper headers.
+        return getVidMolyProxyUrl(url: cleanedUrl, referer: normalizedUrl)
     }
     
     func extractVidzy(url: String) async throws -> String {
@@ -1001,7 +1047,8 @@ class StreamingService {
         // }
         // We do semantically equivalent in Swift:
         
-        var decodedUrl = url
+        // Normalize URL .to -> .net
+        var decodedUrl = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
         // Safety counter to prevent infinite loops
         var loopCount = 0
         let maxLoops = 10
@@ -1026,11 +1073,15 @@ class StreamingService {
         
         // Step 1: Encode referer string (equivalent to encodeURIComponent(referer))
         let step1Referer = referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? referer
-        // Step 2: Encode the result (equivalent to URLSearchParams encoding the value)
+        // Step 2: Double encode check - The user example shows double encoding for referer
+        // referer=https%253A%252F%252Fvidmoly.net
+        // %25 is % -> %3A is :
+        // So it is indeed double encoded.
         let finalReferer = step1Referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? step1Referer
         
-        // Append a dummy parameter forcing .m3u8 extension for AVPlayer detection
-        return "\(baseUrl)/api/vidmoly?url=\(encodedUrl)&referer=\(finalReferer)&_=.m3u8"
+        // REQUIRED for AVPlayer to detect HLS format correctly (Web players are more forgiving)
+        // User explicitly instructed NOT to add a suffix
+        return "\(baseUrl)/api/vidmoly?url=\(encodedUrl)&referer=\(finalReferer)"
     }
     
     // MARK: - TMDB Info Helpers
@@ -1189,6 +1240,179 @@ class StreamingService {
         }
         
         print("✅ [Movix] Found \(sources.count) download sources")
+        return sources
+    }
+
+    
+    // MARK: - Movix Anime Fetching
+    
+    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int) async throws -> [StreamingSource] {
+        // Clean title logic (same as web)
+        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
+        let searchTitle = isAOT ? "L'Attaque des Titans" : title.split(separator: ":")[0].trimmingCharacters(in: .whitespaces)
+        
+        // Build URL
+        // replace " - Saison ..." pattern (simplified)
+        // User Fix: Replace spaces AND hyphens with + instead of %20.
+        // Example: One-Punch Man -> One+Punch+Man
+        let encodedTitle = searchTitle.replacingOccurrences(of: " ", with: "+")
+            .replacingOccurrences(of: "-", with: "+")
+            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
+            .replacingOccurrences(of: "%2B", with: "+") ?? searchTitle
+            
+        let urlString = "\(baseUrl)/api/movix-proxy?path=anime/search/\(encodedTitle)&includeSeasons=true&includeEpisodes=true"
+        
+        print("🔍 [Movix Anime] Searching for: \(searchTitle) (\(urlString))")
+        
+        guard let url = URL(string: urlString) else { return [] }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 30
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            print("⚠️ [Movix Anime] Search failed: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            // Fallback to simple search here? Web does strict check first.
+             return []
+        }
+        
+        let decoder = JSONDecoder()
+        
+        // The API returns an array of Anime objects
+        guard let animeList = try? decoder.decode([MovixAnime].self, from: data) else {
+            print("❌ [Movix Anime] Failed to decode anime list")
+            return []
+        }
+        
+        // Find best match (Web logic port)
+        var match: MovixAnime? = nil
+        
+        if isAOT {
+             match = animeList.first { $0.name.lowercased() == "shingeki no kyojin" }
+             print("🔍 [Movix Anime] AOT match: \(match?.name ?? "nil")")
+        }
+        
+        if match == nil {
+             // Exact match with flexible separator
+             match = animeList.first { item in
+                 let itemName = item.name.lowercased().replacingOccurrences(of: "-", with: " ")
+                 let sTitle = searchTitle.lowercased().replacingOccurrences(of: "-", with: " ")
+                 let oTitle = title.lowercased().replacingOccurrences(of: "-", with: " ")
+                 return itemName == sTitle || itemName == oTitle
+             }
+        }
+        
+        if match == nil {
+            // Partial match (excluding Junior High)
+            match = animeList.first { item in
+                let itemName = item.name.lowercased().replacingOccurrences(of: "-", with: " ")
+                let sTitle = searchTitle.lowercased().replacingOccurrences(of: "-", with: " ")
+                let oTitle = title.lowercased().replacingOccurrences(of: "-", with: " ")
+                
+                if itemName.contains("junior") || itemName.contains("high-school") { return false }
+                
+                // Allow match if one contains the other
+                return itemName.contains(sTitle) || sTitle.contains(itemName) ||
+                       itemName.contains(oTitle) || oTitle.contains(itemName)
+            }
+        }
+        
+        guard let anime = match, let seasons = anime.seasons else {
+            print("⚠️ [Movix Anime] No matching anime or seasons found")
+            return []
+        }
+        
+        print("✅ [Movix Anime] Found anime: \(anime.name)")
+        
+        // Season/Episode Selection Logic
+        var targetSeason: MovixAnimeSeason? = nil
+        var targetEpisode: MovixAnimeEpisode? = nil
+        
+        if seriesId == 1429 { // AOT Special Logic
+            if season == 4 {
+                if episode <= 16 {
+                    targetSeason = seasons.first { $0.name == "Saison 4 partie 1" }
+                    targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
+                } else {
+                    targetSeason = seasons.first { $0.name == "Saison 4 partie 2" }
+                    let offset = episode - 16
+                    targetEpisode = targetSeason?.episodes?.first { $0.index == offset || $0.name.contains(String(format: "%02d", offset)) }
+                }
+            } else if season == 0 {
+                // Specials AOT
+                if episode == 36 {
+                     targetSeason = seasons.first { $0.name == "Saison 4 partie 3" }
+                     targetEpisode = targetSeason?.episodes?.first // First episode
+                } else if episode == 37 {
+                     targetSeason = seasons.first { $0.name == "Saison 4 partie 4" }
+                     targetEpisode = targetSeason?.episodes?.first
+                } else {
+                     targetSeason = seasons.first { $0.name == "OAV" }
+                     targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
+                }
+            } else {
+                targetSeason = seasons.first { $0.name == "Saison \(season)" }
+                targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
+            }
+        } else {
+            // Generic Logic
+             targetSeason = seasons.first {
+                 ($0.index == season) ||
+                 ($0.name.contains("Saison \(season)")) ||
+                 (season == 0 && ($0.name.lowercased().contains("oav") || $0.name.lowercased().contains("special")))
+             }
+             
+             if let eps = targetSeason?.episodes {
+                 targetEpisode = eps.first {
+                     $0.index == episode || $0.name.contains(String(format: "%02d", episode))
+                 }
+             }
+        }
+        
+        guard let finalEpisode = targetEpisode, let links = finalEpisode.streaming_links else {
+            print("⚠️ [Movix Anime] No episode or links found for S\(season)E\(episode)")
+            return []
+        }
+        
+        // Extract VidMoly Links
+        var sources: [StreamingSource] = []
+        
+        for link in links {
+            let language = link.language.uppercased() // VF/VOSTFR
+            
+            if let players = link.players {
+                for (index, rawUrl) in players.enumerated() {
+                    let playerUrl = rawUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // Filter: We only want VidMoly links
+                    if playerUrl.lowercased().contains("vidmoly") {
+                        // Normalize URL: .to -> .net
+                        var normalized = playerUrl
+                        if normalized.contains("vidmoly.to") {
+                            normalized = normalized.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+                        }
+                        
+                        // Ensure scheme is https
+                        if normalized.hasPrefix("http://") {
+                            normalized = normalized.replacingOccurrences(of: "http://", with: "https://")
+                        }
+                        
+                        let source = StreamingSource(
+                            id: "movix-anime-vidmoly-\(language)-\(index)",
+                            url: normalized,
+                            quality: "HD",
+                            type: "embed", // Will be extracted later
+                            provider: "vidmoly",
+                            language: language
+                        )
+                        sources.append(source)
+                        print("   -> Added VidMoly source: \(language) - \(normalized)")
+                    }
+                }
+            }
+        }
+        
+        print("✅ [Movix Anime] Found \(sources.count) VidMoly sources")
         return sources
     }
 }
