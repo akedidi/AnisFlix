@@ -466,7 +466,7 @@ export default function SeriesDetail() {
                                     <div className="flex justify-between items-start">
                                       <div className="flex-1">
                                         <h4 className="font-semibold mb-1">
-                                          {episode.episode_number}. {episode.name}
+                                          {episode.episode_number}. {(episode.name && !episode.name.match(/^(Episode|Épisode|Episodio) \d+$/i) && episode.name !== `Episode ${episode.episode_number}`) ? episode.name : (episode.original_name || episode.name)}
                                         </h4>
                                         <p className="text-sm text-muted-foreground mb-2">
                                           {episode.overview || "Aucune description disponible."}

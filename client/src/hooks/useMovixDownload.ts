@@ -32,20 +32,42 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
     if (!title) {
       return null;
     }
-    
+
     // Rechercher dans l'API Movix avec le titre
     const searchData: MovixSearchResponse = await movixProxy.search(title);
-    
+
     // Trouver le résultat qui correspond à notre TMDB ID et type
-    const matchingResult = searchData.results.find(result => 
-      result.tmdb_id === tmdbId && 
+    const matchingResult = searchData.results.find(result =>
+      result.tmdb_id === tmdbId &&
       result.type === type
     );
-    
+
     if (matchingResult) {
       return matchingResult.id;
     }
-    
+
+    // Fallback: Si pas de correspondance par ID, essayer par titre strict
+    if (title && searchData.results.length > 0) {
+      const normalizedTitle = title.toLowerCase().trim();
+
+      const titleMatch = searchData.results.find(result => {
+        const resultName = result.name.toLowerCase().trim();
+        const resultOriginalName = (result as any).original_name?.toLowerCase().trim();
+
+        // Vérifier le type (avec support du mapping 'series' pour 'tv')
+        const typeMatch = result.type === type || (type === 'tv' && result.type === 'series');
+        if (!typeMatch) return false;
+
+        return resultName === normalizedTitle ||
+          resultName === normalizedTitle.replace(/:/g, '') ||
+          resultOriginalName === normalizedTitle;
+      });
+
+      if (titleMatch) {
+        return titleMatch.id;
+      }
+    }
+
     return null;
   } catch (error) {
     console.error('[MovixDownload] Error getting Movix ID:', error);
@@ -54,22 +76,22 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
 };
 
 const fetchMovixDownload = async (
-  type: 'movie' | 'tv', 
-  tmdbId: number, 
-  season?: number, 
+  type: 'movie' | 'tv',
+  tmdbId: number,
+  season?: number,
   episode?: number,
   title?: string
 ): Promise<MovixDownloadResponse | null> => {
   try {
     // Récupérer l'ID Movix depuis l'ID TMDB
     const movixId = await getMovixIdFromTmdb(tmdbId, type, title);
-    
+
     if (!movixId) {
       return null;
     }
-    
+
     let data: MovixDownloadResponse;
-    
+
     if (type === 'movie') {
       data = await movixProxy.getMovieDownload(movixId);
     } else {
@@ -78,12 +100,12 @@ const fetchMovixDownload = async (
       }
       data = await movixProxy.getSeriesDownload(movixId, season, episode);
     }
-    
+
     // Vérifier si on a des sources disponibles
     if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
       return data;
     }
-    
+
     return null;
   } catch (error) {
     console.error('[MovixDownload] Error:', error);
@@ -92,9 +114,9 @@ const fetchMovixDownload = async (
 };
 
 export const useMovixDownload = (
-  type: 'movie' | 'tv', 
-  tmdbId: number, 
-  season?: number, 
+  type: 'movie' | 'tv',
+  tmdbId: number,
+  season?: number,
   episode?: number,
   title?: string
 ) => {

@@ -61,6 +61,32 @@ const getMovixIdFromTmdb = async (tmdbId: number, type: 'movie' | 'tv', title?: 
       return matchingResult.id;
     }
 
+    // Fallback: Si pas de correspondance par ID, essayer par titre strict
+    // Cela permet de gérer les cas où l'API Movix n'a pas le bon tmdb_id
+    if (title && searchData.results.length > 0) {
+      console.log('⚠️ [MOVIX DOWNLOAD] No TMDB ID match, trying title match for:', title);
+
+      const normalizedTitle = title.toLowerCase().trim();
+
+      const titleMatch = searchData.results.find(result => {
+        const resultName = result.name.toLowerCase().trim();
+        const resultOriginalName = (result as any).original_name?.toLowerCase().trim();
+
+        // Vérifier le type
+        const typeMatch = result.type === type || (type === 'tv' && result.type === 'series');
+        if (!typeMatch) return false;
+
+        return resultName === normalizedTitle ||
+          resultName === normalizedTitle.replace(/:/g, '') || // Gérer les titres avec/sans deux-points
+          resultOriginalName === normalizedTitle;
+      });
+
+      if (titleMatch) {
+        console.log('✅ [MOVIX DOWNLOAD] Found Movix ID by TITLE match:', titleMatch.id, 'Name:', titleMatch.name);
+        return titleMatch.id;
+      }
+    }
+
     // NE PAS utiliser un autre résultat si aucune correspondance exacte
     // Cela pourrait utiliser un mauvais film
     if (searchData.results.length > 0) {
