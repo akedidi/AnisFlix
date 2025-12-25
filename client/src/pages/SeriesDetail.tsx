@@ -225,6 +225,20 @@ export default function SeriesDetail() {
       quality: source.quality || 'HD',
       language: 'VF'
     })) || []),
+    ...(animeAPISources?.map((source: any, index: number) => ({
+      id: `animeapi-${index}`,
+      name: 'AnimeAPI',
+      provider: 'AnimeAPI',
+      url: source.url,
+      type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      isAnimeAPI: true,
+      quality: source.quality || 'HD',
+      language: 'VO'
+    })) || []),
     ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
       ...source,
       id: `movix-anime-${source.id}`
