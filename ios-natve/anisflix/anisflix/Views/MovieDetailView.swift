@@ -208,7 +208,6 @@ struct MovieDetailView: View {
                                     Text(overview)
                                         .font(.body)
                                         .foregroundColor(theme.secondaryText)
-                                        .lineLimit(4)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.top, 24)
