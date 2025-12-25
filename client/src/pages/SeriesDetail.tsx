@@ -60,6 +60,17 @@ export default function SeriesDetail() {
   }, [selectedEpisode, selectedSource]);
   // Fetch data from TMDB
   const { data: series, isLoading: isLoadingSeries } = useSeriesDetails(seriesId);
+
+  // Determine the first available season
+  const firstAvailableSeason = series?.seasons?.filter((s: any) => s.season_number >= 0)?.[0]?.season_number ?? 1;
+
+  // Update initial season when series loads
+  useEffect(() => {
+    if (series && !isLoadingSeries) {
+      setSelectedSeasonNumber(firstAvailableSeason);
+    }
+  }, [series, isLoadingSeries]);
+
   const { data: videos } = useSeriesVideos(seriesId);
   const { data: seasonDetails } = useSeasonDetails(seriesId, selectedSeasonNumber);
   const { data: similarSeries = [] } = useSimilarSeries(seriesId);
@@ -322,7 +333,7 @@ export default function SeriesDetail() {
                 </Button>
               </div>
             </div>
-            <Tabs defaultValue="season-1" className="w-full" onValueChange={(value) => {
+            <Tabs value={`season-${selectedSeasonNumber}`} className="w-full" onValueChange={(value) => {
               const seasonNum = parseInt(value.replace('season-', ''));
               // Si on change de saison et qu'un lecteur est ouvert, le fermer
               if (selectedSeasonNumber !== seasonNum && selectedSource) {
