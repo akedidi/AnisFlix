@@ -67,7 +67,7 @@ const providers: Record<number, Provider> = {
   283: {
     id: 283,
     name: "Crunchyroll",
-    logoPath: "/rrKe2KHcUE38r3kiHJQGQ6EkI05.jpg",
+    logoPath: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg",
     description:
       "Crunchyroll est la plateforme de référence pour l'anime, proposant des milliers de séries et films d'animation japonaise.",
   },
