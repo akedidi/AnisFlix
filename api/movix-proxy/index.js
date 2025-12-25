@@ -258,7 +258,7 @@ export default async function handler(req, res) {
 
     // GÉRER ANIME-API ICI
     if (decodedPath === 'anime-api') {
-      console.log('🎌 [Movix Proxy] Routing to AnimeAPI handler');
+      console.log('🎌 [Movix Proxy] AnimeAPI handler');
       try {
         const { title, season, episode } = queryParams;
 
@@ -268,20 +268,117 @@ export default async function handler(req, res) {
           });
         }
 
-        // Import and call anime-api handler
-        const animeApiHandler = await import('../anime-api/index.js');
-        const animeReq = {
-          ...req,
-          query: { title, season, episode }
+        const seasonNumber = season ? parseInt(season) : null;
+        const episodeNumber = episode ? parseInt(episode) : 1;
+
+        const ANIME_API_BASE = 'https://anime-api-sand-psi.vercel.app/api';
+
+        // Fonction de filtrage intelligent par saison
+        const filterResultsBySeason = (results, title, seasonNumber) => {
+          if (!seasonNumber || seasonNumber === 1) {
+            // Season 1 ou non spécifiée -> Chercher l'entrée principale
+            let match = results.find(r => {
+              const lowerTitle = r.title.toLowerCase();
+              const cleanTitle = title.toLowerCase();
+
+              return lowerTitle === cleanTitle ||
+                (lowerTitle.includes(cleanTitle) &&
+                  !lowerTitle.match(/season\s*\d+/i) &&
+                  !lowerTitle.match(/\d+nd\s+season/i) &&
+                  !lowerTitle.match(/\d+rd\s+season/i) &&
+                  !lowerTitle.match(/\d+th\s+season/i) &&
+                  r.tvInfo?.showType === 'TV');
+            });
+
+            if (!match) {
+              match = results.find(r => r.tvInfo?.showType === 'TV');
+            }
+
+            return match;
+          }
+
+          // Season 2+ -> Chercher indicateurs de saison
+          const seasonPatterns = [
+            new RegExp(`season\\s*${seasonNumber}`, 'i'),
+            new RegExp(`${seasonNumber}nd\\s+season`, 'i'),
+            new RegExp(`${seasonNumber}rd\\s+season`, 'i'),
+            new RegExp(`${seasonNumber}th\\s+season`, 'i'),
+            new RegExp(`${title}\\s+${seasonNumber}`, 'i'),
+          ];
+
+          for (const pattern of seasonPatterns) {
+            const match = results.find(r => pattern.test(r.title));
+            if (match) {
+              console.log(`🎌 [AnimeAPI] Matched season ${seasonNumber}: ${match.title}`);
+              return match;
+            }
+          }
+
+          console.log(`🎌 [AnimeAPI] No match for season ${seasonNumber}`);
+          return null;
         };
 
-        return await animeApiHandler.default(animeReq, res);
-      } catch (error) {
-        console.error('❌ [Movix Proxy] AnimeAPI Handler Error:', error);
-        return res.status(500).json({
-          error: 'Internal Server Error in AnimeAPI handler',
-          details: error.message
+        // Étape 1: Rechercher l'anime
+        console.log(`🎌 [AnimeAPI] Searching: ${title}, Season: ${seasonNumber || 1}`);
+        const searchUrl = `${ANIME_API_BASE}/search?keyword=${encodeURIComponent(title)}`;
+        const searchResponse = await axios.get(searchUrl, { timeout: 10000 });
+
+        if (!searchResponse.data?.success || !searchResponse.data?.results?.data) {
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        const results = searchResponse.data.results.data;
+        const anime = filterResultsBySeason(results, title, seasonNumber);
+
+        if (!anime) {
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        console.log(`🎌 [AnimeAPI] Selected: ${anime.title} (ID: ${anime.id})`);
+
+        // Étape 2: Récupérer les épisodes
+        const episodesUrl = `${ANIME_API_BASE}/episodes/${anime.id}`;
+        const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
+
+        if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        const episodes = episodesResponse.data.results.episodes;
+        const targetEpisode = episodes.find(ep => ep.number === episodeNumber) || episodes[0];
+
+        console.log(`🎌 [AnimeAPI] Episode ${targetEpisode.number}, episode_no: ${targetEpisode.episode_no}`);
+
+        // Étape 3: Récupérer le lien streaming
+        const streamUrl = `${ANIME_API_BASE}/stream?id=${anime.id}&ep=${targetEpisode.episode_no}&server=hd-2&type=sub`;
+        const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
+
+        if (!streamResponse.data?.success || !streamResponse.data?.results?.streamingLink) {
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        const streamingLink = streamResponse.data.results.streamingLink;
+
+        return res.status(200).json({
+          success: true,
+          results: [{
+            provider: 'AnimeAPI',
+            language: 'VO',
+            quality: 'HD',
+            url: streamingLink.link?.file || streamingLink.link,
+            type: streamingLink.link?.type || streamingLink.type || 'hls',
+            animeInfo: {
+              id: anime.id,
+              title: anime.title,
+              episode: targetEpisode.number,
+              totalEpisodes: anime.tvInfo?.eps || episodes.length
+            }
+          }]
         });
+
+      } catch (error) {
+        console.error('❌ [Movix Proxy] AnimeAPI Error:', error);
+        return res.status(200).json({ success: true, results: [] });
       }
     }
 
