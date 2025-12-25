@@ -144,6 +144,16 @@ struct Localizable {
         "VF": "VF",
         "VOSTFR": "VOSTFR",
         "VO": "VO",
+        
+        // Platforms
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
     
     // MARK: - English Translations
@@ -361,6 +371,15 @@ struct Localizable {
         "VF": "Doblaje Francés",
         "VOSTFR": "Subtítulos en Francés",
         "VO": "Original",
+        
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
     
     // MARK: - Arabic Translations
@@ -465,6 +484,15 @@ struct Localizable {
         "VF": "مدبلج فرنسي",
         "VOSTFR": "مترجم فرنسي",
         "VO": "أصلي",
+        
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
     
     // MARK: - German Translations
@@ -569,6 +597,15 @@ struct Localizable {
         "VF": "Franz. Synchro",
         "VOSTFR": "Franz. Untertitel",
         "VO": "Original",
+        
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
     
     // MARK: - Italian Translations
@@ -673,6 +710,15 @@ struct Localizable {
         "VF": "Doppiaggio Francese",
         "VOSTFR": "Sottotitoli in Francese",
         "VO": "Originale",
+        
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
     
     // MARK: - Portuguese Translations
@@ -777,6 +823,15 @@ struct Localizable {
         "VF": "Dobragem Francesa",
         "VOSTFR": "Legendas em Francês",
         "VO": "Original",
+        
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        "platform.canal": "Canal+",
+        "platform.adn": "ADN",
+        "platform.arte": "Arte",
+        "platform.mubi": "MUBI",
+        "platform.tf1": "TF1+",
+        "platform.m6": "M6+",
     ]
 }
 

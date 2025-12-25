@@ -260,6 +260,13 @@ export default {
     "platform.paramount": "باراماونت+",
     "platform.disney": "ديزني+",
     "platform.hboMax": "إتش بي أو ماكس",
+    "platform.crunchyroll": "Crunchyroll",
+    "platform.canal": "Canal+",
+    "platform.adn": "ADN",
+    "platform.arte": "Arte",
+    "platform.mubi": "MUBI",
+    "platform.tf1": "TF1+",
+    "platform.m6": "M6+",
 
     // 404 page
     "notFound.title": "404 الصفحة غير موجودة",
