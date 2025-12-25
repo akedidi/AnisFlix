@@ -282,6 +282,8 @@ export default function VideoPlayer({
       if (video.duration > 0 && video.currentTime > 0) {
         const progress = Math.round((video.currentTime / video.duration) * 100);
 
+        console.log(`💾 [VideoPlayer] Saving progress: ${progress}% at ${video.currentTime}s for mediaId=${mediaId}, mediaType=${mediaType}`);
+
         saveWatchProgress({
           mediaId,
           mediaType,
