@@ -138,16 +138,16 @@ export default function SeriesDetail() {
       // Check if this is an animation (genre ID: 16)
       const isAnimation = series?.genres?.some((g: any) => g.id === 16);
 
-      if (!isAnimation || !selectedEpisode || !series?.name) {
+      if (!isAnimation || !selectedEpisode || !series?.original_name) {
         return [];
       }
 
-      console.log(`🎌 [AnimeAPI] Fetching for: ${series.name} S${selectedSeasonNumber}E${selectedEpisode}`);
+      console.log(`🎌 [AnimeAPI] Fetching for: ${series.original_name} S${selectedSeasonNumber}E${selectedEpisode}`);
 
       try {
         const params = new URLSearchParams({
           path: 'anime-api',
-          title: series.name,
+          title: series.original_name, // Use English original title for anime API
           season: selectedSeasonNumber.toString(),
           episode: selectedEpisode.toString(),
         });
