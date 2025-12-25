@@ -814,15 +814,7 @@ const StreamingSources = memo(function StreamingSources({
     setLoadingSources(prev => new Set(prev).add(source.id));
 
     try {
-      if (source.isTopStream) {
-        console.log('✅ Source TopStream détectée');
-        // Pour TopStream, on utilise directement l'URL
-        onSourceClick({
-          url: source.url,
-          type: source.type,
-          name: source.name,
-        });
-      } else if (source.isFStream) {
+      if (source.isFStream) {
         console.log('✅ Source FStream détectée');
         // Pour Vidzy via FStream, on utilise le scraper existant
         onSourceClick({
@@ -861,8 +853,7 @@ const StreamingSources = memo(function StreamingSources({
           url: source.url,
           type: 'm3u8' as const,
           name: source.name,
-          isDarki: source.isDarki,
-          isDarkibox: source.isDarkibox,
+          isDarki: source.isDarki || source.isDarkibox,
           quality: source.quality,
           language: source.language
         });
@@ -970,7 +961,7 @@ const StreamingSources = memo(function StreamingSources({
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Play className="w-5 h-5" />
-          {t("topstream.sources")}
+          {t("streaming.sources")}
         </h2>
 
         {/* Sélecteur de langue - toujours afficher les onglets */}
