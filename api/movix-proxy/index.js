@@ -258,9 +258,11 @@ export default async function handler(req, res) {
 
     // GÉRER ANIME-API ICI
     if (decodedPath === 'anime-api') {
-      console.log('🎌 [Movix Proxy] AnimeAPI handler');
+      console.log('🎌 ========== ANIME-API START ==========');
+      console.log('🎌 [AnimeAPI] Handler triggered');
       try {
         const { title, season, episode } = queryParams;
+        console.log('🎌 [AnimeAPI] Raw query params:', { title, season, episode });
 
         if (!title) {
           return res.status(400).json({
@@ -270,6 +272,7 @@ export default async function handler(req, res) {
 
         const seasonNumber = season ? parseInt(season) : null;
         const episodeNumber = episode ? parseInt(episode) : 1;
+        console.log('🎌 [AnimeAPI] Parsed:', { title, seasonNumber, episodeNumber });
 
         const ANIME_API_BASE = 'https://anime-api-sand-psi.vercel.app/api';
 
@@ -319,45 +322,66 @@ export default async function handler(req, res) {
         };
 
         // Étape 1: Rechercher l'anime
+        console.log(`🎌 [AnimeAPI] === STEP 1: SEARCH ===`);
         console.log(`🎌 [AnimeAPI] Searching: ${title}, Season: ${seasonNumber || 1}`);
         const searchUrl = `${ANIME_API_BASE}/search?keyword=${encodeURIComponent(title)}`;
+        console.log(`🎌 [AnimeAPI] Search URL: ${searchUrl}`);
         const searchResponse = await axios.get(searchUrl, { timeout: 10000 });
+        console.log(`🎌 [AnimeAPI] Search response status: ${searchResponse.status}`);
+        console.log(`🎌 [AnimeAPI] Search data:`, JSON.stringify(searchResponse.data).substring(0, 200));
 
         if (!searchResponse.data?.success || !searchResponse.data?.results?.data) {
+          console.log('🎌 [AnimeAPI] ❌ No search results');
           return res.status(200).json({ success: true, results: [] });
         }
 
         const results = searchResponse.data.results.data;
+        console.log(`🎌 [AnimeAPI] Found ${results.length} results:`);
+        results.slice(0, 3).forEach((r, i) => console.log(`  ${i + 1}. ${r.title} (${r.id})`));
+
         const anime = filterResultsBySeason(results, title, seasonNumber);
+        console.log(`🎌 [AnimeAPI] After filtering: ${anime ? anime.title : 'NO MATCH'}`);
 
         if (!anime) {
+          console.log('🎌 [AnimeAPI] ❌ No anime matched after filtering');
           return res.status(200).json({ success: true, results: [] });
         }
 
-        console.log(`🎌 [AnimeAPI] Selected: ${anime.title} (ID: ${anime.id})`);
+        console.log(`🎌 [AnimeAPI] ✅ Selected: ${anime.title} (ID: ${anime.id})`);
 
         // Étape 2: Récupérer les épisodes
+        console.log(`🎌 [AnimeAPI] === STEP 2: EPISODES ===`);
         const episodesUrl = `${ANIME_API_BASE}/episodes/${anime.id}`;
+        console.log(`🎌 [AnimeAPI] Episodes URL: ${episodesUrl}`);
         const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
+        console.log(`🎌 [AnimeAPI] Episodes response status: ${episodesResponse.status}`);
 
         if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
+          console.log('🎌 [AnimeAPI] ❌ No episodes found');
           return res.status(200).json({ success: true, results: [] });
         }
 
         const episodes = episodesResponse.data.results.episodes;
+        console.log(`🎌 [AnimeAPI] Found ${episodes.length} episodes`);
         const targetEpisode = episodes.find(ep => ep.number === episodeNumber) || episodes[0];
 
-        console.log(`🎌 [AnimeAPI] Episode ${targetEpisode.number}, episode_no: ${targetEpisode.episode_no}`);
+        console.log(`🎌 [AnimeAPI] Target episode: #${targetEpisode.number}, episode_no: ${targetEpisode.episode_no}`);
 
         // Étape 3: Récupérer le lien streaming
+        console.log(`🎌 [AnimeAPI] === STEP 3: STREAM LINK ===`);
         const streamUrl = `${ANIME_API_BASE}/stream?id=${anime.id}&ep=${targetEpisode.episode_no}&server=hd-2&type=sub`;
+        console.log(`🎌 [AnimeAPI] Stream URL: ${streamUrl}`);
         const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
+        console.log(`🎌 [AnimeAPI] Stream response status: ${streamResponse.status}`);
 
         if (!streamResponse.data?.success || !streamResponse.data?.results?.streamingLink) {
+          console.log('🎌 [AnimeAPI] ❌ No streaming link');
           return res.status(200).json({ success: true, results: [] });
         }
 
         const streamingLink = streamResponse.data.results.streamingLink;
+        console.log(`🎌 [AnimeAPI] ✅ Got link:`, streamingLink.link?.file?.substring(0, 80));
+        console.log('🎌 [AnimeAPI] ========== SUCCESS ==========');
 
         return res.status(200).json({
           success: true,
@@ -377,7 +401,9 @@ export default async function handler(req, res) {
         });
 
       } catch (error) {
-        console.error('❌ [Movix Proxy] AnimeAPI Error:', error);
+        console.error('🎌 [AnimeAPI] ❌❌❌ ERROR:', error.message);
+        console.error('🎌 [AnimeAPI] Stack:', error.stack);
+        console.log('🎌 [AnimeAPI] ========== FAILED ==========');
         return res.status(200).json({ success: true, results: [] });
       }
     }
