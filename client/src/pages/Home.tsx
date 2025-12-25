@@ -104,7 +104,7 @@ export default function Home() {
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
     { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
-    { id: 283, name: "Crunchyroll", logoPath: "/8I0MeWVwYwzpRjhXTMlQTLr46sh.jpg" },
+    { id: 283, name: "Crunchyroll", logoPath: "/rrKe2KHcUE38r3kiHJQGQ6EkI05.jpg" },
   ];
 
   // Charger la progression réelle depuis localStorage
