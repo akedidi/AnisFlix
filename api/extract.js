@@ -132,12 +132,9 @@ async function extractVidMoly(url) {
     const fileMatch = html.match(/file:"([^"]+)"/);
     if (fileMatch && fileMatch[1]) {
       let m3u8Url = fileMatch[1].trim();
-
-      // Clean up URL if it contains commas (known VidMoly issue)
-      if (m3u8Url.includes(',') && m3u8Url.includes('.urlset')) {
-        m3u8Url = m3u8Url.replace(/,/g, '');
-      }
-
+      
+      // VidMoly URLs use comma-separated quality format like "_,l,n,.urlset"
+      // Do NOT remove commas - they are required for proper streaming
       console.log("[VIDMOLY] Found m3u8:", m3u8Url);
       return m3u8Url;
     }
@@ -154,15 +151,14 @@ async function extractVidMoly(url) {
       const match = html.match(pattern);
       if (match && match[1]) {
         let m3u8Url = match[1].trim();
-        if (m3u8Url.includes(',') && m3u8Url.includes('.urlset')) {
-          m3u8Url = m3u8Url.replace(/,/g, '');
-        }
+        // Do NOT strip commas - they are part of the quality selector format
         console.log("[VIDMOLY] Found via fallback:", m3u8Url);
         return m3u8Url;
       }
     }
 
     throw new Error('Could not find m3u8 URL in VidMoly page');
+
 
   } catch (error) {
     console.error("[VIDMOLY] Extraction failed:", error.message);
