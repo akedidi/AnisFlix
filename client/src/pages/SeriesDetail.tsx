@@ -400,14 +400,25 @@ export default function SeriesDetail() {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {seasonDetails?.season_number === season.season_number ? (
+                        {seasonError && selectedSeasonNumber === season.season_number && (
+                          <div className="text-center p-8 text-red-500 bg-red-500/10 rounded-lg mb-4">
+                            <p>Erreur lors du chargement des épisodes : {seasonError.message || "Erreur inconnue"}</p>
+                            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+                              Réessayer
+                            </Button>
+                          </div>
+                        )}
+                        {seasonDetails?.season_number == season.season_number ? (
                           seasonDetails?.episodes && seasonDetails.episodes.length > 0 ? (
                             seasonDetails.episodes
                               .filter((episode: any) => {
                                 if (!episode.air_date) return true;
                                 const today = new Date();
-                                const todayStr = today.toISOString().split('T')[0];
-                                return episode.air_date <= todayStr;
+                                // Utiliser la date actuelle sans l'heure pour comparer
+                                const episodeDate = new Date(episode.air_date);
+                                const todayDate = new Date();
+                                todayDate.setHours(0, 0, 0, 0);
+                                return episodeDate <= todayDate;
                               })
                               .map((episode: any) => {
                                 const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);

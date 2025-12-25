@@ -478,10 +478,20 @@ export default async function handler(req, res) {
 
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
-    if (isAnimeRequest) {
-      movixUrl = `https://api.movix.site/${decodedPath}`;
+    const baseMovixUrl = 'https://api.movix.site';
+
+    if (decodedPath === 'search' && queryParams.title) {
+      // Optimisation : Utiliser anime/search par défaut pour les recherches avec titre
+      // car il renvoie plus de données (saisons/épisodes) nécessaires pour les animes
+      const searchTitle = queryParams.title;
+      movixUrl = `${baseMovixUrl}/anime/search/${encodeURIComponent(searchTitle)}`;
+      // Forcer l'inclusion des données
+      queryParams.includeSeasons = 'true';
+      queryParams.includeEpisodes = 'true';
+    } else if (isAnimeRequest) {
+      movixUrl = `${baseMovixUrl}/${decodedPath}`;
     } else {
-      movixUrl = `https://api.movix.site/api/${decodedPath}`;
+      movixUrl = `${baseMovixUrl}/api/${decodedPath}`;
     }
     const url = new URL(movixUrl);
 
