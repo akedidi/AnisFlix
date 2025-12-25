@@ -278,11 +278,16 @@ export default async function handler(req, res) {
 
         // Fonction de filtrage intelligent par saison
         const filterResultsBySeason = (results, title, seasonNumber) => {
+          console.log(`🔍 [FILTER] === START ===`);
+          console.log(`🔍 [FILTER] Inputs: ${results.length} results, title="${title}", season=${seasonNumber}`);
+
           if (!seasonNumber || seasonNumber === 1) {
-            // Season 1 ou non spécifiée -> Chercher l'entrée principale
+            console.log(`🔍 [FILTER] Mode: SEASON 1 or NULL`);
             let match = results.find(r => {
               const lowerTitle = r.title.toLowerCase();
               const cleanTitle = title.toLowerCase();
+              console.log(`🔍 Checking "${r.title}"`);
+              console.log(`  exact: ${lowerTitle === cleanTitle}, includes: ${lowerTitle.includes(cleanTitle)}, showType: ${r.tvInfo?.showType}`);
 
               return lowerTitle === cleanTitle ||
                 (lowerTitle.includes(cleanTitle) &&
@@ -294,13 +299,17 @@ export default async function handler(req, res) {
             });
 
             if (!match) {
+              console.log(`🔍 [FILTER] No exact match, trying fallback`);
               match = results.find(r => r.tvInfo?.showType === 'TV');
             }
 
+            console.log(`🔍 [FILTER] Result: ${match ? match.title : 'NO MATCH'}`);
+            console.log(`🔍 [FILTER] === END ===`);
             return match;
           }
 
-          // Season 2+ -> Chercher indicateurs de saison
+          // Season 2+
+          console.log(`🔍 [FILTER] Mode: SEASON ${seasonNumber}`);
           const seasonPatterns = [
             new RegExp(`season\\s*${seasonNumber}`, 'i'),
             new RegExp(`${seasonNumber}nd\\s+season`, 'i'),
@@ -309,15 +318,18 @@ export default async function handler(req, res) {
             new RegExp(`${title}\\s+${seasonNumber}`, 'i'),
           ];
 
-          for (const pattern of seasonPatterns) {
-            const match = results.find(r => pattern.test(r.title));
+          for (let i = 0; i < seasonPatterns.length; i++) {
+            console.log(`🔍 [FILTER] Pattern ${i + 1}: ${seasonPatterns[i]}`);
+            const match = results.find(r => seasonPatterns[i].test(r.title));
             if (match) {
-              console.log(`🎌 [AnimeAPI] Matched season ${seasonNumber}: ${match.title}`);
+              console.log(`🔍 [FILTER] ✅ Matched: ${match.title}`);
+              console.log(`🔍 [FILTER] === END ===`);
               return match;
             }
           }
 
-          console.log(`🎌 [AnimeAPI] No match for season ${seasonNumber}`);
+          console.log(`🔍 [FILTER] ❌ No match`);
+          console.log(`🔍 [FILTER] === END ===`);
           return null;
         };
 
