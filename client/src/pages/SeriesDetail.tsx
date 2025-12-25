@@ -334,20 +334,20 @@ export default function SeriesDetail() {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}>
               <TabsList className="flex-wrap h-auto">
-                {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
+                {series.seasons?.filter((s: any) => s.season_number >= 0).map((season: any) => (
                   <TabsTrigger
                     key={season.id}
                     value={`season-${season.season_number}`}
-                    data-testid={`tab-season-${season.season_number}`}
+                    className="min-w-[100px]"
                   >
-                    Saison {season.season_number}
+                    {season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}
                   </TabsTrigger>
                 ))}
               </TabsList>
               {series.seasons?.filter((s: any) => s.season_number > 0).map((season: any) => (
                 <TabsContent key={season.id} value={`season-${season.season_number}`} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">Saison {season.season_number}</h3>
+                    <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}</h3>
                     <p className="text-muted-foreground mb-4">{season.overview || "Aucune description disponible."}</p>
                     <p className="text-sm text-muted-foreground">{season.episode_count} épisodes</p>
                   </div>
