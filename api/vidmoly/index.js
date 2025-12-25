@@ -31,13 +31,17 @@ export default async function handler(req, res) {
         console.error(`[VIDMOLY] Erreur décodage URL: ${error.message}`);
         targetUrl = url; // Utiliser l'URL brute si le décodage échoue
       }
-      
-      const refererUrl = referer ? decodeURIComponent(referer) : 'https://vidmoly.net/';
-      
+
+      let refererUrl = referer ? decodeURIComponent(referer) : 'https://vidmoly.net/';
+      if (refererUrl.includes('%')) {
+        refererUrl = decodeURIComponent(refererUrl);
+      }
+
       console.log(`[VIDMOLY] Mode proxy - URL originale: ${url}`);
       console.log(`[VIDMOLY] Mode proxy - URL décodée: ${targetUrl}`);
+      console.log(`[VIDMOLY] Mode proxy - Referer décodé: ${refererUrl}`);
       console.log(`[VIDMOLY] Mode proxy - Action: ${action || 'stream'}`);
-      
+
       // Valider que l'URL décodée est valide
       try {
         new URL(targetUrl);
@@ -45,7 +49,7 @@ export default async function handler(req, res) {
         console.error(`[VIDMOLY] URL invalide après décodage: ${targetUrl}`);
         return res.status(400).json({ error: 'URL invalide' });
       }
-      
+
       // Ignorer les requêtes pour le favicon
       if (req.url === '/favicon.ico') {
         res.writeHead(204, { 'Content-Type': 'image/x-icon' });
@@ -61,8 +65,9 @@ export default async function handler(req, res) {
       }
 
       // Headers pour les requêtes
-      const requestHeaders = { 
+      const requestHeaders = {
         'Referer': refererUrl,
+        'Origin': 'https://vidmoly.net',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
       // **Logique pour les playlists .m3u8**
       if (finalUrl.includes('.m3u8')) {
         requestHeaders['Accept'] = 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*';
-        
+
         if (req.method === 'HEAD') {
           const response = await axios.head(finalUrl, {
             headers: requestHeaders,
@@ -91,11 +96,11 @@ export default async function handler(req, res) {
 
           // Réécrire les URLs pour qu'elles passent par notre proxy
           let modifiedPlaylist = response.data;
-          
+
           modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.m3u8[^\s\n]*/g, (match) => {
             return `/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
           });
-          
+
           modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.ts[^\s\n]*/g, (match) => {
             return `/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
           });
@@ -106,7 +111,7 @@ export default async function handler(req, res) {
       } else {
         // **Logique pour les segments vidéo .ts**
         requestHeaders['Accept'] = 'video/mp2t, video/*, */*';
-        
+
         if (req.method === 'HEAD') {
           const response = await axios.head(targetUrl, {
             headers: requestHeaders,
@@ -150,7 +155,7 @@ export default async function handler(req, res) {
 
       // Normaliser l'URL
       const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
-      
+
       if (!normalizedUrl.includes('vidmoly')) {
         throw new Error('URL VidMoly invalide');
       }
@@ -162,10 +167,10 @@ export default async function handler(req, res) {
       if (method === 'auto' || method === 'bypass') {
         try {
           console.log(`[VIDMOLY] Tentative extraction rapide...`);
-          
+
           // Utiliser seulement le proxy le plus fiable
           const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
-          
+
           const response = await axios.get(proxyUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -175,7 +180,7 @@ export default async function handler(req, res) {
           });
 
           const html = response.data.contents;
-          
+
           if (html.includes('Disable ADBlock') || html.includes('AdBlock')) {
             console.log(`[VIDMOLY] AdBlock détecté`);
             throw new Error('AdBlock détecté');
@@ -187,7 +192,7 @@ export default async function handler(req, res) {
             /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
             /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/
           ];
-          
+
           for (let i = 0; i < patterns.length; i++) {
             const match = html.match(patterns[i]);
             if (match) {
@@ -212,7 +217,7 @@ export default async function handler(req, res) {
       if (!m3u8Url && (method === 'auto' || method === 'extract')) {
         try {
           console.log(`[VIDMOLY] Tentative fallback simple...`);
-          
+
           // Une seule tentative avec timeout court
           const response = await axios.get(normalizedUrl, {
             headers: {
@@ -224,7 +229,7 @@ export default async function handler(req, res) {
           });
 
           const html = response.data;
-          
+
           // Pattern simple et efficace
           const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']/);
           if (match) {
@@ -248,8 +253,8 @@ export default async function handler(req, res) {
       // ===== FALLBACK FINAL =====
       if (!m3u8Url) {
         console.log(`[VIDMOLY] Toutes les méthodes ont échoué, retour d'une erreur`);
-        
-        return res.status(404).json({ 
+
+        return res.status(404).json({
           success: false,
           error: 'Aucun lien de streaming trouvé',
           message: 'Impossible d\'extraire le lien VidMoly. Veuillez essayer un autre lien.',
@@ -267,7 +272,7 @@ export default async function handler(req, res) {
 
       console.log(`[VIDMOLY] Lien final: ${m3u8Url} (méthode: ${methodUsed})`);
 
-      return res.status(200).json({ 
+      return res.status(200).json({
         success: true,
         m3u8Url: m3u8Url,
         source: 'vidmoly',
@@ -277,10 +282,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.error(`[VIDMOLY EXTRACTION] Erreur:`, error.message);
-      
+
       let statusCode = 500;
       let errorMessage = 'Erreur serveur lors de l\'extraction VidMoly';
-      
+
       if (error.message.includes('URL VidMoly invalide')) {
         statusCode = 400;
         errorMessage = error.message;
@@ -288,8 +293,8 @@ export default async function handler(req, res) {
         statusCode = 408;
         errorMessage = 'Timeout lors de l\'extraction VidMoly';
       }
-      
-      return res.status(statusCode).json({ 
+
+      return res.status(statusCode).json({
         success: false,
         error: errorMessage,
         details: error.message,
