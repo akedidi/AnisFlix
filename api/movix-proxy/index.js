@@ -256,6 +256,34 @@ export default async function handler(req, res) {
       return;
     }
 
+    // GÉRER ANIME-API ICI
+    if (decodedPath === 'anime-api') {
+      console.log('🎌 [Movix Proxy] Routing to AnimeAPI handler');
+      try {
+        const { title, season, episode } = queryParams;
+
+        if (!title) {
+          return res.status(400).json({
+            error: 'Paramètre title manquant pour AnimeAPI'
+          });
+        }
+
+        // Import and call anime-api handler
+        const animeApiHandler = await import('../anime-api/index.js');
+        const animeReq = {
+          ...req,
+          query: { title, season, episode }
+        };
+
+        return await animeApiHandler.default(animeReq, res);
+      } catch (error) {
+        console.error('❌ [Movix Proxy] AnimeAPI Handler Error:', error);
+        return res.status(500).json({
+          error: 'Internal Server Error in AnimeAPI handler',
+          details: error.message
+        });
+      }
+    }
 
 
     // GÉRER AFTERDARK ICI
