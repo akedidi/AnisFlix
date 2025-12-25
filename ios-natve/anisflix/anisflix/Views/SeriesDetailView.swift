@@ -186,26 +186,37 @@ struct SeriesDetailView: View {
                                 // Season Selector
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 12) {
-                                        ForEach(1...series.numberOfSeasons, id: \.self) { seasonNum in
+                                        // Get seasons list or fallback to range
+                                        let seasons: [SeriesDetail.SeasonSummary] = series.seasons ?? 
+                                            (1...series.numberOfSeasons).map { SeriesDetail.SeasonSummary(id: $0, name: "", overview: nil, seasonNumber: $0, episodeCount: 0, posterPath: nil) }
+                                        
+                                        // Sort: Specials (0) at the end, others ascending
+                                        let sortedSeasons = seasons.sorted { s1, s2 in
+                                            if s1.seasonNumber == 0 { return false } // s1=0 => needs to be > s2 (so false)
+                                            if s2.seasonNumber == 0 { return true }  // s2=0 => needs to be > s1 (so true)
+                                            return s1.seasonNumber < s2.seasonNumber
+                                        }
+
+                                        ForEach(sortedSeasons, id: \.seasonNumber) { season in
                                             Button {
-                                                if selectedSeason != seasonNum {
-                                                    selectedSeason = seasonNum
+                                                if selectedSeason != season.seasonNumber {
+                                                    selectedSeason = season.seasonNumber
                                                     selectedEpisodeId = nil
                                                     Task {
                                                         await loadSeasonDetails()
                                                     }
                                                 }
                                             } label: {
-                                                Text("\(theme.t("detail.season")) \(seasonNum)")
+                                                Text(season.seasonNumber == 0 ? theme.t("detail.specials") : "\(theme.t("detail.season")) \(season.seasonNumber)")
                                                     .font(.subheadline)
-                                                    .fontWeight(selectedSeason == seasonNum ? .bold : .regular)
+                                                    .fontWeight(selectedSeason == season.seasonNumber ? .bold : .regular)
                                                     .padding(.horizontal, 16)
                                                     .padding(.vertical, 8)
                                                     .background(
                                                         RoundedRectangle(cornerRadius: 8)
-                                                            .fill(selectedSeason == seasonNum ? AppTheme.primaryRed : theme.cardBackground)
+                                                            .fill(selectedSeason == season.seasonNumber ? AppTheme.primaryRed : theme.cardBackground)
                                                     )
-                                                    .foregroundColor(selectedSeason == seasonNum ? .white : theme.primaryText)
+                                                    .foregroundColor(selectedSeason == season.seasonNumber ? .white : theme.primaryText)
                                             }
                                         }
                                     }
@@ -221,7 +232,7 @@ struct SeriesDetailView: View {
                                         HStack {
                                             Image(systemName: "play.rectangle.fill")
                                                 .font(.title3)
-                                            Text("\(theme.t("detail.trailer")) \(theme.t("detail.season")) \(selectedSeason)")
+                                            Text("\(theme.t("detail.trailer")) \(selectedSeason == 0 ? theme.t("detail.specials") : "\(theme.t("detail.season")) \(selectedSeason)")")
                                                 .font(.headline)
                                         }
                                         .foregroundColor(.white)

@@ -431,14 +431,14 @@ export default function SeriesDetail() {
                     value={`season-${season.season_number}`}
                     className="min-w-[100px]"
                   >
-                    {season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}
+                    {season.season_number === 0 ? t("detail.specials") : `${t("detail.season")} ${season.season_number}`}
                   </TabsTrigger>
                 ))}
               </TabsList>
               {sortedSeasons.map((season: any) => (
                 <TabsContent key={season.id} value={`season-${season.season_number}`} className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? 'Spéciaux/OAVs' : `Saison ${season.season_number}`}</h3>
+                    <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? t("detail.specials") : `${t("detail.season")} ${season.season_number}`}</h3>
                     <p className="text-muted-foreground mb-4">{season.overview || "Aucune description disponible."}</p>
                     <p className="text-sm text-muted-foreground">{season.episode_count} épisodes</p>
                   </div>

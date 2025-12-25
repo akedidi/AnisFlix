@@ -150,10 +150,27 @@ struct SeriesDetail: Codable {
     let numberOfEpisodes: Int
     let genres: [Genre]
     let externalIds: ExternalIds?
+    let seasons: [SeasonSummary]?
     
     struct Genre: Codable, Identifiable {
         let id: Int
         let name: String
+    }
+    
+    struct SeasonSummary: Codable, Identifiable {
+        let id: Int
+        let name: String
+        let overview: String?
+        let seasonNumber: Int
+        let episodeCount: Int
+        let posterPath: String?
+        
+        private enum CodingKeys: String, CodingKey {
+            case id, name, overview
+            case seasonNumber = "season_number"
+            case episodeCount = "episode_count"
+            case posterPath = "poster_path"
+        }
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -166,6 +183,7 @@ struct SeriesDetail: Codable {
         case numberOfEpisodes = "number_of_episodes"
         case externalIds = "external_ids"
         case credits
+        case seasons
     }
     
     let credits: Credits?

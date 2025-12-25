@@ -95,6 +95,7 @@ struct Localizable {
         "detail.seasons": "Saisons",
         "detail.season": "Saison",
         "detail.noSources": "Aucune source disponible",
+        "detail.specials": "Spéciaux/OAVs",
         
         // Settings
         "settings.title": "Paramètres",
@@ -199,6 +200,7 @@ struct Localizable {
         "detail.seasons": "Seasons",
         "detail.season": "Season",
         "detail.noSources": "No sources available",
+        "detail.specials": "Specials/OAVs",
         
         "settings.title": "Settings",
         "settings.appearance": "Appearance",
@@ -302,6 +304,7 @@ struct Localizable {
         "detail.seasons": "Temporadas",
         "detail.season": "Temporada",
         "detail.noSources": "No hay fuentes disponibles",
+        "detail.specials": "Especiales/OAVs",
         
         "settings.title": "Ajustes",
         "settings.appearance": "Apariencia",
@@ -405,6 +408,7 @@ struct Localizable {
         "detail.seasons": "المواسم",
         "detail.season": "موسم",
         "detail.noSources": "لا توجد مصادر متاحة",
+        "detail.specials": "خاص/OAVs",
         
         "settings.title": "الإعدادات",
         "settings.appearance": "المظهر",
@@ -508,6 +512,7 @@ struct Localizable {
         "detail.seasons": "Staffeln",
         "detail.season": "Staffel",
         "detail.noSources": "Keine Quellen verfügbar",
+        "detail.specials": "Specials/OAVs",
         
         "settings.title": "Einstellungen",
         "settings.appearance": "Erscheinungsbild",
@@ -611,6 +616,7 @@ struct Localizable {
         "detail.seasons": "Stagioni",
         "detail.season": "Stagione",
         "detail.noSources": "Nessuna fonte",
+        "detail.specials": "Speciali/OAVs",
         
         "settings.title": "Impostazioni",
         "settings.appearance": "Aspetto",
@@ -714,6 +720,7 @@ struct Localizable {
         "detail.seasons": "Temporadas",
         "detail.season": "Temporada",
         "detail.noSources": "Sem fontes",
+        "detail.specials": "Especiais/OAVs",
         
         "settings.title": "Definições",
         "settings.appearance": "Aparência",

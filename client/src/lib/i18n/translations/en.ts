@@ -92,6 +92,7 @@ export default {
   "detail.noOverview": "No overview available.",
   "detail.noTrailer": "No trailer available",
   "detail.minutes": "min",
+  "detail.specials": "Specials/OAVs",
 
   // Search
   "search.placeholder": "Search movies, series, anime...",

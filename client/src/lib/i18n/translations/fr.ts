@@ -92,6 +92,7 @@ export default {
   "detail.noOverview": "Aucune description disponible.",
   "detail.noTrailer": "Aucune bande-annonce disponible",
   "detail.minutes": "min",
+  "detail.specials": "Spéciaux/OAVs",
 
   // Search
   "search.placeholder": "Rechercher des films, séries, animes...",
