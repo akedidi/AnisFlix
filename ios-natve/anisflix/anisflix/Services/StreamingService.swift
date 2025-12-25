@@ -167,10 +167,11 @@ struct AfterDarkSource: Codable {
     let server: String?
     let name: String?
     let proxied: Bool?
+    let language: String?
     
     enum CodingKeys: String, CodingKey {
         case url = "file" // Map JSON 'file' to 'url'
-        case quality, kind, server, name, proxied
+        case quality, kind, server, name, proxied, language
     }
 }
 
@@ -899,12 +900,24 @@ class StreamingService {
                 // Map 'kind' to type
                 let streamType = "m3u8" // Since we filter for hls, it's always m3u8
                 
+                // Map language
+                var language = "VF"
+                if let lang = source.language?.lowercased() {
+                    if lang == "english" || lang == "eng" || lang == "en" {
+                        language = "VO"
+                    } else if lang == "multi" {
+                        language = "VF"
+                    } else if lang.contains("vo") {
+                        language = "VO"
+                    }
+                }
+                
                 let streamSource = StreamingSource(
                     url: source.url,
                     quality: source.quality ?? "HD",
                     type: streamType,
                     provider: "afterdark",
-                    language: "VF"
+                    language: language
                 )
                 sources.append(streamSource)
             }
