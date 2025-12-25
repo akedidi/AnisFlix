@@ -114,7 +114,17 @@ export default function SeriesDetail() {
   );
 
   // Fetch Movix Anime sources
-  const { data: movixAnime } = useMovixAnime(series?.name, seriesId);
+  const { data: movixAnime, isLoading: isLoadingMovixAnime, error: movixAnimeError } = useMovixAnime(series?.name, seriesId);
+
+  // Debug Movix Anime
+  useEffect(() => {
+    console.log('🎬 [DEBUG MOVIX ANIME] Loading:', isLoadingMovixAnime);
+    console.log('🎬 [DEBUG MOVIX ANIME] Error:', movixAnimeError);
+    console.log('🎬 [DEBUG MOVIX ANIME] Data:', movixAnime);
+    if (movixAnime) {
+      console.log('🎬 [DEBUG MOVIX ANIME] Seasons:', movixAnime.seasons?.map((s: any) => s.name));
+    }
+  }, [movixAnime, isLoadingMovixAnime, movixAnimeError]);
 
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
@@ -163,6 +173,14 @@ export default function SeriesDetail() {
       id: `movix-anime-${source.id}`
     })))
   ];
+
+  // Debug episodeSources
+  useEffect(() => {
+    console.log('📦 [DEBUG EPISODE SOURCES] Total sources:', episodeSources.length);
+    console.log('📦 [DEBUG EPISODE SOURCES] Sources:', episodeSources);
+    const vidMolySources = episodeSources.filter((s: any) => s.isVidMoly);
+    console.log('📦 [DEBUG EPISODE SOURCES] VidMoly sources:', vidMolySources.length, vidMolySources);
+  }, [episodeSources, selectedSeasonNumber, selectedEpisode]);
 
   const handleSourceClick = async (source: {
     url: string;
