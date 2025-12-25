@@ -59,6 +59,8 @@ export default function Home() {
   const { data: amazonMoviesData } = useMoviesByProvider(9);
   const { data: hboMaxSeriesData } = useSeriesByProvider(384);
   const { data: hboMaxMoviesData } = useMoviesByProvider(384);
+  const { data: crunchyrollSeriesData } = useSeriesByProvider(283);
+  const { data: crunchyrollMoviesData } = useMoviesByProvider(283);
   const { data: disneyMoviesData } = useMoviesByProvider(337);
   const { data: disneySeriesData } = useSeriesByProvider(337);
   const { data: appleTvMoviesData } = useMoviesByProvider(350);
@@ -70,6 +72,8 @@ export default function Home() {
   const amazonMovies = amazonMoviesData?.results || [];
   const hboMaxSeries = hboMaxSeriesData?.results || [];
   const hboMaxMovies = hboMaxMoviesData?.results || [];
+  const crunchyrollSeries = crunchyrollSeriesData?.results || [];
+  const crunchyrollMovies = crunchyrollMoviesData?.results || [];
   const disneyMovies = disneyMoviesData?.results || [];
   const disneySeries = disneySeriesData?.results || [];
   const appleTvMovies = appleTvMoviesData?.results || [];
@@ -100,6 +104,7 @@ export default function Home() {
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
     { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
+    { id: 283, name: "Crunchyroll", logoPath: "/8I0MeWVwYwzpRjhXTMlQTLr46sh.jpg" },
   ];
 
   // Charger la progression réelle depuis localStorage
@@ -386,6 +391,25 @@ export default function Home() {
               <MediaCarousel
                 title={`${t("platform.hboMax")} - ${t("home.latestSeries")}`}
                 items={hboMaxSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+              />
+            )}
+
+            {/* Crunchyroll */}
+            {crunchyrollMovies.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.crunchyroll")} - ${t("home.latestMovies")}`}
+                items={crunchyrollMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+              />
+            )}
+
+            {crunchyrollSeries.length > 0 && (
+              <MediaCarousel
+                title={`${t("platform.crunchyroll")} - ${t("home.latestSeries")}`}
+                items={crunchyrollSeries.slice(0, 10)}
                 onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
                 showSeeAllButton={true}
               />

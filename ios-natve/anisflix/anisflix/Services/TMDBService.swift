@@ -164,7 +164,64 @@ class TMDBService {
     
     func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> SeasonDetails {
         let endpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)?api_key=\(apiKey)&language=\(language)"
-        return try await fetch(from: endpoint)
+        let frData: SeasonDetails = try await fetch(from: endpoint)
+        
+        // Check for generic episode names in the response
+        // Regex: starts with Episode/Épisode/Episodio followed by a number
+        let pattern = "^(Episode|Épisode|Episodio) \\d+$"
+        
+        let hasGenericNames = frData.episodes.contains { episode in
+            return episode.name.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil ||
+                   episode.name == "Episode \(episode.episodeNumber)"
+        }
+        
+        if hasGenericNames {
+            print("⚠️ [TMDBService] Generic names detected for season \(seasonNumber), fetching English fallback...")
+            do {
+                // Fetch English data
+                let enEndpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)?api_key=\(apiKey)&language=en-US"
+                let enData: SeasonDetails = try await fetch(from: enEndpoint)
+                
+                // Merge English names where French ones are generic
+                let updatedEpisodes = frData.episodes.map { frEp -> Episode in
+                    let isGeneric = frEp.name.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil ||
+                                    frEp.name == "Episode \(frEp.episodeNumber)"
+                    
+                    if isGeneric {
+                        if let enEp = enData.episodes.first(where: { $0.id == frEp.id }) {
+                            print("✅ [TMDBService] Replaced generic \"\(frEp.name)\" with \"\(enEp.name)\"")
+                            // Inject English name as originalName and use it as name
+                            return Episode(
+                                id: frEp.id,
+                                name: enEp.name,
+                                overview: frEp.overview,
+                                stillPath: frEp.stillPath,
+                                episodeNumber: frEp.episodeNumber,
+                                seasonNumber: frEp.seasonNumber,
+                                airDate: frEp.airDate,
+                                voteAverage: frEp.voteAverage,
+                                originalName: enEp.name // Use EN name as originalName too
+                            )
+                        }
+                    }
+                    return frEp
+                }
+                
+                return SeasonDetails(
+                    id: frData.id,
+                    name: frData.name,
+                    overview: frData.overview,
+                    posterPath: frData.posterPath,
+                    seasonNumber: frData.seasonNumber,
+                    episodes: updatedEpisodes
+                )
+                
+            } catch {
+                print("❌ [TMDBService] Failed to fetch English fallback: \(error)")
+            }
+        }
+        
+        return frData
     }
     
     // MARK: - Media Details

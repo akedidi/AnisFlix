@@ -186,6 +186,7 @@ export default {
   "platform.paramount": "Paramount+",
   "platform.disney": "Disney+",
   "platform.hboMax": "HBO Max",
+  "platform.crunchyroll": "Crunchyroll",
 
   // 404 page
   "notFound.title": "404 Página No Encontrada",

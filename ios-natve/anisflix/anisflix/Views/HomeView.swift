@@ -33,6 +33,8 @@ struct HomeView: View {
     @State private var disneySeries: [Media] = []
     @State private var hboMaxMovies: [Media] = []
     @State private var hboMaxSeries: [Media] = []
+    @State private var crunchyrollMovies: [Media] = []
+    @State private var crunchyrollSeries: [Media] = []
     
     @State private var isLoading = true
 
@@ -45,7 +47,8 @@ struct HomeView: View {
         (id: 350, name: "Apple TV+", logo: "/6uhKBfmtzFqOcLousHwZuzcrScK.jpg"),
         (id: 531, name: "Paramount+", logo: "/xbhHHa1YgtpwhC8lb1NQ3ACVcLd.jpg"),
         (id: 337, name: "Disney+", logo: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg"),
-        (id: 1899, name: "HBO Max", logo: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg")
+        (id: 1899, name: "HBO Max", logo: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg"),
+        (id: 283, name: "Crunchyroll", logo: "/8I0MeWVwYwzpRjhXTMlQTLr46sh.jpg")
     ]
     
     var body: some View {
@@ -357,6 +360,31 @@ struct HomeView: View {
                             ProviderCategoryListView(providerId: 384, providerName: "HBO Max", category: "Séries", genreId: nil, mediaType: .series)
                         }
                     }
+                    
+                    // Crunchyroll
+                    if !crunchyrollMovies.isEmpty {
+                        MediaRow(
+                            title: "Crunchyroll - Films",
+                            items: Array(crunchyrollMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Crunchyroll movie: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 283, providerName: "Crunchyroll", category: "Films", genreId: nil, mediaType: .movie)
+                        }
+                    }
+                    
+                    if !crunchyrollSeries.isEmpty {
+                        MediaRow(
+                            title: "Crunchyroll - Séries",
+                            items: Array(crunchyrollSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Crunchyroll series: \(media.id)")
+                            }
+                        ) {
+                            ProviderCategoryListView(providerId: 283, providerName: "Crunchyroll", category: "Séries", genreId: nil, mediaType: .series)
+                        }
+                    }
                 }
                 .padding(.bottom, 50)  // Tab bar spacing
             }
@@ -426,6 +454,8 @@ struct HomeView: View {
         async let disneySer = TMDBService.shared.fetchSeriesByProvider(providerId: 337, language: language)
         async let hboMov = TMDBService.shared.fetchMoviesByProvider(providerId: 384, language: language)
         async let hboSer = TMDBService.shared.fetchSeriesByProvider(providerId: 384, language: language)
+        async let crunchyrollMov = TMDBService.shared.fetchMoviesByProvider(providerId: 283, language: language)
+        async let crunchyrollSer = TMDBService.shared.fetchSeriesByProvider(providerId: 283, language: language)
         
         print("⏳ Waiting for all API calls...")
         
@@ -435,7 +465,7 @@ struct HomeView: View {
                 animeMoviesLat, animeMoviesPop, animeSeriesLat, animeSeriesPop,
                 netflixMov, netflixSer, amazonMov, amazonSer,
                 appleMov, appleSer, disneyMov, disneySer,
-                hboMov, hboSer
+                hboMov, hboSer, crunchyrollMov, crunchyrollSer
             )
             
             print("✅ All API calls completed successfully!")
@@ -460,6 +490,8 @@ struct HomeView: View {
             disneySeries = results.15
             hboMaxMovies = results.16
             hboMaxSeries = results.17
+            crunchyrollMovies = results.18
+            crunchyrollSeries = results.19
             
             // Load Continue Watching from WatchProgressManager
             await loadContinueWatching()

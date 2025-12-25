@@ -300,7 +300,7 @@ struct SeriesDetailView: View {
                                                         }
                                                         
                                                         VStack(alignment: .leading, spacing: 4) {
-                                                            Text("\(episode.episodeNumber). \(episode.name)")
+                                                            Text("\(episode.episodeNumber). \(getEpisodeTitle(episode))")
                                                                 .font(.subheadline)
                                                                 .fontWeight(.medium)
                                                                 .foregroundColor(selectedEpisodeId == episode.id ? AppTheme.primaryRed : theme.primaryText)
@@ -849,6 +849,21 @@ struct SeriesDetailView: View {
             originalLanguage: "en",
             releaseDate: series?.firstAirDate
         )
+    }
+    
+    private func getEpisodeTitle(_ episode: Episode) -> String {
+        // Regex for generic titles: "Episode 1", "Épisode 1", "Episodio 1"
+        let pattern = "^(Episode|Épisode|Episodio) \\d+$"
+        let isGeneric = episode.name.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
+        
+        // Also check strict equality with "Episode {N}"
+        let isStrictGeneric = episode.name == "Episode \(episode.episodeNumber)"
+        
+        if (isGeneric || isStrictGeneric), let originalName = episode.originalName {
+            return originalName
+        }
+        
+        return episode.name
     }
 }
 

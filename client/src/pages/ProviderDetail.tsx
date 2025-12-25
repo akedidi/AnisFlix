@@ -64,6 +64,13 @@ const providers: Record<number, Provider> = {
     description:
       "HBO Max offre des séries primées, films et contenus exclusifs Warner Bros.",
   },
+  283: {
+    id: 283,
+    name: "Crunchyroll",
+    logoPath: "/8I0MeWVwYwzpRjhXTMlQTLr46sh.jpg",
+    description:
+      "Crunchyroll est la plateforme de référence pour l'anime, proposant des milliers de séries et films d'animation japonaise.",
+  },
 };
 
 export default function ProviderDetail() {
@@ -78,29 +85,29 @@ export default function ProviderDetail() {
 
   // Guard: provider inconnu
   if (!provider) {
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+    const handleRefresh = () => {
+      window.location.reload();
+    };
 
 
     return (
 
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
 
-        
+
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-12">
           <h1 className="text-2xl font-semibold mb-2">{t("provider.notFound") || "Fournisseur introuvable"}</h1>
           <p className="text-muted-foreground">
             {t("provider.chooseAnother") || "Veuillez sélectionner un autre fournisseur."}
           </p>
         </div>
-          
 
-        </CommonLayout>
 
-      );
+      </CommonLayout>
 
-      }
+    );
+
+  }
 
   const imageUrl = provider.logoPath
     ? `https://image.tmdb.org/t/p/w185${provider.logoPath}`

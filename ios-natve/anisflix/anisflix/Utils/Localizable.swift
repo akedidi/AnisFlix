@@ -244,6 +244,9 @@ struct Localizable {
         "downloads.deleteAlertMessage": "Are you sure you want to delete this download? This action cannot be undone.",
         "downloads.deleteConfirm": "Delete",
         
+        "platform.hboMax": "HBO Max",
+        "platform.crunchyroll": "Crunchyroll",
+        
         // Sources
         "VF": "French Dub",
         "VOSTFR": "French Sub",

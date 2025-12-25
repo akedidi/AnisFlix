@@ -150,4 +150,13 @@ export default {
   "language.it": "Italiano",
   "language.pt": "Português",
   "language.ar": "Arabo",
+
+  // Platforms
+  "platform.netflix": "Netflix",
+  "platform.amazonPrime": "Amazon Prime Video",
+  "platform.appleTV": "Apple TV+",
+  "platform.paramount": "Paramount+",
+  "platform.disney": "Disney+",
+  "platform.hboMax": "HBO Max",
+  "platform.crunchyroll": "Crunchyroll",
 };
