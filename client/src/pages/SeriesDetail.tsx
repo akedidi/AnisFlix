@@ -512,7 +512,22 @@ export default function SeriesDetail() {
                                           />
                                         ) : (
                                           <div className="space-y-4">
+                                            {/* Close button */}
+                                            <div className="flex justify-end">
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => {
+                                                  setSelectedSource(null);
+                                                  setIsLoadingSource(false);
+                                                }}
+                                                className="text-muted-foreground hover:text-foreground"
+                                              >
+                                                <X className="w-5 h-5" />
+                                              </Button>
+                                            </div>
                                             {selectedSource.isVidMoly ? (
+
                                               <VidMolyPlayer
                                                 vidmolyUrl={selectedSource.url}
                                                 posterPath={series.backdrop_path}
