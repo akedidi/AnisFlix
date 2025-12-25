@@ -138,16 +138,23 @@ export default function SeriesDetail() {
       // Check if this is an animation (genre ID: 16)
       const isAnimation = series?.genres?.some((g: any) => g.id === 16);
 
-      if (!isAnimation || !selectedEpisode || !series?.original_name) {
+      if (!isAnimation || !selectedEpisode) {
         return [];
       }
 
-      console.log(`🎌 [AnimeAPI] Fetching for: ${series.original_name} S${selectedSeasonNumber}E${selectedEpisode}`);
-
+      // Get English title from TMDB (original_name is often Japanese for anime)
       try {
+        const tmdbResponse = await fetch(
+          `https://api.themoviedb.org/3/tv/${seriesId}?api_key=68e094699525b18a70bab2f86b1fa706&language=en-US`
+        );
+        const tmdbData = await tmdbResponse.json();
+        const englishTitle = tmdbData.name || series.original_name;
+
+        console.log(`🎌 [AnimeAPI] Fetching: ${englishTitle} S${selectedSeasonNumber}E${selectedEpisode}`);
+
         const params = new URLSearchParams({
           path: 'anime-api',
-          title: series.original_name, // Use English original title for anime API
+          title: englishTitle,
           season: selectedSeasonNumber.toString(),
           episode: selectedEpisode.toString(),
         });
