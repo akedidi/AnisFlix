@@ -185,7 +185,7 @@ export default function SeriesDetail() {
       quality: source.quality || 'HD',
       language: 'VF'
     })) || []),
-    ...(extractVidMolyFromAnime(movixAnime, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
+    ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
       ...source,
       id: `movix-anime-${source.id}`
     })))

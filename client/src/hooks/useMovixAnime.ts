@@ -94,6 +94,7 @@ export const useMovixAnime = (title: string | undefined, seriesId: number) => {
 
 export const extractVidMolyFromAnime = (
     anime: Anime | null | undefined,
+    tmdbSeries: any, // Added TMDB series info for absolute episode calculation
     seasonNumber: number,
     episodeNumber: number,
     seriesId: number
@@ -152,6 +153,32 @@ export const extractVidMolyFromAnime = (
                 e.index === episodeNumber ||
                 e.name.includes(String(episodeNumber).padStart(2, '0'))
             );
+        }
+    }
+
+    // Fallback: Absolute Episode Search (if specific season/episode not found and it's a regular season)
+    if (!targetEpisode && seasonNumber > 0 && tmdbSeries && tmdbSeries.seasons) {
+        // Calculate absolute number from TMDB info
+        // Sum episodes of all previous seasons (ignoring Specials/Season 0)
+        const previousSeasons = tmdbSeries.seasons.filter((s: any) => s.season_number > 0 && s.season_number < seasonNumber) || [];
+        const previousEpisodeCount = previousSeasons.reduce((acc: number, s: any) => acc + Number(s.episode_count || 0), 0);
+        const absoluteEpisodeNumber = previousEpisodeCount + episodeNumber;
+
+        console.log(`🎯 [EXTRACT VIDMOLY] Absolute search fallback: S${seasonNumber}E${episodeNumber} (Abs: ${absoluteEpisodeNumber}). PrevSeasons: ${previousSeasons.length}, PrevCount: ${previousEpisodeCount}`);
+
+        // Search in ALL extracted seasons (Movix might put them in "Season 1" or "Unknown")
+        for (const s of anime.seasons) {
+            const match = s.episodes.find(e =>
+                e.index === absoluteEpisodeNumber ||
+                e.name.includes(String(absoluteEpisodeNumber).padStart(2, '0')) || // Matches "02", "153"
+                (absoluteEpisodeNumber > 0 && e.name.toLowerCase().includes(`episode ${absoluteEpisodeNumber}`)) // Explicit "Episode N"
+            );
+
+            if (match) {
+                console.log('🎯 [EXTRACT VIDMOLY] Found absolute match in', s.name, ':', match.name);
+                targetEpisode = match;
+                break;
+            }
         }
     }
 

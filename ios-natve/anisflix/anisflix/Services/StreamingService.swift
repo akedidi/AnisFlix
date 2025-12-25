@@ -425,11 +425,12 @@ class StreamingService {
         // Add Anime sources
         var animeSources: [StreamingSource] = []
         
-        if let title = tmdbInfo?.title {
+        if let info = tmdbInfo {
+            let title = info.title
             print("ℹ️ [StreamingService] TMDB Info found: \(title)")
             
             // Start Anime fetch concurrently if we have title
-            async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode)
+            async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, tmdbInfo: info, season: season, episode: episode)
             
             // Fetch AfterDark sources
             afterDarkSources = (try? await fetchAfterDarkSources(
@@ -1093,6 +1094,12 @@ class StreamingService {
     
     struct TmdbSeriesInfo {
         let title: String
+        let seasons: [TmdbSeasonInfo]
+    }
+    
+    struct TmdbSeasonInfo {
+        let seasonNumber: Int
+        let episodeCount: Int
     }
     
     private func fetchMovieTmdbInfo(movieId: Int) async throws -> TmdbMovieInfo {
@@ -1129,7 +1136,17 @@ class StreamingService {
         
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             let title = json["name"] as? String ?? ""
-            return TmdbSeriesInfo(title: title)
+            
+            var seasons: [TmdbSeasonInfo] = []
+            if let seasonsArray = json["seasons"] as? [[String: Any]] {
+                for seasonData in seasonsArray {
+                    let number = seasonData["season_number"] as? Int ?? -1
+                    let count = seasonData["episode_count"] as? Int ?? 0
+                    seasons.append(TmdbSeasonInfo(seasonNumber: number, episodeCount: count))
+                }
+            }
+            
+            return TmdbSeriesInfo(title: title, seasons: seasons)
         }
         
         throw URLError(.cannotParseResponse)
@@ -1246,7 +1263,8 @@ class StreamingService {
     
     // MARK: - Movix Anime Fetching
     
-    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int) async throws -> [StreamingSource] {
+    private func fetchMovixAnimeSources(seriesId: Int, tmdbInfo: TmdbSeriesInfo, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let title = tmdbInfo.title
         // Clean title logic (same as web)
         let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
         let searchTitle = isAOT ? "L'Attaque des Titans" : title.split(separator: ":")[0].trimmingCharacters(in: .whitespaces)
@@ -1367,6 +1385,33 @@ class StreamingService {
                      $0.index == episode || $0.name.contains(String(format: "%02d", episode))
                  }
              }
+        }
+        
+        // Fallback: Absolute Episode Search (if specific season/episode not found and it's a regular season)
+        if targetEpisode == nil && season > 0 {
+            // Calculate absolute number from TMDB info
+            let previousSeasons = tmdbInfo.seasons.filter { $0.seasonNumber > 0 && $0.seasonNumber < season }
+            let previousEpisodeCount = previousSeasons.reduce(0) { $0 + $1.episodeCount }
+            let absoluteEpisodeNumber = previousEpisodeCount + episode
+            
+            print("🎯 [MOVIX ANIME] Absolute Search Fallback: S\(season)E\(episode) -> Absolute \(absoluteEpisodeNumber). PrevSeasons: \(previousSeasons.count), PrevCount: \(previousEpisodeCount)")
+            
+            // Search in ALL extracted seasons
+            for s in seasons {
+                if let episodeMatch = s.episodes?.first(where: {
+                    $0.index == absoluteEpisodeNumber || 
+                    $0.name.contains(String(format: "%02d", absoluteEpisodeNumber)) ||
+                    (absoluteEpisodeNumber > 0 && $0.name.localizedCaseInsensitiveContains("Episode \(absoluteEpisodeNumber)"))
+                }) {
+                    print("🎯 [MOVIX ANIME] Found absolute match in \(s.name): \(episodeMatch.name)")
+                    targetEpisode = episodeMatch
+                    break
+                }
+            }
+            
+            if targetEpisode == nil {
+                print("🎯 [MOVIX ANIME] No absolute match found for \(absoluteEpisodeNumber)")
+            }
         }
         
         guard let finalEpisode = targetEpisode, let links = finalEpisode.streaming_links else {
