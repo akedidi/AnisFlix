@@ -16,6 +16,7 @@ import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
+import { useMovixAnime, extractVidMolyFromAnime } from "@/hooks/useMovixAnime";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -102,7 +103,6 @@ export default function SeriesDetail() {
     selectedEpisode || undefined
   );
 
-  // Fetch AfterDark VF sources
   const { data: afterDarkSources, isLoading: isLoadingAfterDark } = useAfterDarkSources(
     'tv',
     seriesId,
@@ -112,6 +112,9 @@ export default function SeriesDetail() {
     selectedSeasonNumber,
     selectedEpisode || undefined
   );
+
+  // Fetch Movix Anime sources
+  const { data: movixAnime } = useMovixAnime(series?.name, seriesId);
 
   // Log Movix links for debugging (will be removed later)
   if (movixLinks && !isLoadingMovixLinks) {
@@ -126,7 +129,7 @@ export default function SeriesDetail() {
   const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [
-    ...(universalVOSources?.files?.map((source, index) => ({
+    ...(universalVOSources?.files?.map((source: any, index: number) => ({
       id: `universal-${source.provider}-${index}`,
       name: `${source.provider}`,
       provider: source.provider || 'UniversalVO',
@@ -141,7 +144,7 @@ export default function SeriesDetail() {
       language: 'VO',
       headers: source.headers
     })) || []),
-    ...(afterDarkSources?.sources?.map((source, index) => ({
+    ...(afterDarkSources?.sources?.map((source: any, index: number) => ({
       id: `afterdark-${index}`,
       name: source.server || 'AfterDark',
       provider: 'AfterDark',
@@ -155,6 +158,10 @@ export default function SeriesDetail() {
       quality: source.quality || 'HD',
       language: 'VF'
     })) || []),
+    ...(extractVidMolyFromAnime(movixAnime, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
+      ...source,
+      id: `movix-anime-${source.id}`
+    })))
   ];
 
   const handleSourceClick = async (source: {
@@ -489,19 +496,26 @@ export default function SeriesDetail() {
                                           <div className="space-y-4">
                                             {selectedSource.isVidMoly ? (
                                               <VidMolyPlayer
-                                                sourceUrl={selectedSource.url}
-                                                poster={getImageUrl(series.backdrop_path, "original")}
+                                                vidmolyUrl={selectedSource.url}
+                                                posterPath={series.backdrop_path}
                                                 title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
                                                 onClose={() => {
                                                   console.log('Fermeture lecteur VidMoly');
                                                   setSelectedSource(null);
                                                   setIsLoadingSource(false);
                                                 }}
+                                                mediaId={seriesId}
+                                                mediaType="tv"
+                                                seasonNumber={selectedSeasonNumber}
+                                                episodeNumber={episode.episode_number}
+                                                imdbId={series?.external_ids?.imdb_id}
                                               />
                                             ) : selectedSource.isDarki ? (
                                               <DarkiPlayer
-                                                embedUrl={selectedSource.url}
+                                                darkiUrl={selectedSource.url}
                                                 title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
+                                                mediaId={seriesId}
+                                                mediaType="tv"
                                                 onClose={() => {
                                                   console.log('Fermeture lecteur Darki');
                                                   setSelectedSource(null);
@@ -510,15 +524,20 @@ export default function SeriesDetail() {
                                               />
                                             ) : (
                                               <VideoPlayer
-                                                url={selectedSource.url}
-                                                type={selectedSource.type}
-                                                poster={getImageUrl(series.backdrop_path, "original")}
+                                                src={selectedSource.url}
+                                                type={selectedSource.type === "embed" ? "m3u8" : selectedSource.type}
+                                                posterPath={series.backdrop_path}
                                                 title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
                                                 onClose={() => {
                                                   console.log('Fermeture lecteur VideoPlayer std');
                                                   setSelectedSource(null);
                                                   setIsLoadingSource(false);
                                                 }}
+                                                mediaId={seriesId}
+                                                mediaType="tv"
+                                                seasonNumber={selectedSeasonNumber}
+                                                episodeNumber={episode.episode_number}
+                                                imdbId={series?.external_ids?.imdb_id}
                                               />
                                             )}
                                           </div>
