@@ -44,15 +44,36 @@ export const useMovixAnime = (title: string | undefined, seriesId: number) => {
                     return null;
                 }
 
-                // Find the best match
-                const match = data.find((item: any) => {
-                    const itemName = item.name.toLowerCase();
-                    const searchLower = searchTitle.toLowerCase();
-                    const titleLower = title.toLowerCase();
+                // Find the best match - prioritize exact matches
+                let match = null;
 
-                    if (isAOT && (itemName === 'shingeki no kyojin' || itemName.includes('attaque des titans'))) return true;
-                    return itemName === searchLower || itemName.includes(searchLower) || itemName === titleLower || itemName.includes(titleLower);
-                });
+                // For Attack on Titan, explicitly look for "Shingeki no Kyojin" (not Junior High)
+                if (isAOT) {
+                    match = data.find((item: any) => item.name.toLowerCase() === 'shingeki no kyojin');
+                    console.log('🔍 [MOVIX ANIME] AOT specific match:', match?.name);
+                }
+
+                // Fallback to general matching
+                if (!match) {
+                    match = data.find((item: any) => {
+                        const itemName = item.name.toLowerCase();
+                        const searchLower = searchTitle.toLowerCase();
+                        const titleLower = title.toLowerCase();
+                        return itemName === searchLower || itemName === titleLower;
+                    });
+                }
+
+                // Last resort: partial match (excluding Junior High variants)
+                if (!match) {
+                    match = data.find((item: any) => {
+                        const itemName = item.name.toLowerCase();
+                        if (itemName.includes('junior') || itemName.includes('high-school')) return false;
+                        const searchLower = searchTitle.toLowerCase();
+                        const titleLower = title.toLowerCase();
+                        return itemName.includes(searchLower) || itemName.includes(titleLower);
+                    });
+                }
+
 
                 if (!match) {
                     console.log('⚠️ [MOVIX ANIME] No match found for:', searchTitle);
