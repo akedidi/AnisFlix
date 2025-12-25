@@ -78,6 +78,7 @@ const PROVIDERS = {
   337: 'Disney+',  // ID correct pour Disney+
   531: 'Paramount+',  // ID correct pour Paramount+
   384: 'HBO Max',  // ID correct pour HBO Max
+  283: 'Crunchyroll',
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
@@ -117,20 +118,20 @@ export default function ProviderSeriesGenre() {
       try {
         setLoading(true);
         setError(null);
-        
+
         let result: any = null;
-        
+
         // Pour Amazon (9) uniquement, utiliser le network filter pour Amazon Originals
         if (providerId === 9) {
           try {
             const today = new Date();
             const firstAirDateLte = today.toISOString().slice(0, 10);
             let url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=1024&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&include_null_first_air_dates=false&include_adult=false&page=${currentPage}`;
-            
+
             if (genreId) {
               url += `&with_genres=${genreId}`;
             }
-            
+
             const response = await fetch(url);
             if (response.ok) {
               result = await response.json();
@@ -139,7 +140,7 @@ export default function ProviderSeriesGenre() {
             console.error('Amazon network filter failed:', err);
           }
         }
-        
+
         // Pour les autres providers ou si Amazon échoue, utiliser with_watch_providers
         if (!result || !result.results || result.results.length === 0) {
           // Pour les autres providers, utiliser with_watch_providers
@@ -147,16 +148,16 @@ export default function ProviderSeriesGenre() {
           const firstAirDateLte = today.toISOString().slice(0, 10);
           const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
           const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
-          
+
           // Essayer chaque région
           for (const region of regions) {
             try {
               let url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=${region}&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
-              
+
               if (genreId) {
                 url += `&with_genres=${genreId}`;
               }
-              
+
               const response = await fetch(url);
               if (response.ok) {
                 const data = await response.json();
@@ -170,18 +171,18 @@ export default function ProviderSeriesGenre() {
               continue;
             }
           }
-          
+
           // Fallback sans région
           if (!result || !result.results || result.results.length === 0) {
             try {
               let fallbackUrl = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=flatrate|ads&sort_by=first_air_date.desc&include_null_first_air_dates=false&include_adult=false&first_air_date.lte=${firstAirDateLte}&page=${currentPage}`;
-              
+
               if (genreId) {
                 fallbackUrl += `&with_genres=${genreId}`;
               }
-              
+
               const response = await fetch(fallbackUrl);
-              
+
               if (response.ok) {
                 result = await response.json();
               }
@@ -190,12 +191,12 @@ export default function ProviderSeriesGenre() {
             }
           }
         }
-        
+
         // Si toujours vide, retourner résultat vide
         if (!result) {
           result = { results: [], total_pages: 0, page: 1 };
         }
-        
+
         setData(result);
       } catch (err) {
         console.error('❌ Erreur:', err);
@@ -243,7 +244,7 @@ export default function ProviderSeriesGenre() {
               <p className="text-muted-foreground mb-4">
                 Le genre "{genreSlug}" ou le provider "{providerId}" n'existe pas.
               </p>
-              
+
             </div>
           </div>
         </div>
@@ -255,14 +256,14 @@ export default function ProviderSeriesGenre() {
     <div className="h-screen overflow-y-auto">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
-      
+
       {/* Main Content */}
       <div className="md:ml-64">
         {/* Header avec recherche et contrôles */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
-              
+
               <div className="flex-1">
                 <SearchBar
                   onSearch={setSearchQuery}
@@ -281,64 +282,64 @@ export default function ProviderSeriesGenre() {
 
         {/* Content */}
         <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("series.title")}`}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            {genreId 
-              ? t("genre.discoverSeries").replace('{genre}', genreName) 
-              : t("provider.discoverSeries").replace('{provider}', providerName)}
-          </p>
-        </div>
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("series.title")}`}
+            </h1>
+            <p className="text-muted-foreground max-w-2xl">
+              {genreId
+                ? t("genre.discoverSeries").replace('{genre}', genreName)
+                : t("provider.discoverSeries").replace('{provider}', providerName)}
+            </p>
+          </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("common.loading")}</p>
-          </div>
-        ) : series.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {series.map((serie: any) => {
-                // Transformer les données pour correspondre au format attendu
-                const transformedSerie = {
-                  id: serie.id,
-                  title: serie.name,
-                  posterPath: serie.poster_path,
-                  rating: Math.round(serie.vote_average * 10) / 10,
-                  year: serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : "",
-                  mediaType: "series" as const,
-                };
-                
-                return (
-                  <div key={serie.id} className="w-full">
-                    <MediaCard
-                      {...transformedSerie}
-                      onClick={() => {
-                        try {
-                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
-                          sess[window.location.pathname] = currentPage;
-                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
-                        } catch {}
-                        navigate(navPaths.seriesDetail(serie.id));
-                      }}
-                    />
-                  </div>
-                );
-              })}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("common.loading")}</p>
             </div>
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("provider.noSeriesAvailablePrefix")} {genreName} {t("provider.noSeriesAvailableSuffix")} {providerName}</p>
-          </div>
-        )}
+          ) : series.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {series.map((serie: any) => {
+                  // Transformer les données pour correspondre au format attendu
+                  const transformedSerie = {
+                    id: serie.id,
+                    title: serie.name,
+                    posterPath: serie.poster_path,
+                    rating: Math.round(serie.vote_average * 10) / 10,
+                    year: serie.first_air_date ? new Date(serie.first_air_date).getFullYear().toString() : "",
+                    mediaType: "series" as const,
+                  };
+
+                  return (
+                    <div key={serie.id} className="w-full">
+                      <MediaCard
+                        {...transformedSerie}
+                        onClick={() => {
+                          try {
+                            const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                            sess[window.location.pathname] = currentPage;
+                            sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                          } catch { }
+                          navigate(navPaths.seriesDetail(serie.id));
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("provider.noSeriesAvailablePrefix")} {genreName} {t("provider.noSeriesAvailableSuffix")} {providerName}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

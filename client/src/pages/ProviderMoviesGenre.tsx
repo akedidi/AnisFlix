@@ -72,6 +72,7 @@ const PROVIDERS = {
   337: 'Disney+',  // ID correct pour Disney+
   531: 'Paramount+',  // ID correct pour Paramount+
   384: 'HBO Max',  // ID correct pour HBO Max
+  283: 'Crunchyroll',
   2: 'Apple TV',
   3: 'Google Play Movies',
   68: 'Microsoft Store',
@@ -111,7 +112,7 @@ export default function ProviderMoviesGenre() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Pour Amazon (9) utiliser popularity, pour les autres utiliser date de sortie
         const today = new Date();
         const releaseDateLte = today.toISOString().slice(0, 10);
@@ -121,30 +122,30 @@ export default function ProviderMoviesGenre() {
         const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
         const sortBy = providerId === 9 ? 'popularity.desc' : 'release_date.desc';
         const monetization = providerId === 9 ? 'flatrate' : 'flatrate|ads';
-        
+
         // Pour Amazon (9), ne pas filtrer par date. Pour les autres, exclure le futur
         let baseUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&watch_region=US&with_watch_monetization_types=${monetization}&include_adult=false&sort_by=${sortBy}`;
-        
+
         if (providerId !== 9) {
           baseUrl += `&release_date.lte=${releaseDateLte}`;
         }
-        
+
         baseUrl += `&page=${currentPage}`;
-        
+
         // Ajouter le genre si spécifié
         if (genreId) {
           baseUrl += `&with_genres=${genreId}`;
         }
-        
+
         // Essayer plusieurs régions pour avoir plus de contenu
         const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
         let result = null;
-        
+
         for (const region of regions) {
           try {
             const url = baseUrl.replace('watch_region=US', `watch_region=${region}`);
             const response = await fetch(url);
-            
+
             if (response.ok) {
               const data = await response.json();
               if (data.results && data.results.length > 0) {
@@ -157,32 +158,32 @@ export default function ProviderMoviesGenre() {
             continue;
           }
         }
-        
+
         // Fallback sans région mais toujours avec filtre provider
         if (!result || !result.results || result.results.length === 0) {
           let fallbackUrl = `https://api.themoviedb.org/3/discover/movie?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_watch_providers=${providerFilter}&with_watch_monetization_types=${monetization}&include_adult=false&sort_by=${sortBy}`;
-          
+
           if (providerId !== 9) {
             fallbackUrl += `&release_date.lte=${releaseDateLte}`;
           }
-          
+
           fallbackUrl += `&page=${currentPage}`;
-          
+
           if (genreId) {
             fallbackUrl += `&with_genres=${genreId}`;
           }
-          
+
           const response = await fetch(fallbackUrl);
-          
+
           if (response.ok) {
             result = await response.json();
           }
         }
-        
+
         if (!result) {
           throw new Error('Aucun contenu trouvé');
         }
-        
+
         setData(result);
       } catch (err) {
         console.error('❌ Erreur:', err);
@@ -230,7 +231,7 @@ export default function ProviderMoviesGenre() {
               <p className="text-muted-foreground mb-4">
                 Le provider "{providerId}" n'existe pas.
               </p>
-              
+
             </div>
           </div>
         </div>
@@ -242,14 +243,14 @@ export default function ProviderMoviesGenre() {
     <div className="h-screen overflow-y-auto">
       {/* Desktop Sidebar */}
       <DesktopSidebar />
-      
+
       {/* Main Content */}
       <div className="md:ml-64">
         {/* Header avec recherche et contrôles */}
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
           <div className="container mx-auto px-4 md:px-8 lg:px-12 py-4">
             <div className="flex items-center gap-4">
-              
+
               <div className="flex-1">
                 <SearchBar
                   onSearch={setSearchQuery}
@@ -268,63 +269,63 @@ export default function ProviderMoviesGenre() {
 
         {/* Content */}
         <div className="container mx-auto px-4 md:px-8 lg:px-12 pt-2 pb-8 md:py-8 mt-2 md:mt-0">
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("movies.title")}`}
-          </h1>
-          <p className="text-muted-foreground max-w-2xl">
-            {genreId 
-              ? t("genre.discoverMovies").replace('{genre}', genreName) 
-              : t("provider.discoverMovies").replace('{provider}', providerName)}
-          </p>
-        </div>
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("common.loading")}</p>
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              {genreId ? `${providerName} - ${genreName}` : `${providerName} - ${t("movies.title")}`}
+            </h1>
+            <p className="text-muted-foreground max-w-2xl">
+              {genreId
+                ? t("genre.discoverMovies").replace('{genre}', genreName)
+                : t("provider.discoverMovies").replace('{provider}', providerName)}
+            </p>
           </div>
-        ) : movies.length > 0 ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {movies.map((movie: any) => {
-                // Transformer les données pour correspondre au format attendu
-                const transformedMovie = {
-                  id: movie.id,
-                  title: movie.title,
-                  posterPath: movie.poster_path,
-                  rating: Math.round(movie.vote_average * 10) / 10,
-                  year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
-                  mediaType: "movie" as const,
-                };
-                
-                return (
-                  <div key={movie.id} className="w-full">
-                    <MediaCard
-                      {...transformedMovie}
-                      onClick={() => {
-                        try {
-                          const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
-                          sess[window.location.pathname] = currentPage;
-                          sessionStorage.setItem('paginationLast', JSON.stringify(sess));
-                        } catch {}
-                        navigate(navPaths.movie(movie.id));
-                      }}
-                    />
-                  </div>
-                );
-              })}
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("common.loading")}</p>
             </div>
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">{t("provider.noMoviesAvailablePrefix")} {genreName} {t("provider.noMoviesAvailableSuffix")} {providerName}</p>
-          </div>
-        )}
+          ) : movies.length > 0 ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {movies.map((movie: any) => {
+                  // Transformer les données pour correspondre au format attendu
+                  const transformedMovie = {
+                    id: movie.id,
+                    title: movie.title,
+                    posterPath: movie.poster_path,
+                    rating: Math.round(movie.vote_average * 10) / 10,
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : "",
+                    mediaType: "movie" as const,
+                  };
+
+                  return (
+                    <div key={movie.id} className="w-full">
+                      <MediaCard
+                        {...transformedMovie}
+                        onClick={() => {
+                          try {
+                            const sess = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
+                            sess[window.location.pathname] = currentPage;
+                            sessionStorage.setItem('paginationLast', JSON.stringify(sess));
+                          } catch { }
+                          navigate(navPaths.movie(movie.id));
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">{t("provider.noMoviesAvailablePrefix")} {genreName} {t("provider.noMoviesAvailableSuffix")} {providerName}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
