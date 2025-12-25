@@ -5,7 +5,7 @@ import { Download, Play, Pause, Volume2, VolumeX, PictureInPicture, Maximize, Mi
 import { useCapacitorDevice } from "@/hooks/useCapacitorDevice";
 import { apiClient } from "@/lib/apiClient";
 import { getVidMolyProxyUrl, debugUrlInfo } from "@/utils/urlUtils";
-import { saveWatchProgress } from "@/lib/watchProgress";
+import { saveWatchProgress, getMediaProgress } from "@/lib/watchProgress";
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -466,6 +466,29 @@ export default function VidMolyPlayer({
       }
     };
   }, [vidmolyUrl]);
+
+  // Restore saved watch progress
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+    const savedProgress = getMediaProgress(mediaId, mediaType, seasonNumber, episodeNumber);
+
+    if (savedProgress && savedProgress.currentTime > 0) {
+      console.log(`🔄 [VIDMOLY PLAYER] Found saved progress: ${savedProgress.currentTime}s`);
+
+      const handleLoadedMetadata = () => {
+        if (video.duration > 0 && savedProgress.currentTime < video.duration - 5) {
+          console.log(`✅ [VIDMOLY PLAYER] Restoring position to ${savedProgress.currentTime}s`);
+          video.currentTime = savedProgress.currentTime;
+        }
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    }
+  }, [mediaId, mediaType, seasonNumber, episodeNumber]);
+
 
   const togglePlayPause = () => {
     if (videoRef.current) {

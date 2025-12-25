@@ -206,6 +206,28 @@ export default function VideoPlayer({
     };
   }, [src, type]);
 
+  // Restore saved watch progress
+  useEffect(() => {
+    if (!videoRef.current || !mediaId || !mediaType) return;
+
+    const video = videoRef.current;
+    const savedProgress = getMediaProgress(mediaId, mediaType, seasonNumber, episodeNumber);
+
+    if (savedProgress && savedProgress.currentTime > 0) {
+      console.log(`🔄 [VideoPlayer] Found saved progress: ${savedProgress.currentTime}s`);
+
+      const handleLoadedMetadata = () => {
+        if (video.duration > 0 && savedProgress.currentTime < video.duration - 5) {
+          console.log(`✅ [VideoPlayer] Restoring position to ${savedProgress.currentTime}s`);
+          video.currentTime = savedProgress.currentTime;
+        }
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    }
+  }, [mediaId, mediaType, seasonNumber, episodeNumber]);
+
   // Sync isCasting state with Chromecast connection
   useEffect(() => {
     setIsCasting(isConnected);
@@ -690,7 +712,6 @@ export default function VideoPlayer({
               }
             }
           }}
-          preload="auto"
           preload="auto"
           crossOrigin={type === 'm3u8' ? "anonymous" : undefined}
           referrerPolicy="no-referrer"
