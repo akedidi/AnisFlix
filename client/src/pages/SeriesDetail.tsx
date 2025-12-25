@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { IonPage } from '@ionic/react';
 import NativeHeader from "@/components/NativeHeader";
 import { useRouteParams } from "@/hooks/useRouteParams";
@@ -129,6 +130,45 @@ export default function SeriesDetail() {
     selectedSeasonNumber,
     selectedEpisode || undefined
   );
+
+  // Fetch AnimeAPI sources for Animation genre
+  const { data: animeAPISources } = useQuery({
+    queryKey: ['anime-api-sources', seriesId, selectedSeasonNumber, selectedEpisode],
+    queryFn: async () => {
+      // Check if this is an animation (genre ID: 16)
+      const isAnimation = series?.genres?.some((g: any) => g.id === 16);
+
+      if (!isAnimation || !selectedEpisode || !series?.name) {
+        return [];
+      }
+
+      console.log(`🎌 [AnimeAPI] Fetching for: ${series.name} S${selectedSeasonNumber}E${selectedEpisode}`);
+
+      try {
+        const params = new URLSearchParams({
+          path: 'anime-api',
+          title: series.name,
+          season: selectedSeasonNumber.toString(),
+          episode: selectedEpisode.toString(),
+        });
+
+        const response = await fetch(`/api/movix-proxy?${params}`);
+        const data = await response.json();
+
+        if (!data.success || !data.results) {
+          return [];
+        }
+
+        console.log(`🎌 [AnimeAPI] Found ${data.results.length} sources`);
+        return data.results;
+      } catch (error) {
+        console.error('[AnimeAPI] Error:', error);
+        return [];
+      }
+    },
+    enabled: !!series && !!selectedEpisode,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch Movix Anime sources
   const { data: movixAnime, isLoading: isLoadingMovixAnime, error: movixAnimeError } = useMovixAnime(series?.name, seriesId);
