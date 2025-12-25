@@ -235,12 +235,10 @@ export default function VidMolyPlayer({
 
         console.log('✅ Lien m3u8 VidMoly extrait:', data.m3u8Url);
 
-        // Nettoyer l'URL des virgules parasites
+        // VidMoly URLs use comma-separated quality format like "_,l,n,.urlset"
+        // Do NOT remove commas - they are required for proper streaming
         let cleanedUrl = data.m3u8Url;
-        if (cleanedUrl.includes(',') && cleanedUrl.includes('.urlset')) {
-          cleanedUrl = cleanedUrl.replace(/,/g, '');
-          console.log('🧹 URL nettoyée des virgules:', cleanedUrl);
-        }
+
 
         // Utiliser le proxy pour les vrais liens VidMoly (qui sont protégés)
         // ou directement pour les liens de démonstration
