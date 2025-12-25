@@ -116,70 +116,62 @@ async function extractVidMoly(url) {
   const normalizedUrl = url.replace('vidmoly.to', 'vidmoly.net');
   console.log(`[VIDMOLY] Normalized URL: ${normalizedUrl}`);
 
-  // Try with CORS proxy first
   try {
-    console.log(`[VIDMOLY] Trying CORS proxy...`);
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(normalizedUrl)}`;
-    const response = await axios.get(proxyUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+    const response = await axios.get(normalizedUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
+        'Referer': 'https://vidmoly.net/',
+        'Sec-Fetch-Dest': 'iframe'
+      },
       timeout: 15000
     });
 
-    const html = response.data.contents;
+    const html = response.data;
 
-    const patterns = [
-      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*[\"']([^\"']+)[\"']/,
-      /sources:\s*\[\s*\{\s*file:\s*\"([^\"]+)\"\s*\}/,
-      /https?:\/\/[^\"'\s]+\.m3u8[^\"'\s]*/
+    // Primary pattern: file:"..."
+    const fileMatch = html.match(/file:"([^"]+)"/);
+    if (fileMatch && fileMatch[1]) {
+      let m3u8Url = fileMatch[1].trim();
+
+      // Clean up URL if it contains commas (known VidMoly issue)
+      if (m3u8Url.includes(',') && m3u8Url.includes('.urlset')) {
+        m3u8Url = m3u8Url.replace(/,/g, '');
+      }
+
+      console.log("[VIDMOLY] Found m3u8:", m3u8Url);
+      return m3u8Url;
+    }
+
+    console.log("[VIDMOLY] Primary pattern failed, trying fallback patterns...");
+
+    // Fallback patterns
+    const fallbackPatterns = [
+      /sources:\s*\[\s*\{\s*file:\s*"([^"]+)"\s*\}/,
+      /player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*"([^"]+)"/
     ];
 
-    for (const pattern of patterns) {
+    for (const pattern of fallbackPatterns) {
       const match = html.match(pattern);
-      if (match) {
-        let rawUrl = (match[1] || match[0]).trim();
-        if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
-          rawUrl = rawUrl.replace(/,/g, '');
+      if (match && match[1]) {
+        let m3u8Url = match[1].trim();
+        if (m3u8Url.includes(',') && m3u8Url.includes('.urlset')) {
+          m3u8Url = m3u8Url.replace(/,/g, '');
         }
-        console.log("[VIDMOLY] Found via CORS proxy:", rawUrl);
-        return rawUrl;
+        console.log("[VIDMOLY] Found via fallback:", m3u8Url);
+        return m3u8Url;
       }
     }
 
-    console.log("[VIDMOLY] CORS proxy succeeded but no m3u8 found in response");
+    throw new Error('Could not find m3u8 URL in VidMoly page');
+
   } catch (error) {
-    console.log("[VIDMOLY] CORS proxy failed:", error.message);
-    console.log("[VIDMOLY] Error details:", error.response?.status, error.response?.statusText);
-  }
-
-  // Fallback: Direct request
-  try {
-    console.log(`[VIDMOLY] Trying direct request...`);
-    const response = await axios.get(normalizedUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://vidmoly.net/'
-      },
-      timeout: 10000
-    });
-
-    const html = response.data;
-    const match = html.match(/player\.setup\s*\(\s*\{[^}]*sources:\s*\[\s*\{\s*file:\s*[\"']([^\"']+)[\"']/);
-    if (match) {
-      let rawUrl = match[1].trim();
-      if (rawUrl.includes(',') && rawUrl.includes('.urlset')) {
-        rawUrl = rawUrl.replace(/,/g, '');
-      }
-      console.log("[VIDMOLY] Found via fallback:", rawUrl);
-      return rawUrl;
+    console.error("[VIDMOLY] Extraction failed:", error.message);
+    if (error.response) {
+      console.error("[VIDMOLY] Response status:", error.response.status);
+      console.error("[VIDMOLY] Response data:", error.response.data?.substring(0, 200));
     }
-
-    console.log("[VIDMOLY] Fallback succeeded but no m3u8 found");
-  } catch (error) {
-    console.log("[VIDMOLY] Fallback failed:", error.message);
-    console.log("[VIDMOLY] Error details:", error.response?.status, error.response?.statusText);
+    throw new Error(`VidMoly extraction failed: ${error.message}`);
   }
-
-  throw new Error('Could not extract m3u8 URL from VidMoly. The page structure may have changed or the video is unavailable.');
 }
 
 // ==================== DARKIBOX EXTRACTOR ====================
