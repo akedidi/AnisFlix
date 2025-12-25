@@ -1119,7 +1119,7 @@ class StreamingService {
     
     private func fetchSeriesTmdbInfo(seriesId: Int) async throws -> TmdbSeriesInfo {
         let apiKey = "68e094699525b18a70bab2f86b1fa706"
-        let urlString = "https://api.themoviedb.org/3/tv/\(seriesId)?api_key=\(apiKey)"
+        let urlString = "https://api.themoviedb.org/3/tv/\(seriesId)?api_key=\(apiKey)&language=fr-FR"
         
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
