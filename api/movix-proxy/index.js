@@ -427,7 +427,7 @@ export default async function handler(req, res) {
 
         // Stratégie A: On a matché la saison spécifique -> on cherche episodeNumber (1, 2, ...)
         if (isSpecificSeasonMatch || seasonNumber === 1) {
-          targetEpisode = episodes.find(ep => ep.number === episodeNumber);
+          targetEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
           if (!targetEpisode) console.log(`🎌 [Episode] Standard match (Ep ${episodeNumber}) failed`);
         }
 
@@ -435,7 +435,7 @@ export default async function handler(req, res) {
         // Utilisé si Stratégie A échoue OU si on a matché un titre générique pour une saison > 1
         if (!targetEpisode && seasonNumber > 1) {
           console.log(`🎌 [Episode] Trying Absolute Episode: ${absoluteEpisodeNumber}`);
-          targetEpisode = episodes.find(ep => ep.number === absoluteEpisodeNumber);
+          targetEpisode = episodes.find(ep => (ep.number || ep.episode_no) == absoluteEpisodeNumber);
         }
 
         // Stratégie C: Tolérance (Parfois GogoAnime numérote bizarrement)
