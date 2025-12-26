@@ -260,6 +260,9 @@ class StreamingService {
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         
+        // Anime Placeholder
+        var animeTask: Task<[StreamingSource], Error>? = nil
+        
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
         // Fetch TMDB info for AfterDark and Movix Download (needs title)
@@ -287,11 +290,20 @@ class StreamingService {
                 type: "movie",
                 title: title
             )) ?? []
+            
+            // Check for Animation Genre (16)
+            if tmdbInfo?.genreIds.contains(16) == true {
+                print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI...")
+                animeTask = Task {
+                    return try await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)
+                }
+            }
         } else {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
         let (tmdb, fstream, vixsrc, universalVO) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources)
+        let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -326,8 +338,13 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "darkibox")
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
+        // Add AnimeAPI sources
+        if !animeSources.isEmpty {
+            allSources.append(contentsOf: animeSources)
+        }
+        
+        // Filter for allowed providers (added "darkibox" and "animeapi")
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -430,8 +447,13 @@ class StreamingService {
             let title = info.title
             print("ℹ️ [StreamingService] TMDB Info found: \(title)")
             
-            // Start Anime fetch concurrently if we have title
-            async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, tmdbInfo: info, season: season, episode: episode)
+            // Start Anime fetch concurrently if logic matches
+            // Check for Animation Genre (16)
+            if info.genreIds.contains(16) {
+                 print("🎌 [StreamingService] Animation genre detected for Series. Fetching AnimeAPI...")
+                 animeSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
+            }
+            // WAS: async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, tmdbInfo: info, season: season, episode: episode)
             
             // Fetch AfterDark sources
             afterDarkSources = (try? await fetchAfterDarkSources(
@@ -452,8 +474,8 @@ class StreamingService {
                 episode: episode
             )) ?? []
             
-             // Await Anime sources
-            animeSources = (try? await fetchedAnime) ?? []
+             // Await Anime sources (Already fetched above)
+            // animeSources = (try? await fetchedAnime) ?? []
         } else {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
@@ -1103,11 +1125,13 @@ class StreamingService {
         let title: String
         let year: String
         let originalTitle: String?
+        let genreIds: [Int]
     }
     
     struct TmdbSeriesInfo {
         let title: String
         let seasons: [TmdbSeasonInfo]
+        let genreIds: [Int]
     }
     
     struct TmdbSeasonInfo {
@@ -1131,7 +1155,13 @@ class StreamingService {
             let year = String(releaseDate.prefix(4))
             let originalTitle = json["original_title"] as? String
             
-            return TmdbMovieInfo(title: title, year: year, originalTitle: originalTitle)
+            // Extract genre IDs
+            var genreIds: [Int] = []
+            if let genres = json["genres"] as? [[String: Any]] {
+                genreIds = genres.compactMap { $0["id"] as? Int }
+            }
+            
+            return TmdbMovieInfo(title: title, year: year, originalTitle: originalTitle, genreIds: genreIds)
         }
         
         throw URLError(.cannotParseResponse)
@@ -1150,6 +1180,12 @@ class StreamingService {
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             let title = json["name"] as? String ?? ""
             
+            // Extract genre IDs
+            var genreIds: [Int] = []
+            if let genres = json["genres"] as? [[String: Any]] {
+                genreIds = genres.compactMap { $0["id"] as? Int }
+            }
+            
             var seasons: [TmdbSeasonInfo] = []
             if let seasonsArray = json["seasons"] as? [[String: Any]] {
                 for seasonData in seasonsArray {
@@ -1159,7 +1195,7 @@ class StreamingService {
                 }
             }
             
-            return TmdbSeriesInfo(title: title, seasons: seasons)
+            return TmdbSeriesInfo(title: title, seasons: seasons, genreIds: genreIds)
         }
         
         throw URLError(.cannotParseResponse)
@@ -1276,77 +1312,93 @@ class StreamingService {
     
     // MARK: - Movix Anime Fetching
     
-    private func fetchMovixAnimeSources(seriesId: Int, tmdbInfo: TmdbSeriesInfo, season: Int, episode: Int) async throws -> [StreamingSource] {
-        let title = tmdbInfo.title
-        // Clean title logic (same as web)
-        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
-        let searchTitle = isAOT ? "L'Attaque des Titans" : title.split(separator: ":")[0].trimmingCharacters(in: .whitespaces)
+    // MARK: - Movix Anime Fetching (AnimeAPI)
+    
+    private func fetchAnimeAPISources(tmdbId: Int, isMovie: Bool, season: Int = 1, episode: Int = 1) async throws -> [StreamingSource] {
+        // Step 1: Fetch English title using TMDB (en-US)
+        let apiKey = "68e094699525b18a70bab2f86b1fa706"
+        let tmdbUrlString = "https://api.themoviedb.org/3/\(isMovie ? "movie" : "tv")/\(tmdbId)?api_key=\(apiKey)&language=en-US"
         
-        // Build URL
-        // replace " - Saison ..." pattern (simplified)
-        // User Fix: Replace spaces AND hyphens with + instead of %20.
-        // Example: One-Punch Man -> One+Punch+Man
-        let encodedTitle = searchTitle.replacingOccurrences(of: " ", with: "+")
-            .replacingOccurrences(of: "-", with: "+")
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
-            .replacingOccurrences(of: "%2B", with: "+") ?? searchTitle
-            
-        let urlString = "\(baseUrl)/api/movix-proxy?path=anime/search/\(encodedTitle)&includeSeasons=true&includeEpisodes=true"
+        guard let tmdbUrl = URL(string: tmdbUrlString) else { return [] }
         
-        print("🔍 [Movix Anime] Searching for: \(searchTitle) (\(urlString))")
+        // Use a simple fetch for TMDB
+        let (tmdbData, tmdbResponse) = try await URLSession.shared.data(from: tmdbUrl)
         
-        guard let url = URL(string: urlString) else { return [] }
-        var request = URLRequest(url: url)
+        guard (tmdbResponse as? HTTPURLResponse)?.statusCode == 200,
+              let tmdbJson = try? JSONSerialization.jsonObject(with: tmdbData) as? [String: Any] else {
+            return []
+        }
+        
+        let title = (tmdbJson["title"] as? String) ?? (tmdbJson["name"] as? String) ?? (tmdbJson["original_title"] as? String) ?? (tmdbJson["original_name"] as? String) ?? ""
+        
+        guard !title.isEmpty else { return [] }
+        
+        print("🎌 [AnimeAPI iOS] Searching for: \(title)")
+        
+        // Step 2: Call movix-proxy anime-api endpoint
+        // URL needs to generally follow the pattern: /api/movix-proxy?path=anime-api&title=...&season=...&episode=...
+        
+        // Note: For movies, we use season 1, episode 1 as per backend logic
+        
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
+        components?.queryItems = [
+            URLQueryItem(name: "path", value: "anime-api"),
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "season", value: "\(season)"),
+            URLQueryItem(name: "episode", value: "\(episode)")
+        ]
+        
+        guard let apiURL = components?.url else { return [] }
+        
+        print("🎌 [AnimeAPI iOS] Request: \(apiURL)")
+        
+        var request = URLRequest(url: apiURL)
         request.timeoutInterval = 30
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("⚠️ [Movix Anime] Search failed: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
-            // Fallback to simple search here? Web does strict check first.
-             return []
-        }
-        
-        let decoder = JSONDecoder()
-        
-        // The API returns an array of Anime objects
-        guard let animeList = try? decoder.decode([MovixAnime].self, from: data) else {
-            print("❌ [Movix Anime] Failed to decode anime list")
+            print("⚠️ [AnimeAPI iOS] Request failed: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
             return []
         }
         
-        // Find best match (Web logic port)
-        var match: MovixAnime? = nil
+        // Parse response
+        // Expected JSON: { success: true, results: [ { provider, url, type, quality, ... } ] }
         
-        if isAOT {
-             match = animeList.first { $0.name.lowercased() == "shingeki no kyojin" }
-             print("🔍 [Movix Anime] AOT match: \(match?.name ?? "nil")")
+        struct AnimeAPIResponse: Codable {
+            let success: Bool
+            let results: [AnimeAPISource]?
         }
         
-        if match == nil {
-             // Exact match with flexible separator
-             match = animeList.first { item in
-                 let itemName = item.name.lowercased().replacingOccurrences(of: "-", with: " ")
-                 let sTitle = searchTitle.lowercased().replacingOccurrences(of: "-", with: " ")
-                 let oTitle = title.lowercased().replacingOccurrences(of: "-", with: " ")
-                 return itemName == sTitle || itemName == oTitle
-             }
+        struct AnimeAPISource: Codable {
+            let provider: String?
+            let url: String
+            let type: String?
+            let quality: String?
         }
         
-        if match == nil {
-            // Partial match (excluding Junior High)
-            match = animeList.first { item in
-                let itemName = item.name.lowercased().replacingOccurrences(of: "-", with: " ")
-                let sTitle = searchTitle.lowercased().replacingOccurrences(of: "-", with: " ")
-                let oTitle = title.lowercased().replacingOccurrences(of: "-", with: " ")
-                
-                if itemName.contains("junior") || itemName.contains("high-school") { return false }
-                
-                // Allow match if one contains the other
-                return itemName.contains(sTitle) || sTitle.contains(itemName) ||
-                       itemName.contains(oTitle) || oTitle.contains(itemName)
-            }
+        let decoder = JSONDecoder()
+        guard let apiResponse = try? decoder.decode(AnimeAPIResponse.self, from: data),
+              let results = apiResponse.results, !results.isEmpty else {
+            print("❌ [AnimeAPI iOS] No results found")
+            return []
         }
+        
+        print("✅ [AnimeAPI iOS] Found \(results.count) sources")
+        
+        return results.map { source in
+            // For iOS, we use the DIRECT URL (CORS doesn't apply)
+            // Backend provides direct m3u8 link in 'url'
+            
+            return StreamingSource(
+                url: source.url,
+                quality: source.quality ?? "HD",
+                type: source.type == "hls" ? "m3u8" : "mp4",
+                provider: "animeapi",
+                language: "VO"
+            )
+        }
+    }
         
         guard let anime = match, let seasons = anime.seasons else {
             print("⚠️ [Movix Anime] No matching anime or seasons found")
