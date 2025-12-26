@@ -503,6 +503,12 @@ struct SeriesDetailView: View {
                         playerURL = url
                     }
                     
+                    await MainActor.run {
+                        // Start with source tracks (e.g. from Anime API)
+                        subtitles = source.tracks ?? []
+                        print("🎬 [SeriesDetailView] Initial subtitles from source: \(subtitles.count)")
+                    }
+                    
                     if let imdbId = series?.externalIds?.imdbId {
                         let subs = await StreamingService.shared.getSubtitles(
                             imdbId: imdbId,
@@ -510,7 +516,8 @@ struct SeriesDetailView: View {
                             episode: episode.episodeNumber
                         )
                         await MainActor.run {
-                            subtitles = subs
+                            // Merge OpenSubtitles with existing source tracks
+                            subtitles.append(contentsOf: subs)
                         }
                     }
                     await MainActor.run {

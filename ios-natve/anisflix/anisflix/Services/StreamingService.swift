@@ -54,11 +54,13 @@ struct StreamingSource: Identifiable, Codable {
     let language: String
     let provider: String // "vidmoly", "vidzy", "darki", "unknown"
     let type: String // "hls", "mp4", etc.
+    var tracks: [Subtitle]? // Added tracks
     
     enum CodingKeys: String, CodingKey {
         case url = "decoded_url"
         case quality
         case language
+        case tracks
         // id is excluded
     }
     
@@ -67,6 +69,7 @@ struct StreamingSource: Identifiable, Codable {
         url = try container.decode(String.self, forKey: .url)
         quality = try container.decodeIfPresent(String.self, forKey: .quality) ?? "HD"
         language = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
+        tracks = try container.decodeIfPresent([Subtitle].self, forKey: .tracks)
         
         // Determine provider from quality string
         let lowerQuality = quality.lowercased()
@@ -87,21 +90,18 @@ struct StreamingSource: Identifiable, Codable {
             type = "mp4"
         }
         
-        // Generate stable ID based on content to persist download status across reloads
-        // We use a combination of provider, quality, language and a hash of the URL to keep it reasonable length
-        // Note: We avoid Swift's hashValue as it's not stable across launches. 
-        // We'll use the URL directly if it's not too long, otherwise we'd need a stable hash.
-        // For now, let's use the URL as the main unique identifier component.
+        // Generate stable ID
         id = "\(provider)_\(quality)_\(language)_\(url)".data(using: .utf8)?.base64EncodedString() ?? UUID().uuidString
     }
     
     // Init for preview/manual creation
-    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String) {
+    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, tracks: [Subtitle]? = nil) {
         self.url = url
         self.quality = quality
         self.type = type
         self.provider = provider
         self.language = language
+        self.tracks = tracks
         
         if let providedId = id {
             self.id = providedId
@@ -116,6 +116,7 @@ struct StreamingSource: Identifiable, Codable {
         try container.encode(url, forKey: .url)
         try container.encode(quality, forKey: .quality)
         try container.encode(language, forKey: .language)
+        try container.encodeIfPresent(tracks, forKey: .tracks)
     }
 }
 
@@ -1521,11 +1522,18 @@ class StreamingService {
         }
         
         // Parse response
-        // Expected JSON: { success: true, results: [ { provider, url, type, quality, ... } ] }
+        // Expected JSON: { success: true, results: [ { provider, url, type, quality, tracks: [] } ] }
         
         struct AnimeAPIResponse: Codable {
             let success: Bool
             let results: [AnimeAPISource]?
+        }
+        
+        struct AnimeAPITrack: Codable {
+            let file: String
+            let label: String
+            let kind: String?
+            let `default`: Bool?
         }
         
         struct AnimeAPISource: Codable {
@@ -1533,6 +1541,7 @@ class StreamingService {
             let url: String
             let type: String?
             let quality: String?
+            let tracks: [AnimeAPITrack]?
         }
         
         let decoder = JSONDecoder()
@@ -1545,6 +1554,20 @@ class StreamingService {
         print("✅ [AnimeAPI iOS] Found \(results.count) sources")
         
         return results.map { source in
+            // Map tracks to Subtitle objects
+            var subtitles: [Subtitle]? = nil
+            if let apiTracks = source.tracks {
+                subtitles = apiTracks.map { track in
+                    Subtitle(
+                        url: track.file,
+                        label: track.label,
+                        code: track.label.lowercased(), // Usually "English", so code is "english"
+                        flag: "" // No flag for now
+                    )
+                }
+                print("📝 [AnimeAPI iOS] Source has \(subtitles?.count ?? 0) tracks")
+            }
+
             // For iOS, we use the DIRECT URL (CORS doesn't apply)
             // Backend provides direct m3u8 link in 'url'
             
@@ -1553,7 +1576,8 @@ class StreamingService {
                 quality: source.quality ?? "HD",
                 type: source.type == "hls" ? "m3u8" : "mp4",
                 provider: "animeapi",
-                language: "VO"
+                language: "VO",
+                tracks: subtitles
             )
         }
     }

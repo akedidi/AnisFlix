@@ -324,9 +324,38 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Paramètre title manquant' });
         }
 
-        const seasonNumber = season ? parseInt(season) : 1;
-        const episodeNumber = episode ? parseInt(episode) : 1;
+        let seasonNumber = season ? parseInt(season) : 1;
+        let episodeNumber = episode ? parseInt(episode) : 1;
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
+
+        // ═══════════════════════════════════════════════════════════════════
+        // MANUAL MAPPINGS: TMDB Specials → Anime API Seasons
+        // Some anime have "specials" in TMDB that are actually separate seasons
+        // on anime streaming sites. This maps them correctly.
+        // ═══════════════════════════════════════════════════════════════════
+        const SPECIAL_EPISODE_MAPPINGS = {
+          // Attack on Titan (TMDB ID 1429)
+          // Season 0 (Specials) Ep 36 & 37 = "The Final Chapters" = "The Final Season Part 3" Ep 1 & 2
+          '1429': {
+            '0': {  // Season 0 (Specials)
+              36: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 1 },
+              37: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 2 },
+            }
+          }
+        };
+
+        // Check if we have a manual mapping for this TMDB ID + Season + Episode
+        let overrideSearchTitle = null;
+        if (tmdbId && SPECIAL_EPISODE_MAPPINGS[tmdbId]) {
+          const seriesMapping = SPECIAL_EPISODE_MAPPINGS[tmdbId];
+          const seasonKey = String(seasonNumber);
+          if (seriesMapping[seasonKey] && seriesMapping[seasonKey][episodeNumber]) {
+            const mapping = seriesMapping[seasonKey][episodeNumber];
+            overrideSearchTitle = mapping.searchTitle;
+            episodeNumber = mapping.episode;
+            console.log(`🎯 [AnimeAPI] MANUAL MAPPING APPLIED: "${overrideSearchTitle}" Episode ${episodeNumber}`);
+          }
+        }
 
         // Use request host to build absolute URL (works in preview and production)
         // req.headers.host will be the actual domain being called (preview or production)
@@ -386,8 +415,20 @@ export default async function handler(req, res) {
         // Stratégie de recherche Multi-Step
         let candidates = [];
 
+        // 0. PRIORITY: If we have a manual override, search with that FIRST
+        if (overrideSearchTitle) {
+          console.log(`🎯 [Search Strategy 0] OVERRIDE Search: "${overrideSearchTitle}"`);
+          const overrideResults = await searchAnime(overrideSearchTitle);
+          candidates = [...candidates, ...overrideResults];
+
+          // If override found results, we can skip other strategies
+          if (candidates.length > 0) {
+            console.log(`🎯 [AnimeAPI] Override search found ${candidates.length} results, using these`);
+          }
+        }
+
         // 1. Recherche avec le nom COMPLET de la saison (ex: "Attack on Titan: The Final Season Part 3")
-        if (englishSeasonName && englishSeasonName !== `Season ${seasonNumber}`) {
+        if (!overrideSearchTitle && englishSeasonName && englishSeasonName !== `Season ${seasonNumber}`) {
           console.log(`🎌 [Search Strategy 1] Searching: "${title} ${englishSeasonName}"`);
           const results = await searchAnime(`${title} ${englishSeasonName}`);
           candidates = [...candidates, ...results];
@@ -400,8 +441,8 @@ export default async function handler(req, res) {
           }
         }
 
-        // 2. Recherche avec Titre + "Season N" (Standard)
-        if (seasonNumber > 1) {
+        // 2. Recherche avec Titre + "Season N" (Standard) - skip if override found results
+        if (!overrideSearchTitle && seasonNumber > 1) {
           const results = await searchAnime(`${title} Season ${seasonNumber}`);
           candidates = [...candidates, ...results];
 
@@ -410,9 +451,11 @@ export default async function handler(req, res) {
           candidates = [...candidates, ...resultsSimple];
         }
 
-        // 4. Recherche Titre Seul (Fallback)
-        const resultsGeneric = await searchAnime(title);
-        candidates = [...candidates, ...resultsGeneric];
+        // 4. Recherche Titre Seul (Fallback) - only if no override results
+        if (candidates.length === 0 || !overrideSearchTitle) {
+          const resultsGeneric = await searchAnime(title);
+          candidates = [...candidates, ...resultsGeneric];
+        }
 
         // Deduplication par ID
         candidates = candidates.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
