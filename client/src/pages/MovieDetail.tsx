@@ -640,6 +640,7 @@ export default function MovieDetail() {
                     posterPath={movie.poster_path}
                     backdropPath={movie.backdrop_path}
                     imdbId={movie.imdb_id}
+                    tracks={(selectedSource as any).tracks}
                   />
                 )}
               </div>
