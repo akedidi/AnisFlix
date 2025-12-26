@@ -450,10 +450,18 @@ class StreamingService {
             // Start Anime fetch concurrently if logic matches
             // Check for Animation Genre (16)
             if info.genreIds.contains(16) {
-                 print("🎌 [StreamingService] Animation genre detected for Series. Fetching AnimeAPI...")
-                 animeSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
+                 print("🎌 [StreamingService] Animation genre detected. Fetching BOTH anime sources...")
+                 
+                 // Fetch VidMoly sources from Movix anime scraping
+                 let movixAnimeSources = (try? await fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode, tmdbInfo: info)) ?? []
+                 
+                 // Fetch HLS sources from AnimeAPI (GogoAnime)
+                 let animeApiSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
+                 
+                 // Merge both
+                 animeSources = movixAnimeSources + animeApiSources
+                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count))")
             }
-            // WAS: async let fetchedAnime = fetchMovixAnimeSources(seriesId: seriesId, tmdbInfo: info, season: season, episode: episode)
             
             // Fetch AfterDark sources
             afterDarkSources = (try? await fetchAfterDarkSources(
@@ -1310,9 +1318,158 @@ class StreamingService {
     }
 
     
-    // MARK: - Movix Anime Fetching
+    // MARK: - Movix Anime Fetching (VidMoly - Original)
     
-    // MARK: - Movix Anime Fetching (AnimeAPI)
+    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) async throws -> [StreamingSource] {
+        print("🎬 [Movix Anime] Fetching for: \(title) S\(season)E\(episode)")
+        
+        // Handle special cases for Attack on Titan
+        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
+        let searchTitle = isAOT ? "L'Attaque des Titans" : title.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespaces) ?? title
+        
+        // Step 1: Search for anime
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
+        components?.queryItems = [
+            URLQueryItem(name: "path", value: "anime/search/\(searchTitle)"),
+            URLQueryItem(name: "includeSeasons", value: "true"),
+            URLQueryItem(name: "includeEpisodes", value: "true")
+        ]
+        
+        guard let searchURL = components?.url else { return [] }
+        
+        print("🎬 [Movix Anime] Search URL: \(searchURL)")
+        
+        var request = URLRequest(url: searchURL)
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            print("⚠️ [Movix Anime] Search failed")
+            return []
+        }
+        
+        // Parse response - expecting array of anime objects
+        guard let animeList = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            print("⚠️ [Movix Anime] Failed to parse response")
+            return []
+        }
+        
+        print("🎬 [Movix Anime] Found \(animeList.count) results")
+        
+        // Find best match
+        var match: [String: Any]? = nil
+        
+        if isAOT {
+            match = animeList.first { ($0["name"] as? String)?.lowercased() == "shingeki no kyojin" }
+        }
+        
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                return name == searchTitle.lowercased() || name == title.lowercased()
+            }
+        }
+        
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                if name.contains("junior") || name.contains("high-school") { return false }
+                return name.contains(searchTitle.lowercased()) || name.contains(title.lowercased())
+            }
+        }
+        
+        guard let anime = match, let seasons = anime["seasons"] as? [[String: Any]] else {
+            print("⚠️ [Movix Anime] No matching anime found")
+            return []
+        }
+        
+        print("✅ [Movix Anime] Found anime: \(anime["name"] ?? "unknown")")
+        
+        // Find target season and episode
+        var targetEpisode: [String: Any]? = nil
+        
+        // Find season by index or name
+        let targetSeason = seasons.first { s in
+            if let idx = s["index"] as? Int, idx == season { return true }
+            if let name = s["name"] as? String, name.contains("Saison \(season)") { return true }
+            return false
+        }
+        
+        if let eps = targetSeason?["episodes"] as? [[String: Any]] {
+            targetEpisode = eps.first { e in
+                if let idx = e["index"] as? Int, idx == episode { return true }
+                if let name = e["name"] as? String, name.contains(String(format: "%02d", episode)) { return true }
+                return false
+            }
+        }
+        
+        // Fallback: Absolute episode search
+        if targetEpisode == nil && season > 0 {
+            let previousSeasons = tmdbInfo.seasons.filter { $0.seasonNumber > 0 && $0.seasonNumber < season }
+            let previousEpisodeCount = previousSeasons.reduce(0) { $0 + $1.episodeCount }
+            let absoluteEpisodeNumber = previousEpisodeCount + episode
+            
+            print("🎯 [Movix Anime] Trying absolute episode: \(absoluteEpisodeNumber)")
+            
+            for s in seasons {
+                if let eps = s["episodes"] as? [[String: Any]] {
+                    targetEpisode = eps.first { e in
+                        if let idx = e["index"] as? Int, idx == absoluteEpisodeNumber { return true }
+                        if let name = e["name"] as? String, name.contains(String(format: "%02d", absoluteEpisodeNumber)) { return true }
+                        return false
+                    }
+                    if targetEpisode != nil { break }
+                }
+            }
+        }
+        
+        guard let episode = targetEpisode,
+              let streamingLinks = episode["streaming_links"] as? [[String: Any]] else {
+            print("⚠️ [Movix Anime] No episode or streaming links found")
+            return []
+        }
+        
+        // Extract VidMoly links
+        var sources: [StreamingSource] = []
+        
+        for link in streamingLinks {
+            let language = (link["language"] as? String)?.uppercased() ?? "VF"
+            
+            if let players = link["players"] as? [String] {
+                for (index, playerUrl) in players.enumerated() {
+                    let trimmedUrl = playerUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // Only extract VidMoly links
+                    if trimmedUrl.lowercased().contains("vidmoly") {
+                        var normalized = trimmedUrl
+                        if normalized.contains("vidmoly.to") {
+                            normalized = normalized.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+                        }
+                        if normalized.hasPrefix("http://") {
+                            normalized = normalized.replacingOccurrences(of: "http://", with: "https://")
+                        }
+                        
+                        let source = StreamingSource(
+                            id: "movix-anime-vidmoly-\(language)-\(index)",
+                            url: normalized,
+                            quality: "HD",
+                            type: "embed",
+                            provider: "vidmoly",
+                            language: language
+                        )
+                        sources.append(source)
+                        print("   -> Added VidMoly: \(language) - \(normalized.prefix(50))...")
+                    }
+                }
+            }
+        }
+        
+        print("✅ [Movix Anime] Found \(sources.count) VidMoly sources")
+        return sources
+    }
+    
+    // MARK: - Movix Anime Fetching (AnimeAPI - GogoAnime)
     
     private func fetchAnimeAPISources(tmdbId: Int, isMovie: Bool, season: Int = 1, episode: Int = 1) async throws -> [StreamingSource] {
         // Step 1: Fetch English title using TMDB (en-US)
