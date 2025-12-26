@@ -237,8 +237,8 @@ export default function SeriesDetail() {
       id: `animeapi-${index}`,
       name: 'AnimeAPI',
       provider: 'AnimeAPI',
-      // Wrap URL in our HLS proxy to bypass CORS/Referer issues
-      url: `/api/movix-proxy?path=proxy/hls&link=${encodeURIComponent(source.url)}`,
+      // Use external proxy (zenime.site) that can bypass netmagcdn blocking
+      url: `https://proxy.zenime.site/m3u8-proxy?url=${encodeURIComponent(source.url)}&headers=${encodeURIComponent(JSON.stringify({ referer: "https://rapid-cloud.co/" }))}`,
       type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
       isFStream: false,
       isMovixDownload: false,
