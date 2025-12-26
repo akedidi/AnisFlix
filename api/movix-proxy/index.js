@@ -386,10 +386,18 @@ export default async function handler(req, res) {
         // Stratégie de recherche Multi-Step
         let candidates = [];
 
-        // 1. Recherche avec Titre + English Season Name (ex: "Attack on Titan The Final Season")
+        // 1. Recherche avec le nom COMPLET de la saison (ex: "Attack on Titan: The Final Season Part 3")
         if (englishSeasonName && englishSeasonName !== `Season ${seasonNumber}`) {
+          console.log(`🎌 [Search Strategy 1] Searching: "${title} ${englishSeasonName}"`);
           const results = await searchAnime(`${title} ${englishSeasonName}`);
           candidates = [...candidates, ...results];
+
+          // 1b. Aussi chercher avec le nom de saison seul si c'est assez spécifique
+          if (englishSeasonName.length > 10) {
+            console.log(`🎌 [Search Strategy 1b] Searching season name only: "${englishSeasonName}"`);
+            const resultsSeasonOnly = await searchAnime(englishSeasonName);
+            candidates = [...candidates, ...resultsSeasonOnly];
+          }
         }
 
         // 2. Recherche avec Titre + "Season N" (Standard)
