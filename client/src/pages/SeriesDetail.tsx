@@ -132,7 +132,7 @@ export default function SeriesDetail() {
   );
 
   // Fetch AnimeAPI sources for Animation genre
-  const { data: animeAPISources } = useQuery({
+  const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
     queryKey: ['anime-api-sources', seriesId, selectedSeasonNumber, selectedEpisode],
     queryFn: async () => {
       // Check if this is an animation (genre ID: 16)
@@ -610,7 +610,7 @@ export default function SeriesDetail() {
                                             genres={series?.genres}
                                             onSourceClick={handleSourceClick}
                                             isLoadingSource={isLoadingSource}
-                                            isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark}
+                                            isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark || isLoadingAnimeAPI}
                                             season={selectedSeasonNumber}
                                             episode={episode.episode_number}
                                             imdbId={series?.external_ids?.imdb_id}

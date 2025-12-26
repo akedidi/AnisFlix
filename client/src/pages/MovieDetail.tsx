@@ -107,7 +107,7 @@ export default function MovieDetail() {
   });
 
   // Fetch AnimeAPI sources for Animation genre (Movies)
-  const { data: animeAPISources } = useQuery({
+  const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
     queryKey: ['anime-api-sources-movie', movieId],
     queryFn: async () => {
       // Check if this is an animation (genre ID: 16)
@@ -592,7 +592,7 @@ export default function MovieDetail() {
                   genres={movie.genres}
                   onSourceClick={handleSourceSelect}
                   isLoadingSource={isLoadingSource}
-                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark}
+                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark || isLoadingAnimeAPI}
                 />
               </div>
             ) : (
