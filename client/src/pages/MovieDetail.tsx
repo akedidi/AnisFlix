@@ -106,6 +106,53 @@ export default function MovieDetail() {
     allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
   });
 
+  // Fetch AnimeAPI sources for Animation genre (Movies)
+  const { data: animeAPISources } = useQuery({
+    queryKey: ['anime-api-sources-movie', movieId],
+    queryFn: async () => {
+      // Check if this is an animation (genre ID: 16)
+      const isAnimation = movie?.genres?.some((g: any) => g.id === 16);
+
+      if (!isAnimation) {
+        return [];
+      }
+
+      // Get English title from TMDB (original_title is often Japanese for anime)
+      try {
+        const tmdbResponse = await fetch(
+          `https://api.themoviedb.org/3/movie/${movieId}?api_key=68e094699525b18a70bab2f86b1fa706&language=en-US`
+        );
+        const tmdbData = await tmdbResponse.json();
+        const englishTitle = tmdbData.title || movie.original_title;
+
+        console.log(`🎌 [AnimeAPI Movie] Fetching: ${englishTitle}`);
+
+        // For movies, we try season 1 episode 1 or just title search
+        const params = new URLSearchParams({
+          path: 'anime-api',
+          title: englishTitle,
+          season: '1',
+          episode: '1',
+        });
+
+        const response = await fetch(`/api/movix-proxy?${params}`);
+        const data = await response.json();
+
+        if (!data.success || !data.results) {
+          return [];
+        }
+
+        console.log(`🎌 [AnimeAPI Movie] Found ${data.results.length} sources`);
+        return data.results;
+      } catch (error) {
+        console.error('[AnimeAPI Movie] Error:', error);
+        return [];
+      }
+    },
+    enabled: !!movie,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // BLOQUER explicitement si matchingResult n'existe pas ou ne correspond pas
   if (matchingResult && matchingResult.tmdb_id !== movieId) {
     console.error(`❌ [FILMS DOWNLOAD] CRITICAL: matchingResult tmdb_id (${matchingResult.tmdb_id}) does not match movieId (${movieId})`);
@@ -209,8 +256,25 @@ export default function MovieDetail() {
     language: 'VF'
   }));
 
+  // Map AnimeAPI sources
+  const mappedAnimeAPISources = (animeAPISources || []).map((source: any, index: number) => ({
+    id: `animeapi-${index}`,
+    name: 'AnimeAPI',
+    provider: 'AnimeAPI',
+    // Wrap URL in our HLS proxy to bypass CORS/Referer issues
+    url: `/api/movix-proxy?path=proxy/hls&link=${encodeURIComponent(source.url)}`,
+    type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+    isFStream: false,
+    isMovixDownload: false,
+    isVidMoly: false,
+    isDarki: false,
+    isAnimeAPI: true,
+    quality: source.quality || 'HD',
+    language: 'VO'
+  }));
+
   // Map Cpasmal sources
-  const allSources = [...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB
@@ -236,9 +300,21 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean }) => {
     setIsLoadingSource(true);
     try {
+      // Si l'URL est déjà fournie (MovixDownload, Darki, AnimeAPI ou autres sources directes), on l'utilise directement
+      if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isVidzy) {
+        setSelectedSource({
+          url: source.url,
+          type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+          name: source.name,
+          isDarki: source.isDarki,
+        });
+        setIsLoadingSource(false);
+        return;
+      }
+
       // Pour VidMoly, passer le lien embed original au VidMolyPlayer
       // Pour VidMoly, essayer d'extraire le m3u8 pour le lecteur natif
       if (source.isVidMoly) {
