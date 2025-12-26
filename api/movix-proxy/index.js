@@ -327,7 +327,14 @@ export default async function handler(req, res) {
         const seasonNumber = season ? parseInt(season) : 1;
         const episodeNumber = episode ? parseInt(episode) : 1;
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
-        const ANIME_API_BASE = 'https://anime-api-sand-psi.vercel.app/api';
+
+        // Use our self-hosted anime API instead of external
+        const baseUrl = process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : (req.headers.host ? `${req.protocol || 'https'}://${req.headers.host}` : 'http://localhost:3000');
+        const ANIME_API_BASE = `${baseUrl}/api/anime`;
+
+        console.log(`🎌 [AnimeAPI] Using self-hosted API: ${ANIME_API_BASE}`);
 
         // Variables pour la logique avancée
         let englishSeasonName = null;
