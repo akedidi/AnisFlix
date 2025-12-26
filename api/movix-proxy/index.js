@@ -454,7 +454,7 @@ export default async function handler(req, res) {
 
         // Etape 3: Stream Link (Code Original)
         // Use full episode ID from episode list (e.g. "attack-on-titan-112?ep=3303")
-        const streamUrl = `${ANIME_API_BASE}/stream?id=${targetEpisode.id}&server=hd-2&type=sub`;
+        const streamUrl = `${ANIME_API_BASE}/stream?id=${encodeURIComponent(targetEpisode.id)}&server=hd-2&type=sub`;
         const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
 
         if (!streamResponse.data?.success || !streamResponse.data?.results?.streamingLink) {
