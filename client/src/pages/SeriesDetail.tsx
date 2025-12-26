@@ -677,6 +677,7 @@ export default function SeriesDetail() {
                                                 seasonNumber={selectedSeasonNumber}
                                                 episodeNumber={episode.episode_number}
                                                 imdbId={series?.external_ids?.imdb_id}
+                                                tracks={(selectedSource as any).tracks} // Pass subtitles to player
                                               />
                                             )}
                                           </div>
