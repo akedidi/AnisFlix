@@ -79,6 +79,57 @@ export default function VideoPlayer({
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
+  // Language mapping for external tracks (Anime API uses full names like "English", "French")
+  const LANGUAGE_MAPPING: Record<string, { flag: string; label: string; code: string }> = {
+    // Full language names (from Anime API)
+    'english': { flag: '🇬🇧', label: 'Anglais', code: 'eng' },
+    'french': { flag: '🇫🇷', label: 'Français', code: 'fre' },
+    'spanish': { flag: '🇪🇸', label: 'Espagnol', code: 'spa' },
+    'german': { flag: '🇩🇪', label: 'Allemand', code: 'ger' },
+    'italian': { flag: '🇮🇹', label: 'Italien', code: 'ita' },
+    'portuguese': { flag: '🇵🇹', label: 'Portugais', code: 'por' },
+    'russian': { flag: '🇷🇺', label: 'Russe', code: 'rus' },
+    'japanese': { flag: '🇯🇵', label: 'Japonais', code: 'jpn' },
+    'korean': { flag: '🇰🇷', label: 'Coréen', code: 'kor' },
+    'chinese': { flag: '🇨🇳', label: 'Chinois', code: 'chi' },
+    'arabic': { flag: '🇸🇦', label: 'Arabe', code: 'ara' },
+    'turkish': { flag: '🇹🇷', label: 'Turc', code: 'tur' },
+    'dutch': { flag: '🇳🇱', label: 'Néerlandais', code: 'dut' },
+    'polish': { flag: '🇵🇱', label: 'Polonais', code: 'pol' },
+    'swedish': { flag: '🇸🇪', label: 'Suédois', code: 'swe' },
+    'greek': { flag: '🇬🇷', label: 'Grec', code: 'gre' },
+    'hebrew': { flag: '🇮🇱', label: 'Hébreu', code: 'heb' },
+    'thai': { flag: '🇹🇭', label: 'Thaï', code: 'tha' },
+    'vietnamese': { flag: '🇻🇳', label: 'Vietnamien', code: 'vie' },
+    'indonesian': { flag: '🇮🇩', label: 'Indonésien', code: 'ind' },
+    // 3-letter codes (fallback, from OpenSubtitles)
+    'eng': { flag: '🇬🇧', label: 'Anglais', code: 'eng' },
+    'fre': { flag: '🇫🇷', label: 'Français', code: 'fre' },
+    'spa': { flag: '🇪🇸', label: 'Espagnol', code: 'spa' },
+    'ger': { flag: '🇩🇪', label: 'Allemand', code: 'ger' },
+    'ita': { flag: '🇮🇹', label: 'Italien', code: 'ita' },
+    'por': { flag: '🇵🇹', label: 'Portugais', code: 'por' },
+    'rus': { flag: '🇷🇺', label: 'Russe', code: 'rus' },
+    'jpn': { flag: '🇯🇵', label: 'Japonais', code: 'jpn' },
+    'kor': { flag: '🇰🇷', label: 'Coréen', code: 'kor' },
+    'chi': { flag: '🇨🇳', label: 'Chinois', code: 'chi' },
+    'ara': { flag: '🇸🇦', label: 'Arabe', code: 'ara' },
+  };
+
+  // Helper to map external track to proper Subtitle format
+  const mapExternalTrack = (track: { file: string; label?: string }, index: number): Subtitle => {
+    const labelLower = (track.label || '').toLowerCase();
+    const langInfo = LANGUAGE_MAPPING[labelLower] || { flag: '🌐', label: track.label || 'Inconnu', code: 'unk' };
+
+    return {
+      id: `external-${index}`,
+      url: track.file,
+      lang: langInfo.code,
+      label: `${langInfo.flag} ${langInfo.label}`,
+      flag: langInfo.flag
+    };
+  };
+
   // Fetch subtitles from OpenSubtitles
   useEffect(() => {
     const fetchSubtitles = async () => {
@@ -95,15 +146,7 @@ export default function VideoPlayer({
           console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles from OpenSubtitles`);
 
           // Merge OpenSubtitles results with provided tracks (e.g. from Anime API)
-          const externalTracks: Subtitle[] = (tracks || []).map((t, index) => ({
-            id: `external-${index}`,
-            url: t.file,
-            lang: t.label || 'Unknown',
-            languageName: t.label || 'Unknown',
-            encoding: 'UTF-8',
-            label: t.label || 'Unknown',
-            flag: '' // Optional or empty for external tracks
-          }));
+          const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
 
           console.log(`✅ [VIDEO PLAYER] Merging logs - External: ${externalTracks.length}, OpenSubtitles: ${subs.length}`);
           console.log(`✅ [VIDEO PLAYER] External tracks content:`, externalTracks);
@@ -113,29 +156,13 @@ export default function VideoPlayer({
         } catch (error) {
           console.error('❌ [VIDEO PLAYER] Error fetching subtitles:', error);
           // Fallback: use only external tracks if OpenSubtitles fails
-          const externalTracks: Subtitle[] = tracks.map((t, index) => ({
-            id: `external-${index}`,
-            url: t.file,
-            lang: t.label || 'Unknown',
-            languageName: t.label || 'Unknown',
-            encoding: 'UTF-8',
-            label: t.label || 'Unknown',
-            flag: ''
-          }));
+          const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
           setSubtitles(externalTracks);
         }
       } else {
         console.log('⚠️ [VIDEO PLAYER] No IMDB ID or mediaType, using only external tracks');
         // Use external tracks even if no IMDB ID (common for some anime)
-        const externalTracks: Subtitle[] = tracks.map((t, index) => ({
-          id: `external-${index}`,
-          url: t.file,
-          lang: t.label || 'Unknown',
-          languageName: t.label || 'Unknown',
-          encoding: 'UTF-8',
-          label: t.label || 'Unknown',
-          flag: ''
-        }));
+        const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
         setSubtitles(externalTracks);
       }
     };
