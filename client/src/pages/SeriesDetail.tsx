@@ -298,7 +298,8 @@ export default function SeriesDetail() {
         name: source.name,
         isDarki: source.isDarki,
         quality: source.quality,
-        language: source.language
+        language: source.language,
+        tracks: (source as any).tracks // Preserve subtitle tracks
       });
       setIsLoadingSource(false); // Remettre à false pour les sources directes
       return;

@@ -82,6 +82,7 @@ export default function VideoPlayer({
   // Fetch subtitles from OpenSubtitles
   useEffect(() => {
     const fetchSubtitles = async () => {
+      console.log(`🔍 [VIDEO PLAYER] fetchSubtitles called with tracks:`, tracks?.length || 0, tracks);
       if (imdbId && mediaType) {
         console.log('🔍 [VIDEO PLAYER] Fetching subtitles for IMDB ID:', imdbId);
         try {
