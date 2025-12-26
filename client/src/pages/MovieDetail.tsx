@@ -305,7 +305,8 @@ export default function MovieDetail() {
     setIsLoadingSource(true);
     try {
       // Si l'URL est déjà fournie (MovixDownload, Darki, AnimeAPI ou autres sources directes), on l'utilise directement
-      if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isVidzy) {
+      // SAUF pour Vidzy (isFStream) qui nécessite une extraction m3u8
+      if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isVidzy && !source.isFStream) {
         setSelectedSource({
           url: source.url,
           type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),

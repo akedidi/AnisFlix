@@ -276,8 +276,8 @@ export default function SeriesDetail() {
   }) => {
     if (!series || !selectedEpisode) return;
     // Si l'URL est déjà fournie (MovixDownload, Darki ou autres sources directes), on l'utilise directement
-    // EXCEPTION: VidMoly doit toujours passer par l'API d'extraction
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly) {
+    // EXCEPTION: VidMoly et Vidzy (isFStream) doivent passer par l'extraction
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isFStream) {
       setSelectedSource({
         url: source.url,
         type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
