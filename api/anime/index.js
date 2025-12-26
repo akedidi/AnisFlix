@@ -499,7 +499,6 @@ async function handler(req, res) {
         return res.status(400).json({ success: false, message: "URL parameter required" });
       }
       console.log("\u{1F4FA} [Anime API] M3U8 Proxy request:", url.substring(0, 50) + "...");
-      const isVideoSegment = url.toLowerCase().endsWith(".ts");
       const axios6 = (await import("axios")).default;
       const response = await axios6.get(url, {
         headers: {
@@ -508,15 +507,9 @@ async function handler(req, res) {
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           "Accept": "*/*"
         },
-        responseType: isVideoSegment ? "arraybuffer" : "text",
+        responseType: "text",
         timeout: 15e3
       });
-      if (isVideoSegment) {
-        res.setHeader("Content-Type", "video/mp2t");
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Cache-Control", "public, max-age=31536000");
-        return res.status(200).send(Buffer.from(response.data));
-      }
       let m3u8Content = response.data;
       const urlObj = new URL(url);
       const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf("/") + 1)}`;

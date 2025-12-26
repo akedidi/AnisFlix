@@ -58,10 +58,7 @@ export default async function handler(req, res) {
 
             console.log('📺 [Anime API] M3U8 Proxy request:', url.substring(0, 50) + '...');
 
-            // Detect if this is a binary .ts segment or text m3u8 playlist
-            const isVideoSegment = url.toLowerCase().endsWith('.ts');
-
-            // Fetch with spoofed headers
+            // Fetch m3u8 with spoofed headers
             const axios = (await import('axios')).default;
             const response = await axios.get(url, {
                 headers: {
@@ -70,17 +67,9 @@ export default async function handler(req, res) {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': '*/*',
                 },
-                responseType: isVideoSegment ? 'arraybuffer' : 'text',
+                responseType: 'text',
                 timeout: 15000
             });
-
-            // If it's a video segment (.ts), return binary data directly
-            if (isVideoSegment) {
-                res.setHeader('Content-Type', 'video/mp2t');
-                res.setHeader('Access-Control-Allow-Origin', '*');
-                res.setHeader('Cache-Control', 'public, max-age=31536000');
-                return res.status(200).send(Buffer.from(response.data));
-            }
 
             let m3u8Content = response.data;
 
