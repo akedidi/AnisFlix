@@ -237,8 +237,8 @@ export default function SeriesDetail() {
       id: `animeapi-${index}`,
       name: 'AnimeAPI',
       provider: 'AnimeAPI',
-      // Use our zenime-proxy wrapper (spoofs origin to bypass zenime.site restriction)
-      url: `/api/movix-proxy?path=zenime-proxy&url=${encodeURIComponent(source.url)}`,
+      // Use our internal anime m3u8-proxy (spoofs headers for netmagcdn)
+      url: `/api/anime?action=m3u8-proxy&url=${encodeURIComponent(source.url)}`,
       type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
       isFStream: false,
       isMovixDownload: false,

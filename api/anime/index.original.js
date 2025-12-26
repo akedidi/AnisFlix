@@ -49,10 +49,37 @@ export default async function handler(req, res) {
             console.log('🎬 [Anime API] Stream request:', req.query.id);
             data = await getStreamInfo(req, res, false);
 
+        } else if (action === 'm3u8-proxy') {
+            // /api/anime?action=m3u8-proxy&url=https://netmagcdn.com/.../master.m3u8
+            const { url } = req.query;
+            if (!url) {
+                return res.status(400).json({ success: false, message: 'URL parameter required' });
+            }
+
+            console.log('📺 [Anime API] M3U8 Proxy request:', url.substring(0, 50) + '...');
+
+            // Fetch m3u8 with spoofed headers
+            const axios = (await import('axios')).default;
+            const response = await axios.get(url, {
+                headers: {
+                    'Referer': 'https://rapid-cloud.co/',
+                    'Origin': 'https://rapid-cloud.co',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': '*/*',
+                },
+                responseType: 'text',
+                timeout: 15000
+            });
+
+            // Set appropriate headers and return m3u8 content
+            res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            return res.status(200).send(response.data);
+
         } else {
             return res.status(404).json({
                 success: false,
-                message: `Missing or unknown action. Available: search, episodes, stream`
+                message: `Missing or unknown action. Available: search, episodes, stream, m3u8-proxy`
             });
         }
 
