@@ -214,6 +214,55 @@ export default async function handler(req, res) {
     // Décoder le path pour éviter le double encodage
     const decodedPath = decodeURIComponent(path);
 
+    // GÉRER ZENIME PROXY WRAPPER (pour contourner la restriction d'origine)
+    if (decodedPath === 'zenime-proxy') {
+      const { url: m3u8Url } = queryParams;
+
+      if (!m3u8Url) {
+        return res.status(400).json({ error: 'Paramètre "url" manquant' });
+      }
+
+      try {
+        const decodedUrl = decodeURIComponent(m3u8Url);
+        const headers = JSON.stringify({ referer: "https://rapid-cloud.co/" });
+        const zenimeUrl = `https://proxy.zenime.site/m3u8-proxy?url=${encodeURIComponent(decodedUrl)}&headers=${encodeURIComponent(headers)}`;
+
+        console.log(`🎌 [ZENIME PROXY] Forwarding: ${decodedUrl.substring(0, 80)}...`);
+
+        const response = await axios({
+          method: 'GET',
+          url: zenimeUrl,
+          headers: {
+            'Origin': 'https://zenime.site',
+            'Referer': 'https://zenime.site/',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          },
+          responseType: 'stream',
+          timeout: 30000,
+          validateStatus: (status) => status < 500
+        });
+
+        // Forward status and headers
+        res.status(response.status);
+
+        const headersToForward = ['content-type', 'content-length', 'cache-control'];
+        headersToForward.forEach(h => {
+          if (response.headers[h]) res.setHeader(h, response.headers[h]);
+        });
+
+        res.setHeader('Access-Control-Allow-Origin', '*');
+
+        // Pipe the stream
+        response.data.pipe(res);
+        return;
+      } catch (error) {
+        console.error('❌ [ZENIME PROXY] Error:', error.message);
+        return res.status(502).json({ error: 'Erreur proxy Zenime', details: error.message });
+      }
+    }
+
     // GÉRER VIXSRC ICI
     if (decodedPath === 'vixsrc') {
 
