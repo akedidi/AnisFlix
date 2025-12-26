@@ -328,10 +328,13 @@ export default async function handler(req, res) {
         const episodeNumber = episode ? parseInt(episode) : 1;
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
 
-        // Use relative URL for internal API calls (avoids preview URL issues)
-        const ANIME_API_BASE = '/api/anime';
+        // Use request host to build absolute URL (works in preview and production)
+        // req.headers.host will be the actual domain being called (preview or production)
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host || 'anisflix.vercel.app';
+        const ANIME_API_BASE = `${protocol}://${host}/api/anime`;
 
-        console.log(`🎌 [AnimeAPI] Using internal API: ${ANIME_API_BASE}`);
+        console.log(`🎌 [AnimeAPI] Using API: ${ANIME_API_BASE}`);
 
         // Variables pour la logique avancée
         let englishSeasonName = null;
