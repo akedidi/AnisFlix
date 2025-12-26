@@ -181,6 +181,7 @@ export default function SeriesDetail() {
         }
 
         console.log(`🎌 [AnimeAPI] Found ${data.results.length} sources`);
+        console.log(`🎌 [AnimeAPI] First source tracks:`, data.results[0]?.tracks);
         return data.results;
       } catch (error) {
         console.error('[AnimeAPI] Error:', error);
@@ -274,6 +275,11 @@ export default function SeriesDetail() {
     console.log('📦 [DEBUG EPISODE SOURCES] Sources:', episodeSources);
     const vidMolySources = episodeSources.filter((s: any) => s.isVidMoly);
     console.log('📦 [DEBUG EPISODE SOURCES] VidMoly sources:', vidMolySources.length, vidMolySources);
+    const animeAPISources = episodeSources.filter((s: any) => s.isAnimeAPI);
+    console.log('📦 [DEBUG EPISODE SOURCES] AnimeAPI sources:', animeAPISources.length, animeAPISources);
+    if (animeAPISources.length > 0) {
+      console.log('📦 [DEBUG EPISODE SOURCES] AnimeAPI first source tracks:', (animeAPISources[0] as any)?.tracks);
+    }
   }, [episodeSources, selectedSeasonNumber, selectedEpisode]);
 
   const handleSourceClick = async (source: {
