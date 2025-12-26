@@ -95,7 +95,7 @@ export default function VideoPlayer({
           console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles from OpenSubtitles`);
 
           // Merge OpenSubtitles results with provided tracks (e.g. from Anime API)
-          const externalTracks: Subtitle[] = tracks.map((t, index) => ({
+          const externalTracks: Subtitle[] = (tracks || []).map((t, index) => ({
             id: `external-${index}`,
             url: t.file,
             lang: t.label || 'Unknown',
@@ -105,7 +105,9 @@ export default function VideoPlayer({
             flag: '' // Optional or empty for external tracks
           }));
 
-          console.log(`✅ [VIDEO PLAYER] Merging with ${externalTracks.length} external tracks`);
+          console.log(`✅ [VIDEO PLAYER] Merging logs - External: ${externalTracks.length}, OpenSubtitles: ${subs.length}`);
+          console.log(`✅ [VIDEO PLAYER] External tracks content:`, externalTracks);
+
           setSubtitles([...externalTracks, ...subs]);
 
         } catch (error) {
