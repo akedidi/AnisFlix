@@ -500,6 +500,23 @@ async function handler(req, res) {
       }
       console.log("\u{1F4FA} [Anime API] M3U8 Proxy request:", url.substring(0, 50) + "...");
       const axios6 = (await import("axios")).default;
+      if (url.toLowerCase().endsWith(".ts")) {
+        console.log("\u{1F4FA} [Anime API] Proxying .ts video segment");
+        const response2 = await axios6.get(url, {
+          headers: {
+            "Referer": "https://rapid-cloud.co/",
+            "Origin": "https://rapid-cloud.co",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "*/*"
+          },
+          responseType: "arraybuffer",
+          timeout: 15e3
+        });
+        res.setHeader("Content-Type", "video/mp2t");
+        res.setHeader("Access-Control-Allow-Origin", "*");
+        res.setHeader("Cache-Control", "public, max-age=31536000");
+        return res.status(200).send(Buffer.from(response2.data));
+      }
       const response = await axios6.get(url, {
         headers: {
           "Referer": "https://rapid-cloud.co/",

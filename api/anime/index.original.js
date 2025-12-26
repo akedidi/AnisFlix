@@ -58,8 +58,29 @@ export default async function handler(req, res) {
 
             console.log('📺 [Anime API] M3U8 Proxy request:', url.substring(0, 50) + '...');
 
-            // Fetch m3u8 with spoofed headers
             const axios = (await import('axios')).default;
+
+            // Handle .ts video segments separately (binary)
+            if (url.toLowerCase().endsWith('.ts')) {
+                console.log('📺 [Anime API] Proxying .ts video segment');
+                const response = await axios.get(url, {
+                    headers: {
+                        'Referer': 'https://rapid-cloud.co/',
+                        'Origin': 'https://rapid-cloud.co',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': '*/*',
+                    },
+                    responseType: 'arraybuffer',
+                    timeout: 15000
+                });
+
+                res.setHeader('Content-Type', 'video/mp2t');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Cache-Control', 'public, max-age=31536000');
+                return res.status(200).send(Buffer.from(response.data));
+            }
+
+            // Handle .m3u8 playlists (text with URL rewriting)
             const response = await axios.get(url, {
                 headers: {
                     'Referer': 'https://rapid-cloud.co/',
