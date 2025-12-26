@@ -328,13 +328,10 @@ export default async function handler(req, res) {
         const episodeNumber = episode ? parseInt(episode) : 1;
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
 
-        // Use self-hosted bundled anime API
-        const baseUrl = process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : (req.headers.host ? `${req.protocol || 'https'}://${req.headers.host}` : 'http://localhost:3000');
-        const ANIME_API_BASE = `${baseUrl}/api/anime`;
+        // Use relative URL for internal API calls (avoids preview URL issues)
+        const ANIME_API_BASE = '/api/anime';
 
-        console.log(`🎌 [AnimeAPI] Using self-hosted bundled API: ${ANIME_API_BASE}`);
+        console.log(`🎌 [AnimeAPI] Using internal API: ${ANIME_API_BASE}`);
 
         // Variables pour la logique avancée
         let englishSeasonName = null;
