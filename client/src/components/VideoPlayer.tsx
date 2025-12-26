@@ -138,7 +138,7 @@ export default function VideoPlayer({
     };
 
     fetchSubtitles();
-  }, [imdbId, mediaType, seasonNumber, episodeNumber]);
+  }, [imdbId, mediaType, seasonNumber, episodeNumber, tracks]);
 
 
   // Navigation au clavier pour contrôler la lecture vidéo
