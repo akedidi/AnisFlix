@@ -683,24 +683,26 @@ export default function SeriesDetail() {
                                                 }}
                                               />
                                             ) : (
-                                              { console.log('🎥 [SeriesDetail] Rendering VideoPlayer with tracks:', (selectedSource as any).tracks) }
-                                              < VideoPlayer
-                                                src={selectedSource.url}
-                                            type={selectedSource.type === "embed" ? "m3u8" : selectedSource.type}
-                                            posterPath={series.backdrop_path}
-                                            title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
-                                            onClose={() => {
-                                              console.log('Fermeture lecteur VideoPlayer std');
-                                              setSelectedSource(null);
-                                              setIsLoadingSource(false);
-                                            }}
-                                            mediaId={seriesId}
-                                            mediaType="tv"
-                                            seasonNumber={selectedSeasonNumber}
-                                            episodeNumber={episode.episode_number}
-                                            imdbId={series?.external_ids?.imdb_id}
-                                            tracks={(selectedSource as any).tracks} // Pass subtitles to player
-                                              />
+                                              <>
+                                                {console.log('🎥 [SeriesDetail] Rendering VideoPlayer with tracks:', (selectedSource as any).tracks)}
+                                                <VideoPlayer
+                                                  src={selectedSource.url}
+                                                  type={selectedSource.type === "embed" ? "m3u8" : selectedSource.type}
+                                                  posterPath={series.backdrop_path}
+                                                  title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
+                                                  onClose={() => {
+                                                    console.log('Fermeture lecteur VideoPlayer std');
+                                                    setSelectedSource(null);
+                                                    setIsLoadingSource(false);
+                                                  }}
+                                                  mediaId={seriesId}
+                                                  mediaType="tv"
+                                                  seasonNumber={selectedSeasonNumber}
+                                                  episodeNumber={episode.episode_number}
+                                                  imdbId={series?.external_ids?.imdb_id}
+                                                  tracks={(selectedSource as any).tracks}
+                                                />
+                                              </>
                                             )}
                                           </div>
                                         )}
