@@ -588,7 +588,10 @@ export default async function handler(req, res) {
           url: targetUrl,
           headers: {
             ...proxyHeaders,
-            'User-Agent': proxyHeaders['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': proxyHeaders['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            // Force spoof Referer/Origin to bypass blocking
+            'Referer': 'https://anime-api-sand-psi.vercel.app/',
+            'Origin': 'https://anime-api-sand-psi.vercel.app'
           },
           responseType: 'stream',
           validateStatus: (status) => status < 500
