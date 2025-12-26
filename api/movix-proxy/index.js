@@ -590,8 +590,8 @@ export default async function handler(req, res) {
             ...proxyHeaders,
             'User-Agent': proxyHeaders['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             // Force spoof Referer/Origin to bypass blocking
-            'Referer': 'https://anime-api-sand-psi.vercel.app/',
-            'Origin': 'https://anime-api-sand-psi.vercel.app'
+            'Referer': 'https://gogoanime3.co/',
+            'Origin': 'https://gogoanime3.co'
           },
           responseType: 'stream',
           validateStatus: (status) => status < 500
