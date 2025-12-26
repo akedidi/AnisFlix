@@ -69,6 +69,8 @@ export default function CustomVideoControls({
   season,
   episode,
 }: CustomVideoControlsProps) {
+  // Debug: Log subtitles prop
+  console.log(`🎬 [CustomVideoControls] subtitles prop:`, subtitles.length, subtitles);
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
