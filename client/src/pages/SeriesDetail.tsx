@@ -246,7 +246,8 @@ export default function SeriesDetail() {
       isDarki: false,
       isAnimeAPI: true,
       quality: source.quality || 'HD',
-      language: 'VO'
+      language: 'VO',
+      tracks: source.tracks // Pass subtitles to player
     })) || []),
     ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
       ...source,

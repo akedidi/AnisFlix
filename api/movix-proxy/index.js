@@ -543,6 +543,7 @@ export default async function handler(req, res) {
             quality: 'HD',
             url: streamingLink.link?.file || streamingLink.link,
             type: streamingLink.link?.type || streamingLink.type || 'hls',
+            tracks: streamingLink.tracks, // Pass tracks (subtitles) to client
             animeInfo: {
               id: anime.id,
               title: anime.title,

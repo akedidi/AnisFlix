@@ -271,7 +271,8 @@ export default function MovieDetail() {
     isDarki: false,
     isAnimeAPI: true,
     quality: source.quality || 'HD',
-    language: 'VO'
+    language: 'VO',
+    tracks: source.tracks // Pass subtitles to player
   }));
 
   // Map Cpasmal sources
