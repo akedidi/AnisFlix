@@ -100,7 +100,12 @@ export async function getSubtitles(
             url = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
         } else {
             if (!season || !episode) throw new Error("Season and episode required for series");
-            url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${episode}.json`;
+            // For anime with absolute episode numbering (e.g. One Piece ep 422),
+            // OpenSubtitles expects season=1 with the absolute episode number.
+            // Detect this by checking if episode number is unusually high (>100).
+            const effectiveSeason = episode > 100 ? 1 : season;
+            console.log(`🔍 [OpenSubtitles] Original: S${season}E${episode}, Effective: S${effectiveSeason}E${episode}`);
+            url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${effectiveSeason}:${episode}.json`;
         }
 
         console.log(`🔍 [OpenSubtitles] Fetching subtitles from: ${url}`);
