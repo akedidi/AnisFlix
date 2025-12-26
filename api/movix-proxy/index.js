@@ -376,7 +376,7 @@ export default async function handler(req, res) {
         // Fonction de recherche helper
         const searchAnime = async (query) => {
           try {
-            const url = `${ANIME_API_BASE}/search?keyword=${encodeURIComponent(query)}`;
+            const url = `${ANIME_API_BASE}?action=search&keyword=${encodeURIComponent(query)}`;
             console.log(`🎌 [Search] Query: "${query}"`);
             const res = await axios.get(url, { timeout: 8000 });
             return (res.data?.success && res.data?.results?.data) ? res.data.results.data : [];
@@ -476,7 +476,7 @@ export default async function handler(req, res) {
         console.log(`🎌 [AnimeAPI] Selected Anime: ${anime.title} (Specific Season: ${isSpecificSeasonMatch})`);
 
         // Etape 2: Récupérer épisodes
-        const episodesUrl = `${ANIME_API_BASE}/episodes/${encodeURIComponent(anime.id)}`;
+        const episodesUrl = `${ANIME_API_BASE}?action=episodes&id=${encodeURIComponent(anime.id)}`;
         const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
 
         if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
@@ -518,7 +518,7 @@ export default async function handler(req, res) {
 
         // Etape 3: Stream Link
         // Use full episode ID from episode list (e.g. "attack-on-titan-112?ep=3303")
-        const streamUrl = `${ANIME_API_BASE}/stream?id=${encodeURIComponent(targetEpisode.id)}&server=hd-2&type=sub`;
+        const streamUrl = `${ANIME_API_BASE}?action=stream&id=${encodeURIComponent(targetEpisode.id)}&server=hd-2&type=sub`;
         const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
 
         if (!streamResponse.data?.success || !streamResponse.data?.results?.streamingLink) {

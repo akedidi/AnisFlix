@@ -23,43 +23,36 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 
-    // Parse URL to determine route (Vercel serverless compatible)
-    // req.url format: "/api/anime/search?keyword=..." or "/api/anime/episodes/death-note-60"
-    const url = req.url || '';
+    // Use action query param for routing (Vercel compatible)
+    const { action } = req.query;
 
-    // Remove /api/anime prefix and leading slash
-    const pathWithQuery = url.replace(/^\/api\/anime\/?/, '');
-
-    // Split path from query string
-    const [path, queryString] = pathWithQuery.split('?');
-
-    console.log(`🎌 [Anime API] Path: "${path}", Query:`, req.query);
+    console.log(`🎌 [Anime API] Action: ${action}, Query:`, req.query);
 
     try {
         let data;
 
-        if (path.startsWith('search') || path === '') {
-            // /api/anime/search?keyword=Death Note
+        if (action === 'search') {
+            // /api/anime?action=search&keyword=Death Note
             console.log('🔍 [Anime API] Search request:', req.query.keyword);
             const result = await search(req);
             data = result;
 
-        } else if (path.startsWith('episodes/')) {
-            // /api/anime/episodes/death-note-60
-            const id = path.replace('episodes/', '');
+        } else if (action === 'episodes') {
+            // /api/anime?action=episodes&id=death-note-60
+            const id = req.query.id;
             console.log('📺 [Anime API] Episodes request:', id);
             req.params = { id };
             data = await getEpisodes(req, res);
 
-        } else if (path.startsWith('stream')) {
-            // /api/anime/stream?id=death-note-60?ep=1234&server=hd-2&type=sub
+        } else if (action === 'stream') {
+            // /api/anime?action=stream&id=death-note-60?ep=1234&server=hd-2&type=sub
             console.log('🎬 [Anime API] Stream request:', req.query.id);
             data = await getStreamInfo(req, res, false);
 
         } else {
             return res.status(404).json({
                 success: false,
-                message: `Unknown path: ${path}. Available: search, episodes/:id, stream`
+                message: `Missing or unknown action. Available: search, episodes, stream`
             });
         }
 
