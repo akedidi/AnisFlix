@@ -261,8 +261,8 @@ export default function MovieDetail() {
     id: `animeapi-${index}`,
     name: 'AnimeAPI',
     provider: 'AnimeAPI',
-    // Wrap URL in our HLS proxy to bypass CORS/Referer issues
-    url: `/api/movix-proxy?path=proxy/hls&link=${encodeURIComponent(source.url)}`,
+    // Use direct URL to test if it works without proxy
+    url: source.url,
     type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
     isFStream: false,
     isMovixDownload: false,
