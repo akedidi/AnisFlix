@@ -1,6 +1,6 @@
-import { search } from '../anime-src/controllers/search.controller.js';
-import { getEpisodes } from '../anime-src/controllers/episodeList.controller.js';
-import { getStreamInfo } from '../anime-src/controllers/streamInfo.controller.js';
+import { search } from '../../src/anime-lib/controllers/search.controller.js';
+import { getEpisodes } from '../../src/anime-lib/controllers/episodeList.controller.js';
+import { getStreamInfo } from '../../src/anime-lib/controllers/streamInfo.controller.js';
 
 /**
  * Main serverless handler for Anime API
