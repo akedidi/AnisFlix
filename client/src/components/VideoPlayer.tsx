@@ -139,7 +139,8 @@ export default function VideoPlayer({
     };
 
     fetchSubtitles();
-  }, [imdbId, mediaType, seasonNumber, episodeNumber, tracks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imdbId, mediaType, seasonNumber, episodeNumber, JSON.stringify(tracks)]);
 
 
   // Navigation au clavier pour contrôler la lecture vidéo
