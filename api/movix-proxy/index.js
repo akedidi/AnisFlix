@@ -381,7 +381,8 @@ export default async function handler(req, res) {
 
         // Étape 3: Récupérer le lien streaming
         console.log(`🎌 [AnimeAPI] === STEP 3: STREAM LINK ===`);
-        const streamUrl = `${ANIME_API_BASE}/stream?id=${anime.id}&ep=${targetEpisode.episode_no}&server=hd-2&type=sub`;
+        // Use full episode ID from episode list (e.g. "attack-on-titan-112?ep=3303")
+        const streamUrl = `${ANIME_API_BASE}/stream?id=${targetEpisode.id}&server=hd-2&type=sub`;
         console.log(`🎌 [AnimeAPI] Stream URL: ${streamUrl}`);
         const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
         console.log(`🎌 [AnimeAPI] Stream response status: ${streamResponse.status}`);
