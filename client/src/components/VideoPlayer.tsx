@@ -94,12 +94,14 @@ export default function VideoPlayer({
           console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles from OpenSubtitles`);
 
           // Merge OpenSubtitles results with provided tracks (e.g. from Anime API)
-          const externalTracks = tracks.map((t, index) => ({
+          const externalTracks: Subtitle[] = tracks.map((t, index) => ({
             id: `external-${index}`,
             url: t.file,
             lang: t.label || 'Unknown',
             languageName: t.label || 'Unknown',
-            encoding: 'UTF-8'
+            encoding: 'UTF-8',
+            label: t.label || 'Unknown',
+            flag: '' // Optional or empty for external tracks
           }));
 
           console.log(`✅ [VIDEO PLAYER] Merging with ${externalTracks.length} external tracks`);
@@ -108,24 +110,28 @@ export default function VideoPlayer({
         } catch (error) {
           console.error('❌ [VIDEO PLAYER] Error fetching subtitles:', error);
           // Fallback: use only external tracks if OpenSubtitles fails
-          const externalTracks = tracks.map((t, index) => ({
+          const externalTracks: Subtitle[] = tracks.map((t, index) => ({
             id: `external-${index}`,
             url: t.file,
             lang: t.label || 'Unknown',
             languageName: t.label || 'Unknown',
-            encoding: 'UTF-8'
+            encoding: 'UTF-8',
+            label: t.label || 'Unknown',
+            flag: ''
           }));
           setSubtitles(externalTracks);
         }
       } else {
         console.log('⚠️ [VIDEO PLAYER] No IMDB ID or mediaType, using only external tracks');
         // Use external tracks even if no IMDB ID (common for some anime)
-        const externalTracks = tracks.map((t, index) => ({
+        const externalTracks: Subtitle[] = tracks.map((t, index) => ({
           id: `external-${index}`,
           url: t.file,
           lang: t.label || 'Unknown',
           languageName: t.label || 'Unknown',
-          encoding: 'UTF-8'
+          encoding: 'UTF-8',
+          label: t.label || 'Unknown',
+          flag: ''
         }));
         setSubtitles(externalTracks);
       }
