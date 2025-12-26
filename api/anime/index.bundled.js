@@ -510,9 +510,19 @@ async function handler(req, res) {
         responseType: "text",
         timeout: 15e3
       });
+      let m3u8Content = response.data;
+      const urlObj = new URL(url);
+      const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf("/") + 1)}`;
+      m3u8Content = m3u8Content.split("\n").map((line) => {
+        if (line.startsWith("#") || !line.trim()) return line;
+        const absoluteUrl = line.startsWith("http") ? line.trim() : baseUrl + line.trim();
+        const protocol = req.headers["x-forwarded-proto"] || "https";
+        const host = req.headers.host || "anisflix.vercel.app";
+        return `${protocol}://${host}/api/anime?action=m3u8-proxy&url=${encodeURIComponent(absoluteUrl)}`;
+      }).join("\n");
       res.setHeader("Content-Type", "application/vnd.apple.mpegurl");
       res.setHeader("Access-Control-Allow-Origin", "*");
-      return res.status(200).send(response.data);
+      return res.status(200).send(m3u8Content);
     } else {
       return res.status(404).json({
         success: false,

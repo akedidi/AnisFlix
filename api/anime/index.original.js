@@ -71,10 +71,27 @@ export default async function handler(req, res) {
                 timeout: 15000
             });
 
-            // Set appropriate headers and return m3u8 content
+            let m3u8Content = response.data;
+
+            // Rewrite URLs in m3u8 to proxy through our endpoint
+            const urlObj = new URL(url);
+            const baseUrl = `${urlObj.protocol}//${urlObj.host}${urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1)}`;
+
+            // Replace relative URLs with proxied URLs
+            m3u8Content = m3u8Content.split('\n').map(line => {
+                if (line.startsWith('#') || !line.trim()) return line;
+
+                // Convert relative/absolute URLs to proxied URLs
+                const absoluteUrl = line.startsWith('http') ? line.trim() : baseUrl + line.trim();
+                const protocol = req.headers['x-forwarded-proto'] || 'https';
+                const host = req.headers.host || 'anisflix.vercel.app';
+                return `${protocol}://${host}/api/anime?action=m3u8-proxy&url=${encodeURIComponent(absoluteUrl)}`;
+            }).join('\n');
+
+            // Set appropriate headers and return modified m3u8 content
             res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
             res.setHeader('Access-Control-Allow-Origin', '*');
-            return res.status(200).send(response.data);
+            return res.status(200).send(m3u8Content);
 
         } else {
             return res.status(404).json({
