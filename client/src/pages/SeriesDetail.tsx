@@ -157,6 +157,7 @@ export default function SeriesDetail() {
           title: englishTitle,
           season: selectedSeasonNumber.toString(),
           episode: selectedEpisode.toString(),
+          tmdbId: seriesId.toString(),
         });
 
         const response = await fetch(`/api/movix-proxy?${params}`);

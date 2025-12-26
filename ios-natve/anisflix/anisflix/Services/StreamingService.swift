@@ -519,8 +519,8 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "darkibox")
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" }
+        // Filter for allowed providers (added "darkibox" and "animeapi")
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
@@ -1345,7 +1345,8 @@ class StreamingService {
             URLQueryItem(name: "path", value: "anime-api"),
             URLQueryItem(name: "title", value: title),
             URLQueryItem(name: "season", value: "\(season)"),
-            URLQueryItem(name: "episode", value: "\(episode)")
+            URLQueryItem(name: "episode", value: "\(episode)"),
+            URLQueryItem(name: "tmdbId", value: "\(tmdbId)")
         ]
         
         guard let apiURL = components?.url else { return [] }
@@ -1400,129 +1401,4 @@ class StreamingService {
         }
     }
         
-        guard let anime = match, let seasons = anime.seasons else {
-            print("⚠️ [Movix Anime] No matching anime or seasons found")
-            return []
-        }
-        
-        print("✅ [Movix Anime] Found anime: \(anime.name)")
-        
-        // Season/Episode Selection Logic
-        var targetSeason: MovixAnimeSeason? = nil
-        var targetEpisode: MovixAnimeEpisode? = nil
-        
-        if seriesId == 1429 { // AOT Special Logic
-            if season == 4 {
-                if episode <= 16 {
-                    targetSeason = seasons.first { $0.name == "Saison 4 partie 1" }
-                    targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
-                } else {
-                    targetSeason = seasons.first { $0.name == "Saison 4 partie 2" }
-                    let offset = episode - 16
-                    targetEpisode = targetSeason?.episodes?.first { $0.index == offset || $0.name.contains(String(format: "%02d", offset)) }
-                }
-            } else if season == 0 {
-                // Specials AOT
-                if episode == 36 {
-                     targetSeason = seasons.first { $0.name == "Saison 4 partie 3" }
-                     targetEpisode = targetSeason?.episodes?.first // First episode
-                } else if episode == 37 {
-                     targetSeason = seasons.first { $0.name == "Saison 4 partie 4" }
-                     targetEpisode = targetSeason?.episodes?.first
-                } else {
-                     targetSeason = seasons.first { $0.name == "OAV" }
-                     targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
-                }
-            } else {
-                targetSeason = seasons.first { $0.name == "Saison \(season)" }
-                targetEpisode = targetSeason?.episodes?.first { $0.index == episode || $0.name.contains(String(format: "%02d", episode)) }
-            }
-        } else {
-            // Generic Logic
-             targetSeason = seasons.first {
-                 ($0.index == season) ||
-                 ($0.name.contains("Saison \(season)")) ||
-                 (season == 0 && ($0.name.lowercased().contains("oav") || $0.name.lowercased().contains("special")))
-             }
-             
-             if let eps = targetSeason?.episodes {
-                 targetEpisode = eps.first {
-                     $0.index == episode || $0.name.contains(String(format: "%02d", episode))
-                 }
-             }
-        }
-        
-        // Fallback: Absolute Episode Search (if specific season/episode not found and it's a regular season)
-        if targetEpisode == nil && season > 0 {
-            // Calculate absolute number from TMDB info
-            let previousSeasons = tmdbInfo.seasons.filter { $0.seasonNumber > 0 && $0.seasonNumber < season }
-            let previousEpisodeCount = previousSeasons.reduce(0) { $0 + $1.episodeCount }
-            let absoluteEpisodeNumber = previousEpisodeCount + episode
-            
-            print("🎯 [MOVIX ANIME] Absolute Search Fallback: S\(season)E\(episode) -> Absolute \(absoluteEpisodeNumber). PrevSeasons: \(previousSeasons.count), PrevCount: \(previousEpisodeCount)")
-            
-            // Search in ALL extracted seasons
-            for s in seasons {
-                if let episodeMatch = s.episodes?.first(where: {
-                    $0.index == absoluteEpisodeNumber || 
-                    $0.name.contains(String(format: "%02d", absoluteEpisodeNumber)) ||
-                    (absoluteEpisodeNumber > 0 && $0.name.localizedCaseInsensitiveContains("Episode \(absoluteEpisodeNumber)"))
-                }) {
-                    print("🎯 [MOVIX ANIME] Found absolute match in \(s.name): \(episodeMatch.name)")
-                    targetEpisode = episodeMatch
-                    break
-                }
-            }
-            
-            if targetEpisode == nil {
-                print("🎯 [MOVIX ANIME] No absolute match found for \(absoluteEpisodeNumber)")
-            }
-        }
-        
-        guard let finalEpisode = targetEpisode, let links = finalEpisode.streaming_links else {
-            print("⚠️ [Movix Anime] No episode or links found for S\(season)E\(episode)")
-            return []
-        }
-        
-        // Extract VidMoly Links
-        var sources: [StreamingSource] = []
-        
-        for link in links {
-            let language = link.language.uppercased() // VF/VOSTFR
-            
-            if let players = link.players {
-                for (index, rawUrl) in players.enumerated() {
-                    let playerUrl = rawUrl.trimmingCharacters(in: .whitespacesAndNewlines)
-                    
-                    // Filter: We only want VidMoly links
-                    if playerUrl.lowercased().contains("vidmoly") {
-                        // Normalize URL: .to -> .net
-                        var normalized = playerUrl
-                        if normalized.contains("vidmoly.to") {
-                            normalized = normalized.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
-                        }
-                        
-                        // Ensure scheme is https
-                        if normalized.hasPrefix("http://") {
-                            normalized = normalized.replacingOccurrences(of: "http://", with: "https://")
-                        }
-                        
-                        let source = StreamingSource(
-                            id: "movix-anime-vidmoly-\(language)-\(index)",
-                            url: normalized,
-                            quality: "HD",
-                            type: "embed", // Will be extracted later
-                            provider: "vidmoly",
-                            language: language
-                        )
-                        sources.append(source)
-                        print("   -> Added VidMoly source: \(language) - \(normalized)")
-                    }
-                }
-            }
-        }
-        
-        print("✅ [Movix Anime] Found \(sources.count) VidMoly sources")
-        return sources
-    }
 }

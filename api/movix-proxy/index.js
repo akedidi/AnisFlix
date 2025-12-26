@@ -259,133 +259,203 @@ export default async function handler(req, res) {
     // GÉRER ANIME-API ICI
     if (decodedPath === 'anime-api') {
       console.log('🎌 ========== ANIME-API START ==========');
-      console.log('🎌 [AnimeAPI] Handler triggered');
       try {
-        const { title, season, episode } = queryParams;
-        console.log('🎌 [AnimeAPI] Raw query params:', { title, season, episode });
+        const { title, season, episode, tmdbId } = queryParams;
+        console.log('🎌 [AnimeAPI] Query:', { title, season, episode, tmdbId });
 
         if (!title) {
-          return res.status(400).json({
-            error: 'Paramètre title manquant pour AnimeAPI'
-          });
+          return res.status(400).json({ error: 'Paramètre title manquant' });
         }
 
-        const seasonNumber = season ? parseInt(season) : null;
+        const seasonNumber = season ? parseInt(season) : 1;
         const episodeNumber = episode ? parseInt(episode) : 1;
-        console.log('🎌 [AnimeAPI] Parsed:', { title, seasonNumber, episodeNumber });
-
+        const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
         const ANIME_API_BASE = 'https://anime-api-sand-psi.vercel.app/api';
 
-        // Fonction de filtrage intelligent par saison
-        const filterResultsBySeason = (results, title, seasonNumber) => {
-          console.log(`🔍 [FILTER] === START ===`);
-          console.log(`🔍 [FILTER] Inputs: ${results.length} results, title="${title}", season=${seasonNumber}`);
+        // Variables pour la logique avancée
+        let englishSeasonName = null;
+        let absoluteEpisodeNumber = episodeNumber;
+        let isAbsoluteFallbackNeeded = false;
 
-          if (!seasonNumber || seasonNumber === 1) {
-            console.log(`🔍 [FILTER] Mode: SEASON 1 or NULL`);
-            let match = results.find(r => {
-              const lowerTitle = r.title.toLowerCase();
-              const cleanTitle = title.toLowerCase();
-              console.log(`🔍 Checking "${r.title}"`);
-              console.log(`  exact: ${lowerTitle === cleanTitle}, includes: ${lowerTitle.includes(cleanTitle)}, showType: ${r.tvInfo?.showType}`);
+        // Étape 0: Récupérer info TMDB (Si tmdbId présent)
+        if (tmdbId) {
+          try {
+            console.log(`🎌 [AnimeAPI] Fetching TMDB info for ID: ${tmdbId}`);
+            const tmdbUrl = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=en-US`;
+            const tmdbRes = await axios.get(tmdbUrl, { timeout: 5000 });
 
-              return lowerTitle === cleanTitle ||
-                (lowerTitle.includes(cleanTitle) &&
-                  !lowerTitle.match(/season\s*\d+/i) &&
-                  !lowerTitle.match(/\d+nd\s+season/i) &&
-                  !lowerTitle.match(/\d+rd\s+season/i) &&
-                  !lowerTitle.match(/\d+th\s+season/i) &&
-                  r.tvInfo?.showType === 'TV');
-            });
+            if (tmdbRes.data && tmdbRes.data.seasons) {
+              const seasons = tmdbRes.data.seasons;
+              const targetSeason = seasons.find(s => s.season_number === seasonNumber);
 
-            if (!match) {
-              console.log(`🔍 [FILTER] No exact match, trying fallback`);
-              match = results.find(r => r.tvInfo?.showType === 'TV');
+              if (targetSeason) {
+                englishSeasonName = targetSeason.name; // ex: "The Final Season"
+                console.log(`🎌 [AnimeAPI] TMDB English Season Name: "${englishSeasonName}"`);
+              }
+
+              // Calculer Absolute Episode Number
+              // Somme des épisodes des saisons précédentes (seulement les saisons > 0)
+              let previousEpisodes = 0;
+              seasons.forEach(s => {
+                if (s.season_number > 0 && s.season_number < seasonNumber) {
+                  previousEpisodes += s.episode_count;
+                }
+              });
+              absoluteEpisodeNumber = previousEpisodes + episodeNumber;
+              console.log(`🎌 [AnimeAPI] Calculated Absolute Episode: ${absoluteEpisodeNumber} (Offset: ${previousEpisodes})`);
             }
+          } catch (e) {
+            console.warn(`⚠️ [AnimeAPI] TMDB Fetch failed: ${e.message}`);
+          }
+        }
 
-            console.log(`🔍 [FILTER] Result: ${match ? match.title : 'NO MATCH'}`);
-            console.log(`🔍 [FILTER] === END ===`);
-            return match;
+        // Fonction de recherche helper
+        const searchAnime = async (query) => {
+          try {
+            const url = `${ANIME_API_BASE}/search?keyword=${encodeURIComponent(query)}`;
+            console.log(`🎌 [Search] Query: "${query}"`);
+            const res = await axios.get(url, { timeout: 8000 });
+            return (res.data?.success && res.data?.results?.data) ? res.data.results.data : [];
+          } catch (e) { return []; }
+        };
+
+        // Stratégie de recherche Multi-Step
+        let candidates = [];
+
+        // 1. Recherche avec Titre + English Season Name (ex: "Attack on Titan The Final Season")
+        if (englishSeasonName && englishSeasonName !== `Season ${seasonNumber}`) {
+          const results = await searchAnime(`${title} ${englishSeasonName}`);
+          candidates = [...candidates, ...results];
+        }
+
+        // 2. Recherche avec Titre + "Season N" (Standard)
+        if (seasonNumber > 1) {
+          const results = await searchAnime(`${title} Season ${seasonNumber}`);
+          candidates = [...candidates, ...results];
+
+          // 3. Recherche avec Titre + "N" (ex: "Attack on Titan 4", parfois utilisé)
+          const resultsSimple = await searchAnime(`${title} ${seasonNumber}`);
+          candidates = [...candidates, ...resultsSimple];
+        }
+
+        // 4. Recherche Titre Seul (Fallback)
+        const resultsGeneric = await searchAnime(title);
+        candidates = [...candidates, ...resultsGeneric];
+
+        // Deduplication par ID
+        candidates = candidates.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+        console.log(`🎌 [AnimeAPI] Total Candidates: ${candidates.length}`);
+
+        // Fonction de filtrage avancée
+        const findBestMatch = (list) => {
+          if (!list || list.length === 0) return null;
+
+          // Normalisation
+          const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const normEngSeason = englishSeasonName ? englishSeasonName.toLowerCase() : '';
+
+          // Priorité 1: Match Exact avec English Season Name
+          if (englishSeasonName) {
+            const exactEng = list.find(r => r.title.toLowerCase().includes(normEngSeason));
+            if (exactEng) {
+              console.log(`🎌 [Match] Found by English Season Name: ${exactEng.title}`);
+              return { match: exactEng, method: 'specific' };
+            }
           }
 
-          // Season 2+
-          console.log(`🔍 [FILTER] Mode: SEASON ${seasonNumber}`);
-          const seasonPatterns = [
-            new RegExp(`season\\s*${seasonNumber}`, 'i'),
-            new RegExp(`${seasonNumber}nd\\s+season`, 'i'),
-            new RegExp(`${seasonNumber}rd\\s+season`, 'i'),
-            new RegExp(`${seasonNumber}th\\s+season`, 'i'),
-            new RegExp(`${title}\\s+${seasonNumber}`, 'i'),
-          ];
+          // Priorité 2: Match "Season N" ou "Title N"
+          if (seasonNumber > 1) {
+            const patterns = [
+              new RegExp(`season\\s*${seasonNumber}`, 'i'),
+              new RegExp(`${seasonNumber}nd\\s+season`, 'i'),
+              new RegExp(`${seasonNumber}rd\\s+season`, 'i'),
+              new RegExp(`${seasonNumber}th\\s+season`, 'i'),
+              // Match finissant par chiffre (ex: "Titan 4")
+              new RegExp(`${title}\\s+${seasonNumber}$`, 'i'),
+              new RegExp(`${title}.*${seasonNumber}$`, 'i')
+            ];
 
-          for (let i = 0; i < seasonPatterns.length; i++) {
-            console.log(`🔍 [FILTER] Pattern ${i + 1}: ${seasonPatterns[i]}`);
-            const match = results.find(r => seasonPatterns[i].test(r.title));
-            if (match) {
-              console.log(`🔍 [FILTER] ✅ Matched: ${match.title}`);
-              console.log(`🔍 [FILTER] === END ===`);
-              return match;
+            for (let p of patterns) {
+              const match = list.find(r => p.test(r.title));
+              if (match) {
+                console.log(`🎌 [Match] Found by Pattern ${p}: ${match.title}`);
+                return { match: match, method: 'specific' };
+              }
             }
           }
 
-          console.log(`🔍 [FILTER] ❌ No match`);
-          console.log(`🔍 [FILTER] === END ===`);
+          // Priorité 3: Match Generic (Titre "root")
+          // On cherche le titre qui ressemble le plus au titre de base, sans "Season X"
+          // Idéal pour le fallback "Absolute Episode"
+          const rootMatch = list.find(r => {
+            const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return rTitle === normTitle || rTitle.includes(normTitle);
+          });
+
+          if (rootMatch) {
+            console.log(`🎌 [Match] Found Generic/Root Title: ${rootMatch.title}`);
+            return { match: rootMatch, method: 'generic' };
+          }
+
           return null;
         };
 
-        // Étape 1: Rechercher l'anime
-        console.log(`🎌 [AnimeAPI] === STEP 1: SEARCH ===`);
-        console.log(`🎌 [AnimeAPI] Searching: ${title}, Season: ${seasonNumber || 1}`);
-        const searchUrl = `${ANIME_API_BASE}/search?keyword=${encodeURIComponent(title)}`;
-        console.log(`🎌 [AnimeAPI] Search URL: ${searchUrl}`);
-        const searchResponse = await axios.get(searchUrl, { timeout: 10000 });
-        console.log(`🎌 [AnimeAPI] Search response status: ${searchResponse.status}`);
-        console.log(`🎌 [AnimeAPI] Search data:`, JSON.stringify(searchResponse.data).substring(0, 200));
+        const result = findBestMatch(candidates);
 
-        if (!searchResponse.data?.success || !searchResponse.data?.results?.data) {
-          console.log('🎌 [AnimeAPI] ❌ No search results');
+        if (!result) {
+          console.log('🎌 [AnimeAPI] ❌ No suitable anime found');
           return res.status(200).json({ success: true, results: [] });
         }
 
-        const results = searchResponse.data.results.data;
-        console.log(`🎌 [AnimeAPI] Found ${results.length} results:`);
-        results.slice(0, 3).forEach((r, i) => console.log(`  ${i + 1}. ${r.title} (${r.id})`));
+        const anime = result.match;
+        const isSpecificSeasonMatch = result.method === 'specific';
+        console.log(`🎌 [AnimeAPI] Selected Anime: ${anime.title} (Specific Season: ${isSpecificSeasonMatch})`);
 
-        const anime = filterResultsBySeason(results, title, seasonNumber);
-        console.log(`🎌 [AnimeAPI] After filtering: ${anime ? anime.title : 'NO MATCH'}`);
-
-        if (!anime) {
-          console.log('🎌 [AnimeAPI] ❌ No anime matched after filtering');
-          return res.status(200).json({ success: true, results: [] });
-        }
-
-        console.log(`🎌 [AnimeAPI] ✅ Selected: ${anime.title} (ID: ${anime.id})`);
-
-        // Étape 2: Récupérer les épisodes
-        console.log(`🎌 [AnimeAPI] === STEP 2: EPISODES ===`);
+        // Etape 2: Récupérer épisodes
         const episodesUrl = `${ANIME_API_BASE}/episodes/${anime.id}`;
-        console.log(`🎌 [AnimeAPI] Episodes URL: ${episodesUrl}`);
         const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
-        console.log(`🎌 [AnimeAPI] Episodes response status: ${episodesResponse.status}`);
 
         if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
-          console.log('🎌 [AnimeAPI] ❌ No episodes found');
           return res.status(200).json({ success: true, results: [] });
         }
 
         const episodes = episodesResponse.data.results.episodes;
-        console.log(`🎌 [AnimeAPI] Found ${episodes.length} episodes`);
-        const targetEpisode = episodes.find(ep => ep.number === episodeNumber) || episodes[0];
+        console.log(`🎌 [AnimeAPI] Episodes found: ${episodes.length}`);
 
-        console.log(`🎌 [AnimeAPI] Target episode: #${targetEpisode.number}, episode_no: ${targetEpisode.episode_no}`);
+        // Sélection de l'épisode
+        let targetEpisode = null;
 
-        // Étape 3: Récupérer le lien streaming
-        console.log(`🎌 [AnimeAPI] === STEP 3: STREAM LINK ===`);
+        // Stratégie A: On a matché la saison spécifique -> on cherche episodeNumber (1, 2, ...)
+        if (isSpecificSeasonMatch || seasonNumber === 1) {
+          targetEpisode = episodes.find(ep => ep.number === episodeNumber);
+          if (!targetEpisode) console.log(`🎌 [Episode] Standard match (Ep ${episodeNumber}) failed`);
+        }
+
+        // Stratégie B: Fallback Absolute -> On cherche l'épisode absolu (ex: 76)
+        // Utilisé si Stratégie A échoue OU si on a matché un titre générique pour une saison > 1
+        if (!targetEpisode && seasonNumber > 1) {
+          console.log(`🎌 [Episode] Trying Absolute Episode: ${absoluteEpisodeNumber}`);
+          targetEpisode = episodes.find(ep => ep.number === absoluteEpisodeNumber);
+        }
+
+        // Stratégie C: Tolérance (Parfois GogoAnime numérote bizarrement)
+        if (!targetEpisode) {
+          // Essayer de trouver par "episode_no" ou index si disponible ?
+          // Pour l'instant on prend le N-ième si disponible
+          // targetEpisode = episodes[episodeNumber - 1]; // Risqué
+        }
+
+        if (!targetEpisode) {
+          console.log('🎌 [AnimeAPI] ❌ Target episode not found');
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        console.log(`🎌 [AnimeAPI] ✅ Target Episode found: Num ${targetEpisode.number} (ID: ${targetEpisode.id})`);
+
+        // Etape 3: Stream Link (Code Original)
         // Use full episode ID from episode list (e.g. "attack-on-titan-112?ep=3303")
         const streamUrl = `${ANIME_API_BASE}/stream?id=${targetEpisode.id}&server=hd-2&type=sub`;
-        console.log(`🎌 [AnimeAPI] Stream URL: ${streamUrl}`);
         const streamResponse = await axios.get(streamUrl, { timeout: 15000 });
-        console.log(`🎌 [AnimeAPI] Stream response status: ${streamResponse.status}`);
 
         if (!streamResponse.data?.success || !streamResponse.data?.results?.streamingLink) {
           console.log('🎌 [AnimeAPI] ❌ No streaming link');
@@ -393,8 +463,6 @@ export default async function handler(req, res) {
         }
 
         const streamingLink = streamResponse.data.results.streamingLink;
-        console.log(`🎌 [AnimeAPI] ✅ Got link:`, streamingLink.link?.file?.substring(0, 80));
-        console.log('🎌 [AnimeAPI] ========== SUCCESS ==========');
 
         return res.status(200).json({
           success: true,
@@ -407,16 +475,15 @@ export default async function handler(req, res) {
             animeInfo: {
               id: anime.id,
               title: anime.title,
-              episode: targetEpisode.number,
-              totalEpisodes: anime.tvInfo?.eps || episodes.length
+              season: seasonNumber, // Provide the requested season
+              episode: episodeNumber, // Provide the requested episode
+              realEpisode: targetEpisode.number // The absolute number used
             }
           }]
         });
 
       } catch (error) {
         console.error('🎌 [AnimeAPI] ❌❌❌ ERROR:', error.message);
-        console.error('🎌 [AnimeAPI] Stack:', error.stack);
-        console.log('🎌 [AnimeAPI] ========== FAILED ==========');
         return res.status(200).json({ success: true, results: [] });
       }
     }

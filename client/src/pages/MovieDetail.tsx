@@ -133,6 +133,7 @@ export default function MovieDetail() {
           title: englishTitle,
           season: '1',
           episode: '1',
+          tmdbId: movieId.toString(),
         });
 
         const response = await fetch(`/api/movix-proxy?${params}`);
