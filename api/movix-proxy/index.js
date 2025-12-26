@@ -449,15 +449,22 @@ export default async function handler(req, res) {
           }
 
           // Priorité 3: Match Generic (Titre "root")
-          // On cherche le titre qui ressemble le plus au titre de base, sans "Season X"
-          // Idéal pour le fallback "Absolute Episode"
-          const rootMatch = list.find(r => {
+          // On cherche le titre qui ressemble le plus au titre de base.
+          // CRUCIAL: On trie par longueur croissante pour privilégier "Attack on Titan" (court) avant "Attack on Titan: Chronicle" (long)
+          const sortedList = [...list].sort((a, b) => a.title.length - b.title.length);
+
+          const rootMatch = sortedList.find(r => {
             const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-            return rTitle === normTitle || rTitle.includes(normTitle);
+            // 3.1 Match Exact (Priorité absolue pour le root title)
+            if (rTitle === normTitle) return true;
+
+            // 3.2 StartsWith (Pour catcher les variations mineures, mais attention aux spin-offs)
+            // Comme on a trié par longueur, le titre le plus court qui commence par le titre cherché sera pris.
+            return rTitle.startsWith(normTitle);
           });
 
           if (rootMatch) {
-            console.log(`🎌 [Match] Found Generic/Root Title: ${rootMatch.title}`);
+            console.log(`🎌 [Match] Found Generic/Root Title (Shortest/Exact): ${rootMatch.title}`);
             return { match: rootMatch, method: 'generic' };
           }
 
