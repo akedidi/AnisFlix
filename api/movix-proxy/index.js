@@ -615,7 +615,42 @@ export default async function handler(req, res) {
         // Headers CORS (déjà définis au début mais on s'assure)
         res.setHeader('Access-Control-Allow-Origin', '*');
 
-        // Pipe le stream vers la réponse
+        // Si c'est un fichier m3u8, on doit réécrire les URLs internes
+        const contentType = response.headers['content-type'];
+        if (contentType && (contentType.includes('mpegurl') || contentType.includes('m3u8') || targetUrl.includes('.m3u8'))) {
+          // Lire le contenu comme texte
+          const m3u8Content = await new Promise((resolve, reject) => {
+            let data = '';
+            response.data.on('data', chunk => data += chunk);
+            response.data.on('end', () => resolve(data));
+            response.data.on('error', reject);
+          });
+
+          const baseUrl = new URL(targetUrl);
+          const proxyBaseUrl = `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : req.protocol + '://' + req.get('host')}/api/movix-proxy?path=proxy/hls&link=`;
+
+          // Réécrire le contenu m3u8
+          const rewrittenContent = m3u8Content.replace(/^(?!#)(.+)$/gm, (match) => {
+            // Lignes qui sont des URIs (segments ou playlists)
+            if (match.trim() === '') return match;
+            try {
+              const absoluteUrl = new URL(match.trim(), baseUrl).toString();
+              return `${proxyBaseUrl}${encodeURIComponent(absoluteUrl)}`;
+            } catch (e) { return match; }
+          }).replace(/URI="([^"]+)"/g, (match, uri) => {
+            // URIs dans les attributs (ex: EXT-X-KEY, EXT-X-MEDIA)
+            try {
+              const absoluteUrl = new URL(uri, baseUrl).toString();
+              return `URI="${proxyBaseUrl}${encodeURIComponent(absoluteUrl)}"`;
+            } catch (e) { return match; }
+          });
+
+          res.setHeader('Content-Length', Buffer.byteLength(rewrittenContent));
+          res.send(rewrittenContent);
+          return;
+        }
+
+        // Pour les segments .ts ou autres binaires, on pipe directement
         response.data.pipe(res);
         return;
 
