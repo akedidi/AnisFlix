@@ -23,41 +23,37 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, message: 'Method not allowed' });
     }
 
-    // Parse the URL path to determine the route
-    // Vercel provides req.url which includes query params
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const pathname = url.pathname;
+    // Use action query param for routing (Vercel serverless compatible)
+    const { action } = req.query;
 
-    // Remove /api/anime prefix if present
-    const route = pathname.replace(/^\/api\/anime\/?/, '');
-
-    console.log(`🎌 [Anime API] Route: ${route}, Query:`, req.query);
+    console.log(`🎌 [Anime API] Action: ${action}, Query:`, req.query);
 
     try {
         let data;
 
-        if (route.startsWith('search')) {
-            // Search anime: /api/anime/search?keyword=Death Note
+        if (action === 'search' || !action) {
+            // Search anime: /api/anime?action=search&keyword=Death Note
+            // OR legacy /api/anime/search?keyword=... (for backward compat)
             console.log('🔍 [Anime API] Search request:', req.query.keyword);
             const result = await search(req);
             data = result;
 
-        } else if (route.startsWith('episodes/')) {
-            // Get episodes: /api/anime/episodes/death-note-60
-            const id = route.replace('episodes/', '');
+        } else if (action === 'episodes') {
+            // Get episodes: /api/anime?action=episodes&id=death-note-60
+            const id = req.query.id;
             console.log('📺 [Anime API] Episodes request:', id);
             req.params = { id };
             data = await getEpisodes(req, res);
 
-        } else if (route.startsWith('stream')) {
-            // Get stream: /api/anime/stream?id=death-note-60?ep=1234&server=hd-2&type=sub
+        } else if (action === 'stream') {
+            // Get stream: /api/anime?action=stream&id=death-note-60?ep=1234&server=hd-2&type=sub
             console.log('🎬 [Anime API] Stream request:', req.query.id);
             data = await getStreamInfo(req, res, false);
 
         } else {
             return res.status(404).json({
                 success: false,
-                message: `Unknown route: ${route}. Available: search, episodes/:id, stream`
+                message: `Unknown action: ${action}. Available: search, episodes, stream`
             });
         }
 
