@@ -131,9 +131,22 @@ export default function SeriesDetail() {
     selectedEpisode || undefined
   );
 
+  // Calculate relative episode number (index + 1) to handle absolute ordering (e.g. One Piece ep 422 -> S13E1)
+  const relativeEpisode = useMemo(() => {
+    if (!seasonDetails?.episodes || !selectedEpisode) return selectedEpisode;
+    // Find the episode in the current season list
+    const episodeIndex = seasonDetails.episodes.findIndex((e: any) => e.episode_number === selectedEpisode);
+    if (episodeIndex !== -1) {
+      console.log(`🔢 [Episode Calc] Map absolute ${selectedEpisode} to relative ${episodeIndex + 1}`);
+      return episodeIndex + 1;
+    }
+    return selectedEpisode;
+  }, [seasonDetails, selectedEpisode]);
+
   // Fetch AnimeAPI sources for Animation genre
+  // Use relativeEpisode in queryKey to trigger refetch when it changes
   const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
-    queryKey: ['anime-api-sources', seriesId, selectedSeasonNumber, selectedEpisode],
+    queryKey: ['anime-api-sources', seriesId, selectedSeasonNumber, relativeEpisode],
     queryFn: async () => {
       // Check if this is an animation (genre ID: 16)
       const isAnimation = series?.genres?.some((g: any) => g.id === 16);
@@ -156,7 +169,7 @@ export default function SeriesDetail() {
           path: 'anime-api',
           title: englishTitle,
           season: selectedSeasonNumber.toString(),
-          episode: selectedEpisode.toString(),
+          episode: relativeEpisode.toString(), // Send relative episode number (e.g. 1 instead of 422)
           tmdbId: seriesId.toString(),
         });
 
