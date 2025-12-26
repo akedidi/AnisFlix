@@ -6,6 +6,10 @@
   },
   "rewrites": [
     {
+      "source": "/api/anime/:path*",
+      "destination": "/api/anime"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
