@@ -523,10 +523,10 @@ export default async function handler(req, res) {
 
             const oavMatch = list.find(r => {
               const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-              // Match: exact episode title, includes episode title, or full combined title
+              // Match: exact episode title, anime title includes episode title, or full combined title
+              // Note: We don't use normEpTitle.includes(rTitle) as it's too permissive (e.g., "is" matches everything)
               return rTitle === normEpTitle ||
                 rTitle.includes(normEpTitle) ||
-                normEpTitle.includes(rTitle) ||
                 rTitle === fullOavTitle ||
                 rTitle.includes(fullOavTitle);
             });
