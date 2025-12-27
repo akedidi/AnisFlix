@@ -650,9 +650,30 @@ export default async function handler(req, res) {
           console.log(`🎬 [Episode] Season 0: Trying to match by episode title: "${episodeEnglishTitle}"`);
           const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
 
+          // Helper function: Extract significant words (ignoring common articles)
+          const getSignificantWords = (text) => {
+            const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+            const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that'];
+            return words.filter(w => w.length > 2 && !articles.includes(w));
+          };
+
+          const tmdbWords = getSignificantWords(episodeEnglishTitle);
+
           targetEpisode = episodes.find(ep => {
             const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            return epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle);
+
+            // Exact match
+            if (epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle)) {
+              return true;
+            }
+
+            // Fuzzy match: Check if significant words overlap significantly
+            const animeWords = getSignificantWords(ep.title || '');
+            const commonWords = tmdbWords.filter(w => animeWords.some(aw => aw.includes(w) || w.includes(aw)));
+            const matchRatio = commonWords.length / Math.max(tmdbWords.length, 1);
+
+            // If more than 60% of significant words match, consider it a match
+            return matchRatio >= 0.6;
           });
 
           if (targetEpisode) {
@@ -686,11 +707,33 @@ export default async function handler(req, res) {
                 const specialsEpisodes = specialsEpRes.data.results.episodes;
                 console.log(`🎬 [Episode] Specials anime has ${specialsEpisodes.length} episodes`);
 
-                // Match by episode title
+                // Match by episode title with fuzzy matching
                 const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                // Helper function: Extract significant words (ignoring common articles)
+                const getSignificantWords = (text) => {
+                  const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+                  const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that'];
+                  return words.filter(w => w.length > 2 && !articles.includes(w));
+                };
+
+                const tmdbWords = getSignificantWords(episodeEnglishTitle);
+
                 targetEpisode = specialsEpisodes.find(ep => {
                   const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                  return epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle);
+
+                  // Exact match
+                  if (epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle)) {
+                    return true;
+                  }
+
+                  // Fuzzy match: Check if significant words overlap significantly
+                  const animeWords = getSignificantWords(ep.title || '');
+                  const commonWords = tmdbWords.filter(w => animeWords.some(aw => aw.includes(w) || w.includes(aw)));
+                  const matchRatio = commonWords.length / Math.max(tmdbWords.length, 1);
+
+                  // If more than 60% of significant words match, consider it a match
+                  return matchRatio >= 0.6;
                 });
 
                 if (targetEpisode) {
