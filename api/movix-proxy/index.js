@@ -461,16 +461,18 @@ export default async function handler(req, res) {
           }
         }
 
-        // 1c. NEW: For Season 0 (Specials/OAV), search using the episode title
-        if (seasonNumber === 0 && episodeEnglishTitle && !overrideSearchTitle) {
-          console.log(`🎬 [Search Strategy 1c] Season 0 OAV Search: "${title}: ${episodeEnglishTitle}"`);
-          const oavResults = await searchAnime(`${title}: ${episodeEnglishTitle}`);
-          candidates = [...candidates, ...oavResults];
+        // 1c. NEW: For Season 0 (Specials/OAV), search for "[Title] Specials" collection
+        if (seasonNumber === 0 && !overrideSearchTitle) {
+          console.log(`🎬 [Search Strategy 1c] Season 0: Searching for "${title} Specials"...`);
+          const specialsResults = await searchAnime(`${title} Specials`);
+          candidates = [...candidates, ...specialsResults];
 
-          // Also search with episode title alone (in case the title format is different)
-          console.log(`🎬 [Search Strategy 1d] Season 0 OAV Title Only: "${episodeEnglishTitle}"`);
-          const oavResultsTitle = await searchAnime(episodeEnglishTitle);
-          candidates = [...candidates, ...oavResultsTitle];
+          // Also search with variations like "[Title] OVA" for standalone OVAs
+          if (episodeEnglishTitle) {
+            console.log(`🎬 [Search Strategy 1d] Season 0: Searching for "${title}: ${episodeEnglishTitle}" (OAV)...`);
+            const oavResults = await searchAnime(`${title}: ${episodeEnglishTitle}`);
+            candidates = [...candidates, ...oavResults];
+          }
         }
 
         // 2. Recherche avec Titre + "Season N" (Standard) - skip if override found results
@@ -532,6 +534,21 @@ export default async function handler(req, res) {
             if (oavMatch) {
               console.log(`🎬 [Match] Found by OAV Episode Title: ${oavMatch.title} (matched: "${episodeEnglishTitle}")`);
               return { match: oavMatch, method: 'specific' };
+            }
+          }
+
+          // Priorité 0.6: For Season 0, match "[Title] Specials" pattern specifically
+          if (seasonNumber === 0) {
+            const normTitleSpecials = `${title.toLowerCase().replace(/[^a-z0-9]/g, '')}specials`;
+
+            const specialsMatch = list.find(r => {
+              const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+              return rTitle === normTitleSpecials || rTitle.includes(normTitleSpecials);
+            });
+
+            if (specialsMatch) {
+              console.log(`🎬 [Match] Found by Specials pattern: ${specialsMatch.title}`);
+              return { match: specialsMatch, method: 'specials' }; // Use 'specials' method to indicate title matching needed
             }
           }
 
