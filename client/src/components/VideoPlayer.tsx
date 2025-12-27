@@ -130,12 +130,21 @@ export default function VideoPlayer({
     };
   };
 
-  // Fetch subtitles from OpenSubtitles
+  // Fetch subtitles - prioritize external tracks from Anime API, fallback to OpenSubtitles
   useEffect(() => {
     const fetchSubtitles = async () => {
       console.log(`🔍 [VIDEO PLAYER] fetchSubtitles called with tracks:`, tracks?.length || 0, tracks);
+
+      // If external tracks are provided (from Anime API), use ONLY those
+      if (tracks && tracks.length > 0) {
+        console.log(`✅ [VIDEO PLAYER] Using ${tracks.length} external tracks (AnimeAPI). Skipping OpenSubtitles.`);
+        const externalTracks: Subtitle[] = tracks.map(mapExternalTrack);
+        setSubtitles(externalTracks);
+        return;
+      }
+
+      // No external tracks - fetch from OpenSubtitles
       if (imdbId && mediaType) {
-        console.log('🔍 [VIDEO PLAYER] Fetching subtitles for IMDB ID:', imdbId);
         try {
           const subs = await getSubtitles(
             imdbId,
@@ -144,26 +153,13 @@ export default function VideoPlayer({
             episodeNumber
           );
           console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles from OpenSubtitles`);
-
-          // Merge OpenSubtitles results with provided tracks (e.g. from Anime API)
-          const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
-
-          console.log(`✅ [VIDEO PLAYER] Merging logs - External: ${externalTracks.length}, OpenSubtitles: ${subs.length}`);
-          console.log(`✅ [VIDEO PLAYER] External tracks content:`, externalTracks);
-
-          setSubtitles([...externalTracks, ...subs]);
-
+          setSubtitles(subs);
         } catch (error) {
           console.error('❌ [VIDEO PLAYER] Error fetching subtitles:', error);
-          // Fallback: use only external tracks if OpenSubtitles fails
-          const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
-          setSubtitles(externalTracks);
+          setSubtitles([]);
         }
       } else {
-        console.log('⚠️ [VIDEO PLAYER] No IMDB ID or mediaType, using only external tracks');
-        // Use external tracks even if no IMDB ID (common for some anime)
-        const externalTracks: Subtitle[] = (tracks || []).map(mapExternalTrack);
-        setSubtitles(externalTracks);
+        setSubtitles([]);
       }
     };
 
