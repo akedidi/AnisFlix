@@ -64,10 +64,36 @@ export default async function handler(req, res) {
         console.log(`[VIDMOLY] URL nettoyée: ${finalUrl}`);
       }
 
+      // Determine the appropriate Origin and Referer based on target URL
+      let targetOrigin;
+      let targetReferer;
+      try {
+        const targetDomain = new URL(targetUrl);
+        targetOrigin = `${targetDomain.protocol}//${targetDomain.host}`;
+
+        // For known video CDNs, use their origin as referer
+        // Otherwise use the referer parameter or fallback to vidmoly.net
+        const videoCdnDomains = ['vmwesa.online', 'netmagcdn.com', 'akamai.net', 'cloudfront.net', 'cdn77.org'];
+        const isVideoCdn = videoCdnDomains.some(cdn => targetDomain.host.includes(cdn));
+
+        if (isVideoCdn) {
+          // For CDNs, use vidmoly.net as referer (they expect the player origin)
+          targetReferer = refererUrl || 'https://vidmoly.net/';
+          targetOrigin = 'https://vidmoly.net';
+        } else {
+          targetReferer = refererUrl || `${targetDomain.protocol}//${targetDomain.host}/`;
+        }
+      } catch (e) {
+        targetOrigin = 'https://vidmoly.net';
+        targetReferer = refererUrl || 'https://vidmoly.net/';
+      }
+
+      console.log(`[VIDMOLY] Using Origin: ${targetOrigin}, Referer: ${targetReferer}`);
+
       // Headers pour les requêtes
       const requestHeaders = {
-        'Referer': refererUrl,
-        'Origin': 'https://vidmoly.net',
+        'Referer': targetReferer,
+        'Origin': targetOrigin,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
