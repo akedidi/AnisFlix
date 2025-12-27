@@ -560,8 +560,9 @@ export default async function handler(req, res) {
         // Sélection de l'épisode
         let targetEpisode = null;
 
-        // Stratégie A: On a matché la saison spécifique -> on cherche episodeNumber (1, 2, ...)
-        if (isSpecificSeasonMatch || seasonNumber === 1) {
+        // Stratégie A: On a matché la saison spécifique OU on a un override (specials) -> on cherche episodeNumber (1, 2, ...)
+        // Note: Pour les specials (season 0) avec override, episodeNumber est déjà remappé (ex: 36->1, 37->2)
+        if (isSpecificSeasonMatch || seasonNumber === 1 || overrideSearchTitle) {
           targetEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
           if (!targetEpisode) console.log(`🎌 [Episode] Standard match (Ep ${episodeNumber}) failed`);
         }
