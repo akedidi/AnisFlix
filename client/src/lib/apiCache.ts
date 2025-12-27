@@ -19,15 +19,20 @@ class APICache {
         const entry = this.cache.get(key) as CacheEntry<T> | undefined;
 
         if (!entry) {
+            console.log(`🗄️ [APICache] ❌ MISS: ${key}`);
             return null;
         }
 
         // Check if entry has expired
-        if (Date.now() - entry.timestamp > entry.ttl) {
+        const age = Date.now() - entry.timestamp;
+        if (age > entry.ttl) {
             this.cache.delete(key);
+            console.log(`🗄️ [APICache] ⏰ EXPIRED: ${key}`);
             return null;
         }
 
+        const remainingTTL = Math.round((entry.ttl - age) / 1000);
+        console.log(`🗄️ [APICache] ✅ HIT: ${key} (${remainingTTL}s remaining)`);
         return entry.data;
     }
 
@@ -35,11 +40,13 @@ class APICache {
      * Set a value in the cache with optional custom TTL
      */
     set<T>(key: string, data: T, ttl?: number): void {
+        const actualTTL = ttl ?? this.defaultTTL;
         this.cache.set(key, {
             data,
             timestamp: Date.now(),
-            ttl: ttl ?? this.defaultTTL,
+            ttl: actualTTL,
         });
+        console.log(`🗄️ [APICache] 💾 STORED: ${key} (TTL: ${Math.round(actualTTL / 1000)}s)`);
     }
 
     /**

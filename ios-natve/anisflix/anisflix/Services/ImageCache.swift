@@ -54,9 +54,11 @@ final class ImageCache {
     /// Get an image from cache (memory first, then disk)
     func getImage(for url: URL) -> UIImage? {
         let key = cacheKey(for: url)
+        let urlShort = url.lastPathComponent
         
         // 1. Check memory cache first
         if let image = memoryCache.object(forKey: key as NSString) {
+            print("🖼️ [ImageCache] ✅ MEMORY HIT: \(urlShort)")
             return image
         }
         
@@ -64,18 +66,22 @@ final class ImageCache {
         if let image = loadImageFromDisk(key: key) {
             // Store in memory cache for faster future access
             memoryCache.setObject(image, forKey: key as NSString, cost: imageCost(image))
+            print("🖼️ [ImageCache] ✅ DISK HIT: \(urlShort)")
             return image
         }
         
+        print("🖼️ [ImageCache] ❌ MISS: \(urlShort)")
         return nil
     }
     
     /// Store an image in cache (both memory and disk)
     func setImage(_ image: UIImage, for url: URL) {
         let key = cacheKey(for: url)
+        let urlShort = url.lastPathComponent
         
         // Store in memory cache
         memoryCache.setObject(image, forKey: key as NSString, cost: imageCost(image))
+        print("🖼️ [ImageCache] 💾 STORED: \(urlShort)")
         
         // Store on disk asynchronously
         diskQueue.async { [weak self] in
