@@ -160,19 +160,20 @@ export default function VideoPlayer({
         }
       }
 
-      // Merge and deduplicate: external tracks have priority (they come first)
-      // Deduplicate by language code to avoid showing "🇬🇧 Anglais" twice
+      // Merge: external tracks first, then OpenSubtitles
+      // - Only exclude OpenSubtitles entries if that language is ALREADY covered by external tracks
+      // - But keep ALL OpenSubtitles entries for the same language (e.g. 2x Chinese is OK)
       const merged = [...externalTracks];
-      const seenLanguages = new Set(externalTracks.map(t => t.lang));
+      const externalLanguages = new Set(externalTracks.map(t => t.lang));
 
       for (const sub of openSubtitles) {
-        if (!seenLanguages.has(sub.lang)) {
+        // Only add if this language is NOT already provided by external tracks
+        if (!externalLanguages.has(sub.lang)) {
           merged.push(sub);
-          seenLanguages.add(sub.lang);
         }
       }
 
-      console.log(`✅ [VIDEO PLAYER] Final merged subtitles: ${merged.length} (deduped by language)`);
+      console.log(`✅ [VIDEO PLAYER] Final merged subtitles: ${merged.length} (external: ${externalTracks.length}, opensubtitles added: ${merged.length - externalTracks.length})`);
       setSubtitles(merged);
     };
 
