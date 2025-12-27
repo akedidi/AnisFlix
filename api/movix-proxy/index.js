@@ -653,12 +653,36 @@ export default async function handler(req, res) {
           // Helper function: Extract significant words (ignoring common articles)
           const getSignificantWords = (text) => {
             const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
-            const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that'];
+            const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too'];
             return words.filter(w => w.length > 2 && !articles.includes(w));
+          };
+
+          // Levenshtein distance for fuzzy string matching
+          const levenshteinDistance = (str1, str2) => {
+            const m = str1.length, n = str2.length;
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+              for (let j = 1; j <= n; j++) {
+                dp[i][j] = str1[i - 1] === str2[j - 1]
+                  ? dp[i - 1][j - 1]
+                  : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+              }
+            }
+            return dp[m][n];
+          };
+
+          // Calculate similarity percentage (0-1)
+          const stringSimilarity = (str1, str2) => {
+            const maxLen = Math.max(str1.length, str2.length);
+            if (maxLen === 0) return 1;
+            return 1 - levenshteinDistance(str1, str2) / maxLen;
           };
 
           const tmdbWords = getSignificantWords(episodeEnglishTitle);
 
+          // First try: exact and word-based matching
           targetEpisode = episodes.find(ep => {
             const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -675,6 +699,30 @@ export default async function handler(req, res) {
             // If more than 60% of significant words match, consider it a match
             return matchRatio >= 0.6;
           });
+
+          // Second try: Levenshtein-based similarity if word matching failed
+          if (!targetEpisode && episodes.length > 0) {
+            console.log(`🎬 [Episode] Word matching failed, trying Levenshtein similarity...`);
+
+            let bestMatch = null;
+            let bestSimilarity = 0;
+
+            for (const ep of episodes) {
+              const epNorm = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const similarity = stringSimilarity(normEpTitle, epNorm);
+
+              if (similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                bestMatch = ep;
+              }
+            }
+
+            // Accept if similarity is above 40% (accounts for translation differences)
+            if (bestMatch && bestSimilarity >= 0.4) {
+              console.log(`🎬 [Episode] Best Levenshtein match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}% similar)`);
+              targetEpisode = bestMatch;
+            }
+          }
 
           if (targetEpisode) {
             console.log(`🎬 [Episode] Found by title match: "${targetEpisode.title}"`);
@@ -713,12 +761,35 @@ export default async function handler(req, res) {
                 // Helper function: Extract significant words (ignoring common articles)
                 const getSignificantWords = (text) => {
                   const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
-                  const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that'];
+                  const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too'];
                   return words.filter(w => w.length > 2 && !articles.includes(w));
+                };
+
+                // Levenshtein distance for fuzzy string matching
+                const levenshteinDistance = (str1, str2) => {
+                  const m = str1.length, n = str2.length;
+                  const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+                  for (let i = 0; i <= m; i++) dp[i][0] = i;
+                  for (let j = 0; j <= n; j++) dp[0][j] = j;
+                  for (let i = 1; i <= m; i++) {
+                    for (let j = 1; j <= n; j++) {
+                      dp[i][j] = str1[i - 1] === str2[j - 1]
+                        ? dp[i - 1][j - 1]
+                        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+                    }
+                  }
+                  return dp[m][n];
+                };
+
+                const stringSimilarity = (str1, str2) => {
+                  const maxLen = Math.max(str1.length, str2.length);
+                  if (maxLen === 0) return 1;
+                  return 1 - levenshteinDistance(str1, str2) / maxLen;
                 };
 
                 const tmdbWords = getSignificantWords(episodeEnglishTitle);
 
+                // First try: word-based matching
                 targetEpisode = specialsEpisodes.find(ep => {
                   const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -735,6 +806,29 @@ export default async function handler(req, res) {
                   // If more than 60% of significant words match, consider it a match
                   return matchRatio >= 0.6;
                 });
+
+                // Second try: Levenshtein-based similarity if word matching failed
+                if (!targetEpisode && specialsEpisodes.length > 0) {
+                  console.log(`🎬 [Episode] Specials word matching failed, trying Levenshtein...`);
+
+                  let bestMatch = null;
+                  let bestSimilarity = 0;
+
+                  for (const ep of specialsEpisodes) {
+                    const epNorm = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const similarity = stringSimilarity(normEpTitle, epNorm);
+
+                    if (similarity > bestSimilarity) {
+                      bestSimilarity = similarity;
+                      bestMatch = ep;
+                    }
+                  }
+
+                  if (bestMatch && bestSimilarity >= 0.4) {
+                    console.log(`🎬 [Episode] Specials Levenshtein match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}%)`);
+                    targetEpisode = bestMatch;
+                  }
+                }
 
                 if (targetEpisode) {
                   console.log(`🎬 [Episode] ✅ Found in Specials by title: "${targetEpisode.title}" (ep ${targetEpisode.episode_no})`);
