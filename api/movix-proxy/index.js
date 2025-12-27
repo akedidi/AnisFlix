@@ -371,6 +371,8 @@ export default async function handler(req, res) {
         let isAbsoluteFallbackNeeded = false;
 
         // Étape 0: Récupérer info TMDB (Si tmdbId présent)
+        let episodeEnglishTitle = null; // For Season 0 OAV matching
+
         if (tmdbId) {
           try {
             console.log(`🎌 [AnimeAPI] Fetching TMDB info for ID: ${tmdbId}`);
@@ -396,6 +398,24 @@ export default async function handler(req, res) {
               });
               absoluteEpisodeNumber = previousEpisodes + episodeNumber;
               console.log(`🎌 [AnimeAPI] Calculated Absolute Episode: ${absoluteEpisodeNumber} (Offset: ${previousEpisodes})`);
+            }
+
+            // For Season 0 (Specials/OAV), fetch the specific episode title
+            if (seasonNumber === 0) {
+              try {
+                const seasonUrl = `https://api.themoviedb.org/3/tv/${tmdbId}/season/0?api_key=${TMDB_KEY}&language=en-US`;
+                const seasonRes = await axios.get(seasonUrl, { timeout: 5000 });
+
+                if (seasonRes.data && seasonRes.data.episodes) {
+                  const targetEp = seasonRes.data.episodes.find(ep => ep.episode_number === episodeNumber);
+                  if (targetEp && targetEp.name) {
+                    episodeEnglishTitle = targetEp.name;
+                    console.log(`🎬 [AnimeAPI] Season 0 Episode Title: "${episodeEnglishTitle}"`);
+                  }
+                }
+              } catch (e) {
+                console.warn(`⚠️ [AnimeAPI] Failed to fetch Season 0 episode details: ${e.message}`);
+              }
             }
           } catch (e) {
             console.warn(`⚠️ [AnimeAPI] TMDB Fetch failed: ${e.message}`);
@@ -441,6 +461,18 @@ export default async function handler(req, res) {
           }
         }
 
+        // 1c. NEW: For Season 0 (Specials/OAV), search using the episode title
+        if (seasonNumber === 0 && episodeEnglishTitle && !overrideSearchTitle) {
+          console.log(`🎬 [Search Strategy 1c] Season 0 OAV Search: "${title}: ${episodeEnglishTitle}"`);
+          const oavResults = await searchAnime(`${title}: ${episodeEnglishTitle}`);
+          candidates = [...candidates, ...oavResults];
+
+          // Also search with episode title alone (in case the title format is different)
+          console.log(`🎬 [Search Strategy 1d] Season 0 OAV Title Only: "${episodeEnglishTitle}"`);
+          const oavResultsTitle = await searchAnime(episodeEnglishTitle);
+          candidates = [...candidates, ...oavResultsTitle];
+        }
+
         // 2. Recherche avec Titre + "Season N" (Standard) - skip if override found results
         if (!overrideSearchTitle && seasonNumber > 1) {
           const results = await searchAnime(`${title} Season ${seasonNumber}`);
@@ -479,6 +511,27 @@ export default async function handler(req, res) {
             if (exactOverride) {
               console.log(`🎯 [Match] Found by OVERRIDE title: ${exactOverride.title}`);
               return { match: exactOverride, method: 'specific' };
+            }
+          }
+
+          // Priorité 0.5: For Season 0 (Specials/OAV), match using the TMDB episode title
+          if (seasonNumber === 0 && episodeEnglishTitle) {
+            const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const fullOavTitle = `${title}: ${episodeEnglishTitle}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            const oavMatch = list.find(r => {
+              const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+              // Match: exact episode title, includes episode title, or full combined title
+              return rTitle === normEpTitle ||
+                rTitle.includes(normEpTitle) ||
+                normEpTitle.includes(rTitle) ||
+                rTitle === fullOavTitle ||
+                rTitle.includes(fullOavTitle);
+            });
+
+            if (oavMatch) {
+              console.log(`🎬 [Match] Found by OAV Episode Title: ${oavMatch.title} (matched: "${episodeEnglishTitle}")`);
+              return { match: oavMatch, method: 'specific' };
             }
           }
 
