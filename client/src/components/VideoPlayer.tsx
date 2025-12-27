@@ -127,7 +127,7 @@ export default function VideoPlayer({
       id: `external-${index}`,
       url: track.file,
       lang: langInfo.code,
-      label: `${langInfo.flag} ${langInfo.label}`,
+      label: langInfo.label, // Don't include flag here - CustomVideoControls displays it separately
       flag: langInfo.flag
     };
   };
