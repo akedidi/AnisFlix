@@ -26,11 +26,12 @@ interface Source {
   isDarkibox?: boolean;
   isDarki?: boolean;
   isVixsrc?: boolean;
+  isAnimeAPI?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
   language?: string;
-
+  tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
 }
 
 interface StreamingSourcesProps {
@@ -49,9 +50,10 @@ interface StreamingSourcesProps {
     isVidzy?: boolean;
     isDarki?: boolean;
     isVixsrc?: boolean;
+    isAnimeAPI?: boolean;
     quality?: string;
     language?: string;
-
+    tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
   }) => void;
   isLoadingSource: boolean;
   season?: number;
@@ -918,6 +920,18 @@ const StreamingSources = memo(function StreamingSources({
         } */
 
 
+      } else if ((source as any).isAnimeAPI) {
+        console.log('✅ Source AnimeAPI détectée, passage des tracks:', (source as any).tracks);
+        // Pour AnimeAPI, passer les tracks (sous-titres)
+        onSourceClick({
+          url: source.url,
+          type: source.type || 'm3u8',
+          name: source.name,
+          quality: source.quality,
+          language: source.language,
+          isAnimeAPI: true,
+          tracks: (source as any).tracks, // IMPORTANT: Pass subtitle tracks!
+        } as any);
       } else if (source.url) {
         console.log('✅ Source générique détectée (UniversalVO/Autre)');
         // Pour les sources génériques avec URL (UniversalVO, PrimeWire, etc.)
