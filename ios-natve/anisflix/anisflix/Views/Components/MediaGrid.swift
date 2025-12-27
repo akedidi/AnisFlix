@@ -102,7 +102,7 @@ struct MediaGridCard: View {
                 // Poster
                 // Poster
                 if let posterURL = media.posterURL {
-                    AsyncImage(url: posterURL) { phase in
+                    CachedAsyncImagePhased(url: posterURL) { phase in
                         switch phase {
                         case .success(let image):
                             image

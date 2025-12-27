@@ -113,8 +113,8 @@ struct MediaCard: View {
             }
         } label: {
             VStack(alignment: .leading, spacing: 8) {
-                // Poster  
-                AsyncImage(url: media.posterURL) { phase in
+                // Poster with caching
+                CachedAsyncImagePhased(url: media.posterURL) { phase in
                     switch phase {
                     case .empty:
                         RoundedRectangle(cornerRadius: 8)
