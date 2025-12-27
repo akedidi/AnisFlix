@@ -132,39 +132,48 @@ export default function VideoPlayer({
     };
   };
 
-  // Fetch subtitles - prioritize external tracks from Anime API, fallback to OpenSubtitles
+  // Fetch subtitles - merge external tracks (AnimeAPI) with OpenSubtitles, deduplicate by language
   useEffect(() => {
     const fetchSubtitles = async () => {
-      console.log(`🔍 [VIDEO PLAYER] fetchSubtitles called with tracks:`, tracks?.length || 0, tracks);
+      console.log(`🔍 [VIDEO PLAYER] fetchSubtitles called with tracks:`, tracks?.length || 0);
 
-      console.log(`🔍 [fetchSubtitles] Checking tracks: length=${tracks?.length}, content=${JSON.stringify(tracks)}`);
+      // Convert external tracks (from AnimeAPI) to Subtitle format
+      const externalTracks: Subtitle[] = (tracks && tracks.length > 0)
+        ? tracks.map(mapExternalTrack)
+        : [];
 
-      // If external tracks are provided (from Anime API), use ONLY those
-      if (tracks && tracks.length > 0) {
-        console.log(`✅ [VIDEO PLAYER] Using ${tracks.length} external tracks (AnimeAPI). Skipping OpenSubtitles.`);
-        const externalTracks: Subtitle[] = tracks.map(mapExternalTrack);
-        setSubtitles(externalTracks);
-        return;
-      }
+      console.log(`✅ [VIDEO PLAYER] External tracks: ${externalTracks.length}`);
 
-      // No external tracks - fetch from OpenSubtitles
+      // Fetch OpenSubtitles
+      let openSubtitles: Subtitle[] = [];
       if (imdbId && mediaType) {
         try {
-          const subs = await getSubtitles(
+          openSubtitles = await getSubtitles(
             imdbId,
             mediaType === 'tv' ? 'series' : 'movie',
             seasonNumber,
             episodeNumber
           );
-          console.log(`✅ [VIDEO PLAYER] Fetched ${subs.length} subtitles from OpenSubtitles`);
-          setSubtitles(subs);
+          console.log(`✅ [VIDEO PLAYER] OpenSubtitles: ${openSubtitles.length}`);
         } catch (error) {
-          console.error('❌ [VIDEO PLAYER] Error fetching subtitles:', error);
-          setSubtitles([]);
+          console.error('❌ [VIDEO PLAYER] Error fetching OpenSubtitles:', error);
         }
-      } else {
-        setSubtitles([]);
       }
+
+      // Merge and deduplicate: external tracks have priority (they come first)
+      // Deduplicate by language code to avoid showing "🇬🇧 Anglais" twice
+      const merged = [...externalTracks];
+      const seenLanguages = new Set(externalTracks.map(t => t.lang));
+
+      for (const sub of openSubtitles) {
+        if (!seenLanguages.has(sub.lang)) {
+          merged.push(sub);
+          seenLanguages.add(sub.lang);
+        }
+      }
+
+      console.log(`✅ [VIDEO PLAYER] Final merged subtitles: ${merged.length} (deduped by language)`);
+      setSubtitles(merged);
     };
 
     fetchSubtitles();
