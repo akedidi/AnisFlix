@@ -46,6 +46,8 @@ const LANGUAGE_FLAGS: Record<string, string> = {
     lit: "🇱🇹",
     lav: "🇱🇻",
     est: "🇪🇪",
+    zho: "🇨🇳",  // Chinese (alternative code)
+    spl: "🇲🇽",  // Spanish (Latin America)
 };
 
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -86,6 +88,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
     lit: "Lituanien",
     lav: "Letton",
     est: "Estonien",
+    zho: "Chinois",         // Chinese (alternative code)
+    spl: "Espagnol (Latam)", // Spanish (Latin America)
 };
 
 export async function getSubtitles(
