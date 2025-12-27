@@ -1,16 +1,19 @@
-// src/anime-lib/extractors/search.extractor.js
+// api/anime/index.js
 import axios from "axios";
 import * as cheerio from "cheerio";
-
-// src/anime-lib/configs/header.config.js
+import axios2 from "axios";
+import * as cheerio2 from "cheerio";
+import axios3 from "axios";
+import dotenv from "dotenv";
+import axios5 from "axios";
+import * as cheerio4 from "cheerio";
+import axios4 from "axios";
+import CryptoJS from "crypto-js";
+import * as cheerio3 from "cheerio";
 var DEFAULT_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 };
-
-// src/anime-lib/utils/base_v1.js
 var v1_base_url = "hianime.to";
-
-// src/anime-lib/routes/filter.maping.js
 var FILTER_LANGUAGE_MAP = {
   ALL: "",
   SUB: "1",
@@ -113,8 +116,6 @@ var FILTER_SORT = {
   RELEASED_DATE: "released_date",
   MOST_WATCHED: "most_watched"
 };
-
-// src/anime-lib/extractors/search.extractor.js
 async function extractSearchResults(params = {}) {
   try {
     const normalizeParam = (param, mapping) => {
@@ -212,8 +213,6 @@ async function extractSearchResults(params = {}) {
   }
 }
 var search_extractor_default = extractSearchResults;
-
-// src/anime-lib/controllers/search.controller.js
 var search = async (req) => {
   try {
     let { keyword, type, status, rated, score, season, language, genres, sort, sy, sm, sd, ey, em, ed } = req.query;
@@ -250,10 +249,6 @@ var search = async (req) => {
     throw new Error("An error occurred while processing your request.");
   }
 };
-
-// src/anime-lib/extractors/episodeList.extractor.js
-import axios2 from "axios";
-import * as cheerio2 from "cheerio";
 async function extractEpisodesList(id) {
   try {
     const showId = id.split("-").pop();
@@ -289,14 +284,8 @@ async function extractEpisodesList(id) {
   }
 }
 var episodeList_extractor_default = extractEpisodesList;
-
-// src/anime-lib/helper/cache.helper.js
-import axios3 from "axios";
-import dotenv from "dotenv";
 dotenv.config();
 var CACHE_SERVER_URL = process.env.CACHE_URL || null;
-
-// src/anime-lib/controllers/episodeList.controller.js
 var getEpisodes = async (req, res) => {
   const { id } = req.params;
   try {
@@ -307,24 +296,9 @@ var getEpisodes = async (req, res) => {
     return e;
   }
 };
-
-// src/anime-lib/extractors/streamInfo.extractor.js
-import axios5 from "axios";
-import * as cheerio4 from "cheerio";
-
-// src/anime-lib/parsers/decryptors/decrypt_v1.decryptor.js
-import axios4 from "axios";
-import CryptoJS from "crypto-js";
-import * as cheerio3 from "cheerio";
-
-// src/anime-lib/utils/base_v4.js
 var v4_base_url = "9animetv.to";
-
-// src/anime-lib/utils/fallback.js
 var fallback_1 = "megaplay.buzz";
 var fallback_2 = "vidwish.live";
-
-// src/anime-lib/parsers/decryptors/decrypt_v1.decryptor.js
 async function decryptSources_v1(epID, id, name, type, fallback) {
   try {
     let decryptedSources = null;
@@ -392,8 +366,6 @@ async function decryptSources_v1(epID, id, name, type, fallback) {
     return null;
   }
 }
-
-// src/anime-lib/extractors/streamInfo.extractor.js
 async function extractServers(id) {
   try {
     const resp = await axios5.get(
@@ -448,8 +420,6 @@ async function extractStreamingInfo(id, name, type, fallback) {
     return { streamingLink: [], servers: [] };
   }
 }
-
-// src/anime-lib/controllers/streamInfo.controller.js
 var getStreamInfo = async (req, res, fallback = false) => {
   try {
     const input = req.query.id;
@@ -465,8 +435,6 @@ var getStreamInfo = async (req, res, fallback = false) => {
     return { error: e.message };
   }
 };
-
-// api/anime/index.js
 async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -500,15 +468,28 @@ async function handler(req, res) {
       }
       console.log("\u{1F4FA} [Anime API] M3U8 Proxy request:", url.substring(0, 50) + "...");
       const axios6 = (await import("axios")).default;
+      let referer = "https://rapid-cloud.co/";
+      let origin = "https://rapid-cloud.co";
+      if (url.includes("netmagcdn.com")) {
+        referer = "https://megacloud.tv/";
+        origin = "https://megacloud.tv";
+      } else if (url.includes("rabbitstream") || url.includes("rapid-cloud")) {
+        referer = "https://rapid-cloud.co/";
+        origin = "https://rapid-cloud.co";
+      } else if (url.includes("vidcloud") || url.includes("vizcloud")) {
+        referer = "https://vidplay.site/";
+        origin = "https://vidplay.site";
+      }
+      const proxyHeaders = {
+        "Referer": referer,
+        "Origin": origin,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      };
       if (url.toLowerCase().endsWith(".ts")) {
         console.log("\u{1F4FA} [Anime API] Proxying .ts video segment");
         const response2 = await axios6.get(url, {
-          headers: {
-            "Referer": "https://rapid-cloud.co/",
-            "Origin": "https://rapid-cloud.co",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "*/*"
-          },
+          headers: proxyHeaders,
           responseType: "arraybuffer",
           timeout: 15e3
         });
@@ -518,12 +499,7 @@ async function handler(req, res) {
         return res.status(200).send(Buffer.from(response2.data));
       }
       const response = await axios6.get(url, {
-        headers: {
-          "Referer": "https://rapid-cloud.co/",
-          "Origin": "https://rapid-cloud.co",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Accept": "*/*"
-        },
+        headers: proxyHeaders,
         responseType: "text",
         timeout: 15e3
       });

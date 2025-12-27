@@ -500,15 +500,33 @@ async function handler(req, res) {
       }
       console.log("\u{1F4FA} [Anime API] M3U8 Proxy request:", url.substring(0, 50) + "...");
       const axios6 = (await import("axios")).default;
+
+      // Determine the appropriate Referer based on the URL
+      let referer = "https://rapid-cloud.co/";
+      let origin = "https://rapid-cloud.co";
+
+      if (url.includes("netmagcdn.com")) {
+        referer = "https://megacloud.tv/";
+        origin = "https://megacloud.tv";
+      } else if (url.includes("rabbitstream") || url.includes("rapid-cloud")) {
+        referer = "https://rapid-cloud.co/";
+        origin = "https://rapid-cloud.co";
+      } else if (url.includes("vidcloud") || url.includes("vizcloud")) {
+        referer = "https://vidplay.site/";
+        origin = "https://vidplay.site";
+      }
+
+      const proxyHeaders = {
+        "Referer": referer,
+        "Origin": origin,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      };
+
       if (url.toLowerCase().endsWith(".ts")) {
         console.log("\u{1F4FA} [Anime API] Proxying .ts video segment");
         const response2 = await axios6.get(url, {
-          headers: {
-            "Referer": "https://rapid-cloud.co/",
-            "Origin": "https://rapid-cloud.co",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "*/*"
-          },
+          headers: proxyHeaders,
           responseType: "arraybuffer",
           timeout: 15e3
         });
@@ -518,12 +536,7 @@ async function handler(req, res) {
         return res.status(200).send(Buffer.from(response2.data));
       }
       const response = await axios6.get(url, {
-        headers: {
-          "Referer": "https://rapid-cloud.co/",
-          "Origin": "https://rapid-cloud.co",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Accept": "*/*"
-        },
+        headers: proxyHeaders,
         responseType: "text",
         timeout: 15e3
       });
