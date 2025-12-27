@@ -47,7 +47,7 @@ const LANGUAGE_FLAGS: Record<string, string> = {
     lav: "🇱🇻",
     est: "🇪🇪",
     zho: "🇨🇳",  // Chinese (alternative code)
-    spl: "🇲🇽",  // Spanish (Latin America)
+    spl: "🇪🇸",  // Spanish (Latin America)
 };
 
 const LANGUAGE_NAMES: Record<string, string> = {
