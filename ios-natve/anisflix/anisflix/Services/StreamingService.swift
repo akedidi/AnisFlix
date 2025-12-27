@@ -1493,6 +1493,31 @@ class StreamingService {
         
         print("🎌 [AnimeAPI iOS] Searching for: \(title)")
         
+        // Step 1.5: Calculate relative episode number (like web does)
+        // Fetch season details to find the episode's position in the season
+        var relativeEpisode = episode
+        
+        if !isMovie {
+            let seasonUrlString = "https://api.themoviedb.org/3/tv/\(tmdbId)/season/\(season)?api_key=\(apiKey)&language=en-US"
+            if let seasonUrl = URL(string: seasonUrlString) {
+                do {
+                    let (seasonData, seasonResponse) = try await URLSession.shared.data(from: seasonUrl)
+                    if (seasonResponse as? HTTPURLResponse)?.statusCode == 200,
+                       let seasonJson = try? JSONSerialization.jsonObject(with: seasonData) as? [String: Any],
+                       let episodes = seasonJson["episodes"] as? [[String: Any]] {
+                        // Find the index of the episode with this episode_number
+                        if let episodeIndex = episodes.firstIndex(where: { ($0["episode_number"] as? Int) == episode }) {
+                            // relative episode is index + 1 (1-indexed)
+                            relativeEpisode = episodeIndex + 1
+                            print("🔢 [AnimeAPI iOS] Mapped absolute episode \(episode) to relative \(relativeEpisode) in season \(season)")
+                        }
+                    }
+                } catch {
+                    print("⚠️ [AnimeAPI iOS] Failed to fetch season details: \(error)")
+                }
+            }
+        }
+        
         // Step 2: Call movix-proxy anime-api endpoint
         // URL needs to generally follow the pattern: /api/movix-proxy?path=anime-api&title=...&season=...&episode=...
         
@@ -1503,7 +1528,7 @@ class StreamingService {
             URLQueryItem(name: "path", value: "anime-api"),
             URLQueryItem(name: "title", value: title),
             URLQueryItem(name: "season", value: "\(season)"),
-            URLQueryItem(name: "episode", value: "\(episode)"),
+            URLQueryItem(name: "episode", value: "\(relativeEpisode)"), // Use relative episode
             URLQueryItem(name: "tmdbId", value: "\(tmdbId)")
         ]
         
