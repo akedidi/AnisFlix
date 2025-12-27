@@ -58,6 +58,8 @@ export default function VideoPlayer({
   imdbId,
   tracks = [] // Default to empty array
 }: VideoPlayerProps) {
+  console.log(`📺 [VIDEO PLAYER PROPS] src=${src} tracks=${JSON.stringify(tracks)}`);
+
   const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -134,6 +136,8 @@ export default function VideoPlayer({
   useEffect(() => {
     const fetchSubtitles = async () => {
       console.log(`🔍 [VIDEO PLAYER] fetchSubtitles called with tracks:`, tracks?.length || 0, tracks);
+
+      console.log(`🔍 [fetchSubtitles] Checking tracks: length=${tracks?.length}, content=${JSON.stringify(tracks)}`);
 
       // If external tracks are provided (from Anime API), use ONLY those
       if (tracks && tracks.length > 0) {
