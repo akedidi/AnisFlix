@@ -648,13 +648,62 @@ export default async function handler(req, res) {
         // This handles cases where the episodeNumber might not match but the title does
         if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle) {
           console.log(`🎬 [Episode] Season 0: Trying to match by episode title: "${episodeEnglishTitle}"`);
-          const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          // Synonym dictionary for common translation differences
+          const synonyms = {
+            'student': ['pupil', 'learner', 'disciple'],
+            'pupil': ['student', 'learner', 'disciple'],
+            'storytelling': ['story', 'talking', 'talker', 'narration', 'narrative'],
+            'talker': ['storytelling', 'speaker', 'narrator'],
+            'talking': ['storytelling', 'speaking', 'narrating'],
+            'sucks': ['poor', 'bad', 'terrible', 'awful', 'extremely'],
+            'poor': ['sucks', 'bad', 'terrible', 'awful'],
+            'shadow': ['shade', 'darkness', 'silhouette'],
+            'snuck': ['sneaked', 'crept', 'approached'],
+            'close': ['near', 'nearby', 'approaching'],
+            'ninja': ['shinobi', 'assassin'],
+            'complicated': ['complex', 'difficult', 'intricate'],
+            'overbearing': ['domineering', 'pushy', 'forceful'],
+            'murder': ['killing', 'death', 'homicide'],
+            'impossible': ['unbelievable', 'incredible', 'unthinkable'],
+            'sisters': ['siblings', 'family'],
+            'memory': ['memories', 'recollection'],
+            'loss': ['lost', 'losing'],
+          };
+
+          // Normalize text using synonyms
+          const normalizeSynonyms = (text) => {
+            let normalized = text.toLowerCase();
+            for (const [word, syns] of Object.entries(synonyms)) {
+              for (const syn of syns) {
+                normalized = normalized.replace(new RegExp(`\\b${syn}\\b`, 'g'), word);
+              }
+            }
+            return normalized.replace(/[^a-z0-9]/g, '');
+          };
 
           // Helper function: Extract significant words (ignoring common articles)
           const getSignificantWords = (text) => {
             const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
-            const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too'];
+            const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too', 'at', 'have', 'has', 'been'];
             return words.filter(w => w.length > 2 && !articles.includes(w));
+          };
+
+          // Bigram similarity (compares 2-character sequences)
+          const getBigrams = (str) => {
+            const bigrams = new Set();
+            for (let i = 0; i < str.length - 1; i++) {
+              bigrams.add(str.slice(i, i + 2));
+            }
+            return bigrams;
+          };
+
+          const bigramSimilarity = (str1, str2) => {
+            const s1 = getBigrams(str1);
+            const s2 = getBigrams(str2);
+            const intersection = [...s1].filter(b => s2.has(b)).length;
+            const union = new Set([...s1, ...s2]).size;
+            return union === 0 ? 0 : intersection / union;
           };
 
           // Levenshtein distance for fuzzy string matching
@@ -673,13 +722,32 @@ export default async function handler(req, res) {
             return dp[m][n];
           };
 
-          // Calculate similarity percentage (0-1)
-          const stringSimilarity = (str1, str2) => {
-            const maxLen = Math.max(str1.length, str2.length);
-            if (maxLen === 0) return 1;
-            return 1 - levenshteinDistance(str1, str2) / maxLen;
+          // Calculate combined similarity (0-1)
+          const advancedSimilarity = (text1, text2) => {
+            // Normalize with synonyms
+            const norm1 = normalizeSynonyms(text1);
+            const norm2 = normalizeSynonyms(text2);
+
+            // Calculate Levenshtein similarity
+            const maxLen = Math.max(norm1.length, norm2.length);
+            const levSim = maxLen === 0 ? 1 : 1 - levenshteinDistance(norm1, norm2) / maxLen;
+
+            // Calculate bigram similarity
+            const bigSim = bigramSimilarity(norm1, norm2);
+
+            // Calculate word overlap with synonyms
+            const words1 = getSignificantWords(text1);
+            const words2 = getSignificantWords(text2);
+            const normalizedWords1 = words1.map(w => normalizeSynonyms(w));
+            const normalizedWords2 = words2.map(w => normalizeSynonyms(w));
+            const commonWords = normalizedWords1.filter(w => normalizedWords2.some(w2 => w.includes(w2) || w2.includes(w)));
+            const wordSim = words1.length === 0 ? 0 : commonWords.length / words1.length;
+
+            // Combined score: max of all methods (any good match counts)
+            return Math.max(levSim, bigSim, wordSim);
           };
 
+          const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
           const tmdbWords = getSignificantWords(episodeEnglishTitle);
 
           // First try: exact and word-based matching
@@ -700,16 +768,15 @@ export default async function handler(req, res) {
             return matchRatio >= 0.6;
           });
 
-          // Second try: Levenshtein-based similarity if word matching failed
+          // Second try: Advanced similarity if word matching failed
           if (!targetEpisode && episodes.length > 0) {
-            console.log(`🎬 [Episode] Word matching failed, trying Levenshtein similarity...`);
+            console.log(`🎬 [Episode] Word matching failed, trying advanced similarity...`);
 
             let bestMatch = null;
             let bestSimilarity = 0;
 
             for (const ep of episodes) {
-              const epNorm = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-              const similarity = stringSimilarity(normEpTitle, epNorm);
+              const similarity = advancedSimilarity(episodeEnglishTitle, ep.title || '');
 
               if (similarity > bestSimilarity) {
                 bestSimilarity = similarity;
@@ -719,7 +786,7 @@ export default async function handler(req, res) {
 
             // Accept if similarity is above 40% (accounts for translation differences)
             if (bestMatch && bestSimilarity >= 0.4) {
-              console.log(`🎬 [Episode] Best Levenshtein match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}% similar)`);
+              console.log(`🎬 [Episode] Best advanced match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}% similar)`);
               targetEpisode = bestMatch;
             }
           }
@@ -755,17 +822,60 @@ export default async function handler(req, res) {
                 const specialsEpisodes = specialsEpRes.data.results.episodes;
                 console.log(`🎬 [Episode] Specials anime has ${specialsEpisodes.length} episodes`);
 
-                // Match by episode title with fuzzy matching
-                const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                // Same advanced matching as Strategy C
+                const synonyms = {
+                  'student': ['pupil', 'learner', 'disciple'],
+                  'pupil': ['student', 'learner', 'disciple'],
+                  'storytelling': ['story', 'talking', 'talker', 'narration', 'narrative'],
+                  'talker': ['storytelling', 'speaker', 'narrator'],
+                  'talking': ['storytelling', 'speaking', 'narrating'],
+                  'sucks': ['poor', 'bad', 'terrible', 'awful', 'extremely'],
+                  'poor': ['sucks', 'bad', 'terrible', 'awful'],
+                  'shadow': ['shade', 'darkness', 'silhouette'],
+                  'snuck': ['sneaked', 'crept', 'approached'],
+                  'close': ['near', 'nearby', 'approaching'],
+                  'ninja': ['shinobi', 'assassin'],
+                  'complicated': ['complex', 'difficult', 'intricate'],
+                  'overbearing': ['domineering', 'pushy', 'forceful'],
+                  'murder': ['killing', 'death', 'homicide'],
+                  'impossible': ['unbelievable', 'incredible', 'unthinkable'],
+                  'sisters': ['siblings', 'family'],
+                  'memory': ['memories', 'recollection'],
+                  'loss': ['lost', 'losing'],
+                };
 
-                // Helper function: Extract significant words (ignoring common articles)
+                const normalizeSynonyms = (text) => {
+                  let normalized = text.toLowerCase();
+                  for (const [word, syns] of Object.entries(synonyms)) {
+                    for (const syn of syns) {
+                      normalized = normalized.replace(new RegExp(`\\b${syn}\\b`, 'g'), word);
+                    }
+                  }
+                  return normalized.replace(/[^a-z0-9]/g, '');
+                };
+
                 const getSignificantWords = (text) => {
                   const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
-                  const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too'];
+                  const articles = ['the', 'a', 'an', 'and', 'of', 'to', 'in', 'is', 'who', 'that', 'too', 'at', 'have', 'has', 'been'];
                   return words.filter(w => w.length > 2 && !articles.includes(w));
                 };
 
-                // Levenshtein distance for fuzzy string matching
+                const getBigrams = (str) => {
+                  const bigrams = new Set();
+                  for (let i = 0; i < str.length - 1; i++) {
+                    bigrams.add(str.slice(i, i + 2));
+                  }
+                  return bigrams;
+                };
+
+                const bigramSimilarity = (str1, str2) => {
+                  const s1 = getBigrams(str1);
+                  const s2 = getBigrams(str2);
+                  const intersection = [...s1].filter(b => s2.has(b)).length;
+                  const union = new Set([...s1, ...s2]).size;
+                  return union === 0 ? 0 : intersection / union;
+                };
+
                 const levenshteinDistance = (str1, str2) => {
                   const m = str1.length, n = str2.length;
                   const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -781,53 +891,36 @@ export default async function handler(req, res) {
                   return dp[m][n];
                 };
 
-                const stringSimilarity = (str1, str2) => {
-                  const maxLen = Math.max(str1.length, str2.length);
-                  if (maxLen === 0) return 1;
-                  return 1 - levenshteinDistance(str1, str2) / maxLen;
+                const advancedSimilarity = (text1, text2) => {
+                  const norm1 = normalizeSynonyms(text1);
+                  const norm2 = normalizeSynonyms(text2);
+                  const maxLen = Math.max(norm1.length, norm2.length);
+                  const levSim = maxLen === 0 ? 1 : 1 - levenshteinDistance(norm1, norm2) / maxLen;
+                  const bigSim = bigramSimilarity(norm1, norm2);
+                  const words1 = getSignificantWords(text1);
+                  const words2 = getSignificantWords(text2);
+                  const normalizedWords1 = words1.map(w => normalizeSynonyms(w));
+                  const normalizedWords2 = words2.map(w => normalizeSynonyms(w));
+                  const commonWords = normalizedWords1.filter(w => normalizedWords2.some(w2 => w.includes(w2) || w2.includes(w)));
+                  const wordSim = words1.length === 0 ? 0 : commonWords.length / words1.length;
+                  return Math.max(levSim, bigSim, wordSim);
                 };
 
-                const tmdbWords = getSignificantWords(episodeEnglishTitle);
+                // Find best match using advanced similarity
+                let bestMatch = null;
+                let bestSimilarity = 0;
 
-                // First try: word-based matching
-                targetEpisode = specialsEpisodes.find(ep => {
-                  const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-                  // Exact match
-                  if (epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle)) {
-                    return true;
+                for (const ep of specialsEpisodes) {
+                  const similarity = advancedSimilarity(episodeEnglishTitle, ep.title || '');
+                  if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestMatch = ep;
                   }
+                }
 
-                  // Fuzzy match: Check if significant words overlap significantly
-                  const animeWords = getSignificantWords(ep.title || '');
-                  const commonWords = tmdbWords.filter(w => animeWords.some(aw => aw.includes(w) || w.includes(aw)));
-                  const matchRatio = commonWords.length / Math.max(tmdbWords.length, 1);
-
-                  // If more than 60% of significant words match, consider it a match
-                  return matchRatio >= 0.6;
-                });
-
-                // Second try: Levenshtein-based similarity if word matching failed
-                if (!targetEpisode && specialsEpisodes.length > 0) {
-                  console.log(`🎬 [Episode] Specials word matching failed, trying Levenshtein...`);
-
-                  let bestMatch = null;
-                  let bestSimilarity = 0;
-
-                  for (const ep of specialsEpisodes) {
-                    const epNorm = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                    const similarity = stringSimilarity(normEpTitle, epNorm);
-
-                    if (similarity > bestSimilarity) {
-                      bestSimilarity = similarity;
-                      bestMatch = ep;
-                    }
-                  }
-
-                  if (bestMatch && bestSimilarity >= 0.4) {
-                    console.log(`🎬 [Episode] Specials Levenshtein match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}%)`);
-                    targetEpisode = bestMatch;
-                  }
+                if (bestMatch && bestSimilarity >= 0.4) {
+                  console.log(`🎬 [Episode] Specials match: "${bestMatch.title}" (${(bestSimilarity * 100).toFixed(1)}% similar)`);
+                  targetEpisode = bestMatch;
                 }
 
                 if (targetEpisode) {
