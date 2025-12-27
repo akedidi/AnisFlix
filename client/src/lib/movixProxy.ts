@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { apiCache, cacheTTL } from './apiCache';
 
 /**
  * Client proxy pour l'API Movix
@@ -14,8 +15,17 @@ export class MovixProxyClient {
 
   /**
    * Effectue une requête vers l'API Movix via le proxy
+   * @param path - Le chemin de l'API
+   * @param queryParams - Les paramètres de requête
+   * @param useCache - Utiliser le cache (par défaut: true)
+   * @param ttl - TTL personnalisé pour le cache (par défaut: 5 minutes)
    */
-  async request(path: string, queryParams: Record<string, string | number> = {}): Promise<any> {
+  async request(
+    path: string,
+    queryParams: Record<string, string | number> = {},
+    useCache: boolean = true,
+    ttl: number = cacheTTL.medium
+  ): Promise<any> {
     const params = new URLSearchParams();
     params.append('path', path);
 
@@ -25,6 +35,17 @@ export class MovixProxyClient {
     });
 
     const endpoint = `/api/movix-proxy?${params.toString()}`;
+
+    // Check cache first
+    const cacheKey = `movix:${path}:${JSON.stringify(queryParams)}`;
+    if (useCache) {
+      const cached = apiCache.get<any>(cacheKey);
+      if (cached) {
+        console.log(`🔍 Movix Proxy Cache HIT: ${path}`);
+        return cached;
+      }
+    }
+
     console.log(`🌐 Movix Proxy Request via ApiClient: ${endpoint}`);
 
     try {
@@ -37,7 +58,14 @@ export class MovixProxyClient {
         throw new Error(`Movix Proxy Error: ${response.status} - ${errorData.message || response.statusText}`);
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      // Cache the successful response
+      if (useCache) {
+        apiCache.set(cacheKey, data, ttl);
+      }
+
+      return data;
     } catch (error) {
       console.error(`❌ Movix Proxy Error for ${path}:`, error);
       throw error;

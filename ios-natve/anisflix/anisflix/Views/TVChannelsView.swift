@@ -127,7 +127,7 @@ struct TVChannelsView: View {
                                                                     .frame(height: 80)
                                                                     .padding(12)
                                                             } else {
-                                                                AsyncImage(url: URL(string: channel.logo)) { phase in
+                                                                CachedAsyncImagePhased(url: URL(string: channel.logo)) { phase in
                                                                     switch phase {
                                                                     case .success(let image):
                                                                         image
