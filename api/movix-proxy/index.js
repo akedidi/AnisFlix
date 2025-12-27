@@ -627,7 +627,66 @@ export default async function handler(req, res) {
           targetEpisode = episodes.find(ep => (ep.number || ep.episode_no) == absoluteEpisodeNumber);
         }
 
-        // Stratégie C: Tolérance (Parfois GogoAnime numérote bizarrement)
+        // Stratégie C: For Season 0 Specials, try to match episode by its TITLE
+        // This handles cases where the episodeNumber might not match but the title does
+        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle) {
+          console.log(`🎬 [Episode] Season 0: Trying to match by episode title: "${episodeEnglishTitle}"`);
+          const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          targetEpisode = episodes.find(ep => {
+            const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle);
+          });
+
+          if (targetEpisode) {
+            console.log(`🎬 [Episode] Found by title match: "${targetEpisode.title}"`);
+          }
+        }
+
+        // Stratégie D: For Season 0, fallback to "[Title] Specials" anime and match by episode title
+        // This handles series like One Punch Man where specials are grouped in a separate "Specials" anime
+        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle) {
+          console.log(`🎬 [Episode] Season 0 FALLBACK: Searching for "${title} Specials" anime...`);
+
+          // Search for "[Title] Specials" anime
+          const specialsSearchRes = await searchAnime(`${title} Specials`);
+          const normTitleSpecials = `${title.toLowerCase().replace(/[^a-z0-9]/g, '')}specials`;
+
+          const specialsAnime = specialsSearchRes.find(r => {
+            const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return rTitle === normTitleSpecials || rTitle.includes(normTitleSpecials);
+          });
+
+          if (specialsAnime) {
+            console.log(`🎬 [Episode] Found Specials anime: "${specialsAnime.title}" (${specialsAnime.id})`);
+
+            // Fetch episodes from this Specials anime
+            const specialsEpisodesUrl = `${ANIME_API_BASE}?action=episodes&id=${encodeURIComponent(specialsAnime.id)}`;
+            try {
+              const specialsEpRes = await axios.get(specialsEpisodesUrl, { timeout: 10000 });
+
+              if (specialsEpRes.data?.success && specialsEpRes.data?.results?.episodes) {
+                const specialsEpisodes = specialsEpRes.data.results.episodes;
+                console.log(`🎬 [Episode] Specials anime has ${specialsEpisodes.length} episodes`);
+
+                // Match by episode title
+                const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                targetEpisode = specialsEpisodes.find(ep => {
+                  const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                  return epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle);
+                });
+
+                if (targetEpisode) {
+                  console.log(`🎬 [Episode] ✅ Found in Specials by title: "${targetEpisode.title}" (ep ${targetEpisode.episode_no})`);
+                }
+              }
+            } catch (e) {
+              console.warn(`⚠️ [Episode] Failed to fetch Specials episodes: ${e.message}`);
+            }
+          }
+        }
+
+        // Stratégie E: Tolérance (Parfois GogoAnime numérote bizarrement)
         if (!targetEpisode) {
           // Essayer de trouver par "episode_no" ou index si disponible ?
           // Pour l'instant on prend le N-ième si disponible
