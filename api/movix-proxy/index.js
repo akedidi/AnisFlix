@@ -467,10 +467,23 @@ export default async function handler(req, res) {
 
           // Normalisation
           const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const normOverride = overrideSearchTitle ? overrideSearchTitle.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
           const normEngSeason = englishSeasonName ? englishSeasonName.toLowerCase() : '';
 
-          // Priorité 1: Match Exact avec English Season Name
-          if (englishSeasonName) {
+          // Priorité 0: HIGHEST PRIORITY - Match exact avec override title (pour les specials mappés)
+          if (overrideSearchTitle) {
+            const exactOverride = list.find(r => {
+              const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+              return rTitle === normOverride || rTitle.includes(normOverride) || normOverride.includes(rTitle);
+            });
+            if (exactOverride) {
+              console.log(`🎯 [Match] Found by OVERRIDE title: ${exactOverride.title}`);
+              return { match: exactOverride, method: 'specific' };
+            }
+          }
+
+          // Priorité 1: Match Exact avec English Season Name (but not if it's just "Specials")
+          if (englishSeasonName && englishSeasonName.toLowerCase() !== 'specials') {
             const exactEng = list.find(r => r.title.toLowerCase().includes(normEngSeason));
             if (exactEng) {
               console.log(`🎌 [Match] Found by English Season Name: ${exactEng.title}`);
