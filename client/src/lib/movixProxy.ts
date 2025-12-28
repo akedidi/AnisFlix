@@ -51,6 +51,16 @@ export class MovixProxyClient {
     try {
       const response = await apiClient.get(endpoint);
 
+      // Log server-side cache status from headers
+      const serverCacheStatus = response.headers.get('X-Cache');
+      const serverCacheKey = response.headers.get('X-Cache-Key');
+      const serverCacheTTL = response.headers.get('X-Cache-TTL');
+
+      if (serverCacheStatus) {
+        const emoji = serverCacheStatus === 'HIT' ? '✅' : '❌';
+        console.log(`🗄️ [Server Cache] ${emoji} ${serverCacheStatus}: ${serverCacheKey || path}${serverCacheTTL ? ` (${serverCacheTTL} remaining)` : ''}`);
+      }
+
       console.log(`📡 Movix Proxy Response: ${response.status} ${response.statusText}`);
 
       if (!response.ok) {
@@ -60,7 +70,13 @@ export class MovixProxyClient {
 
       const data = await response.json();
 
-      // Cache the successful response
+      // Also log cache info from response body if present
+      if (data?.cache) {
+        const emoji = data.cache.status === 'HIT' ? '✅' : '❌';
+        console.log(`🗄️ [Server Cache Body] ${emoji} ${data.cache.status}: ${data.cache.key}${data.cache.remainingTTL ? ` (${data.cache.remainingTTL}s remaining)` : ''}`);
+      }
+
+      // Cache the successful response (client-side)
       if (useCache) {
         apiCache.set(cacheKey, data, ttl);
       }

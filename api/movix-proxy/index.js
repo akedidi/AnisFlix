@@ -35,6 +35,26 @@ function cacheGet(key) {
   return entry.data;
 }
 
+// Returns {data, fromCache, remainingTTL} for more visibility
+function cacheGetWithStatus(key) {
+  const entry = serverCache.get(key);
+  if (!entry) {
+    console.log(`🗄️ [ServerCache] ❌ MISS: ${key}`);
+    return { data: null, fromCache: false, remainingTTL: 0 };
+  }
+
+  const age = Date.now() - entry.timestamp;
+  if (age > entry.ttl) {
+    serverCache.delete(key);
+    console.log(`🗄️ [ServerCache] ⏰ EXPIRED: ${key}`);
+    return { data: null, fromCache: false, remainingTTL: 0 };
+  }
+
+  const remainingSeconds = Math.round((entry.ttl - age) / 1000);
+  console.log(`🗄️ [ServerCache] ✅ HIT: ${key} (${remainingSeconds}s remaining)`);
+  return { data: entry.data, fromCache: true, remainingTTL: remainingSeconds };
+}
+
 function cacheSet(key, data, ttl = CACHE_TTL.DEFAULT) {
   serverCache.set(key, {
     data,
@@ -691,7 +711,9 @@ export default async function handler(req, res) {
 
         // Etape 2: Récupérer épisodes (avec cache)
         const episodesCacheKey = `anime:episodes:${anime.id}`;
-        let episodes = cacheGet(episodesCacheKey);
+        const episodesCache = cacheGetWithStatus(episodesCacheKey);
+        let episodes = episodesCache.data;
+        let cacheStatus = episodesCache.fromCache ? 'HIT' : 'MISS';
 
         if (!episodes) {
           const episodesUrl = `${ANIME_API_BASE}?action=episodes&id=${encodeURIComponent(anime.id)}`;
@@ -703,9 +725,17 @@ export default async function handler(req, res) {
 
           episodes = episodesResponse.data.results.episodes;
           cacheSet(episodesCacheKey, episodes, CACHE_TTL.EPISODES);
+          cacheStatus = 'MISS';
         }
 
-        console.log(`🎌 [AnimeAPI] Episodes found: ${episodes.length}`);
+        // Set cache header for client visibility
+        res.setHeader('X-Cache', cacheStatus);
+        res.setHeader('X-Cache-Key', episodesCacheKey);
+        if (episodesCache.fromCache) {
+          res.setHeader('X-Cache-TTL', `${episodesCache.remainingTTL}s`);
+        }
+
+        console.log(`🎌 [AnimeAPI] Episodes found: ${episodes.length} (Cache: ${cacheStatus})`);
 
         // Sélection de l'épisode
         let targetEpisode = null;
@@ -1041,6 +1071,11 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
           success: true,
+          cache: {
+            status: cacheStatus,
+            key: episodesCacheKey,
+            remainingTTL: episodesCache.remainingTTL || 0
+          },
           results: [{
             provider: 'AnimeAPI',
             language: 'VO',
