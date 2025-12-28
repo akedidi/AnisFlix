@@ -1,6 +1,70 @@
 import axios from 'axios';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 
+// ===== SERVER-SIDE CACHE SYSTEM =====
+// Cache persists across requests on warm function instances
+const serverCache = new Map();
+
+// Cache configuration (TTL in milliseconds)
+const CACHE_TTL = {
+  SEARCH: 10 * 60 * 1000,       // 10 minutes for search results
+  ANIME_SEARCH: 10 * 60 * 1000, // 10 minutes for anime search
+  EPISODES: 30 * 60 * 1000,     // 30 minutes for episode lists
+  STREAMS: 5 * 60 * 1000,       // 5 minutes for stream links (may expire)
+  TMDB: 60 * 60 * 1000,         // 1 hour for TMDB data
+  DEFAULT: 10 * 60 * 1000       // 10 minutes default
+};
+
+// Cache helper functions
+function cacheGet(key) {
+  const entry = serverCache.get(key);
+  if (!entry) {
+    console.log(`🗄️ [ServerCache] ❌ MISS: ${key}`);
+    return null;
+  }
+
+  const age = Date.now() - entry.timestamp;
+  if (age > entry.ttl) {
+    serverCache.delete(key);
+    console.log(`🗄️ [ServerCache] ⏰ EXPIRED: ${key}`);
+    return null;
+  }
+
+  const remainingSeconds = Math.round((entry.ttl - age) / 1000);
+  console.log(`🗄️ [ServerCache] ✅ HIT: ${key} (${remainingSeconds}s remaining)`);
+  return entry.data;
+}
+
+function cacheSet(key, data, ttl = CACHE_TTL.DEFAULT) {
+  serverCache.set(key, {
+    data,
+    timestamp: Date.now(),
+    ttl
+  });
+  console.log(`🗄️ [ServerCache] 💾 STORED: ${key} (TTL: ${Math.round(ttl / 1000)}s)`);
+}
+
+function getCacheStats() {
+  return {
+    size: serverCache.size,
+    keys: Array.from(serverCache.keys())
+  };
+}
+
+// Clean expired entries periodically (every 5 minutes if function stays warm)
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [key, entry] of serverCache.entries()) {
+    if (now - entry.timestamp > entry.ttl) {
+      serverCache.delete(key);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`🗄️ [ServerCache] 🧹 Cleaned ${cleaned} expired entries`);
+  }
+}, 5 * 60 * 1000);
 
 // Configuration CORS
 const CORS_HEADERS = {
@@ -422,13 +486,22 @@ export default async function handler(req, res) {
           }
         }
 
-        // Fonction de recherche helper
+        // Fonction de recherche helper (avec cache)
         const searchAnime = async (query) => {
+          const cacheKey = `anime:search:${query.toLowerCase()}`;
+          const cached = cacheGet(cacheKey);
+          if (cached) return cached;
+
           try {
             const url = `${ANIME_API_BASE}?action=search&keyword=${encodeURIComponent(query)}`;
             console.log(`🎌 [Search] Query: "${query}"`);
             const res = await axios.get(url, { timeout: 8000 });
-            return (res.data?.success && res.data?.results?.data) ? res.data.results.data : [];
+            const results = (res.data?.success && res.data?.results?.data) ? res.data.results.data : [];
+
+            if (results.length > 0) {
+              cacheSet(cacheKey, results, CACHE_TTL.ANIME_SEARCH);
+            }
+            return results;
           } catch (e) { return []; }
         };
 
@@ -616,15 +689,22 @@ export default async function handler(req, res) {
         const isSpecificSeasonMatch = result.method === 'specific';
         console.log(`🎌 [AnimeAPI] Selected Anime: ${anime.title} (Specific Season: ${isSpecificSeasonMatch})`);
 
-        // Etape 2: Récupérer épisodes
-        const episodesUrl = `${ANIME_API_BASE}?action=episodes&id=${encodeURIComponent(anime.id)}`;
-        const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
+        // Etape 2: Récupérer épisodes (avec cache)
+        const episodesCacheKey = `anime:episodes:${anime.id}`;
+        let episodes = cacheGet(episodesCacheKey);
 
-        if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
-          return res.status(200).json({ success: true, results: [] });
+        if (!episodes) {
+          const episodesUrl = `${ANIME_API_BASE}?action=episodes&id=${encodeURIComponent(anime.id)}`;
+          const episodesResponse = await axios.get(episodesUrl, { timeout: 10000 });
+
+          if (!episodesResponse.data?.success || !episodesResponse.data?.results?.episodes) {
+            return res.status(200).json({ success: true, results: [] });
+          }
+
+          episodes = episodesResponse.data.results.episodes;
+          cacheSet(episodesCacheKey, episodes, CACHE_TTL.EPISODES);
         }
 
-        const episodes = episodesResponse.data.results.episodes;
         console.log(`🎌 [AnimeAPI] Episodes found: ${episodes.length}`);
 
         // Sélection de l'épisode
