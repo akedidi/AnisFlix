@@ -331,11 +331,41 @@ const StreamingSources = memo(function StreamingSources({
     return false;
   };
 
-  // Ajuster la langue sélectionnée si VF n'est pas disponible mais VOSTFR l'est
+  // Ajuster la langue sélectionnée si la langue actuelle n'est pas disponible
   useEffect(() => {
-    if (selectedLanguage === 'VF' && !hasSourcesForLanguage('VF') && hasSourcesForLanguage('VOSTFR')) {
-      console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
-      setSelectedLanguage('VOSTFR');
+    const hasVF = hasSourcesForLanguage('VF');
+    const hasVOSTFR = hasSourcesForLanguage('VOSTFR');
+    const hasVO = hasSourcesForLanguage('VO');
+
+    // Si VF sélectionné mais pas dispo, basculer vers la première dispo
+    if (selectedLanguage === 'VF' && !hasVF) {
+      if (hasVOSTFR) {
+        console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
+        setSelectedLanguage('VOSTFR');
+      } else if (hasVO) {
+        console.log('🔄 Changement automatique vers VO car VF et VOSTFR non disponibles');
+        setSelectedLanguage('VO');
+      }
+    }
+    // Si VOSTFR sélectionné mais pas dispo, basculer
+    else if (selectedLanguage === 'VOSTFR' && !hasVOSTFR) {
+      if (hasVF) {
+        console.log('🔄 Changement automatique vers VF car VOSTFR non disponible');
+        setSelectedLanguage('VF');
+      } else if (hasVO) {
+        console.log('🔄 Changement automatique vers VO car VOSTFR non disponible');
+        setSelectedLanguage('VO');
+      }
+    }
+    // Si VO sélectionné mais pas dispo, basculer
+    else if (selectedLanguage === 'VO' && !hasVO) {
+      if (hasVF) {
+        console.log('🔄 Changement automatique vers VF car VO non disponible');
+        setSelectedLanguage('VF');
+      } else if (hasVOSTFR) {
+        console.log('🔄 Changement automatique vers VOSTFR car VO non disponible');
+        setSelectedLanguage('VOSTFR');
+      }
     }
   }, [selectedLanguage, hasSourcesForLanguage]);
 
