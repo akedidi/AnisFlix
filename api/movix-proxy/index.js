@@ -1438,9 +1438,11 @@ export default async function handler(req, res) {
 
         const isOavItem = (item) => {
           const name = (item.title || item.name || item.season_name || '').toLowerCase();
-          if (name.includes('specials') || name.includes('special') || name.includes('oav')) {
-            console.log(`🧐 [Filter Match] Found OAV/Special to remove: "${name}"`);
-            return true;
+          // For OPM: ONLY keep items that start with "saison" (Season 1, Season 2, etc.)
+          const isSaison = name.startsWith('saison');
+          if (!isSaison && name.length > 0) {
+            console.log(`🧐 [Filter] Removing non-Saison item: "${name}"`);
+            return true; // Remove this item
           }
           return false;
         };
