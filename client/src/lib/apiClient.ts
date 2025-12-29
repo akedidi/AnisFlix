@@ -126,6 +126,18 @@ export class ApiClient {
    * Extrait VidMoly avec gestion Capacitor
    */
   async extractVidMoly(url: string, method: string = 'auto'): Promise<any> {
+    // Skip if URL is already an m3u8 (already extracted)
+    if (url.includes('.m3u8')) {
+      console.log('⏭️ [API CLIENT] Skipping extraction - URL is already m3u8:', url);
+      return { success: true, m3u8Url: url, skipped: true };
+    }
+
+    // Skip if URL is not a vidmoly embed URL
+    if (!url.includes('vidmoly') && !url.includes('vmwesa')) {
+      console.log('⏭️ [API CLIENT] Skipping extraction - URL is not vidmoly:', url);
+      return { success: false, error: 'Not a vidmoly URL' };
+    }
+
     const response = await this.post('/api/extract', { type: 'vidmoly', url });
 
     if (!response.ok) {
