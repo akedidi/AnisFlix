@@ -410,6 +410,23 @@ export default async function handler(req, res) {
 
         let seasonNumber = season ? parseInt(season) : 1;
         let episodeNumber = episode ? parseInt(episode) : 1;
+
+        // ═══════════════════════════════════════════════════════════════════
+        // HARD BLOCK: One Punch Man Season 0 (OAV/Specials)
+        // The Movix data for OPM OAVs is corrupted (contains Season 1 episode links)
+        // We return empty to prevent showing wrong content.
+        // ═══════════════════════════════════════════════════════════════════
+        const isOPM = title.toLowerCase().replace(/[^a-z0-9]/g, '').includes('onepunchman');
+        if (isOPM && seasonNumber === 0) {
+          console.log('🚫 [AnimeAPI] BLOCKED: One Punch Man Season 0 - Returning empty to prevent wrong links');
+          return res.json({
+            success: true,
+            results: [],
+            blocked: true,
+            reason: 'OPM Season 0 data is corrupted in source, blocked to prevent wrong links'
+          });
+        }
+
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
 
         // ═══════════════════════════════════════════════════════════════════
