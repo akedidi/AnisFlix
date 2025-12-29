@@ -1436,36 +1436,36 @@ export default async function handler(req, res) {
       if (isAnimeRequest && isOPM) {
         const originalCount = responseData.results ? responseData.results.length : (Array.isArray(responseData) ? responseData.length : 0);
 
-        const isOavItem = (item) => {
-          const name = (item.title || item.name || item.season_name || '').toLowerCase();
-          // For OPM: ONLY keep items that start with "saison" (Season 1, Season 2, etc.)
-          const isSaison = name.startsWith('saison');
-          if (!isSaison && name.length > 0) {
-            console.log(`🧐 [Filter] Removing non-Saison item: "${name}"`);
-            return true; // Remove this item
-          }
-          return false;
-        };
-
-        const filterList = (list) => {
-          if (!Array.isArray(list)) return list;
-          return list.filter(item => {
-            if (isOavItem(item)) {
-              console.log(`🗑️ [Filter] Removing "${item.title || item.name || 'OAV'}" from One Punch Man`);
+        // Only filter seasons, NOT the root anime entries
+        const filterSeasons = (seasonsList) => {
+          if (!Array.isArray(seasonsList)) return seasonsList;
+          return seasonsList.filter(season => {
+            const name = (season.name || '').toLowerCase();
+            const isSaison = name.startsWith('saison');
+            if (!isSaison && name.length > 0) {
+              console.log(`🧐 [Filter] Removing non-Saison season: "${name}"`);
               return false;
-            }
-            // Recursive filter for seasons within an anime result
-            if (item.seasons && Array.isArray(item.seasons)) {
-              item.seasons = filterList(item.seasons);
             }
             return true;
           });
         };
 
+        // Apply filter to seasons within each anime result
+        const processAnimeList = (list) => {
+          if (!Array.isArray(list)) return list;
+          list.forEach(anime => {
+            if (anime.seasons && Array.isArray(anime.seasons)) {
+              console.log(`🔧 [Filter] Processing seasons for: ${anime.name || 'Unknown'}`);
+              anime.seasons = filterSeasons(anime.seasons);
+            }
+          });
+          return list;
+        };
+
         if (Array.isArray(responseData)) {
-          responseData = filterList(responseData);
+          responseData = processAnimeList(responseData);
         } else if (responseData?.results && Array.isArray(responseData.results)) {
-          responseData.results = filterList(responseData.results);
+          responseData.results = processAnimeList(responseData.results);
         }
 
         // Filter reporting
