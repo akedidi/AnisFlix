@@ -1403,7 +1403,26 @@ export default async function handler(req, res) {
 
     // Si la réponse est un succès, renvoyer les données
     if (response.status >= 200 && response.status < 300) {
-      res.status(response.status).json(response.data);
+      let responseData = response.data;
+
+      // FILTER: Remove "Specials" from One Punch Man search results
+      // These have numbered episodes that can't be matched by title
+      if (isAnimeRequest && decodedPath.toLowerCase().includes('one') && decodedPath.toLowerCase().includes('punch')) {
+        if (responseData?.results && Array.isArray(responseData.results)) {
+          const originalCount = responseData.results.length;
+          responseData.results = responseData.results.filter(item => {
+            const title = (item.title || item.name || '').toLowerCase();
+            const isSpecials = title.includes('specials') || title.includes('special');
+            if (isSpecials) {
+              console.log(`🗑️ [Filter] Removing "${item.title}" from One Punch Man search`);
+            }
+            return !isSpecials;
+          });
+          console.log(`🎯 [Filter] One Punch Man: ${originalCount} -> ${responseData.results.length} results (Specials removed)`);
+        }
+      }
+
+      res.status(response.status).json(responseData);
     } else {
       // Pour les erreurs 4xx, renvoyer l'erreur avec le bon status
       res.status(response.status).json({
