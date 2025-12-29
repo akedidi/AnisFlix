@@ -1100,17 +1100,9 @@ export default async function handler(req, res) {
             animeInfo: {
               id: anime.id,
               title: anime.title,
-              season: seasonNumber,
-              episode: episodeNumber,
-              realEpisode: targetEpisode.number,
-              debug: {
-                selectedAnime: anime.title,
-                selectedAnimeId: anime.id,
-                selectionStrategy: result.method,
-                targetEpisodeId: targetEpisode.id,
-                targetEpisodeTitle: targetEpisode.title || targetEpisode.name,
-                isSpecialsExclusionActive: true // Confirm code is active
-              }
+              season: seasonNumber, // Provide the requested season
+              episode: episodeNumber, // Provide the requested episode
+              realEpisode: targetEpisode.number // The absolute number used
             }
           }]
         });
