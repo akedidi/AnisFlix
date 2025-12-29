@@ -1409,14 +1409,23 @@ export default async function handler(req, res) {
     if (response.status >= 200 && response.status < 300) {
       let responseData = response.data;
 
+      // Log pour debug
+      console.log(`🔍 [PROXY DEBUG] Path: "${decodedPath}"`);
+
       // FILTER: Remove "Specials" from One Punch Man search results
       // These have numbered episodes that can't be matched by title
-      if (isAnimeRequest && decodedPath.toLowerCase().includes('one') && decodedPath.toLowerCase().includes('punch')) {
+      const isOPM = decodedPath.toLowerCase().replace(/[^a-z0-9]/g, '').includes('onepunchman');
+
+      if (isAnimeRequest && isOPM) {
         const originalCount = responseData.results ? responseData.results.length : (Array.isArray(responseData) ? responseData.length : 0);
 
         const isOavItem = (item) => {
           const name = (item.title || item.name || item.season_name || '').toLowerCase();
-          return name.includes('specials') || name.includes('special') || name.includes('oav');
+          if (name.includes('specials') || name.includes('special') || name.includes('oav')) {
+            console.log(`🧐 [Filter Match] Found OAV/Special to remove: "${name}"`);
+            return true;
+          }
+          return false;
         };
 
         const filterList = (list) => {
