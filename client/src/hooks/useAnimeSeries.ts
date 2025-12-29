@@ -100,17 +100,7 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
   error: any;
   hasVidMolyLinks: boolean;
 } => {
-  console.log('🔍 useAnimeVidMolyLinks - Appelé avec:', { title, seasonNumber, episodeNumber, enabled });
-
-  const { data: animeData, isLoading, error, isFetching, isStale } = useAnimeSeries(title, enabled);
-
-  console.log('🔍 useAnimeVidMolyLinks - animeData:', animeData);
-  console.log('🔍 useAnimeVidMolyLinks - isLoading:', isLoading);
-  console.log('🔍 useAnimeVidMolyLinks - isFetching:', isFetching);
-  console.log('🔍 useAnimeVidMolyLinks - isStale:', isStale);
-  console.log('🔍 useAnimeVidMolyLinks - error:', error);
-  console.log('🔍 useAnimeVidMolyLinks - animeData existe?', !!animeData);
-  console.log('🔍 useAnimeVidMolyLinks - animeData.seasons existe?', !!animeData?.seasons);
+  const { data: animeData, isLoading, error } = useAnimeSeries(title, enabled);
 
   const [vidmolyLinks, setVidmolyLinks] = useState({
     vf: [] as any[],
@@ -119,11 +109,25 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
 
   const [isLoadingVidMoly, setIsLoadingVidMoly] = useState(false);
 
+  // Ref to track processed key and prevent duplicate calls
+  const lastProcessedKey = React.useRef<string | null>(null);
+  const isProcessing = React.useRef(false);
+
   useEffect(() => {
     if (!animeData?.seasons) return;
 
+    // Create a unique key for this request
+    const requestKey = `${title}-${seasonNumber}-${episodeNumber}`;
+
+    // Skip if already processed or currently processing
+    if (lastProcessedKey.current === requestKey || isProcessing.current) {
+      console.log('🔄 useAnimeVidMolyLinks - Skipping duplicate call for:', requestKey);
+      return;
+    }
+
     const processVidMolyLinks = async () => {
-      console.log('🔍 useAnimeVidMolyLinks - DÉBUT du traitement VidMoly');
+      isProcessing.current = true;
+      console.log('🔍 useAnimeVidMolyLinks - Processing:', requestKey);
       setIsLoadingVidMoly(true);
 
       console.log('🔍 useAnimeVidMolyLinks - Saisons trouvées:', animeData.seasons);
@@ -223,12 +227,16 @@ export const useAnimeVidMolyLinks = (title: string, seasonNumber: number, episod
 
           setVidmolyLinks(newVidmolyLinks);
           setIsLoadingVidMoly(false);
+          lastProcessedKey.current = requestKey;
+          isProcessing.current = false;
         } else {
           console.log('⚠️ useAnimeVidMolyLinks - Épisode non trouvé:', episodeNumber);
           setIsLoadingVidMoly(false);
+          isProcessing.current = false;
         }
       } else {
         setIsLoadingVidMoly(false);
+        isProcessing.current = false;
       }
     };
 
