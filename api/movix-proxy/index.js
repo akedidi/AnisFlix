@@ -1440,7 +1440,18 @@ export default async function handler(req, res) {
           responseData.results = filterList(responseData.results);
         }
 
-        console.log(`🎯 [Filter] Filter applied for One Punch Man (Original count: ${originalCount})`);
+        // Filter reporting
+        const removedCount = originalCount - (responseData.results ? responseData.results.length : (Array.isArray(responseData) ? responseData.length : 0));
+        console.log(`🎯 [Filter] Filter applied for One Punch Man. Removed: ${removedCount} items.`);
+
+        if (!responseData.meta) responseData.meta = {};
+        responseData.meta.filterDebug = {
+          applied: true,
+          originalCount: originalCount,
+          finalCount: responseData.results ? responseData.results.length : 0,
+          removedCount: removedCount,
+          path: decodedPath
+        };
       }
 
       res.status(response.status).json(responseData);
