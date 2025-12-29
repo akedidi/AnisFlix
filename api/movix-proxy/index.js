@@ -1412,9 +1412,9 @@ export default async function handler(req, res) {
           const originalCount = responseData.results.length;
           responseData.results = responseData.results.filter(item => {
             const title = (item.title || item.name || '').toLowerCase();
-            const isSpecials = title.includes('specials') || title.includes('special');
+            const isSpecials = title.includes('specials') || title.includes('special') || title.includes('oav');
             if (isSpecials) {
-              console.log(`🗑️ [Filter] Removing "${item.title}" from One Punch Man search`);
+              console.log(`🗑️ [Filter] Removing "${item.title || item.name}" from One Punch Man search`);
             }
             return !isSpecials;
           });
