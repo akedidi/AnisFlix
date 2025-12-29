@@ -1408,18 +1408,35 @@ export default async function handler(req, res) {
       // FILTER: Remove "Specials" from One Punch Man search results
       // These have numbered episodes that can't be matched by title
       if (isAnimeRequest && decodedPath.toLowerCase().includes('one') && decodedPath.toLowerCase().includes('punch')) {
-        if (responseData?.results && Array.isArray(responseData.results)) {
-          const originalCount = responseData.results.length;
-          responseData.results = responseData.results.filter(item => {
-            const title = (item.title || item.name || '').toLowerCase();
-            const isSpecials = title.includes('specials') || title.includes('special') || title.includes('oav');
-            if (isSpecials) {
-              console.log(`🗑️ [Filter] Removing "${item.title || item.name}" from One Punch Man search`);
+        const originalCount = responseData.results ? responseData.results.length : (Array.isArray(responseData) ? responseData.length : 0);
+
+        const isOavItem = (item) => {
+          const name = (item.title || item.name || item.season_name || '').toLowerCase();
+          return name.includes('specials') || name.includes('special') || name.includes('oav');
+        };
+
+        const filterList = (list) => {
+          if (!Array.isArray(list)) return list;
+          return list.filter(item => {
+            if (isOavItem(item)) {
+              console.log(`🗑️ [Filter] Removing "${item.title || item.name || 'OAV'}" from One Punch Man`);
+              return false;
             }
-            return !isSpecials;
+            // Recursive filter for seasons within an anime result
+            if (item.seasons && Array.isArray(item.seasons)) {
+              item.seasons = filterList(item.seasons);
+            }
+            return true;
           });
-          console.log(`🎯 [Filter] One Punch Man: ${originalCount} -> ${responseData.results.length} results (Specials removed)`);
+        };
+
+        if (Array.isArray(responseData)) {
+          responseData = filterList(responseData);
+        } else if (responseData?.results && Array.isArray(responseData.results)) {
+          responseData.results = filterList(responseData.results);
         }
+
+        console.log(`🎯 [Filter] Filter applied for One Punch Man (Original count: ${originalCount})`);
       }
 
       res.status(response.status).json(responseData);
