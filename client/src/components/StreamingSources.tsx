@@ -711,18 +711,20 @@ const StreamingSources = memo(function StreamingSources({
     if (selectedLanguage === 'VF' && animeVidMolyData.vf) {
       console.log('🔍 Ajout des sources VidMoly Anime VF:', animeVidMolyData.vf);
       animeVidMolyData.vf.forEach((player: any) => {
+        // Check if URL is already extracted (m3u8) to prevent re-extraction
+        const isAlreadyExtracted = player.url?.includes('.m3u8');
         const source = {
           id: `anime-vidmoly-vf-${animeVidmolyCounter}`,
           name: `VidMoly Anime${animeVidmolyCounter} (VF)`,
           provider: 'vidmoly',
           url: player.url,
-          type: 'embed' as const,
+          type: isAlreadyExtracted ? 'm3u8' as const : 'embed' as const,
           player: 'vidmoly',
-          isVidMoly: true,
+          isVidMoly: !isAlreadyExtracted, // Don't re-extract if already m3u8
           sourceKey: 'VF',
           quality: player.quality
         };
-        console.log('✅ Ajout source VidMoly Anime VF:', source);
+        console.log('✅ Ajout source VidMoly Anime VF:', source, 'isAlreadyExtracted:', isAlreadyExtracted);
         allSources.push(source);
         animeVidmolyCounter++;
       });
@@ -731,18 +733,20 @@ const StreamingSources = memo(function StreamingSources({
     if (selectedLanguage === 'VOSTFR' && animeVidMolyData.vostfr) {
       console.log('🔍 Ajout des sources VidMoly Anime VOSTFR:', animeVidMolyData.vostfr);
       animeVidMolyData.vostfr.forEach((player: any) => {
+        // Check if URL is already extracted (m3u8) to prevent re-extraction
+        const isAlreadyExtracted = player.url?.includes('.m3u8');
         const source = {
           id: `anime-vidmoly-vostfr-${animeVidmolyCounter}`,
           name: `VidMoly Anime${animeVidmolyCounter} (VOSTFR)`,
           provider: 'vidmoly',
           url: player.url,
-          type: 'embed' as const,
+          type: isAlreadyExtracted ? 'm3u8' as const : 'embed' as const,
           player: 'vidmoly',
-          isVidMoly: true,
+          isVidMoly: !isAlreadyExtracted, // Don't re-extract if already m3u8
           sourceKey: 'VOSTFR',
           quality: player.quality
         };
-        console.log('✅ Ajout source VidMoly Anime VOSTFR:', source);
+        console.log('✅ Ajout source VidMoly Anime VOSTFR:', source, 'isAlreadyExtracted:', isAlreadyExtracted);
         allSources.push(source);
         animeVidmolyCounter++;
       });
