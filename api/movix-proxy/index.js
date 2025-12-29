@@ -756,14 +756,7 @@ export default async function handler(req, res) {
 
         // Stratégie C: For Season 0 Specials, try to match episode by its TITLE
         // This handles cases where the episodeNumber might not match but the title does
-        // EXCLUSION: Some animes have numbered-only specials (no episode titles to match)
-        const SPECIALS_C_EXCLUSIONS = ['one punch man', 'one-punch man', 'onepunchman'];
-        const normTitleForExclusion = title.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-        const skipStrategyCTitleMatch = SPECIALS_C_EXCLUSIONS.some(ex =>
-          normTitleForExclusion.includes(ex) || ex.includes(normTitleForExclusion)
-        );
-
-        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle && !skipStrategyCTitleMatch) {
+        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle) {
           console.log(`🎬 [Episode] Season 0: Trying to match by episode title: "${episodeEnglishTitle}"`);
 
           // Synonym dictionary for common translation differences
@@ -915,14 +908,7 @@ export default async function handler(req, res) {
 
         // Stratégie D: For Season 0, fallback to "[Title] Specials" anime and match by episode title
         // This handles series like One Punch Man where specials are grouped in a separate "Specials" anime
-        // EXCLUSION: Some animes have numbered-only specials (no episode titles to match)
-        const SPECIALS_TITLE_MATCH_EXCLUSIONS = ['one punch man', 'one-punch man', 'onepunchman'];
-        const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-        const skipSpecialsTitleMatch = SPECIALS_TITLE_MATCH_EXCLUSIONS.some(excluded =>
-          normalizedTitle.includes(excluded) || excluded.includes(normalizedTitle)
-        );
-
-        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle && !skipSpecialsTitleMatch) {
+        if (!targetEpisode && seasonNumber === 0 && episodeEnglishTitle) {
           console.log(`🎬 [Episode] Season 0 FALLBACK: Searching for "${title} Specials" anime...`);
 
           // Search for "[Title] Specials" anime
