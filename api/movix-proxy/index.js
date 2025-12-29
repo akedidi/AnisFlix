@@ -742,7 +742,11 @@ export default async function handler(req, res) {
 
         // Stratégie A: On a matché la saison spécifique OU on a un override (specials) -> on cherche episodeNumber (1, 2, ...)
         // Note: Pour les specials (season 0) avec override, episodeNumber est déjà remappé (ex: 36->1, 37->2)
-        if (isSpecificSeasonMatch || seasonNumber === 1 || overrideSearchTitle) {
+        // BUGFIX: Pour la Saison 0, on ne doit PAS prendre l'épisode par numéro sur la série principale (ex: S1E1 pris pour S0E1)
+        // On accepte S0 uniquement si l'anime sélectionné est explicitement des Specials/OAV ou si c'est un override manuel
+        const isSafeSeason0Match = seasonNumber !== 0 || (anime.title && (anime.title.toLowerCase().includes('specials') || anime.title.toLowerCase().includes('oav'))) || overrideSearchTitle;
+
+        if ((isSpecificSeasonMatch || seasonNumber === 1 || overrideSearchTitle) && isSafeSeason0Match) {
           targetEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
           if (!targetEpisode) console.log(`🎌 [Episode] Standard match (Ep ${episodeNumber}) failed`);
         }
