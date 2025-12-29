@@ -193,8 +193,8 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: animeVidMolyData, isLoading: isLoadingAnimeVidMoly, hasVidMolyLinks: hasAnimeVidMolyLinks } = useAnimeVidMolyLinks(
     title || '',
-    season || 1,
-    episode || 1,
+    season ?? 1,
+    episode ?? 1,
     isAnimeSeries // Ajouter la condition pour ne l'appeler que si c'est une série anime
   );
 
