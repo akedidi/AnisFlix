@@ -734,31 +734,46 @@ export default async function handler(req, res) {
 
         // Deduplication par ID
         candidates = candidates.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-        console.log(`🎌 [AnimeAPI] Total Candidates: ${candidates.length}`);
+        console.log(`🎌 [AnimeAPI] Total Candidates (before filter): ${candidates.length}`);
 
-        // Fonction de filtrage avancée
+        // ═══════════════════════════════════════════════════════════════════
+        // CRITICAL FIX: Filter out candidates that don't match the requested title
+        // This prevents false positives like "K-ON!" matching "Attack on Titan"
+        // ═══════════════════════════════════════════════════════════════════
+        const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+        candidates = candidates.filter(c => {
+          const cTitle = c.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          // Candidate must contain the requested title OR requested title must contain candidate
+          // Example: "attackontitanfinalseasonpart1" contains "attackontitan" ✓
+          // Example: "kon" does NOT contain "attackontitan" ✗
+          const matches = cTitle.includes(normTitle) || normTitle.includes(cTitle);
+          if (!matches) {
+            console.log(`   ❌ Filtered out: "${c.title}" (doesn't match "${title}")`);
+          }
+          return matches;
+        });
+        console.log(`🎌 [AnimeAPI] Candidates after title filter: ${candidates.length}`);
+
         // Fonction de classement des candidats (Ranking)
         const getRankedCandidates = (list) => {
           if (!list || list.length === 0) return [];
-          const uniqueList = list.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
 
-          const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
           const normOverride = overrideSearchTitle ? overrideSearchTitle.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-          const normEngSeason = englishSeasonName ? englishSeasonName.toLowerCase() : '';
+          const normEngSeason = englishSeasonName ? englishSeasonName.toLowerCase().replace(/[^a-z0-9 ]/g, '') : '';
 
-          return uniqueList.sort((a, b) => {
+          return list.sort((a, b) => {
             const aTitle = a.title.toLowerCase().replace(/[^a-z0-9]/g, '');
             const bTitle = b.title.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-            // 1. Override Title Match (Highest Priority)
+            // 1. Override Title Match (Highest Priority - for manual mappings)
             if (overrideSearchTitle) {
-              const aMatch = aTitle === normOverride || aTitle.includes(normOverride);
-              const bMatch = bTitle === normOverride || bTitle.includes(normOverride);
+              const aMatch = aTitle.includes(normOverride) || normOverride.includes(aTitle);
+              const bMatch = bTitle.includes(normOverride) || normOverride.includes(bTitle);
               if (aMatch && !bMatch) return -1;
               if (!aMatch && bMatch) return 1;
             }
 
-            // 2. Exact English Season Name Match
+            // 2. English Season Name Match (ex: "The Final Season")
             if (englishSeasonName && englishSeasonName.toLowerCase() !== 'specials') {
               const aMatch = a.title.toLowerCase().includes(normEngSeason);
               const bMatch = b.title.toLowerCase().includes(normEngSeason);
@@ -766,15 +781,15 @@ export default async function handler(req, res) {
               if (!aMatch && bMatch) return 1;
             }
 
-            // 3. Specific Season Number Match (Season N, 2nd Season, etc.)
+            // 3. Specific Season Number Match (Season N, 2nd Season, Part N, etc.)
             if (seasonNumber > 1) {
               const patterns = [
                 new RegExp(`season\\s*${seasonNumber}`, 'i'),
                 new RegExp(`${seasonNumber}nd\\s+season`, 'i'),
                 new RegExp(`${seasonNumber}rd\\s+season`, 'i'),
                 new RegExp(`${seasonNumber}th\\s+season`, 'i'),
-                new RegExp(`${title}\\s+${seasonNumber}$`, 'i'),
-                new RegExp(`${title}.*${seasonNumber}$`, 'i')
+                new RegExp(`part\\s*${seasonNumber}`, 'i'),
+                new RegExp(`${title}\\s+${seasonNumber}$`, 'i')
               ];
               const scoreA = patterns.reduce((acc, p) => acc + (p.test(a.title) ? 1 : 0), 0);
               const scoreB = patterns.reduce((acc, p) => acc + (p.test(b.title) ? 1 : 0), 0);
@@ -782,7 +797,13 @@ export default async function handler(req, res) {
               if (scoreB > scoreA) return 1;
             }
 
-            // 4. Fallback: Shortest title closer to generic root title
+            // 4. Prefer TV series over Movies/OVAs for episode matching
+            const aIsTV = a.tvInfo?.showType === 'TV';
+            const bIsTV = b.tvInfo?.showType === 'TV';
+            if (aIsTV && !bIsTV) return -1;
+            if (!aIsTV && bIsTV) return 1;
+
+            // 5. Fallback: Shortest title (more specific match)
             return a.title.length - b.title.length;
           });
         };
