@@ -33,14 +33,10 @@ struct anisflixApp: App {
             ZStack {
                 // Keep showing launch screen image until ready (matching LaunchScreen.storyboard)
                 if !isReady {
-                    Color.black
+                    Image("LaunchSplash")
+                        .resizable()
+                        .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
                         .ignoresSafeArea()
-                        .overlay(
-                            Image("LaunchSplash")
-                                .resizable()
-                                .scaledToFill()
-                                .ignoresSafeArea()
-                        )
                         .onAppear {
                             // Delay 2 seconds before showing main UI
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
