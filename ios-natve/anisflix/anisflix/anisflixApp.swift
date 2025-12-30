@@ -13,6 +13,7 @@ struct anisflixApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var theme = AppTheme.shared
     @AppStorage("mainSelectedTab") private var selectedTab = 0
+    @State private var showSplash = true
     
     init() {
         // Configure Audio Session for Playback (AirPlay, PiP, Background)
@@ -29,8 +30,41 @@ struct anisflixApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MainTabView(selectedTab: $selectedTab)
-                .preferredColorScheme(theme.isDarkMode ? .dark : .light)
+            if showSplash {
+                SplashScreenView()
+                    .preferredColorScheme(.dark)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                showSplash = false
+                            }
+                        }
+                    }
+            } else {
+                MainTabView(selectedTab: $selectedTab)
+                    .preferredColorScheme(theme.isDarkMode ? .dark : .light)
+            }
+        }
+    }
+}
+
+// MARK: - Splash Screen View
+struct SplashScreenView: View {
+    var body: some View {
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                Image(systemName: "play.tv.fill")
+                    .font(.system(size: 80))
+                    .foregroundColor(.red)
+                
+                Text("AnisFlix")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
         }
     }
 }
