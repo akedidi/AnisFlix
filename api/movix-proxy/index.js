@@ -743,12 +743,13 @@ export default async function handler(req, res) {
         const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
         candidates = candidates.filter(c => {
           const cTitle = c.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-          // Candidate must contain the requested title OR requested title must contain candidate
+          // Candidate title must CONTAIN the requested title
           // Example: "attackontitanfinalseasonpart1" contains "attackontitan" ✓
           // Example: "kon" does NOT contain "attackontitan" ✗
-          const matches = cTitle.includes(normTitle) || normTitle.includes(cTitle);
+          // NOTE: We do NOT check the reverse because "attackontitan" contains "kon" (false positive!)
+          const matches = cTitle.includes(normTitle);
           if (!matches) {
-            console.log(`   ❌ Filtered out: "${c.title}" (doesn't match "${title}")`);
+            console.log(`   ❌ Filtered out: "${c.title}" (doesn't contain "${title}")`);
           }
           return matches;
         });
