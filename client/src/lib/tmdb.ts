@@ -258,15 +258,18 @@ export const tmdb = {
               id: group.id,
               poster_path: null,
               season_number: seasonNumber,
-              episodes: group.episodes.map((ep: any) => ({
+              // Map episodes and renumber them sequentially (1, 2, 3...)
+              // This fixes issues where episodes from Specials have gaps in numbering
+              episodes: group.episodes.map((ep: any, index: number) => ({
                 ...ep,
+                episode_number: index + 1, // Sequential numbering instead of original TMDB number
                 season_number: seasonNumber, // Force virtual season number
                 show_id: seriesId,
               }))
             };
             // @ts-ignore
             tmdb.virtualSeasonsCache.set(cacheKey, seasonData);
-            console.log(`💧 [tmdb] Hydrated cache for Season ${seasonNumber}`);
+            console.log(`💧 [tmdb] Hydrated cache for Season ${seasonNumber} with ${group.episodes.length} episodes (renumbered 1-${group.episodes.length})`);
           });
 
           data.seasons = newSeasons;
