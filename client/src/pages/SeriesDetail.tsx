@@ -730,10 +730,15 @@ export default function SeriesDetail() {
                                 })
                             )
                           ) : (
-                            <div className="text-center p-4 text-muted-foreground text-sm">
-                              Chargement des données de la saison...
+                            <div className="text-center p-4 text-muted-foreground">
+                              Aucun épisode disponible pour cette saison.
                             </div>
-                          )}
+                          )
+                        ) : (
+                          <div className="text-center p-4 text-muted-foreground text-sm">
+                            Chargement des données de la saison...
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
