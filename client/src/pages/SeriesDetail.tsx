@@ -115,24 +115,6 @@ export default function SeriesDetail() {
     'tv'
   );
 
-  // Fetch UniversalVO sources
-  const { data: universalVOSources, isLoading: isLoadingUniversalVOSources } = useUniversalVOSources(
-    'tv',
-    seriesId,
-    selectedSeasonNumber,
-    selectedEpisode || undefined
-  );
-
-  const { data: afterDarkSources, isLoading: isLoadingAfterDark } = useAfterDarkSources(
-    'tv',
-    seriesId,
-    series?.name,
-    undefined, // year not needed for TV
-    undefined, // originalTitle not needed
-    selectedSeasonNumber,
-    selectedEpisode || undefined
-  );
-
   // Calculate relative episode number (index + 1) to handle absolute ordering (e.g. One Piece ep 422 -> S13E1)
   const relativeEpisode = useMemo(() => {
     if (!seasonDetails?.episodes || !selectedEpisode) return selectedEpisode;
@@ -144,6 +126,26 @@ export default function SeriesDetail() {
     }
     return selectedEpisode;
   }, [seasonDetails, selectedEpisode]);
+
+  // Fetch UniversalVO sources
+  const { data: universalVOSources, isLoading: isLoadingUniversalVOSources } = useUniversalVOSources(
+    'tv',
+    seriesId,
+    selectedSeasonNumber,
+    relativeEpisode || undefined
+  );
+
+  const { data: afterDarkSources, isLoading: isLoadingAfterDark } = useAfterDarkSources(
+    'tv',
+    seriesId,
+    series?.name,
+    undefined, // year not needed for TV
+    undefined, // originalTitle not needed
+    selectedSeasonNumber,
+    relativeEpisode || undefined
+  );
+
+
 
   // Fetch AnimeAPI sources for Animation genre
   // Use relativeEpisode in queryKey to trigger refetch when it changes
@@ -265,7 +267,7 @@ export default function SeriesDetail() {
       language: 'VO',
       tracks: source.tracks // Pass subtitles to player
     })) || []),
-    ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, selectedEpisode || 0, seriesId).map((source: any) => ({
+    ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, relativeEpisode || 0, seriesId).map((source: any) => ({
       ...source,
       id: `movix-anime-${source.id}`
     })))
@@ -637,7 +639,7 @@ export default function SeriesDetail() {
                                             isLoadingSource={isLoadingSource}
                                             isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark || isLoadingAnimeAPI}
                                             season={selectedSeasonNumber}
-                                            episode={episode.episode_number}
+                                            episode={relativeEpisode || episode.episode_number}
                                             imdbId={series?.external_ids?.imdb_id}
                                           />
                                         ) : (
