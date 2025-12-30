@@ -611,8 +611,10 @@ export default async function handler(req, res) {
           candidates = [...candidates, ...resultsSimple];
         }
 
-        // 4. Recherche Titre Seul (Fallback) - only if no override results
-        if (candidates.length === 0 || !overrideSearchTitle) {
+        // 4. Recherche Titre Seul (Generic Strategy - Always run to ensure we catch everything)
+        // This is often the most reliable way to find "2nd Season" etc. (searching "Jujutsu Kaisen" gives "Jujutsu Kaisen 2nd Season")
+        if (!overrideSearchTitle) {
+          console.log(`🎌 [Search Strategy 4] Searching Generic Title: "${title}"`);
           const resultsGeneric = await searchAnime(title);
           candidates = [...candidates, ...resultsGeneric];
         }

@@ -147,7 +147,7 @@ export const useSeriesDetails = (seriesId: number) => {
   const queryClient = useQueryClient();
 
   return useQuery({
-    queryKey: ["series", seriesId],
+    queryKey: ["series", seriesId, "v3-groups"],
     queryFn: async () => {
       const data = await tmdb.getSeriesDetails(seriesId);
       return data;
@@ -175,9 +175,9 @@ export const useSeriesVideos = (seriesId: number) => {
   });
 };
 
-export const useSeasonDetails = (seriesId: number, seasonNumber: number) => {
+export const useSeasonDetails = (seriesId: number, seasonNumber: number, options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ["series", seriesId, "season", seasonNumber],
+    queryKey: ["series", seriesId, "season", seasonNumber, "v3-groups"],
     queryFn: async () => {
       const frData = await tmdb.getSeasonDetails(seriesId, seasonNumber);
 
@@ -215,7 +215,7 @@ export const useSeasonDetails = (seriesId: number, seasonNumber: number) => {
 
       return frData;
     },
-    enabled: !!seriesId && seasonNumber !== undefined && seasonNumber !== null,
+    enabled: (options?.enabled ?? true) && !!seriesId && seasonNumber !== undefined && seasonNumber !== null,
     ...CACHE_OPTIONS,
   });
 };

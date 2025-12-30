@@ -91,7 +91,9 @@ export default function SeriesDetail() {
   }, [series, isLoadingSeries]);
 
   const { data: videos } = useSeriesVideos(seriesId);
-  const { data: seasonDetails, isLoading: isLoadingSeason, error: seasonError } = useSeasonDetails(seriesId, selectedSeasonNumber);
+  // Ensure we only fetch season details AFTER the series has been loaded and processed
+  // This allows the useSeriesDetails hook to populate the virtualSeasonsCache first!
+  const { data: seasonDetails, isLoading: isLoadingSeason, error: seasonError } = useSeasonDetails(seriesId, selectedSeasonNumber, { enabled: !!series });
 
   // Debug Season 0
   useEffect(() => {
