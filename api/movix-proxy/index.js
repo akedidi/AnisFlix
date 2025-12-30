@@ -674,6 +674,24 @@ export default async function handler(req, res) {
                 return { match: match, method: 'specific' };
               }
             }
+
+            // 2b. Match Flexible "Title...N..." (ex: "Jujutsu Kaisen 2nd Season" matches "Jujutsu Kaisen 2")
+            // Normalized check: "jujutsukaisen2ndseason" includes "jujutsukaisen2"
+            const normTitleWithSeason = normTitle + seasonNumber;
+            const flexibleMatch = list.find(r => {
+              const rTitle = r.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+              // Check inclusion AND ensure next char is not digit (to avoid matching 20 when looking for 2)
+              const index = rTitle.indexOf(normTitleWithSeason);
+              if (index === -1) return false;
+
+              const charAfter = rTitle.charAt(index + normTitleWithSeason.length);
+              return !charAfter || isNaN(parseInt(charAfter));
+            });
+
+            if (flexibleMatch) {
+              console.log(`🎌 [Match] Found by Flexible Title+Number: ${flexibleMatch.title}`);
+              return { match: flexibleMatch, method: 'specific' };
+            }
           }
 
           // Priorité 3: Match Generic (Titre "root")
