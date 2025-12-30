@@ -1489,5 +1489,217 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==========================================
+  // TMDB PROXY - Centralized API for Web and iOS
+  // Handles Episode Groups, virtual seasons, sequential numbering
+  // ==========================================
+
+  const TMDB_API_KEY = 'f3d757824f08ea2cff45eb8f47ca3a1e';
+  const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+
+  // Cache for virtual seasons
+  const tmdbVirtualSeasonsCache = new Map<string, any>();
+
+  // Helper function to fetch from TMDB
+  async function tmdbProxyFetch(endpoint: string, params: Record<string, any> = {}) {
+    const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
+    url.searchParams.append('api_key', TMDB_API_KEY);
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value));
+      }
+    });
+
+    const response = await axios.get(url.toString());
+    return response.data;
+  }
+
+  // Check if episode name is generic
+  function isGenericEpisodeName(name: string, episodeNumber: number): boolean {
+    const pattern = /^(Episode|Épisode|Episodio)\s+\d+$/i;
+    return pattern.test(name) || name === `Episode ${episodeNumber}`;
+  }
+
+  // Process Episode Groups and create virtual seasons
+  async function processEpisodeGroups(seriesData: any, seriesId: number) {
+    const episodeGroups = seriesData.episode_groups?.results;
+    if (!episodeGroups || episodeGroups.length === 0) {
+      return seriesData;
+    }
+
+    // Priority: Type 6 AND name starts with "Seasons"
+    let seasonsGroup = episodeGroups.find((g: any) =>
+      g.type === 6 && g.name.startsWith("Seasons")
+    );
+
+    // Fallback: Any Type 6
+    if (!seasonsGroup) {
+      seasonsGroup = episodeGroups.find((g: any) => g.type === 6);
+    }
+
+    if (!seasonsGroup) {
+      return seriesData;
+    }
+
+    console.log(`✅ [TMDB PROXY] Found "Seasons" episode group: ${seasonsGroup.name}`);
+
+    try {
+      const groupDetails = await tmdbProxyFetch(`/tv/episode_group/${seasonsGroup.id}`);
+
+      if (!groupDetails || !groupDetails.groups) {
+        return seriesData;
+      }
+
+      // Transform groups into season summaries
+      const newSeasons = groupDetails.groups.map((group: any) => ({
+        id: group.id,
+        name: group.name,
+        season_number: group.order,
+        episode_count: group.episodes?.length || 0,
+        poster_path: seriesData.poster_path,
+        overview: "",
+        air_date: group.episodes?.[0]?.air_date,
+        vote_average: 0,
+        is_virtual: true
+      }));
+
+      // Handle Season 0 logic
+      const originalSeason0 = seriesData.seasons?.find((s: any) => s.season_number === 0);
+      const groupSeason0 = newSeasons.find((s: any) => s.season_number === 0);
+
+      if (originalSeason0 && groupSeason0 && originalSeason0.episode_count > groupSeason0.episode_count) {
+        console.warn(`⚠️ [TMDB PROXY] Keeping original Season 0 (${originalSeason0.episode_count} eps) vs Group (${groupSeason0.episode_count} eps)`);
+        const index = newSeasons.indexOf(groupSeason0);
+        if (index > -1) newSeasons.splice(index, 1);
+        newSeasons.push(originalSeason0);
+      } else if (originalSeason0 && !groupSeason0) {
+        newSeasons.push(originalSeason0);
+      }
+
+      newSeasons.sort((a: any, b: any) => a.season_number - b.season_number);
+
+      // Hydrate cache for virtual seasons
+      groupDetails.groups.forEach((group: any) => {
+        const seasonNumber = group.order;
+
+        if (seasonNumber === 0 && originalSeason0 && originalSeason0.episode_count > (group.episodes?.length || 0)) {
+          return;
+        }
+
+        const cacheKey = `${seriesId}_${seasonNumber}`;
+        const seasonData = {
+          _id: group.id,
+          air_date: group.episodes?.[0]?.air_date,
+          name: group.name,
+          overview: "",
+          id: group.id,
+          poster_path: null,
+          season_number: seasonNumber,
+          // IMPORTANT: Sequential numbering (1, 2, 3...)
+          episodes: group.episodes.map((ep: any, index: number) => ({
+            ...ep,
+            episode_number: index + 1,
+            season_number: seasonNumber,
+            show_id: seriesId,
+          }))
+        };
+
+        tmdbVirtualSeasonsCache.set(cacheKey, seasonData);
+        console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} with ${group.episodes.length} episodes`);
+      });
+
+      seriesData.seasons = newSeasons;
+      seriesData.number_of_seasons = newSeasons.length;
+
+    } catch (error: any) {
+      console.error('❌ [TMDB PROXY] Failed to process episode group:', error.message);
+    }
+
+    return seriesData;
+  }
+
+  // TMDB Proxy route
+  app.get("/api/tmdb-proxy", async (req, res) => {
+    try {
+      const { type, id, seriesId, seasonNumber, language = 'fr-FR' } = req.query;
+
+      // Endpoint 1: Series Details
+      if (type === 'series' && id) {
+        const seriesIdNum = parseInt(id as string, 10);
+        console.log(`🎬 [TMDB PROXY] Fetching series details for ID: ${seriesIdNum}`);
+
+        let seriesData = await tmdbProxyFetch(`/tv/${seriesIdNum}`, {
+          language,
+          append_to_response: 'external_ids,credits,episode_groups'
+        });
+
+        seriesData = await processEpisodeGroups(seriesData, seriesIdNum);
+
+        return res.json(seriesData);
+      }
+
+      // Endpoint 2: Season Details
+      if (type === 'season' && seriesId && seasonNumber !== undefined) {
+        const seriesIdNum = parseInt(seriesId as string, 10);
+        const seasonNum = parseInt(seasonNumber as string, 10);
+        const cacheKey = `${seriesIdNum}_${seasonNum}`;
+
+        console.log(`📺 [TMDB PROXY] Fetching season ${seasonNum} for series ${seriesIdNum}`);
+
+        // Check virtual seasons cache first
+        if (tmdbVirtualSeasonsCache.has(cacheKey)) {
+          console.log(`⚡️ [TMDB PROXY] Returning cached virtual season ${seasonNum}`);
+          return res.json(tmdbVirtualSeasonsCache.get(cacheKey));
+        }
+
+        // Fetch from TMDB
+        let seasonData = await tmdbProxyFetch(`/tv/${seriesIdNum}/season/${seasonNum}`, { language });
+
+        // Check for generic names and fallback to English
+        const hasGenericNames = seasonData.episodes.some((ep: any) =>
+          isGenericEpisodeName(ep.name, ep.episode_number)
+        );
+
+        if (hasGenericNames && language !== 'en-US') {
+          console.log(`⚠️ [TMDB PROXY] Generic names detected, fetching English fallback...`);
+          try {
+            const enSeasonData = await tmdbProxyFetch(`/tv/${seriesIdNum}/season/${seasonNum}`, { language: 'en-US' });
+
+            seasonData.episodes = seasonData.episodes.map((frEp: any) => {
+              if (isGenericEpisodeName(frEp.name, frEp.episode_number)) {
+                const enEp = enSeasonData.episodes.find((e: any) => e.id === frEp.id);
+                if (enEp) {
+                  console.log(`✅ [TMDB PROXY] Replaced "${frEp.name}" with "${enEp.name}"`);
+                  return {
+                    ...frEp,
+                    name: enEp.name,
+                    original_name: enEp.name
+                  };
+                }
+              }
+              return frEp;
+            });
+          } catch (error: any) {
+            console.error('❌ [TMDB PROXY] Failed to fetch English fallback:', error.message);
+          }
+        }
+
+        return res.json(seasonData);
+      }
+
+      return res.status(400).json({
+        error: 'Invalid request. Use type=series&id=X or type=season&seriesId=X&seasonNumber=Y'
+      });
+
+    } catch (error: any) {
+      console.error('❌ [TMDB PROXY] Error:', error.message);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error.message
+      });
+    }
+  });
+
   return httpServer;
 }
