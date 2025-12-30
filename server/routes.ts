@@ -1534,7 +1534,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Process Episode Groups and create virtual seasons
-  async function processEpisodeGroups(seriesData: any, seriesId: number) {
+  async function processEpisodeGroups(seriesData: any, seriesId: number, language: string) {
     const episodeGroups = seriesData.episode_groups?.results;
     if (!episodeGroups || episodeGroups.length === 0) {
       return seriesData;
@@ -1557,7 +1557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`✅ [TMDB PROXY] Found "Seasons" episode group: ${seasonsGroup.name}`);
 
     try {
-      const groupDetails = await tmdbProxyFetch(`/tv/episode_group/${seasonsGroup.id}`);
+      const groupDetails = await tmdbProxyFetch(`/tv/episode_group/${seasonsGroup.id}?language=${language}`);
 
       if (!groupDetails || !groupDetails.groups) {
         return seriesData;
@@ -1599,7 +1599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
-        const cacheKey = `${seriesId}_${seasonNumber}`;
+        const cacheKey = `${seriesId}_${seasonNumber}_${language}`;
         const seasonData = {
           _id: group.id,
           air_date: group.episodes?.[0]?.air_date,
@@ -1611,6 +1611,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // IMPORTANT: Sequential numbering (1, 2, 3...)
           episodes: group.episodes.map((ep: any, index: number) => ({
             ...ep,
+            id: typeof ep.id === 'string' ? stringToIntHash(ep.id) : ep.id,
+            name: ep.name || `Episode ${index + 1}`,
+            overview: ep.overview || "",
             episode_number: index + 1,
             season_number: seasonNumber,
             show_id: seriesId,
@@ -1618,7 +1621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         tmdbVirtualSeasonsCache.set(cacheKey, seasonData);
-        console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} with ${group.episodes.length} episodes`);
+        console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} (${language})`);
       });
 
       seriesData.seasons = newSeasons;
@@ -1634,30 +1637,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TMDB Proxy route
   app.get("/api/tmdb-proxy", async (req, res) => {
     try {
-      const { type, id, seriesId, seasonNumber, language = 'fr-FR' } = req.query;
+      const type = req.query.type as string;
+      const id = req.query.id as string;
+      const seriesId = req.query.seriesId as string;
+      const seasonNumber = req.query.seasonNumber as string;
+      const language = (req.query.language as string) || 'fr-FR';
 
       // Endpoint 1: Series Details
       if (type === 'series' && id) {
-        const seriesIdNum = parseInt(id as string, 10);
-        console.log(`🎬 [TMDB PROXY] Fetching series details for ID: ${seriesIdNum}`);
+        const seriesIdNum = parseInt(id, 10);
+        console.log(`🎬 [TMDB PROXY] Fetching series: ${seriesIdNum} (${language})`);
 
-        let seriesData = await tmdbProxyFetch(`/tv/${seriesIdNum}`, {
-          language,
-          append_to_response: 'external_ids,credits,episode_groups'
-        });
+        let seriesData = await tmdbProxyFetch(`/tv/${seriesIdNum}?language=${language}&append_to_response=external_ids,credits,episode_groups`);
 
-        seriesData = await processEpisodeGroups(seriesData, seriesIdNum);
+        seriesData = await processEpisodeGroups(seriesData, seriesIdNum, language);
 
         return res.json(seriesData);
       }
 
       // Endpoint 2: Season Details
       if (type === 'season' && seriesId && seasonNumber !== undefined) {
-        const seriesIdNum = parseInt(seriesId as string, 10);
-        const seasonNum = parseInt(seasonNumber as string, 10);
-        const cacheKey = `${seriesIdNum}_${seasonNum}`;
+        const seriesIdNum = parseInt(seriesId, 10);
+        const seasonNum = parseInt(seasonNumber, 10);
+        const cacheKey = `${seriesIdNum}_${seasonNum}_${language}`;
 
-        console.log(`📺 [TMDB PROXY] Fetching season ${seasonNum} for series ${seriesIdNum}`);
+        console.log(`📺 [TMDB PROXY] Fetching season ${seasonNum} for series ${seriesIdNum} (${language})`);
 
         // Check virtual seasons cache first
         if (tmdbVirtualSeasonsCache.has(cacheKey)) {
