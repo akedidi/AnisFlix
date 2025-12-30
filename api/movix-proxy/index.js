@@ -461,11 +461,43 @@ export default async function handler(req, res) {
         if (tmdbId) {
           try {
             console.log(`🎌 [AnimeAPI] Fetching TMDB info for ID: ${tmdbId}`);
-            const tmdbUrl = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=en-US`;
+            // Include episode_groups in the request
+            const tmdbUrl = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=en-US&append_to_response=episode_groups`;
             const tmdbRes = await axios.get(tmdbUrl, { timeout: 5000 });
 
-            if (tmdbRes.data && tmdbRes.data.seasons) {
-              const seasons = tmdbRes.data.seasons;
+            if (tmdbRes.data) {
+              let seasons = tmdbRes.data.seasons || [];
+
+              // --- EPISODE GROUP LOGIC START ---
+              // Attempt to use Episode Groups (Type 6, "Seasons"...) to better match Anime sites
+              // This mirrors the frontend logic
+              const groups = tmdbRes.data.episode_groups?.results || [];
+              let seasonsGroup = groups.find(g => g.type === 6 && g.name.startsWith("Seasons"));
+              if (!seasonsGroup) seasonsGroup = groups.find(g => g.type === 6);
+
+              if (seasonsGroup) {
+                console.log(`🎌 [AnimeAPI] Found suitable Episode Group: "${seasonsGroup.name}" (${seasonsGroup.id})`);
+                try {
+                  const groupUrl = `https://api.themoviedb.org/3/tv/episode_group/${seasonsGroup.id}?api_key=${TMDB_KEY}&language=en-US`;
+                  const groupRes = await axios.get(groupUrl, { timeout: 5000 });
+
+                  if (groupRes.data && groupRes.data.groups) {
+                    // Transform group data to override 'seasons'
+                    // Group order is usually the season number
+                    seasons = groupRes.data.groups.map(g => ({
+                      season_number: g.order,
+                      name: g.name,
+                      episode_count: g.episodes ? g.episodes.length : 0,
+                      overview: ""
+                    }));
+                    console.log(`🎌 [AnimeAPI] Overrode seasons using Episode Group (Count: ${seasons.length})`);
+                  }
+                } catch (groupError) {
+                  console.warn(`⚠️ [AnimeAPI] Failed to fetch Episode Group details: ${groupError.message}`);
+                }
+              }
+              // --- EPISODE GROUP LOGIC END ---
+
               const targetSeason = seasons.find(s => s.season_number === seasonNumber);
 
               if (targetSeason) {
