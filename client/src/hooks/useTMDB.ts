@@ -151,10 +151,16 @@ export const useSeriesDetails = (seriesId: number) => {
     queryFn: async () => {
       const data = await tmdb.getSeriesDetails(seriesId);
 
-      // Check for Episode Groups (type 6 = "Seasons" or name = "Seasons")
-      const seasonsGroup = data.episode_groups?.results?.find((g: any) =>
-        g.type === 6 || g.name === "Seasons"
+      // Check for Episode Groups (type 6 = "Seasons")
+      // Priority: Type 6 AND Name starts with "Seasons" (e.g. "Seasons", "Seasons + OVAs")
+      // Fallback: Any Type 6
+      let seasonsGroup = data.episode_groups?.results?.find((g: any) =>
+        g.type === 6 && g.name.startsWith("Seasons")
       );
+
+      if (!seasonsGroup) {
+        seasonsGroup = data.episode_groups?.results?.find((g: any) => g.type === 6);
+      }
 
       if (seasonsGroup) {
         console.log(`✅ [useSeriesDetails] Found "Seasons" episode group:`, seasonsGroup);
@@ -181,9 +187,41 @@ export const useSeriesDetails = (seriesId: number) => {
               };
             });
 
-            // Hydrate cache for each season
+            // Handle Season 0 (Specials) Logic
+            // Sometimes Episode Groups have incomplete Specials (e.g., JJK has 5 in group vs 9 in original).
+            // If original Season 0 exists and has more episodes than the group's Season 0, we prefer the original.
+            const originalSeason0 = data.seasons?.find((s: any) => s.season_number === 0);
+            const groupSeason0 = newSeasons.find((s: any) => s.season_number === 0);
+
+            if (originalSeason0 && groupSeason0) {
+              if (originalSeason0.episode_count > groupSeason0.episode_count) {
+                console.warn(`⚠️ [useSeriesDetails] Episode Group Season 0 has fewer episodes (${groupSeason0.episode_count}) than original Season 0 (${originalSeason0.episode_count}). Keeping original.`);
+                // Remove incomplete Season 0 from newSeasons
+                const index = newSeasons.indexOf(groupSeason0);
+                if (index > -1) {
+                  newSeasons.splice(index, 1); // Remove the group version
+                }
+                // Add original Season 0 back
+                newSeasons.push(originalSeason0);
+
+                // Sort seasons by season_number just in case
+                newSeasons.sort((a: any, b: any) => a.season_number - b.season_number);
+              }
+            } else if (originalSeason0 && !groupSeason0) {
+              // Group didn't even have Season 0, so we definitely keep the original
+              newSeasons.push(originalSeason0);
+              newSeasons.sort((a: any, b: any) => a.season_number - b.season_number);
+            }
+
+            // Hydrate cache for each season (ONLY for the ones we kept from the group)
             groupDetails.groups.forEach((group: any) => {
               const seasonNumber = group.order;
+
+              // SKIP hydration for Season 0 if we decided to use the original
+              if (seasonNumber === 0 && originalSeason0 && (originalSeason0.episode_count > (group.episodes?.length || 0))) {
+                return;
+              }
+
               const cacheKey = ["series", seriesId, "season", seasonNumber];
 
               // Check if data is already in cache to avoid overwriting with partial data if we want

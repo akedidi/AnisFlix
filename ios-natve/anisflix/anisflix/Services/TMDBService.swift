@@ -247,8 +247,16 @@ class TMDBService {
         var detail: SeriesDetail = try await fetch(from: endpoint)
         
         // Check for "Seasons" Episode Group (Type 6 usually, or name "Seasons")
-        if let groups = detail.episodeGroups?.results,
-           let seasonsGroup = groups.first(where: { $0.type == 6 || $0.name == "Seasons" }) {
+        // Check for Episode Groups (type 6 = "Seasons")
+        // Priority: Type 6 AND Name starts with "Seasons" (e.g., "Seasons", "Seasons + OVAs")
+        // Fallback: Any Type 6
+        var seasonsGroup = detail.episodeGroups?.results?.first(where: { $0.type == 6 && $0.name.hasPrefix("Seasons") })
+        
+        if seasonsGroup == nil {
+             seasonsGroup = detail.episodeGroups?.results?.first(where: { $0.type == 6 })
+        }
+        
+        if let seasonsGroup = seasonsGroup {
             
             print("✅ [TMDBService] Found 'Seasons' episode group: \(seasonsGroup.name) (ID: \(seasonsGroup.id))")
             
