@@ -830,6 +830,7 @@ export default function VideoPlayer({
         {!isNative && (
           <CustomVideoControls
             videoRef={videoRef}
+            containerRef={containerRef as React.RefObject<HTMLElement>}
             isPlaying={isPlaying}
             isMuted={isMuted}
             isFullscreen={isFullscreen}

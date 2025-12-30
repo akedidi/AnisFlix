@@ -14,6 +14,7 @@ import { Subtitle } from "@/lib/opensubtitles";
 
 interface CustomVideoControlsProps {
   videoRef: React.RefObject<HTMLVideoElement>;
+  containerRef?: React.RefObject<HTMLElement>;
   isPlaying: boolean;
   isMuted: boolean;
   isFullscreen: boolean;
@@ -45,6 +46,7 @@ interface CustomVideoControlsProps {
 
 export default function CustomVideoControls({
   videoRef,
+  containerRef,
   isPlaying,
   isMuted,
   isFullscreen,
@@ -237,7 +239,11 @@ export default function CustomVideoControls({
                   <Subtitles className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto z-[99999]">
+              <DropdownMenuContent
+                align="end"
+                className="max-h-[300px] overflow-y-auto z-[99999]"
+                container={containerRef?.current || undefined}
+              >
                 <DropdownMenuLabel>Sous-titres</DropdownMenuLabel>
 
                 <div className="px-2 py-2 border-b">

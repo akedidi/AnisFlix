@@ -649,6 +649,7 @@ export default function VidMolyPlayer({
         {!isNative && (
           <CustomVideoControls
             videoRef={videoRef}
+            containerRef={containerRef as React.RefObject<HTMLElement>}
             isPlaying={isPlaying}
             isMuted={isMuted}
             isFullscreen={isFullscreen}
@@ -679,6 +680,7 @@ export default function VidMolyPlayer({
             {/* Contrôles personnalisés pour mobile */}
             <CustomVideoControls
               videoRef={videoRef}
+              containerRef={containerRef as React.RefObject<HTMLElement>}
               isPlaying={isPlaying}
               isMuted={isMuted}
               isFullscreen={isFullscreen}
