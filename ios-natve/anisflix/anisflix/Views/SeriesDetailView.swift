@@ -572,6 +572,7 @@ struct SeriesDetailView: View {
     
     private func loadSeasonDetails() async {
         isSeasonLoading = true
+        self.seasonDetails = nil // Reset to prevent showing stale data
         let language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
