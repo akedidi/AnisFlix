@@ -676,9 +676,25 @@ struct SubtitleSelectionView: View {
                     }
                     
                     HStack {
-                        Text("A").font(.caption2)
+                        Button {
+                            subtitleFontSize = max(50, subtitleFontSize - 10)
+                        } label: {
+                            Text("A").font(.caption2)
+                                .frame(width: 30, height: 30)
+                                .background(Circle().fill(Color.gray.opacity(0.2)))
+                        }
+                        .buttonStyle(.borderless)
+                        
                         Slider(value: $subtitleFontSize, in: 50...150, step: 10)
-                        Text("A").font(.title3)
+                        
+                        Button {
+                            subtitleFontSize = min(150, subtitleFontSize + 10)
+                        } label: {
+                            Text("A").font(.title3)
+                                .frame(width: 30, height: 30)
+                                .background(Circle().fill(Color.gray.opacity(0.2)))
+                        }
+                        .buttonStyle(.borderless)
                     }
                 }
                 
