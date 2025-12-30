@@ -581,6 +581,14 @@ export default async function handler(req, res) {
             if (tmdbRes.data) {
               let seasons = tmdbRes.data.seasons || [];
 
+              // SAVE ORIGINAL SEASON NAME (e.g., "The Final Season") BEFORE Episode Group override
+              let originalSeasonName = null;
+              const originalTargetSeason = seasons.find(s => s.season_number === seasonNumber);
+              if (originalTargetSeason) {
+                originalSeasonName = originalTargetSeason.name;
+                console.log(`🎌 [AnimeAPI] Original TMDB Season Name: "${originalSeasonName}"`);
+              }
+
               // --- EPISODE GROUP LOGIC START ---
               // Attempt to use Episode Groups (Type 6, "Seasons"...) to better match Anime sites
               // This mirrors the frontend logic
@@ -614,8 +622,10 @@ export default async function handler(req, res) {
               const targetSeason = seasons.find(s => s.season_number === seasonNumber);
 
               if (targetSeason) {
-                englishSeasonName = targetSeason.name; // ex: "The Final Season"
-                console.log(`🎌 [AnimeAPI] TMDB English Season Name: "${englishSeasonName}"`);
+                // PREFER original TMDB name (e.g., "The Final Season") over group name (e.g., "Season 4")
+                // because anime sites use original names like "Final Season Part 1"
+                englishSeasonName = originalSeasonName || targetSeason.name;
+                console.log(`🎌 [AnimeAPI] Using Season Name for matching: "${englishSeasonName}"`);
               }
 
               // Calculer Absolute Episode Number
@@ -802,7 +812,19 @@ export default async function handler(req, res) {
               if (scoreB > scoreA) return 1;
             }
 
-            // 4. Prefer TV series over Movies/OVAs for episode matching
+            // 4. For multi-part seasons, prioritize "Part 1" before "Part 2" before "Part 3"
+            // This ensures we check Part 1 first (which has earlier episodes)
+            const aHasPart1 = /part\s*1/i.test(a.title);
+            const bHasPart1 = /part\s*1/i.test(b.title);
+            if (aHasPart1 && !bHasPart1) return -1;
+            if (!aHasPart1 && bHasPart1) return 1;
+
+            const aHasPart2 = /part\s*2/i.test(a.title);
+            const bHasPart2 = /part\s*2/i.test(b.title);
+            if (aHasPart2 && !bHasPart2) return -1;
+            if (!aHasPart2 && bHasPart2) return 1;
+
+            // 5. Prefer TV series over Movies/OVAs for episode matching
             const aIsTV = a.tvInfo?.showType === 'TV';
             const bIsTV = b.tvInfo?.showType === 'TV';
             if (aIsTV && !bIsTV) return -1;
