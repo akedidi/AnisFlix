@@ -760,7 +760,11 @@ export default async function handler(req, res) {
           if (!list || list.length === 0) return [];
 
           const normOverride = overrideSearchTitle ? overrideSearchTitle.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-          const normEngSeason = englishSeasonName ? englishSeasonName.toLowerCase().replace(/[^a-z0-9 ]/g, '') : '';
+          // Remove common prefixes like "The" from season name for better matching
+          const cleanSeasonName = englishSeasonName ? englishSeasonName.toLowerCase().replace(/^the\s+/i, '') : '';
+          const normEngSeason = cleanSeasonName.replace(/[^a-z0-9]/g, '');
+
+          console.log(`🔍 [Ranking] Looking for season: "${englishSeasonName}" → normalized: "${normEngSeason}"`);
 
           return list.sort((a, b) => {
             const aTitle = a.title.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -774,10 +778,10 @@ export default async function handler(req, res) {
               if (!aMatch && bMatch) return 1;
             }
 
-            // 2. English Season Name Match (ex: "The Final Season")
-            if (englishSeasonName && englishSeasonName.toLowerCase() !== 'specials') {
-              const aMatch = a.title.toLowerCase().includes(normEngSeason);
-              const bMatch = b.title.toLowerCase().includes(normEngSeason);
+            // 2. English Season Name Match (ex: "The Final Season" → "finalseason")
+            if (normEngSeason && normEngSeason !== 'specials') {
+              const aMatch = aTitle.includes(normEngSeason);
+              const bMatch = bTitle.includes(normEngSeason);
               if (aMatch && !bMatch) return -1;
               if (!aMatch && bMatch) return 1;
             }
