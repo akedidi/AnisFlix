@@ -33,18 +33,22 @@ struct anisflixApp: App {
             ZStack {
                 // Keep showing launch screen image until ready
                 if !isReady {
-                    Image("LaunchSplash")
-                        .resizable()
-                        .scaledToFill()
-                        .ignoresSafeArea()
-                        .onAppear {
-                            // Delay 2 seconds before showing main UI
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                withAnimation {
-                                    isReady = true
-                                }
+                    GeometryReader { geometry in
+                        Image("LaunchSplash")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geometry.size.width, height: geometry.size.height)
+                            .clipped()
+                    }
+                    .ignoresSafeArea()
+                    .onAppear {
+                        // Delay 2 seconds before showing main UI
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            withAnimation {
+                                isReady = true
                             }
                         }
+                    }
                 } else {
                     MainTabView(selectedTab: $selectedTab)
                         .preferredColorScheme(theme.isDarkMode ? .dark : .light)
