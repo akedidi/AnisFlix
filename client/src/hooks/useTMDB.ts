@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { tmdb, getImageUrl } from "@/lib/tmdb";
 import { getMovixPlayerLinks, extractImdbId, getHLSProxyUrl } from "@/lib/movixPlayer";
 
@@ -144,9 +144,92 @@ export const useMovieDetails = (movieId: number) => {
 };
 
 export const useSeriesDetails = (seriesId: number) => {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ["series", seriesId],
-    queryFn: () => tmdb.getSeriesDetails(seriesId),
+    queryFn: async () => {
+      const data = await tmdb.getSeriesDetails(seriesId);
+
+      // Check for Episode Groups (type 6 = "Seasons" or name = "Seasons")
+      const seasonsGroup = data.episode_groups?.results?.find((g: any) =>
+        g.type === 6 || g.name === "Seasons"
+      );
+
+      if (seasonsGroup) {
+        console.log(`✅ [useSeriesDetails] Found "Seasons" episode group:`, seasonsGroup);
+
+        try {
+          // Fetch group details
+          const groupDetails = await tmdb.getEpisodeGroupDetails(seasonsGroup.id);
+
+          if (groupDetails && groupDetails.groups) {
+            // Transform group data to seasons format
+            const newSeasons = groupDetails.groups.map((group: any) => {
+              // Extract season number from group order or name if possible
+              // Typically groups are named "Season 1", "Season 2", etc.
+              // We use 'order' as season_number usually
+              return {
+                id: group.id,
+                name: group.name,
+                season_number: group.order,
+                episode_count: group.episodes?.length || 0,
+                poster_path: data.poster_path, // Fallback as groups might not have posters
+                overview: "",
+                air_date: group.episodes?.[0]?.air_date,
+                vote_average: 0
+              };
+            });
+
+            // Hydrate cache for each season
+            groupDetails.groups.forEach((group: any) => {
+              const seasonNumber = group.order;
+              const cacheKey = ["series", seriesId, "season", seasonNumber];
+
+              // Check if data is already in cache to avoid overwriting with partial data if we want
+              // But here we want to enforce the group data
+              const seasonData = {
+                _id: group.id,
+                air_date: group.episodes?.[0]?.air_date,
+                name: group.name,
+                overview: "",
+                id: group.id,
+                poster_path: null,
+                season_number: seasonNumber,
+                // Map episodes to standard format
+                episodes: group.episodes.map((ep: any) => ({
+                  ...ep,
+                  still_path: ep.still_path,
+                  vote_average: ep.vote_average,
+                  vote_count: ep.vote_count,
+                  air_date: ep.air_date,
+                  episode_number: ep.episode_number,
+                  name: ep.name,
+                  overview: ep.overview,
+                  id: ep.id,
+                  production_code: ep.production_code,
+                  runtime: ep.runtime,
+                  season_number: seasonNumber,
+                  show_id: seriesId,
+                }))
+              };
+
+              console.log(`💧 [useSeriesDetails] Hydrating cache for Season ${seasonNumber}`);
+              queryClient.setQueryData(cacheKey, seasonData);
+            });
+
+            // Update series data with new seasons
+            data.seasons = newSeasons;
+            data.number_of_seasons = newSeasons.length;
+            console.log(`✨ [useSeriesDetails] Updated series with ${newSeasons.length} seasons from Episode Group`);
+          }
+        } catch (error) {
+          console.error("❌ [useSeriesDetails] Failed to process episode group:", error);
+        }
+      }
+
+      return data;
+    },
     enabled: !!seriesId,
     ...CACHE_OPTIONS,
   });

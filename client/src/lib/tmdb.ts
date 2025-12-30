@@ -194,7 +194,11 @@ export const tmdb = {
   },
 
   getSeriesDetails: async (seriesId: number) => {
-    return tmdbFetch(`/tv/${seriesId}`, { append_to_response: 'external_ids' });
+    return tmdbFetch(`/tv/${seriesId}`, { append_to_response: 'external_ids,episode_groups' });
+  },
+
+  getEpisodeGroupDetails: async (groupId: string) => {
+    return tmdbFetch(`/tv/episode_group/${groupId}`);
   },
 
   getSeriesVideos: async (seriesId: number) => {

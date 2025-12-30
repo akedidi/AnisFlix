@@ -146,11 +146,12 @@ struct SeriesDetail: Codable {
     let backdropPath: String?
     let firstAirDate: String?
     let voteAverage: Double
-    let numberOfSeasons: Int
+    var numberOfSeasons: Int
     let numberOfEpisodes: Int
     let genres: [Genre]
     let externalIds: ExternalIds?
-    let seasons: [SeasonSummary]?
+    var seasons: [SeasonSummary]?
+    let episodeGroups: EpisodeGroups?
     
     struct Genre: Codable, Identifiable {
         let id: Int
@@ -184,6 +185,7 @@ struct SeriesDetail: Codable {
         case externalIds = "external_ids"
         case credits
         case seasons
+        case episodeGroups = "episode_groups"
     }
     
     let credits: Credits?
@@ -208,9 +210,34 @@ struct CastMember: Codable, Identifiable {
 struct ExternalIds: Codable {
     let imdbId: String?
     
-    private enum CodingKeys: String, CodingKey {
         case imdbId = "imdb_id"
     }
+}
+
+// MARK: - Episode Groups Models
+
+struct EpisodeGroups: Codable {
+    let results: [EpisodeGroup]
+}
+
+struct EpisodeGroup: Codable {
+    let id: String
+    let name: String
+    let order: Int
+    let type: Int
+}
+
+struct EpisodeGroupDetails: Codable {
+    let id: String
+    let name: String
+    let groups: [EpisodeGroupSeason]
+}
+
+struct EpisodeGroupSeason: Codable {
+    let id: String
+    let name: String
+    let order: Int
+    let episodes: [Episode]
 }
 
 extension MovieDetail {

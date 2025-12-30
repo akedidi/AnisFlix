@@ -16,6 +16,10 @@ class TMDBService {
     
     private init() {}
     
+    // Cache for requests of "Virtual Seasons" (from Episode Groups)
+    // Key: "{seriesId}_{seasonNumber}"
+    private var virtualSeasonsCache: [String: SeasonDetails] = [:]
+    
     // MARK: - Popular Movies
     
     func fetchPopularMovies(page: Int = 1, language: String? = nil) async throws -> [Media] {
@@ -163,6 +167,13 @@ class TMDBService {
     // MARK: - Season Details
     
     func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> SeasonDetails {
+        // Check cache first
+        let cacheKey = "\(seriesId)_\(seasonNumber)"
+        if let cached = virtualSeasonsCache[cacheKey] {
+            print("⚡️ [TMDBService] Returning cached virtual season \(seasonNumber) for series \(seriesId)")
+            return cached
+        }
+        
         let endpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)?api_key=\(apiKey)&language=\(language)"
         let frData: SeasonDetails = try await fetch(from: endpoint)
         
@@ -232,7 +243,81 @@ class TMDBService {
     }
     
     func fetchSeriesDetails(seriesId: Int, language: String = "fr-FR") async throws -> SeriesDetail {
-        let endpoint = "\(baseURL)/tv/\(seriesId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits"
+        let endpoint = "\(baseURL)/tv/\(seriesId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits,episode_groups"
+        var detail: SeriesDetail = try await fetch(from: endpoint)
+        
+        // Check for "Seasons" Episode Group (Type 6 usually, or name "Seasons")
+        if let groups = detail.episodeGroups?.results,
+           let seasonsGroup = groups.first(where: { $0.type == 6 || $0.name == "Seasons" }) {
+            
+            print("✅ [TMDBService] Found 'Seasons' episode group: \(seasonsGroup.name) (ID: \(seasonsGroup.id))")
+            
+            do {
+                // Fetch group details
+                let groupDetails = try await fetchEpisodeGroupDetails(groupId: seasonsGroup.id)
+                var newSeasons: [SeriesDetail.SeasonSummary] = []
+                
+                for group in groupDetails.groups {
+                    // Create SeasonSummary
+                    // Assuming group.order is the season number
+                    let summary = SeriesDetail.SeasonSummary(
+                        id: Int(group.id) ?? 0, // group.id is String, SeasonSummary expects Int... fallback
+                        name: group.name,
+                        overview: nil,
+                        seasonNumber: group.order,
+                        episodeCount: group.episodes.count,
+                        posterPath: detail.posterPath // Groups usually don't have posters, inherit from series
+                    )
+                    newSeasons.append(summary)
+                    
+                    // Hydrate Cache for this season
+                    let seasonNumber = group.order
+                    let cacheKey = "\(seriesId)_\(seasonNumber)"
+                    
+                    // Map episodes to proper Episode struct
+                    // IMPORTANT: Overwrite seasonNumber to make sure it matches the virtual season
+                    let mappedEpisodes = group.episodes.map { ep -> Episode in
+                        Episode(
+                            id: ep.id,
+                            name: ep.name,
+                            overview: ep.overview,
+                            stillPath: ep.stillPath,
+                            episodeNumber: ep.episodeNumber,
+                            seasonNumber: seasonNumber, // Force virtual season number
+                            airDate: ep.airDate,
+                            voteAverage: ep.voteAverage,
+                            originalName: ep.originalName
+                        )
+                    }
+                    
+                    let seasonDetails = SeasonDetails(
+                        id: Int(group.id) ?? 0,
+                        name: group.name,
+                        overview: nil,
+                        posterPath: detail.posterPath,
+                        seasonNumber: seasonNumber,
+                        episodes: mappedEpisodes
+                    )
+                    
+                    virtualSeasonsCache[cacheKey] = seasonDetails
+                    print("💧 [TMDBService] Hydrated cache for Virtual Season \(seasonNumber)")
+                }
+                
+                // Update series details with new seasons
+                detail.seasons = newSeasons
+                detail.numberOfSeasons = newSeasons.count
+                print("✨ [TMDBService] Updated series with \(newSeasons.count) virtual seasons")
+                
+            } catch {
+                print("❌ [TMDBService] Failed to fetch episode group details: \(error)")
+            }
+        }
+        
+        return detail
+    }
+    
+    func fetchEpisodeGroupDetails(groupId: String) async throws -> EpisodeGroupDetails {
+        let endpoint = "\(baseURL)/tv/episode_group/\(groupId)?api_key=\(apiKey)&language=fr-FR"
         return try await fetch(from: endpoint)
     }
     
