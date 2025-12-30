@@ -25,20 +25,20 @@ function writeSession(obj: Record<string, number>) {
   if (typeof sessionStorage === 'undefined') return;
   try {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(obj));
-  } catch {}
+  } catch { }
 }
 
 function writeStorage(obj: Record<string, number>) {
   if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-  } catch {}
+  } catch { }
 }
 
 export function usePaginationState(key?: string, initialPage = 1) {
   // Use pathname only (without search params) as route key for storage
   const routeKey = useMemo(() => key || (typeof window !== 'undefined' ? window.location.pathname : 'default'), [key]);
-  
+
   // Read page from URL
   const getPageFromUrl = useCallback(() => {
     if (typeof window === 'undefined') return initialPage;
@@ -66,16 +66,16 @@ export function usePaginationState(key?: string, initialPage = 1) {
   const [page, setPage] = useState<number>(() => {
     // Calculate routeKey here directly (can't use the memoized one in initializer)
     const currentRouteKey = key || (typeof window !== 'undefined' ? window.location.pathname : 'default');
-    
+
     // Try URL first
-    const urlPage = typeof window !== 'undefined' 
+    const urlPage = typeof window !== 'undefined'
       ? (() => {
-          const sp = new URLSearchParams(window.location.search);
-          const qp = parseInt(sp.get('page') || '');
-          return (!Number.isNaN(qp) && qp > 0) ? qp : initialPage;
-        })()
+        const sp = new URLSearchParams(window.location.search);
+        const qp = parseInt(sp.get('page') || '');
+        return (!Number.isNaN(qp) && qp > 0) ? qp : initialPage;
+      })()
       : initialPage;
-    
+
     // If URL has no page param, try localStorage
     if (urlPage === initialPage) {
       const store = readStorage();
@@ -93,32 +93,39 @@ export function usePaginationState(key?: string, initialPage = 1) {
     return urlPage;
   });
 
+  // Track if page change was user-initiated (vs. programmatic)
+  const userInitiatedChange = useRef(false);
+
   // Persist to storage and update URL when page changes
   useEffect(() => {
-    console.log('[PaginationState] Page changed:', { routeKey, page });
-    
+    console.log('[PaginationState] Page changed:', { routeKey, page, userInitiated: userInitiatedChange.current });
+
     // Save immediately to localStorage
     savePageToStorage(page, routeKey);
-    
+
     // Also save before leaving the page (for navigation via window.location.href)
     if (typeof window !== 'undefined') {
       const handleBeforeUnload = () => {
         savePageToStorage(page, routeKey);
       };
       window.addEventListener('beforeunload', handleBeforeUnload);
-      
-      // Update URL without adding history entry - ALWAYS show page number
-      try {
-        const url = new URL(window.location.href);
-        const currentPageParam = url.searchParams.get('page');
-        if (currentPageParam !== String(page)) {
-          url.searchParams.set('page', String(page));
-          window.history.replaceState({ ...window.history.state, __page: page }, document.title, url.toString());
+
+      // Only update URL if the change was user-initiated (clicking pagination)
+      // This prevents overwriting history when navigating between pages
+      if (userInitiatedChange.current) {
+        try {
+          const url = new URL(window.location.href);
+          const currentPageParam = url.searchParams.get('page');
+          if (currentPageParam !== String(page)) {
+            url.searchParams.set('page', String(page));
+            window.history.replaceState({ ...window.history.state, __page: page }, document.title, url.toString());
+          }
+        } catch (err) {
+          console.error('[PaginationState] Error updating URL:', err);
         }
-      } catch (err) {
-        console.error('[PaginationState] Error updating URL:', err);
+        userInitiatedChange.current = false;
       }
-      
+
       return () => {
         window.removeEventListener('beforeunload', handleBeforeUnload);
         // Save one last time on cleanup
@@ -130,23 +137,23 @@ export function usePaginationState(key?: string, initialPage = 1) {
   // Listen to browser back/forward
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const onPopState = (e: PopStateEvent) => {
       // Read current routeKey (might have changed after navigation)
       const currentRouteKey = key || (typeof window !== 'undefined' ? window.location.pathname : 'default');
       const urlPage = getPageFromUrl();
-      
-      console.log('[PaginationState] 🔄 PopState event:', { 
-        state: e.state, 
+
+      console.log('[PaginationState] 🔄 PopState event:', {
+        state: e.state,
         url: window.location.href,
         search: window.location.search,
         routeKey: currentRouteKey,
         urlPage
       });
-      
+
       // Always check if URL has page param (even if it's page 1)
       const hasPageParam = new URLSearchParams(window.location.search).has('page');
-      
+
       if (hasPageParam) {
         // If URL has explicit page param, always use it (even if it's the same as current)
         if (urlPage !== page) {
@@ -166,10 +173,10 @@ export function usePaginationState(key?: string, initialPage = 1) {
         }
       }
     };
-    
+
     window.addEventListener('popstate', onPopState);
     console.log('[PaginationState] Added popstate listener for routeKey:', routeKey);
-    
+
     return () => {
       window.removeEventListener('popstate', onPopState);
       console.log('[PaginationState] Removed popstate listener');
@@ -184,14 +191,14 @@ export function usePaginationState(key?: string, initialPage = 1) {
       routeKeyRef.current = routeKey;
       const urlPage = getPageFromUrl();
       console.log('[PaginationState] Route changed:', { routeKey, urlPage, currentPage: page });
-      
+
       // If URL has page param and it's different, use it
       if (urlPage !== initialPage && urlPage !== page) {
         console.log('[PaginationState] Restoring from URL:', urlPage);
         setPage(urlPage);
         return;
       }
-      
+
       // If URL has no page param (or is page 1), try storage
       if (urlPage === initialPage) {
         const store = readStorage();
@@ -206,23 +213,26 @@ export function usePaginationState(key?: string, initialPage = 1) {
 
   const onPageChange = useCallback((next: number) => {
     console.log('[PaginationState] onPageChange called:', { from: page, to: next, routeKey });
-    
+
     // Save immediately BEFORE updating state
     savePageToStorage(next, routeKey);
-    
+
+    // Mark as user-initiated so the useEffect updates the URL
+    userInitiatedChange.current = true;
     setPage(next);
+
     if (typeof window !== 'undefined') {
       try {
         const url = new URL(window.location.href);
         // ALWAYS set page parameter, even for page 1
         url.searchParams.set('page', String(next));
-        
+
         // Use pushState and dispatch popstate to notify wouter
         window.history.pushState({ ...window.history.state, __page: next }, document.title, url.toString());
-        
+
         // Dispatch popstate event to notify wouter and other listeners
         window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }));
-        
+
         console.log('[PaginationState] Pushed to history:', url.toString());
       } catch (err) {
         console.error('[PaginationState] Error pushing to history:', err);

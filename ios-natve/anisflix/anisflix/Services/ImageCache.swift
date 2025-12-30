@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import CommonCrypto
 
 /// A singleton image cache that stores images in memory (NSCache) and on disk
 final class ImageCache {
@@ -106,13 +107,20 @@ final class ImageCache {
     
     /// Generate a unique cache key from URL
     private func cacheKey(for url: URL) -> String {
-        // Use SHA256 hash of URL string for a safe filename
+        // Use SHA256 hash of URL string for a safe and unique filename
         let urlString = url.absoluteString
-        return urlString.data(using: .utf8)?.base64EncodedString()
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "+", with: "-")
-            .prefix(64)
-            .description ?? UUID().uuidString
+        guard let data = urlString.data(using: .utf8) else {
+            return UUID().uuidString
+        }
+        
+        // Create SHA256 hash
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        data.withUnsafeBytes { buffer in
+            _ = CC_SHA256(buffer.baseAddress, CC_LONG(data.count), &hash)
+        }
+        
+        // Convert to hex string
+        return hash.map { String(format: "%02x", $0) }.joined()
     }
     
     /// Calculate approximate memory cost for an image

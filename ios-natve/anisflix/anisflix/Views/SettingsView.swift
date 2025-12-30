@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var theme = AppTheme.shared
     @State private var showClearConfirmation = false
+    @State private var showClearCacheConfirmation = false
     @AppStorage("subtitleFontSize") private var subtitleFontSize: Double = 100
     
     let languages = AppTheme.supportedLanguages
@@ -65,6 +66,16 @@ struct SettingsView: View {
             }
             Section {
                 Button(role: .destructive) {
+                    showClearCacheConfirmation = true
+                } label: {
+                    HStack {
+                        Text("Vider le cache d'images")
+                        Spacer()
+                        Image(systemName: "photo.on.rectangle.angled")
+                    }
+                }
+                
+                Button(role: .destructive) {
                     showClearConfirmation = true
                 } label: {
                     HStack {
@@ -88,6 +99,14 @@ struct SettingsView: View {
             }
         } message: {
             Text(theme.t("settings.clearAlertMessage"))
+        }
+        .alert("Vider le cache ?", isPresented: $showClearCacheConfirmation) {
+            Button("Annuler", role: .cancel) { }
+            Button("Vider", role: .destructive) {
+                ImageCache.shared.clearCache()
+            }
+        } message: {
+            Text("Cela supprimera toutes les images en cache. Elles seront rechargées depuis le réseau.")
         }
 
     }

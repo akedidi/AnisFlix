@@ -108,6 +108,7 @@ struct CachedAsyncImagePhased<Content: View>: View {
     let content: (AsyncImagePhase) -> Content
     
     @State private var phase: AsyncImagePhase = .empty
+    @State private var currentURL: URL?
     
     init(url: URL?, @ViewBuilder content: @escaping (AsyncImagePhase) -> Content) {
         self.url = url
@@ -116,7 +117,14 @@ struct CachedAsyncImagePhased<Content: View>: View {
     
     var body: some View {
         content(phase)
+            .id(url?.absoluteString ?? "nil") // Force view recreation when URL changes
             .onAppear {
+                loadImage()
+            }
+            .onChange(of: url) { newURL in
+                // Reset and reload when URL changes
+                phase = .empty
+                currentURL = newURL
                 loadImage()
             }
     }
