@@ -531,7 +531,22 @@ export default function SeriesDetail() {
                   <div>
                     <h3 className="text-lg font-semibold mb-2">{season.season_number === 0 ? t("detail.specials") : `${t("detail.season")} ${season.season_number}`}</h3>
                     <p className="text-muted-foreground mb-4">{season.overview || "Aucune description disponible."}</p>
-                    <p className="text-sm text-muted-foreground">{season.episode_count} épisode{season.episode_count > 1 ? 's' : ''}</p>
+                    {(() => {
+                      const isSelectedSeason = seasonDetails?.season_number === season.season_number;
+                      const validEpisodeCount = isSelectedSeason && seasonDetails?.episodes
+                        ? seasonDetails.episodes.filter((episode: any) => {
+                          if (!episode.air_date) return true;
+                          const episodeDate = new Date(episode.air_date);
+                          const todayDate = new Date();
+                          todayDate.setHours(0, 0, 0, 0);
+                          return episodeDate <= todayDate;
+                        }).length
+                        : season.episode_count;
+
+                      return (
+                        <p className="text-sm text-muted-foreground">{validEpisodeCount} épisode{validEpisodeCount > 1 ? 's' : ''}</p>
+                      );
+                    })()}
                   </div>
                   {trailer && (
                     <div className="space-y-3">
