@@ -14,6 +14,7 @@ import { formatTime } from "@/lib/utils";
 import type { MediaType } from "@shared/schema";
 import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
 import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
+import { useChromecast } from "@/hooks/useChromecast";
 
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -57,6 +58,7 @@ export default function VidMolyPlayer({
   imdbId
 }: VidMolyPlayerProps) {
   const { isNative, platform } = useCapacitorDevice();
+  const { isConnected, setSubtitleFontSize: setSubtitleFontSizeCast } = useChromecast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -86,10 +88,22 @@ export default function VidMolyPlayer({
   });
 
   // Save font size to localStorage
+  // Save font size to localStorage
+  const handleSubtitleFontSizeChangeRef = useRef<(size: number) => void>(() => { });
   const handleSubtitleFontSizeChange = (size: number) => {
     setSubtitleFontSize(size);
     localStorage.setItem('subtitleFontSize', String(size));
+    handleSubtitleFontSizeChangeRef.current(size);
   };
+
+  // Sync font size with Chromecast
+  useEffect(() => {
+    handleSubtitleFontSizeChangeRef.current = (size: number) => {
+      if (isConnected) {
+        setSubtitleFontSizeCast(size);
+      }
+    };
+  }, [isConnected, setSubtitleFontSizeCast]);
 
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({

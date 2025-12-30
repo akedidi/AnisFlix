@@ -105,6 +105,7 @@ interface UseChromecastReturn {
   disconnect: () => void;
   showPicker: () => void;
   setActiveSubtitle: (activeSubtitleUrl: string | null, subtitles: Subtitle[]) => Promise<void>;
+  setSubtitleFontSize: (fontSize: number) => Promise<void>;
   play: () => void;
   pause: () => void;
   seek: (time: number) => void;
@@ -742,6 +743,61 @@ export function useChromecast(): UseChromecastReturn {
         console.log('[Chromecast] Sous-titres mis à jour:', activeSubtitleUrl ? 'Activé' : 'Désactivé');
       } catch (error) {
         console.error('[Chromecast] Erreur lors du changement de sous-titres:', error);
+      }
+    }, []),
+    setSubtitleFontSize: useCallback(async (fontSize: number) => {
+      // Get media session
+      let mediaSession = mediaSessionRef.current;
+
+      if (!mediaSession) {
+        try {
+          const context = window.cast?.framework?.CastContext?.getInstance();
+          const session = context?.getCurrentSession();
+          if (session) {
+            mediaSession = session.getMediaSession();
+            if (mediaSession) {
+              mediaSessionRef.current = mediaSession;
+            }
+          }
+        } catch (e) {
+          console.error('[Chromecast] Erreur accès contexte SDK:', e);
+        }
+      }
+
+      if (!mediaSession || !window.chrome?.cast) {
+        console.warn('[Chromecast] Pas de session média active pour changer la taille de police');
+        return;
+      }
+
+      try {
+        const chromeCast = window.chrome.cast as any;
+
+        // Create text track style with font scale
+        const textTrackStyle = new chromeCast.media.TextTrackStyle();
+        textTrackStyle.fontScale = fontSize / 100; // Convert percentage to scale (100% = 1.0)
+        textTrackStyle.foregroundColor = '#FFFFFFFF'; // White
+        textTrackStyle.backgroundColor = '#000000B2'; // Black with 70% opacity
+        textTrackStyle.edgeType = chromeCast.media.TextTrackEdgeType.DROP_SHADOW;
+        textTrackStyle.edgeColor = '#000000FF';
+
+        // Create request with current active tracks and new style
+        const currentActiveTrackIds = mediaSession.activeTrackIds || [];
+        const tracksInfoRequest = new chromeCast.media.EditTracksInfoRequest(
+          currentActiveTrackIds,
+          textTrackStyle
+        );
+
+        await new Promise((resolve, reject) => {
+          mediaSession.editTracksInfo(
+            tracksInfoRequest,
+            resolve,
+            reject
+          );
+        });
+
+        console.log('[Chromecast] Taille de police mise à jour:', fontSize + '%');
+      } catch (error) {
+        console.error('[Chromecast] Erreur lors du changement de taille de police:', error);
       }
     }, []),
     play: useCallback(() => {

@@ -90,10 +90,12 @@ export default function VideoPlayer({
     return 100;
   });
 
-  // Save font size to localStorage
+  // Handler defined later after useChromecast hook
+  const handleSubtitleFontSizeChangeRef = useRef<(size: number) => void>(() => { });
   const handleSubtitleFontSizeChange = (size: number) => {
     setSubtitleFontSize(size);
     localStorage.setItem('subtitleFontSize', String(size));
+    handleSubtitleFontSizeChangeRef.current(size);
   };
 
   // Language mapping for external tracks (Anime API uses full names like "English", "French")
@@ -205,8 +207,17 @@ export default function VideoPlayer({
 
 
   // Get getMediaTime from hook
-  const { isConnected, cast, setActiveSubtitle, play: castPlay, pause: castPause, seek: castSeek, getMediaTime } = useChromecast();
+  const { isConnected, cast, setActiveSubtitle, setSubtitleFontSize: setSubtitleFontSizeCast, play: castPlay, pause: castPause, seek: castSeek, getMediaTime } = useChromecast();
   const [isCasting, setIsCasting] = useState(false);
+
+  // Update ref to sync font size with Chromecast
+  useEffect(() => {
+    handleSubtitleFontSizeChangeRef.current = (size: number) => {
+      if (isConnected) {
+        setSubtitleFontSizeCast(size);
+      }
+    };
+  }, [isConnected, setSubtitleFontSizeCast]);
 
   // Initialize video source with hls.js or native player
   useEffect(() => {
