@@ -6,6 +6,18 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 // Cache for virtual seasons (in-memory, resets on cold start)
 const virtualSeasonsCache = new Map();
 
+// Helper to hash string to int (for virtual season IDs)
+function stringToIntHash(str) {
+    let hash = 0;
+    if (!str) return hash;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+}
+
 // Helper function to fetch from TMDB
 async function tmdbFetch(endpoint, params = {}) {
     const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
@@ -57,7 +69,7 @@ async function processEpisodeGroups(seriesData, seriesId) {
 
         // Transform groups into season summaries
         const newSeasons = groupDetails.groups.map(group => ({
-            id: group.id,
+            id: stringToIntHash(group.id), // Convert String ID to Int hash for Swift compatibility
             name: group.name,
             season_number: group.order,
             episode_count: group.episodes?.length || 0,
@@ -97,7 +109,7 @@ async function processEpisodeGroups(seriesData, seriesId) {
                 air_date: group.episodes?.[0]?.air_date,
                 name: group.name,
                 overview: "",
-                id: group.id,
+                id: stringToIntHash(group.id), // Also here for consistency
                 poster_path: null,
                 season_number: seasonNumber,
                 episodes: group.episodes.map((ep, index) => ({
