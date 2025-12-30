@@ -438,7 +438,7 @@ struct CustomVideoPlayer: View {
             }
         }
         .sheet(isPresented: $showSubtitlesMenu) {
-            SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset)
+            SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset, subtitleFontSize: $subtitleFontSize)
                 .presentationDetents([.medium])
         }
         .onChange(of: selectedSubtitle?.id) { _ in
@@ -482,6 +482,14 @@ struct CustomVideoPlayer: View {
                         }
                     }
                 }
+            }
+        }
+        .onChange(of: subtitleFontSize) { newSize in
+            print("🔤 Subtitle font size changed: \(Int(newSize))%")
+            
+            if castManager.isConnected {
+                // Send font size update to Chromecast
+                castManager.sendSubtitleFontSize(newSize)
             }
         }
         .onChange(of: playerVM.currentTime) { time in
@@ -650,6 +658,7 @@ struct SubtitleSelectionView: View {
     let subtitles: [Subtitle]
     @Binding var selectedSubtitle: Subtitle?
     @Binding var subtitleOffset: Double
+    @Binding var subtitleFontSize: Double
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
@@ -682,6 +691,21 @@ struct SubtitleSelectionView: View {
                                 .font(.title2)
                         }
                         .buttonStyle(.borderless)
+                    }
+                }
+                
+                Section(header: Text("Taille du texte")) {
+                    HStack {
+                        Text("Taille")
+                        Spacer()
+                        Text("\(Int(subtitleFontSize))%")
+                            .foregroundColor(.gray)
+                    }
+                    
+                    HStack {
+                        Text("A").font(.caption2)
+                        Slider(value: $subtitleFontSize, in: 80...150, step: 10)
+                        Text("A").font(.title3)
                     }
                 }
                 

@@ -323,6 +323,24 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         remoteMediaClient.setActiveTrackIDs([])
     }
     
+    func sendSubtitleFontSize(_ fontSize: Double) {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient else { return }
+        
+        print("🔤 [CastManager] Updating subtitle font size to: \(Int(fontSize))%")
+        
+        // Create text track style with updated font scale
+        let textTrackStyle = GCKMediaTextTrackStyle.createDefault()
+        textTrackStyle.fontScale = CGFloat(fontSize / 100.0) // Convert percentage to scale (e.g., 120% -> 1.2)
+        textTrackStyle.foregroundColor = GCKColor.white()
+        textTrackStyle.backgroundColor = GCKColor.init(uiColor: UIColor.black.withAlphaComponent(0.7))
+        textTrackStyle.edgeType = .dropShadow
+        textTrackStyle.edgeColor = GCKColor.black()
+        
+        // Apply the text track style
+        remoteMediaClient.setTextTrackStyle(textTrackStyle)
+    }
+    
     // MARK: - GCKRemoteMediaClientListener
     
     func remoteMediaClient(_ client: GCKRemoteMediaClient, didUpdate mediaStatus: GCKMediaStatus?) {
@@ -529,5 +547,6 @@ class CastManager: NSObject, ObservableObject {
     func play() {}
     func pause() {}
     func getApproximateStreamPosition() -> TimeInterval { return 0 }
+    func sendSubtitleFontSize(_ fontSize: Double) {}
 }
 #endif
