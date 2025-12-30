@@ -193,115 +193,26 @@ export const tmdb = {
     } as any);
   },
 
-  // Cache for "Virtual Seasons" (from Episode Groups)
-  // Key: "{seriesId}_{seasonNumber}"
-  virtualSeasonsCache: new Map<string, any>(),
-
-  // Series
+  // Series Details (via Proxy)
   getSeriesDetails: async (seriesId: number) => {
-    let data = await tmdbFetch(`/tv/${seriesId}`, { append_to_response: 'external_ids,episode_groups' });
-
-    // Check for "Seasons" Episode Group logic directly here
-    // Priority: Type 6 AND Name starts with "Seasons"
-    let seasonsGroup = data.episode_groups?.results?.find((g: any) =>
-      g.type === 6 && g.name.startsWith("Seasons")
-    );
-
-    // Fallback: Any Type 6
-    if (!seasonsGroup) {
-      seasonsGroup = data.episode_groups?.results?.find((g: any) => g.type === 6);
-    }
-
-    if (seasonsGroup) {
-      console.log(`✅ [tmdb] Found "Seasons" episode group:`, seasonsGroup);
-      try {
-        const groupDetails = await tmdb.getEpisodeGroupDetails(seasonsGroup.id);
-        if (groupDetails && groupDetails.groups) {
-          // Transform to seasons
-          const newSeasons = groupDetails.groups.map((group: any) => ({
-            id: group.id,
-            name: group.name,
-            season_number: group.order,
-            episode_count: group.episodes?.length || 0,
-            poster_path: data.poster_path,
-            overview: "",
-            air_date: group.episodes?.[0]?.air_date,
-            vote_average: 0
-          }));
-
-          // Handle Season 0 logic (preserve original if bigger)
-          const originalSeason0 = data.seasons?.find((s: any) => s.season_number === 0);
-          const groupSeason0 = newSeasons.find((s: any) => s.season_number === 0);
-
-          if (originalSeason0 && groupSeason0 && originalSeason0.episode_count > groupSeason0.episode_count) {
-            console.warn(`⚠️ [tmdb] Keeping original Season 0 (${originalSeason0.episode_count} eps) vs Group (${groupSeason0.episode_count} eps)`);
-            const index = newSeasons.indexOf(groupSeason0);
-            if (index > -1) newSeasons.splice(index, 1);
-            newSeasons.push(originalSeason0);
-          } else if (originalSeason0 && !groupSeason0) {
-            newSeasons.push(originalSeason0);
-          }
-          newSeasons.sort((a: any, b: any) => a.season_number - b.season_number);
-
-          // Hydrate Cache
-          groupDetails.groups.forEach((group: any) => {
-            const seasonNumber = group.order;
-            // Skip cache if we kept original Season 0
-            if (seasonNumber === 0 && originalSeason0 && (originalSeason0.episode_count > (group.episodes?.length || 0))) return;
-
-            const cacheKey = `${seriesId}_${seasonNumber}`;
-            const seasonData = {
-              _id: group.id,
-              air_date: group.episodes?.[0]?.air_date,
-              name: group.name,
-              overview: "",
-              id: group.id,
-              poster_path: null,
-              season_number: seasonNumber,
-              // Map episodes and renumber them sequentially (1, 2, 3...)
-              // This fixes issues where episodes from Specials have gaps in numbering
-              episodes: group.episodes.map((ep: any, index: number) => ({
-                ...ep,
-                episode_number: index + 1, // Sequential numbering instead of original TMDB number
-                season_number: seasonNumber, // Force virtual season number
-                show_id: seriesId,
-              }))
-            };
-            // @ts-ignore
-            tmdb.virtualSeasonsCache.set(cacheKey, seasonData);
-            console.log(`💧 [tmdb] Hydrated cache for Season ${seasonNumber} with ${group.episodes.length} episodes (renumbered 1-${group.episodes.length})`);
-          });
-
-          data.seasons = newSeasons;
-          data.number_of_seasons = newSeasons.length;
-        }
-      } catch (e) {
-        console.error("❌ [tmdb] Failed to process episode group:", e);
-      }
-    }
-
-    return data;
-  },
-
-  getEpisodeGroupDetails: async (groupId: string) => {
-    return tmdbFetch(`/tv/episode_group/${groupId}`);
+    // Use centralized TMDB proxy - handles Episode Groups, virtual seasons, and sequential numbering
+    const language = getLanguage();
+    const response = await fetch(`/api/tmdb-proxy?type=series&id=${seriesId}&language=${getLanguageCode(language)}`);
+    if (!response.ok) throw new Error('TMDB Proxy request failed');
+    return response.json();
   },
 
   getSeriesVideos: async (seriesId: number) => {
     return tmdbFetch(`/tv/${seriesId}/videos`);
   },
 
+  // Season Details (via Proxy)
   getSeasonDetails: async (seriesId: number, seasonNumber: number, language?: string) => {
-    // Check virtual cache first
-    const cacheKey = `${seriesId}_${seasonNumber}`;
-    // @ts-ignore
-    if (tmdb.virtualSeasonsCache.has(cacheKey)) {
-      console.log(`⚡️ [tmdb] Returning cached virtual season ${seasonNumber}`);
-      // @ts-ignore
-      return tmdb.virtualSeasonsCache.get(cacheKey);
-    }
-
-    return tmdbFetch(`/tv/${seriesId}/season/${seasonNumber}`, language ? { language } : {});
+    // Use centralized TMDB proxy - handles virtual seasons, sequential numbering, and generic name fallback
+    const lang = language || getLanguageCode(getLanguage());
+    const response = await fetch(`/api/tmdb-proxy?type=season&seriesId=${seriesId}&seasonNumber=${seasonNumber}&language=${lang}`);
+    if (!response.ok) throw new Error('TMDB Proxy request failed');
+    return response.json();
   },
 
   getSimilarSeries: async (seriesId: number) => {
