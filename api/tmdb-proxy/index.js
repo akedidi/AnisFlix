@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 const TMDB_API_KEY = 'f3d757824f08ea2cff45eb8f47ca3a1e';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -122,7 +122,7 @@ async function processEpisodeGroups(seriesData, seriesId) {
     return seriesData;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -206,4 +206,4 @@ module.exports = async (req, res) => {
         console.error('❌ [TMDB PROXY] Error:', error.message);
         return res.status(500).json({ error: 'Internal server error', message: error.message });
     }
-};
+}
