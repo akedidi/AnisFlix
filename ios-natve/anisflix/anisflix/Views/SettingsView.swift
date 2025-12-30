@@ -38,7 +38,7 @@ struct SettingsView: View {
                         Text("\(Int(subtitleFontSize))%")
                             .foregroundColor(.secondary)
                     }
-                    Slider(value: $subtitleFontSize, in: 80...150, step: 10) {
+                    Slider(value: $subtitleFontSize, in: 50...150, step: 10) {
                         Text("Taille")
                     } minimumValueLabel: {
                         Text("A").font(.caption2)

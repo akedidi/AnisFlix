@@ -606,49 +606,22 @@ struct CustomVideoPlayer: View {
     }
     
     /// Parse HTML tags (bold, italic, underline) into AttributedString
+    /// Note: For performance, we just strip tags rather than using slow NSAttributedString HTML parsing
     func parseHtmlTags(_ text: String) -> AttributedString {
-        // Try to parse as HTML-like content
-        var result = AttributedString(text)
-        
-        // Simple regex-based parsing for common subtitle tags
         var processedText = text
         
-        // Convert HTML tags to markers we can process
-        // Bold
-        processedText = processedText.replacingOccurrences(of: "<b>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</b>", with: "")
-        processedText = processedText.replacingOccurrences(of: "<B>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</B>", with: "")
-        // Italic
-        processedText = processedText.replacingOccurrences(of: "<i>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</i>", with: "")
-        processedText = processedText.replacingOccurrences(of: "<I>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</I>", with: "")
-        // Underline
-        processedText = processedText.replacingOccurrences(of: "<u>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</u>", with: "")
-        processedText = processedText.replacingOccurrences(of: "<U>", with: "")
-        processedText = processedText.replacingOccurrences(of: "</U>", with: "")
+        // Strip common HTML tags
+        processedText = processedText.replacingOccurrences(of: "<b>", with: "", options: .caseInsensitive)
+        processedText = processedText.replacingOccurrences(of: "</b>", with: "", options: .caseInsensitive)
+        processedText = processedText.replacingOccurrences(of: "<i>", with: "", options: .caseInsensitive)
+        processedText = processedText.replacingOccurrences(of: "</i>", with: "", options: .caseInsensitive)
+        processedText = processedText.replacingOccurrences(of: "<u>", with: "", options: .caseInsensitive)
+        processedText = processedText.replacingOccurrences(of: "</u>", with: "", options: .caseInsensitive)
         // Font tags
         processedText = processedText.replacingOccurrences(of: "<font[^>]*>", with: "", options: .regularExpression)
         processedText = processedText.replacingOccurrences(of: "</font>", with: "", options: .caseInsensitive)
         
-        // For a more robust solution, try NSAttributedString with HTML
-        if let data = text.data(using: .utf8) {
-            do {
-                let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
-                    .documentType: NSAttributedString.DocumentType.html,
-                    .characterEncoding: String.Encoding.utf8.rawValue
-                ]
-                let nsAttrString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
-                result = AttributedString(nsAttrString)
-            } catch {
-                // Fallback to plain text with tags stripped
-                result = AttributedString(processedText)
-            }
-        }
-        
-        return result
+        return AttributedString(processedText)
     }
 }
 
@@ -704,7 +677,7 @@ struct SubtitleSelectionView: View {
                     
                     HStack {
                         Text("A").font(.caption2)
-                        Slider(value: $subtitleFontSize, in: 80...150, step: 10)
+                        Slider(value: $subtitleFontSize, in: 50...150, step: 10)
                         Text("A").font(.title3)
                     }
                 }

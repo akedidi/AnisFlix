@@ -982,6 +982,18 @@ video::-webkit-media-text-track-display {
 }
 
 /* Subtitle size utility classes */
+.subtitle-size-50 video::cue {
+  font-size: 50%;
+}
+
+.subtitle-size-60 video::cue {
+  font-size: 60%;
+}
+
+.subtitle-size-70 video::cue {
+  font-size: 70%;
+}
+
 .subtitle-size-80 video::cue {
   font-size: 80%;
 }

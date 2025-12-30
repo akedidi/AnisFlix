@@ -289,7 +289,7 @@ export default function CustomVideoControls({
                       className="h-6 w-8 p-0"
                       onClick={(e) => {
                         e.preventDefault();
-                        onSubtitleFontSizeChange?.(Math.max(80, subtitleFontSize - 10));
+                        onSubtitleFontSizeChange?.(Math.max(50, subtitleFontSize - 10));
                       }}
                     >
                       A-
