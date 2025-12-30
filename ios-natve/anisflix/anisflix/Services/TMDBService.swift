@@ -205,16 +205,23 @@ class TMDBService {
     func fetchSeasonVideos(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> [Video] {
         // Try to get French videos first
         let endpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)/videos?api_key=\(apiKey)&language=\(language)"
-        let response: VideoResponse = try await fetch(from: endpoint)
         
-        // If no videos found in French, try English
-        if response.results.isEmpty && language != "en-US" {
-            let enEndpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)/videos?api_key=\(apiKey)&language=en-US"
-            let enResponse: VideoResponse = try await fetch(from: enEndpoint)
-            return enResponse.results
+        do {
+            let response: VideoResponse = try await fetch(from: endpoint)
+            
+            // If no videos found in French, try English
+            if response.results.isEmpty && language != "en-US" {
+                let enEndpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)/videos?api_key=\(apiKey)&language=en-US"
+                let enResponse: VideoResponse = try await fetch(from: enEndpoint)
+                return enResponse.results
+            }
+            
+            return response.results
+        } catch {
+            // If videos fail (e.g. 404 Not Found for season), just return empty list to avoid breaking the whole page
+            print("⚠️ [TMDBService] Failed to fetch season videos (harmless): \(error)")
+            return []
         }
-        
-        return response.results
     }
     
     // MARK: - Helper
