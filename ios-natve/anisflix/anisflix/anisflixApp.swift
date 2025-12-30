@@ -31,9 +31,11 @@ struct anisflixApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Keep showing launch screen background until ready
+                // Keep showing launch screen image until ready
                 if !isReady {
-                    Color(.systemBackground)
+                    Image("LaunchSplash")
+                        .resizable()
+                        .scaledToFill()
                         .ignoresSafeArea()
                         .onAppear {
                             // Delay 2 seconds before showing main UI
