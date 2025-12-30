@@ -1521,6 +1521,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return pattern.test(name) || name === `Episode ${episodeNumber}`;
   }
 
+  // Helper to hash string to int (for virtual season IDs)
+  function stringToIntHash(str: string): number {
+    let hash = 0;
+    if (str.length === 0) return hash;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
   // Process Episode Groups and create virtual seasons
   async function processEpisodeGroups(seriesData: any, seriesId: number) {
     const episodeGroups = seriesData.episode_groups?.results;
@@ -1553,7 +1565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Transform groups into season summaries
       const newSeasons = groupDetails.groups.map((group: any) => ({
-        id: group.id,
+        id: stringToIntHash(group.id), // Convert String ID to Int hash for Swift compatibility
         name: group.name,
         season_number: group.order,
         episode_count: group.episodes?.length || 0,
@@ -1593,7 +1605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           air_date: group.episodes?.[0]?.air_date,
           name: group.name,
           overview: "",
-          id: group.id,
+          id: stringToIntHash(group.id), // Also here for consistency
           poster_path: null,
           season_number: seasonNumber,
           // IMPORTANT: Sequential numbering (1, 2, 3...)
