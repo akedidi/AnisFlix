@@ -81,6 +81,21 @@ export default function VideoPlayer({
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
+  // Subtitle font size (80-150%)
+  const [subtitleFontSize, setSubtitleFontSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('subtitleFontSize');
+      return saved ? parseInt(saved, 10) : 100;
+    }
+    return 100;
+  });
+
+  // Save font size to localStorage
+  const handleSubtitleFontSizeChange = (size: number) => {
+    setSubtitleFontSize(size);
+    localStorage.setItem('subtitleFontSize', String(size));
+  };
+
   // Language mapping for external tracks (Anime API uses full names like "English", "French")
   const LANGUAGE_MAPPING: Record<string, { flag: string; label: string; code: string }> = {
     // Full language names (from Anime API)
@@ -775,7 +790,7 @@ export default function VideoPlayer({
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
 
 
-      <div className="relative group w-full h-full" ref={containerRef}>
+      <div className={`relative group w-full h-full subtitle-size-${subtitleFontSize}`} ref={containerRef}>
         <video
           ref={videoRef}
           className="w-full h-full object-contain"
@@ -836,6 +851,8 @@ export default function VideoPlayer({
             onSubtitleSelect={handleSubtitleSelect}
             subtitleOffset={subtitleOffset}
             onSubtitleOffsetChange={handleSubtitleOffsetChange}
+            subtitleFontSize={subtitleFontSize}
+            onSubtitleFontSizeChange={handleSubtitleFontSizeChange}
             mediaId={mediaId}
             mediaType={mediaType}
             season={seasonNumber}

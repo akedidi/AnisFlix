@@ -35,6 +35,8 @@ interface CustomVideoControlsProps {
   onSubtitleSelect?: (url: string | null) => void;
   subtitleOffset?: number;
   onSubtitleOffsetChange?: (offset: number) => void;
+  subtitleFontSize?: number; // 80-150 as percentage
+  onSubtitleFontSizeChange?: (size: number) => void;
   mediaId?: number;
   mediaType?: string;
   season?: number;
@@ -64,6 +66,8 @@ export default function CustomVideoControls({
   onSubtitleSelect,
   subtitleOffset = 0,
   onSubtitleOffsetChange,
+  subtitleFontSize = 100,
+  onSubtitleFontSizeChange,
   mediaId,
   mediaType,
   season,
@@ -265,6 +269,38 @@ export default function CustomVideoControls({
                       }}
                     >
                       +
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Font Size Control */}
+                <div className="px-2 py-2 border-b">
+                  <div className="text-xs text-muted-foreground mb-2">Taille du texte</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 w-8 p-0"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onSubtitleFontSizeChange?.(Math.max(80, subtitleFontSize - 10));
+                      }}
+                    >
+                      A-
+                    </Button>
+                    <span className="text-xs font-mono w-12 text-center">
+                      {subtitleFontSize}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 w-8 p-0"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onSubtitleFontSizeChange?.(Math.min(150, subtitleFontSize + 10));
+                      }}
+                    >
+                      A+
                     </Button>
                   </div>
                 </div>

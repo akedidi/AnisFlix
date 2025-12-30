@@ -932,18 +932,84 @@ body {
   }
 }
 
-/* Move subtitles up above the progress bar */
-video::cue {
-  line-height: 1.5;
-  background-color: rgba(0, 0, 0, 0.7);
+/* Move subtitles up above the progress bar and support dynamic font size */
+:root {
+  --subtitle-font-size: 100%;
+  /* Default 100%, controlled by JS */
 }
 
-/* Webkit specific for Chrome/Safari */
+video::cue {
+  line-height: 1.5;
+  background-color: rgba(0, 0, 0, 0.75);
+  font-size: var(--subtitle-font-size);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* HTML tag support in subtitles */
+video::cue(b) {
+  font-weight: bold;
+}
+
+video::cue(i) {
+  font-style: italic;
+}
+
+video::cue(u) {
+  text-decoration: underline;
+}
+
+video::cue(c.yellow) {
+  color: yellow;
+}
+
+video::cue(c.lime) {
+  color: lime;
+}
+
+video::cue(c.cyan) {
+  color: cyan;
+}
+
+/* Webkit specific for Chrome/Safari - move subtitles up */
 video::-webkit-media-text-track-display {
   transform: translateY(-50px);
 }
 
-/* For Firefox and others */
-video::cue {
-  vertical-align: 10%;
+/* Container with dynamic font size support */
+.video-container {
+  --subtitle-font-size: 100%;
+}
+
+/* Subtitle size utility classes */
+.subtitle-size-80 video::cue {
+  font-size: 80%;
+}
+
+.subtitle-size-90 video::cue {
+  font-size: 90%;
+}
+
+.subtitle-size-100 video::cue {
+  font-size: 100%;
+}
+
+.subtitle-size-110 video::cue {
+  font-size: 110%;
+}
+
+.subtitle-size-120 video::cue {
+  font-size: 120%;
+}
+
+.subtitle-size-130 video::cue {
+  font-size: 130%;
+}
+
+.subtitle-size-140 video::cue {
+  font-size: 140%;
+}
+
+.subtitle-size-150 video::cue {
+  font-size: 150%;
 }

@@ -76,6 +76,21 @@ export default function VidMolyPlayer({
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [selectedSubtitle, setSelectedSubtitle] = useState<string | null>(null);
 
+  // Subtitle font size (80-150%)
+  const [subtitleFontSize, setSubtitleFontSize] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('subtitleFontSize');
+      return saved ? parseInt(saved, 10) : 100;
+    }
+    return 100;
+  });
+
+  // Save font size to localStorage
+  const handleSubtitleFontSizeChange = (size: number) => {
+    setSubtitleFontSize(size);
+    localStorage.setItem('subtitleFontSize', String(size));
+  };
+
   // Navigation au clavier pour contrôler la lecture vidéo
   useKeyboardNavigation({
     videoRef,
@@ -601,7 +616,7 @@ export default function VidMolyPlayer({
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
       {/* Video Container */}
-      <div className="relative" ref={containerRef}>
+      <div className={`relative subtitle-size-${subtitleFontSize}`} ref={containerRef}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="text-white text-center">
@@ -653,6 +668,8 @@ export default function VidMolyPlayer({
             subtitles={subtitles}
             selectedSubtitle={selectedSubtitle}
             onSubtitleSelect={handleSubtitleSelect}
+            subtitleFontSize={subtitleFontSize}
+            onSubtitleFontSizeChange={handleSubtitleFontSizeChange}
           />
         )}
 
@@ -681,6 +698,8 @@ export default function VidMolyPlayer({
               subtitles={subtitles}
               selectedSubtitle={selectedSubtitle}
               onSubtitleSelect={handleSubtitleSelect}
+              subtitleFontSize={subtitleFontSize}
+              onSubtitleFontSizeChange={handleSubtitleFontSizeChange}
             />
           </div>
         )}

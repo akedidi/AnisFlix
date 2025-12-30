@@ -35,6 +35,7 @@ struct CustomVideoPlayer: View {
     @State private var showSubtitlesMenu = false
     @State private var selectedSubtitle: Subtitle?
     @State private var subtitleOffset: Double = 0
+    @AppStorage("subtitleFontSize") private var subtitleFontSize: Double = 100
     @State private var castReloadDebounceTask: Task<Void, Never>?
     @State private var showSeekBackwardAnimation = false
     @State private var showSeekForwardAnimation = false
@@ -193,8 +194,8 @@ struct CustomVideoPlayer: View {
             if !castManager.isConnected, let sub = selectedSubtitle, let text = playerVM.currentSubtitleText {
                 VStack {
                     Spacer()
-                    Text(text)
-                        .font(.callout)
+                    Text(parseHtmlTags(text))
+                        .font(.system(size: 16 * subtitleFontSize / 100))
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .padding(8)
@@ -594,6 +595,52 @@ struct CustomVideoPlayer: View {
         } else {
             return String(format: "%02d:%02d", m, s)
         }
+    }
+    
+    /// Parse HTML tags (bold, italic, underline) into AttributedString
+    func parseHtmlTags(_ text: String) -> AttributedString {
+        // Try to parse as HTML-like content
+        var result = AttributedString(text)
+        
+        // Simple regex-based parsing for common subtitle tags
+        var processedText = text
+        
+        // Convert HTML tags to markers we can process
+        // Bold
+        processedText = processedText.replacingOccurrences(of: "<b>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</b>", with: "")
+        processedText = processedText.replacingOccurrences(of: "<B>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</B>", with: "")
+        // Italic
+        processedText = processedText.replacingOccurrences(of: "<i>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</i>", with: "")
+        processedText = processedText.replacingOccurrences(of: "<I>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</I>", with: "")
+        // Underline
+        processedText = processedText.replacingOccurrences(of: "<u>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</u>", with: "")
+        processedText = processedText.replacingOccurrences(of: "<U>", with: "")
+        processedText = processedText.replacingOccurrences(of: "</U>", with: "")
+        // Font tags
+        processedText = processedText.replacingOccurrences(of: "<font[^>]*>", with: "", options: .regularExpression)
+        processedText = processedText.replacingOccurrences(of: "</font>", with: "", options: .caseInsensitive)
+        
+        // For a more robust solution, try NSAttributedString with HTML
+        if let data = text.data(using: .utf8) {
+            do {
+                let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                    .documentType: NSAttributedString.DocumentType.html,
+                    .characterEncoding: String.Encoding.utf8.rawValue
+                ]
+                let nsAttrString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
+                result = AttributedString(nsAttrString)
+            } catch {
+                // Fallback to plain text with tags stripped
+                result = AttributedString(processedText)
+            }
+        }
+        
+        return result
     }
 }
 

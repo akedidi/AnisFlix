@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var theme = AppTheme.shared
     @State private var showClearConfirmation = false
+    @AppStorage("subtitleFontSize") private var subtitleFontSize: Double = 100
     
     let languages = AppTheme.supportedLanguages
     
@@ -28,7 +29,26 @@ struct SettingsView: View {
                 Text(theme.t("settings.appearance"))
             }
             
-            // Section Données
+            // Section Sous-titres
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Taille du texte")
+                        Spacer()
+                        Text("\(Int(subtitleFontSize))%")
+                            .foregroundColor(.secondary)
+                    }
+                    Slider(value: $subtitleFontSize, in: 80...150, step: 10) {
+                        Text("Taille")
+                    } minimumValueLabel: {
+                        Text("A").font(.caption2)
+                    } maximumValueLabel: {
+                        Text("A").font(.title3)
+                    }
+                }
+            } header: {
+                Text("Sous-titres")
+            }
             Section {
                 Button(role: .destructive) {
                     showClearConfirmation = true
