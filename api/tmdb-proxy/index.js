@@ -114,6 +114,9 @@ async function processEpisodeGroups(seriesData, seriesId) {
                 season_number: seasonNumber,
                 episodes: group.episodes.map((ep, index) => ({
                     ...ep,
+                    id: typeof ep.id === 'string' ? stringToIntHash(ep.id) : ep.id,
+                    name: ep.name || `Episode ${index + 1}`,
+                    overview: ep.overview || "",
                     episode_number: index + 1,
                     season_number: seasonNumber,
                     show_id: seriesId,
