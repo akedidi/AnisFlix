@@ -355,6 +355,106 @@ export default async function handler(req, res) {
       }
     }
 
+    // --- HELPER: Resolve Absolute/Group Episode Number for TV ---
+    // Frontend sends what it sees (e.g. Season 2, Episode 47).
+    // But providers (VixSrc/UniversalVO) expect standard TMDB "S2 E23" format.
+    // If standard TMDB breaks seasons (JJK S1=50eps), frontend sends S2 E47 purely visually.
+    // We need to map this back to standard S/E or fix it for the provider.
+    // HOWEVER, actually VixSrc/UniversalVO often align with Standard TMDB or specific logic.
+    // The issue here is likely: User sends S2 E46. Standard TMDB says JJK S1 has 50 eps, so S2 E46 doesn't exist.
+    // We need to calculate the REAL S/E based on the Episode Group logic if that's what created S2 E46.
+
+    let resolvedSeason = null;
+    let resolvedEpisode = null;
+
+    if ((decodedPath === 'vixsrc' || decodedPath === 'universalvo') && queryParams.type === 'tv' && queryParams.tmdbId) {
+      const { tmdbId, season, episode } = queryParams;
+      const inputSeason = parseInt(season);
+      const inputEpisode = parseInt(episode);
+
+      // Default to input
+      resolvedSeason = inputSeason;
+      resolvedEpisode = inputEpisode;
+
+      // Fetch Episode Groups to see if we are using a custom group
+      try {
+        const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
+        const tmdbUrl = `https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${TMDB_KEY}&language=en-US&append_to_response=episode_groups`;
+        const tmdbRes = await axios.get(tmdbUrl, { timeout: 3000 }); // Fast timeout
+
+        if (tmdbRes.data && tmdbRes.data.episode_groups) {
+          const groups = tmdbRes.data.episode_groups.results || [];
+          // Look for the "Seasons" group used by frontend
+          let seasonsGroup = groups.find(g => g.type === 6 && g.name.startsWith("Seasons"));
+          if (!seasonsGroup) seasonsGroup = groups.find(g => g.type === 6);
+
+          // If a group corresponds to our split, we need to map back to standard or verify
+          // Actually, if Frontend says S2 E47, and Standard TMDB says S1 has 50 eps...
+          // It means S2 E47 is likely "Absolute Episode 47"? No, frontend sends S2.
+          // Let's assume frontend sends correct Season Number (2) and Episode Number (47) from ITS perspective.
+          // Wait, if frontend shows S1 (24 eps) and S2 (23 eps), S2 E23 is the 47th episode total.
+          // User says URL has "season=2&episode=47".
+          // If the user manually edited URL or if the app is sending this, it's wrong for providers if they expect S2 E23.
+          // But usually providers want [Season X] [Episode Y relative to Season X].
+          // If 'episode' param became '47' while 'season' is '2', that's the bug.
+
+          if (seasonsGroup) {
+            // Frontend is using this group!
+            // In this group: S1=24 eps. S2 starts at 25.
+            // If frontend sends S2 E47 -> It implies Absolute 47?
+            // OR does frontend send S2 E23?
+            // User report says: "...&season=2&episode=47".
+            // If typical anime logic: 47 is absolute.
+            // If we are in S2, E47 is impossible unless it's absolute.
+
+            // RE-MAPPING STRATEGY:
+            // 1. Calculate Absolute Number based on Group (S2 E(X) -> Abs).
+            //    Wait, if input is 47, is it already absolute?
+            //    If Season 2, Ep 47... that's huge.
+
+            // Let's try to fetch the Group Details to see the offset.
+            const groupUrl = `https://api.themoviedb.org/3/tv/episode_group/${seasonsGroup.id}?api_key=${TMDB_KEY}&language=en-US`;
+            const groupRes = await axios.get(groupUrl, { timeout: 3000 });
+
+            if (groupRes.data && groupRes.data.groups) {
+              const groupSeasons = groupRes.data.groups;
+              // Sort by order/season number
+              groupSeasons.sort((a, b) => a.order - b.order);
+
+              // Find the season matching input
+              const currentGroupSeason = groupSeasons.find(g => g.order === inputSeason);
+
+              if (currentGroupSeason) {
+                // If the input episode is > season episode count (e.g. 47 > 23), it might be absolute/offset issue.
+                if (inputEpisode > currentGroupSeason.episodes.length) {
+                  console.log(`⚠️ [Proxy] Input S${inputSeason} E${inputEpisode} exceeds group count (${currentGroupSeason.episodes.length}). Assuming absolute number.`);
+
+                  // Calculate offset from previous seasons in the GROUP
+                  let offset = 0;
+                  for (let g of groupSeasons) {
+                    if (g.order < inputSeason && g.order > 0) { // seasons before current
+                      offset += g.episodes.length;
+                    }
+                  }
+
+                  // Remap: 47 (Absolute) - 24 (Offset S1) = 23 (Relative S2)
+                  const relative = inputEpisode - offset;
+                  if (relative > 0 && relative <= currentGroupSeason.episodes.length) {
+                    resolvedEpisode = relative;
+                    console.log(`✅ [Proxy] Remapped to S${resolvedSeason} E${resolvedEpisode} (Absolute ${inputEpisode} -> Relative)`);
+                  }
+                }
+                // If input is 23 and maps to 47? No, usually providers want 23.
+                // So if we received 23, we keep 23.
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`⚠️ [Proxy] Failed to resolve episode map: ${e.message}`);
+      }
+    }
+
     // GÉRER VIXSRC ICI
     if (decodedPath === 'vixsrc') {
 
@@ -365,13 +465,17 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Paramètres manquants pour vixsrc (tmdbId, type)' });
         }
 
-        console.log(`🚀 [MOVIX PROXY VIXSRC] Request: ${type} ${tmdbId} S${season}E${episode}`);
+        // Use resolved or original
+        const finalSeason = resolvedSeason !== null ? resolvedSeason : (season ? parseInt(season) : null);
+        const finalEpisode = resolvedEpisode !== null ? resolvedEpisode : (episode ? parseInt(episode) : null);
+
+        console.log(`🚀 [MOVIX PROXY VIXSRC] Request: ${type} ${tmdbId} S${finalSeason}E${finalEpisode}`);
 
         const streams = await vixsrcScraper.getStreams(
           tmdbId,
           type,
-          season ? parseInt(season) : null,
-          episode ? parseInt(episode) : null
+          finalSeason,
+          finalEpisode
         );
 
         return res.status(200).json({ success: true, streams });
@@ -385,6 +489,15 @@ export default async function handler(req, res) {
     if (decodedPath === 'universalvo') {
       console.log('🚀 [Movix Proxy] Routing to UniversalVO handler');
       try {
+        // Verify we don't pass crazy episode numbers
+        const { season, episode } = queryParams;
+        // Use resolved
+        if (resolvedSeason && resolvedEpisode) {
+          req.query.season = resolvedSeason.toString();
+          req.query.episode = resolvedEpisode.toString();
+          console.log(`🚀 [Movix Proxy] UniversalVO injected remapped S${resolvedSeason}E${resolvedEpisode}`);
+        }
+
         await handleUniversalVO(req, res);
       } catch (error) {
         console.error('❌ [Movix Proxy] UniversalVO Handler Error:', error);
