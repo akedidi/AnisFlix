@@ -255,15 +255,25 @@ struct SeriesDetailView: View {
                                         .frame(maxWidth: .infinity, alignment: .center)
                                         .padding()
                                 } else if let season = seasonDetails {
-                                    VStack(spacing: 16) {
-                                        ForEach(season.episodes.filter { episode in
-                                            // Show episodes with no date or episodes released today or in the past
-                                            guard let airDate = episode.airDate, !airDate.isEmpty else { return true }
-                                            let dateFormatter = DateFormatter()
-                                            dateFormatter.dateFormat = "yyyy-MM-dd"
-                                            let todayStr = dateFormatter.string(from: Date())
-                                            return airDate <= todayStr
-                                        }) { episode in
+                                    let filteredEpisodes = season.episodes.filter { episode in
+                                        // Show episodes with no date or episodes released today or in the past
+                                        guard let airDate = episode.airDate, !airDate.isEmpty else { return true }
+                                        let dateFormatter = DateFormatter()
+                                        dateFormatter.dateFormat = "yyyy-MM-dd"
+                                        let todayStr = dateFormatter.string(from: Date())
+                                        return airDate <= todayStr
+                                    }
+                                    
+                                    if filteredEpisodes.isEmpty {
+                                        Text(theme.t("detail.noEpisodes"))
+                                            .font(.body)
+                                            .foregroundColor(theme.secondaryText)
+                                            .padding()
+                                            .frame(maxWidth: .infinity, alignment: .center)
+                                            .padding(.vertical, 32)
+                                    } else {
+                                        VStack(spacing: 16) {
+                                            ForEach(filteredEpisodes) { episode in
                                             VStack(alignment: .leading, spacing: 0) {
                                                 Button {
                                                     if selectedEpisodeId == episode.id {
@@ -356,8 +366,9 @@ struct SeriesDetailView: View {
                                                 }
                                             }
                                         }
-                                    }
-                                }
+                                    } // End VStack
+                                } // End else
+                            } // End else if seasonDetails != nil
                             }
                             .padding(.top, 24)
                             

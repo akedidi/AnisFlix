@@ -96,6 +96,7 @@ struct Localizable {
         "detail.season": "Saison",
         "detail.noSources": "Aucune source disponible",
         "detail.specials": "Spéciaux/OAVs",
+        "detail.noEpisodes": "Aucun épisode disponible pour le moment.",
         
         // Settings
         "settings.title": "Paramètres",
@@ -211,6 +212,7 @@ struct Localizable {
         "detail.season": "Season",
         "detail.noSources": "No sources available",
         "detail.specials": "Specials/OAVs",
+        "detail.noEpisodes": "No episodes available at the moment.",
         
         "settings.title": "Settings",
         "settings.appearance": "Appearance",
@@ -324,6 +326,7 @@ struct Localizable {
         "detail.season": "Temporada",
         "detail.noSources": "No hay fuentes disponibles",
         "detail.specials": "Especiales/OAVs",
+        "detail.noEpisodes": "No hay episodios disponibles por el momento.",
         
         "settings.title": "Ajustes",
         "settings.appearance": "Apariencia",
@@ -437,6 +440,7 @@ struct Localizable {
         "detail.season": "موسم",
         "detail.noSources": "لا توجد مصادر متاحة",
         "detail.specials": "خاص/OAVs",
+        "detail.noEpisodes": "لا توجد حلقات متاحة في الوقت الحالي.",
         
         "settings.title": "الإعدادات",
         "settings.appearance": "المظهر",
@@ -550,6 +554,7 @@ struct Localizable {
         "detail.season": "Staffel",
         "detail.noSources": "Keine Quellen verfügbar",
         "detail.specials": "Specials/OAVs",
+        "detail.noEpisodes": "Momentan keine Episoden verfügbar.",
         
         "settings.title": "Einstellungen",
         "settings.appearance": "Erscheinungsbild",
@@ -663,6 +668,7 @@ struct Localizable {
         "detail.season": "Stagione",
         "detail.noSources": "Nessuna fonte",
         "detail.specials": "Speciali/OAVs",
+        "detail.noEpisodes": "Nessun episodio disponibile al momento.",
         
         "settings.title": "Impostazioni",
         "settings.appearance": "Aspetto",
@@ -776,6 +782,7 @@ struct Localizable {
         "detail.season": "Temporada",
         "detail.noSources": "Sem fontes",
         "detail.specials": "Especiais/OAVs",
+        "detail.noEpisodes": "Nenhum episódio disponível de momento.",
         
         "settings.title": "Definições",
         "settings.appearance": "Aparência",
