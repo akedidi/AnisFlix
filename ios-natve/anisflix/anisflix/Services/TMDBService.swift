@@ -250,10 +250,10 @@ class TMDBService {
         // Check for Episode Groups (type 6 = "Seasons")
         // Priority: Type 6 AND Name starts with "Seasons" (e.g., "Seasons", "Seasons + OVAs")
         // Fallback: Any Type 6
-        var seasonsGroup = detail.episodeGroups?.results?.first(where: { $0.type == 6 && $0.name.hasPrefix("Seasons") })
+        var seasonsGroup = detail.episodeGroups?.results.first(where: { $0.type == 6 && $0.name.hasPrefix("Seasons") })
         
         if seasonsGroup == nil {
-             seasonsGroup = detail.episodeGroups?.results?.first(where: { $0.type == 6 })
+             seasonsGroup = detail.episodeGroups?.results.first(where: { $0.type == 6 })
         }
         
         if let seasonsGroup = seasonsGroup {

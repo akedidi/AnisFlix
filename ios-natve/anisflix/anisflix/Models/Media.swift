@@ -210,6 +210,7 @@ struct CastMember: Codable, Identifiable {
 struct ExternalIds: Codable {
     let imdbId: String?
     
+    private enum CodingKeys: String, CodingKey {
         case imdbId = "imdb_id"
     }
 }
