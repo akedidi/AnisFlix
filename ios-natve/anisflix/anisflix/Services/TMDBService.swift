@@ -284,13 +284,16 @@ class TMDBService {
                     
                     // Map episodes to proper Episode struct
                     // IMPORTANT: Overwrite seasonNumber to make sure it matches the virtual season
-                    let mappedEpisodes = group.episodes.map { ep -> Episode in
+                    // Map episodes to proper Episode struct
+                    // IMPORTANT: Overwrite seasonNumber to make sure it matches the virtual season
+                    // ALSO: Use index + 1 as episode number to ensure relative numbering (S2 E1 instead of S2 E25)
+                    let mappedEpisodes = group.episodes.enumerated().map { (index, ep) -> Episode in
                         Episode(
                             id: ep.id,
                             name: ep.name,
                             overview: ep.overview,
                             stillPath: ep.stillPath,
-                            episodeNumber: ep.episodeNumber,
+                            episodeNumber: index + 1, // Force relative episode number
                             seasonNumber: seasonNumber, // Force virtual season number
                             airDate: ep.airDate,
                             voteAverage: ep.voteAverage,
