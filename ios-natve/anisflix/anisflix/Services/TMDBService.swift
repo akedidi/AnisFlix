@@ -13,12 +13,9 @@ class TMDBService {
     
     private let apiKey = "f3d757824f08ea2cff45eb8f47ca3a1e"
     private let baseURL = "https://api.themoviedb.org/3"
+    private let proxyBaseURL = "https://anisflix.vercel.app/api/tmdb-proxy"
     
     private init() {}
-    
-    // Cache for requests of "Virtual Seasons" (from Episode Groups)
-    // Key: "{seriesId}_{seasonNumber}"
-    private var virtualSeasonsCache: [String: SeasonDetails] = [:]
     
     // MARK: - Popular Movies
     
@@ -164,75 +161,13 @@ class TMDBService {
         return response.results.map { $0.toMedia(mediaType: .series) }
     }
     
-    // MARK: - Season Details
+    // MARK: - Season Details (via Proxy)
     
     func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> SeasonDetails {
-        // Check cache first
-        let cacheKey = "\(seriesId)_\(seasonNumber)"
-        if let cached = virtualSeasonsCache[cacheKey] {
-            print("⚡️ [TMDBService] Returning cached virtual season \(seasonNumber) for series \(seriesId)")
-            return cached
-        }
-        
-        let endpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)?api_key=\(apiKey)&language=\(language)"
-        let frData: SeasonDetails = try await fetch(from: endpoint)
-        
-        // Check for generic episode names in the response
-        // Regex: starts with Episode/Épisode/Episodio followed by a number
-        let pattern = "^(Episode|Épisode|Episodio) \\d+$"
-        
-        let hasGenericNames = frData.episodes.contains { episode in
-            return episode.name.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil ||
-                   episode.name == "Episode \(episode.episodeNumber)"
-        }
-        
-        if hasGenericNames {
-            print("⚠️ [TMDBService] Generic names detected for season \(seasonNumber), fetching English fallback...")
-            do {
-                // Fetch English data
-                let enEndpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)?api_key=\(apiKey)&language=en-US"
-                let enData: SeasonDetails = try await fetch(from: enEndpoint)
-                
-                // Merge English names where French ones are generic
-                let updatedEpisodes = frData.episodes.map { frEp -> Episode in
-                    let isGeneric = frEp.name.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil ||
-                                    frEp.name == "Episode \(frEp.episodeNumber)"
-                    
-                    if isGeneric {
-                        if let enEp = enData.episodes.first(where: { $0.id == frEp.id }) {
-                            print("✅ [TMDBService] Replaced generic \"\(frEp.name)\" with \"\(enEp.name)\"")
-                            // Inject English name as originalName and use it as name
-                            return Episode(
-                                id: frEp.id,
-                                name: enEp.name,
-                                overview: frEp.overview,
-                                stillPath: frEp.stillPath,
-                                episodeNumber: frEp.episodeNumber,
-                                seasonNumber: frEp.seasonNumber,
-                                airDate: frEp.airDate,
-                                voteAverage: frEp.voteAverage,
-                                originalName: enEp.name // Use EN name as originalName too
-                            )
-                        }
-                    }
-                    return frEp
-                }
-                
-                return SeasonDetails(
-                    id: frData.id,
-                    name: frData.name,
-                    overview: frData.overview,
-                    posterPath: frData.posterPath,
-                    seasonNumber: frData.seasonNumber,
-                    episodes: updatedEpisodes
-                )
-                
-            } catch {
-                print("❌ [TMDBService] Failed to fetch English fallback: \(error)")
-            }
-        }
-        
-        return frData
+        // Use centralized TMDB proxy - handles virtual seasons, sequential numbering, and generic name fallback
+        let endpoint = "\(proxyBaseURL)?type=season&seriesId=\(seriesId)&seasonNumber=\(seasonNumber)&language=\(language)"
+        print("📺 [TMDBService] Fetching season via proxy: \(endpoint)")
+        return try await fetch(from: endpoint)
     }
     
     // MARK: - Media Details
@@ -243,95 +178,11 @@ class TMDBService {
     }
     
     func fetchSeriesDetails(seriesId: Int, language: String = "fr-FR") async throws -> SeriesDetail {
-        let endpoint = "\(baseURL)/tv/\(seriesId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits,episode_groups"
-        var detail: SeriesDetail = try await fetch(from: endpoint)
-        
-        // Check for "Seasons" Episode Group (Type 6 usually, or name "Seasons")
-        // Check for Episode Groups (type 6 = "Seasons")
-        // Priority: Type 6 AND Name starts with "Seasons" (e.g., "Seasons", "Seasons + OVAs")
-        // Fallback: Any Type 6
-        var seasonsGroup = detail.episodeGroups?.results.first(where: { $0.type == 6 && $0.name.hasPrefix("Seasons") })
-        
-        if seasonsGroup == nil {
-             seasonsGroup = detail.episodeGroups?.results.first(where: { $0.type == 6 })
-        }
-        
-        if let seasonsGroup = seasonsGroup {
-            
-            print("✅ [TMDBService] Found 'Seasons' episode group: \(seasonsGroup.name) (ID: \(seasonsGroup.id))")
-            
-            do {
-                // Fetch group details
-                let groupDetails = try await fetchEpisodeGroupDetails(groupId: seasonsGroup.id)
-                var newSeasons: [SeriesDetail.SeasonSummary] = []
-                
-                for group in groupDetails.groups {
-                    // Create SeasonSummary
-                    // Assuming group.order is the season number
-                    let summary = SeriesDetail.SeasonSummary(
-                        id: Int(group.id) ?? 0, // group.id is String, SeasonSummary expects Int... fallback
-                        name: group.name,
-                        overview: nil,
-                        seasonNumber: group.order,
-                        episodeCount: group.episodes.count,
-                        posterPath: detail.posterPath // Groups usually don't have posters, inherit from series
-                    )
-                    newSeasons.append(summary)
-                    
-                    // Hydrate Cache for this season
-                    let seasonNumber = group.order
-                    let cacheKey = "\(seriesId)_\(seasonNumber)"
-                    
-                    // Map episodes to proper Episode struct
-                    // IMPORTANT: Overwrite seasonNumber to make sure it matches the virtual season
-                    // Map episodes to proper Episode struct
-                    // IMPORTANT: Overwrite seasonNumber to make sure it matches the virtual season
-                    // ALSO: Use index + 1 as episode number to ensure relative numbering (S2 E1 instead of S2 E25)
-                    let mappedEpisodes = group.episodes.enumerated().map { (index, ep) -> Episode in
-                        Episode(
-                            id: ep.id,
-                            name: ep.name,
-                            overview: ep.overview,
-                            stillPath: ep.stillPath,
-                            episodeNumber: index + 1, // Force relative episode number
-                            seasonNumber: seasonNumber, // Force virtual season number
-                            airDate: ep.airDate,
-                            voteAverage: ep.voteAverage,
-                            originalName: ep.originalName
-                        )
-                    }
-                    
-                    let seasonDetails = SeasonDetails(
-                        id: Int(group.id) ?? 0,
-                        name: group.name,
-                        overview: nil,
-                        posterPath: detail.posterPath,
-                        seasonNumber: seasonNumber,
-                        episodes: mappedEpisodes
-                    )
-                    
-                    virtualSeasonsCache[cacheKey] = seasonDetails
-                    print("💧 [TMDBService] Hydrated cache for Virtual Season \(seasonNumber)")
-                }
-                
-                // Update series details with new seasons
-                detail.seasons = newSeasons
-                detail.numberOfSeasons = newSeasons.count
-                print("✨ [TMDBService] Updated series with \(newSeasons.count) virtual seasons")
-                
-            } catch {
-                print("❌ [TMDBService] Failed to fetch episode group details: \(error)")
-            }
-        }
-        
-        return detail
-    }
-    
-    func fetchEpisodeGroupDetails(groupId: String) async throws -> EpisodeGroupDetails {
-        let endpoint = "\(baseURL)/tv/episode_group/\(groupId)?api_key=\(apiKey)&language=fr-FR"
+        // Use centralized TMDB proxy - handles Episode Groups and virtual seasons
+        let endpoint = "\(proxyBaseURL)?type=series&id=\(seriesId)&language=\(language)"
+        print("🎬 [TMDBService] Fetching series via proxy: \(endpoint)")
         return try await fetch(from: endpoint)
-    }
-    
+    }    
     // MARK: - Videos (Trailers)
     
     func fetchVideos(mediaId: Int, type: Media.MediaType, language: String = "fr-FR") async throws -> [Video] {
