@@ -527,18 +527,34 @@ export default async function handler(req, res) {
         const TMDB_KEY = "68e094699525b18a70bab2f86b1fa706";
 
         // ═══════════════════════════════════════════════════════════════════
-        // MANUAL MAPPINGS: TMDB Specials → Anime API Seasons
-        // Some anime have "specials" in TMDB that are actually separate seasons
-        // on anime streaming sites. This maps them correctly.
+        // MANUAL MAPPINGS FOR MULTI-PART SEASONS
+        // Attack on Titan Season 4 is split into 3 parts on anime sites:
+        //   - Part 1: Episodes 1-16 (TMDB S4 E1-16)
+        //   - Part 2: Episodes 1-12 (TMDB S4 E17-28)
+        //   - Part 3: Episodes 1-2  (TMDB S4 E29-30)
         // ═══════════════════════════════════════════════════════════════════
+        const AOT_SEASON_4_MAPPING = {
+          // Part 1: Episodes 1-16
+          ...Object.fromEntries(
+            Array.from({ length: 16 }, (_, i) => [i + 1, { searchTitle: 'Attack on Titan: Final Season, Part 1', episode: i + 1 }])
+          ),
+          // Part 2: Episodes 17-28 → mapped to Part 2 episodes 1-12
+          ...Object.fromEntries(
+            Array.from({ length: 12 }, (_, i) => [i + 17, { searchTitle: 'Attack on Titan: Final Season, Part 2', episode: i + 1 }])
+          ),
+          // Part 3: Episodes 29-30 → mapped to Part 3 episodes 1-2
+          29: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 1 },
+          30: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 2 },
+        };
+
         const SPECIAL_EPISODE_MAPPINGS = {
           // Attack on Titan (TMDB ID 1429)
-          // Season 0 (Specials) Ep 36 & 37 = "The Final Chapters" = "The Final Season Part 3" Ep 1 & 2
           '1429': {
-            '0': {  // Season 0 (Specials)
+            '0': {  // Season 0 (Specials) - some specials are the same as Part 3
               36: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 1 },
               37: { searchTitle: 'Attack on Titan: The Final Season Part 3', episode: 2 },
-            }
+            },
+            '4': AOT_SEASON_4_MAPPING  // Season 4 complete mapping
           }
         };
 
