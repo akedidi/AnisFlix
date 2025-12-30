@@ -165,7 +165,8 @@ class TMDBService {
     
     func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> SeasonDetails {
         // Use centralized TMDB proxy - handles virtual seasons, sequential numbering, and generic name fallback
-        let endpoint = "\(proxyBaseURL)?type=season&seriesId=\(seriesId)&seasonNumber=\(seasonNumber)&language=\(language)"
+        // Add timestamp to force fresh fetch (bust cache)
+        let endpoint = "\(proxyBaseURL)?type=season&seriesId=\(seriesId)&seasonNumber=\(seasonNumber)&language=\(language)&_t=\(Date().timeIntervalSince1970)"
         print("📺 [TMDBService] Fetching season via proxy: \(endpoint)")
         return try await fetch(from: endpoint)
     }
@@ -223,20 +224,21 @@ class TMDBService {
             throw URLError(.badURL)
         }
         
-
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-
-        
-
+        let (data, _) = try await URLSession.shared.data(from: url)
         
         let decoder = JSONDecoder()
-        // CodingKeys are explicitly defined in models, no need for strategy
         
-        let decoded = try decoder.decode(T.self, from: data)
-
-        
-        return decoded
+        do {
+            let decoded = try decoder.decode(T.self, from: data)
+            return decoded
+        } catch {
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("❌ [TMDBService] Decoding error for URL: \(urlString)")
+                print("📄 Raw JSON: \(jsonString)")
+            } else {
+                print("❌ [TMDBService] Decoding error: Could not convert data to string")
+            }
+            throw error
+        }
     }
 }
