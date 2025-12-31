@@ -76,14 +76,14 @@ export default function ParamountSeries() {
     const timer = setTimeout(() => {
       restoreScrollPosition();
     }, 500);
-    
+
     return () => clearTimeout(timer);
   }, [restoreScrollPosition]);
 
-  // Reset page when search changes
-  useEffect(() => {
+  // Reset page when search changes - DISABLED to fix history navigation
+  /* useEffect(() => {
     onPageChange(1);
-  }, [searchQuery]);
+  }, [searchQuery]); */
 
   const handlePageChange = (page: number) => {
     onPageChange(page);
@@ -93,16 +93,16 @@ export default function ParamountSeries() {
   return (
     <div className="h-screen overflow-y-auto bg-background">
       <DesktopSidebar />
-      
+
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              
+
               <h1 className="text-xl font-semibold">Séries Paramount+</h1>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <SearchBar
                 onSearch={setSearchQuery}
@@ -359,7 +359,7 @@ export default function ParamountSeries() {
           </>
         )}
       </div>
-      
+
     </div>
   );
 }

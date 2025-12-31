@@ -109,10 +109,11 @@ export default function SeriesGenre() {
   }, []);
 
   // Reset page when genre changes
-  useEffect(() => {
+  // Reset page when genre changes
+  /* useEffect(() => {
     onPageChange(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreSlug]);
+  }, [genreSlug]); */
 
   const handlePageChange = (page: number) => {
     onPageChange(page);

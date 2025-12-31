@@ -215,10 +215,11 @@ export default function ProviderMoviesGenre() {
   }, []);
 
   // Reset page when genre or provider changes
-  useEffect(() => {
+  // Reset page when genre or provider changes
+  /* useEffect(() => {
     onPageChange(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreSlug, providerId]);
+  }, [genreSlug, providerId]); */
 
   const handlePageChange = (page: number) => {
     onPageChange(page);
