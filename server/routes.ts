@@ -1673,7 +1673,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           include_null_first_air_dates: 'false',
           'first_air_date.lte': lastDateLte,
           with_networks: majorNetworks,
-          with_watch_monetization_types: 'flatrate',
+          // Removed with_watch_monetization_types: 'flatrate' because it hides new releases 
+          // that don't have provider data yet (like "Run Away").
+          // with_networks is sufficient to target Originals.
+          watch_region: 'FR', // Ensure we target France matching if relevant
           page: page,
           language: language
         });
