@@ -169,6 +169,30 @@ export default async function handler(req, res) {
             return res.status(200).json(seriesData);
         }
 
+        // Endpoint 1b: Latest Series (Centralized Logic for Vercel)
+        if (type === 'series' && req.query.filter === 'last') {
+            const page = req.query.page || 1;
+            // Major Networks IDs (Netflix, Amazon, Disney+, etc.)
+            const majorNetworks = "213|1024|2739|2552|49|380";
+            const today = new Date();
+            const lastDateLte = today.toISOString().slice(0, 10);
+
+            console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language})`);
+
+            const data = await tmdbFetch('/discover/tv', {
+                sort_by: 'first_air_date.desc',
+                include_adult: 'false',
+                include_null_first_air_dates: 'false',
+                'first_air_date.lte': lastDateLte,
+                with_networks: majorNetworks,
+                watch_region: 'FR', // V9.2 Logic: No flatrate filter
+                page: page,
+                language: language
+            });
+
+            return res.status(200).json(data);
+        }
+
         // Endpoint 2: Season Details
         if (type === 'season' && seriesId && seasonNumber !== undefined) {
             const seriesIdNum = parseInt(seriesId, 10);
