@@ -78,7 +78,7 @@ struct CustomHeaderView: View {
                             }
                             .onChange(of: searchText) { newValue in
                                 onSearch?(newValue)
-                                if newValue.count >= 2 {
+                                if newValue.count >= 1 {
                                     performSearch(query: newValue)
                                 } else {
                                     searchResults = []

@@ -174,23 +174,15 @@ export const tmdb = {
   },
 
   getLatestProviderSeries: async (page = 1) => {
-    // Latest series from major providers, sorted by release date
-    // Major Providers: Netflix(8), Amazon FR(119), Disney+(337), Canal+(381), Crunchyroll(283), AppleTV+(350), HBO(1899)
-    const majorProviders = "8|119|337|381|283|350|1899";
+    // Use centralized TMDB proxy which handles "Latest" logic robustly (Provider + Network filtering)
+    // allowing new releases like "Run Away" (Netflix) to appear immediately.
+    const language = getLanguage();
+    const langCode = getLanguageCode(language);
 
-    const today = new Date();
-    const lastDateLte = today.toISOString().slice(0, 10);
-
-    return tmdbFetch('/discover/tv', {
-      sort_by: 'first_air_date.desc',
-      include_adult: 'false',
-      include_null_first_air_dates: 'false',
-      'first_air_date.lte': lastDateLte,
-      with_watch_providers: majorProviders,
-      watch_region: 'FR',
-      with_watch_monetization_types: 'flatrate',
-      page: page.toString(),
-    } as any);
+    // Call the centralized proxy endpoint
+    const response = await fetch(`/api/tmdb-proxy?type=series&filter=last&page=${page}&language=${langCode}`);
+    if (!response.ok) throw new Error('TMDB Proxy request failed');
+    return response.json();
   },
 
   // Series Details (via Proxy)

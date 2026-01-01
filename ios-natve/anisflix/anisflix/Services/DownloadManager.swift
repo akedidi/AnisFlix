@@ -11,6 +11,7 @@ import AVFoundation
 import UIKit // For UIImage/JPEG conversion if needed, but we'll just save data
 
 enum DownloadState: String, Codable {
+    case queued
     case waiting
     case downloading
     case paused
@@ -39,6 +40,8 @@ struct DownloadItem: Identifiable, Codable, Hashable {
     let language: String
     var sourceId: String? // To track which source triggered the download
     
+    var retryCount: Int = 0 // Track number of retries
+    
     // For Series
     let season: Int?
     let episode: Int?
@@ -51,6 +54,7 @@ struct DownloadItem: Identifiable, Codable, Hashable {
     var localBackdropPath: String? // Relative path
     var isHLS: Bool = false
     var relativePath: String? // For HLS persistence
+    var downloadSpeed: String? // Speed display (e.g. "2.5 MB/s")
     
     var isSeries: Bool {
         return season != nil && episode != nil
@@ -78,21 +82,44 @@ class DownloadManager: NSObject, ObservableObject {
     private var assetDownloadSession: AVAssetDownloadURLSession!
     private var activeAssetDownloads: [String: AVAssetDownloadTask] = [:]
     
-    private let downloadsKey = "saved_downloads"
+    // Separate error persistence to avoid breaking DownloadItem schema
+    @Published var downloadErrors: [String: String] = [:]
+    private let errorsKey = "saved_download_errors"
     
+    private let downloadsKey = "saved_downloads"
+    private let maxRetries = 3
+    private let maxConcurrentDownloads = 2
+    
+    // Speed Calculation
+    private var speedTimer: Timer?
+    private var lastBytesReceived: [String: Int64] = [:]
+    private let byteFormatter = ByteCountFormatter()
+    @Published var globalProgress: Double = 0.0
+    
+    // Background Completion (Crucial for finish in background)
     var backgroundCompletionHandler: (() -> Void)?
+    
+    private var resumeDataDirectory: URL {
+        let dir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0].appendingPathComponent("Application Support/ResumeData")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
     
     override init() {
         super.init()
         
+        // Formatter setup
+        byteFormatter.allowedUnits = [.useMB, .useKB]
+        byteFormatter.countStyle = .file
+        
         // Standard Session
-        let config = URLSessionConfiguration.background(withIdentifier: "com.anisflix.backgroundDownload")
+        let config = URLSessionConfiguration.background(withIdentifier: "com.anisflix.backgroundDownload.v7") // v7 ID
         config.isDiscretionary = false
         config.sessionSendsLaunchEvents = true
         urlSession = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
         
         // HLS Session
-        let assetConfig = URLSessionConfiguration.background(withIdentifier: "com.anisflix.assetDownload")
+        let assetConfig = URLSessionConfiguration.background(withIdentifier: "com.anisflix.assetDownload.v7") // v7 ID
         assetConfig.isDiscretionary = false
         assetConfig.sessionSendsLaunchEvents = true
         assetDownloadSession = AVAssetDownloadURLSession(configuration: assetConfig, assetDownloadDelegate: self, delegateQueue: OperationQueue.main)
@@ -109,6 +136,7 @@ class DownloadManager: NSObject, ObservableObject {
             }
         }
         
+        
         // Re-attach HLS tasks
         assetDownloadSession.getAllTasks { tasks in
             for task in tasks {
@@ -118,6 +146,61 @@ class DownloadManager: NSObject, ObservableObject {
                 }
             }
         }
+        
+        startSpeedTimer()
+        // Initial queue processing after a short delay to allow UI to settle
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.loadErrors()
+            self.processQueue()
+        }
+    }
+    
+    // MARK: - Queue Management
+    
+    func processQueue() {
+        var downloadingCount = downloads.filter { $0.state == .downloading }.count
+        
+        while downloadingCount < maxConcurrentDownloads {
+            // Find next queued item
+            if let nextIndex = downloads.firstIndex(where: { $0.state == .queued }) {
+                let item = downloads[nextIndex]
+                print("🚀 Queue: Starting download for \(item.title) (Slots: \(downloadingCount)/\(maxConcurrentDownloads))")
+                
+                // Change status to downloading
+                downloads[nextIndex].state = .downloading
+                saveDownloads()
+                
+                // Start or Resume
+                resumeTaskInternally(for: item)
+                
+                downloadingCount += 1
+            } else {
+                // No more items in queue
+                break
+            }
+        }
+    }
+    
+    // MARK: - Persistence Helpers
+    
+    private func saveResumeData(_ data: Data, for id: String) {
+        let fileURL = resumeDataDirectory.appendingPathComponent(id)
+        do {
+            try data.write(to: fileURL)
+            print("💾 Persisted resume data for \(id) to disk")
+        } catch {
+            print("❌ Failed to persist resume data: \(error)")
+        }
+    }
+    
+    private func loadResumeData(for id: String) -> Data? {
+        let fileURL = resumeDataDirectory.appendingPathComponent(id)
+        return try? Data(contentsOf: fileURL)
+    }
+    
+    private func deleteResumeData(for id: String) {
+        let fileURL = resumeDataDirectory.appendingPathComponent(id)
+        try? FileManager.default.removeItem(at: fileURL)
     }
     
     // MARK: - Public API
@@ -133,6 +216,7 @@ class DownloadManager: NSObject, ObservableObject {
                     source.provider == "vidzy" ||
                     source.provider == "vixsrc"
         
+        // Initialize as queued
         let item = DownloadItem(
             id: id,
             mediaId: media.id,
@@ -147,7 +231,7 @@ class DownloadManager: NSObject, ObservableObject {
             sourceId: source.id,
             season: season,
             episode: episode,
-            state: .waiting,
+            state: .queued, // Start as queued
             progress: 0.0,
             isHLS: isHLS
         )
@@ -155,11 +239,8 @@ class DownloadManager: NSObject, ObservableObject {
         downloads.append(item)
         saveDownloads()
         
-        if isHLS {
-            startHLSDownload(for: item)
-        } else {
-            startDownloadTask(for: item)
-        }
+        // Trigger queue processing
+        processQueue()
         
         // Download Metadata (Images & Subtitles)
         Task {
@@ -304,9 +385,16 @@ class DownloadManager: NSObject, ObservableObject {
             }
         } else {
             if let task = downloadTasks[id] {
+                print("⏸ Pausing task \(id)...")
                 task.cancel(byProducingResumeData: { resumeData in
                     if let data = resumeData {
-                        self.resumeDataMap[id] = data
+                        print("💾 Resume data produced for paused task \(id)")
+                        DispatchQueue.main.async {
+                            self.resumeDataMap[id] = data
+                            self.saveResumeData(data, for: id) // Persist to disk
+                        }
+                    } else {
+                        print("⚠️ No resume data produced for paused task \(id)")
                     }
                 })
                 downloadTasks.removeValue(forKey: id)
@@ -315,33 +403,221 @@ class DownloadManager: NSObject, ObservableObject {
         
         downloads[index].state = .paused
         saveDownloads()
+        
+        // Slot freed up, check queue
+        processQueue()
     }
     
     func resumeDownload(id: String) {
         guard let index = downloads.firstIndex(where: { $0.id == id }) else { return }
-        let item = downloads[index]
+        
+        // Reset to queued, let processQueue handle start/concurrency
+        downloads[index].state = .queued
+        saveDownloads()
+        
+        processQueue()
+        
+        // Clear error on manual resume
+        clearError(for: id)
+    }
+    
+    // Internal Resume (actually starts the task)
+    private func resumeTaskInternally(for item: DownloadItem) {
+        let id = item.id
         
         if item.isHLS {
             if let task = activeAssetDownloads[id] {
                 task.resume()
             } else {
-                // Restart HLS download if task is gone (AVAssetDownloadTask supports resuming automatically if asset exists)
+                // Restart HLS download if task is gone
                 startHLSDownload(for: item)
             }
         } else {
-            if let resumeData = resumeDataMap[id] {
+            // Check memory first, then disk
+            var dataToResume = resumeDataMap[id]
+            if dataToResume == nil {
+                dataToResume = loadResumeData(for: id)
+                if dataToResume != nil {
+                     print("📂 Loaded resume data from disk for \(id)")
+                }
+            }
+            
+            if let resumeData = dataToResume {
                 let task = urlSession.downloadTask(withResumeData: resumeData)
                 task.taskDescription = id
                 task.resume()
                 downloadTasks[id] = task
+                // Don't remove from disk/map immediately until finished? 
+                // Actually safer to keep until success, but standard practice is to consume it.
+                // If it fails again, we get new resume data.
                 resumeDataMap.removeValue(forKey: id)
+                // We keep disk copy? No, consuming it invalidates it usually? 
+                // Resume data is usually one-time use.
+                deleteResumeData(for: id)
             } else {
+                print("⚠️ No resume data found, restarting fresh.")
                 startDownloadTask(for: item)
             }
         }
+    }
+    
+    func restartDownload(id: String) {
+        guard let index = downloads.firstIndex(where: { $0.id == id }) else { return }
         
-        downloads[index].state = .downloading
+        // 1. Cancel running tasks if any (though usually called when failed/paused)
+        if let task = listActiveTask(for: id) {
+            task.cancel()
+        }
+        
+        var item = downloads[index]
+        
+        // 2. Delete partial files
+        if let localUrl = item.localVideoUrl {
+            try? FileManager.default.removeItem(at: localUrl)
+        }
+        // Also clean hls assets if HLS
+        if item.isHLS {
+             if let task = activeAssetDownloads[id] {
+                activeAssetDownloads.removeValue(forKey: id)
+            }
+        } else {
+             if let task = downloadTasks[id] {
+                downloadTasks.removeValue(forKey: id)
+            }
+            // Clear resume data
+            resumeDataMap.removeValue(forKey: id)
+        }
+        
+                        // 3. Reset Item State
+        item.progress = 0.0
+        item.state = .queued // Join queue instead of forcing start
+        item.retryCount = 0
+        item.localVideoUrl = nil
+        // Keep metadata images/subs as they are likely fine
+        
+        // Clear error
+        clearError(for: id)
+        
+        downloads[index] = item
         saveDownloads()
+        
+        print("🔄 Restarting download from scratch (queued): \(item.title)")
+        
+        // 4. Trigger Queue
+        processQueue()
+    }
+    
+    func getError(for id: String) -> String? {
+        return downloadErrors[id]
+    }
+    
+    private func setError(_ error: String, for id: String) {
+        downloadErrors[id] = error
+        saveErrors()
+    }
+    
+    private func clearError(for id: String) {
+        downloadErrors.removeValue(forKey: id)
+        saveErrors()
+    }
+    
+    private func saveErrors() {
+        if let data = try? JSONEncoder().encode(downloadErrors) {
+            UserDefaults.standard.set(data, forKey: errorsKey)
+        }
+    }
+    
+    private func loadErrors() {
+        if let data = UserDefaults.standard.data(forKey: errorsKey),
+           let errors = try? JSONDecoder().decode([String: String].self, from: data) {
+            downloadErrors = errors
+        }
+    }
+    
+    // Helper to find task generic
+    private func listActiveTask(for id: String) -> URLSessionTask? {
+        if let t = downloadTasks[id] { return t }
+        if let t = activeAssetDownloads[id] { return t }
+        return nil
+    }
+    
+    // MARK: - Speed Calculation Logic
+    
+    private func startSpeedTimer() {
+        speedTimer?.invalidate()
+        speedTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.calculateSpeed()
+        }
+    }
+    
+    private func calculateSpeed() {
+        // Collect all active tasks
+        var activeTasks: [URLSessionTask] = []
+        // Explicit cast needed because Swift collections are invariant
+        activeTasks.append(contentsOf: downloadTasks.values.map { $0 as URLSessionTask })
+        activeTasks.append(contentsOf: activeAssetDownloads.values.map { $0 as URLSessionTask })
+        
+        var activeIds: Set<String> = []
+        
+        for task in activeTasks {
+            guard let id = task.taskDescription else { continue }
+            activeIds.insert(id)
+            
+            let currentBytes = task.countOfBytesReceived
+            let previousBytes = lastBytesReceived[id] ?? 0
+            
+            // Calculate delta
+            // Note: countOfBytesReceived accumulates.
+            // If it resets (re-launch), previousBytes might be > currentBytes, so handle that.
+            var delta = currentBytes - previousBytes
+            if delta < 0 { delta = currentBytes } // Reset
+            
+            // Update last bytes
+            lastBytesReceived[id] = currentBytes
+            
+            DispatchQueue.main.async {
+                if let index = self.downloads.firstIndex(where: { $0.id == id }) {
+                    // Only update if state is downloading
+                    if self.downloads[index].state == .downloading {
+                        // Format speed
+                        let speed = self.byteFormatter.string(fromByteCount: delta) + "/s"
+                        
+                        // Optimize updates to avoid too many refreshes if string hasn't changed?
+                        if self.downloads[index].downloadSpeed != speed {
+                            self.objectWillChange.send()
+                            self.downloads[index].downloadSpeed = speed
+                        }
+                    } else {
+                        if self.downloads[index].downloadSpeed != nil {
+                            self.objectWillChange.send()
+                            self.downloads[index].downloadSpeed = nil
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Cleanup lastBytes for finished tasks
+        for id in lastBytesReceived.keys {
+            if !activeIds.contains(id) {
+                lastBytesReceived.removeValue(forKey: id)
+            }
+        }
+        
+        // Update Global Progress
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let downloadingItems = self.downloads.filter { $0.state == .downloading }
+            if downloadingItems.isEmpty {
+                if self.globalProgress != 0 { self.globalProgress = 0 }
+            } else {
+                let totalProgress = downloadingItems.reduce(0.0) { $0 + $1.progress }
+                let avg = totalProgress / Double(downloadingItems.count)
+                if abs(self.globalProgress - avg) > 0.01 { // Reduce churn
+                    self.globalProgress = avg
+                }
+            }
+        }
     }
     
     func cancelDownload(id: String) {
@@ -376,12 +652,20 @@ class DownloadManager: NSObject, ObservableObject {
              try? FileManager.default.removeItem(at: documentsURL.appendingPathComponent(backdropPath))
         }
         // Delete local subtitles
+        // Delete local subtitles
         for sub in item.localSubtitles {
             try? FileManager.default.removeItem(at: sub.url)
         }
         
+        // Delete persistent resume data
+        deleteResumeData(for: id)
+        resumeDataMap.removeValue(forKey: id)
+        
         downloads.remove(at: index)
         saveDownloads()
+        
+        // Slot freed up
+        processQueue()
     }
     
     func deleteDownload(id: String) {
@@ -394,7 +678,7 @@ class DownloadManager: NSObject, ObservableObject {
             item.season == season &&
             item.episode == episode &&
             (sourceId == nil || item.sourceId == sourceId) &&
-            (item.state == .downloading || item.state == .waiting)
+            (item.state == .downloading || item.state == .waiting || item.state == .queued)
         }
     }
     
@@ -466,6 +750,8 @@ class DownloadManager: NSObject, ObservableObject {
 
 // MARK: - URLSessionTaskDelegate (Shared)
 
+// MARK: - URLSessionTaskDelegate (Shared)
+
 extension DownloadManager: URLSessionTaskDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
@@ -473,13 +759,63 @@ extension DownloadManager: URLSessionTaskDelegate {
               let index = downloads.firstIndex(where: { $0.id == id }) else { return }
         
         if let error = error {
-            print("Download error (Task: \(id)): \(error)")
-            if (error as NSError).code != NSURLErrorCancelled {
+            print("❌ Download error (Task: \(id)): \(error)")
+            
+            // Capture resume data if available
+            // Using exact string key to be safe
+            var capturedResumeData: Data? = nil
+            if let resumeData = (error as NSError).userInfo["NSURLSessionDownloadTaskResumeData"] as? Data {
+                capturedResumeData = resumeData
+            } else if let resumeData = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data {
+                capturedResumeData = resumeData
+            }
+            
+            if let resumeData = capturedResumeData {
+                print("💾 Captured resume data for task: \(id) (\(ByteCountFormatter.string(fromByteCount: Int64(resumeData.count), countStyle: .file)))")
                 DispatchQueue.main.async {
-                    self.downloads[index].state = .failed
-                    self.saveDownloads()
+                    self.resumeDataMap[id] = resumeData
+                    self.saveResumeData(resumeData, for: id) // Persist to disk
+                }
+            } else {
+                 print("⚠️ No resume data found in error info.")
+            }
+            
+            if (error as NSError).code != NSURLErrorCancelled {
+                // Record error
+                DispatchQueue.main.async {
+                    self.setError(error.localizedDescription, for: id)
+                }
+                
+                DispatchQueue.main.async {
+                    // Auto-Retry Logic - STRICT: Only if we have resume data
+                    // User complained about "restarting from beginning", so we prevent that by checking for resume data
+                    let hasResumeData = self.resumeDataMap[id] != nil || capturedResumeData != nil
+                    
+                    if hasResumeData && self.downloads[index].retryCount < self.maxRetries {
+                        self.downloads[index].retryCount += 1
+                        let retryDelay: TimeInterval = Double(self.downloads[index].retryCount) * 5.0
+                        
+                        print("🔄 Auto-retrying task \(id) in \(retryDelay)s (Attempt \(self.downloads[index].retryCount)/\(self.maxRetries))")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + retryDelay) {
+                            if self.downloads[index].state != .paused {
+                                self.resumeDownload(id: id)
+                            }
+                        }
+                        self.saveDownloads()
+                    } else {
+                        if !hasResumeData {
+                            print("🚫 No resume data available. Cannot auto-retry without restarting. Marking as failed.")
+                        } else {
+                            print("🚫 Max retries reached for task \(id). Marking as failed.")
+                        }
+                        self.downloads[index].state = .failed
+                        self.saveDownloads()
+                    }
                 }
             }
+        } else {
+             print("✅ Task finished successfully: \(id)")
         }
     }
     
@@ -522,6 +858,9 @@ extension DownloadManager: URLSessionDownloadDelegate {
                     self.downloads[index].localVideoUrl = destinationURL
                     self.downloadTasks.removeValue(forKey: id)
                     self.saveDownloads()
+                    
+                    // Task finished, process queue for next item
+                    self.processQueue()
                 }
             }
         } catch {
@@ -573,6 +912,9 @@ extension DownloadManager: AVAssetDownloadDelegate {
                 
                 self.activeAssetDownloads.removeValue(forKey: id)
                 self.saveDownloads()
+                
+                // Process queue to start next download
+                self.processQueue()
             }
         }
     }

@@ -63,6 +63,11 @@ struct CustomVideoPlayer: View {
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
             
+            // Hide Home Indicator when controls are hidden in fullscreen
+            HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
+                .frame(width: 0, height: 0)
+                .zIndex(999)
+            
             ZStack {
             // Full black background - especially important in fullscreen
             Color.black

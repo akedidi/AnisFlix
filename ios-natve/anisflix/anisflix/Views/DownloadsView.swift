@@ -15,11 +15,65 @@ struct DownloadsView: View {
     @State private var selectedTab = 0 // 0: Terminé, 1: En cours
     
     var completedDownloads: [DownloadItem] {
-        downloadManager.downloads.filter { $0.state == .completed }
+        downloadManager.downloads
+            .filter { $0.state == .completed }
+            .sorted { item1, item2 in
+                // First, compare titles
+                if item1.title != item2.title {
+                    return item1.title < item2.title
+                }
+                
+                // Same title - check if they're episodes or movies
+                switch (item1.season, item2.season) {
+                case (nil, nil):
+                    // Both movies - equal
+                    return false
+                case (nil, _):
+                    // item1 is movie, item2 is episode - movie comes first
+                    return true
+                case (_, nil):
+                    // item1 is episode, item2 is movie - movie comes first
+                    return false
+                case (let s1?, let s2?):
+                    // Both episodes - compare seasons
+                    if s1 != s2 {
+                        return s1 < s2
+                    }
+                    // Same season - compare episodes
+                    return (item1.episode ?? 0) < (item2.episode ?? 0)
+                }
+            }
     }
     
     var activeDownloads: [DownloadItem] {
-        downloadManager.downloads.filter { $0.state != .completed }
+        downloadManager.downloads
+            .filter { $0.state != .completed }
+            .sorted { item1, item2 in
+                // First, compare titles
+                if item1.title != item2.title {
+                    return item1.title < item2.title
+                }
+                
+                // Same title - check if they're episodes or movies
+                switch (item1.season, item2.season) {
+                case (nil, nil):
+                    // Both movies - equal
+                    return false
+                case (nil, _):
+                    // item1 is movie, item2 is episode - movie comes first
+                    return true
+                case (_, nil):
+                    // item1 is episode, item2 is movie - movie comes first
+                    return false
+                case (let s1?, let s2?):
+                    // Both episodes - compare seasons
+                    if s1 != s2 {
+                        return s1 < s2
+                    }
+                    // Same season - compare episodes
+                    return (item1.episode ?? 0) < (item2.episode ?? 0)
+                }
+            }
     }
     
     @State private var itemToDelete: DownloadItem?
@@ -361,40 +415,58 @@ struct ActiveDownloadRow: View {
                 .frame(height: 6)
                 
                 HStack {
-                    Text(statusText)
-                        .font(.caption)
-                        .foregroundColor(theme.secondaryText)
+                    if item.state == .failed, let errorMsg = downloadManager.getError(for: item.id) {
+                         Text("\(statusText): \(errorMsg)")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .lineLimit(1)
+                    } else {
+                         Text(statusText + (item.downloadSpeed != nil ? " • \(item.downloadSpeed!)" : ""))
+                            .font(.caption)
+                            .foregroundColor(item.state == .failed ? .red : theme.secondaryText)
+                    }
                     
                     Spacer()
                     
-                    if item.state == .downloading {
+                    if item.state == .downloading || item.state == .queued {
                         Button {
                             downloadManager.pauseDownload(id: item.id)
                         } label: {
                             Image(systemName: "pause.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(theme.primaryText)
+                                .font(.title2)
+                                .foregroundColor(theme.primaryText)
                         }
                     } else if item.state == .paused {
                         Button {
                             downloadManager.resumeDownload(id: item.id)
                         } label: {
                             Image(systemName: "play.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(theme.primaryText)
+                                .font(.title2)
+                                .foregroundColor(theme.primaryText)
                         }
                     } else if item.state == .failed {
-                         Button {
+                        // Resume
+                        Button {
                             downloadManager.resumeDownload(id: item.id)
                         } label: {
                             Image(systemName: "arrow.clockwise.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(theme.primaryText)
+                                .font(.title2)
+                                .foregroundColor(theme.primaryText)
+                        }
+                        
+                        // Restart
+                        Button {
+                            downloadManager.restartDownload(id: item.id)
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.orange)
                         }
                     }
                     
+                    // Always show cancel/delete button
                     Button {
-                        onCancel() // Call parent callback
+                        onCancel()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
@@ -411,6 +483,7 @@ struct ActiveDownloadRow: View {
     
     var statusText: String {
         switch item.state {
+        case .queued: return theme.t("downloads.queued") ?? "En attente..."
         case .waiting: return theme.t("downloads.waiting")
         case .downloading: return "\(theme.t("downloads.downloading")) \(Int(item.progress * 100))%"
         case .paused: return theme.t("downloads.paused")

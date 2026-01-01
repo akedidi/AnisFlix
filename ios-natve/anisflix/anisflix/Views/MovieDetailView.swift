@@ -456,7 +456,6 @@ struct MovieDetailView: View {
                 }
                 .background(isFullscreen ? Color.black : Color.clear)
                 .zIndex(100)
-                .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
                 // Position logic:
                 // When inline, we want it to appear "in place". 
                 // Since we are in a ZStack, we need to position it correctly.

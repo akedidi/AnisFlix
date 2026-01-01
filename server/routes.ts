@@ -1655,6 +1655,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(seriesData);
       }
 
+      // Endpoint 1b: Latest Series (Centralized Logic)
+      if (type === 'series' && req.query.filter === 'last') {
+        const page = req.query.page || 1;
+        // Major Networks IDs (Backup for missing provider data on new releases)
+        // Netflix(213), Amazon(1024), Disney+(2739), Apple TV+(2552), HBO(49), Canal+(380)
+        const majorNetworks = "213|1024|2739|2552|49|380";
+
+        const today = new Date();
+        const lastDateLte = today.toISOString().slice(0, 10);
+
+        console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language})`);
+
+        const data = await tmdbProxyFetch('/discover/tv', {
+          sort_by: 'first_air_date.desc',
+          include_adult: 'false',
+          include_null_first_air_dates: 'false',
+          'first_air_date.lte': lastDateLte,
+          with_networks: majorNetworks,
+          with_watch_monetization_types: 'flatrate',
+          page: page,
+          language: language
+        });
+
+        return res.json(data);
+      }
+
       // Endpoint 2: Season Details
       if (type === 'season' && seriesId && seasonNumber !== undefined) {
         const seriesIdNum = parseInt(seriesId, 10);

@@ -175,6 +175,7 @@ struct TVChannelsView: View {
                                                     .background(theme.cardBackground.opacity(0.5))
                                                     .cornerRadius(16)
                                                     .frame(maxWidth: .infinity)
+                                                    .id(channel.id) // Force complete cell rebuild on channel change
                                                 }
                                                 .buttonStyle(PlainButtonStyle())
                                             } else {

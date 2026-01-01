@@ -49,17 +49,11 @@ class TMDBService {
     func fetchLatestSeries(page: Int = 1, language: String? = nil) async throws -> [Media] {
         let lang = language ?? AppTheme.shared.tmdbLanguageCode
         
-        let today = Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: today)
+        // Use centralized TMDB proxy which handles "Latest" logic robustly (Provider + Network filtering)
+        // allowing new releases like "Run Away" (Netflix) to appear immediately.
+        let endpoint = "\(proxyBaseURL)?type=series&filter=last&page=\(page)&language=\(lang)"
         
-        // Latest series from major providers, sorted by release date
-        // Major Providers: Netflix(8), Amazon FR(119), Disney+(337), Canal+(381), Crunchyroll(283), AppleTV+(350), HBO(1899)
-        let majorProviders = "8|119|337|381|283|350|1899"
-        let watchRegion = "FR"
-        
-        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(lang)&page=\(page)&sort_by=first_air_date.desc&include_adult=false&include_null_first_air_dates=false&first_air_date.lte=\(todayStr)&with_watch_providers=\(majorProviders)&watch_region=\(watchRegion)&with_watch_monetization_types=flatrate"
+        print("🆕 [TMDBService] Fetching latest series via proxy: \(endpoint)")
         
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }

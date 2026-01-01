@@ -129,6 +129,7 @@ struct DownloadButton: View {
     @ObservedObject var theme = AppTheme.shared
     @State private var isExtracting = false
     @State private var extractionError: String?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         // Check status specifically for THIS source
@@ -136,16 +137,40 @@ struct DownloadButton: View {
         let downloadItem = downloadManager.getDownload(mediaId: media.id, season: season, episode: episode, sourceId: source.id)
         
         if let item = downloadItem {
-            DownloadButtonContent(state: item.state, progress: item.progress) {
-                if item.state == .downloading {
-                    downloadManager.pauseDownload(id: item.id)
-                } else if item.state == .paused {
-                    downloadManager.resumeDownload(id: item.id)
-                } else if item.state == .completed {
-                    // Action for completed (e.g. delete or play)
-                } else if item.state == .failed {
-                    downloadManager.resumeDownload(id: item.id)
+            HStack(spacing: 8) {
+                // Button 1: Pause / Resume / Progress
+                DownloadButtonContent(state: item.state, progress: item.progress) {
+                    if item.state == .downloading || item.state == .queued {
+                        downloadManager.pauseDownload(id: item.id)
+                    } else if item.state == .paused {
+                        downloadManager.resumeDownload(id: item.id)
+                    } else if item.state == .completed {
+                        // Action for completed (e.g. delete or play - handled elsewhere usually)
+                    } else if item.state == .failed {
+                        downloadManager.resumeDownload(id: item.id)
+                    }
                 }
+                
+                // Button 2: Stop / Delete (Visible only if active/paused/failed)
+                if item.state != .completed {
+                    Button {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(AppTheme.primaryRed)
+                    }
+                }
+            }
+            .alert(isPresented: $showDeleteConfirmation) {
+                Alert(
+                    title: Text(theme.t("downloads.deleteAlertTitle")),
+                    message: Text(theme.t("downloads.deleteAlertMessage")),
+                    primaryButton: .destructive(Text(theme.t("downloads.deleteConfirm"))) {
+                        downloadManager.cancelDownload(id: item.id)
+                    },
+                    secondaryButton: .cancel(Text(theme.t("settings.cancel")))
+                )
             }
         } else {
             Button {
@@ -242,7 +267,7 @@ struct DownloadButtonContent: View {
                 }
                 
                 switch state {
-                case .waiting:
+                case .waiting, .queued:
                     ProgressView()
                         .scaleEffect(0.8)
                 case .downloading:

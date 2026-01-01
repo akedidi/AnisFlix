@@ -240,7 +240,7 @@ struct DownloadedMediaDetailView: View {
                     )
                     .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
                     .ignoresSafeArea(isFullscreen ? .all : [])
-                    .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
+
                     .onAppear {
                         print("▶️ Playing local file: \(url.absoluteString)")
                         // Verify file existence
@@ -297,7 +297,7 @@ struct DownloadedMediaDetailView: View {
                     )
                     .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
                     .ignoresSafeArea(isFullscreen ? .all : [])
-                    .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
+
                     .onAppear {
                         print("▶️ Playing local file: \(url.absoluteString)")
                         // Verify file existence

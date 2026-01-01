@@ -325,9 +325,12 @@ struct SeriesDetailView: View {
                                                                     .multilineTextAlignment(.leading)
                                                             }
                                                             
-                                                            Text("\(episode.seasonNumber)h \(episode.episodeNumber)m") // Placeholder duration
-                                                                .font(.caption2)
-                                                                .foregroundColor(theme.secondaryText)
+                                                            
+                                                            if let runtime = episode.runtime {
+                                                                Text("\(runtime) min")
+                                                                    .font(.caption2)
+                                                                    .foregroundColor(theme.secondaryText)
+                                                            }
                                                             
                                                             // Progress Bar
                                                             let progress = WatchProgressManager.shared.getProgress(
@@ -429,7 +432,6 @@ struct SeriesDetailView: View {
                 )
                 .matchedGeometryEffect(id: "videoPlayer", in: animation, isSource: false)
                 .zIndex(100)
-                .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
             }
         }
         // .navigationBarHidden(true) removed to show system back button

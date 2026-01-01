@@ -275,6 +275,7 @@ struct Episode: Codable, Identifiable {
     let airDate: String?
     let voteAverage: Double?
     let originalName: String?
+    let runtime: Int?
     
     private enum CodingKeys: String, CodingKey {
         case id, name, overview
@@ -284,6 +285,7 @@ struct Episode: Codable, Identifiable {
         case airDate = "air_date"
         case voteAverage = "vote_average"
         case originalName = "original_name"
+        case runtime
     }
     
     var stillURL: URL? {
