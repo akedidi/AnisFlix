@@ -999,7 +999,7 @@ class StreamingService {
     
     func extractVidMoly(url: String) async throws -> String {
         // 1. Check if it's already an m3u8 (pre-extracted)
-        if url.contains(".m3u8") || url.contains("unified-streaming.com") || url.contains("vmeas.cloud") {
+        if url.contains(".m3u8") || url.contains("unified-streaming.com") || url.contains("vmeas.cloud") || url.contains("transitto.online") {
             // Check for vidmoly/vmeas manually to ensure normalization
             if url.contains("vidmoly.to") {
                  let normalized = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
