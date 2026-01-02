@@ -200,11 +200,11 @@ export default function SeriesDetail() {
   // Fetch Movix Anime sources
   const { data: movixAnime, isLoading: isLoadingMovixAnime, error: movixAnimeError } = useMovixAnime(series?.name, seriesId);
 
-  // Fetch Movix TMDB sources (Vidzy/VidMoly)
+  // Fetch Movix TMDB sources (Vidzy/VidMoly) - only when episode is selected
   const { data: movixTmdbSeries, isLoading: isLoadingMovixTmdbSeries } = useMovixTmdbSeriesSources(
     seriesId,
     selectedSeasonNumber,
-    relativeEpisode || selectedEpisode || 1
+    selectedEpisode ? (relativeEpisode || selectedEpisode) : 0 // Pass 0 when no episode selected
   );
 
   // Debug Movix TMDB Series sources

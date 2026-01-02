@@ -120,8 +120,12 @@ export const useMovixTmdbSeriesSources = (
                 const data = await response.json();
                 console.log('✅ [MOVIX TMDB SERIES] Sources fetched:', data);
 
+                // API returns player_links inside current_episode object
+                const playerLinks = data.current_episode?.player_links || data.player_links || [];
+                console.log('🔍 [MOVIX TMDB SERIES] Player links found:', playerLinks.length);
+
                 // Traiter les player_links pour analyser les providers
-                const processedSources = processPlayerLinks(data.player_links || []);
+                const processedSources = processPlayerLinks(playerLinks);
 
                 // Filtrer les sources par provider (vidmoly, vidzy, darki)
                 const filteredSources = processedSources.filter(source =>
