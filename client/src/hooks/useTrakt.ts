@@ -55,14 +55,23 @@ export function useTrakt() {
         episode?: number
     ) => {
         try {
+            // Normalize progress: Trakt expects 0-100 (percentage)
+            // If progress looks like a fraction (0-1), convert to percentage
+            let normalizedProgress = progress;
+            if (progress > 0 && progress < 1) {
+                normalizedProgress = progress * 100;
+            }
+            // Clamp to valid range
+            normalizedProgress = Math.max(0, Math.min(100, normalizedProgress));
+
             // Trakt rejects 'stop' with 0 progress (422 Unprocessable Entity)
             // If we haven't watched anything, no need to scrobble a stop event
-            if (action === 'stop' && progress <= 0) {
+            if (action === 'stop' && normalizedProgress <= 0) {
                 return;
             }
 
             let body: any = {
-                progress,
+                progress: normalizedProgress,
                 action,
             };
 
