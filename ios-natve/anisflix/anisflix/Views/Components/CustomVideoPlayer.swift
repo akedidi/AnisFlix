@@ -851,9 +851,17 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         // Always use AVURLAsset with browser-like User-Agent
-        let headers: [String: String] = [
+        var headers: [String: String] = [
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
+        
+        // Add Referer header for Vidzy URLs to fix playback
+        let urlString = url.absoluteString.lowercased()
+        if urlString.contains("vidzy") {
+            headers["Referer"] = "https://vidzy.org/"
+            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
+        }
+        
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
         if useResourceLoader {
