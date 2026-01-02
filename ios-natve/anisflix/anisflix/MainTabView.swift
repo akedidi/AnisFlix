@@ -20,6 +20,13 @@ struct MainTabView: View {
     @State private var downloadsPath = NavigationPath()
     @State private var morePath = NavigationPath()
     
+    // IDs to force NavigationStack reconstruction on pop-to-root
+    @State private var homeStackID = UUID()
+    @State private var exploreStackID = UUID()
+    @State private var tvStackID = UUID()
+    @State private var downloadsStackID = UUID()
+    @State private var moreStackID = UUID()
+    
     // Count of downloads in progress or waiting
     var activeDownloadsCount: Int {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
@@ -32,18 +39,23 @@ struct MainTabView: View {
         case 0: 
             print("   - Resetting homePath (count: \(homePath.count))")
             homePath = NavigationPath()
+            homeStackID = UUID() // Force reconstruction
         case 1: 
             print("   - Resetting explorePath (count: \(explorePath.count))")
             explorePath = NavigationPath()
+            exploreStackID = UUID()
         case 2: 
             print("   - Resetting tvPath (count: \(tvPath.count))")
             tvPath = NavigationPath()
+            tvStackID = UUID()
         case 3: 
             print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
             downloadsPath = NavigationPath()
+            downloadsStackID = UUID()
         case 4: 
             print("   - Resetting morePath (count: \(morePath.count))")
             morePath = NavigationPath()
+            moreStackID = UUID()
         default: break
         }
     }
@@ -57,6 +69,7 @@ struct MainTabView: View {
                 NavigationStack(path: $homePath) {
                     HomeView()
                 }
+                .id(homeStackID) // Reset stack when ID changes
                 .tag(0)
                  .toolbar(.hidden, for: .tabBar) // Hide native tab bar
                 
@@ -64,6 +77,7 @@ struct MainTabView: View {
                 NavigationStack(path: $explorePath) {
                     ExploreView()
                 }
+                .id(exploreStackID)
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -71,6 +85,7 @@ struct MainTabView: View {
                 NavigationStack(path: $tvPath) {
                     TVChannelsView()
                 }
+                .id(tvStackID)
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -78,6 +93,7 @@ struct MainTabView: View {
                 NavigationStack(path: $downloadsPath) {
                     DownloadsView()
                 }
+                .id(downloadsStackID)
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -85,6 +101,7 @@ struct MainTabView: View {
                 NavigationStack(path: $morePath) {
                     MoreView()
                 }
+                .id(moreStackID)
                 .tag(4)
                  .toolbar(.hidden, for: .tabBar)
             }
