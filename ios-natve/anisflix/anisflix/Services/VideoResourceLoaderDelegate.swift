@@ -170,23 +170,13 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                                 }
                                 
                                 // Rewrite scheme ONLY for playlists
-                                // For Segments: Use Proxy to ensure headers, but keep as HTTPS to bypass ResourceLoader for binary data
-                                
-                                // Helper to encode for proxy
-                                let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
-                                let encodedUrl = absoluteUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? absoluteUrl
-                                // Use Vidzy generic referer or the one from the request if possible. 
-                                // Using standard vidzy domain as referer.
-                                let referer = "https://vidzy.org/".addingPercentEncoding(withAllowedCharacters: allowed) ?? "https://vidzy.org/"
-                                let proxyUrl = "https://anisflix.vercel.app/api/vidmoly?url=\(encodedUrl)&referer=\(referer)"
-
                                 if absoluteUrl.contains(".m3u8") {
-                                    // Rewrite proxy URL to custom scheme to keep interception/recursion
-                                    let rewritten = proxyUrl.replacingOccurrences(of: "https://", with: "vidzy-custom://")
+                                    let rewritten = absoluteUrl.replacingOccurrences(of: "https://", with: "vidzy-custom://")
+                                                               .replacingOccurrences(of: "http://", with: "vidzy-custom://")
                                     vidzyLines.append(rewritten)
                                 } else {
-                                    // Segments go direct HTTPS to Proxy
-                                    vidzyLines.append(proxyUrl)
+                                    // Segments go direct HTTPS
+                                    vidzyLines.append(absoluteUrl)
                                 }
                             }
                             playlistContent = vidzyLines.joined(separator: "\n")
