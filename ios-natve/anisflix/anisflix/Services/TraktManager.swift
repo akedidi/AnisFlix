@@ -19,7 +19,7 @@ class TraktManager: ObservableObject {
     @Published var verificationUrl: String?
     
     private let clientId = "c80fdaac1784832abfac9611a1aa50b45d3e8bb6af406fe78d79901fb9d416f8"
-    private let baseURL = "https://anisflix.vercel.app/api/trakt"
+    private let baseURL = "https://anisflix.vercel.app/api/proxy"
     
     private var accessToken: String? {
         get { KeychainHelper.load(key: "trakt_access_token") }
@@ -56,7 +56,7 @@ class TraktManager: ObservableObject {
     func startDeviceAuth() async throws {
         isAuthenticating = true
         
-        guard let url = URL(string: "\(baseURL)?action=device-code") else {
+        guard let url = URL(string: "\(baseURL)?type=trakt-device-code") else {
             throw TraktError.invalidURL
         }
         
@@ -85,7 +85,7 @@ class TraktManager: ObservableObject {
             throw TraktError.noDeviceCode
         }
         
-        guard let url = URL(string: "\(baseURL)?action=device-token") else {
+        guard let url = URL(string: "\(baseURL)?type=trakt-device-token") else {
             throw TraktError.invalidURL
         }
         
@@ -147,7 +147,7 @@ class TraktManager: ObservableObject {
             throw TraktError.notAuthenticated
         }
         
-        guard let url = URL(string: "\(baseURL)?action=scrobble") else {
+        guard let url = URL(string: "\(baseURL)?type=trakt-scrobble") else {
             throw TraktError.invalidURL
         }
         

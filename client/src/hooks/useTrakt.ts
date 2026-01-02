@@ -10,7 +10,7 @@ export function useTrakt() {
 
     const checkConnection = async () => {
         try {
-            const response = await fetch('/api/trakt?action=status');
+            const response = await fetch('/api/proxy?type=trakt-status');
             setIsConnected(response.ok);
         } catch {
             setIsConnected(false);
@@ -20,7 +20,7 @@ export function useTrakt() {
     const connect = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/trakt?action=auth');
+            const response = await fetch('/api/proxy?type=trakt-auth');
             const { authUrl } = await response.json();
             window.location.href = authUrl;
         } catch (error) {
@@ -31,7 +31,7 @@ export function useTrakt() {
 
     const disconnect = async () => {
         try {
-            await fetch('/api/trakt?action=disconnect', { method: 'POST' });
+            await fetch('/api/proxy?type=trakt-disconnect', { method: 'POST' });
             setIsConnected(false);
         } catch (error) {
             console.error('Failed to disconnect from Trakt:', error);
@@ -53,7 +53,7 @@ export function useTrakt() {
                 action,
             };
 
-            await fetch('/api/trakt?action=scrobble', {
+            await fetch('/api/proxy?type=trakt-scrobble', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
