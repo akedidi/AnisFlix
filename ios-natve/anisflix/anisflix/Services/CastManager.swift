@@ -18,9 +18,27 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus?
     @Published var currentMediaUrl: URL?
+    @Published var currentArtwork: UIImage? // Published for UI binding
     
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
+    
+    // ... (Init/Deinit same as before)
+    
+    // Add artwork download helper
+    func downloadArtwork(from urlString: String) async {
+        guard let url = URL(string: urlString) else { return }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let image = UIImage(data: data) {
+                await MainActor.run {
+                    self.currentArtwork = image
+                }
+            }
+        } catch {
+            print("❌ [CastManager] Failed to download artwork: \(error)")
+        }
+    }
     
     // Progress Tracking
     private var progressTimer: Timer?
@@ -100,10 +118,21 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         startDiscovery()
     }
     
+    @Published var currentSubtitles: [Subtitle] = []
+    
     // MARK: - GCKSessionManagerListener
     
     func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
         print("✅ [CastManager] Cast Session Started with device: \(session.device.friendlyName ?? "Unknown")")
+        handleSessionConnection(session: session)
+    }
+    
+    func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
+        print("✅ [CastManager] Cast Session Resumed with device: \(session.device.friendlyName ?? "Unknown")")
+        handleSessionConnection(session: session)
+    }
+    
+    private func handleSessionConnection(session: GCKSession) {
         isConnected = true
         isConnecting = false
         deviceName = session.device.friendlyName
@@ -111,6 +140,29 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         if let remoteMediaClient = session.remoteMediaClient {
             print("📢 [CastManager] RemoteMediaClient attached")
             remoteMediaClient.add(self)
+            
+            // Session Recovery: Check for existing media
+            if let mediaStatus = remoteMediaClient.mediaStatus, let mediaInfo = mediaStatus.mediaInformation {
+                print("🔄 [CastManager] Recovered existing media session")
+                self.mediaStatus = mediaStatus
+                
+                // Recover Metadata for UI
+                if let metadata = mediaInfo.metadata {
+                    print("   - Title: \(metadata.string(forKey: kGCKMetadataKeyTitle) ?? "Unknown")")
+                    
+                    // Recover Artwork
+                    if let images = metadata.images() as? [GCKImage], let image = images.first {
+                        Task {
+                            await downloadArtwork(from: image.url.absoluteString)
+                        }
+                    }
+                }
+                
+                // Resume Tracking
+                if mediaStatus.playerState == .playing {
+                    startProgressTracking()
+                }
+            }
         }
     }
     
@@ -151,6 +203,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         self.currentMediaId = mediaId
         self.currentSeason = season
         self.currentEpisode = episode
+        self.currentSubtitles = subtitles // Store for Control Sheet access
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -165,6 +218,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         if let posterUrl = posterUrl {
             metadata.addImage(GCKImage(url: posterUrl, width: 480, height: 720))
+            // Trigger local download for MiniPlayer
+            Task {
+                await downloadArtwork(from: posterUrl.absoluteString)
+            }
         }
         
         // Determine content type

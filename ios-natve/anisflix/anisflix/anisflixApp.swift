@@ -158,10 +158,24 @@ struct RootContentView: View {
                         }
                     }
             } else {
-                MainTabView(selectedTab: $selectedTab)
-                    .preferredColorScheme(theme.isDarkMode ? .dark : .light)
-                    .transition(.opacity)
+                ZStack(alignment: .bottom) {
+                    MainTabView(selectedTab: $selectedTab)
+                        .preferredColorScheme(theme.isDarkMode ? .dark : .light)
+                        .transition(.opacity)
+                    
+                    // Persistent Cast Mini Player
+                    CastMiniPlayerView(showControlSheet: $showCastSheet)
+                        .padding(.bottom, 50) // Adjust based on TabBar height (approx 49pt + safe area)
+                        .transition(.move(edge: .bottom))
+                }
             }
         }
+        .sheet(isPresented: $showCastSheet) {
+            CastControlSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
+    
+    @State private var showCastSheet = false
 }
