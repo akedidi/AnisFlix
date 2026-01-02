@@ -39,6 +39,9 @@ struct MoreView: View {
             }
             .navigationBarHidden(true)
             .scrollContentBackground(.hidden)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 150)
+            }
             .themedBackground()
         }
     }

@@ -191,7 +191,7 @@ struct TVChannelsView: View {
                         }
                         
                         // Bottom padding
-                        Color.clear.frame(height: 80)
+                        Color.clear.frame(height: 150)
                     }
                 }
             }

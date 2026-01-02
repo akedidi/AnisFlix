@@ -139,7 +139,7 @@ struct DownloadsView: View {
                         .scrollContentBackground(.hidden)
                         .background(theme.backgroundColor)
                         .safeAreaInset(edge: .bottom) {
-                            Color.clear.frame(height: 80)
+                            Color.clear.frame(height: 150)
                         }
                     }
                 } else {
@@ -160,7 +160,7 @@ struct DownloadsView: View {
                                 }
                             }
                             .padding()
-                            .padding(.bottom, 80)
+                            .padding(.bottom, 150)
                         }
                     }
                 }

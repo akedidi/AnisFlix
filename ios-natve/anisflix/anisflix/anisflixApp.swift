@@ -169,7 +169,7 @@ struct RootContentView: View {
                     
                     // Persistent Cast Mini Player
                     CastMiniPlayerView(showControlSheet: $showCastSheet)
-                        .padding(.bottom, 90) // Sit above Custom TabBar (approx 50 + safe area)
+                        .padding(.bottom, 80) // Sit above Custom TabBar (approx 50 + safe area)
                         .transition(.move(edge: .bottom))
                 }
             }

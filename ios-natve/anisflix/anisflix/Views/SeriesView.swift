@@ -180,7 +180,7 @@ struct SeriesView: View {
                 }
                 
                 // Bottom padding for tab bar
-                Color.clear.frame(height: 50)
+                Color.clear.frame(height: 150)
             }
             
             if isLoading && latestSeries.isEmpty {

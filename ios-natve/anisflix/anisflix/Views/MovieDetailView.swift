@@ -397,7 +397,7 @@ struct MovieDetailView: View {
                             }
                             
                             // Bottom padding for floating tab bar
-                            Color.clear.frame(height: 100)
+                            Color.clear.frame(height: 150)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }

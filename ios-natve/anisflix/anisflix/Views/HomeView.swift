@@ -554,7 +554,7 @@ struct HomeView: View {
                         }
                     }
                 }
-                .padding(.bottom, 50)  // Tab bar spacing
+                .padding(.bottom, 150)  // Increased padding for floating tab bar and cast banner
             }
             
             if isLoading && popularMovies.isEmpty {

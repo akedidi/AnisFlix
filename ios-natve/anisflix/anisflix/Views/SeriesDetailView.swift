@@ -401,7 +401,7 @@ struct SeriesDetailView: View {
                         }
                         .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, 150)
                     }
                     .frame(width: UIScreen.main.bounds.width)
                 }
