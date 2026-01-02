@@ -32,32 +32,51 @@ struct MainTabView: View {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
     }
     
-    // Helper to pop a specific tab to root
+    // Helper to pop a specific tab to root with native animation
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         
-        switch tabIndex {
-        case 0: 
-            print("   - Resetting homePath (count: \(homePath.count))")
-            homePath = NavigationPath()
-            homeStackID = UUID() // Force reconstruction
-        case 1: 
-            print("   - Resetting explorePath (count: \(explorePath.count))")
-            explorePath = NavigationPath()
-            exploreStackID = UUID()
-        case 2: 
-            print("   - Resetting tvPath (count: \(tvPath.count))")
-            tvPath = NavigationPath()
-            tvStackID = UUID()
-        case 3: 
-            print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
-            downloadsPath = NavigationPath()
-            downloadsStackID = UUID()
-        case 4: 
-            print("   - Resetting morePath (count: \(morePath.count))")
-            morePath = NavigationPath()
-            moreStackID = UUID()
-        default: break
+        // Find the UINavigationController in the SwiftUI view hierarchy
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootViewController = window.rootViewController else {
+            print("❌ Could not find root view controller")
+            return
+        }
+        
+        // Find all navigation controllers
+        func findNavigationController(in viewController: UIViewController) -> UINavigationController? {
+            if let navController = viewController as? UINavigationController {
+                return navController
+            }
+            
+            for child in viewController.children {
+                if let found = findNavigationController(in: child) {
+                    return found
+                }
+            }
+            
+            if let presented = viewController.presentedViewController {
+                return findNavigationController(in: presented)
+            }
+            
+            return nil
+        }
+        
+        if let navController = findNavigationController(in: rootViewController) {
+            print("✅ Found UINavigationController, popping to root with animation")
+            navController.popToRootViewController(animated: true)
+        } else {
+            print("⚠️ UINavigationController not found, falling back to ID reset")
+            // Fallback to ID reset if UINavigationController not found
+            switch tabIndex {
+            case 0: homeStackID = UUID()
+            case 1: exploreStackID = UUID()
+            case 2: tvStackID = UUID()
+            case 3: downloadsStackID = UUID()
+            case 4: moreStackID = UUID()
+            default: break
+            }
         }
     }
     
