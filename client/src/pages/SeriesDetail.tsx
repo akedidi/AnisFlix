@@ -18,6 +18,7 @@ import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, 
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 import { useMovixAnime, extractVidMolyFromAnime } from "@/hooks/useMovixAnime";
+import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -199,6 +200,20 @@ export default function SeriesDetail() {
   // Fetch Movix Anime sources
   const { data: movixAnime, isLoading: isLoadingMovixAnime, error: movixAnimeError } = useMovixAnime(series?.name, seriesId);
 
+  // Fetch Movix TMDB sources (Vidzy/VidMoly)
+  const { data: movixTmdbSeries, isLoading: isLoadingMovixTmdbSeries } = useMovixTmdbSeriesSources(
+    seriesId,
+    selectedSeasonNumber,
+    relativeEpisode || selectedEpisode || 1
+  );
+
+  // Debug Movix TMDB Series sources
+  useEffect(() => {
+    if (movixTmdbSeries?.processedSources?.length) {
+      console.log('🎬 [MOVIX TMDB SERIES] Sources:', movixTmdbSeries.processedSources);
+    }
+  }, [movixTmdbSeries]);
+
   // Debug Movix Anime
   useEffect(() => {
     console.log('🎬 [DEBUG MOVIX ANIME] Loading:', isLoadingMovixAnime);
@@ -222,6 +237,21 @@ export default function SeriesDetail() {
   const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [
+    // Movix TMDB sources (Vidzy/VidMoly from tmdb path)
+    ...(movixTmdbSeries?.processedSources?.map((source: any, index: number) => ({
+      id: `movix-tmdb-${source.provider}-${index}`,
+      name: source.quality,
+      provider: source.provider === 'vidzy' ? 'Vidzy' : source.provider === 'vidmoly' ? 'VidMoly' : source.provider,
+      url: source.url,
+      type: 'm3u8' as const,
+      isFStream: source.provider === 'vidzy', // Vidzy needs extraction
+      isMovixDownload: false,
+      isVidMoly: source.provider === 'vidmoly',
+      isDarki: source.provider === 'darki',
+      isMovixTmdb: true,
+      quality: source.quality,
+      language: source.language
+    })) || []),
     ...(universalVOSources?.files?.map((source: any, index: number) => ({
       id: `universal-${source.provider}-${index}`,
       name: `${source.provider}`,
