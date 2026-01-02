@@ -1519,7 +1519,7 @@ struct CustomProgressBar: View {
             }
             .frame(height: 20) // Touch target height
             .contentShape(Rectangle()) // Ensure the whole area is tappable
-            .gesture(
+            .highPriorityGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         onEditingChanged(true)
