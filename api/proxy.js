@@ -301,7 +301,14 @@ async function handleTraktScrobble(req, res) {
       'trakt-api-version': '2',
       'trakt-api-key': TRAKT_CLIENT_ID,
     },
-    body: JSON.stringify({ movie, episode, show, progress }),
+    body: JSON.stringify({
+      movie,
+      episode,
+      show,
+      progress,
+      app_version: '1.0.0',
+      app_date: new Date().toISOString().split('T')[0]
+    }),
   });
 
   if (!response.ok) return res.status(response.status).json({ error: 'Scrobble failed' });
