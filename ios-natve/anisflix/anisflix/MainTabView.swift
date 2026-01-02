@@ -115,12 +115,8 @@ struct MainTabView: View {
                  selectedTab: $selectedTab,
                  theme: theme,
                  activeDownloadsCount: activeDownloadsCount,
-                 onTabTap: { tabIndex in
-                     // When switching to a different tab, pop that tab to root
-                     popToRoot(tabIndex: tabIndex)
-                 },
                  onTabDoubleTap: { tabIndex in
-                     // Pop to root for the tapped tab (same tab tapped again)
+                     // Pop to root when tapping the already-selected tab
                      popToRoot(tabIndex: tabIndex)
                  }
              )
