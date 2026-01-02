@@ -45,19 +45,28 @@ struct MainTabView: View {
         
         // The currently visible NavigationController is the one we want to pop
         func findVisibleNavigationController(from viewController: UIViewController?) -> UINavigationController? {
+            guard let viewController = viewController else { return nil }
+            
             if let navController = viewController as? UINavigationController {
                 // Check if this nav controller has items in its stack
                 if navController.viewControllers.count > 1 {
                     return navController
                 }
+                // If it has children (e.g. contained view controllers), continue searching inside them
+                // But usually UINavigationController's children ARE the stack.
+            }
+            
+            // Check presented view controller first (modal/sheet on top)
+            if let presented = viewController.presentedViewController {
+                if let found = findVisibleNavigationController(from: presented) {
+                    return found
+                }
             }
             
             // Check children
-            if let viewController = viewController {
-                for child in viewController.children {
-                    if let found = findVisibleNavigationController(from: child) {
-                        return found
-                    }
+            for child in viewController.children {
+                if let found = findVisibleNavigationController(from: child) {
+                    return found
                 }
             }
             
@@ -68,7 +77,16 @@ struct MainTabView: View {
             print("✅ Found visible NavigationController with \(navController.viewControllers.count) views in stack")
             navController.popToRootViewController(animated: true)
         } else {
-            print("⚠️ No NavigationController with stack found")
+            print("⚠️ No NavigationController with stack > 1 found. Trying fallback ID reset.")
+            // Fallback to ID reset to ensure we go back to root anyway
+             switch tabIndex {
+             case 0: homeStackID = UUID()
+             case 1: exploreStackID = UUID()
+             case 2: tvStackID = UUID()
+             case 3: downloadsStackID = UUID()
+             case 4: moreStackID = UUID()
+             default: break
+             }
         }
     }
     
