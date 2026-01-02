@@ -27,12 +27,23 @@ struct MainTabView: View {
     
     // Helper to pop a specific tab to root
     private func popToRoot(tabIndex: Int) {
+        print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         switch tabIndex {
-        case 0: homePath = NavigationPath()
-        case 1: explorePath = NavigationPath()
-        case 2: tvPath = NavigationPath()
-        case 3: downloadsPath = NavigationPath()
-        case 4: morePath = NavigationPath()
+        case 0: 
+            print("   - Resetting homePath (count: \(homePath.count))")
+            homePath = NavigationPath()
+        case 1: 
+            print("   - Resetting explorePath (count: \(explorePath.count))")
+            explorePath = NavigationPath()
+        case 2: 
+            print("   - Resetting tvPath (count: \(tvPath.count))")
+            tvPath = NavigationPath()
+        case 3: 
+            print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
+            downloadsPath = NavigationPath()
+        case 4: 
+            print("   - Resetting morePath (count: \(morePath.count))")
+            morePath = NavigationPath()
         default: break
         }
     }
