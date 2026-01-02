@@ -138,10 +138,54 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         }
                         playlistContent = finalLines.joined(separator: "\n")
                         
+                        // Vidzy Specific Logic
+                        // Convert relative URLs to Absolute HTTPS, then rewrite ONLY .m3u8 to custom scheme
+                        if realUrl.absoluteString.lowercased().contains("vidzy") {
+                            let baseUrl = realUrl.deletingLastPathComponent().absoluteString
+                            var vidzyLines = [String]()
+                            
+                            playlistContent.enumerateLines { line, _ in
+                                if line.trimmingCharacters(in: .whitespaces).isEmpty || line.hasPrefix("#") {
+                                    vidzyLines.append(line)
+                                    return
+                                }
+                                
+                                // It's a URL path
+                                var absoluteUrl = line
+                                if !line.lowercased().hasPrefix("http") {
+                                    // Handle logic for relative path
+                                    if line.hasPrefix("/") {
+                                        // Root relative - complex to guess root from simple baseUrl, 
+                                        // but usually HLS is relative to current folder.
+                                        // Let's assume standard relative for now.
+                                        // Actually, fetching root domain from realUrl is safer if starts with /
+                                        if let scheme = realUrl.scheme, let host = realUrl.host {
+                                             absoluteUrl = "\(scheme)://\(host)\(line)"
+                                        } else {
+                                             absoluteUrl = baseUrl + line
+                                        }
+                                    } else {
+                                        absoluteUrl = baseUrl + "/" + line
+                                    }
+                                }
+                                
+                                // Rewrite scheme ONLY for playlists
+                                if absoluteUrl.contains(".m3u8") {
+                                    let rewritten = absoluteUrl.replacingOccurrences(of: "https://", with: "vidzy-custom://")
+                                                               .replacingOccurrences(of: "http://", with: "vidzy-custom://")
+                                    vidzyLines.append(rewritten)
+                                } else {
+                                    // Segments go direct HTTPS
+                                    vidzyLines.append(absoluteUrl)
+                                }
+                            }
+                            playlistContent = vidzyLines.joined(separator: "\n")
+                        }
+                        
                         if let modifiedData = playlistContent.data(using: .utf8) {
                             finalData = modifiedData
                             headers["Content-Length"] = "\(modifiedData.count)"
-                            print("   ✅ [VidMolyLoader] Playlist processed: URLs rewritten & I-Frames removed")
+                            print("   ✅ [ResourceLoader] Playlist processed: URLs rewritten & I-Frames removed")
                         }
                     }
                 }
