@@ -414,11 +414,11 @@ export default function VideoPlayer({
         const type = mediaType === 'tv' ? 'episode' : 'movie';
         // Only scrobble start once per session or after a long break
         if (!hasScrobbledStart) {
-          scrobble(type, mediaId, progress, 'start');
+          scrobble(type, mediaId, progress, 'start', seasonNumber, episodeNumber);
           setHasScrobbledStart(true);
         } else {
           // Otherwise just update progress as "start" (resuming)
-          scrobble(type, mediaId, progress, 'start');
+          scrobble(type, mediaId, progress, 'start', seasonNumber, episodeNumber);
         }
       }
     };
@@ -427,7 +427,7 @@ export default function VideoPlayer({
       setIsPlaying(false);
       if (mediaId && mediaType) {
         const type = mediaType === 'tv' ? 'episode' : 'movie';
-        scrobble(type, mediaId, progress, 'pause');
+        scrobble(type, mediaId, progress, 'pause', seasonNumber, episodeNumber);
       }
     };
 
@@ -454,7 +454,7 @@ export default function VideoPlayer({
         });
 
         const type = mediaType === 'tv' ? 'episode' : 'movie';
-        scrobble(type, mediaId, 100, 'stop');
+        scrobble(type, mediaId, 100, 'stop', seasonNumber, episodeNumber);
       }
     };
 

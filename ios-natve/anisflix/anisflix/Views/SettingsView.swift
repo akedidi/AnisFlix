@@ -102,7 +102,7 @@ struct SettingsView: View {
                 }
             } header: {
                 HStack {
-                    Image("trakt_icon") 
+                    Image("TraktLogo") 
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 25, height: 25)

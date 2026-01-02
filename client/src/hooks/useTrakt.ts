@@ -50,16 +50,31 @@ export function useTrakt() {
         type: 'movie' | 'episode',
         tmdbId: number,
         progress: number,
-        action: 'start' | 'pause' | 'stop'
+        action: 'start' | 'pause' | 'stop',
+        season?: number,
+        episode?: number
     ) => {
         try {
-            const body = {
-                [type]: {
-                    ids: { tmdb: tmdbId },
-                },
+            let body: any = {
                 progress,
                 action,
             };
+
+            if (type === 'episode' && season !== undefined && episode !== undefined) {
+                // TV Show scrobbling: Need Show ID + Season + Episode
+                body.show = {
+                    ids: { tmdb: tmdbId }
+                };
+                body.episode = {
+                    season: season,
+                    number: episode
+                };
+            } else {
+                // Movie or direct Episode ID (fallback)
+                body[type] = {
+                    ids: { tmdb: tmdbId }
+                };
+            }
 
             await fetch('/api/proxy?type=trakt-scrobble', {
                 method: 'POST',

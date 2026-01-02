@@ -274,7 +274,7 @@ async function handleTraktDeviceToken(req, res) {
 async function handleTraktScrobble(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let { access_token, movie, episode, progress, action } = req.body;
+  let { access_token, movie, episode, show, progress, action } = req.body;
 
   // If no token in body, try cookies (Web client)
   if (!access_token && req.headers.cookie) {
@@ -301,7 +301,7 @@ async function handleTraktScrobble(req, res) {
       'trakt-api-version': '2',
       'trakt-api-key': TRAKT_CLIENT_ID,
     },
-    body: JSON.stringify({ movie, episode, progress }),
+    body: JSON.stringify({ movie, episode, show, progress }),
   });
 
   if (!response.ok) return res.status(response.status).json({ error: 'Scrobble failed' });
@@ -313,7 +313,7 @@ async function handleTraktScrobble(req, res) {
 async function handleTraktCheckin(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let { access_token, movie, episode } = req.body;
+  let { access_token, movie, episode, show } = req.body;
 
   // If no token in body, try cookies (Web client)
   if (!access_token && req.headers.cookie) {
@@ -334,7 +334,7 @@ async function handleTraktCheckin(req, res) {
       'trakt-api-version': '2',
       'trakt-api-key': TRAKT_CLIENT_ID,
     },
-    body: JSON.stringify({ movie, episode }),
+    body: JSON.stringify({ movie, episode, show }),
   });
 
   if (!response.ok) return res.status(response.status).json({ error: 'Checkin failed' });
