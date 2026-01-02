@@ -75,16 +75,18 @@ struct MainTabView: View {
             // Camembert overlay - simple GeometryReader approach
             if downloadManager.globalProgress > 0.01 && downloadManager.globalProgress < 0.99 {
                 GeometryReader { geometry in
-                    // iOS shows max 5 tabs before "More", Downloads is 4th (index 3)
                     let screenWidth = geometry.size.width
-                    let tabCount: CGFloat = 5
-                    let tabWidth = screenWidth / tabCount
-                    let downloadTabIndex: CGFloat = 3
                     
-                    // Center X of Downloads tab
-                    let centerX = (downloadTabIndex * tabWidth) + (tabWidth / 2)
+                    // With 6 tabs, iOS shows 5 visible + More button
+                    // Downloads is the 4th tab (index 3, 0-indexed)
+                    // Each visible tab gets equal width
+                    let visibleTabs: CGFloat = 5
+                    let tabWidth = screenWidth / visibleTabs
                     
-                    // Tab bar is ~49pt tall, icon center is ~25pt from bottom
+                    // Downloads tab center: start at 3rd tab boundary + half tab width
+                    let centerX = (tabWidth * 3) + (tabWidth / 2)
+                    
+                    // Tab bar height ~49pt, icon center ~25pt from bottom
                     let centerY = geometry.size.height - 25
                     
                     Circle()
@@ -104,9 +106,8 @@ struct MainTabView: View {
     
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
-        appearance.configureWithTransparentBackground()
-        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
-        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.95)
         
         let itemAppearance = UITabBarItemAppearance()
         
