@@ -19,9 +19,19 @@ export default async function handler(req, res) {
         });
 
         // Forward cookies from proxy response
-        const setCookieHeaders = response.headers.get('set-cookie');
-        if (setCookieHeaders) {
-            res.setHeader('set-cookie', setCookieHeaders);
+        // Forward cookies from proxy response
+        // Use getSetCookie() if available (Node 18+), otherwise split manually if needed
+        let cookies = [];
+        if (typeof response.headers.getSetCookie === 'function') {
+            cookies = response.headers.getSetCookie();
+        } else {
+            // Fallback for older environments, though imperfect for dates with commas
+            const cookieHeader = response.headers.get('set-cookie');
+            if (cookieHeader) cookies = [cookieHeader];
+        }
+
+        if (cookies.length > 0) {
+            res.setHeader('Set-Cookie', cookies);
         }
 
         // Redirect to settings

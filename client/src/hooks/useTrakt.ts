@@ -6,6 +6,14 @@ export function useTrakt() {
 
     useEffect(() => {
         checkConnection();
+
+        // Also check if we just came back from auth
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('trakt') === 'connected') {
+            checkConnection();
+            // Optional: Clean up URL
+            window.history.replaceState({}, '', '/settings');
+        }
     }, []);
 
     const checkConnection = async () => {
