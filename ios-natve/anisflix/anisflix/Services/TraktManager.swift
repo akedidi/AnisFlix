@@ -142,7 +142,7 @@ class TraktManager: ObservableObject {
     
     // MARK: - Scrobbling
     
-    func scrobble(tmdbId: Int, type: MediaType, progress: Double, action: ScrobbleAction) async throws {
+    func scrobble(tmdbId: Int, type: TraktMediaType, progress: Double, action: TraktAction, season: Int? = nil, episode: Int? = nil) async throws {
         guard let token = accessToken else {
             throw TraktError.notAuthenticated
         }
@@ -155,14 +155,47 @@ class TraktManager: ObservableObject {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body: [String: Any] = [
+        var mediaObject: [String: Any] = [:]
+        
+        if type == .episode {
+            // For episodes, we need to send the show ID and the episode number/season
+            // OR the episode ID directly. Assuming tmdbId is the SHOW ID here.
+            if let s = season, let e = episode {
+                mediaObject = [
+                    "show": [
+                        "ids": ["tmdb": tmdbId]
+                    ],
+                    "episode": [
+                        "season": s,
+                        "number": e
+                    ]
+                ]
+            } else {
+                // Fallback: assume tmdbId is Episode ID (unlikely but safe fallback)
+                mediaObject = [
+                    "episode": [
+                        "ids": ["tmdb": tmdbId]
+                    ]
+                ]
+            }
+        } else {
+            mediaObject = [
+                "movie": [
+                    "ids": ["tmdb": tmdbId]
+                ]
+            ]
+        }
+        
+        var body: [String: Any] = [
             "access_token": token,
-            type == .movie ? "movie" : "episode": [
-                "ids": ["tmdb": tmdbId]
-            ],
             "progress": Int(progress * 100),
             "action": action.rawValue
         ]
+        
+        // Merge media object into body
+        for (key, value) in mediaObject {
+            body[key] = value
+        }
         
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
@@ -192,12 +225,12 @@ struct TokenResponse: Codable {
     let token_type: String
 }
 
-enum MediaType {
+enum TraktMediaType {
     case movie
     case episode
 }
 
-enum ScrobbleAction: String {
+enum TraktAction: String {
     case start
     case pause
     case stop

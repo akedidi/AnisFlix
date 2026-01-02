@@ -71,154 +71,51 @@ struct MainTabView: View {
                 .tag(5)
             }
             .tint(AppTheme.primaryRed)
+            // SwiftUI native blur - iOS 16+ compatible
+            .toolbarBackground(.visible, for: .tabBar)
+            .toolbarBackground(.ultraThinMaterial, for: .tabBar)
             
-            // Camembert overlay with precise positioning
+            // Camembert overlay for downloads progress
             if downloadManager.globalProgress > 0.01 && downloadManager.globalProgress < 0.99 {
-                TabBarProgressRing(
-                    progress: downloadManager.globalProgress,
-                    tabIndex: 3  // Downloads tab
-                )
+                CamembertOverlay(progress: downloadManager.globalProgress)
             }
         }
         .onAppear {
-            configureTabBarAppearance()
+            configureTabBarColors()
         }
     }
     
-    private func configureTabBarAppearance() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithTransparentBackground()
-        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterialDark)
-        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        
-        let itemAppearance = UITabBarItemAppearance()
-        
-        itemAppearance.normal.iconColor = UIColor.systemGray
-        itemAppearance.normal.titleTextAttributes = [
-            .foregroundColor: UIColor.systemGray,
-            .font: UIFont.systemFont(ofSize: 10)
-        ]
-        
-        itemAppearance.selected.iconColor = UIColor(AppTheme.primaryRed)
-        itemAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(AppTheme.primaryRed),
-            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
-        ]
-        
-        appearance.stackedLayoutAppearance = itemAppearance
-        appearance.inlineLayoutAppearance = itemAppearance
-        appearance.compactInlineLayoutAppearance = itemAppearance
-        
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
+    // Only configure colors, not background (handled by toolbarBackground)
+    private func configureTabBarColors() {
         UITabBar.appearance().unselectedItemTintColor = UIColor.systemGray
         UITabBar.appearance().tintColor = UIColor(AppTheme.primaryRed)
     }
 }
 
-// Progress ring that finds exact tab position
-struct TabBarProgressRing: UIViewRepresentable {
+// Simple SwiftUI overlay for camembert - positioned using GeometryReader
+struct CamembertOverlay: View {
     let progress: Double
-    let tabIndex: Int
     
-    func makeUIView(context: Context) -> ProgressRingView {
-        ProgressRingView(progress: progress, tabIndex: tabIndex)
-    }
-    
-    func updateUIView(_ uiView: ProgressRingView, context: Context) {
-        uiView.progress = progress
-    }
-}
-
-class ProgressRingView: UIView {
-    var progress: Double {
-        didSet {
-            updateRing()
+    var body: some View {
+        GeometryReader { geometry in
+            // Calculate position: 4th tab (index 3) out of 5 visible tabs
+            // On iPhone, iOS shows max 5 tabs, 6th becomes "More"
+            let tabCount: CGFloat = 5
+            let tabWidth = geometry.size.width / tabCount
+            let tabIndex: CGFloat = 3 // Downloads is 4th tab (0-indexed)
+            let centerX = tabWidth * tabIndex + tabWidth / 2
+            
+            // Position at bottom, centered on the icon
+            let bottomOffset: CGFloat = 55 // Approximate center of tab icon from bottom
+            
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(AppTheme.primaryRed, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .frame(width: 28, height: 28)
+                .rotationEffect(.degrees(-90))
+                .position(x: centerX, y: geometry.size.height - bottomOffset)
         }
-    }
-    let tabIndex: Int
-    private let shapeLayer = CAShapeLayer()
-    
-    init(progress: Double, tabIndex: Int) {
-        self.progress = progress
-        self.tabIndex = tabIndex
-        super.init(frame: .zero)
-        
-        backgroundColor = .clear
-        isUserInteractionEnabled = false
-        
-        shapeLayer.fillColor = UIColor.clear.cgColor
-        shapeLayer.strokeColor = UIColor(AppTheme.primaryRed).cgColor
-        shapeLayer.lineWidth = 2.5
-        shapeLayer.lineCap = .round
-        layer.addSublayer(shapeLayer)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        updateRing()
-    }
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        updateRing()
-    }
-    
-    private func updateRing() {
-        guard progress > 0.01 && progress < 0.99,
-              let window = window,
-              let tabBar = findTabBar(in: window) else {
-            shapeLayer.isHidden = true
-            return
-        }
-        
-        shapeLayer.isHidden = false
-        
-        // Get tab bar buttons
-        let buttons = tabBar.subviews.filter { 
-            String(describing: type(of: $0)).contains("UITabBarButton")
-        }.sorted { 
-            $0.frame.origin.x < $1.frame.origin.x 
-        }
-        
-        guard tabIndex < buttons.count else { return }
-        
-        let button = buttons[tabIndex]
-        
-        // Convert button center to our coordinate system
-        let buttonCenterInWindow = tabBar.convert(
-            CGPoint(x: button.frame.midX, y: button.frame.midY),
-            to: window
-        )
-        let centerInView = convert(buttonCenterInWindow, from: window)
-        
-        // Create circular path
-        let radius: CGFloat = 14
-        let path = UIBezierPath(
-            arcCenter: centerInView,
-            radius: radius,
-            startAngle: -.pi / 2,
-            endAngle: -.pi / 2 + (2 * .pi * progress),
-            clockwise: true
-        )
-        
-        shapeLayer.path = path.cgPath
-    }
-    
-    private func findTabBar(in view: UIView) -> UITabBar? {
-        if let tabBar = view as? UITabBar {
-            return tabBar
-        }
-        for subview in view.subviews {
-            if let found = findTabBar(in: subview) {
-                return found
-            }
-        }
-        return nil
+        .allowsHitTesting(false)
     }
 }
 

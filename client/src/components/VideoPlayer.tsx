@@ -15,6 +15,7 @@ import type { MediaType } from "@shared/schema";
 import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
 import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
 import { useChromecast } from "@/hooks/useChromecast";
+import { useTrakt } from "@/hooks/useTrakt";
 
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -76,6 +77,9 @@ export default function VideoPlayer({
   const [currentTime, setCurrentTime] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSaveTimeRef = useRef<number>(0);
+
+  const { scrobble } = useTrakt();
+  const [hasScrobbledStart, setHasScrobbledStart] = useState(false);
 
   // Subtitles state
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
@@ -404,8 +408,29 @@ export default function VideoPlayer({
       }
     };
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      if (mediaId && mediaType) {
+        const type = mediaType === 'tv' ? 'episode' : 'movie';
+        // Only scrobble start once per session or after a long break
+        if (!hasScrobbledStart) {
+          scrobble(type, mediaId, progress, 'start');
+          setHasScrobbledStart(true);
+        } else {
+          // Otherwise just update progress as "start" (resuming)
+          scrobble(type, mediaId, progress, 'start');
+        }
+      }
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (mediaId && mediaType) {
+        const type = mediaType === 'tv' ? 'episode' : 'movie';
+        scrobble(type, mediaId, progress, 'pause');
+      }
+    };
+
     const handleLoadedMetadata = () => {
       if (video.duration) {
         setDuration(video.duration);
@@ -427,6 +452,9 @@ export default function VideoPlayer({
           seasonNumber,
           episodeNumber,
         });
+
+        const type = mediaType === 'tv' ? 'episode' : 'movie';
+        scrobble(type, mediaId, 100, 'stop');
       }
     };
 
@@ -450,6 +478,14 @@ export default function VideoPlayer({
     setIsMuted(video.muted);
 
     return () => {
+      // Send stop event on unmount if playing
+      // Note: This might not always fire reliably on tab close, but good for navigation
+      if (mediaId && mediaType && !video.paused && !video.ended) {
+        const type = mediaType === 'tv' ? 'episode' : 'movie';
+        const currentProgress = video.duration ? (video.currentTime / video.duration) * 100 : 0;
+        scrobble(type, mediaId, currentProgress, 'stop');
+      }
+
       video.removeEventListener('timeupdate', handleTimeUpdate);
       video.removeEventListener('play', handlePlay);
       video.removeEventListener('pause', handlePause);
@@ -460,7 +496,7 @@ export default function VideoPlayer({
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange as any);
     };
-  }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber]);
+  }, [mediaId, mediaType, title, posterPath, backdropPath, seasonNumber, episodeNumber, progress, hasScrobbledStart, scrobble]);
 
   const togglePlayPause = () => {
     if (isCasting) {

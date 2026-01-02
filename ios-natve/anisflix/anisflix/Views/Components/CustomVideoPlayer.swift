@@ -52,9 +52,14 @@ struct CustomVideoPlayer: View {
         self.isLive = isLive
         self.mediaId = mediaId
         self.season = season
-        self.episode = episode
-        self.playerVM = playerVM
-    }
+         self.episode = episode
+         self.playerVM = playerVM
+         
+         // Pass IDs to ViewModel for scrobbling
+         self.playerVM.mediaId = mediaId
+         self.playerVM.season = season
+         self.playerVM.episode = episode
+     }
     
     var body: some View {
         ZStack {
@@ -410,6 +415,22 @@ struct CustomVideoPlayer: View {
         }
         .onDisappear {
             print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
+            
+            // Stop scrobble when leaving player
+            if let mid = mediaId {
+               let currentProgress = playerVM.duration > 0 ? (playerVM.currentTime / playerVM.duration) * 100 : 0
+                Task {
+                    try? await TraktManager.shared.scrobble(
+                        tmdbId: mid,
+                        type: (season != nil && episode != nil) ? .episode : .movie,
+                        progress: currentProgress,
+                        action: .stop,
+                        season: season,
+                        episode: episode
+                    )
+                }
+            }
+
             // Only cleanup if:
             // 1. Not in fullscreen mode
             // 2. This view still owns the player (currentUrl matches)
@@ -661,7 +682,16 @@ extension Notification.Name {
 
 class PlayerViewModel: NSObject, ObservableObject {
     @Published var player = AVPlayer()
-    @Published var isPlaying = false
+    @Published var isPlaying = false {
+        didSet {
+            // Trigger Trakt scrobble on state change
+            if isPlaying {
+                scrobble(action: .start)
+            } else {
+                scrobble(action: .pause)
+            }
+        }
+    }
     @Published var isBuffering = false
     @Published var currentTime: Double = 0
     @Published var duration: Double = 1
@@ -678,6 +708,12 @@ class PlayerViewModel: NSObject, ObservableObject {
     private var currentTitle: String? // Track current content title for Now Playing Info
     private var currentArtwork: MPMediaItemArtwork? // Track downloaded artwork
     var isSwitchingModes = false // Track fullscreen transition
+    
+    // Metadata for Scrobbling
+    var mediaId: Int?
+    var season: Int?
+    var episode: Int?
+    var progress: Double = 0
     
     private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
     private var artworkTask: Task<Void, Never>?
@@ -742,6 +778,31 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         updateNowPlayingInfo(title: title)
+    }
+    
+    // Trakt Scrobbling Helper
+    func scrobble(action: TraktAction) {
+        guard let mid = mediaId else { return }
+        
+        let playbackProgress = duration > 0 ? (currentTime / duration) * 100 : 0
+        
+        // Don't scrobble if progress is 0 (except start)
+        if action != .start && playbackProgress <= 0 { return }
+        
+        let type: TraktMediaType = (season != nil && episode != nil) ? .episode : .movie
+        
+        print("🎬 [PlayerViewModel] Scrobbling \(action) for \(type) ID: \(mid)")
+        
+        Task {
+            try? await TraktManager.shared.scrobble(
+                tmdbId: mid, 
+                type: type,
+                progress: playbackProgress, 
+                action: action, 
+                season: season,
+                episode: episode
+            )
+        }
     }
     
     func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil) {

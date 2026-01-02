@@ -149,10 +149,7 @@ export default function Settings() {
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5" viewBox="0 0 256 256" fill="currentColor">
-                      <path d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128 128-57.3 128-128S198.7 0 128 0zm0 240c-61.9 0-112-50.1-112-112S66.1 16 128 16s112 50.1 112 112-50.1 112-112 112z" />
-                      <path d="M128 48c-44.2 0-80 35.8-80 80s35.8 80 80 80 80-35.8 80-80-35.8-80-80-80zm0 144c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64z" />
-                    </svg>
+                    <img src="/trakt-icon.png" alt="Trakt" className="w-6 h-6 rounded-lg" />
                     <h3 className="font-medium">Trakt</h3>
                   </div>
                   <p className="text-sm text-muted-foreground">

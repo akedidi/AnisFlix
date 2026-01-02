@@ -102,7 +102,11 @@ struct SettingsView: View {
                 }
             } header: {
                 HStack {
-                    Image(systemName: "circle.grid.cross")
+                    Image("trakt_icon") 
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 25, height: 25)
+                        .cornerRadius(5)
                     Text("Trakt")
                 }
             } footer: {
