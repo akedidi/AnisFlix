@@ -71,13 +71,15 @@ struct StreamingSource: Identifiable, Codable {
         language = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
         tracks = try container.decodeIfPresent([Subtitle].self, forKey: .tracks)
         
-        // Determine provider from quality string
+        // Determine provider from quality string AND URL
         let lowerQuality = quality.lowercased()
-        if lowerQuality.contains("vidmoly") {
+        let lowerUrl = url.lowercased()
+        
+        if lowerQuality.contains("vidmoly") || lowerUrl.contains("vidmoly") {
             provider = "vidmoly"
-        } else if lowerQuality.contains("vidzy") {
+        } else if lowerQuality.contains("vidzy") || lowerUrl.contains("vidzy") {
             provider = "vidzy"
-        } else if lowerQuality.contains("darki") {
+        } else if lowerQuality.contains("darki") || lowerUrl.contains("darki") {
             provider = "darki"
         } else {
             provider = "unknown"

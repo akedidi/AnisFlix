@@ -30,19 +30,21 @@ interface ProcessedSource {
     originalQuality: string;
 }
 
-// Fonction pour analyser la qualité et déterminer le provider
-function analyzeQuality(quality: string): 'vidmoly' | 'vidzy' | 'darki' | 'unknown' {
+// Fonction pour analyser la qualité et l'URL pour déterminer le provider
+function analyzeProvider(quality: string, url: string): 'vidmoly' | 'vidzy' | 'darki' | 'unknown' {
     const qualityLower = quality.toLowerCase();
+    const urlLower = url.toLowerCase();
 
-    if (qualityLower.includes('vidmoly')) {
+    // Check both quality field and URL
+    if (qualityLower.includes('vidmoly') || urlLower.includes('vidmoly')) {
         return 'vidmoly';
     }
 
-    if (qualityLower.includes('vidzy')) {
+    if (qualityLower.includes('vidzy') || urlLower.includes('vidzy')) {
         return 'vidzy';
     }
 
-    if (qualityLower.includes('darki')) {
+    if (qualityLower.includes('darki') || urlLower.includes('darki')) {
         return 'darki';
     }
 
@@ -58,7 +60,7 @@ function extractProviderName(quality: string): string {
 // Fonction pour traiter les player_links et filtrer par provider
 function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
     return playerLinks.map(link => {
-        const provider = analyzeQuality(link.quality);
+        const provider = analyzeProvider(link.quality, link.decoded_url);
         const providerName = extractProviderName(link.quality);
 
         return {
