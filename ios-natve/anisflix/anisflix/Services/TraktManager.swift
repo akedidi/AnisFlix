@@ -147,6 +147,11 @@ class TraktManager: ObservableObject {
             throw TraktError.notAuthenticated
         }
         
+        // Skip stop scrobble if progress is 0 (nothing watched) - Trakt returns 422
+        if action == .stop && progress <= 0 {
+            return
+        }
+        
         guard let url = URL(string: "\(baseURL)?type=trakt-scrobble") else {
             throw TraktError.invalidURL
         }
@@ -154,6 +159,14 @@ class TraktManager: ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Normalize progress: ensure it's in 0-100 range
+        // If it looks like a fraction (0-1), multiply by 100
+        var normalizedProgress = progress
+        if progress > 0 && progress < 1 {
+            normalizedProgress = progress * 100
+        }
+        normalizedProgress = max(0, min(100, normalizedProgress))
         
         var mediaObject: [String: Any] = [:]
         
@@ -188,7 +201,7 @@ class TraktManager: ObservableObject {
         
         var body: [String: Any] = [
             "access_token": token,
-            "progress": Int(progress * 100),
+            "progress": normalizedProgress,
             "action": action.rawValue
         ]
         

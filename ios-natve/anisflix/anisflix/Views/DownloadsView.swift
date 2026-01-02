@@ -138,7 +138,9 @@ struct DownloadsView: View {
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
                         .background(theme.backgroundColor)
-                        .padding(.bottom, 80) // Space for tab bar
+                        .safeAreaInset(edge: .bottom) {
+                            Color.clear.frame(height: 80)
+                        }
                     }
                 } else {
                     // Active Downloads

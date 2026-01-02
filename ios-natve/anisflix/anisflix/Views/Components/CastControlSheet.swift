@@ -9,7 +9,7 @@ import SwiftUI
 import Combine
 
 struct CastControlSheet: View {
-    @StateObject var castManager = CastManager.shared
+    @ObservedObject var castManager = CastManager.shared
     @Environment(\.dismiss) var dismiss
     
     // Local state for scrubbing interaction
@@ -52,6 +52,8 @@ struct CastControlSheet: View {
                     .padding(.top, 8)
                     .padding(.bottom, 20)
                 
+                Spacer() // Push everything down
+                
                 // Artwork
                 if let artwork = castManager.currentArtwork {
                     Image(uiImage: artwork)
@@ -90,7 +92,8 @@ struct CastControlSheet: View {
                 .padding(.horizontal, 30) // More padding for title
                 .padding(.top, 20)
                 
-                Spacer()
+                // Fixed spacing instead of Spacer to keep title close to progress bar
+                Color.clear.frame(height: 30)
                 
                 // Progress Bar
                 VStack(spacing: 8) {

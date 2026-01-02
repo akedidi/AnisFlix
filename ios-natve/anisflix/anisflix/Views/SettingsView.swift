@@ -190,8 +190,9 @@ struct SettingsView: View {
                 }
             }
         }
-        .navigationTitle(theme.t("settings.title"))
-        .navigationBarTitleDisplayMode(.large)
+
+        .navigationTitle(theme.t("nav.settings")) // "Paramètres"
+        .navigationBarTitleDisplayMode(.inline)
         .alert(theme.t("settings.clearAlertTitle"), isPresented: $showClearConfirmation) {
             Button(theme.t("settings.cancel"), role: .cancel) { }
             Button(theme.t("settings.delete"), role: .destructive) {

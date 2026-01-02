@@ -31,26 +31,15 @@ struct FavoritesView: View {
             theme.backgroundColor.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom Header
-                VStack(spacing: 16) {
-                    HStack {
-                        Text(theme.t("nav.favorites"))
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(theme.primaryText)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    
-                    Picker("Type", selection: $selectedSegment) {
-                        Text("Films").tag(0)
-                        Text("Séries").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
+                // Custom Header Removed in favor of NavigationBar
+                
+                // Content
+                Picker("Type", selection: $selectedSegment) {
+                    Text("Films").tag(0)
+                    Text("Séries").tag(1)
                 }
+                .pickerStyle(.segmented)
+                .padding()
                 .background(theme.backgroundColor)
                 
                 // Content
@@ -83,7 +72,8 @@ struct FavoritesView: View {
                 }
             }
         }
-        .navigationBarHidden(true)
+        .navigationTitle(theme.t("nav.favorites"))
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             favoritesManager.loadFavorites()
         }
