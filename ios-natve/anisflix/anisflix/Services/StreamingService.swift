@@ -140,6 +140,19 @@ struct MovixTmdbResponse: Codable {
     let player_links: [StreamingSource]?
 }
 
+// For TV series, API returns player_links inside current_episode
+struct MovixTmdbSeriesResponse: Codable {
+    let current_episode: MovixCurrentEpisode?
+    let player_links: [StreamingSource]? // Fallback for direct player_links
+}
+
+struct MovixCurrentEpisode: Codable {
+    let season_number: Int?
+    let episode_number: Int?
+    let title: String?
+    let player_links: [StreamingSource]?
+}
+
 struct FStreamPlayer: Codable {
     let url: String
     let type: String
@@ -559,8 +572,13 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         
-        let decoded = try JSONDecoder().decode(MovixTmdbResponse.self, from: data)
-        return decoded.player_links ?? []
+        // For TV series, player_links are inside current_episode
+        let decoded = try JSONDecoder().decode(MovixTmdbSeriesResponse.self, from: data)
+        
+        // Try current_episode.player_links first, fallback to direct player_links
+        let playerLinks = decoded.current_episode?.player_links ?? decoded.player_links ?? []
+        print("🎬 [TMDB Series] Found \(playerLinks.count) player links")
+        return playerLinks
     }
     
     private func fetchFStreamSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
