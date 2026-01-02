@@ -274,7 +274,17 @@ async function handleTraktDeviceToken(req, res) {
 async function handleTraktScrobble(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { access_token, movie, episode, progress, action } = req.body;
+  let { access_token, movie, episode, progress, action } = req.body;
+
+  // If no token in body, try cookies (Web client)
+  if (!access_token && req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').map(c => c.trim());
+    const tokenCookie = cookies.find(c => c.startsWith('trakt_access_token='));
+    if (tokenCookie) {
+      access_token = tokenCookie.split('=')[1];
+    }
+  }
+
   if (!access_token) return res.status(401).json({ error: 'Missing access token' });
 
   const endpoint = action === 'start'
@@ -303,7 +313,17 @@ async function handleTraktScrobble(req, res) {
 async function handleTraktCheckin(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { access_token, movie, episode } = req.body;
+  let { access_token, movie, episode } = req.body;
+
+  // If no token in body, try cookies (Web client)
+  if (!access_token && req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').map(c => c.trim());
+    const tokenCookie = cookies.find(c => c.startsWith('trakt_access_token='));
+    if (tokenCookie) {
+      access_token = tokenCookie.split('=')[1];
+    }
+  }
+
   if (!access_token) return res.status(401).json({ error: 'Missing access token' });
 
   const response = await fetch('https://api.trakt.tv/checkin', {
