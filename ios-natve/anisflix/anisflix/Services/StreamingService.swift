@@ -68,8 +68,20 @@ struct StreamingSource: Identifiable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         url = try container.decode(String.self, forKey: .url)
         quality = try container.decodeIfPresent(String.self, forKey: .quality) ?? "HD"
-        language = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
+        let rawLanguage = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
         tracks = try container.decodeIfPresent([Subtitle].self, forKey: .tracks)
+        
+        // Normalize language (French -> VF, English -> VO, etc.)
+        let langLower = rawLanguage.lowercased()
+        if langLower.contains("french") || langLower.contains("français") || langLower == "fr" {
+            language = "VF"
+        } else if langLower.contains("english") || langLower == "en" || langLower == "eng" {
+            language = "VO"
+        } else if langLower.contains("vostfr") || langLower.contains("subtitle") {
+            language = "VOSTFR"
+        } else {
+            language = "VF" // Default to VF
+        }
         
         // Determine provider from quality string AND URL
         let lowerQuality = quality.lowercased()

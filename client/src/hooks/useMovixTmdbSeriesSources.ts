@@ -51,6 +51,26 @@ function analyzeProvider(quality: string, url: string): 'vidmoly' | 'vidzy' | 'd
     return 'unknown';
 }
 
+// Fonction pour normaliser le language (French -> VF, English -> VO, etc.)
+function normalizeLanguage(language: string): string {
+    const langLower = language.toLowerCase();
+
+    if (langLower.includes('french') || langLower.includes('français') || langLower === 'fr') {
+        return 'VF';
+    }
+
+    if (langLower.includes('english') || langLower === 'en' || langLower === 'eng') {
+        return 'VO';
+    }
+
+    if (langLower.includes('vostfr') || langLower.includes('subtitle')) {
+        return 'VOSTFR';
+    }
+
+    // Default to VF for unknown
+    return 'VF';
+}
+
 // Fonction pour extraire le premier mot du champ quality
 function extractProviderName(quality: string): string {
     const firstWord = quality.split(' ')[0];
@@ -62,11 +82,12 @@ function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
     return playerLinks.map(link => {
         const provider = analyzeProvider(link.quality, link.decoded_url);
         const providerName = extractProviderName(link.quality);
+        const normalizedLanguage = normalizeLanguage(link.language);
 
         return {
             url: link.decoded_url,
             quality: providerName,
-            language: link.language,
+            language: normalizedLanguage,
             provider: provider,
             originalQuality: link.quality
         };
