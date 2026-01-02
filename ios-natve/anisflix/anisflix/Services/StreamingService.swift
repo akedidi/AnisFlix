@@ -533,7 +533,7 @@ class StreamingService {
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/tv/\(seriesId)&season=\(season)&episode=\(episode)"
+        let urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/tv/\(seriesId)?season=\(season)&episode=\(episode)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
         var request = URLRequest(url: url)

@@ -84,8 +84,8 @@ export const useMovixTmdbSeriesSources = (
             console.log('🚀 [MOVIX TMDB SERIES] Fetching sources:', { seriesId, season, episode });
 
             try {
-                // API call: /api/movix-proxy?path=tmdb&tmdbId={id}&type=tv&season=X&episode=Y
-                const url = `/api/movix-proxy?path=tmdb&tmdbId=${seriesId}&type=tv&season=${season}&episode=${episode}`;
+                // API call: /api/movix-proxy?path=tmdb/tv/{id}?season=X&episode=Y
+                const url = `/api/movix-proxy?path=tmdb/tv/${seriesId}?season=${season}&episode=${episode}`;
 
                 console.log('🔍 [MOVIX TMDB SERIES] Request URL:', url);
                 const response = await apiClient.request(url);
