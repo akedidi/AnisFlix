@@ -56,7 +56,7 @@ class TraktManager: ObservableObject {
     func startDeviceAuth() async throws {
         isAuthenticating = true
         
-        guard let url = URL(string: "\(baseURL)/device/code") else {
+        guard let url = URL(string: "\(baseURL)?action=device-code") else {
             throw TraktError.invalidURL
         }
         
@@ -85,7 +85,7 @@ class TraktManager: ObservableObject {
             throw TraktError.noDeviceCode
         }
         
-        guard let url = URL(string: "\(baseURL)/device/token") else {
+        guard let url = URL(string: "\(baseURL)?action=device-token") else {
             throw TraktError.invalidURL
         }
         
@@ -147,7 +147,7 @@ class TraktManager: ObservableObject {
             throw TraktError.notAuthenticated
         }
         
-        guard let url = URL(string: "\(baseURL)/scrobble") else {
+        guard let url = URL(string: "\(baseURL)?action=scrobble") else {
             throw TraktError.invalidURL
         }
         
