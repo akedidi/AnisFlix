@@ -71,10 +71,31 @@ struct MainTabView: View {
                 .tag(5)
             }
             .tint(AppTheme.primaryRed)
-            .overlay(
-                // Camembert overlay using UIKit introspection
-                TabBarCamembertOverlay(progress: downloadManager.globalProgress)
-            )
+            
+            // Camembert overlay - simple GeometryReader approach
+            if downloadManager.globalProgress > 0.01 && downloadManager.globalProgress < 0.99 {
+                GeometryReader { geometry in
+                    // iOS shows max 5 tabs before "More", Downloads is 4th (index 3)
+                    let screenWidth = geometry.size.width
+                    let tabCount: CGFloat = 5
+                    let tabWidth = screenWidth / tabCount
+                    let downloadTabIndex: CGFloat = 3
+                    
+                    // Center X of Downloads tab
+                    let centerX = (downloadTabIndex * tabWidth) + (tabWidth / 2)
+                    
+                    // Tab bar is ~49pt tall, icon center is ~25pt from bottom
+                    let centerY = geometry.size.height - 25
+                    
+                    Circle()
+                        .trim(from: 0, to: downloadManager.globalProgress)
+                        .stroke(AppTheme.primaryRed, lineWidth: 2.5)
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 28, height: 28)
+                        .position(x: centerX, y: centerY)
+                }
+                .allowsHitTesting(false)
+            }
         }
         .onAppear {
             configureTabBarAppearance()
@@ -84,8 +105,8 @@ struct MainTabView: View {
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
         appearance.configureWithTransparentBackground()
-        appearance.backgroundEffect = UIBlurEffect(style: .dark)
-        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         
         let itemAppearance = UITabBarItemAppearance()
         
@@ -109,105 +130,6 @@ struct MainTabView: View {
         UITabBar.appearance().scrollEdgeAppearance = appearance
         UITabBar.appearance().unselectedItemTintColor = UIColor.systemGray
         UITabBar.appearance().tintColor = UIColor(AppTheme.primaryRed)
-    }
-}
-
-// UIKit-based overlay to get exact tab item position
-struct TabBarCamembertOverlay: UIViewRepresentable {
-    let progress: Double
-    
-    func makeUIView(context: Context) -> CamembertOverlayView {
-        return CamembertOverlayView(progress: progress)
-    }
-    
-    func updateUIView(_ uiView: CamembertOverlayView, context: Context) {
-        uiView.progress = progress
-    }
-}
-
-class CamembertOverlayView: UIView {
-    var progress: Double {
-        didSet {
-            setNeedsDisplay()
-        }
-    }
-    
-    private let shapeLayer = CAShapeLayer()
-    
-    init(progress: Double) {
-        self.progress = progress
-        super.init(frame: .zero)
-        backgroundColor = .clear
-        isUserInteractionEnabled = false
-        
-        shapeLayer.fillColor = UIColor.clear.cgColor
-        shapeLayer.strokeColor = UIColor(AppTheme.primaryRed).cgColor
-        shapeLayer.lineWidth = 2.5
-        shapeLayer.lineCap = .round
-        layer.addSublayer(shapeLayer)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        updateCamembertPosition()
-    }
-    
-    private func updateCamembertPosition() {
-        guard progress > 0.01 && progress < 0.99 else {
-            shapeLayer.isHidden = true
-            return
-        }
-        
-        shapeLayer.isHidden = false
-        
-        // Find the UITabBar in the view hierarchy
-        guard let tabBar = findTabBar(in: window) else { return }
-        
-        // Get the Downloads tab item (index 3)
-        let downloadTabIndex = 3
-        guard downloadTabIndex < tabBar.items?.count ?? 0 else { return }
-        
-        // Find the tab bar button for Downloads
-        let tabBarButtons = tabBar.subviews.filter { String(describing: type(of: $0)) == "UITabBarButton" }
-        guard downloadTabIndex < tabBarButtons.count else { return }
-        
-        let downloadButton = tabBarButtons[downloadTabIndex]
-        
-        // Get the center of the download button in our coordinate system
-        let buttonCenter = downloadButton.convert(CGPoint(x: downloadButton.bounds.midX, y: downloadButton.bounds.midY), to: self)
-        
-        // Create circle path
-        let radius: CGFloat = 13 // Half of 26
-        let circlePath = UIBezierPath(
-            arcCenter: buttonCenter,
-            radius: radius,
-            startAngle: -.pi / 2,
-            endAngle: -.pi / 2 + (2 * .pi * progress),
-            clockwise: true
-        )
-        
-        shapeLayer.path = circlePath.cgPath
-        shapeLayer.frame = bounds
-    }
-    
-    private func findTabBar(in view: UIView?) -> UITabBar? {
-        guard let view = view else { return nil }
-        
-        if let tabBar = view as? UITabBar {
-            return tabBar
-        }
-        
-        for subview in view.subviews {
-            if let tabBar = findTabBar(in: subview) {
-                return tabBar
-            }
-        }
-        
-        return nil
     }
 }
 
