@@ -36,47 +36,39 @@ struct MainTabView: View {
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         
-        // Find the UINavigationController in the SwiftUI view hierarchy
+        // Get the currently visible NavigationController  
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first,
-              let rootViewController = window.rootViewController else {
-            print("❌ Could not find root view controller")
+              let window = windowScene.windows.first else {
+            print("❌ Could not find window")
             return
         }
         
-        // Find all navigation controllers
-        func findNavigationController(in viewController: UIViewController) -> UINavigationController? {
+        // The currently visible NavigationController is the one we want to pop
+        func findVisibleNavigationController(from viewController: UIViewController?) -> UINavigationController? {
             if let navController = viewController as? UINavigationController {
-                return navController
-            }
-            
-            for child in viewController.children {
-                if let found = findNavigationController(in: child) {
-                    return found
+                // Check if this nav controller has items in its stack
+                if navController.viewControllers.count > 1 {
+                    return navController
                 }
             }
             
-            if let presented = viewController.presentedViewController {
-                return findNavigationController(in: presented)
+            // Check children
+            if let viewController = viewController {
+                for child in viewController.children {
+                    if let found = findVisibleNavigationController(from: child) {
+                        return found
+                    }
+                }
             }
             
             return nil
         }
         
-        if let navController = findNavigationController(in: rootViewController) {
-            print("✅ Found UINavigationController, popping to root with animation")
+        if let navController = findVisibleNavigationController(from: window.rootViewController) {
+            print("✅ Found visible NavigationController with \(navController.viewControllers.count) views in stack")
             navController.popToRootViewController(animated: true)
         } else {
-            print("⚠️ UINavigationController not found, falling back to ID reset")
-            // Fallback to ID reset if UINavigationController not found
-            switch tabIndex {
-            case 0: homeStackID = UUID()
-            case 1: exploreStackID = UUID()
-            case 2: tvStackID = UUID()
-            case 3: downloadsStackID = UUID()
-            case 4: moreStackID = UUID()
-            default: break
-            }
+            print("⚠️ No NavigationController with stack found")
         }
     }
     
