@@ -18,7 +18,7 @@ class TVService {
     // MARK: - API Methods
     
     func fetchSections() async throws -> [TVSection] {
-        let url = URL(string: "\(baseUrl)/api/tv-channels")!
+        let url = URL(string: "\(baseUrl)/api/channels")!
         let (data, _) = try await URLSession.shared.data(from: url)
         let response = try JSONDecoder().decode(TVChannelsResponse.self, from: data)
         return response.sections

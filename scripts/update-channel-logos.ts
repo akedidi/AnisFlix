@@ -57,7 +57,7 @@ async function updateChannelLogos() {
     console.log(`Found ${Object.keys(logosPaths).length} logos`);
 
     // Read the current tv-channels.ts file
-    const tvChannelsPath = path.join(process.cwd(), 'api', 'tv-channels.ts');
+    const tvChannelsPath = path.join(process.cwd(), 'api', 'channels.ts');
     let content = fs.readFileSync(tvChannelsPath, 'utf-8');
 
     let updatedCount = 0;

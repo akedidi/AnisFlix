@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import axios from 'axios';
 
 interface TVChannelLink {
     type: 'mpd' | 'hls_direct' | 'hls_segments';
@@ -696,11 +697,13 @@ export default async function handler(
     req: VercelRequest,
     res: VercelResponse,
 ) {
+    const { type } = req.query;
+
     // CORS headers
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Range');
 
     // Handle OPTIONS request
     if (req.method === 'OPTIONS') {
@@ -708,9 +711,13 @@ export default async function handler(
         return;
     }
 
-    // Only allow GET requests
-    if (req.method !== 'GET') {
+    // Only allow GET/HEAD requests
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    if (type === 'proxy') {
+        return handleTVDirectProxy(req, res);
     }
 
     try {
@@ -721,5 +728,162 @@ export default async function handler(
     } catch (error) {
         console.error('[API ERROR]', error);
         return res.status(500).json({ error: 'Internal server error' });
+    }
+}
+
+async function handleTVDirectProxy(req: VercelRequest, res: VercelResponse) {
+    try {
+        const { url, domain } = req.query;
+
+        if (!url && !domain) {
+            return res.status(400).json({ error: 'URL or domain parameter is required' });
+        }
+
+        let targetUrl: string;
+
+        // Si c'est une URL complète, l'utiliser directement
+        if (url) {
+            targetUrl = url as string;
+        } else {
+            // Sinon, construire l'URL à partir du domaine et du path
+            const { path } = req.query;
+            if (!path) {
+                return res.status(400).json({ error: 'Path parameter is required when using domain' });
+            }
+
+            switch (domain) {
+                case 'viamotionhsi':
+                    targetUrl = `https://viamotionhsi.netplus.ch/live/eds/${path}`;
+                    break;
+                case 'simulcast-ftven':
+                    targetUrl = `https://simulcast-p.ftven.fr/${path}`;
+                    break;
+                case 'arte':
+                    targetUrl = `https://artesimulcast.akamaized.net/hls/live/2031003/artelive_fr/${path}`;
+                    break;
+                case 'bfm':
+                    targetUrl = `https://ncdn-live-bfm.pfd.sfr.net/shls/${path}`;
+                    break;
+                case 'rt':
+                    targetUrl = `https://rt-fra.rttv.com/live/rtfrance/${path}`;
+                    break;
+                case 'bfmtv':
+                    targetUrl = `https://live-cdn-stream-euw1.bfmtv.bct.nextradiotv.com/${path}`;
+                    break;
+                case 'viously':
+                    targetUrl = `https://www.viously.com/video/hls/${path}`;
+                    break;
+                case 'qna':
+                    targetUrl = `https://streamer3.qna.org.qa/${path}`;
+                    break;
+                case 'bozztv':
+                    targetUrl = `https://live20.bozztv.com/${path}`;
+                    break;
+                case 'getaj':
+                    targetUrl = `https://live-hls-web-${path}`;
+                    break;
+                case 'akamaized':
+                    targetUrl = `https://shls-live-ak.akamaized.net/${path}`;
+                    break;
+                case 'github':
+                    targetUrl = `https://raw.githubusercontent.com/${path}`;
+                    break;
+                default:
+                    return res.status(400).json({ error: 'Unsupported domain' });
+            }
+        }
+
+        // Determine if we are handling a playlist or a specific media segment
+        const isPlaylist = targetUrl.includes('.m3u8') || targetUrl.includes('.mpd');
+
+        console.log(`[TV DIRECT PROXY] Proxifying: ${targetUrl} (Playlist: ${isPlaylist})`);
+
+        // For playlists, we need text to rewrite URLs. For media segments, we need binary stream.
+        const responseType = req.method === 'HEAD' ? 'stream' : (isPlaylist ? 'text' : 'stream');
+
+        // Préparer les headers de la requête
+        const headers: Record<string, string> = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+        };
+
+        // Propager le header Range s'il est présent
+        if (req.headers.range) {
+            headers['Range'] = req.headers.range as string;
+        }
+
+        const response = await axios.get(targetUrl, {
+            headers: headers,
+            timeout: 10000,
+            responseType: responseType
+        });
+
+        console.log(`[TV DIRECT PROXY] ${response.status} ${response.headers['content-type']} ← ${targetUrl}`);
+
+        // Pour les requêtes HEAD (segments), retourner juste les headers
+        if (req.method === 'HEAD') {
+            ['content-type', 'content-length', 'accept-ranges', 'content-range', 'cache-control'].forEach(h => {
+                if (response.headers[h]) {
+                    res.setHeader(h, response.headers[h]);
+                }
+            });
+            return res.status(response.status).end();
+        }
+
+        // If not a playlist (binary segment), pipe directly with correct headers
+        if (!isPlaylist) {
+            const contentType = response.headers['content-type'];
+            if (targetUrl.includes('.ts')) {
+                res.setHeader('Content-Type', 'video/mp2t');
+            } else if (targetUrl.includes('.mp4')) {
+                res.setHeader('Content-Type', 'video/mp4');
+            } else if (targetUrl.includes('.aac')) {
+                res.setHeader('Content-Type', 'audio/aac');
+            } else {
+                res.setHeader('Content-Type', contentType || 'application/octet-stream');
+            }
+
+            if (response.headers['content-length']) res.setHeader('Content-Length', response.headers['content-length']);
+            if (response.headers['accept-ranges']) res.setHeader('Accept-Ranges', response.headers['accept-ranges']);
+            res.setHeader('Cache-Control', 'public, max-age=31536000');
+
+            response.data.pipe(res);
+            return;
+        }
+
+        if (typeof response.data !== 'string') {
+            return res.status(502).send('Pas une playlist M3U8.');
+        }
+
+        // Réécrire les URLs dans la playlist pour qu'elles passent par le proxy
+        // Important: Use /api/channels?type=proxy instead of /api/tv-direct-proxy
+        const rewritten = response.data
+            .replace(/^([^#\n].*\.m3u8)$/gm, (match: string) => {
+                const resolvedUrl = new URL(match, targetUrl).href;
+                return `/api/channels?type=proxy&url=${encodeURIComponent(resolvedUrl)}`;
+            })
+            .replace(/URI="([^"]+\.m3u8)"/g, (match: string, uri: string) => {
+                const resolvedUrl = new URL(uri, targetUrl).href;
+                const proxiedUrl = `/api/channels?type=proxy&url=${encodeURIComponent(resolvedUrl)}`;
+                return `URI="${proxiedUrl}"`;
+            })
+            .replace(/^([^#\n].*\.ts)$/gm, (match: string) => {
+                const resolvedUrl = new URL(match, targetUrl).href;
+                return `/api/channels?type=proxy&url=${encodeURIComponent(resolvedUrl)}`;
+            });
+
+        // Headers spécifiques pour les streams live
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
+        res.status(200).send(rewritten);
+    } catch (error: any) {
+        console.error('[TV DIRECT PROXY ERROR]', error.message);
+        res.status(500).send('Erreur lors de la récupération du stream TV direct.');
     }
 }

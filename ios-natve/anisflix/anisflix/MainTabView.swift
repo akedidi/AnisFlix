@@ -72,31 +72,12 @@ struct MainTabView: View {
             }
             .tint(AppTheme.primaryRed)
             
-            // Camembert overlay - simple GeometryReader approach
+            // Camembert overlay with precise positioning
             if downloadManager.globalProgress > 0.01 && downloadManager.globalProgress < 0.99 {
-                GeometryReader { geometry in
-                    let screenWidth = geometry.size.width
-                    
-                    // With 6 tabs, iOS shows 5 visible + More button
-                    // Downloads is the 4th tab (index 3, 0-indexed)
-                    // Each visible tab gets equal width
-                    let visibleTabs: CGFloat = 5
-                    let tabWidth = screenWidth / visibleTabs
-                    
-                    // Downloads tab center: start at 3rd tab boundary + half tab width
-                    let centerX = (tabWidth * 3) + (tabWidth / 2)
-                    
-                    // Tab bar height ~49pt, icon center ~25pt from bottom
-                    let centerY = geometry.size.height - 25
-                    
-                    Circle()
-                        .trim(from: 0, to: downloadManager.globalProgress)
-                        .stroke(AppTheme.primaryRed, lineWidth: 2.5)
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 28, height: 28)
-                        .position(x: centerX, y: centerY)
-                }
-                .allowsHitTesting(false)
+                TabBarProgressRing(
+                    progress: downloadManager.globalProgress,
+                    tabIndex: 3  // Downloads tab
+                )
             }
         }
         .onAppear {
@@ -106,8 +87,9 @@ struct MainTabView: View {
     
     private func configureTabBarAppearance() {
         let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.95)
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .systemMaterialDark)
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.3)
         
         let itemAppearance = UITabBarItemAppearance()
         
@@ -131,6 +113,112 @@ struct MainTabView: View {
         UITabBar.appearance().scrollEdgeAppearance = appearance
         UITabBar.appearance().unselectedItemTintColor = UIColor.systemGray
         UITabBar.appearance().tintColor = UIColor(AppTheme.primaryRed)
+    }
+}
+
+// Progress ring that finds exact tab position
+struct TabBarProgressRing: UIViewRepresentable {
+    let progress: Double
+    let tabIndex: Int
+    
+    func makeUIView(context: Context) -> ProgressRingView {
+        ProgressRingView(progress: progress, tabIndex: tabIndex)
+    }
+    
+    func updateUIView(_ uiView: ProgressRingView, context: Context) {
+        uiView.progress = progress
+    }
+}
+
+class ProgressRingView: UIView {
+    var progress: Double {
+        didSet {
+            updateRing()
+        }
+    }
+    let tabIndex: Int
+    private let shapeLayer = CAShapeLayer()
+    
+    init(progress: Double, tabIndex: Int) {
+        self.progress = progress
+        self.tabIndex = tabIndex
+        super.init(frame: .zero)
+        
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        
+        shapeLayer.fillColor = UIColor.clear.cgColor
+        shapeLayer.strokeColor = UIColor(AppTheme.primaryRed).cgColor
+        shapeLayer.lineWidth = 2.5
+        shapeLayer.lineCap = .round
+        layer.addSublayer(shapeLayer)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        updateRing()
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateRing()
+    }
+    
+    private func updateRing() {
+        guard progress > 0.01 && progress < 0.99,
+              let window = window,
+              let tabBar = findTabBar(in: window) else {
+            shapeLayer.isHidden = true
+            return
+        }
+        
+        shapeLayer.isHidden = false
+        
+        // Get tab bar buttons
+        let buttons = tabBar.subviews.filter { 
+            String(describing: type(of: $0)).contains("UITabBarButton")
+        }.sorted { 
+            $0.frame.origin.x < $1.frame.origin.x 
+        }
+        
+        guard tabIndex < buttons.count else { return }
+        
+        let button = buttons[tabIndex]
+        
+        // Convert button center to our coordinate system
+        let buttonCenterInWindow = tabBar.convert(
+            CGPoint(x: button.frame.midX, y: button.frame.midY),
+            to: window
+        )
+        let centerInView = convert(buttonCenterInWindow, from: window)
+        
+        // Create circular path
+        let radius: CGFloat = 14
+        let path = UIBezierPath(
+            arcCenter: centerInView,
+            radius: radius,
+            startAngle: -.pi / 2,
+            endAngle: -.pi / 2 + (2 * .pi * progress),
+            clockwise: true
+        )
+        
+        shapeLayer.path = path.cgPath
+    }
+    
+    private func findTabBar(in view: UIView) -> UITabBar? {
+        if let tabBar = view as? UITabBar {
+            return tabBar
+        }
+        for subview in view.subviews {
+            if let found = findTabBar(in: subview) {
+                return found
+            }
+        }
+        return nil
     }
 }
 

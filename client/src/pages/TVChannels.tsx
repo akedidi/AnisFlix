@@ -213,7 +213,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
 
     // Vérifier si l'URL est déjà proxifiée pour éviter le double encodage
     if (cleanUrl.includes('/api/media-proxy?url=') ||
-      cleanUrl.includes('/api/tv-direct-proxy') ||
+      cleanUrl.includes('/api/channels?type=proxy') ||
       cleanUrl.includes('anisflix.vercel.app/api/')) {
       console.log(`[PROXY URL] URL déjà proxifiée, retour direct: ${cleanUrl}`);
       return cleanUrl;
@@ -225,7 +225,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/viamotionhsi\.netplus\.ch\/live\/eds\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=viamotionhsi&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=viamotionhsi&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] Viamotionhsi path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -235,7 +235,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/simulcast-p\.ftven\.fr\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=simulcast-ftven&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=simulcast-ftven&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] Simulcast-ftven path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -245,7 +245,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/artesimulcast\.akamaized\.net\/hls\/live\/2031003\/artelive_fr\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=arte&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=arte&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] Arte path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -255,7 +255,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/ncdn-live-bfm\.pfd\.sfr\.net\/shls\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bfm&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=bfm&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] BFM path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -265,7 +265,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/rt-fra\.rttv\.com\/live\/rtfrance\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=rt&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=rt&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] RT path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -275,7 +275,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/live-cdn-stream-euw1\.bfmtv\.bct\.nextradiotv\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bfmtv&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=bfmtv&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] BFM TV path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -285,7 +285,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/www\.viously\.com\/video\/hls\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=viously&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=viously&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] Viously path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -295,7 +295,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/streamer[23]\.qna\.org\.qa\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=qna&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=qna&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] QNA path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -305,7 +305,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/live20\.bozztv\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=bozztv&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=bozztv&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] BozzTV path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -315,7 +315,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/live-hls-web-[ae]j\.getaj\.net\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=getaj&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=getaj&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] GetAJ path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -325,7 +325,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/shls-live-ak\.akamaized\.net\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=akamaized&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=akamaized&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] Akamaized path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -335,7 +335,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
       const pathMatch = cleanUrl.match(/raw\.githubusercontent\.com\/(.+)/);
       if (pathMatch) {
         const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/tv-direct-proxy?domain=github&path=${encodeURIComponent(path)}`;
+        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=github&path=${encodeURIComponent(path)}`;
         console.log(`[PROXY URL] GitHub path: ${path}`);
         console.log(`[PROXY URL] URL finale: ${finalUrl}`);
         return finalUrl;
@@ -727,7 +727,7 @@ export default function TVChannels() {
       try {
         setIsLoadingData(true);
         const baseUrl = apiClient.getPublicBaseUrl();
-        const response = await fetch(`${baseUrl}/api/tv-channels`);
+        const response = await fetch(`${baseUrl}/api/channels`);
         if (!response.ok) {
           throw new Error('Failed to fetch TV channels');
         }
