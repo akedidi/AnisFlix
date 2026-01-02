@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const TRAKT_CLIENT_ID = process.env.TRAKT_CLIENT_ID;
 const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET;
-const REDIRECT_URI = 'https://anisflix.vercel.app/auth/trakt/callback';
+const REDIRECT_URI = 'https://anisflix.vercel.app/api/proxy?type=trakt-callback';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
