@@ -25,6 +25,18 @@ struct MainTabView: View {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
     }
     
+    // Helper to pop a specific tab to root
+    private func popToRoot(tabIndex: Int) {
+        switch tabIndex {
+        case 0: homePath = NavigationPath()
+        case 1: explorePath = NavigationPath()
+        case 2: tvPath = NavigationPath()
+        case 3: downloadsPath = NavigationPath()
+        case 4: morePath = NavigationPath()
+        default: break
+        }
+    }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             
@@ -72,16 +84,13 @@ struct MainTabView: View {
                  selectedTab: $selectedTab,
                  theme: theme,
                  activeDownloadsCount: activeDownloadsCount,
+                 onTabTap: { tabIndex in
+                     // When switching to a different tab, pop that tab to root
+                     popToRoot(tabIndex: tabIndex)
+                 },
                  onTabDoubleTap: { tabIndex in
-                     // Pop to root for the tapped tab
-                     switch tabIndex {
-                     case 0: homePath = NavigationPath()
-                     case 1: explorePath = NavigationPath()
-                     case 2: tvPath = NavigationPath()
-                     case 3: downloadsPath = NavigationPath()
-                     case 4: morePath = NavigationPath()
-                     default: break
-                     }
+                     // Pop to root for the tapped tab (same tab tapped again)
+                     popToRoot(tabIndex: tabIndex)
                  }
              )
         }
@@ -91,4 +100,3 @@ struct MainTabView: View {
 #Preview {
     MainTabView(selectedTab: .constant(0))
 }
-

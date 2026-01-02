@@ -11,6 +11,7 @@ struct CustomTabBar: View {
     @Binding var selectedTab: Int
     @ObservedObject var theme: AppTheme
     var activeDownloadsCount: Int
+    var onTabTap: ((Int) -> Void)? = nil
     var onTabDoubleTap: ((Int) -> Void)? = nil
     
     // Namespace for animations if needed, though simple scale/color is requested
@@ -25,6 +26,7 @@ struct CustomTabBar: View {
                 tabIndex: 0,
                 selectedTab: $selectedTab,
                 theme: theme,
+                onTap: onTabTap,
                 onDoubleTap: onTabDoubleTap
             )
             
@@ -35,6 +37,7 @@ struct CustomTabBar: View {
                 tabIndex: 1,
                 selectedTab: $selectedTab,
                 theme: theme,
+                onTap: onTabTap,
                 onDoubleTap: onTabDoubleTap
             )
             
@@ -45,6 +48,7 @@ struct CustomTabBar: View {
                 tabIndex: 2,
                 selectedTab: $selectedTab,
                 theme: theme,
+                onTap: onTabTap,
                 onDoubleTap: onTabDoubleTap
             )
             
@@ -57,6 +61,7 @@ struct CustomTabBar: View {
                 selectedTab: $selectedTab,
                 theme: theme,
                 badge: activeDownloadsCount,
+                onTap: onTabTap,
                 onDoubleTap: onTabDoubleTap
             )
             
@@ -68,6 +73,7 @@ struct CustomTabBar: View {
                 tabIndex: 4,
                 selectedTab: $selectedTab,
                 theme: theme,
+                onTap: onTabTap,
                 onDoubleTap: onTabDoubleTap
             )
         }
@@ -91,6 +97,7 @@ struct TabBarButton: View {
     @Binding var selectedTab: Int
     let theme: AppTheme
     var badge: Int = 0
+    var onTap: ((Int) -> Void)? = nil
     var onDoubleTap: ((Int) -> Void)? = nil
     
     var isSelected: Bool {
@@ -103,6 +110,8 @@ struct TabBarButton: View {
                 // Already on this tab, trigger pop-to-root
                 onDoubleTap?(tabIndex)
             } else {
+                // Switching to a different tab, pop target to root first
+                onTap?(tabIndex)
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                     selectedTab = tabIndex
                 }
