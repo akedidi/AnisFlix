@@ -35,28 +35,31 @@ struct MainTabView: View {
     // Helper to pop a specific tab to root
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
-        switch tabIndex {
-        case 0: 
-            print("   - Resetting homePath (count: \(homePath.count))")
-            homePath = NavigationPath()
-            homeStackID = UUID() // Force reconstruction
-        case 1: 
-            print("   - Resetting explorePath (count: \(explorePath.count))")
-            explorePath = NavigationPath()
-            exploreStackID = UUID()
-        case 2: 
-            print("   - Resetting tvPath (count: \(tvPath.count))")
-            tvPath = NavigationPath()
-            tvStackID = UUID()
-        case 3: 
-            print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
-            downloadsPath = NavigationPath()
-            downloadsStackID = UUID()
-        case 4: 
-            print("   - Resetting morePath (count: \(morePath.count))")
-            morePath = NavigationPath()
-            moreStackID = UUID()
-        default: break
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            switch tabIndex {
+            case 0: 
+                print("   - Resetting homePath (count: \(homePath.count))")
+                homePath = NavigationPath()
+                homeStackID = UUID() // Force reconstruction
+            case 1: 
+                print("   - Resetting explorePath (count: \(explorePath.count))")
+                explorePath = NavigationPath()
+                exploreStackID = UUID()
+            case 2: 
+                print("   - Resetting tvPath (count: \(tvPath.count))")
+                tvPath = NavigationPath()
+                tvStackID = UUID()
+            case 3: 
+                print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
+                downloadsPath = NavigationPath()
+                downloadsStackID = UUID()
+            case 4: 
+                print("   - Resetting morePath (count: \(morePath.count))")
+                morePath = NavigationPath()
+                moreStackID = UUID()
+            default: break
+            }
         }
     }
     
