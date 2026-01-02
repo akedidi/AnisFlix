@@ -36,30 +36,28 @@ struct MainTabView: View {
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-            switch tabIndex {
-            case 0: 
-                print("   - Resetting homePath (count: \(homePath.count))")
-                homePath = NavigationPath()
-                homeStackID = UUID() // Force reconstruction
-            case 1: 
-                print("   - Resetting explorePath (count: \(explorePath.count))")
-                explorePath = NavigationPath()
-                exploreStackID = UUID()
-            case 2: 
-                print("   - Resetting tvPath (count: \(tvPath.count))")
-                tvPath = NavigationPath()
-                tvStackID = UUID()
-            case 3: 
-                print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
-                downloadsPath = NavigationPath()
-                downloadsStackID = UUID()
-            case 4: 
-                print("   - Resetting morePath (count: \(morePath.count))")
-                morePath = NavigationPath()
-                moreStackID = UUID()
-            default: break
-            }
+        switch tabIndex {
+        case 0: 
+            print("   - Resetting homePath (count: \(homePath.count))")
+            homePath = NavigationPath()
+            homeStackID = UUID() // Force reconstruction
+        case 1: 
+            print("   - Resetting explorePath (count: \(explorePath.count))")
+            explorePath = NavigationPath()
+            exploreStackID = UUID()
+        case 2: 
+            print("   - Resetting tvPath (count: \(tvPath.count))")
+            tvPath = NavigationPath()
+            tvStackID = UUID()
+        case 3: 
+            print("   - Resetting downloadsPath (count: \(downloadsPath.count))")
+            downloadsPath = NavigationPath()
+            downloadsStackID = UUID()
+        case 4: 
+            print("   - Resetting morePath (count: \(morePath.count))")
+            morePath = NavigationPath()
+            moreStackID = UUID()
+        default: break
         }
     }
     
@@ -72,7 +70,6 @@ struct MainTabView: View {
                 NavigationStack(path: $homePath) {
                     HomeView()
                 }
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(homeStackID) // Reset stack when ID changes
                 .tag(0)
                  .toolbar(.hidden, for: .tabBar) // Hide native tab bar
@@ -81,7 +78,6 @@ struct MainTabView: View {
                 NavigationStack(path: $explorePath) {
                     ExploreView()
                 }
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(exploreStackID)
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
@@ -90,7 +86,6 @@ struct MainTabView: View {
                 NavigationStack(path: $tvPath) {
                     TVChannelsView()
                 }
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(tvStackID)
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
@@ -99,7 +94,6 @@ struct MainTabView: View {
                 NavigationStack(path: $downloadsPath) {
                     DownloadsView()
                 }
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(downloadsStackID)
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
@@ -108,7 +102,6 @@ struct MainTabView: View {
                 NavigationStack(path: $morePath) {
                     MoreView()
                 }
-                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(moreStackID)
                 .tag(4)
                  .toolbar(.hidden, for: .tabBar)
