@@ -100,9 +100,8 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         playlistContent = lines.joined(separator: "\n")
                         
                         // 2. Rewrite URLs
-                        // Goal: 
-                        // - Playlists (.m3u8) -> vidmoly-custom:// (Use ResourceLoader to fix extension/parsing issues)
-                        // - Segments (.ts) -> https:// (Use Native AVPlayer networking for efficiency and standard generic handling)
+                        // Goal: Force ALL VidMoly URLs (both .m3u8 playlists AND .ts segments)
+                        // through the ResourceLoader to ensure proper headers are sent
                         
                         // First, ensure all relative paths are absolute HTTPS
                         playlistContent = playlistContent.replacingOccurrences(
@@ -114,23 +113,18 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=PQ", with: "")
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=SDR", with: "")
                         
-                        // Codecs preservation (already correctly active)
-                        
-                        // Now, convert ONLY .m3u8 URLs to custom scheme
-                        // We look for the pattern: https://anisflix.vercel.app/api/vidmoly?url=...m3u8...
-                        // And replace 'https' with 'vidmoly-custom'
-                        
-                        // Simple approach: Iterate lines, if line contains .m3u8 and starts with https, swap scheme.
-                         var finalLines = [String]()
-                         playlistContent.enumerateLines { line, _ in
-                             if line.contains(".m3u8") && line.contains("anisflix.vercel.app/api/vidmoly") {
-                                 let text = line.replacingOccurrences(of: "https://", with: "vidmoly-custom://")
-                                 finalLines.append(text)
-                             } else {
-                                 finalLines.append(line)
-                             }
-                         }
-                         playlistContent = finalLines.joined(separator: "\n")
+                        // Rewrite ALL VidMoly URLs to custom scheme (not just .m3u8)
+                        // This ensures segments also pass through ResourceLoader with proper headers
+                        var finalLines = [String]()
+                        playlistContent.enumerateLines { line, _ in
+                            if line.contains("anisflix.vercel.app/api/vidmoly") {
+                                let text = line.replacingOccurrences(of: "https://", with: "vidmoly-custom://")
+                                finalLines.append(text)
+                            } else {
+                                finalLines.append(line)
+                            }
+                        }
+                        playlistContent = finalLines.joined(separator: "\n")
                         
                         if let modifiedData = playlistContent.data(using: .utf8) {
                             finalData = modifiedData
