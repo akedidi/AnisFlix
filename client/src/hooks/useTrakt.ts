@@ -55,6 +55,12 @@ export function useTrakt() {
         episode?: number
     ) => {
         try {
+            // Trakt rejects 'stop' with 0 progress (422 Unprocessable Entity)
+            // If we haven't watched anything, no need to scrobble a stop event
+            if (action === 'stop' && progress <= 0) {
+                return;
+            }
+
             let body: any = {
                 progress,
                 action,
