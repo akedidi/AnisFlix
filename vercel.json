@@ -6,6 +6,10 @@
   },
   "rewrites": [
     {
+      "source": "/auth/trakt/callback",
+      "destination": "/api/auth/trakt/callback"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
