@@ -36,7 +36,7 @@ struct MainTabView: View {
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         
-        withAnimation(.easeInOut(duration: 0.3)) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             switch tabIndex {
             case 0: 
                 print("   - Resetting homePath (count: \(homePath.count))")
@@ -68,26 +68,29 @@ struct MainTabView: View {
             
              // Content Views
             TabView(selection: $selectedTab) {
-                // Onglet 1: Accueil
+                // Onglet 1: Home
                 NavigationStack(path: $homePath) {
                     HomeView()
                 }
+                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(homeStackID) // Reset stack when ID changes
                 .tag(0)
                  .toolbar(.hidden, for: .tabBar) // Hide native tab bar
                 
-                // Onglet 2: Explorer (Films & Séries)
+                // Onglet 2: Explorer
                 NavigationStack(path: $explorePath) {
                     ExploreView()
                 }
+                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(exploreStackID)
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
                 
-                // Onglet 3: TV Direct
+                // Onglet 3: TV Channels
                 NavigationStack(path: $tvPath) {
                     TVChannelsView()
                 }
+                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(tvStackID)
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
@@ -96,6 +99,7 @@ struct MainTabView: View {
                 NavigationStack(path: $downloadsPath) {
                     DownloadsView()
                 }
+                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(downloadsStackID)
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
@@ -104,6 +108,7 @@ struct MainTabView: View {
                 NavigationStack(path: $morePath) {
                     MoreView()
                 }
+                .transition(.asymmetric(insertion: .opacity, removal: .opacity))
                 .id(moreStackID)
                 .tag(4)
                  .toolbar(.hidden, for: .tabBar)
