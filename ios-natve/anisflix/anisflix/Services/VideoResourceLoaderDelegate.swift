@@ -123,14 +123,16 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=PQ", with: "")
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=SDR", with: "")
                         
-                        // Rewrite ALL VidMoly URLs to custom scheme (not just .m3u8)
-                        // This ensures segments also pass through ResourceLoader with proper headers
+                        // Rewrite ONLY .m3u8 VidMoly URLs to custom scheme
+                        // Let .ts segments use HTTPS directly since proxy handles headers
                         var finalLines = [String]()
                         playlistContent.enumerateLines { line, _ in
-                            if line.contains("anisflix.vercel.app/api/vidmoly") {
+                            // Only rewrite if it's a playlist URL (contains .m3u8)
+                            if line.contains("anisflix.vercel.app/api/vidmoly") && line.contains(".m3u8") {
                                 let text = line.replacingOccurrences(of: "https://", with: "vidmoly-custom://")
                                 finalLines.append(text)
                             } else {
+                                // Keep segment URLs as HTTPS - proxy already handles headers
                                 finalLines.append(line)
                             }
                         }
