@@ -30,7 +30,12 @@ class TMDBService {
     
     func fetchLatestMovies(page: Int = 1, language: String? = nil) async throws -> [Media] {
         let lang = language ?? AppTheme.shared.tmdbLanguageCode
-        let endpoint = "\(baseURL)/movie/now_playing?api_key=\(apiKey)&language=\(lang)&page=\(page)"
+        
+        // Use centralized TMDB proxy which handles "Latest" logic robustly (Digital + Physical releases)
+        let endpoint = "\(proxyBaseURL)?type=movie&filter=last&page=\(page)&language=\(lang)"
+        
+        print("🎥 [TMDBService] Fetching latest movies via proxy: \(endpoint)")
+        
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
     }

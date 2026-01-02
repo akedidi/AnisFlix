@@ -193,6 +193,31 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
         }
 
+        // Endpoint 1c: Latest Movies (Centralized Logic - DVD/Bluray/Digital)
+        if (type === 'movie' && req.query.filter === 'last') {
+            const page = req.query.page || 1;
+            const today = new Date();
+            const lastDateLte = today.toISOString().slice(0, 10);
+
+            // Release Types: 4 (Digital), 5 (Physical/DVD/Blu-ray)
+            const releaseTypes = "4|5";
+
+            console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language})`);
+
+            const data = await tmdbFetch('/discover/movie', {
+                sort_by: 'primary_release_date.desc',
+                include_adult: 'false',
+                include_video: 'false',
+                'primary_release_date.lte': lastDateLte,
+                with_release_type: releaseTypes,
+                'vote_count.gte': '5',
+                page: page,
+                language: language
+            });
+
+            return res.status(200).json(data);
+        }
+
         // Endpoint 2: Season Details
         if (type === 'season' && seriesId && seasonNumber !== undefined) {
             const seriesIdNum = parseInt(seriesId, 10);

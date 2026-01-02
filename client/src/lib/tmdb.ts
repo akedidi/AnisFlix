@@ -117,7 +117,14 @@ export const tmdb = {
   },
 
   getLatestMovies: async (page = 1) => {
-    return tmdbFetch('/movie/now_playing', { page: page.toString() });
+    // Use centralized TMDB proxy which handles "Latest" logic robustly (Digital + Physical releases)
+    const language = getLanguage();
+    const langCode = getLanguageCode(language);
+
+    // Call the centralized proxy endpoint
+    const response = await fetch(`/api/tmdb-proxy?type=movie&filter=last&page=${page}&language=${langCode}`);
+    if (!response.ok) throw new Error('TMDB Proxy request failed');
+    return response.json();
   },
 
   getMovieDetails: async (movieId: number) => {
