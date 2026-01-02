@@ -483,7 +483,7 @@ export default function VideoPlayer({
       if (mediaId && mediaType && !video.paused && !video.ended) {
         const type = mediaType === 'tv' ? 'episode' : 'movie';
         const currentProgress = video.duration ? (video.currentTime / video.duration) * 100 : 0;
-        scrobble(type, mediaId, currentProgress, 'stop');
+        scrobble(type, mediaId, currentProgress, 'stop', seasonNumber, episodeNumber);
       }
 
       video.removeEventListener('timeupdate', handleTimeUpdate);
