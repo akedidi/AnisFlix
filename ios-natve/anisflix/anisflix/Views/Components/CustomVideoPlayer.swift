@@ -833,6 +833,29 @@ class PlayerViewModel: NSObject, ObservableObject {
             }
         }
         
+        // Vidzy Logic: Use ResourceLoader to sanitize playlists (remove VIDEO-RANGE, I-FRAMES)
+        if url.absoluteString.lowercased().contains("vidzy") {
+            print("🎬 [CustomVideoPlayer] Vidzy URL detected, enabling ResourceLoader")
+            useResourceLoader = true
+            
+            // Rewrite scheme to trigger delegate
+            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                components.scheme = "vidzy-custom"
+                
+                if var items = components.queryItems {
+                    items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
+                    components.queryItems = items
+                } else {
+                     components.queryItems = [URLQueryItem(name: "virtual", value: ".m3u8")]
+                }
+                
+                if let customUrl = components.url {
+                    finalUrl = customUrl
+                    print("   - Rewrote URL to: \(finalUrl)")
+                }
+            }
+        }
+        
         print("🎬 Setting up player with URL: \(url)")
         if let title = currentTitle {
             print("📺 Content title: \(title)")

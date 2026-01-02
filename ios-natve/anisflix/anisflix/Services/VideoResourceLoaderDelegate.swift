@@ -22,6 +22,11 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
         guard let url = loadingRequest.request.url else { return false }
         
+        // Determine the provider type
+        let isVidMoly = url.scheme == "vidmoly-custom"
+        let isVidzy = url.scheme == "vidzy-custom"
+        let providerName = isVidMoly ? "VidMoly" : (isVidzy ? "Vidzy" : "Unknown")
+        
         // Convert custom scheme back to https
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
         components?.scheme = "https"
@@ -40,7 +45,7 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
             }
         }
         
-        print("🔄 [VidMolyLoader] Intercepting request: \(realUrl)")
+        print("🔄 [\(providerName)Loader] Intercepting request: \(realUrl)")
         print("   - Cleaned URL for network: \(cleanUrl)")
         
         // request.allHTTPHeaderFields = loadingRequest.request.allHTTPHeaderFields // Avoid copying all headers blindly
@@ -61,17 +66,22 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         // Ensure we send a browser-like User-Agent to avoid blocking
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         
+        // Add Referer header for Vidzy requests
+        if isVidzy {
+            request.setValue("https://vidzy.org/", forHTTPHeaderField: "Referer")
+        }
+        
         let task = session.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             
             if let error = error {
-                print("❌ [VidMolyLoader] Error: \(error.localizedDescription) for \(realUrl.lastPathComponent)")
+                print("❌ [\(providerName)Loader] Error: \(error.localizedDescription) for \(realUrl.lastPathComponent)")
                 loadingRequest.finishLoading(with: error)
                 return
             }
             
             if let response = response as? HTTPURLResponse, let data = data {
-                print("📥 [VidMolyLoader] Received response: \(response.statusCode) for \(realUrl.lastPathComponent)")
+                print("📥 [\(providerName)Loader] Received response: \(response.statusCode) for \(realUrl.lastPathComponent)")
                 print("   - Data size: \(data.count) bytes")
                 
                 // Sanitize headers
