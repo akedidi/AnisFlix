@@ -8,11 +8,12 @@
 import SwiftUI
 
 struct CastMiniPlayerView: View {
-    @ObservedObject var castManager = CastManager.shared
+    @StateObject var castManager = CastManager.shared
     @Binding var showControlSheet: Bool
     
     var body: some View {
-        if castManager.isConnected, let status = castManager.mediaStatus, let mediaInfo = status.mediaInformation {
+        // Only show when connected AND there's media loaded
+        if castManager.isConnected && castManager.hasMediaLoaded {
             VStack(spacing: 0) {
                 // Progress Bar (Thin line at top)
                 GeometryReader { geometry in
@@ -46,7 +47,7 @@ struct CastMiniPlayerView: View {
                     
                     // Title & Status
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(mediaInfo.metadata?.string(forKey: kGCKMetadataKeyTitle) ?? "Casting")
+                        Text(castManager.currentTitle ?? "Casting")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .lineLimit(1)
@@ -61,13 +62,13 @@ struct CastMiniPlayerView: View {
                     
                     // Play/Pause Button
                     Button {
-                        if status.playerState == .playing || status.playerState == .buffering {
+                        if castManager.isPlaying || castManager.isBuffering {
                              castManager.pause()
                         } else {
                              castManager.play()
                         }
                     } label: {
-                        Image(systemName: (status.playerState == .playing || status.playerState == .buffering) ? "pause.fill" : "play.fill")
+                        Image(systemName: (castManager.isPlaying || castManager.isBuffering) ? "pause.fill" : "play.fill")
                             .font(.title2)
                             .foregroundColor(.white)
                             .padding(8)
@@ -89,7 +90,7 @@ struct CastMiniPlayerView: View {
     
     private var progressProportion: CGFloat {
         let current = castManager.getApproximateStreamPosition()
-        let total = castManager.mediaStatus?.mediaInformation?.streamDuration ?? 1
+        let total = castManager.currentDuration
         return total > 0 ? CGFloat(current / total) : 0
     }
 }

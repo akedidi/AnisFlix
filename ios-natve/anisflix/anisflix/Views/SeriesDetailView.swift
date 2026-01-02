@@ -419,7 +419,7 @@ struct SeriesDetailView: View {
                 
                 CustomVideoPlayer(
                     url: url,
-                    title: "\(series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber)",
+                    title: "\(series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber) - \(getEpisodeTitle(episode))",
                     posterUrl: series?.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(series!.posterPath!)" : nil,
                     subtitles: subtitles,
                     isPresented: $showPlayer,

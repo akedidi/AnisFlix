@@ -12,11 +12,13 @@ import CommonLayout from "@/components/CommonLayout";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useOffline } from "@/hooks/useOffline";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
+import { useTrakt } from "@/hooks/useTrakt";
 
 export default function Settings() {
   const { t } = useLanguage();
   const { isNative } = useDeviceType();
   const { isOffline } = useOffline();
+  const { isConnected, isLoading, connect, disconnect } = useTrakt();
   const [primaryHost, setPrimaryHost] = useState("https://vidsrc.to");
   const [secondaryHost, setSecondaryHost] = useState("https://vidsrc.me");
   const [backupHost, setBackupHost] = useState("https://vidsrc.xyz");
@@ -140,6 +142,40 @@ export default function Settings() {
                       <Trash2 className="w-4 h-4" />
                       {t("settings.clearHistory")}
                     </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5" viewBox="0 0 256 256" fill="currentColor">
+                      <path d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128 128-57.3 128-128S198.7 0 128 0zm0 240c-61.9 0-112-50.1-112-112S66.1 16 128 16s112 50.1 112 112-50.1 112-112 112z" />
+                      <path d="M128 48c-44.2 0-80 35.8-80 80s35.8 80 80 80 80-35.8 80-80-35.8-80-80-80zm0 144c-35.3 0-64-28.7-64-64s28.7-64 64-64 64 28.7 64 64-28.7 64-64 64z" />
+                    </svg>
+                    <h3 className="font-medium">Trakt</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {isConnected ? "Connected to Trakt. Your watch progress is being synced." : "Connect to Trakt to automatically track your watch progress."}
+                  </p>
+                  <div className="flex gap-2">
+                    {isConnected ? (
+                      <Button
+                        variant="outline"
+                        onClick={disconnect}
+                        className="flex items-center gap-2"
+                      >
+                        Disconnect from Trakt
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={connect}
+                        disabled={isLoading}
+                        className="flex items-center gap-2"
+                      >
+                        {isLoading ? "Connecting..." : "Connect to Trakt"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

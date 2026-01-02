@@ -9,8 +9,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var theme = AppTheme.shared
+    @ObservedObject var traktManager = TraktManager.shared
     @State private var showClearConfirmation = false
     @State private var showClearCacheConfirmation = false
+    @State private var showTraktAuth = false
     @AppStorage("subtitleFontSize") private var subtitleFontSize: Double = 100
     
     let languages = AppTheme.supportedLanguages
@@ -64,6 +66,49 @@ struct SettingsView: View {
             } header: {
                 Text("Sous-titres")
             }
+            
+            // Section Trakt
+            Section {
+                if traktManager.isConnected {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Connected to Trakt")
+                        Spacer()
+                    }
+                    
+                    Button(role: .destructive) {
+                        traktManager.disconnect()
+                    } label: {
+                        HStack {
+                            Text("Disconnect")
+                            Spacer()
+                            Image(systemName: "xmark.circle")
+                        }
+                    }
+                } else {
+                    Button {
+                        showTraktAuth = true
+                        Task {
+                            try? await traktManager.startDeviceAuth()
+                        }
+                    } label: {
+                        HStack {
+                            Text("Connect to Trakt")
+                            Spacer()
+                            Image(systemName: "link")
+                        }
+                    }
+                }
+            } header: {
+                HStack {
+                    Image(systemName: "circle.grid.cross")
+                    Text("Trakt")
+                }
+            } footer: {
+                Text("Sync your watch progress with Trakt.tv")
+            }
+            
             Section {
                 Button(role: .destructive) {
                     showClearCacheConfirmation = true
@@ -88,6 +133,57 @@ struct SettingsView: View {
                 Text(theme.t("settings.data"))
             } footer: {
                 Text(theme.t("settings.clearProgressDesc"))
+            }
+        }
+        .sheet(isPresented: $showTraktAuth) {
+            NavigationStack {
+                VStack(spacing: 20) {
+                    if let userCode = traktManager.userCode, let verificationUrl = traktManager.verificationUrl {
+                        Text("Enter this code on Trakt:")
+                            .font(.headline)
+                        
+                        Text(userCode)
+                            .font(.system(size: 32, weight: .bold, design: .monospaced))
+                            .padding()
+                            .background(Color.gray.opacity(0.2))
+                            .cornerRadius(8)
+                        
+                        Button {
+                            if let url = URL(string: verificationUrl) {
+                                UIApplication.shared.open(url)
+                            }
+                        } label: {
+                            Label("Open Trakt", systemImage: "safari")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        
+                        if traktManager.isAuthenticating {
+                            ProgressView("Waiting for authorization...")
+                                .padding()
+                        }
+                        
+                        Button("Start Polling") {
+                            Task {
+                                try? await traktManager.pollForToken()
+                                showTraktAuth = false
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        ProgressView("Generating code...")
+                    }
+                }
+                .padding()
+                .navigationTitle("Connect to Trakt")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            showTraktAuth = false
+                            traktManager.disconnect()
+                        }
+                    }
+                }
             }
         }
         .navigationTitle(theme.t("settings.title"))

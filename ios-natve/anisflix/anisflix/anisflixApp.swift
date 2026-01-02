@@ -41,7 +41,7 @@ struct anisflixApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     
-    /// Global orientation lock. Defaults to portrait.
+    /// Global orientation lock. Defaults to portrait.	
     static var orientationLock = UIInterfaceOrientationMask.portrait
     
     func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
@@ -165,7 +165,7 @@ struct RootContentView: View {
                     
                     // Persistent Cast Mini Player
                     CastMiniPlayerView(showControlSheet: $showCastSheet)
-                        .padding(.bottom, 50) // Adjust based on TabBar height (approx 49pt + safe area)
+                        .padding(.bottom, 90) // Sit above Custom TabBar (approx 50 + safe area)
                         .transition(.move(edge: .bottom))
                 }
             }

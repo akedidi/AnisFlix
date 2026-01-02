@@ -11,137 +11,203 @@ struct MainTabView: View {
     @Binding var selectedTab: Int
     @ObservedObject var theme = AppTheme.shared
     @ObservedObject var downloadManager = DownloadManager.shared
+    @StateObject var castManager = CastManager.shared
     
     var body: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
                 // Onglet 1: Accueil
-                NavigationStack { HomeView() }
-                    .tag(0)
+                NavigationStack {
+                    HomeView()
+                }
+                .tabItem {
+                    Label(theme.t("nav.home"), systemImage: selectedTab == 0 ? "house.fill" : "house")
+                }
+                .tag(0)
                 
-                // Onglet 2: Explorer
-                NavigationStack { ExploreView() }
-                    .tag(1)
+                // Onglet 2: Explorer (Films & Séries)
+                NavigationStack {
+                    ExploreView()
+                }
+                .tabItem {
+                    Label("Explorer", systemImage: "magnifyingglass")
+                }
+                .tag(1)
                 
                 // Onglet 3: TV Direct
-                NavigationStack { TVChannelsView() }
-                    .tag(2)
+                NavigationStack {
+                    TVChannelsView()
+                }
+                .tabItem {
+                    Label(theme.t("nav.tvChannels"), systemImage: selectedTab == 2 ? "tv.fill" : "tv")
+                }
+                .tag(2)
                 
                 // Onglet 4: Téléchargements
-                NavigationStack { DownloadsView() }
-                    .tag(3)
+                NavigationStack {
+                    DownloadsView()
+                }
+                .tabItem {
+                    Label(theme.t("nav.downloads"), systemImage: selectedTab == 3 ? "arrow.down.circle.fill" : "arrow.down.circle")
+                }
+                .tag(3)
                 
                 // Onglet 5: Favoris
-                NavigationStack { FavoritesView() }
-                    .tag(4)
+                NavigationStack {
+                    FavoritesView()
+                }
+                .tabItem {
+                    Label(theme.t("nav.favorites"), systemImage: selectedTab == 4 ? "heart.fill" : "heart")
+                }
+                .tag(4)
                 
                 // Onglet 6: Paramètres
-                NavigationStack { SettingsView() }
-                    .tag(5)
-            }
-            .toolbar(.hidden, for: .tabBar) // Hide native bar (iOS 16+)
-             // Fallack for older iOS if needed, but assuming strict iOS 16+ for new features
-            
-            // Custom Tab Bar Overlay
-            CustomTabBar(selectedTab: $selectedTab, theme: theme, downloadProgress: downloadManager.globalProgress)
-        }
-        .ignoresSafeArea(.keyboard) // Prevent keyboard pushing tab bar up oddly
-    }
-    
-    // Removed configureTabBarAppearance as native bar is hidden
-}
-
-struct CustomTabBar: View {
-    @Binding var selectedTab: Int
-    var theme: AppTheme
-    var downloadProgress: Double // 0.0 to 1.0
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            TabBarButton(index: 0, icon: "house", selectedIcon: "house.fill", title: theme.t("nav.home"), selectedTab: $selectedTab, theme: theme)
-            
-            TabBarButton(index: 1, icon: "magnifyingglass", selectedIcon: "magnifyingglass", title: "Explorer", selectedTab: $selectedTab, theme: theme)
-            
-            TabBarButton(index: 2, icon: "tv", selectedIcon: "tv.fill", title: theme.t("nav.tvChannels"), selectedTab: $selectedTab, theme: theme)
-            
-            // Dynamic Downloads Button
-            DownloadTabBarButton(index: 3, progress: downloadProgress, selectedTab: $selectedTab, theme: theme)
-            
-            TabBarButton(index: 4, icon: "heart", selectedIcon: "heart.fill", title: theme.t("nav.favorites"), selectedTab: $selectedTab, theme: theme)
-            
-            TabBarButton(index: 5, icon: "gearshape", selectedIcon: "gearshape.fill", title: theme.t("nav.settings"), selectedTab: $selectedTab, theme: theme)
-        }
-        .padding(.vertical, 8)
-        .padding(.bottom, 20) // Safe Area approximation or use safeAreaInset in ZStack
-        .background(
-            Color(UIColor(AppTheme.backgroundBlack.opacity(0.98)))
-                .ignoresSafeArea()
-                .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: -2)
-        )
-    }
-}
-
-struct TabBarButton: View {
-    let index: Int
-    let icon: String
-    let selectedIcon: String
-    let title: String
-    @Binding var selectedTab: Int
-    var theme: AppTheme
-    
-    var isSelected: Bool { selectedTab == index }
-    
-    var body: some View {
-        Button {
-            selectedTab = index
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: isSelected ? selectedIcon : icon)
-                    .font(.system(size: 20)) // Standard tab size
-                Text(title)
-                    .font(.system(size: 10))
-            }
-            .foregroundColor(isSelected ? AppTheme.primaryRed : .gray)
-            .frame(maxWidth: .infinity)
-        }
-    }
-}
-
-struct DownloadTabBarButton: View {
-    let index: Int
-    let progress: Double
-    @Binding var selectedTab: Int
-    var theme: AppTheme
-    
-    var isSelected: Bool { selectedTab == index }
-    
-    var body: some View {
-        Button {
-            selectedTab = index
-        } label: {
-            VStack(spacing: 4) {
-                ZStack {
-                    // Base Icon
-                    Image(systemName: isSelected ? "arrow.down.circle.fill" : "arrow.down.circle")
-                        .font(.system(size: 20))
-                    
-                    // Progress Pie / Ring
-                    if progress > 0 && progress < 1.0 {
-                         Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(AppTheme.primaryRed, lineWidth: 2)
-                            .rotationEffect(.degrees(-90))
-                            .frame(width: 22, height: 22)
-                    }
+                NavigationStack {
+                    SettingsView()
                 }
-                .frame(width: 24, height: 24)
-                
-                Text(theme.t("nav.downloads"))
-                    .font(.system(size: 10))
+                .tabItem {
+                    Label(theme.t("nav.settings"), systemImage: selectedTab == 5 ? "gearshape.fill" : "gearshape")
+                }
+                .tag(5)
             }
-            .foregroundColor(isSelected ? AppTheme.primaryRed : .gray)
-            .frame(maxWidth: .infinity)
+            .tint(AppTheme.primaryRed)
+            .overlay(
+                // Camembert overlay using UIKit introspection
+                TabBarCamembertOverlay(progress: downloadManager.globalProgress)
+            )
         }
+        .onAppear {
+            configureTabBarAppearance()
+        }
+    }
+    
+    private func configureTabBarAppearance() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.backgroundEffect = UIBlurEffect(style: .dark)
+        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        
+        let itemAppearance = UITabBarItemAppearance()
+        
+        itemAppearance.normal.iconColor = UIColor.systemGray
+        itemAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.systemGray,
+            .font: UIFont.systemFont(ofSize: 10)
+        ]
+        
+        itemAppearance.selected.iconColor = UIColor(AppTheme.primaryRed)
+        itemAppearance.selected.titleTextAttributes = [
+            .foregroundColor: UIColor(AppTheme.primaryRed),
+            .font: UIFont.systemFont(ofSize: 10, weight: .semibold)
+        ]
+        
+        appearance.stackedLayoutAppearance = itemAppearance
+        appearance.inlineLayoutAppearance = itemAppearance
+        appearance.compactInlineLayoutAppearance = itemAppearance
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().unselectedItemTintColor = UIColor.systemGray
+        UITabBar.appearance().tintColor = UIColor(AppTheme.primaryRed)
+    }
+}
+
+// UIKit-based overlay to get exact tab item position
+struct TabBarCamembertOverlay: UIViewRepresentable {
+    let progress: Double
+    
+    func makeUIView(context: Context) -> CamembertOverlayView {
+        return CamembertOverlayView(progress: progress)
+    }
+    
+    func updateUIView(_ uiView: CamembertOverlayView, context: Context) {
+        uiView.progress = progress
+    }
+}
+
+class CamembertOverlayView: UIView {
+    var progress: Double {
+        didSet {
+            setNeedsDisplay()
+        }
+    }
+    
+    private let shapeLayer = CAShapeLayer()
+    
+    init(progress: Double) {
+        self.progress = progress
+        super.init(frame: .zero)
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        
+        shapeLayer.fillColor = UIColor.clear.cgColor
+        shapeLayer.strokeColor = UIColor(AppTheme.primaryRed).cgColor
+        shapeLayer.lineWidth = 2.5
+        shapeLayer.lineCap = .round
+        layer.addSublayer(shapeLayer)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateCamembertPosition()
+    }
+    
+    private func updateCamembertPosition() {
+        guard progress > 0.01 && progress < 0.99 else {
+            shapeLayer.isHidden = true
+            return
+        }
+        
+        shapeLayer.isHidden = false
+        
+        // Find the UITabBar in the view hierarchy
+        guard let tabBar = findTabBar(in: window) else { return }
+        
+        // Get the Downloads tab item (index 3)
+        let downloadTabIndex = 3
+        guard downloadTabIndex < tabBar.items?.count ?? 0 else { return }
+        
+        // Find the tab bar button for Downloads
+        let tabBarButtons = tabBar.subviews.filter { String(describing: type(of: $0)) == "UITabBarButton" }
+        guard downloadTabIndex < tabBarButtons.count else { return }
+        
+        let downloadButton = tabBarButtons[downloadTabIndex]
+        
+        // Get the center of the download button in our coordinate system
+        let buttonCenter = downloadButton.convert(CGPoint(x: downloadButton.bounds.midX, y: downloadButton.bounds.midY), to: self)
+        
+        // Create circle path
+        let radius: CGFloat = 13 // Half of 26
+        let circlePath = UIBezierPath(
+            arcCenter: buttonCenter,
+            radius: radius,
+            startAngle: -.pi / 2,
+            endAngle: -.pi / 2 + (2 * .pi * progress),
+            clockwise: true
+        )
+        
+        shapeLayer.path = circlePath.cgPath
+        shapeLayer.frame = bounds
+    }
+    
+    private func findTabBar(in view: UIView?) -> UITabBar? {
+        guard let view = view else { return nil }
+        
+        if let tabBar = view as? UITabBar {
+            return tabBar
+        }
+        
+        for subview in view.subviews {
+            if let tabBar = findTabBar(in: subview) {
+                return tabBar
+            }
+        }
+        
+        return nil
     }
 }
 

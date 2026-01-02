@@ -91,73 +91,67 @@ struct CustomVideoPlayer: View {
                     .ignoresSafeArea(.all, edges: .all)
             }
                      
-            // Gesture Overlay (Left/Right Double Tap)
-            HStack(spacing: 0) {
-                // Left Side (Rewind)
-                Rectangle()
-                    .fill(Color.black.opacity(0.001)) // Almost transparent to catch taps
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
-                        print("⏪ Double tab left: Rewind 10s")
-                        
-                        // Show animation
-                        withAnimation {
-                            showSeekBackwardAnimation = true
-                        }
-                        
-                        // Perform seek
-                        let newTime = max(0, playerVM.currentTime - 10)
-                        if castManager.isConnected {
-                            castManager.seek(to: newTime)
-                        } else {
+            // Gesture Overlay (Left/Right Double Tap) - Only when NOT casting
+            if !castManager.isConnected {
+                HStack(spacing: 0) {
+                    // Left Side (Rewind)
+                    Rectangle()
+                        .fill(Color.black.opacity(0.001)) // Almost transparent to catch taps
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) {
+                            print("⏪ Double tab left: Rewind 10s")
+                            
+                            // Show animation
+                            withAnimation {
+                                showSeekBackwardAnimation = true
+                            }
+                            
+                            // Perform seek
+                            let newTime = max(0, playerVM.currentTime - 10)
                             playerVM.seek(to: newTime)
-                        }
-                        
-                        // Hide animation after delay
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                            withAnimation {
-                                showSeekBackwardAnimation = false
+                            
+                            // Hide animation after delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                withAnimation {
+                                    showSeekBackwardAnimation = false
+                                }
                             }
                         }
-                    }
-                    .onTapGesture(count: 1) {
-                        withAnimation {
-                            showControls.toggle()
-                        }
-                    }
-                
-                // Right Side (Forward)
-                Rectangle()
-                    .fill(Color.black.opacity(0.001))
-                    .contentShape(Rectangle())
-                    .onTapGesture(count: 2) {
-                        print("⏩ Double tab right: Forward 10s")
-                        
-                        // Show animation
-                        withAnimation {
-                            showSeekForwardAnimation = true
-                        }
-                        
-                        // Perform seek
-                        let newTime = min(playerVM.duration, playerVM.currentTime + 10)
-                         if castManager.isConnected {
-                             castManager.seek(to: newTime)
-                         } else {
-                             playerVM.seek(to: newTime)
-                         }
-                        
-                        // Hide animation after delay
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        .onTapGesture(count: 1) {
                             withAnimation {
-                                showSeekForwardAnimation = false
+                                showControls.toggle()
                             }
                         }
-                    }
-                    .onTapGesture(count: 1) {
-                        withAnimation {
-                            showControls.toggle()
+                    
+                    // Right Side (Forward)
+                    Rectangle()
+                        .fill(Color.black.opacity(0.001))
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) {
+                            print("⏩ Double tab right: Forward 10s")
+                            
+                            // Show animation
+                            withAnimation {
+                                showSeekForwardAnimation = true
+                            }
+                            
+                            // Perform seek
+                            let newTime = min(playerVM.duration, playerVM.currentTime + 10)
+                            playerVM.seek(to: newTime)
+                            
+                            // Hide animation after delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                withAnimation {
+                                    showSeekForwardAnimation = false
+                                }
+                            }
                         }
-                    }
+                        .onTapGesture(count: 1) {
+                            withAnimation {
+                                showControls.toggle()
+                            }
+                        }
+                }
             }
             
              // Seek Animations Overlays
@@ -211,8 +205,8 @@ struct CustomVideoPlayer: View {
                 .transition(.opacity)
             }
             
-            // Controls Overlay
-            if showControls {
+            // Controls Overlay - Only when NOT casting
+            if showControls && !castManager.isConnected {
                 VStack {
                     // Top Bar
                     HStack {
@@ -378,7 +372,20 @@ struct CustomVideoPlayer: View {
                 // If connected, check if we need to switch media on Cast
                 if castManager.currentMediaUrl != url {
                     print("📺 Switching Cast media to: \(title)")
-                    castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                    
+                    // Determine start time: use saved progress if available, otherwise player's current time
+                    var castStartTime = playerVM.currentTime
+                    if let mid = mediaId {
+                        let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
+                        if progress > 0 && progress < 0.95 {
+                            if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
+                                print("⏩ Cast will resume from saved progress: \(Int(savedTime))s")
+                                castStartTime = savedTime
+                            }
+                        }
+                    }
+                    
+                    castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castStartTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
                 }
             } else {
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
@@ -457,7 +464,7 @@ struct CustomVideoPlayer: View {
                 // So changing subtitle might need reload if we want to ensure offset is applied?
                 // But here we just change selection.
                 // Let's just reload to be safe and consistent.
-                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 if let sub = selectedSubtitle, let url = URL(string: sub.url) {
                     playerVM.loadSubtitles(url: url)
@@ -483,7 +490,7 @@ struct CustomVideoPlayer: View {
                     if !Task.isCancelled {
                         await MainActor.run {
                             print("📺 Reloading Cast media with new subtitle offset (debounced)...")
-                            castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
+                            castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
                         }
                     }
                 }
@@ -530,7 +537,7 @@ struct CustomVideoPlayer: View {
         .onChange(of: url) { newUrl in
             if castManager.isConnected {
                 print("📺 URL changed while casting. Loading new media...")
-                castManager.loadMedia(url: newUrl, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             }
@@ -538,8 +545,20 @@ struct CustomVideoPlayer: View {
         .onChange(of: castManager.isConnected) { connected in
             if connected {
                 print("📺 Cast connected! Switching to Cast mode.")
+                
+                // Exit fullscreen if active
+                if isFullscreen {
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = false
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
+                }
+                
                 playerVM.player.pause()
-                castManager.loadMedia(url: url, title: title, posterUrl: nil, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
@@ -630,124 +649,7 @@ struct CustomVideoPlayer: View {
     }
 }
 
-// MARK: - Subtitle Selection View
-
-struct SubtitleSelectionView: View {
-    let subtitles: [Subtitle]
-    @Binding var selectedSubtitle: Subtitle?
-    @Binding var subtitleOffset: Double
-    @Binding var subtitleFontSize: Double
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationView {
-            List {
-                Section(header: Text("Synchronisation")) {
-                    HStack {
-                        Text("Décalage")
-                        Spacer()
-                        Text(String(format: "%.1f s", subtitleOffset))
-                            .foregroundColor(.gray)
-                    }
-                    
-                    // Fine adjustment with slider
-                    HStack {
-                        Button {
-                            subtitleOffset = max(-30, subtitleOffset - 0.5)
-                        } label: {
-                            Image(systemName: "minus.circle.fill")
-                                .font(.title2)
-                        }
-                        .buttonStyle(.borderless)
-                        
-                        Slider(value: $subtitleOffset, in: -30...30, step: 0.5)
-                        
-                        Button {
-                            subtitleOffset = min(30, subtitleOffset + 0.5)
-                        } label: {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
-                Section(header: Text("Taille du texte")) {
-                    HStack {
-                        Text("Taille")
-                        Spacer()
-                        Text("\(Int(subtitleFontSize))%")
-                            .foregroundColor(.gray)
-                    }
-                    
-                    HStack {
-                        Button {
-                            subtitleFontSize = max(50, subtitleFontSize - 10)
-                        } label: {
-                            Text("A").font(.caption2)
-                                .frame(width: 30, height: 30)
-                                .background(Circle().fill(Color.gray.opacity(0.2)))
-                        }
-                        .buttonStyle(.borderless)
-                        
-                        Slider(value: $subtitleFontSize, in: 50...150, step: 10)
-                        
-                        Button {
-                            subtitleFontSize = min(150, subtitleFontSize + 10)
-                        } label: {
-                            Text("A").font(.title3)
-                                .frame(width: 30, height: 30)
-                                .background(Circle().fill(Color.gray.opacity(0.2)))
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
-                Section(header: Text("Sous-titres")) {
-                    Button {
-                        selectedSubtitle = nil
-                        dismiss()
-                    } label: {
-                        HStack {
-                            Text("Désactivé")
-                            Spacer()
-                            if selectedSubtitle == nil {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(AppTheme.primaryRed)
-                            }
-                        }
-                    }
-                    .foregroundColor(.primary)
-                    
-                    ForEach(subtitles, id: \.id) { sub in
-                        Button {
-                            selectedSubtitle = sub
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(sub.flag)
-                                Text(sub.label)
-                                Spacer()
-                                if selectedSubtitle?.id == sub.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(AppTheme.primaryRed)
-                                }
-                            }
-                        }
-                        .foregroundColor(.primary)
-                    }
-                }
-            }
-            .navigationTitle("Sous-titres")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") { dismiss() }
-                }
-            }
-        }
-    }
-}
+// MARK: - Player ViewModel
 
 // MARK: - Player ViewModel
 

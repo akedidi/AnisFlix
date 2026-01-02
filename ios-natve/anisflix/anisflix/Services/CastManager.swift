@@ -16,14 +16,67 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var isConnected = false
     @Published var isConnecting = false
     @Published var deviceName: String?
-    @Published var mediaStatus: GCKMediaStatus?
+    @Published var mediaStatus: GCKMediaStatus? 
     @Published var currentMediaUrl: URL?
-    @Published var currentArtwork: UIImage? // Published for UI binding
+    @Published var currentTitle: String? // Added for UI binding without GoogleCast imports
+    @Published var currentArtwork: UIImage?
+    @Published var currentPosterUrl: URL? // Stored for reloads
+
+    // True when there's actually media loaded on the Chromecast
+    var hasMediaLoaded: Bool {
+        // Check if we have media URL or if the Chromecast reports having media
+        return currentMediaUrl != nil || mediaStatus?.mediaInformation != nil
+    }
+    
+    
+    // UI Helpers (Facade to avoid importing GoogleCast in Views)
+    var isPlaying: Bool {
+        return mediaStatus?.playerState == .playing
+    }
+    
+
+
+    // MARK: - Subtitle Config Helper
+    func updateSubtitleConfig(activeUrl: String?, offset: Double) {
+        guard let url = currentMediaUrl, let title = currentTitle else { return }
+        var currentTime = getApproximateStreamPosition()
+        
+        // Fallback to last saved time if current time is 0 (likely due to buffering/loading state)
+        if currentTime < 1.0 && lastSavedTime > 1.0 {
+            print("⚠️ [CastManager] Current time is 0, using last saved time: \(Int(lastSavedTime))s")
+            currentTime = lastSavedTime
+        } else {
+            print("🔄 [CastManager] Reloading media at: \(Int(currentTime))s")
+        }
+        
+        loadMedia(
+            url: url,
+            title: title,
+            posterUrl: currentPosterUrl,
+            subtitles: currentSubtitles,
+            activeSubtitleUrl: activeUrl,
+            startTime: currentTime,
+            isLive: false,
+            subtitleOffset: offset,
+            mediaId: currentMediaId,
+            season: currentSeason,
+            episode: currentEpisode
+        )
+    }
+    
+    var isBuffering: Bool {
+        return mediaStatus?.playerState == .buffering
+    }
+    
+    var currentDuration: TimeInterval {
+        return mediaStatus?.mediaInformation?.streamDuration ?? 0
+    }
     
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
     
-    // ... (Init/Deinit same as before)
+
+
     
     // Add artwork download helper
     func downloadArtwork(from urlString: String) async {
@@ -37,6 +90,146 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             }
         } catch {
             print("❌ [CastManager] Failed to download artwork: \(error)")
+        }
+    }
+    
+    // Fetch poster AND title from TMDB for session recovery
+    func fetchMediaInfoFromTMDB(mediaId: Int, season: Int?, episode: Int?) async {
+        print("🖼️ [CastManager] Fetching media info from TMDB for mediaId: \(mediaId), season: \(String(describing: season)), episode: \(String(describing: episode))")
+        
+        // Determine if it's a movie or TV show based on season/episode presence
+        let isMovie = (season == nil && episode == nil)
+        
+        do {
+            if isMovie {
+                // Fetch movie details
+                let endpoint = "movie/\(mediaId)"
+                let urlString = "https://anisflix.vercel.app/api/tmdb-proxy?endpoint=\(endpoint)"
+                guard let url = URL(string: urlString) else {
+                    print("❌ [CastManager] Invalid movie TMDB URL")
+                    return
+                }
+                
+                print("📡 [CastManager] Fetching movie from: \(urlString)")
+                let (data, _) = try await URLSession.shared.data(from: url)
+                
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    print("📡 [CastManager] Movie response: \(json)")
+                    
+                    // Get title
+                    if let title = json["title"] as? String {
+                        await MainActor.run {
+                            self.currentTitle = title
+                            print("✅ [CastManager] Set movie title: \(title)")
+                        }
+                    }
+                    
+                    // Get poster
+                    if let posterPath = json["poster_path"] as? String {
+                        let posterUrl = "https://image.tmdb.org/t/p/w500\(posterPath)"
+                        print("🖼️ [CastManager] Downloading movie poster: \(posterUrl)")
+                        await downloadArtwork(from: posterUrl)
+                    }
+                }
+            } else {
+                // Fetch TV show details for title
+                let tvEndpoint = "tv/\(mediaId)"
+                let tvUrlString = "https://anisflix.vercel.app/api/tmdb-proxy?endpoint=\(tvEndpoint)"
+                guard let tvUrl = URL(string: tvUrlString) else {
+                    print("❌ [CastManager] Invalid TV TMDB URL")
+                    return
+                }
+                
+                print("📡 [CastManager] Fetching TV show from: \(tvUrlString)")
+                let (tvData, _) = try await URLSession.shared.data(from: tvUrl)
+                
+                var showName = "Unknown Show"
+                var posterPath: String? = nil
+                
+                if let tvJson = try JSONSerialization.jsonObject(with: tvData) as? [String: Any] {
+                    print("📡 [CastManager] TV show response keys: \(tvJson.keys)")
+                    
+                    if let name = tvJson["name"] as? String {
+                        showName = name
+                    }
+                    posterPath = tvJson["poster_path"] as? String
+                }
+                
+                // Fetch episode details if we have season and episode
+                var episodeName: String? = nil
+                if let s = season, let e = episode {
+                    let episodeEndpoint = "tv/\(mediaId)/season/\(s)/episode/\(e)"
+                    let episodeUrlString = "https://anisflix.vercel.app/api/tmdb-proxy?endpoint=\(episodeEndpoint)"
+                    
+                    if let episodeUrl = URL(string: episodeUrlString) {
+                        print("📡 [CastManager] Fetching episode from: \(episodeUrlString)")
+                        let (episodeData, _) = try await URLSession.shared.data(from: episodeUrl)
+                        
+                        if let episodeJson = try JSONSerialization.jsonObject(with: episodeData) as? [String: Any] {
+                            print("📡 [CastManager] Episode response keys: \(episodeJson.keys)")
+                            episodeName = episodeJson["name"] as? String
+                            
+                            // Episode might have its own still image, but we prefer show poster
+                        }
+                    }
+                }
+                
+                // Construct title as "ShowName - S1E5" or "ShowName - S1E5 - EpisodeName"
+                var fullTitle = showName
+                if let s = season, let e = episode {
+                    fullTitle += " - S\(s)E\(e)"
+                    if let epName = episodeName, !epName.isEmpty {
+                        fullTitle += " - \(epName)"
+                    }
+                }
+                
+                await MainActor.run {
+                    self.currentTitle = fullTitle
+                    print("✅ [CastManager] Set TV show title: \(fullTitle)")
+                }
+                
+                // Download poster
+                if let path = posterPath {
+                    let posterUrl = "https://image.tmdb.org/t/p/w500\(path)"
+                    print("🖼️ [CastManager] Downloading TV poster: \(posterUrl)")
+                    await downloadArtwork(from: posterUrl)
+                }
+            }
+        } catch {
+            print("❌ [CastManager] Failed to fetch from TMDB: \(error)")
+        }
+    }
+    
+    // Keep old method for backward compatibility but redirect to new one
+    func fetchPosterFromTMDB(mediaId: Int, season: Int?, episode: Int?) async {
+        await fetchMediaInfoFromTMDB(mediaId: mediaId, season: season, episode: episode)
+    }
+    
+    // Fetch ONLY the poster, don't overwrite title (used during recovery when title is already set)
+    func fetchPosterOnlyFromTMDB(mediaId: Int, season: Int?) async {
+        print("🖼️ [CastManager] Fetching poster only from TMDB for mediaId: \(mediaId)")
+        
+        let isMovie = (season == nil)
+        let endpoint = isMovie ? "movie/\(mediaId)" : "tv/\(mediaId)"
+        let urlString = "https://anisflix.vercel.app/api/tmdb-proxy?endpoint=\(endpoint)"
+        
+        guard let url = URL(string: urlString) else {
+            print("❌ [CastManager] Invalid TMDB URL")
+            return
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let posterPath = json["poster_path"] as? String {
+                let posterUrl = "https://image.tmdb.org/t/p/w500\(posterPath)"
+                print("🖼️ [CastManager] Downloaded poster from TMDB: \(posterUrl)")
+                await downloadArtwork(from: posterUrl)
+            } else {
+                print("⚠️ [CastManager] No poster_path in TMDB response")
+            }
+        } catch {
+            print("❌ [CastManager] Failed to fetch poster from TMDB: \(error)")
         }
     }
     
@@ -108,11 +301,17 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         // Check initial state
         if sessionManager?.hasConnectedCastSession() == true {
-            print("📢 [CastManager] Found existing connected session")
+            print("🚨🚨🚨 [CastManager] INIT: Found existing connected session! 🚨🚨🚨")
             self.isConnected = true
             self.deviceName = sessionManager?.currentCastSession?.device.friendlyName
+            
+            // Immediately try to recover if we have an existing session
+            if let session = sessionManager?.currentCastSession {
+                print("🚨 [CastManager] INIT: Triggering recovery for existing session")
+                handleSessionConnection(session: session)
+            }
         } else {
-            print("📢 [CastManager] No existing session found")
+            print("📢 [CastManager] INIT: No existing session found")
         }
         
         startDiscovery()
@@ -120,41 +319,130 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     @Published var currentSubtitles: [Subtitle] = []
     
+    // Track if recovery was attempted
+    private var recoveryAttempted = false
+    
     // MARK: - GCKSessionManagerListener
     
     func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
-        print("✅ [CastManager] Cast Session Started with device: \(session.device.friendlyName ?? "Unknown")")
+        print("🚨🚨🚨 [CastManager] SESSION_STARTED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
+        recoveryAttempted = false
         handleSessionConnection(session: session)
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
-        print("✅ [CastManager] Cast Session Resumed with device: \(session.device.friendlyName ?? "Unknown")")
+        print("🚨🚨🚨 [CastManager] SESSION_RESUMED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
+        recoveryAttempted = false
         handleSessionConnection(session: session)
     }
     
     private func handleSessionConnection(session: GCKSession) {
+        print("🚨 [CastManager] handleSessionConnection called")
         isConnected = true
         isConnecting = false
         deviceName = session.device.friendlyName
         
-        if let remoteMediaClient = session.remoteMediaClient {
-            print("📢 [CastManager] RemoteMediaClient attached")
-            remoteMediaClient.add(self)
+        // Reset recovery flag for a fresh attempt
+        recoveryAttempted = false
+        
+        guard let remoteMediaClient = session.remoteMediaClient else {
+            print("❌ [CastManager] RemoteMediaClient is nil!")
+            return
+        }
+        
+        print("📢 [CastManager] RemoteMediaClient attached, adding listener")
+        remoteMediaClient.add(self)
+        
+        // Session Recovery: Check for existing media
+        if let mediaStatus = remoteMediaClient.mediaStatus, let mediaInfo = mediaStatus.mediaInformation {
+            print("🚨 [CastManager] RECOVERY: Found existing media!")
+            print("   - Content URL: \(mediaInfo.contentURL?.absoluteString ?? "nil")")
+            print("   - Player State: \(mediaStatus.playerState.rawValue)")
+            attemptRecovery(mediaInfo: mediaInfo, mediaStatus: mediaStatus)
+        } else {
+            print("⚠️ [CastManager] RECOVERY: mediaStatus is nil or has no mediaInfo")
+            print("   - mediaStatus: \(String(describing: remoteMediaClient.mediaStatus))")
+            print("   - Requesting status update from Chromecast...")
             
-            // Session Recovery: Check for existing media
-            if let mediaStatus = remoteMediaClient.mediaStatus, let mediaInfo = mediaStatus.mediaInformation {
-                print("🔄 [CastManager] Recovered existing media session")
-                self.mediaStatus = mediaStatus
+            // Explicitly request status from Chromecast - this will trigger didUpdateMediaStatus callback
+            remoteMediaClient.requestStatus()
+        }
+    }
+    
+    // Separate recovery logic so it can be called from status update callback too
+    private func attemptRecovery(mediaInfo: GCKMediaInformation, mediaStatus: GCKMediaStatus) {
+        guard !recoveryAttempted else {
+            print("📢 [CastManager] Recovery already attempted, skipping")
+            return
+        }
+        recoveryAttempted = true
+        
+        print("🚨 [CastManager] ATTEMPTING FULL RECOVERY...")
+        self.mediaStatus = mediaStatus
+                
+                var artworkUrl: String? = nil
+                var recoveredMediaId: Int? = nil
                 
                 // Recover Metadata for UI
                 if let metadata = mediaInfo.metadata {
-                    print("   - Title: \(metadata.string(forKey: kGCKMetadataKeyTitle) ?? "Unknown")")
+                    let recoveredTitle = metadata.string(forKey: kGCKMetadataKeyTitle)
+                    print("   - Recovered Title from metadata: \(recoveredTitle ?? "nil")")
+                    if let title = recoveredTitle, !title.isEmpty {
+                        self.currentTitle = title
+                    }
                     
-                    // Recover Artwork
+                    // Recover Artwork URL from metadata images
                     if let images = metadata.images() as? [GCKImage], let image = images.first {
-                        Task {
-                            await downloadArtwork(from: image.url.absoluteString)
-                        }
+                        print("   - Found artwork URL in metadata: \(image.url)")
+                        artworkUrl = image.url.absoluteString
+                    }
+                } else {
+                    print("   - No metadata found in mediaInfo")
+                }
+                
+                // Recover custom data (mediaId, season, episode, posterUrl)
+                if let customData = mediaInfo.customData as? [String: Any] {
+                    print("   - Found customData: \(customData)")
+                    
+                    if let mediaId = customData["mediaId"] as? Int {
+                        self.currentMediaId = mediaId
+                        recoveredMediaId = mediaId
+                        print("   - Recovered mediaId: \(mediaId)")
+                    }
+                    if let season = customData["season"] as? Int {
+                        self.currentSeason = season
+                    }
+                    if let episode = customData["episode"] as? Int {
+                        self.currentEpisode = episode
+                    }
+                    
+                    // Get posterUrl from customData if available
+                    if let posterUrlString = customData["posterUrl"] as? String {
+                        print("   - Found posterUrl in customData: \(posterUrlString)")
+                        artworkUrl = posterUrlString
+                    }
+                } else {
+                    print("   - No customData found (Default Receiver may not preserve it)")
+                }
+                
+                // Now try to recover artwork
+                // IMPORTANT: We already set currentTitle from metadata - don't overwrite it!
+                Task {
+                    // 1. First, try to download artwork from the URL we already have
+                    if let urlString = artworkUrl {
+                        print("🖼️ [CastManager] Downloading artwork from recovered URL: \(urlString)")
+                        await downloadArtwork(from: urlString)
+                    }
+                    
+                    // 2. If artwork is still nil AND we have mediaId, try TMDB poster only
+                    let needsArtwork = await MainActor.run { self.currentArtwork == nil }
+                    if needsArtwork, let mediaId = recoveredMediaId {
+                        print("🖼️ [CastManager] Artwork still nil, fetching poster from TMDB for mediaId: \(mediaId)")
+                        await fetchPosterOnlyFromTMDB(mediaId: mediaId, season: self.currentSeason)
+                    }
+                    
+                    await MainActor.run {
+                        print("✅ [CastManager] Recovery complete. Title: \(self.currentTitle ?? "nil"), Artwork: \(self.currentArtwork != nil ? "loaded" : "nil")")
                     }
                 }
                 
@@ -162,8 +450,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 if mediaStatus.playerState == .playing {
                     startProgressTracking()
                 }
-            }
-        }
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didEnd session: GCKSession, withError error: Error?) {
@@ -193,6 +479,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     }
     
     // MARK: - Media Control
+
+
+    
+
+
+    // MARK: - Media Control
     
     func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
@@ -200,6 +492,8 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         print("📢 [CastManager] isLive: \(isLive)")
         
         self.currentMediaUrl = url
+        self.currentTitle = title // Set explicitly from request
+        self.currentPosterUrl = posterUrl
         self.currentMediaId = mediaId
         self.currentSeason = season
         self.currentEpisode = episode
@@ -290,11 +584,34 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             }
         }
         
+        // Store custom data for session recovery (mediaId, season, episode, posterUrl)
+        var customData: [String: Any] = [:]
+        if let mediaId = mediaId {
+            customData["mediaId"] = mediaId
+            print("📢 [CastManager] Storing mediaId in customData: \(mediaId)")
+        } else {
+            print("⚠️ [CastManager] No mediaId provided - session recovery will be limited!")
+        }
+        if let season = season {
+            customData["season"] = season
+            print("📢 [CastManager] Storing season in customData: \(season)")
+        }
+        if let episode = episode {
+            customData["episode"] = episode
+            print("📢 [CastManager] Storing episode in customData: \(episode)")
+        }
+        if let posterUrl = posterUrl {
+            customData["posterUrl"] = posterUrl.absoluteString
+            print("📢 [CastManager] Storing posterUrl in customData: \(posterUrl.absoluteString)")
+        }
+        print("📢 [CastManager] Final customData: \(customData)")
+        
         let mediaInfoBuilder = GCKMediaInformationBuilder(contentURL: url)
         mediaInfoBuilder.streamType = streamType
         mediaInfoBuilder.contentType = contentType
         mediaInfoBuilder.metadata = metadata
         mediaInfoBuilder.mediaTracks = tracks
+        mediaInfoBuilder.customData = customData.isEmpty ? nil : customData
         
         // CRITICAL: Set HLS segment format to TS.
         // This is required for correct playback and enables TV remote control (HDMI-CEC) on some receivers.
@@ -404,6 +721,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         self.mediaStatus = mediaStatus
         if let status = mediaStatus {
             print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue)")
+            
+            // Trigger recovery if we haven't done it yet and we now have media info
+            if !recoveryAttempted, let mediaInfo = status.mediaInformation {
+                print("🚨 [CastManager] STATUS_UPDATE: Triggering delayed recovery!")
+                attemptRecovery(mediaInfo: mediaInfo, mediaStatus: status)
+            }
             
             // Always save progress on status update (works in background too)
             saveCurrentProgress()
