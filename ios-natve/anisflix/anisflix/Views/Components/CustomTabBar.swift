@@ -112,8 +112,11 @@ struct TabBarButton: View {
             } else {
                 // Switching to a different tab, pop target to root first
                 onTap?(tabIndex)
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                    selectedTab = tabIndex
+                // Delay tab switch to ensure pop-to-root completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedTab = tabIndex
+                    }
                 }
             }
         } label: {
