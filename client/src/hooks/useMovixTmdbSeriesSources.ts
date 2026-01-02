@@ -152,7 +152,7 @@ export const useMovixTmdbSeriesSources = (
                 throw error;
             }
         },
-        enabled: !!seriesId && season > 0 && episode > 0,
+        enabled: !!seriesId && !!season && !!episode && season > 0 && episode > 0,
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 10 * 60 * 1000, // 10 minutes
         refetchOnMount: false,
