@@ -318,13 +318,19 @@ export const tmdb = {
   },
 
   // Discover by provider
-  discoverMoviesByProvider: async (providerId: number, page = 1) => {
+  discoverMoviesByProvider: async (providerId: number, page = 1, regionOverride?: string) => {
     // Récentes sorties et exclure le futur
     const today = new Date();
     const releaseDateLte = today.toISOString().slice(0, 10);
 
-    // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    // Si une région est forcée, on l'utilise seule. Sinon on garde la logique de fallback.
+    // iOS Strategy: Amazon (9) -> US, Others -> FR.
+    let regions: string[];
+    if (regionOverride) {
+      regions = [regionOverride];
+    } else {
+      regions = providerId === 9 ? ['US'] : ['FR', 'US', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    }
 
     for (const region of regions) {
       try {
@@ -363,7 +369,7 @@ export const tmdb = {
     }
   },
 
-  discoverSeriesByProvider: async (providerId: number, page = 1) => {
+  discoverSeriesByProvider: async (providerId: number, page = 1, regionOverride?: string) => {
     // Pour Amazon (9) uniquement, utiliser le network filter pour avoir les Amazon Originals
     if (providerId === 9) {
       try {
@@ -386,7 +392,13 @@ export const tmdb = {
     // Pour les autres providers, utiliser with_watch_providers
     const today = new Date();
     const firstAirDateLte = today.toISOString().slice(0, 10);
-    const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+
+    let regions: string[];
+    if (regionOverride) {
+      regions = [regionOverride];
+    } else {
+      regions = ['FR', 'US', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    }
 
     for (const region of regions) {
       try {
@@ -427,13 +439,17 @@ export const tmdb = {
   },
 
   // Discover by provider + genre with fallback logic
-  discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
+  discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1, regionOverride?: string) => {
     // Exclure le futur, trier par dernières sorties
     const today = new Date();
     const releaseDateLte = today.toISOString().slice(0, 10);
 
-    // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    let regions: string[];
+    if (regionOverride) {
+      regions = [regionOverride];
+    } else {
+      regions = providerId === 9 ? ['US'] : ['FR', 'US', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    }
 
     for (const region of regions) {
       try {
@@ -474,13 +490,17 @@ export const tmdb = {
     }
   },
 
-  discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1) => {
+  discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1, regionOverride?: string) => {
     // Exclure le futur, trier par dernières sorties
     const today = new Date();
     const firstAirDateLte = today.toISOString().slice(0, 10);
 
-    // Essayer plusieurs régions pour avoir plus de contenu
-    const regions = providerId === 9 ? ['US'] : ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    let regions: string[];
+    if (regionOverride) {
+      regions = [regionOverride];
+    } else {
+      regions = providerId === 9 ? ['US'] : ['FR', 'US', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
+    }
 
     for (const region of regions) {
       try {

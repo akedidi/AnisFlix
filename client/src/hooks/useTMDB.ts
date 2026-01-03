@@ -272,11 +272,11 @@ export const useSeriesByGenre = (genreId: number, page = 1) => {
   });
 };
 
-export const useMoviesByProvider = (providerId: number, page = 1) => {
+export const useMoviesByProvider = (providerId: number, page = 1, region?: string) => {
   return useQuery({
-    queryKey: ["movies", "provider", providerId, page],
+    queryKey: ["movies", "provider", providerId, page, region],
     queryFn: async () => {
-      const data = await tmdb.discoverMoviesByProvider(providerId, page);
+      const data = await tmdb.discoverMoviesByProvider(providerId, page, region);
       return {
         results: data.results.map(transformMovie),
         total_pages: data.total_pages,
@@ -287,11 +287,11 @@ export const useMoviesByProvider = (providerId: number, page = 1) => {
   });
 };
 
-export const useSeriesByProvider = (providerId: number, page = 1) => {
+export const useSeriesByProvider = (providerId: number, page = 1, region?: string) => {
   return useQuery({
-    queryKey: ["series", "provider", providerId, page],
+    queryKey: ["series", "provider", providerId, page, region],
     queryFn: async () => {
-      const data = await tmdb.discoverSeriesByProvider(providerId, page);
+      const data = await tmdb.discoverSeriesByProvider(providerId, page, region);
       return {
         results: data.results.map(transformSeries),
         total_pages: data.total_pages,
@@ -302,11 +302,11 @@ export const useSeriesByProvider = (providerId: number, page = 1) => {
   });
 };
 
-export const useMoviesByProviderAndGenre = (providerId: number, genreId: number, page = 1) => {
+export const useMoviesByProviderAndGenre = (providerId: number, genreId: number, page = 1, region?: string) => {
   return useQuery({
-    queryKey: ["movies", "provider", providerId, "genre", genreId, page],
+    queryKey: ["movies", "provider", providerId, "genre", genreId, page, region],
     queryFn: async () => {
-      const data = await tmdb.discoverMoviesByProviderAndGenre(providerId, genreId, page);
+      const data = await tmdb.discoverMoviesByProviderAndGenre(providerId, genreId, page, region);
       return {
         results: data.results.map(transformMovie),
         total_pages: data.total_pages,
@@ -317,11 +317,11 @@ export const useMoviesByProviderAndGenre = (providerId: number, genreId: number,
   });
 };
 
-export const useSeriesByProviderAndGenre = (providerId: number, genreId: number, page = 1) => {
+export const useSeriesByProviderAndGenre = (providerId: number, genreId: number, page = 1, region?: string) => {
   return useQuery({
-    queryKey: ["series", "provider", providerId, "genre", genreId, page],
+    queryKey: ["series", "provider", providerId, "genre", genreId, page, region],
     queryFn: async () => {
-      const data = await tmdb.discoverSeriesByProviderAndGenre(providerId, genreId, page);
+      const data = await tmdb.discoverSeriesByProviderAndGenre(providerId, genreId, page, region);
       return {
         results: data.results.map(transformSeries),
         total_pages: data.total_pages,

@@ -125,36 +125,42 @@ export default function ProviderDetail() {
       window.location.reload();
     };
 
-
     return (
-
       <CommonLayout showSearch={true} onRefresh={handleRefresh}>
-
-
         <div className="container mx-auto px-4 md:px-8 lg:px-12 py-12">
           <h1 className="text-2xl font-semibold mb-2">{t("provider.notFound") || "Fournisseur introuvable"}</h1>
           <p className="text-muted-foreground">
             {t("provider.chooseAnother") || "Veuillez sélectionner un autre fournisseur."}
           </p>
         </div>
-
-
       </CommonLayout>
-
     );
-
   }
 
   const imageUrl = provider.logoPath
     ? `https://image.tmdb.org/t/p/w185${provider.logoPath}`
     : "/placeholder.svg";
 
-  // Fetch data
-  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(provider.id);
-  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(provider.id);
+  // Logic Region: iOS Strategy
+  // Amazon (9) -> US, Others -> FR
+  const region = provider.id === 9 ? "US" : "FR";
+
+  // Fetch data with specific region
+  const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(provider.id, 1, region);
+  const { data: seriesData, isLoading: seriesLoading } = useSeriesByProvider(provider.id, 1, region);
 
   const movies = moviesData?.results ?? [];
   const series = seriesData?.results ?? [];
+
+  // Movies by genre (Action 28, Drama 18, Comedy 35)
+  const { data: actionMoviesData } = useMoviesByProviderAndGenre(provider.id, 28, 1, region);
+  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(provider.id, 18, 1, region);
+  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(provider.id, 35, 1, region);
+
+  // Series by genre (Action 10759, Drama 18, Comedy 35)
+  const { data: actionSeriesData } = useSeriesByProviderAndGenre(provider.id, 10759, 1, region);
+  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(provider.id, 18, 1, region);
+  const { data: comedySeriesData } = useSeriesByProviderAndGenre(provider.id, 35, 1, region);
 
   // Language change → reload
   useEffect(() => {
@@ -170,32 +176,6 @@ export default function ProviderDetail() {
       return () => clearTimeout(timer);
     }
   }, [moviesLoading, seriesLoading, restoreScrollPosition]);
-
-  // Movies by genre
-  const { data: actionMoviesData } = useMoviesByProviderAndGenre(provider.id, 28);
-  const { data: adventureMoviesData } = useMoviesByProviderAndGenre(provider.id, 12);
-  const { data: comedyMoviesData } = useMoviesByProviderAndGenre(provider.id, 35);
-  const { data: dramaMoviesData } = useMoviesByProviderAndGenre(provider.id, 18);
-  const { data: fantasyMoviesData } = useMoviesByProviderAndGenre(provider.id, 14);
-  const { data: sciFiMoviesData } = useMoviesByProviderAndGenre(provider.id, 878);
-  const { data: horrorMoviesData } = useMoviesByProviderAndGenre(provider.id, 27);
-  const { data: thrillerMoviesData } = useMoviesByProviderAndGenre(provider.id, 53);
-  const { data: crimeMoviesData } = useMoviesByProviderAndGenre(provider.id, 80);
-  const { data: romanceMoviesData } = useMoviesByProviderAndGenre(provider.id, 10749);
-  const { data: animationMoviesData } = useMoviesByProviderAndGenre(provider.id, 16);
-
-  // Series by genre
-  const { data: actionSeriesData } = useSeriesByProviderAndGenre(provider.id, 10759);
-  const { data: adventureSeriesData } = useSeriesByProviderAndGenre(provider.id, 12);
-  const { data: comedySeriesData } = useSeriesByProviderAndGenre(provider.id, 35);
-  const { data: dramaSeriesData } = useSeriesByProviderAndGenre(provider.id, 18);
-  const { data: fantasySeriesData } = useSeriesByProviderAndGenre(provider.id, 14);
-  const { data: sciFiSeriesData } = useSeriesByProviderAndGenre(provider.id, 878);
-  const { data: horrorSeriesData } = useSeriesByProviderAndGenre(provider.id, 27);
-  const { data: thrillerSeriesData } = useSeriesByProviderAndGenre(provider.id, 53);
-  const { data: crimeSeriesData } = useSeriesByProviderAndGenre(provider.id, 80);
-  const { data: romanceSeriesData } = useSeriesByProviderAndGenre(provider.id, 10749);
-  const { data: animationSeriesData } = useSeriesByProviderAndGenre(provider.id, 16);
 
   return (
     <CommonLayout showSearch>
@@ -213,7 +193,7 @@ export default function ProviderDetail() {
           </div>
         </div>
 
-        {/* Movies Section */}
+        {/* 1. Films */}
         {movies.length > 0 && (
           <div className="mb-12">
             <MediaCarousel
@@ -226,7 +206,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
-        {/* Series Section */}
+        {/* 2. Series */}
         {series.length > 0 && (
           <div className="mb-12">
             <MediaCarousel
@@ -239,7 +219,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
-        {/* Movies by Genre */}
+        {/* 3. Films Action */}
         {actionMoviesData?.results && actionMoviesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
@@ -252,6 +232,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
+        {/* 4. Films Drame */}
         {dramaMoviesData?.results && dramaMoviesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
@@ -264,6 +245,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
+        {/* 5. Films Comédie */}
         {comedyMoviesData?.results && comedyMoviesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
@@ -276,7 +258,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
-        {/* Series by Genre */}
+        {/* 6. Series Action */}
         {actionSeriesData?.results && actionSeriesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
@@ -289,6 +271,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
+        {/* 7. Series Drame */}
         {dramaSeriesData?.results && dramaSeriesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
@@ -301,6 +284,7 @@ export default function ProviderDetail() {
           </div>
         )}
 
+        {/* 8. Series Comédie */}
         {comedySeriesData?.results && comedySeriesData.results.length > 0 && (
           <div className="mb-8">
             <MediaCarousel
