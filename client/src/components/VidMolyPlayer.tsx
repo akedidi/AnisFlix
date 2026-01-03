@@ -73,6 +73,7 @@ export default function VidMolyPlayer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [finalMediaUrl, setFinalMediaUrl] = useState<string>("");
   const lastSaveTimeRef = useRef<number>(0);
+  const extractionAttemptedRef = useRef<string | null>(null);
 
   // Subtitles state
   const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
@@ -87,7 +88,6 @@ export default function VidMolyPlayer({
     return 100;
   });
 
-  // Save font size to localStorage
   // Save font size to localStorage
   const handleSubtitleFontSizeChangeRef = useRef<(size: number) => void>(() => { });
   const handleSubtitleFontSizeChange = (size: number) => {
@@ -198,6 +198,13 @@ export default function VidMolyPlayer({
   useEffect(() => {
     if (!videoRef.current || !vidmolyUrl) return;
 
+    // Prevent double extraction for the same URL (React 18 Strict Mode fix)
+    if (extractionAttemptedRef.current === vidmolyUrl) {
+      console.log('🔄 [VIDMOLY PLAYER] Skipping duplicate extraction for:', vidmolyUrl);
+      return;
+    }
+    extractionAttemptedRef.current = vidmolyUrl;
+
     const video = videoRef.current;
     setIsLoading(true);
     setError(null);
@@ -206,6 +213,7 @@ export default function VidMolyPlayer({
     const extractAndPlay = async () => {
       try {
         console.log('🎬 Extraction du lien VidMoly:', vidmolyUrl);
+
 
         // Vérifier si l'URL est déjà un m3u8 (cas des liens VidMoly anime pré-extraits)
         if (vidmolyUrl.includes('.m3u8') || vidmolyUrl.includes('unified-streaming.com') || vidmolyUrl.includes('vmeas.cloud')) {
