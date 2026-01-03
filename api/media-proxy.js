@@ -212,7 +212,7 @@ const browserHeaders = {
     'Connection': 'keep-alive'
 };
 
-const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch', 'dcpv2eq7lu6ve.cloudfront.net', 'video.pscp.tv', '135.125.109.73', 'alkassdigital.net', 'ab.footballii.ir', 'py.dencreak.com', 'py.online-tv.biz', 'googlevideo.com', 'manifest.googlevideo.com', 'jitendraunatti.workers.dev', 'workers.dev'];
+const ALLOWED_HOSTS = ['fremtv.lol', 'directfr.lat', 'viamotionhsi.netplus.ch', 'simulcast-p.ftven.fr', 'cache1a.netplus.ch', 'cachehsi1a.netplus.ch', 'cachehsi1b.netplus.ch', 'cachehsi2b.netplus.ch', 'dcpv2eq7lu6ve.cloudfront.net', 'video.pscp.tv', '135.125.109.73', 'alkassdigital.net', 'ab.footballii.ir', 'py.dencreak.com', 'py.online-tv.biz', 'googlevideo.com', 'manifest.googlevideo.com', 'jitendraunatti.workers.dev', 'workers.dev', 'getaj.net'];
 
 function isAllowedUrl(urlString) {
     try {
@@ -388,14 +388,14 @@ async function handleTV(req, res) {
                 };
             }
 
-            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video
+            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video & Al Jazeera
             // Supprimer Origin et Referer pour éviter les blocages
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
-                console.log(`[TV PROXY] Nettoyage des headers pour Source Sensible (Cloudfront/Pscp/Google)`);
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev') || cleanUrl.includes('getaj.net')) {
+                console.log(`[TV PROXY] Nettoyage des headers pour Source Sensible (Cloudfront/Pscp/Google/AJ)`);
                 requestHeaders = {
-                    // Pour Google Video, utiliser un UA fixe (Desktop Chrome) pour imiter un navigateur propre
+                    // Pour Google Video et AJ, utiliser un UA fixe (Desktop Chrome) pour imiter un navigateur propre
                     // Pour Bein, utiliser celui du client
-                    'User-Agent': (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev'))
+                    'User-Agent': (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev') || cleanUrl.includes('getaj.net'))
                         ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                         : (req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'),
                     'Accept': '*/*'
@@ -470,10 +470,10 @@ async function handleTV(req, res) {
                 console.log(`[TV PROXY] Headers JWT appliqués pour segment: ${cleanUrl}`);
             }
 
-            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video - SEGMENTS
-            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev')) {
-                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Source Sensible (Cloudfront/Pscp/Google)`);
-                headers['User-Agent'] = (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev'))
+            // Headers spécifiques pour Bein Sports (Cloudfront) & Google Video & Al Jazeera - SEGMENTS
+            if (cleanUrl.includes('dcpv2eq7lu6ve.cloudfront.net') || cleanUrl.includes('video.pscp.tv') || cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev') || cleanUrl.includes('getaj.net')) {
+                console.log(`[TV PROXY] Nettoyage des headers "Segment" pour Source Sensible (Cloudfront/Pscp/Google/AJ)`);
+                headers['User-Agent'] = (cleanUrl.includes('googlevideo.com') || cleanUrl.includes('workers.dev') || cleanUrl.includes('getaj.net'))
                     ? 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                     : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
