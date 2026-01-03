@@ -72,7 +72,13 @@ async function lookupPage(info) {
 
     try {
         const response = await axios.get(`${URL}/filter`, {
-            params: { s: imdbId, ds }
+            params: { s: imdbId, ds },
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': URL
+            }
         });
         const $ = cheerio.load(response.data);
         const originalLink = $(
@@ -108,7 +114,12 @@ async function lookupPage(info) {
 
 async function loadServers(link) {
     try {
-        const response = await axios.get(link);
+        const response = await axios.get(link, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': 'https://www.primewire.tf/'
+            }
+        });
         const website = response.data;
         const urls = Array.from(website.matchAll(/data-wp-menu="(.+?)"/g)).map(
             (match) => ({
@@ -139,7 +150,11 @@ function sha1Hex(str) {
 }
 
 async function fromPrimewireToProvider(primwireObject) {
-    const response = await axios.get(primwireObject.url);
+    const response = await axios.get(primwireObject.url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        }
+    });
     let javascriptfile = response.data.match(
         /<script async type="text\/javascript" src="\/js\/app-(.+?)\">/
     );
