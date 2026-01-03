@@ -126,6 +126,11 @@ async function extractVidMoly(url) {
       timeout: 15000
     });
 
+    // Use the final URL after redirects for the POST request
+    // This prevents POST -> 302 -> GET issues if the domain changed (e.g. .me -> .net)
+    const effectiveUrl = response.request?.res?.responseUrl || normalizedUrl;
+    console.log(`[VIDMOLY] Effective URL for POST: ${effectiveUrl}`);
+
     let html = response.data;
     // Capture cookies from initial response
     const initialCookies = response.headers['set-cookie'];
@@ -163,11 +168,11 @@ async function extractVidMoly(url) {
             params.append('ctok', ctok);
             params.append('answer', answer);
 
-            console.log(`[VIDMOLY] 🚀 Submitting verification answer to ${normalizedUrl}...`);
+            console.log(`[VIDMOLY] 🚀 Submitting verification answer to ${effectiveUrl}...`);
 
             const headers = {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Referer': normalizedUrl,
+              'Referer': effectiveUrl,
               'Content-Type': 'application/x-www-form-urlencoded'
             };
 
@@ -177,7 +182,7 @@ async function extractVidMoly(url) {
               console.log("[VIDMOLY] 🍪 Forwarding cookies:", headers['Cookie']);
             }
 
-            const postResponse = await axios.post(normalizedUrl, params.toString(), {
+            const postResponse = await axios.post(effectiveUrl, params.toString(), {
               headers: headers,
               validateStatus: (status) => status < 500
             });
