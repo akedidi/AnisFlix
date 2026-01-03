@@ -126,13 +126,60 @@ async function extractVidMoly(url) {
       timeout: 15000
     });
 
-    const html = response.data;
+    let html = response.data;
+
+    // Check for Verification Page (Simple "Select number" challenge)
+    if (html.includes("Select number") && html.includes("vform")) {
+      console.log("[VIDMOLY] 🔒 Verification page detected. Attempting bypass...");
+
+      const numberMatch = html.match(/Select number <b[^>]*>(\d+)<\/b>/);
+
+      if (numberMatch && numberMatch[1]) {
+        const answer = numberMatch[1];
+        console.log(`[VIDMOLY] 🔓 Challenge Answer: ${answer}`);
+
+        // Extract hidden fields
+        const op = html.match(/name="op" value="([^"]+)"/)?.[1];
+        const file_code = html.match(/name="file_code" value="([^"]+)"/)?.[1];
+        const ts = html.match(/name="ts" value="([^"]+)"/)?.[1];
+        const nonce = html.match(/name="nonce" value="([^"]+)"/)?.[1];
+        const ctok = html.match(/name="ctok" value="([^"]+)"/)?.[1];
+
+        if (op && file_code && ts && nonce && ctok) {
+          // Submit answer
+          const params = new URLSearchParams();
+          params.append('op', op);
+          params.append('file_code', file_code);
+          params.append('ts', ts);
+          params.append('nonce', nonce);
+          params.append('ctok', ctok);
+          params.append('answer', answer);
+
+          console.log("[VIDMOLY] 🚀 Submitting verification answer...");
+
+          const postResponse = await axios.post(normalizedUrl, params, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': normalizedUrl,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+
+          html = postResponse.data;
+          console.log(`[VIDMOLY] ✅ Bypass successful. New Content Length: ${html.length}`);
+        } else {
+          console.log("[VIDMOLY] ⚠️ Failed to extract hidden fields for bypass");
+        }
+      } else {
+        console.log("[VIDMOLY] ⚠️ Could not find verification challenge number");
+      }
+    }
 
     // Primary pattern: file:"..."
     const fileMatch = html.match(/file:"([^"]+)"/);
     if (fileMatch && fileMatch[1]) {
       let m3u8Url = fileMatch[1].trim();
-      
+
       // VidMoly URLs use comma-separated quality format like "_,l,n,.urlset"
       // Do NOT remove commas - they are required for proper streaming
       console.log("[VIDMOLY] Found m3u8:", m3u8Url);
