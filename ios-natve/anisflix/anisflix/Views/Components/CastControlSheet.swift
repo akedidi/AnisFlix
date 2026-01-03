@@ -207,7 +207,8 @@ struct CastControlSheet: View {
                 .presentationDetents([.medium])
         }
         .onChange(of: selectedSubtitle?.id) { _ in
-            castManager.updateSubtitleConfig(activeUrl: selectedSubtitle?.url, offset: subtitleOffset)
+            // Use lightweight track switching instead of full reload
+            castManager.setActiveTrack(url: selectedSubtitle?.url)
         }
         .onChange(of: subtitleOffset) { newOffset in
             castManager.updateSubtitleConfig(activeUrl: selectedSubtitle?.url, offset: newOffset)
