@@ -429,7 +429,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                         if let data = subtitlesJson.data(using: .utf8) {
                             do {
                                 let subtitles = try JSONDecoder().decode([Subtitle].self, from: data)
-                                await MainActor.run {
+                                DispatchQueue.main.async {
                                     self.currentSubtitles = subtitles
                                     print("✅ [CastManager] Recovered \(subtitles.count) subtitles")
                                 }
