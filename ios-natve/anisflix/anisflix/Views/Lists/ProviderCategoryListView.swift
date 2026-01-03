@@ -97,7 +97,7 @@ struct ProviderCategoryListView: View {
                                 Color.clear.frame(height: 20)
                             }
                             
-                            Color.clear.frame(height: 20)
+                            Color.clear.frame(height: 150)
                         }
                         .padding(.bottom, 20)
                     }

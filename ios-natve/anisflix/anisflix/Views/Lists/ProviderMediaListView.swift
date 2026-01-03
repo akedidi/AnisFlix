@@ -216,6 +216,10 @@ struct ProviderMediaListView: View {
                                     )
                                 }
                             }
+                            }
+                            
+                            // Bottom padding for TabBar and Cast Banner
+                            Color.clear.frame(height: 150)
                         }
                     }
                 } // End else
