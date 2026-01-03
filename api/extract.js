@@ -127,6 +127,8 @@ async function extractVidMoly(url) {
     });
 
     let html = response.data;
+    // Capture cookies from initial response
+    const initialCookies = response.headers['set-cookie'];
 
     // Check for Verification Page (Simple "Select number" challenge)
     if (typeof html === 'string' && html.includes("Select number") && html.includes("vform")) {
@@ -163,13 +165,21 @@ async function extractVidMoly(url) {
 
             console.log(`[VIDMOLY] 🚀 Submitting verification answer to ${normalizedUrl}...`);
 
+            const headers = {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': normalizedUrl,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            };
+
+            // Forward cookies if present
+            if (initialCookies) {
+              headers['Cookie'] = initialCookies.map(c => c.split(';')[0]).join('; ');
+              console.log("[VIDMOLY] 🍪 Forwarding cookies:", headers['Cookie']);
+            }
+
             const postResponse = await axios.post(normalizedUrl, params.toString(), {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Referer': normalizedUrl,
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              validateStatus: (status) => status < 500 // Don't throw on 4xx, handle it
+              headers: headers,
+              validateStatus: (status) => status < 500
             });
 
             html = postResponse.data;
