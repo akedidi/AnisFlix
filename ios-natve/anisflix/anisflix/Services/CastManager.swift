@@ -747,42 +747,58 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else { return }
         
-        if let url = url {
-            // New logic: Find track by NAME (Label) first to avoid URL/Offset mismatches
-            // 1. Find the subtitle object for this URL
-            if let subtitle = currentSubtitles.first(where: { $0.url == url }) {
-                print("📢 [CastManager] Looking for track with name: \(subtitle.label)")
+        if let targetUrl = url {
+            print("📢 [CastManager] Request to active subtitle with URL: \(targetUrl)")
+            
+            if let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks {
                 
-                if let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks,
-                   let track = tracks.first(where: { $0.name == subtitle.label }) {
+                // Robust Match: Parse contentIdentifier of each track to find the matching original URL
+                // This handles offsets and duplicates labels correctly.
+                for track in tracks {
+                    guard let contentInfo = track.contentIdentifier,
+                          let components = URLComponents(string: contentInfo),
+                          let queryItems = components.queryItems else { continue }
                     
-                    print("✅ [CastManager] Found track by name: \(track.name ?? "Unknown") (ID: \(track.identifier))")
-                    remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
-                    return
+                    // Extract the 'url' parameter from the proxy URL
+                    if let originalUrlParam = queryItems.first(where: { $0.name == "url" })?.value {
+                         if originalUrlParam == targetUrl {
+                             print("✅ [CastManager] Found exact URL match! Track: \(track.name ?? "Unknown") (ID: \(track.identifier))")
+                             remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
+                             return
+                         }
+                    }
                 }
-            }
-            
-            // Fallback: Try strict URL matching (Old logic)
-            var components = URLComponents(string: "https://anisflix.vercel.app/api/media-proxy")
-            components?.queryItems = [
-                URLQueryItem(name: "type", value: "subtitle"),
-                URLQueryItem(name: "url", value: url)
-            ]
-            
-            if let proxyUrl = components?.url?.absoluteString,
-               let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks {
                 
-                // Fuzzy match: check if contentIdentifier CONTAINS the proxy base URL (ignoring offset)
-                if let track = tracks.first(where: { $0.contentIdentifier?.contains(url) == true }) {
-                     print("✅ [CastManager] Found track by fuzzy URL match: \(track.name ?? "Unknown")")
-                     remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
-                     return
+                // Fallback: Name Match (Only if URL match fails)
+                // Useful if for some reason the proxy URL structure changed or is different
+                if let subtitle = currentSubtitles.first(where: { $0.url == targetUrl }) {
+                    print("⚠️ [CastManager] URL match failed. Falling back to Name match: \(subtitle.label)")
+                    
+                    // Filter tracks with matching name
+                    let matchingTracks = tracks.filter { $0.name == subtitle.label }
+                    
+                    if matchingTracks.count == 1 {
+                        // Safe to use name if only one exists
+                        let track = matchingTracks[0]
+                         print("✅ [CastManager] Found single track by name: \(track.name ?? "Unknown") (ID: \(track.identifier))")
+                         remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
+                         return
+                    } else if matchingTracks.count > 1 {
+                         // Collision! Try to assume order match if possible, or just pick first (warn user)
+                         // But we can't do much more without URL match.
+                         // Let's print a warning.
+                         print("⚠️ [CastManager] Multiple tracks found with name '\(subtitle.label)'. Picking first one (Collision risk).")
+                         if let track = matchingTracks.first {
+                             remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
+                             return
+                         }
+                    }
                 }
             }
         }
         
         // If url is nil or not found, disable subtitles
-        print("📢 [CastManager] Disabling subtitles (url or track not found)")
+        print("📢 [CastManager] Disabling subtitles (target not found or nil)")
         remoteMediaClient.setActiveTrackIDs([])
     }
     
