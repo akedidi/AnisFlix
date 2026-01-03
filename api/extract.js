@@ -129,7 +129,7 @@ async function extractVidMoly(url) {
     let html = response.data;
 
     // Check for Verification Page (Simple "Select number" challenge)
-    if (html.includes("Select number") && html.includes("vform")) {
+    if (typeof html === 'string' && html.includes("Select number") && html.includes("vform")) {
       console.log("[VIDMOLY] 🔒 Verification page detected. Attempting bypass...");
 
       const numberMatch = html.match(/Select number <b[^>]*>(\d+)<\/b>/);
@@ -138,37 +138,48 @@ async function extractVidMoly(url) {
         const answer = numberMatch[1];
         console.log(`[VIDMOLY] 🔓 Challenge Answer: ${answer}`);
 
-        // Extract hidden fields
-        const op = html.match(/name="op" value="([^"]+)"/)?.[1];
-        const file_code = html.match(/name="file_code" value="([^"]+)"/)?.[1];
-        const ts = html.match(/name="ts" value="([^"]+)"/)?.[1];
-        const nonce = html.match(/name="nonce" value="([^"]+)"/)?.[1];
-        const ctok = html.match(/name="ctok" value="([^"]+)"/)?.[1];
+        // Extract hidden fields safely
+        const getField = (name) => {
+          const match = html.match(new RegExp(`name="${name}" value="([^"]+)"`));
+          return match ? match[1] : null;
+        };
+
+        const op = getField("op");
+        const file_code = getField("file_code");
+        const ts = getField("ts");
+        const nonce = getField("nonce");
+        const ctok = getField("ctok");
 
         if (op && file_code && ts && nonce && ctok) {
-          // Submit answer
-          const params = new URLSearchParams();
-          params.append('op', op);
-          params.append('file_code', file_code);
-          params.append('ts', ts);
-          params.append('nonce', nonce);
-          params.append('ctok', ctok);
-          params.append('answer', answer);
+          try {
+            // Submit answer
+            const params = new URLSearchParams();
+            params.append('op', op);
+            params.append('file_code', file_code);
+            params.append('ts', ts);
+            params.append('nonce', nonce);
+            params.append('ctok', ctok);
+            params.append('answer', answer);
 
-          console.log("[VIDMOLY] 🚀 Submitting verification answer...");
+            console.log(`[VIDMOLY] 🚀 Submitting verification answer to ${normalizedUrl}...`);
 
-          const postResponse = await axios.post(normalizedUrl, params, {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-              'Referer': normalizedUrl,
-              'Content-Type': 'application/x-www-form-urlencoded'
-            }
-          });
+            const postResponse = await axios.post(normalizedUrl, params.toString(), {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Referer': normalizedUrl,
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              validateStatus: (status) => status < 500 // Don't throw on 4xx, handle it
+            });
 
-          html = postResponse.data;
-          console.log(`[VIDMOLY] ✅ Bypass successful. New Content Length: ${html.length}`);
+            html = postResponse.data;
+            console.log(`[VIDMOLY] ✅ Bypass response status: ${postResponse.status}. New Content Length: ${html.length}`);
+          } catch (postError) {
+            console.error(`[VIDMOLY] ❌ Bypass POST failed: ${postError.message}`);
+            // Don't throw, just let it fall through to pattern matching (which will likely fail but cleanly)
+          }
         } else {
-          console.log("[VIDMOLY] ⚠️ Failed to extract hidden fields for bypass");
+          console.log(`[VIDMOLY] ⚠️ Failed to extract hidden fields. op=${!!op}, file_code=${!!file_code}, ts=${!!ts}, nonce=${!!nonce}, ctok=${!!ctok}`);
         }
       } else {
         console.log("[VIDMOLY] ⚠️ Could not find verification challenge number");
