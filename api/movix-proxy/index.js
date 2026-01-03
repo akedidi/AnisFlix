@@ -892,16 +892,30 @@ export default async function handler(req, res) {
           // Attempt to find episode in this candidate
           let foundEpisode = null;
 
-          // Strategy A: Standard Match
-          const isSafeSeason0Match = seasonNumber !== 0 || (candidate.title && (candidate.title.toLowerCase().includes('specials') || candidate.title.toLowerCase().includes('oav'))) || overrideSearchTitle;
-          if (isSafeSeason0Match) {
-            foundEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
-          }
+          // Strategy: Determine Priority based on Season
+          // For Season > 1, we PRIORITIZE Absolute Numbering (e.g. Naruto Ep 105 instead of S3 Ep 1)
+          // to avoid accidentally picking S1 Ep 1 when we wanted S3 Ep 1.
+          // If Absolute fails (e.g. Attack on Titan S3 lists episodes 1-12), we fallback to Relative.
 
-          // Strategy B: Absolute Match
-          if (!foundEpisode && seasonNumber > 1) {
-            foundEpisode = episodes.find(ep => (ep.number || ep.episode_no) == absoluteEpisodeNumber);
-            if (foundEpisode) console.log(`   ✅ Found by Absolute Number: ${absoluteEpisodeNumber}`);
+          if (seasonNumber > 1) {
+            // 1. Try Absolute First
+            if (absoluteEpisodeNumber) {
+              foundEpisode = episodes.find(ep => (ep.number || ep.episode_no) == absoluteEpisodeNumber);
+              if (foundEpisode) console.log(`   ✅ Found by Absolute Number (Priority): ${absoluteEpisodeNumber}`);
+            }
+
+            // 2. Fallback to Relative if Absolute not found
+            if (!foundEpisode) {
+              foundEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
+              if (foundEpisode) console.log(`   ✅ Found by Relative Number (Fallback): ${episodeNumber}`);
+            }
+          } else {
+            // Season 1 or 0: Standard Relative Match is usually correct/safest
+            const isSafeSeason0Match = seasonNumber !== 0 || (candidate.title && (candidate.title.toLowerCase().includes('specials') || candidate.title.toLowerCase().includes('oav'))) || overrideSearchTitle;
+            if (isSafeSeason0Match) {
+              foundEpisode = episodes.find(ep => (ep.number || ep.episode_no) == episodeNumber);
+              if (foundEpisode) console.log(`   ✅ Found by Standard Relative Number: ${episodeNumber}`);
+            }
           }
 
           // Strategy C & D: Title Match / Advanced Similarity (Specials)

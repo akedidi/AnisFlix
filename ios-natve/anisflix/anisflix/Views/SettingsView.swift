@@ -138,6 +138,12 @@ struct SettingsView: View {
             } footer: {
                 Text(theme.t("settings.clearProgressDesc"))
             }
+
+            // Bottom padding for Cast Banner
+            Section {
+                 Color.clear.frame(height: 100)
+                     .listRowBackground(Color.clear)
+            }
         }
         .sheet(isPresented: $showTraktAuth) {
             NavigationStack {

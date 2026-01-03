@@ -79,8 +79,17 @@ struct CustomTabBar: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 8)
-        .background(.ultraThinMaterial)
-        .backgroundColor(Color.black.opacity(0.8)) // Fallback/Tint
+        .background(
+            ZStack {
+                // Blur Effect
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .environment(\.colorScheme, .dark) // Force dark tint for the blur
+                
+                // Dark Tint Overlay for "deeper" dark
+                Color.black.opacity(0.3)
+            }
+        )
         .cornerRadius(35)
         .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 5)
         .padding(.horizontal, 12) // Reduced from 20 to give more width

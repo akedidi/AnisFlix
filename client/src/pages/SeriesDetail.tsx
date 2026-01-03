@@ -628,12 +628,28 @@ export default function SeriesDetail() {
                                           style={{ width: `${episodeProgress.progress}%` }} />
                                       )}
 
-                                      <div className="flex justify-between items-start">
+                                      <div className="flex justify-between items-start gap-4">
+                                        {/* Thumbnail Image */}
+                                        <div className="relative w-32 sm:w-40 aspect-video flex-shrink-0 bg-muted rounded-md overflow-hidden border border-border/50">
+                                          {episode.still_path ? (
+                                            <img
+                                              src={getImageUrl(episode.still_path, 'w500')}
+                                              alt={episode.name}
+                                              className="w-full h-full object-cover transition-transform hover:scale-105"
+                                              loading="lazy"
+                                            />
+                                          ) : (
+                                            <div className="flex items-center justify-center h-full bg-secondary/50">
+                                              <Play className="w-8 h-8 text-muted-foreground/30" />
+                                            </div>
+                                          )}
+                                        </div>
+
                                         <div className="flex-1">
-                                          <h4 className="font-semibold mb-1">
+                                          <h4 className="font-semibold mb-1 line-clamp-1">
                                             {episode.episode_number}. {(episode.name && !episode.name.match(/^(Episode|Épisode|Episodio) \d+$/i) && episode.name !== `Episode ${episode.episode_number}`) ? episode.name : (episode.original_name || episode.name)}
                                           </h4>
-                                          <p className="text-sm text-muted-foreground mb-2">
+                                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                                             {episode.overview || "Aucune description disponible."}
                                           </p>
                                           <div className="flex items-center gap-2 text-xs text-muted-foreground">

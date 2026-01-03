@@ -68,8 +68,15 @@ class TMDBService {
     
     // MARK: - Movies by Provider
     
+    // MARK: - Movies by Provider
+    
     func fetchMoviesByProvider(providerId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
-        let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=primary_release_date.desc&with_watch_monetization_types=flatrate"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = dateFormatter.string(from: Date())
+        
+        // MATCHING WEB LOGIC: sort_by 'release_date.desc' + filter future releases (lte today)
+        let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=release_date.desc&release_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
     }
@@ -88,40 +95,58 @@ class TMDBService {
     
     // MARK: - Movies by Genre
     
-    func fetchMoviesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR") async throws -> [Media] {
+    func fetchMoviesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = dateFormatter.string(from: Date())
+        
         // Special handling for Science Fiction (878) to match web logic
         if genreId == 878 {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            let todayStr = dateFormatter.string(from: Date())
-            
             let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=primary_release_date.desc&primary_release_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
             let response: TMDBResponse = try await fetch(from: endpoint)
             return response.results.map { $0.toMedia(mediaType: .movie) }
         }
         
-        // Default behavior for other genres (Popularity sort)
-        let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)"
+        var endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)"
+        
+        if let sortBy = sortBy {
+            endpoint += "&sort_by=\(sortBy)"
+            // If sorting by release date, filter out future releases
+            if sortBy.contains("release_date") {
+                endpoint += "&primary_release_date.lte=\(todayStr)"
+            }
+        }
+        
+        // Default behavior (Popularity sort if sortBy is nil)
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
     }
     
     // MARK: - Series by Genre
     
-    func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR") async throws -> [Media] {
+    func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let todayStr = dateFormatter.string(from: Date())
+        
         // Special handling for Sci-Fi & Fantasy (10765) to match web logic
         if genreId == 10765 {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "yyyy-MM-dd"
-            let todayStr = dateFormatter.string(from: Date())
-            
             let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
             let response: TMDBResponse = try await fetch(from: endpoint)
             return response.results.map { $0.toMedia(mediaType: .series) }
         }
         
-        // Default behavior for other genres (Popularity sort)
-        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)"
+        var endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)"
+        
+        if let sortBy = sortBy {
+            endpoint += "&sort_by=\(sortBy)"
+            // If sorting by air date, filter out future releases
+            if sortBy.contains("first_air_date") {
+                endpoint += "&first_air_date.lte=\(todayStr)"
+            }
+        }
+        
+        // Default behavior (Popularity sort if sortBy is nil)
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }
     }

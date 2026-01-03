@@ -190,70 +190,13 @@ struct DownloadedMediaDetailView: View {
                             .padding(.horizontal, 16)
                         }
                         
-                        Spacer(minLength: 50)
+                        Color.clear.frame(height: 150)
                     }
                     .padding(.top, 24)
                 }
             }
             
-            // Player Overlay
-            if showPlayer, let url = item.localVideoUrl {
-                VStack(spacing: 0) {
-                    // Header above player when inline
-                    if !isFullscreen {
-                        HStack {
-                            Spacer()
-                            
-                            Button(action: {
-                                showPlayer = false
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "xmark.circle.fill")
-                                    Text(theme.t("detail.close"))
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(theme.secondaryText)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(theme.cardBackground)
-                                .cornerRadius(16)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                        .padding(.top, 350) // Approximate position
-                    }
-                    
-                    CustomVideoPlayer(
-                        url: url,
-                        title: item.title,
-                        posterUrl: posterUrl?.absoluteString,
-                        localPosterPath: item.localPosterPath,
-                        subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                        isPresented: $showPlayer,
-                        isFullscreen: $isFullscreen,
-                        showFullscreenButton: true,
-                        mediaId: item.mediaId,
-                        season: item.season,
-                        episode: item.episode,
-                        playerVM: playerVM
-                    )
-                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
-                    .ignoresSafeArea(isFullscreen ? .all : [])
 
-                    .onAppear {
-                        print("▶️ Playing local file: \(url.absoluteString)")
-                        // Verify file existence
-                        if FileManager.default.fileExists(atPath: url.path) {
-                            print("✅ File exists at path: \(url.path)")
-                        } else {
-                            print("❌ File NOT found at path: \(url.path)")
-                        }
-                    }
-                    
-                }
-            }
-            
             // Player Overlay
             if showPlayer, let url = item.localVideoUrl {
                 VStack(spacing: 0) {

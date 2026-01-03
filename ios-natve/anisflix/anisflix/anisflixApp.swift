@@ -174,6 +174,7 @@ struct RootContentView: View {
                 }
             }
         }
+        .tint(AppTheme.primaryRed) // Fix Back Button & Global Tint Color
         .sheet(isPresented: $showCastSheet) {
             CastControlSheet()
                 .presentationDetents([.large])

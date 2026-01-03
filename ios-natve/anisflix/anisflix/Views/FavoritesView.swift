@@ -68,7 +68,7 @@ struct FavoritesView: View {
                         }
                     }
                     .padding()
-                    .padding(.bottom, 80) // Space for tab bar
+                    .padding(.bottom, 150) // Space for tab bar + Cast Banner
                 }
             }
         }

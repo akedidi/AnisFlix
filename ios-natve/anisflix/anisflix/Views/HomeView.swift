@@ -606,8 +606,9 @@ struct HomeView: View {
         async let seriesLatest = TMDBService.shared.fetchLatestSeries(language: language)
         
         // Anime (genre 16 = Animation)
+        // MATCHING WEB LOGIC EXACTLY: Web uses Genre 16 default (Popularity) for both "Latest" and "Popular"
         async let animeMoviesLat = TMDBService.shared.fetchMoviesByGenre(genreId: 16, page: 1, language: language)
-        async let animeMoviesPop = TMDBService.shared.fetchMoviesByGenre(genreId: 16, page: 2, language: language)
+        async let animeMoviesPop = TMDBService.shared.fetchMoviesByGenre(genreId: 16, page: 1, language: language)
         async let animeSeriesLat = TMDBService.shared.fetchSeriesByGenre(genreId: 16, page: 1, language: language)
         async let animeSeriesPop = TMDBService.shared.fetchSeriesByGenre(genreId: 16, page: 2, language: language)
         

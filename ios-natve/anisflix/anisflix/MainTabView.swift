@@ -12,6 +12,7 @@ struct MainTabView: View {
     @ObservedObject var theme = AppTheme.shared
     @ObservedObject var downloadManager = DownloadManager.shared
     @StateObject var castManager = CastManager.shared
+    @ObservedObject var tabBarManager = TabBarManager.shared
     
     // Navigation paths for each tab to enable pop-to-root
     @State private var homePath = NavigationPath()
@@ -138,15 +139,20 @@ struct MainTabView: View {
              .ignoresSafeArea() // Allow content to extend behind the floating bar
             
             // Custom Floating Tab Bar
-             CustomTabBar(
-                 selectedTab: $selectedTab,
-                 theme: theme,
-                 activeDownloadsCount: activeDownloadsCount,
-                 onTabDoubleTap: { tabIndex in
-                     // Pop to root when tapping the already-selected tab
-                     popToRoot(tabIndex: tabIndex)
-                 }
-             )
+             if !tabBarManager.isHidden {
+                 CustomTabBar(
+                     selectedTab: $selectedTab,
+                     theme: theme,
+                     activeDownloadsCount: activeDownloadsCount,
+                     onTabDoubleTap: { tabIndex in
+                         // Pop to root when tapping the already-selected tab
+                         popToRoot(tabIndex: tabIndex)
+                     }
+                 )
+                 .offset(y: tabBarManager.isHidden ? 200 : 0)
+                 .animation(.easeInOut(duration: 0.3), value: tabBarManager.isHidden)
+                 .transition(.move(edge: .bottom))
+             }
         }
     }
 }

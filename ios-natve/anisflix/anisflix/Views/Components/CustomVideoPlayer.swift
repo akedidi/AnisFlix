@@ -410,6 +410,13 @@ struct CustomVideoPlayer: View {
         .onChange(of: isFullscreen) { fullscreen in
             print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
             
+            // Manage Custom TabBar Visibility
+            if fullscreen {
+                TabBarManager.shared.hide()
+            } else {
+                TabBarManager.shared.show()
+            }
+            
             // Set switching flag to prevent orientation notification from reverting our change
             playerVM.isSwitchingModes = true
             print("📺 [CustomVideoPlayer] Set isSwitchingModes = true")
