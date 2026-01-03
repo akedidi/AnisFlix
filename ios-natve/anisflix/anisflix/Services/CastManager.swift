@@ -438,6 +438,17 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                             }
                         }
                     }
+                    
+                    // Fallback: If subtitles not found in customData, try local cache
+                    if self.currentSubtitles.isEmpty, let mediaId = recoveredMediaId {
+                         print("⚠️ [CastManager] Subtitles missing in customData, checking local cache for mediaId: \(mediaId)")
+                         if let cachedSubtitles = self.loadSubtitlesFromLocalCache(mediaId: mediaId) {
+                             DispatchQueue.main.async {
+                                 self.currentSubtitles = cachedSubtitles
+                                 print("✅ [CastManager] Recovered \(cachedSubtitles.count) subtitles from LOCAL CACHE")
+                             }
+                         }
+                    }
                 } else {
                     print("   - No customData found (Default Receiver may not preserve it)")
                 }
@@ -632,6 +643,11 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 }
             } catch {
                 print("❌ [CastManager] Failed to encode subtitles for customData: \(error)")
+            }
+            
+            // Also save to local cache as backup
+            if let mediaId = mediaId {
+                saveSubtitlesToLocalCache(mediaId: mediaId, subtitles: subtitles)
             }
         }
         
@@ -938,6 +954,31 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         case "kor": return "ko"
         case "tur": return "tr"
         default: return code
+        }
+    }
+    
+    // MARK: - Local Cache Helpers
+    
+    private func saveSubtitlesToLocalCache(mediaId: Int, subtitles: [Subtitle]) {
+        do {
+            let data = try JSONEncoder().encode(subtitles)
+            UserDefaults.standard.set(data, forKey: "cast_subtitles_\(mediaId)")
+            print("💾 [CastManager] Cached \(subtitles.count) subtitles locally for mediaId: \(mediaId)")
+        } catch {
+            print("❌ [CastManager] Failed to cache subtitles locally: \(error)")
+        }
+    }
+    
+    private func loadSubtitlesFromLocalCache(mediaId: Int) -> [Subtitle]? {
+        guard let data = UserDefaults.standard.data(forKey: "cast_subtitles_\(mediaId)") else {
+            return nil
+        }
+        do {
+            let subtitles = try JSONDecoder().decode([Subtitle].self, from: data)
+            return subtitles
+        } catch {
+            print("❌ [CastManager] Failed to decode cached subtitles: \(error)")
+            return nil
         }
     }
 }
