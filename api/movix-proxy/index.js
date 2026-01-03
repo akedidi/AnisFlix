@@ -766,9 +766,14 @@ export default async function handler(req, res) {
         // CRITICAL FIX: Filter out candidates that don't match the requested title
         // This prevents false positives like "K-ON!" matching "Attack on Titan"
         // ═══════════════════════════════════════════════════════════════════
-        const normTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Helper to normalize strings: Lowercase -> Remove Accents -> Remove non-alphanumeric
+        // "Naruto Shippūden" -> "narutoshippuden"
+        const normalizeStr = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+
+        const normTitle = normalizeStr(title);
         candidates = candidates.filter(c => {
-          const cTitle = c.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const cTitle = normalizeStr(c.title);
           // Candidate title must CONTAIN the requested title
           // Example: "attackontitanfinalseasonpart1" contains "attackontitan" ✓
           // Example: "kon" does NOT contain "attackontitan" ✗
@@ -785,16 +790,16 @@ export default async function handler(req, res) {
         const getRankedCandidates = (list) => {
           if (!list || list.length === 0) return [];
 
-          const normOverride = overrideSearchTitle ? overrideSearchTitle.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+          const normOverride = overrideSearchTitle ? normalizeStr(overrideSearchTitle) : '';
           // Remove common prefixes like "The" from season name for better matching
           const cleanSeasonName = englishSeasonName ? englishSeasonName.toLowerCase().replace(/^the\s+/i, '') : '';
-          const normEngSeason = cleanSeasonName.replace(/[^a-z0-9]/g, '');
+          const normEngSeason = normalizeStr(cleanSeasonName);
 
           console.log(`🔍 [Ranking] Looking for season: "${englishSeasonName}" → normalized: "${normEngSeason}"`);
 
           return list.sort((a, b) => {
-            const aTitle = a.title.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const bTitle = b.title.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const aTitle = normalizeStr(a.title);
+            const bTitle = normalizeStr(b.title);
 
             // 1. Override Title Match (Highest Priority - for manual mappings)
             if (overrideSearchTitle) {
@@ -922,9 +927,9 @@ export default async function handler(req, res) {
           if (!foundEpisode && seasonNumber === 0 && episodeEnglishTitle) {
             // ... [Reuse existing advanced matching logic here ideally, or simplified] ...
             // For brevity in this replacement, I'll use the core title check which is most robust
-            const normEpTitle = episodeEnglishTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const normEpTitle = normalizeStr(episodeEnglishTitle);
             foundEpisode = episodes.find(ep => {
-              const epTitle = (ep.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const epTitle = normalizeStr(ep.title);
               return epTitle === normEpTitle || epTitle.includes(normEpTitle) || normEpTitle.includes(epTitle);
             });
             if (foundEpisode) console.log(`   ✅ Found by Title Match: ${foundEpisode.title}`);
