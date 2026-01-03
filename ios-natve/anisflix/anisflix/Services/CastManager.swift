@@ -439,13 +439,42 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                         }
                     }
                     
-                    // Fallback: If subtitles not found in customData, try local cache
+                    // Fallback 1: Local Cache
                     if self.currentSubtitles.isEmpty, let mediaId = recoveredMediaId {
-                         print("⚠️ [CastManager] Subtitles missing in customData, checking local cache for mediaId: \(mediaId)")
+                         print("⚠️ [CastManager] Subtitles checking local cache for mediaId: \(mediaId)")
                          if let cachedSubtitles = self.loadSubtitlesFromLocalCache(mediaId: mediaId) {
                              DispatchQueue.main.async {
                                  self.currentSubtitles = cachedSubtitles
                                  print("✅ [CastManager] Recovered \(cachedSubtitles.count) subtitles from LOCAL CACHE")
+                             }
+                         } else {
+                             // Fallback 2: Re-fetch from API (IMDB ID resolution first)
+                             print("⚠️ [CastManager] Local Cache empty. Attempting to fetch from API...")
+                             let season = self.currentSeason
+                             let episode = self.currentEpisode
+                             
+                             Task {
+                                 // Determine type
+                                 let type = (season != nil && episode != nil) ? "tv" : "movie"
+                                 
+                                 if let imdbId = await StreamingService.shared.fetchImdbId(tmdbId: mediaId, type: type) {
+                                     print("✅ [CastManager] Resolved IMDB ID: \(imdbId)")
+                                     let fetchedSubtitles = await StreamingService.shared.getSubtitles(imdbId: imdbId, season: season, episode: episode)
+                                     
+                                     if !fetchedSubtitles.isEmpty {
+                                         DispatchQueue.main.async {
+                                             self.currentSubtitles = fetchedSubtitles
+                                             print("✅ [CastManager] Fetched \(fetchedSubtitles.count) subtitles from API")
+                                             
+                                             // Save to cache for next time
+                                             self.saveSubtitlesToLocalCache(mediaId: mediaId, subtitles: fetchedSubtitles)
+                                         }
+                                     } else {
+                                         print("⚠️ [CastManager] No subtitles found via API")
+                                     }
+                                 } else {
+                                     print("❌ [CastManager] Could not resolve IMDB ID for TMDB: \(mediaId)")
+                                 }
                              }
                          }
                     }

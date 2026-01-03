@@ -1639,4 +1639,31 @@ class StreamingService {
         }
     }
         
+    // MARK: - ID Conversion Helpers
+    
+    func fetchImdbId(tmdbId: Int, type: String) async -> String? {
+        let apiKey = "68e094699525b18a70bab2f86b1fa706"
+        let urlString: String
+        
+        if type == "movie" {
+            urlString = "https://api.themoviedb.org/3/movie/\(tmdbId)?api_key=\(apiKey)"
+        } else {
+            urlString = "https://api.themoviedb.org/3/tv/\(tmdbId)/external_ids?api_key=\(apiKey)"
+        }
+        
+        guard let url = URL(string: urlString) else { return nil }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let imdbId = json["imdb_id"] as? String, !imdbId.isEmpty {
+                    print("✅ [StreamingService] Resolved IMDB ID: \(imdbId) for TMDB: \(tmdbId)")
+                    return imdbId
+                }
+            }
+        } catch {
+            print("❌ [StreamingService] Failed to fetch IMDB ID: \(error)")
+        }
+        return nil
+    }
 }
