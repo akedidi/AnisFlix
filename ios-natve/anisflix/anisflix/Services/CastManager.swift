@@ -21,6 +21,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var currentTitle: String? // Added for UI binding without GoogleCast imports
     @Published var currentArtwork: UIImage?
     @Published var currentPosterUrl: URL? // Stored for reloads
+    @Published var currentSubtitles: [Subtitle] = [] // Moved declaration up // Stored for reloads
 
     // True when there's actually media loaded on the Chromecast
     var hasMediaLoaded: Bool {
@@ -317,7 +318,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         startDiscovery()
     }
     
-    @Published var currentSubtitles: [Subtitle] = []
+    // @Published var currentSubtitles: [Subtitle] = [] // Moved to top property declarations
     
     // Track if recovery was attempted
     private var recoveryAttempted = false
@@ -400,9 +401,9 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                     print("   - No metadata found in mediaInfo")
                 }
                 
-                // Recover custom data (mediaId, season, episode, posterUrl)
+                // Recover custom data (mediaId, season, episode, posterUrl, subtitles)
                 if let customData = mediaInfo.customData as? [String: Any] {
-                    print("   - Found customData: \(customData)")
+                    print("   - Found customData: \(customData.keys)") // Print keys only to avoid spam
                     
                     if let mediaId = customData["mediaId"] as? Int {
                         self.currentMediaId = mediaId
@@ -416,10 +417,26 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                         self.currentEpisode = episode
                     }
                     
-                    // Get posterUrl from customData if available
+                    // Recover posterUrl
                     if let posterUrlString = customData["posterUrl"] as? String {
                         print("   - Found posterUrl in customData: \(posterUrlString)")
                         artworkUrl = posterUrlString
+                    }
+                    
+                    // Recover Subtitles
+                    if let subtitlesJson = customData["subtitles"] as? String {
+                        print("   - Found subtitles JSON in customData")
+                        if let data = subtitlesJson.data(using: .utf8) {
+                            do {
+                                let subtitles = try JSONDecoder().decode([Subtitle].self, from: data)
+                                await MainActor.run {
+                                    self.currentSubtitles = subtitles
+                                    print("✅ [CastManager] Recovered \(subtitles.count) subtitles")
+                                }
+                            } catch {
+                                print("❌ [CastManager] Failed to decode subtitles: \(error)")
+                            }
+                        }
                     }
                 } else {
                     print("   - No customData found (Default Receiver may not preserve it)")
@@ -604,7 +621,21 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             customData["posterUrl"] = posterUrl.absoluteString
             print("📢 [CastManager] Storing posterUrl in customData: \(posterUrl.absoluteString)")
         }
-        print("📢 [CastManager] Final customData: \(customData)")
+        
+        // Encode and store subtitles
+        if !subtitles.isEmpty {
+            do {
+                let data = try JSONEncoder().encode(subtitles)
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    customData["subtitles"] = jsonString
+                    print("📢 [CastManager] Stored \(subtitles.count) subtitles in customData")
+                }
+            } catch {
+                print("❌ [CastManager] Failed to encode subtitles for customData: \(error)")
+            }
+        }
+        
+        print("📢 [CastManager] Final customData keys: \(customData.keys)")
         
         let mediaInfoBuilder = GCKMediaInformationBuilder(contentURL: url)
         mediaInfoBuilder.streamType = streamType
@@ -713,6 +744,36 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         // Apply the text track style
         remoteMediaClient.setTextTrackStyle(textTrackStyle)
+    }
+    
+    // Get currently active subtitle based on active tracks
+    func getActiveSubtitle() -> Subtitle? {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient,
+              let activeTrackIDs = remoteMediaClient.mediaStatus?.activeTrackIDs as? [NSNumber],
+              let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks else {
+            return nil
+        }
+        
+        // Find the active track ID
+        for trackIdValue in activeTrackIDs {
+             if let track = tracks.first(where: { $0.identifier == trackIdValue.intValue && $0.type == .text }) {
+                 // Found active text track
+                 let contentId = track.contentIdentifier
+                 print("🔍 [CastManager] Active active text track: \(track.name ?? "Unknown") (ID: \(contentId ?? "nil"))")
+                 
+                 // Decode contentId (proxy URL) to find original URL
+                 // Format: https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>...
+                 if let contentId = contentId, let components = URLComponents(string: contentId),
+                    let items = components.queryItems,
+                    let originalUrl = items.first(where: { $0.name == "url" })?.value {
+                     
+                     // Find matching subtitle in currentSubtitles
+                     return currentSubtitles.first { $0.url == originalUrl }
+                 }
+             }
+        }
+        return nil
     }
     
     // MARK: - GCKRemoteMediaClientListener

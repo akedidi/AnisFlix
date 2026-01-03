@@ -192,6 +192,16 @@ struct CastControlSheet: View {
         }
         // Hidden text that uses ticker to ensure Swift sees it as a dependency
         .overlay(Text("\(ticker)").opacity(0))
+        .onAppear {
+            // Sync active subtitle from CastManager
+            selectedSubtitle = castManager.getActiveSubtitle()
+        }
+        .onChange(of: showSubtitleSheet) { isShowing in
+            if isShowing {
+                // Refresh selection when opening sheet (in case it changed externally)
+                selectedSubtitle = castManager.getActiveSubtitle()
+            }
+        }
         .sheet(isPresented: $showSubtitleSheet) {
             SubtitleSelectionView(subtitles: castManager.currentSubtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset, subtitleFontSize: $subtitleFontSize)
                 .presentationDetents([.medium])
