@@ -70,11 +70,27 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     }
     
     var currentDuration: TimeInterval {
-        return mediaStatus?.mediaInformation?.streamDuration ?? 0
+        let duration = mediaStatus?.mediaInformation?.streamDuration ?? 0
+        // Use cached duration if stream duration is effectively 0 or infinity/NaN
+        if duration <= 0 || duration.isNaN || duration.isInfinite {
+             return cachedDuration
+        }
+        return duration
     }
+    
+    // Cached duration for transition/reload (when mediaStatus is not yet available)
+    private var cachedDuration: TimeInterval = 0
     
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
+    // Removed statusPollingTimer to prevent connection refusal issues
+    
+    // UserDefaults Keys
+    private let kCastTitle = "cast_title"
+    private let kCastSubtitle = "cast_subtitle"
+    private let kCastDuration = "cast_duration"
+    private let kCastArtwork = "cast_artwork_url"
+    private let kCastProgress = "cast_progress"
     
 
 
@@ -244,6 +260,59 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     override init() {
         super.init()
         setupLifecycleObservers()
+        restoreSessionState() // Restore UI state immediately
+    }
+    
+    // Restore state from last session for immediate UI feedback
+    private func restoreSessionState() {
+        let defaults = UserDefaults.standard
+        if let title = defaults.string(forKey: kCastTitle) {
+            self.currentTitle = title
+            print("💾 [CastManager] Restored cached title: \(title)")
+        }
+        if let subtitle = defaults.string(forKey: kCastSubtitle) {
+            self.deviceName = subtitle
+        }
+        let duration = defaults.double(forKey: kCastDuration)
+        if duration > 0 {
+            self.cachedDuration = duration
+        }
+        
+        // Restore Progress
+        let progress = defaults.double(forKey: kCastProgress)
+        if progress > 0 {
+            self.lastSavedTime = progress
+            print("💾 [CastManager] Restored cached progress: \(Int(progress))s")
+        }
+        
+        // Restore Artwork
+        if let artworkStr = defaults.string(forKey: kCastArtwork), let url = URL(string: artworkStr) {
+            self.currentPosterUrl = url
+            print("💾 [CastManager] Restored cached artwork URL: \(artworkStr)")
+            Task {
+                await downloadArtwork(from: artworkStr)
+            }
+        }
+    }
+    
+    private func saveSessionState() {
+        let defaults = UserDefaults.standard
+        if let title = currentTitle { defaults.set(title, forKey: kCastTitle) }
+        defaults.set(deviceName, forKey: kCastSubtitle)
+        if currentDuration > 0 { defaults.set(currentDuration, forKey: kCastDuration) }
+        
+        // Save Progress & Artwork
+        if lastSavedTime > 0 { defaults.set(lastSavedTime, forKey: kCastProgress) }
+        if let url = currentPosterUrl?.absoluteString { defaults.set(url, forKey: kCastArtwork) }
+    }
+    
+    private func clearSessionState() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: kCastTitle)
+        defaults.removeObject(forKey: kCastSubtitle)
+        defaults.removeObject(forKey: kCastDuration)
+        defaults.removeObject(forKey: kCastArtwork)
+        defaults.removeObject(forKey: kCastProgress)
     }
     
     deinit {
@@ -365,7 +434,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             print("   - mediaStatus: \(String(describing: remoteMediaClient.mediaStatus))")
             print("   - Requesting status update from Chromecast...")
             
-            // Explicitly request status from Chromecast - this will trigger didUpdateMediaStatus callback
+            // Explicitly request status from Chromecast
             remoteMediaClient.requestStatus()
         }
     }
@@ -518,6 +587,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         currentMediaUrl = nil
         
         stopProgressTracking()
+        clearSessionState() // Clear cached state on clean disconnect
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didFailToStart session: GCKSession, withError error: Error) {
@@ -543,7 +613,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
 
     // MARK: - Media Control
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, duration: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
         print("📢 [CastManager] URL: \(url.absoluteString)")
         print("📢 [CastManager] isLive: \(isLive)")
@@ -555,6 +625,11 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         self.currentSeason = season
         self.currentEpisode = episode
         self.currentSubtitles = subtitles // Store for Control Sheet access
+        self.cachedDuration = duration // Cache duration for immediate UI fb
+        self.lastSavedTime = startTime // Cache start time for immediate UI fb
+        
+        // Save state for recovery
+        saveSessionState()
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -687,10 +762,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         mediaInfoBuilder.contentType = contentType
         mediaInfoBuilder.metadata = metadata
         mediaInfoBuilder.mediaTracks = tracks
+        mediaInfoBuilder.streamDuration = duration // Pass known duration
         mediaInfoBuilder.customData = customData.isEmpty ? nil : customData
         
         // CRITICAL: Set HLS segment format to TS.
-        // This is required for correct playback and enables TV remote control (HDMI-CEC) on some receivers.
         if contentType == "application/x-mpegURL" || contentType == "application/vnd.apple.mpegurl" {
             mediaInfoBuilder.hlsSegmentFormat = .TS
         }
@@ -739,8 +814,15 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     func getApproximateStreamPosition() -> TimeInterval {
         guard let session = sessionManager?.currentCastSession,
-              let remoteMediaClient = session.remoteMediaClient else { return 0 }
-        return remoteMediaClient.approximateStreamPosition()
+              let remoteMediaClient = session.remoteMediaClient else { return lastSavedTime > 0 ? lastSavedTime : 0 }
+        
+        let position = remoteMediaClient.approximateStreamPosition()
+        // If position is near zero but we have a saved time (from transition), return saved time
+        // This avoids the UI jumping to 0:00 while buffering
+        if position < 1.0 && lastSavedTime > 1.0 {
+            return lastSavedTime
+        }
+        return position
     }
 
     func setActiveTrack(url: String?) {
@@ -853,9 +935,14 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     // MARK: - GCKRemoteMediaClientListener
     
     func remoteMediaClient(_ client: GCKRemoteMediaClient, didUpdate mediaStatus: GCKMediaStatus?) {
-        self.mediaStatus = mediaStatus
+        // Force UI update on main thread
+        DispatchQueue.main.async {
+            self.mediaStatus = mediaStatus
+            self.objectWillChange.send() // Force SwiftUI to refresh views observing this object
+        }
+        
         if let status = mediaStatus {
-            print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue)")
+            print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue), Duration=\(status.mediaInformation?.streamDuration ?? 0)")
             
             // Trigger recovery if we haven't done it yet and we now have media info
             if !recoveryAttempted, let mediaInfo = status.mediaInformation {
@@ -917,6 +1004,9 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 duration: duration
             )
             print("⏱️ [CastManager] Saved progress: \(Int(currentTime))/\(Int(duration))s (ID: \(mediaId))")
+            
+            // Also update local session state for crash recovery
+            saveSessionState()
         }
     }
     
@@ -1044,6 +1134,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
 extension CastManager: GCKDiscoveryManagerListener {}
 #else
 // Dummy implementation for when GoogleCast SDK is missing
+import UIKit
 
 enum GCKMediaPlayerState {
     case paused
@@ -1070,6 +1161,14 @@ class CastManager: NSObject, ObservableObject {
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus?
     @Published var currentMediaUrl: URL?
+    @Published var currentArtwork: UIImage?
+    @Published var currentTitle: String?
+    @Published var currentSubtitles: [Subtitle] = []
+    
+    var hasMediaLoaded: Bool { return false }
+    var isPlaying: Bool { return false }
+    var isBuffering: Bool { return false }
+    var currentDuration: TimeInterval { return 0 }
     
     override init() {
         super.init()
@@ -1088,5 +1187,22 @@ class CastManager: NSObject, ObservableObject {
     func pause() {}
     func getApproximateStreamPosition() -> TimeInterval { return 0 }
     func sendSubtitleFontSize(_ fontSize: Double) {}
+    
+    // Added for CastControlSheet compatibility
+    func disconnect() {
+        print("⚠️ [DummyCastManager] disconnect called")
+    }
+    
+    func getActiveSubtitle() -> Subtitle? {
+        return nil
+    }
+    
+    func setActiveTrack(url: String?) {
+        print("⚠️ [DummyCastManager] setActiveTrack called with: \(String(describing: url))")
+    }
+    
+    func updateSubtitleConfig(activeUrl: String?, offset: Double) {
+        print("⚠️ [DummyCastManager] updateSubtitleConfig called")
+    }
 }
 #endif

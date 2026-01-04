@@ -7,12 +7,26 @@
 
 import SwiftUI
 
+// Navigation routes for typed navigation
+enum NavigationRoute: Hashable {
+    case movieDetail(movieId: Int)
+    case seriesDetail(seriesId: Int)
+}
+
 struct MainTabView: View {
     @Binding var selectedTab: Int
     @ObservedObject var theme = AppTheme.shared
     @ObservedObject var downloadManager = DownloadManager.shared
     @StateObject var castManager = CastManager.shared
     @ObservedObject var tabBarManager = TabBarManager.shared
+    @StateObject var playerManager = GlobalPlayerManager.shared
+    @State private var isFullscreen = false // Track fullscreen state for global player
+    
+    // Navigation from player
+    @State private var navigateToMovieId: Int? = nil
+    @State private var navigateToSeriesId: Int? = nil
+    @State private var showMovieDetail = false
+    @State private var showSeriesDetail = false
     
     // Navigation paths for each tab to enable pop-to-root
     @State private var homePath = NavigationPath()
@@ -99,6 +113,14 @@ struct MainTabView: View {
                 // Onglet 1: Home
                 NavigationStack(path: $homePath) {
                     HomeView()
+                        .navigationDestination(for: NavigationRoute.self) { route in
+                            switch route {
+                            case .movieDetail(let movieId):
+                                MovieDetailView(movieId: movieId)
+                            case .seriesDetail(let seriesId):
+                                SeriesDetailView(seriesId: seriesId)
+                            }
+                        }
                 }
                 .id(homeStackID) // Reset stack when ID changes
                 .tag(0)
@@ -140,7 +162,7 @@ struct MainTabView: View {
             
             // Custom Floating Tab Bar
              if !tabBarManager.isHidden {
-                 CustomTabBar(
+             CustomTabBar(
                      selectedTab: $selectedTab,
                      theme: theme,
                      activeDownloadsCount: activeDownloadsCount,
@@ -153,6 +175,69 @@ struct MainTabView: View {
                  .animation(.easeInOut(duration: 0.3), value: tabBarManager.isHidden)
                  .transition(.move(edge: .bottom))
              }
+             
+             // GLOBAL MINI PLAYER (Above Tab Bar)
+             // Show when: local player is minimized OR Cast has active media
+             if (playerManager.isPresented && playerManager.isMinimised) || (castManager.isConnected && castManager.hasMediaLoaded) {
+                 MiniPlayerView()
+                     .padding(.bottom, tabBarManager.isHidden ? 20 : 80) // Match CastMiniPlayerView positioning
+                     .transition(.move(edge: .bottom))
+                     .zIndex(100) // Ensure it's above content but below full player overlay
+             }
+             
+             // GLOBAL FULL PLAYER OVERLAY
+             // Keep player in hierarchy to prevent onDisappear cleanup
+             // Use zIndex and frame positioning to hide/show while keeping AVPlayerLayer rendering
+             if playerManager.isPresented {
+                 CustomVideoPlayer(
+                    url: playerManager.currentMediaUrl ?? URL(string: "about:blank")!,
+                    title: playerManager.currentTitle,
+                    posterUrl: playerManager.currentPosterUrl,
+                    subtitles: playerManager.currentSubtitles,
+                    isPresented: $playerManager.isPresented,
+                    isFullscreen: $isFullscreen,
+                    isLive: playerManager.isLive,
+                    mediaId: playerManager.mediaId,
+                    season: playerManager.season,
+                    episode: playerManager.episode,
+                    playerVM: playerManager.playerVM
+                 )
+                 // When minimized: keep visible but VERY small and behind everything
+                 // When expanded: full size and on top
+                 .frame(
+                    width: playerManager.isMinimised ? 1 : nil,
+                    height: playerManager.isMinimised ? 1 : nil
+                 )
+                 .zIndex(playerManager.isMinimised ? -100 : 200)
+                 .allowsHitTesting(!playerManager.isMinimised)
+                 .animation(.easeOut(duration: 0.35), value: playerManager.isMinimised)
+             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToDetail)) { notification in
+            guard let userInfo = notification.userInfo,
+                  let mediaId = userInfo["mediaId"] as? Int,
+                  let isMovie = userInfo["isMovie"] as? Bool else {
+                print("❌ [MainTabView] Invalid navigateToDetail notification")
+                return
+            }
+            
+            print("📺 [MainTabView] Navigating to detail for mediaId: \(mediaId), isMovie: \(isMovie)")
+            
+            // Use NavigationPath for push controller navigation
+            // First switch to Home tab, then push the detail view
+            selectedTab = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if isMovie {
+                    homePath.append(NavigationRoute.movieDetail(movieId: mediaId))
+                } else {
+                    homePath.append(NavigationRoute.seriesDetail(seriesId: mediaId))
+                }
+            }
+        }
+        .sheet(isPresented: $playerManager.showCastControlSheet) {
+            CastControlSheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 }

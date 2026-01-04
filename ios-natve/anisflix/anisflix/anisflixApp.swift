@@ -167,10 +167,9 @@ struct RootContentView: View {
                         .preferredColorScheme(theme.isDarkMode ? .dark : .light)
                         .transition(.opacity)
                     
-                    // Persistent Cast Mini Player
+                    // Cast Mini Player (for session recovery when app launches with active Cast)
                     CastMiniPlayerView(showControlSheet: $showCastSheet)
-                        .padding(.bottom, 80) // Sit above Custom TabBar (approx 50 + safe area)
-                        .transition(.move(edge: .bottom))
+                        .padding(.bottom, 80) // Above tab bar
                 }
             }
         }

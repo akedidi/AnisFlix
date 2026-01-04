@@ -6,14 +6,19 @@
 //
 
 import SwiftUI
+import Combine
 
 struct CastMiniPlayerView: View {
-    @StateObject var castManager = CastManager.shared
+    @ObservedObject var castManager = CastManager.shared
     @Binding var showControlSheet: Bool
     
+    // Ticker to force UI refresh every second
+    @State private var ticker: Int = 0
+    
     var body: some View {
-        // Only show when connected AND there's media loaded
-        if castManager.isConnected && castManager.hasMediaLoaded {
+        // Only show when connected (even if media is loading)
+        // This ensures we see "Casting..." state
+        if castManager.isConnected {
             VStack(spacing: 0) {
                 // Progress Bar (Thin line at top)
                 GeometryReader { geometry in
@@ -34,13 +39,13 @@ struct CastMiniPlayerView: View {
                         Image(uiImage: artwork)
                             .resizable()
                             .aspectRatio(contentMode: .fill)
-                            .frame(width: 40, height: 56)
+                            .frame(width: 36, height: 48)
                             .clipped()
                             .cornerRadius(4)
                     } else {
                         Rectangle()
                             .fill(Color.gray.opacity(0.3))
-                            .frame(width: 40, height: 56)
+                            .frame(width: 36, height: 48)
                             .overlay(Image(systemName: "film").foregroundColor(.gray))
                             .cornerRadius(4)
                     }
@@ -85,10 +90,15 @@ struct CastMiniPlayerView: View {
             .onTapGesture {
                 showControlSheet = true
             }
+            .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+                ticker += 1
+            }
         }
     }
     
     private var progressProportion: CGFloat {
+        // Use ticker to force recalculation
+        _ = ticker
         let current = castManager.getApproximateStreamPosition()
         let total = castManager.currentDuration
         return total > 0 ? CGFloat(current / total) : 0

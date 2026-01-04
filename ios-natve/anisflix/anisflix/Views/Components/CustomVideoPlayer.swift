@@ -176,21 +176,72 @@ struct CustomVideoPlayer: View {
             
             // Controls Overlay - Only when NOT casting
             if showControls && !castManager.isConnected {
-                VStack {
+                VStack(spacing: 0) {
                     // Top Bar
-                    HStack {
-                        // Close button removed as per user request
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            // Minimize Button - Only show when NOT in fullscreen
+                            if !isFullscreen {
+                                Button {
+                                    GlobalPlayerManager.shared.toggleMinimise()
+                                } label: {
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(Circle().fill(Color.black.opacity(0.4)))
+                                }
+                            }
+                            
+                            // Title - In fullscreen, show inline with controls
+                            if isFullscreen {
+                                Text(title)
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            
+                            Spacer()
+                            
+                            // AirPlay Button (Top Right)
+                            AirPlayView()
+                                .frame(width: 44, height: 44)
+                        }
                         
-                        Text(title)
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            .lineLimit(1)
-                        
-                        Spacer()
-                        
-                        // AirPlay Button (Top Right)
-                        AirPlayView()
-                            .frame(width: 44, height: 44)
+                        // Title Row - Tappable for navigation to detail (only in non-fullscreen mode)
+                        if !isFullscreen {
+                            // Not fullscreen: tappable for navigation
+                            Button {
+                                // Navigate to detail page and minimize player
+                                if let mediaId = mediaId {
+                                    GlobalPlayerManager.shared.toggleMinimise()
+                                    // Post notification to navigate to detail
+                                    NotificationCenter.default.post(
+                                        name: .navigateToDetail,
+                                        object: nil,
+                                        userInfo: [
+                                            "mediaId": mediaId,
+                                            "isMovie": (season == nil && episode == nil)
+                                        ]
+                                    )
+                                }
+                            } label: {
+                                HStack {
+                                    Text(title)
+                                        .foregroundColor(.white)
+                                        .font(.headline)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    
+                                    Spacer()
+                                }
+                            }
+                        }
                     }
                     .padding()
                     .background(
@@ -332,6 +383,15 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    // Swipe down to minimize
+                    if value.translation.height > 100 {
+                        GlobalPlayerManager.shared.toggleMinimise()
+                    }
+                }
+        )
         .persistentSystemOverlays(isFullscreen && !showControls ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
@@ -649,6 +709,7 @@ struct CustomVideoPlayer: View {
 
 extension Notification.Name {
     static let stopPlayback = Notification.Name("stopPlayback")
+    static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
 class PlayerViewModel: NSObject, ObservableObject {
@@ -674,6 +735,11 @@ class PlayerViewModel: NSObject, ObservableObject {
     private var subtitleParser: SubtitleParser?
     private var pipController: AVPictureInPictureController?
     private weak var playerLayer: AVPlayerLayer?
+    
+    // Expose PiP state for GlobalPlayerManager
+    var isPiPActive: Bool {
+        return pipController?.isPictureInPictureActive ?? false
+    }
     private var observedItem: AVPlayerItem? // Track the item we're observing
     private(set) var currentUrl: URL? // Track current URL to prevent restart
     private var currentTitle: String? // Track current content title for Now Playing Info
