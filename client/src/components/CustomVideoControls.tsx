@@ -257,7 +257,7 @@ export default function CustomVideoControls({
                       className="h-6 w-8 p-0"
                       onClick={(e) => {
                         e.preventDefault();
-                        onSubtitleOffsetChange?.(Math.max(-60, subtitleOffset - 0.5));
+                        onSubtitleOffsetChange?.(Math.max(-30, subtitleOffset - 0.5));
                       }}
                     >
                       -
@@ -271,7 +271,7 @@ export default function CustomVideoControls({
                       className="h-6 w-8 p-0"
                       onClick={(e) => {
                         e.preventDefault();
-                        onSubtitleOffsetChange?.(Math.min(60, subtitleOffset + 0.5));
+                        onSubtitleOffsetChange?.(Math.min(30, subtitleOffset + 0.5));
                       }}
                     >
                       +

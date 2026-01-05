@@ -22,7 +22,6 @@ struct HiddenCastButton: UIViewRepresentable {
 
 struct CastButton: View {
     @ObservedObject var castManager = CastManager.shared
-    @ObservedObject var theme = AppTheme.shared
     @State private var showDeviceList = false
     var onTap: (() -> Void)? = nil
     
@@ -50,7 +49,7 @@ struct CastButton: View {
                         .renderingMode(.template)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 30, height: 30)
-                        .foregroundColor(castManager.isConnected ? .blue : theme.primaryText)
+                        .foregroundColor(castManager.isConnected ? .blue : .white)
                         .padding(8)
                 }
             }
@@ -76,7 +75,7 @@ struct CastButton: View {
                 .renderingMode(.template)
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 30, height: 30)
-                .foregroundColor(AppTheme.shared.primaryText)
+                .foregroundColor(.white)
                 .padding(8)
         }
     }

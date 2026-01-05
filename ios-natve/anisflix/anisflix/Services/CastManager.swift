@@ -21,7 +21,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var currentTitle: String? // Added for UI binding without GoogleCast imports
     @Published var currentArtwork: UIImage?
     @Published var currentPosterUrl: URL? // Stored for reloads
-    @Published var currentSubtitles: [Subtitle] = [] // Moved declaration up // Stored for reloads
 
     // True when there's actually media loaded on the Chromecast
     var hasMediaLoaded: Bool {
@@ -70,27 +69,11 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     }
     
     var currentDuration: TimeInterval {
-        let duration = mediaStatus?.mediaInformation?.streamDuration ?? 0
-        // Use cached duration if stream duration is effectively 0 or infinity/NaN
-        if duration <= 0 || duration.isNaN || duration.isInfinite {
-             return cachedDuration
-        }
-        return duration
+        return mediaStatus?.mediaInformation?.streamDuration ?? 0
     }
-    
-    // Cached duration for transition/reload (when mediaStatus is not yet available)
-    private var cachedDuration: TimeInterval = 0
     
     private let appId = "CC1AD845" // Default Media Receiver
     private var sessionManager: GCKSessionManager?
-    // Removed statusPollingTimer to prevent connection refusal issues
-    
-    // UserDefaults Keys
-    private let kCastTitle = "cast_title"
-    private let kCastSubtitle = "cast_subtitle"
-    private let kCastDuration = "cast_duration"
-    private let kCastArtwork = "cast_artwork_url"
-    private let kCastProgress = "cast_progress"
     
 
 
@@ -260,59 +243,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     override init() {
         super.init()
         setupLifecycleObservers()
-        restoreSessionState() // Restore UI state immediately
-    }
-    
-    // Restore state from last session for immediate UI feedback
-    private func restoreSessionState() {
-        let defaults = UserDefaults.standard
-        if let title = defaults.string(forKey: kCastTitle) {
-            self.currentTitle = title
-            print("💾 [CastManager] Restored cached title: \(title)")
-        }
-        if let subtitle = defaults.string(forKey: kCastSubtitle) {
-            self.deviceName = subtitle
-        }
-        let duration = defaults.double(forKey: kCastDuration)
-        if duration > 0 {
-            self.cachedDuration = duration
-        }
-        
-        // Restore Progress
-        let progress = defaults.double(forKey: kCastProgress)
-        if progress > 0 {
-            self.lastSavedTime = progress
-            print("💾 [CastManager] Restored cached progress: \(Int(progress))s")
-        }
-        
-        // Restore Artwork
-        if let artworkStr = defaults.string(forKey: kCastArtwork), let url = URL(string: artworkStr) {
-            self.currentPosterUrl = url
-            print("💾 [CastManager] Restored cached artwork URL: \(artworkStr)")
-            Task {
-                await downloadArtwork(from: artworkStr)
-            }
-        }
-    }
-    
-    private func saveSessionState() {
-        let defaults = UserDefaults.standard
-        if let title = currentTitle { defaults.set(title, forKey: kCastTitle) }
-        defaults.set(deviceName, forKey: kCastSubtitle)
-        if currentDuration > 0 { defaults.set(currentDuration, forKey: kCastDuration) }
-        
-        // Save Progress & Artwork
-        if lastSavedTime > 0 { defaults.set(lastSavedTime, forKey: kCastProgress) }
-        if let url = currentPosterUrl?.absoluteString { defaults.set(url, forKey: kCastArtwork) }
-    }
-    
-    private func clearSessionState() {
-        let defaults = UserDefaults.standard
-        defaults.removeObject(forKey: kCastTitle)
-        defaults.removeObject(forKey: kCastSubtitle)
-        defaults.removeObject(forKey: kCastDuration)
-        defaults.removeObject(forKey: kCastArtwork)
-        defaults.removeObject(forKey: kCastProgress)
     }
     
     deinit {
@@ -387,7 +317,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         startDiscovery()
     }
     
-    // @Published var currentSubtitles: [Subtitle] = [] // Moved to top property declarations
+    @Published var currentSubtitles: [Subtitle] = []
     
     // Track if recovery was attempted
     private var recoveryAttempted = false
@@ -434,7 +364,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             print("   - mediaStatus: \(String(describing: remoteMediaClient.mediaStatus))")
             print("   - Requesting status update from Chromecast...")
             
-            // Explicitly request status from Chromecast
+            // Explicitly request status from Chromecast - this will trigger didUpdateMediaStatus callback
             remoteMediaClient.requestStatus()
         }
     }
@@ -470,9 +400,9 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                     print("   - No metadata found in mediaInfo")
                 }
                 
-                // Recover custom data (mediaId, season, episode, posterUrl, subtitles)
+                // Recover custom data (mediaId, season, episode, posterUrl)
                 if let customData = mediaInfo.customData as? [String: Any] {
-                    print("   - Found customData: \(customData.keys)") // Print keys only to avoid spam
+                    print("   - Found customData: \(customData)")
                     
                     if let mediaId = customData["mediaId"] as? Int {
                         self.currentMediaId = mediaId
@@ -486,66 +416,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                         self.currentEpisode = episode
                     }
                     
-                    // Recover posterUrl
+                    // Get posterUrl from customData if available
                     if let posterUrlString = customData["posterUrl"] as? String {
                         print("   - Found posterUrl in customData: \(posterUrlString)")
                         artworkUrl = posterUrlString
-                    }
-                    
-                    // Recover Subtitles
-                    if let subtitlesJson = customData["subtitles"] as? String {
-                        print("   - Found subtitles JSON in customData")
-                        if let data = subtitlesJson.data(using: .utf8) {
-                            do {
-                                let subtitles = try JSONDecoder().decode([Subtitle].self, from: data)
-                                DispatchQueue.main.async {
-                                    self.currentSubtitles = subtitles
-                                    print("✅ [CastManager] Recovered \(subtitles.count) subtitles")
-                                }
-                            } catch {
-                                print("❌ [CastManager] Failed to decode subtitles: \(error)")
-                            }
-                        }
-                    }
-                    
-                    // Fallback 1: Local Cache
-                    if self.currentSubtitles.isEmpty, let mediaId = recoveredMediaId {
-                         print("⚠️ [CastManager] Subtitles checking local cache for mediaId: \(mediaId)")
-                         if let cachedSubtitles = self.loadSubtitlesFromLocalCache(mediaId: mediaId) {
-                             DispatchQueue.main.async {
-                                 self.currentSubtitles = cachedSubtitles
-                                 print("✅ [CastManager] Recovered \(cachedSubtitles.count) subtitles from LOCAL CACHE")
-                             }
-                         } else {
-                             // Fallback 2: Re-fetch from API (IMDB ID resolution first)
-                             print("⚠️ [CastManager] Local Cache empty. Attempting to fetch from API...")
-                             let season = self.currentSeason
-                             let episode = self.currentEpisode
-                             
-                             Task {
-                                 // Determine type
-                                 let type = (season != nil && episode != nil) ? "tv" : "movie"
-                                 
-                                 if let imdbId = await StreamingService.shared.fetchImdbId(tmdbId: mediaId, type: type) {
-                                     print("✅ [CastManager] Resolved IMDB ID: \(imdbId)")
-                                     let fetchedSubtitles = await StreamingService.shared.getSubtitles(imdbId: imdbId, season: season, episode: episode)
-                                     
-                                     if !fetchedSubtitles.isEmpty {
-                                         DispatchQueue.main.async {
-                                             self.currentSubtitles = fetchedSubtitles
-                                             print("✅ [CastManager] Fetched \(fetchedSubtitles.count) subtitles from API")
-                                             
-                                             // Save to cache for next time
-                                             self.saveSubtitlesToLocalCache(mediaId: mediaId, subtitles: fetchedSubtitles)
-                                         }
-                                     } else {
-                                         print("⚠️ [CastManager] No subtitles found via API")
-                                     }
-                                 } else {
-                                     print("❌ [CastManager] Could not resolve IMDB ID for TMDB: \(mediaId)")
-                                 }
-                             }
-                         }
                     }
                 } else {
                     print("   - No customData found (Default Receiver may not preserve it)")
@@ -587,7 +461,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         currentMediaUrl = nil
         
         stopProgressTracking()
-        clearSessionState() // Clear cached state on clean disconnect
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didFailToStart session: GCKSession, withError error: Error) {
@@ -613,7 +486,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
 
     // MARK: - Media Control
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, duration: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
         print("📢 [CastManager] URL: \(url.absoluteString)")
         print("📢 [CastManager] isLive: \(isLive)")
@@ -625,11 +498,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         self.currentSeason = season
         self.currentEpisode = episode
         self.currentSubtitles = subtitles // Store for Control Sheet access
-        self.cachedDuration = duration // Cache duration for immediate UI fb
-        self.lastSavedTime = startTime // Cache start time for immediate UI fb
-        
-        // Save state for recovery
-        saveSessionState()
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -736,36 +604,17 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             customData["posterUrl"] = posterUrl.absoluteString
             print("📢 [CastManager] Storing posterUrl in customData: \(posterUrl.absoluteString)")
         }
-        
-        // Encode and store subtitles
-        if !subtitles.isEmpty {
-            do {
-                let data = try JSONEncoder().encode(subtitles)
-                if let jsonString = String(data: data, encoding: .utf8) {
-                    customData["subtitles"] = jsonString
-                    print("📢 [CastManager] Stored \(subtitles.count) subtitles in customData")
-                }
-            } catch {
-                print("❌ [CastManager] Failed to encode subtitles for customData: \(error)")
-            }
-            
-            // Also save to local cache as backup
-            if let mediaId = mediaId {
-                saveSubtitlesToLocalCache(mediaId: mediaId, subtitles: subtitles)
-            }
-        }
-        
-        print("📢 [CastManager] Final customData keys: \(customData.keys)")
+        print("📢 [CastManager] Final customData: \(customData)")
         
         let mediaInfoBuilder = GCKMediaInformationBuilder(contentURL: url)
         mediaInfoBuilder.streamType = streamType
         mediaInfoBuilder.contentType = contentType
         mediaInfoBuilder.metadata = metadata
         mediaInfoBuilder.mediaTracks = tracks
-        mediaInfoBuilder.streamDuration = duration // Pass known duration
         mediaInfoBuilder.customData = customData.isEmpty ? nil : customData
         
         // CRITICAL: Set HLS segment format to TS.
+        // This is required for correct playback and enables TV remote control (HDMI-CEC) on some receivers.
         if contentType == "application/x-mpegURL" || contentType == "application/vnd.apple.mpegurl" {
             mediaInfoBuilder.hlsSegmentFormat = .TS
         }
@@ -814,73 +663,37 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     func getApproximateStreamPosition() -> TimeInterval {
         guard let session = sessionManager?.currentCastSession,
-              let remoteMediaClient = session.remoteMediaClient else { return lastSavedTime > 0 ? lastSavedTime : 0 }
-        
-        let position = remoteMediaClient.approximateStreamPosition()
-        // If position is near zero but we have a saved time (from transition), return saved time
-        // This avoids the UI jumping to 0:00 while buffering
-        if position < 1.0 && lastSavedTime > 1.0 {
-            return lastSavedTime
-        }
-        return position
+              let remoteMediaClient = session.remoteMediaClient else { return 0 }
+        return remoteMediaClient.approximateStreamPosition()
     }
 
     func setActiveTrack(url: String?) {
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else { return }
         
-        if let targetUrl = url {
-            print("📢 [CastManager] Request to active subtitle with URL: \(targetUrl)")
+        if let url = url {
+            // Find track ID for this URL
+            // We need to reconstruct the proxy URL to match
+            // https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>
+            var components = URLComponents(string: "https://anisflix.vercel.app/api/media-proxy")
+            components?.queryItems = [
+                URLQueryItem(name: "type", value: "subtitle"),
+                URLQueryItem(name: "url", value: url)
+            ]
             
-            if let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks {
+            if let proxyUrl = components?.url?.absoluteString,
+               let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks {
                 
-                // Robust Match: Parse contentIdentifier of each track to find the matching original URL
-                // This handles offsets and duplicates labels correctly.
-                for track in tracks {
-                    guard let contentInfo = track.contentIdentifier,
-                          let components = URLComponents(string: contentInfo),
-                          let queryItems = components.queryItems else { continue }
-                    
-                    // Extract the 'url' parameter from the proxy URL
-                    if let originalUrlParam = queryItems.first(where: { $0.name == "url" })?.value {
-                         if originalUrlParam == targetUrl {
-                             print("✅ [CastManager] Found exact URL match! Track: \(track.name ?? "Unknown") (ID: \(track.identifier))")
-                             remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
-                             return
-                         }
-                    }
-                }
-                
-                // Fallback: Name Match (Only if URL match fails)
-                // Useful if for some reason the proxy URL structure changed or is different
-                if let subtitle = currentSubtitles.first(where: { $0.url == targetUrl }) {
-                    print("⚠️ [CastManager] URL match failed. Falling back to Name match: \(subtitle.label)")
-                    
-                    // Filter tracks with matching name
-                    let matchingTracks = tracks.filter { $0.name == subtitle.label }
-                    
-                    if matchingTracks.count == 1 {
-                        // Safe to use name if only one exists
-                        let track = matchingTracks[0]
-                         print("✅ [CastManager] Found single track by name: \(track.name ?? "Unknown") (ID: \(track.identifier))")
-                         remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
-                         return
-                    } else if matchingTracks.count > 1 {
-                         // Collision! Try to assume order match if possible, or just pick first (warn user)
-                         // But we can't do much more without URL match.
-                         // Let's print a warning.
-                         print("⚠️ [CastManager] Multiple tracks found with name '\(subtitle.label)'. Picking first one (Collision risk).")
-                         if let track = matchingTracks.first {
-                             remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
-                             return
-                         }
-                    }
+                if let track = tracks.first(where: { $0.contentIdentifier == proxyUrl }) {
+                    print("📢 [CastManager] Switching subtitle to: \(track.name ?? "Unknown") (ID: \(track.identifier))")
+                    remoteMediaClient.setActiveTrackIDs([NSNumber(value: track.identifier)])
+                    return
                 }
             }
         }
         
         // If url is nil or not found, disable subtitles
-        print("📢 [CastManager] Disabling subtitles (target not found or nil)")
+        print("📢 [CastManager] Disabling subtitles")
         remoteMediaClient.setActiveTrackIDs([])
     }
     
@@ -902,47 +715,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         remoteMediaClient.setTextTrackStyle(textTrackStyle)
     }
     
-    // Get currently active subtitle based on active tracks
-    func getActiveSubtitle() -> Subtitle? {
-        guard let session = sessionManager?.currentCastSession,
-              let remoteMediaClient = session.remoteMediaClient,
-              let activeTrackIDs = remoteMediaClient.mediaStatus?.activeTrackIDs as? [NSNumber],
-              let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks else {
-            return nil
-        }
-        
-        // Find the active track ID
-        for trackIdValue in activeTrackIDs {
-             if let track = tracks.first(where: { $0.identifier == trackIdValue.intValue && $0.type == .text }) {
-                 // Found active text track
-                 let contentId = track.contentIdentifier
-                 print("🔍 [CastManager] Active active text track: \(track.name ?? "Unknown") (ID: \(contentId ?? "nil"))")
-                 
-                 // Decode contentId (proxy URL) to find original URL
-                 // Format: https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>...
-                 if let contentId = contentId, let components = URLComponents(string: contentId),
-                    let items = components.queryItems,
-                    let originalUrl = items.first(where: { $0.name == "url" })?.value {
-                     
-                     // Find matching subtitle in currentSubtitles
-                     return currentSubtitles.first { $0.url == originalUrl }
-                 }
-             }
-        }
-        return nil
-    }
-    
     // MARK: - GCKRemoteMediaClientListener
     
     func remoteMediaClient(_ client: GCKRemoteMediaClient, didUpdate mediaStatus: GCKMediaStatus?) {
-        // Force UI update on main thread
-        DispatchQueue.main.async {
-            self.mediaStatus = mediaStatus
-            self.objectWillChange.send() // Force SwiftUI to refresh views observing this object
-        }
-        
+        self.mediaStatus = mediaStatus
         if let status = mediaStatus {
-            print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue), Duration=\(status.mediaInformation?.streamDuration ?? 0)")
+            print("📢 [CastManager] Media Status Update: State=\(status.playerState.rawValue), IdleReason=\(status.idleReason.rawValue)")
             
             // Trigger recovery if we haven't done it yet and we now have media info
             if !recoveryAttempted, let mediaInfo = status.mediaInformation {
@@ -1004,9 +782,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 duration: duration
             )
             print("⏱️ [CastManager] Saved progress: \(Int(currentTime))/\(Int(duration))s (ID: \(mediaId))")
-            
-            // Also update local session state for crash recovery
-            saveSessionState()
         }
     }
     
@@ -1104,37 +879,11 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         default: return code
         }
     }
-    
-    // MARK: - Local Cache Helpers
-    
-    private func saveSubtitlesToLocalCache(mediaId: Int, subtitles: [Subtitle]) {
-        do {
-            let data = try JSONEncoder().encode(subtitles)
-            UserDefaults.standard.set(data, forKey: "cast_subtitles_\(mediaId)")
-            print("💾 [CastManager] Cached \(subtitles.count) subtitles locally for mediaId: \(mediaId)")
-        } catch {
-            print("❌ [CastManager] Failed to cache subtitles locally: \(error)")
-        }
-    }
-    
-    private func loadSubtitlesFromLocalCache(mediaId: Int) -> [Subtitle]? {
-        guard let data = UserDefaults.standard.data(forKey: "cast_subtitles_\(mediaId)") else {
-            return nil
-        }
-        do {
-            let subtitles = try JSONDecoder().decode([Subtitle].self, from: data)
-            return subtitles
-        } catch {
-            print("❌ [CastManager] Failed to decode cached subtitles: \(error)")
-            return nil
-        }
-    }
 }
 
 extension CastManager: GCKDiscoveryManagerListener {}
 #else
 // Dummy implementation for when GoogleCast SDK is missing
-import UIKit
 
 enum GCKMediaPlayerState {
     case paused
@@ -1161,14 +910,6 @@ class CastManager: NSObject, ObservableObject {
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus?
     @Published var currentMediaUrl: URL?
-    @Published var currentArtwork: UIImage?
-    @Published var currentTitle: String?
-    @Published var currentSubtitles: [Subtitle] = []
-    
-    var hasMediaLoaded: Bool { return false }
-    var isPlaying: Bool { return false }
-    var isBuffering: Bool { return false }
-    var currentDuration: TimeInterval { return 0 }
     
     override init() {
         super.init()
@@ -1187,22 +928,5 @@ class CastManager: NSObject, ObservableObject {
     func pause() {}
     func getApproximateStreamPosition() -> TimeInterval { return 0 }
     func sendSubtitleFontSize(_ fontSize: Double) {}
-    
-    // Added for CastControlSheet compatibility
-    func disconnect() {
-        print("⚠️ [DummyCastManager] disconnect called")
-    }
-    
-    func getActiveSubtitle() -> Subtitle? {
-        return nil
-    }
-    
-    func setActiveTrack(url: String?) {
-        print("⚠️ [DummyCastManager] setActiveTrack called with: \(String(describing: url))")
-    }
-    
-    func updateSubtitleConfig(activeUrl: String?, offset: Double) {
-        print("⚠️ [DummyCastManager] updateSubtitleConfig called")
-    }
 }
 #endif

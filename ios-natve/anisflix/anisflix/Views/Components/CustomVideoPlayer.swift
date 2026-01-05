@@ -176,72 +176,21 @@ struct CustomVideoPlayer: View {
             
             // Controls Overlay - Only when NOT casting
             if showControls && !castManager.isConnected {
-                VStack(spacing: 0) {
+                VStack {
                     // Top Bar
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            // Minimize Button - Only show when NOT in fullscreen
-                            if !isFullscreen {
-                                Button {
-                                    GlobalPlayerManager.shared.toggleMinimise()
-                                } label: {
-                                    Image(systemName: "chevron.down")
-                                        .font(.system(size: 22, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .background(Circle().fill(Color.black.opacity(0.4)))
-                                }
-                            }
-                            
-                            // Title - In fullscreen, show inline with controls
-                            if isFullscreen {
-                                Text(title)
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            
-                            Spacer()
-                            
-                            // AirPlay Button (Top Right)
-                            AirPlayView()
-                                .frame(width: 44, height: 44)
-                        }
+                    HStack {
+                        // Close button removed as per user request
                         
-                        // Title Row - Tappable for navigation to detail (only in non-fullscreen mode)
-                        if !isFullscreen {
-                            // Not fullscreen: tappable for navigation
-                            Button {
-                                // Navigate to detail page and minimize player
-                                if let mediaId = mediaId {
-                                    GlobalPlayerManager.shared.toggleMinimise()
-                                    // Post notification to navigate to detail
-                                    NotificationCenter.default.post(
-                                        name: .navigateToDetail,
-                                        object: nil,
-                                        userInfo: [
-                                            "mediaId": mediaId,
-                                            "isMovie": (season == nil && episode == nil)
-                                        ]
-                                    )
-                                }
-                            } label: {
-                                HStack {
-                                    Text(title)
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                    
-                                    Spacer()
-                                }
-                            }
-                        }
+                        Text(title)
+                            .foregroundColor(.white)
+                            .font(.headline)
+                            .lineLimit(1)
+                        
+                        Spacer()
+                        
+                        // AirPlay Button (Top Right)
+                        AirPlayView()
+                            .frame(width: 44, height: 44)
                     }
                     .padding()
                     .background(
@@ -383,15 +332,6 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
-        .gesture(
-            DragGesture(minimumDistance: 50)
-                .onEnded { value in
-                    // Swipe down to minimize
-                    if value.translation.height > 100 {
-                        GlobalPlayerManager.shared.toggleMinimise()
-                    }
-                }
-        )
         .persistentSystemOverlays(isFullscreen && !showControls ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
@@ -469,13 +409,6 @@ struct CustomVideoPlayer: View {
         }
         .onChange(of: isFullscreen) { fullscreen in
             print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
-            
-            // Manage Custom TabBar Visibility
-            if fullscreen {
-                TabBarManager.shared.hide()
-            } else {
-                TabBarManager.shared.show()
-            }
             
             // Set switching flag to prevent orientation notification from reverting our change
             playerVM.isSwitchingModes = true
@@ -709,7 +642,6 @@ struct CustomVideoPlayer: View {
 
 extension Notification.Name {
     static let stopPlayback = Notification.Name("stopPlayback")
-    static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
 class PlayerViewModel: NSObject, ObservableObject {
@@ -735,11 +667,6 @@ class PlayerViewModel: NSObject, ObservableObject {
     private var subtitleParser: SubtitleParser?
     private var pipController: AVPictureInPictureController?
     private weak var playerLayer: AVPlayerLayer?
-    
-    // Expose PiP state for GlobalPlayerManager
-    var isPiPActive: Bool {
-        return pipController?.isPictureInPictureActive ?? false
-    }
     private var observedItem: AVPlayerItem? // Track the item we're observing
     private(set) var currentUrl: URL? // Track current URL to prevent restart
     private var currentTitle: String? // Track current content title for Now Playing Info
@@ -906,29 +833,6 @@ class PlayerViewModel: NSObject, ObservableObject {
             }
         }
         
-        // Vidzy Logic: Use ResourceLoader to sanitize playlists (remove VIDEO-RANGE, I-FRAMES)
-        if url.absoluteString.lowercased().contains("vidzy") {
-            print("🎬 [CustomVideoPlayer] Vidzy URL detected, enabling ResourceLoader")
-            useResourceLoader = true
-            
-            // Rewrite scheme to trigger delegate
-            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                components.scheme = "vidzy-custom"
-                
-                if var items = components.queryItems {
-                    items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
-                    components.queryItems = items
-                } else {
-                     components.queryItems = [URLQueryItem(name: "virtual", value: ".m3u8")]
-                }
-                
-                if let customUrl = components.url {
-                    finalUrl = customUrl
-                    print("   - Rewrote URL to: \(finalUrl)")
-                }
-            }
-        }
-        
         print("🎬 Setting up player with URL: \(url)")
         if let title = currentTitle {
             print("📺 Content title: \(title)")
@@ -947,17 +851,9 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         // Always use AVURLAsset with browser-like User-Agent
-        var headers: [String: String] = [
+        let headers: [String: String] = [
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
-        
-        // Add Referer header for Vidzy URLs to fix playback
-        let urlString = url.absoluteString.lowercased()
-        if urlString.contains("vidzy") {
-            headers["Referer"] = "https://vidzy.org/"
-            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
-        }
-        
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
         if useResourceLoader {

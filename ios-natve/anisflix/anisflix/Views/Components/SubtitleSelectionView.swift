@@ -28,7 +28,7 @@ struct SubtitleSelectionView: View {
                     // Fine adjustment with slider
                     HStack {
                         Button {
-                            subtitleOffset = max(-60, subtitleOffset - 0.5)
+                            subtitleOffset = max(-30, subtitleOffset - 0.5)
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.title2)
@@ -36,11 +36,11 @@ struct SubtitleSelectionView: View {
                         }
                         .buttonStyle(.borderless)
                         
-                        Slider(value: $subtitleOffset, in: -60...60, step: 0.5)
+                        Slider(value: $subtitleOffset, in: -30...30, step: 0.5)
                             .tint(AppTheme.primaryRed)
                         
                         Button {
-                            subtitleOffset = min(60, subtitleOffset + 0.5)
+                            subtitleOffset = min(30, subtitleOffset + 0.5)
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)

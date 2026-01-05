@@ -16,7 +16,7 @@ export function getWatchProgress(): WatchProgress[] {
 export function saveWatchProgress(progress: Omit<WatchProgress, "id" | "lastWatched">): void {
   try {
     const allProgress = getWatchProgress();
-    
+
     // Find existing progress for this media
     // Pour les séries, chercher par mediaId, mediaType, seasonNumber et episodeNumber
     const existingIndex = allProgress.findIndex(p => {
@@ -29,24 +29,24 @@ export function saveWatchProgress(progress: Omit<WatchProgress, "id" | "lastWatc
       }
       return true;
     });
-    
+
     const newProgress: WatchProgress = {
       ...progress,
       id: existingIndex >= 0 ? allProgress[existingIndex].id : crypto.randomUUID(),
       lastWatched: new Date().toISOString(),
     };
-    
+
     if (existingIndex >= 0) {
       allProgress[existingIndex] = newProgress;
     } else {
       allProgress.unshift(newProgress);
     }
-    
-    // Keep only last 20 items
-    const trimmed = allProgress.slice(0, 20);
-    
-    localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(trimmed));
-    
+
+    // Keep unlimited items for history (UI will limit display)
+    // const trimmed = allProgress.slice(0, 20); 
+
+    localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(allProgress));
+
     // Déclencher un événement personnalisé pour notifier les composants
     window.dispatchEvent(new CustomEvent('watchProgressUpdated'));
   } catch (error) {
@@ -61,7 +61,7 @@ export function removeWatchProgress(mediaId: number, mediaType: string): void {
       p => !(p.mediaId === mediaId && p.mediaType === mediaType)
     );
     localStorage.setItem(WATCH_PROGRESS_KEY, JSON.stringify(filtered));
-    
+
     // Déclencher un événement personnalisé pour notifier les composants
     window.dispatchEvent(new CustomEvent('watchProgressUpdated'));
   } catch (error) {
@@ -70,9 +70,9 @@ export function removeWatchProgress(mediaId: number, mediaType: string): void {
 }
 
 export function getMediaProgress(
-  mediaId: number, 
-  mediaType: string, 
-  seasonNumber?: number, 
+  mediaId: number,
+  mediaType: string,
+  seasonNumber?: number,
   episodeNumber?: number
 ): WatchProgress | null {
   const allProgress = getWatchProgress();

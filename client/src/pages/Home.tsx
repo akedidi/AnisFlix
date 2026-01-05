@@ -152,9 +152,10 @@ export default function Home() {
   // Charger la progression réelle depuis localStorage
   const [continueWatching, setContinueWatching] = useState(() => {
     const progress = getWatchProgress();
-    // Ne montrer que les vidéos avec progression < 95%
+    // Ne montrer que les vidéos avec progression < 90%
     return progress
-      .filter(p => p.progress < 95 && p.progress > 0)
+      .filter(p => p.progress < 90 && p.progress > 0)
+      .slice(0, 20) // Limiter l'affichage aux 20 derniers
       .map(p => ({
         id: p.mediaId, // ID réel (seriesId pour les séries, movieId pour les films)
         title: p.title, // Contient déjà "S{season}E{episode}" pour les séries
@@ -172,7 +173,8 @@ export default function Home() {
       const progress = getWatchProgress();
       setContinueWatching(
         progress
-          .filter(p => p.progress < 95 && p.progress > 0)
+          .filter(p => p.progress < 90 && p.progress > 0) // < 90% pour masquer les finis
+          .slice(0, 20) // Limiter l'affichage aux 20 derniers
           .map(p => ({
             id: p.mediaId,
             title: p.title,
@@ -197,6 +199,8 @@ export default function Home() {
     if (query && searchResults.length > 0) {
       // Naviguer vers le premier résultat
       const firstResult = searchResults[0];
+      if (!firstResult) return;
+
       const path = firstResult.mediaType === 'movie'
         ? navPaths.movie(firstResult.id)
         : navPaths.seriesDetail(firstResult.id);

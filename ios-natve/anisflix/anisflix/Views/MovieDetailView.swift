@@ -18,6 +18,11 @@ struct MovieDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     
     @State private var videos: [Video] = []
+    @State private var showPlayer = false
+    @State private var playerURL: URL?
+    @State private var subtitles: [Subtitle] = []
+    @State private var isFullscreen = false
+    @StateObject private var playerVM = PlayerViewModel()
     @ObservedObject var favoritesManager = FavoritesManager.shared
     
     // Sources
@@ -308,7 +313,7 @@ struct MovieDetailView: View {
                                     .padding(.horizontal, 16)
                                     
                                     // Sources List (Line by Line)
-
+                                    if !showPlayer {
                                         let filteredSources = filterSources(sources, language: theme.preferredSourceLanguage)
                                             .sorted { s1, s2 in
                                                 // Vidzy first, then others
@@ -359,12 +364,15 @@ struct MovieDetailView: View {
                                             }
                                             .padding(.horizontal, 16)
                                         }
-
+                                    }
                                 }
                             }
                             .padding(.top, 24)
                             
-
+                            // Inline Player Placeholder (keeps space)
+                            if showPlayer && playerURL != nil && !isFullscreen {
+                                Color.clear.frame(height: 250)
+                            }
                             
                             // Similar Movies
                             if !similarMovies.isEmpty {
@@ -388,16 +396,88 @@ struct MovieDetailView: View {
                                 .padding(.top, 24)
                             }
                             
-                            // Bottom padding for floating tab bar
-                            Color.clear.frame(height: 150)
+                            Color.clear.frame(height: 40)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(width: UIScreen.main.bounds.width)
                 }
 
+            // Player Overlay (Single Instance)
+            if showPlayer, let url = playerURL, let movie = movie {
+                VStack(spacing: 0) {
+                    // Header above player when inline
+                    if !isFullscreen {
+                        HStack {
+                            Spacer()
+                            
+                            Button(action: {
+                                showPlayer = false
+                                playerURL = nil
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "xmark.circle.fill")
+                                    Text(theme.t("detail.close"))
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(theme.secondaryText)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(theme.cardBackground)
+                                .cornerRadius(16)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                        .padding(.top, 350) // Adjust based on content above (poster + info + sources)
+                        // Note: Hardcoded padding is risky. Better to use GeometryReader or AnchorPreferences, 
+                        // but for now we'll use a ZStack alignment approach.
+                    }
+                    
+                    CustomVideoPlayer(
+                        url: url,
+                        title: movie.title,
+                        posterUrl: movie.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(movie.posterPath!)" : nil,
+                        subtitles: subtitles,
+                        isPresented: $showPlayer,
+                        isFullscreen: $isFullscreen,
+                        showFullscreenButton: true,
+                        mediaId: movieId,
+                        season: nil,
+                        episode: nil,
+                        playerVM: playerVM
+                    )
+                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
+                    .edgesIgnoringSafeArea(isFullscreen ? .all : [])
+                    
+                    if !isFullscreen {
+                        Spacer()
+                    }
+                }
+                .background(isFullscreen ? Color.black : Color.clear)
+                .zIndex(100)
+                // Position logic:
+                // When inline, we want it to appear "in place". 
+                // Since we are in a ZStack, we need to position it correctly.
+                // However, scrolling makes this hard with a simple ZStack overlay if it's not pinned.
+                // TVChannelsView works because the list is below the player.
+                // Here, the player is in the middle of a scroll view.
+                
+                // ALTERNATIVE APPROACH:
+                // Keep the player in the ScrollView when inline, and use .matchedGeometryEffect 
+                // OR just use the ZStack overlay ONLY when fullscreen?
+                // No, that causes the recreation.
+                
+                // The TVChannelsView approach works because the player is at the TOP (or fixed position).
+                // Here, the player is scrolled.
+                
+                // If we want smooth transition, the view must NOT be destroyed.
+                // We can use .fullScreenCover but with a custom transition? No, that's a new view.
+                
+                // We can use a GeometryReader to track the inline position, 
+                // and then move the player to fullscreen.
             }
-
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -406,6 +486,8 @@ struct MovieDetailView: View {
                     .foregroundColor(theme.primaryText)
             }
         }
+        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+        .navigationBarHidden(isFullscreen)
         .task {
             await loadData()
         }
@@ -496,6 +578,29 @@ struct MovieDetailView: View {
         print("▶️ [MovieDetailView] Playing source: \(source.provider) - \(source.url)")
         extractionError = nil
         
+        // Check for local download first
+        /* Temporarily disabled for debugging streaming
+        if let download = DownloadManager.shared.getDownload(mediaId: movieId, season: nil, episode: nil),
+           download.state == .completed,
+           let localUrl = download.localVideoUrl {
+            print("📂 [MovieDetailView] Found local download, playing offline: \(localUrl)")
+            
+            Task {
+                await MainActor.run {
+                    self.playerURL = localUrl
+                    self.playerURL = localUrl
+                    // Use local subtitles if available
+                    self.subtitles = download.localSubtitles.map { 
+                        Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) 
+                    }
+                    
+                    self.showPlayer = true
+                }
+            }
+            return
+        }
+        */
+        
         Task {
             do {
                 await MainActor.run {
@@ -532,19 +637,10 @@ struct MovieDetailView: View {
                     }
                     
                     await MainActor.run {
-                        print("🎬 [MovieDetailView] Presenting Global Player with URL: \(url)")
-                        
-                        GlobalPlayerManager.shared.play(
-                            url: url,
-                            title: self.movie?.title ?? "Movie",
-                            posterUrl: self.movie?.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(self.movie!.posterPath!)" : nil,
-                            subtitles: subs,
-                            mediaId: self.movieId,
-                            season: nil,
-                            episode: nil,
-                            isLive: false
-                        )
-                        
+                        print("🎬 [MovieDetailView] Presenting player with URL: \(url)")
+                        self.playerURL = url
+                        self.subtitles = subs
+                        self.showPlayer = true
                         self.isLoadingSources = false
                     }
                 } else {

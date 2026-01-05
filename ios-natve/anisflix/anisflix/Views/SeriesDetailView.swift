@@ -18,6 +18,11 @@ struct SeriesDetailView: View {
     @Environment(\.presentationMode) var presentationMode
     
     @State private var videos: [Video] = []
+    @State private var showPlayer = false
+    @State private var playerURL: URL?
+    @State private var subtitles: [Subtitle] = []
+    @State private var isFullscreen = false
+    @StateObject private var playerVM = PlayerViewModel()
     @State private var seasonDetails: SeasonDetails?
     @State private var isSeasonLoading = false
     @State private var selectedSeason = 1
@@ -276,6 +281,8 @@ struct SeriesDetailView: View {
                                                     } else {
                                                         selectedEpisodeId = episode.id
                                                         Task {
+                                                            // Reset player when changing episode
+                                                            playerVM.reset()
                                                             await loadEpisodeSources(episode: episode)
                                                         }
                                                     }
@@ -394,17 +401,42 @@ struct SeriesDetailView: View {
                         }
                         .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 150)
+                        .padding(.bottom, 80)
                     }
                     .frame(width: UIScreen.main.bounds.width)
                 }
             }
             
             // Fullscreen Player Overlay (Single Instance)
-            // Fullscreen Player Overlay Removed (Global Player)
+            if showPlayer, let url = playerURL, let episodeId = selectedEpisodeId, let season = seasonDetails, let episode = season.episodes.first(where: { $0.id == episodeId }) {
+                
+                // Fullscreen Geometry Placeholder (to match against)
+                if isFullscreen {
+                    Color.clear
+                        .edgesIgnoringSafeArea(.all)
+                        .matchedGeometryEffect(id: "videoPlayer", in: animation)
+                }
+                
+                CustomVideoPlayer(
+                    url: url,
+                    title: "\(series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber) - \(getEpisodeTitle(episode))",
+                    posterUrl: series?.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(series!.posterPath!)" : nil,
+                    subtitles: subtitles,
+                    isPresented: $showPlayer,
+                    isFullscreen: $isFullscreen,
+                    showFullscreenButton: true,
+                    mediaId: seriesId,
+                    season: episode.seasonNumber,
+                    episode: episode.episodeNumber,
+                    playerVM: playerVM
+                )
+                .matchedGeometryEffect(id: "videoPlayer", in: animation, isSource: false)
+                .zIndex(100)
+            }
         }
         // .navigationBarHidden(true) removed to show system back button
-
+        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
+        .navigationBarHidden(isFullscreen)
         .task {
             await loadSeriesDetails()
         }
@@ -479,33 +511,30 @@ struct SeriesDetailView: View {
                 print("✅ [SeriesDetailView] Extraction successful: \(finalURL?.absoluteString ?? "nil")")
                 
                 if let url = finalURL {
-                     // Subtitles logic
-                    var finalSubtitles = source.tracks ?? []
-                     
+                    await MainActor.run {
+                        print("🎬 [SeriesDetailView] Presenting player with URL: \(url)")
+                        playerURL = url
+                    }
+                    
+                    await MainActor.run {
+                        // Start with source tracks (e.g. from Anime API)
+                        subtitles = source.tracks ?? []
+                        print("🎬 [SeriesDetailView] Initial subtitles from source: \(subtitles.count)")
+                    }
+                    
                     if let imdbId = series?.externalIds?.imdbId {
                         let subs = await StreamingService.shared.getSubtitles(
                             imdbId: imdbId,
                             season: episode.seasonNumber,
                             episode: episode.episodeNumber
                         )
-                        finalSubtitles.append(contentsOf: subs)
+                        await MainActor.run {
+                            // Merge OpenSubtitles with existing source tracks
+                            subtitles.append(contentsOf: subs)
+                        }
                     }
-                    
                     await MainActor.run {
-                        print("🎬 [SeriesDetailView] Presenting Global Player with URL: \(url)")
-                        
-                        GlobalPlayerManager.shared.play(
-                            url: url,
-                            title: "\(self.series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber) - \(getEpisodeTitle(episode))",
-                            posterUrl: self.series?.posterPath != nil ? "https://image.tmdb.org/t/p/w500\(self.series!.posterPath!)" : nil,
-                            subtitles: finalSubtitles,
-                            mediaId: self.seriesId,
-                            season: episode.seasonNumber,
-                            episode: episode.episodeNumber,
-                            isLive: false
-                        )
-                        
-                        isLoadingSource = false
+                        showPlayer = true
                     }
                 } else {
                     throw URLError(.badURL)
@@ -514,8 +543,11 @@ struct SeriesDetailView: View {
                 print("❌ [SeriesDetailView] Extraction error: \(error)")
                 await MainActor.run {
                     extractionError = "Erreur de lecture: \(error.localizedDescription)"
-                    isLoadingSource = false
                 }
+            }
+            
+            await MainActor.run {
+                isLoadingSource = false
             }
         }
     }
@@ -697,6 +729,34 @@ struct SeriesDetailView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, 20)
+            } else if showPlayer, let url = playerURL {
+                // Close button
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showPlayer = false
+                        playerURL = nil
+                        playerVM.player.pause()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                            Text(theme.t("detail.close"))
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(theme.secondaryText)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(theme.cardBackground)
+                        .cornerRadius(16)
+                    }
+                }
+                .padding(.bottom, 4)
+                
+                // Inline Player Placeholder
+                Color.clear
+                    .frame(height: 250)
+                    .matchedGeometryEffect(id: "videoPlayer", in: animation)
+                    .cornerRadius(8)
             } else {
                 // Sources List
                 Text(theme.t("detail.availableSources"))
