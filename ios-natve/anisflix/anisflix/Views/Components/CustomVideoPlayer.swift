@@ -67,6 +67,12 @@ struct CustomVideoPlayer: View {
             // Force Hide TabBar when in Fullscreen
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
+                .onAppear {
+                    // Sync initial state
+                    if isFullscreen {
+                        NotificationCenter.default.post(name: NSNotification.Name("ToggleTabBarVisibility"), object: true)
+                    }
+                }
             
             // Hide Home Indicator when controls are hidden in fullscreen
             HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
@@ -597,7 +603,10 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
-
+        .onChange(of: isFullscreen) { newValue in
+            // Notify MainTabView to hide/show the custom tab bar
+            NotificationCenter.default.post(name: NSNotification.Name("ToggleTabBarVisibility"), object: newValue)
+        }
     }
     
     func formatTime(_ seconds: Double) -> String {

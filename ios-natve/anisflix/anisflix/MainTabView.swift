@@ -21,6 +21,9 @@ struct MainTabView: View {
     @State private var favoritesPath = NavigationPath()
     @State private var settingsPath = NavigationPath()
     
+    // State to control CustomTabBar visibility (e.g. for fullscreen)
+    @State private var isTabBarHidden = false
+    
     // Count of downloads in progress or waiting
     var activeDownloadsCount: Int {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
@@ -189,14 +192,24 @@ struct MainTabView: View {
             .ignoresSafeArea(.container, edges: .bottom) // Allow content to extend behind floating tab bar
             
             // Custom Floating Tab Bar with dark blur
-            CustomTabBar(
-                selectedTab: $selectedTab,
-                theme: theme,
-                activeDownloadsCount: activeDownloadsCount,
-                onTabDoubleTap: { tabIndex in
-                    popToRoot(tabIndex: tabIndex)
+            if !isTabBarHidden {
+                CustomTabBar(
+                    selectedTab: $selectedTab,
+                    theme: theme,
+                    activeDownloadsCount: activeDownloadsCount,
+                    onTabDoubleTap: { tabIndex in
+                        popToRoot(tabIndex: tabIndex)
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleTabBarVisibility"))) { notification in
+            if let shouldHide = notification.object as? Bool {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isTabBarHidden = shouldHide
                 }
-            )
+            }
         }
     }
 }
