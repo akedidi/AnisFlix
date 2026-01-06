@@ -69,8 +69,7 @@ class CustomSceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         
-        // Configure TabBar appearance BEFORE creating any views
-        configureTabBarAppearance()
+
         
         // Create our custom hosting controller with the root view
         let rootView = RootContentView()
@@ -81,26 +80,7 @@ class CustomSceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.makeKeyAndVisible()
     }
     
-    private func configureTabBarAppearance() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
-        appearance.backgroundColor = UIColor.black.withAlphaComponent(0.3)
-        appearance.shadowColor = .clear
-        
-        let itemAppearance = UITabBarItemAppearance()
-        itemAppearance.normal.iconColor = UIColor.systemGray
-        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.systemGray]
-        itemAppearance.selected.iconColor = UIColor(AppTheme.primaryRed)
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(AppTheme.primaryRed)]
-        
-        appearance.stackedLayoutAppearance = itemAppearance
-        appearance.inlineLayoutAppearance = itemAppearance
-        appearance.compactInlineLayoutAppearance = itemAppearance
-        
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-    }
+
 }
 
 /// Custom UIHostingController that properly propagates home indicator preferences
@@ -187,13 +167,13 @@ struct RootContentView: View {
                         .preferredColorScheme(theme.isDarkMode ? .dark : .light)
                         .transition(.opacity)
                     
-                    // Persistent Cast Mini Player
+                    // Cast Mini Player (for session recovery when app launches with active Cast)
                     CastMiniPlayerView(showControlSheet: $showCastSheet)
-                        .padding(.bottom, 90) // Sit above Custom TabBar (approx 50 + safe area)
-                        .transition(.move(edge: .bottom))
+                        .padding(.bottom, 80) // Above tab bar
                 }
             }
         }
+        .tint(AppTheme.primaryRed) // Fix Back Button & Global Tint Color
         .sheet(isPresented: $showCastSheet) {
             CastControlSheet()
                 .presentationDetents([.large])

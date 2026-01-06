@@ -273,6 +273,250 @@ class VixSrcScraper {
 
 const vixsrcScraper = new VixSrcScraper();
 
+// ===== MOVIEBOX SCRAPER CLASS =====
+class MovieBoxScraper {
+  constructor() {
+    this.host = 'h5.aoneroom.com';
+    this.baseUrl = `https://${this.host}`;
+    this.tmdbApiKey = "68e094699525b18a70bab2f86b1fa706";
+    this.cookiesInitialized = false;
+    this.sessionInfo = null;
+
+    // Create axios instance with cookie jar support
+    const { wrapper } = require('axios-cookiejar-support');
+    const { CookieJar } = require('tough-cookie');
+    this.jar = new CookieJar();
+    this.axiosInstance = wrapper(axios.create({
+      jar: this.jar,
+      withCredentials: true,
+      timeout: 30000
+    }));
+  }
+
+  async ensureCookiesAreAssigned() {
+    if (!this.cookiesInitialized) {
+      try {
+        console.log('📦 [MovieBox] Initializing session cookies...');
+        const response = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/app/get-latest-app-pkgs?app_name=moviebox`, {
+          headers: {
+            'X-Client-Info': '{"timezone":"Africa/Nairobi"}',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept': 'application/json',
+            'User-Agent': 'okhttp/4.12.0',
+            'Host': this.host,
+            'X-Forwarded-For': '1.1.1.1',
+            'CF-Connecting-IP': '1.1.1.1',
+            'X-Real-IP': '1.1.1.1'
+          }
+        });
+
+        this.sessionInfo = response.data?.data || response.data;
+        this.cookiesInitialized = true;
+        console.log('✅ [MovieBox] Session initialized');
+
+      } catch (error) {
+        console.error('❌ [MovieBox] Failed to initialize session:', error.message);
+        throw error;
+      }
+    }
+  }
+
+  async searchByTitle(title, year, type = 'movie') {
+    await this.ensureCookiesAreAssigned();
+
+    const cacheKey = `moviebox:search:${title}:${year}:${type}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    try {
+      console.log(`🔍 [MovieBox] Searching: "${title}" (${year})`);
+
+      const response = await this.axiosInstance.post(`${this.baseUrl}/wefeed-h5-bff/web/subject/search`, {
+        keyword: title,
+        page: 1,
+        perPage: 24,
+        subjectType: type === 'movie' ? 1 : 2
+      }, {
+        headers: {
+          'X-Client-Info': '{"timezone":"Africa/Nairobi"}',
+          'Accept': 'application/json',
+          'User-Agent': 'okhttp/4.12.0',
+          'Content-Type': 'application/json',
+          'Host': this.host
+        }
+      });
+
+      const results = response.data?.data?.items || [];
+      console.log(`📊 [MovieBox] Found ${results.length} results`);
+
+      if (results.length > 0) {
+        cacheSet(cacheKey, results, CACHE_TTL.SEARCH);
+      }
+
+      return results;
+    } catch (error) {
+      console.error('❌ [MovieBox] Search failed:', error.message);
+      return [];
+    }
+  }
+
+  normalizeTitle(title) {
+    return (title || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  matchContent(tmdbInfo, movieBoxResults) {
+    const normTmdbTitle = this.normalizeTitle(tmdbInfo.title);
+    const tmdbYear = tmdbInfo.year;
+    const tmdbDuration = tmdbInfo.runtime; // in minutes
+
+    console.log(`🎯 [MovieBox] Matching: "${tmdbInfo.title}" (${tmdbYear}) ${tmdbDuration}min`);
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const item of movieBoxResults) {
+      let score = 0;
+      const normItemTitle = this.normalizeTitle(item.title);
+      const itemYear = item.releaseDate?.substring(0, 4);
+      const itemDuration = item.duration ? Math.floor(item.duration / 60) : 0;
+
+      // Exact title match (100 points)
+      if (normTmdbTitle === normItemTitle) {
+        score += 100;
+      } else if (normItemTitle.includes(normTmdbTitle) || normTmdbTitle.includes(normItemTitle)) {
+        score += 50;
+      }
+
+      // Year match (50 points)
+      if (tmdbYear === itemYear) {
+        score += 50;
+      }
+
+      // Duration match ±5 min (30 points)
+      if (tmdbDuration && itemDuration) {
+        const durationDiff = Math.abs(tmdbDuration - itemDuration);
+        if (durationDiff <= 5) {
+          score += 30;
+        } else if (durationDiff <= 10) {
+          score += 15;
+        }
+      }
+
+      // IMDb rating similarity (20 points)
+      if (tmdbInfo.vote_average && item.imdbRatingValue) {
+        const ratingDiff = Math.abs(tmdbInfo.vote_average - parseFloat(item.imdbRatingValue));
+        score += Math.max(0, 20 - ratingDiff * 2);
+      }
+
+      console.log(`   ${item.title} (${itemYear}) - Score: ${score}`);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = item;
+      }
+    }
+
+    if (bestMatch && bestScore >= 100) {
+      console.log(`✅ [MovieBox] Best match: "${bestMatch.title}" (Score: ${bestScore})`);
+      return bestMatch;
+    }
+
+    console.log(`⚠️ [MovieBox] No confident match found (best score: ${bestScore})`);
+    return null;
+  }
+
+  async getStreams(subjectId, season = 0, episode = 0) {
+    await this.ensureCookiesAreAssigned();
+
+    const cacheKey = `moviebox:streams:${subjectId}:${season}:${episode}`;
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+
+    try {
+      console.log(`🎬 [MovieBox] Getting streams for ID: ${subjectId} S${season}E${episode}`);
+
+      // Get movie info for referer
+      const infoResponse = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/detail`, {
+        params: { subjectId },
+        headers: {
+          'User-Agent': 'okhttp/4.12.0',
+          'Accept': 'application/json',
+          'Host': this.host
+        }
+      });
+
+      const movieInfo = infoResponse.data?.data || infoResponse.data;
+      const detailPath = movieInfo?.subject?.detailPath;
+
+      if (!detailPath) {
+        throw new Error('Could not get movie detail path');
+      }
+
+      const refererUrl = `https://fmoviesunblocked.net/spa/videoPlayPage/movies/${detailPath}?id=${subjectId}&type=/movie/detail`;
+
+      // Get download links
+      const response = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/download`, {
+        params: {
+          subjectId,
+          se: season,
+          ep: episode
+        },
+        headers: {
+          'User-Agent': 'okhttp/4.12.0',
+          'Accept': 'application/json',
+          'Referer': refererUrl,
+          'Origin': 'https://fmoviesunblocked.net',
+          'X-Forwarded-For': '1.1.1.1',
+          'CF-Connecting-IP': '1.1.1.1',
+          'X-Real-IP': '1.1.1.1',
+          'Host': this.host
+        }
+      });
+
+      const data = response.data?.data || response.data;
+      const downloads = data?.downloads || [];
+
+      console.log(`📥 [MovieBox] Found ${downloads.length} quality options`);
+
+      // Cache the result
+      if (downloads.length > 0) {
+        cacheSet(cacheKey, downloads, CACHE_TTL.STREAMS);
+      }
+
+      return downloads;
+
+    } catch (error) {
+      console.error('❌ [MovieBox] Failed to get streams:', error.message);
+      return [];
+    }
+  }
+
+  async getTmdbInfo(tmdbId, type) {
+    const url = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}?api_key=${this.tmdbApiKey}`;
+
+    try {
+      const response = await axios.get(url);
+      const data = response.data;
+      const title = type === 'tv' ? data.name : data.title;
+      const year = type === 'tv' ? data.first_air_date?.substring(0, 4) : data.release_date?.substring(0, 4);
+      const runtime = type === 'tv' ? data.episode_run_time?.[0] : data.runtime;
+      const vote_average = data.vote_average;
+
+      return { title, year, runtime, vote_average, data };
+    } catch (error) {
+      console.error('❌ [MovieBox] TMDB fetch failed:', error.message);
+      return { title: 'Unknown', year: 'Unknown', runtime: 0, vote_average: 0, data: {} };
+    }
+  }
+}
+
+const movieBoxScraper = new MovieBoxScraper();
+
+
 export default async function handler(req, res) {
   // Configuration CORS
   Object.entries(CORS_HEADERS).forEach(([key, value]) => {
@@ -508,6 +752,141 @@ export default async function handler(req, res) {
         });
       }
       return;
+    }
+
+    // GÉRER MOVIEBOX ICI
+    if (decodedPath === 'moviebox') {
+      console.log('📦 ========== MOVIEBOX START ==========');
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+        console.log('📦 [MovieBox] Query:', { tmdbId, type, season, episode });
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({
+            error: 'Missing required parameters',
+            required: ['tmdbId', 'type']
+          });
+        }
+
+        const finalSeason = season ? parseInt(season) : 0;
+        const finalEpisode = episode ? parseInt(episode) : 0;
+
+        // Step 1: Get TMDB info for title and year
+        console.log(`📦 [MovieBox] Fetching TMDB info for ${type} ${tmdbId}`);
+        const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+
+        if (!tmdbInfo.title || tmdbInfo.title === 'Unknown') {
+          return res.status(404).json({
+            error: 'TMDB content not found',
+            tmdbId,
+            type
+          });
+        }
+
+        console.log(`📦 [MovieBox] TMDB: "${tmdbInfo.title}" (${tmdbInfo.year})`);
+
+        // Step 2: Search MovieBox by title
+        const searchResults = await movieBoxScraper.searchByTitle(
+          tmdbInfo.title,
+          tmdbInfo.year,
+          type
+        );
+
+        if (searchResults.length === 0) {
+          console.log('📦 [MovieBox] No results found');
+          return res.status(200).json({
+            success: true,
+            streams: [],
+            message: 'No MovieBox results found',
+            tmdbInfo: { title: tmdbInfo.title, year: tmdbInfo.year }
+          });
+        }
+
+        // Step 3: Match result using smart algorithm
+        const matchedContent = movieBoxScraper.matchContent(tmdbInfo, searchResults);
+
+        if (!matchedContent) {
+          console.log('📦 [MovieBox] No confident match');
+          return res.status(200).json({
+            success: true,
+            streams: [],
+            message: 'No confident match found',
+            tmdbInfo: { title: tmdbInfo.title, year: tmdbInfo.year },
+            searchResultsCount: searchResults.length
+          });
+        }
+
+        console.log(`📦 [MovieBox] Matched: ${matchedContent.title} (ID: ${matchedContent.subjectId})`);
+
+        // Step 4: Get download links
+        const downloads = await movieBoxScraper.getStreams(
+          matchedContent.subjectId,
+          finalSeason,
+          finalEpisode
+        );
+
+        if (downloads.length === 0) {
+          console.log('📦 [MovieBox] No downloads available');
+          return res.status(200).json({
+            success: true,
+            streams: [],
+            message: 'No download links available',
+            matchedContent: {
+              title: matchedContent.title,
+              year: matchedContent.releaseDate?.substring(0, 4)
+            }
+          });
+        }
+
+        // Step 5: Format response with proxied URLs
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host || 'anisflix.vercel.app';
+        const baseUrl = `${protocol}://${host}`;
+
+        const streams = downloads.map(download => {
+          const quality = download.resolution || 'Unknown';
+          const sizeInMB = download.size ? (parseInt(download.size) / (1024 * 1024)).toFixed(0) : 'Unknown';
+
+          // Create proxy URL for CDN access
+          const proxyUrl = `${baseUrl}/api/moviebox-stream?url=${encodeURIComponent(download.url)}`;
+
+          return {
+            name: `MovieBox VO ${quality}p`,
+            quality: `${quality}p`,
+            url: proxyUrl,
+            directUrl: download.url,
+            size: `${sizeInMB} MB`,
+            type: 'mp4',
+            language: 'VO',
+            provider: 'MovieBox',
+            headers: {
+              'User-Agent': 'okhttp/4.12.0',
+              'Referer': 'https://fmoviesunblocked.net/',
+              'Origin': 'https://fmoviesunblocked.net'
+            }
+          };
+        });
+
+        console.log(`✅ [MovieBox] Returning ${streams.length} quality options`);
+
+        return res.status(200).json({
+          success: true,
+          streams,
+          matchedContent: {
+            title: matchedContent.title,
+            year: matchedContent.releaseDate?.substring(0, 4),
+            movieBoxId: matchedContent.subjectId
+          }
+        });
+
+      } catch (movieBoxError) {
+        console.error('❌ [MovieBox] Handler error:', movieBoxError.message);
+        console.error(movieBoxError.stack);
+        return res.status(500).json({
+          error: 'MovieBox handler failed',
+          details: movieBoxError.message
+        });
+      }
     }
 
     // GÉRER ANIME-API ICI
