@@ -765,11 +765,17 @@ class PlayerViewModel: NSObject, ObservableObject {
         
         updateNowPlayingInfo(title: title)
         
-        // Update Local Media Manager
-        LocalMediaManager.shared.updateStatus(
+        // Update Global Player Manager
+        GlobalPlayerManager.shared.updateLocalStatus(
             isPlaying: isPlaying,
             title: title,
-            artwork: currentArtwork
+            artwork: currentArtwork,
+            url: currentUrl,
+            mediaId: mediaId,
+            season: season,
+            episode: episode,
+            currentTime: currentTime,
+            duration: duration
         )
     }
     
@@ -837,9 +843,10 @@ class PlayerViewModel: NSObject, ObservableObject {
         var finalUrl = url
         var useResourceLoader = false
         
-        // VidMoly Logic: Use ResourceLoader to handle custom headers and Content-Type
-        if url.absoluteString.contains("api/vidmoly") || url.absoluteString.contains("vidmoly.net") {
-            print("🎬 [CustomVideoPlayer] VidMoly URL detected, enabling ResourceLoader")
+        // Resource Loader Logic for Providers requiring custom headers
+        let restrictedProviders = ["api/vidmoly", "vidmoly.net", "vidzy", "afterdark", "voe"]
+        if restrictedProviders.contains(where: { url.absoluteString.contains($0) }) {
+            print("🎬 [CustomVideoPlayer] Restricted provider detected (\(url.host ?? "")), enabling ResourceLoader")
             useResourceLoader = true
             
             // Rewrite scheme to trigger delegate
@@ -1049,6 +1056,19 @@ class PlayerViewModel: NSObject, ObservableObject {
             print("✅ Artwork loaded from local file: \(localPath)")
             
             self.updateNowPlayingInfo()
+            
+            // Update Global Player Manager
+            GlobalPlayerManager.shared.updateLocalStatus(
+                isPlaying: isPlaying,
+                title: currentTitle,
+                artwork: currentArtwork,
+                url: currentUrl,
+                mediaId: mediaId,
+                season: season,
+                episode: episode,
+                currentTime: currentTime,
+                duration: duration
+            )
         } catch {
             print("❌ Failed to load local artwork: \(error)")
         }
@@ -1077,6 +1097,18 @@ class PlayerViewModel: NSObject, ObservableObject {
                 
                 // Force update of Now Playing Info with the new artwork
                 self.updateNowPlayingInfo()
+                
+                // Update Global Player Manager
+                GlobalPlayerManager.shared.updateLocalStatus(
+                    isPlaying: self.isPlaying, // Keep existing isPlaying state
+                    title: self.currentTitle,
+                    artwork: self.currentArtwork,
+                    mediaId: self.mediaId,
+                    season: self.season,
+                    episode: self.episode,
+                    currentTime: self.currentTime,
+                    duration: self.duration
+                )
             }
         } catch {
             print("❌ Failed to download artwork: \(error)")
@@ -1247,16 +1279,8 @@ class PlayerViewModel: NSObject, ObservableObject {
                         print("✅ [Player] Video ready to play, isBuffering = false")
                         self.isBuffering = false
                     } else {
-                        print("⏳ [Player] Buffering..., isBuffering = true")
                         self.isBuffering = true
                     }
-
-                    // Update Local Media Manager with current playing state and artwork
-                    LocalMediaManager.shared.updateStatus(
-                        isPlaying: self.isPlaying, // Use the ViewModel's isPlaying state
-                        title: self.currentTitle,
-                        artwork: self.currentArtwork
-                    )
                 }
             }
         }

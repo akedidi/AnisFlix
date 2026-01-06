@@ -227,6 +227,34 @@ struct MainTabView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $castManager.isMiniPlayerVisibleBindingHack) {
+            // Using a binding hack or observing GlobalPlayerManager directly
+            // Since we need to bind to GlobalPlayerManager.shared.isPresentingPlayer
+            CustomVideoPlayer(
+                url: CastManager.shared.currentMediaUrl ?? URL(string: "https://google.com")!, // Placeholder, will be handled by VM
+                title: GlobalPlayerManager.shared.currentTitle ?? "",
+                posterUrl: nil,
+                localPosterPath: nil,
+                isPresented: $GlobalPlayerManager.shared.isPresentingPlayer,
+                isFullscreen: .constant(true),
+                playerVM: PlayerViewModel() // New VM, will need to load data
+            )
+            .onAppear {
+                // Ensure the player loads the data from GlobalPlayerManager
+                // This is a bit tricky since we're creating a new VM.
+                // We likely need a wrapper view that sets up the VM.
+            }
+        }
+        .onChange(of: GlobalPlayerManager.shared.isPresentingPlayer) { present in
+             // Using GlobalPlayerManager directly in .fullScreenCover
+        }
+    }
+}
+
+// Helper extension to bind ObservableObject property
+extension Binding {
+    static func proxy(_ source: Binding<Value>) -> Binding<Value> {
+        return source
     }
 }
 

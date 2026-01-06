@@ -9,19 +9,15 @@ import SwiftUI
 
 /// A persistent mini player that appears when casting to Chromecast
 struct CastMiniPlayerView: View {
-    @ObservedObject private var castManager = CastManager.shared
-    @ObservedObject private var localMediaManager = LocalMediaManager.shared
+    @ObservedObject private var globalManager = GlobalPlayerManager.shared
     @Binding var showControlSheet: Bool
     
     var body: some View {
-        // Show if casting OR if local media is playing (and not casting)
-        let showCast = castManager.isConnected && castManager.hasMediaLoaded
-        let showLocal = !castManager.isConnected && localMediaManager.hasMedia
-        
-        if showCast || showLocal {
+        // Show if there is ANY media loaded (Cast or Local)
+        if globalManager.hasMedia {
             HStack(spacing: 12) {
                 // Artwork
-                if let artwork = (showCast ? castManager.currentArtwork : localMediaManager.currentArtwork) {
+                if let artwork = globalManager.currentArtwork {
                     Image(uiImage: artwork)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -38,15 +34,15 @@ struct CastMiniPlayerView: View {
                         )
                 }
                 
-                // Title & Device
+                // Title & Device (or Local)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text((showCast ? castManager.currentTitle : localMediaManager.currentTitle) ?? "Lecture en cours...")
+                    Text(globalManager.currentTitle ?? "Lecture en cours...")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                         .lineLimit(1)
                     
-                    Text(showCast ? "Sur \(castManager.deviceName ?? "Chromecast")" : "Sur cet iPhone")
+                    Text(globalManager.isCasting ? "Sur \(CastManager.shared.deviceName ?? "Chromecast")" : "Sur cet iPhone")
                         .font(.caption)
                         .foregroundColor(.gray)
                 }
@@ -55,23 +51,9 @@ struct CastMiniPlayerView: View {
                 
                 // Play/Pause Button
                 Button {
-                    if showCast {
-                        if castManager.isPlaying || castManager.isBuffering {
-                            castManager.pause()
-                        } else {
-                            castManager.play()
-                        }
-                    } else {
-                        // Local Control via Notification
-                        // We can't access player directly from here easily without coupling
-                        // But we can post a notification that CustomVideoPlayer listens to
-                        // Or we can just use the togglePlayPause if we had access to VM
-                        // For now, let's use a notification approach or just show status
-                        // Since CustomVideoPlayer is alive, we can post a notification
-                         NotificationCenter.default.post(name: NSNotification.Name("TogglePlayPause"), object: nil)
-                    }
+                    globalManager.togglePlayPause()
                 } label: {
-                    Image(systemName: (showCast ? (castManager.isPlaying || castManager.isBuffering) : localMediaManager.isPlaying) ? "pause.fill" : "play.fill")
+                    Image(systemName: globalManager.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 20))
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
@@ -90,13 +72,11 @@ struct CastMiniPlayerView: View {
             .padding(.horizontal, 16)
             .contentShape(Rectangle())
             .onTapGesture {
-                if showCast {
+                if globalManager.isCasting {
                     showControlSheet = true
                 } else {
-                    // Navigate to player? Or just show controls?
-                    // If we are locals, we are likely already on the page or navigated away
-                    // If navigated away, we can't easily pop back without navigation path access
-                    // For now, let's just allow play/pause
+                    // Local: Open Global Player
+                    globalManager.isPresentingPlayer = true
                 }
             }
         }
