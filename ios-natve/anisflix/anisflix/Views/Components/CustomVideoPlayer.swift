@@ -714,6 +714,14 @@ class PlayerViewModel: NSObject, ObservableObject {
             name: .stopPlayback,
             object: nil
         )
+        
+        // Listen for TogglePlayPause (from MiniPlayer)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTogglePlayPause(_:)),
+            name: NSNotification.Name("TogglePlayPause"),
+            object: nil
+        )
     }
     
     deinit {
@@ -729,6 +737,11 @@ class PlayerViewModel: NSObject, ObservableObject {
                 isPlaying = false
             }
         }
+    }
+    
+    @objc private func handleTogglePlayPause(_ notification: Notification) {
+        print("⏯️ Received via notification: Toggle Play/Pause")
+        playerVM.togglePlayPause()
     }
     
     func updateMetadata(title: String, posterUrl: String?, localPosterPath: String? = nil) {
@@ -751,6 +764,13 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         updateNowPlayingInfo(title: title)
+        
+        // Update Local Media Manager
+        LocalMediaManager.shared.updateStatus(
+            isPlaying: isPlaying,
+            title: title,
+            artwork: currentArtwork
+        )
     }
     
     // Trakt Scrobbling Helper
@@ -1231,6 +1251,13 @@ class PlayerViewModel: NSObject, ObservableObject {
                         print("⏳ [Player] Buffering..., isBuffering = true")
                         self.isBuffering = true
                     }
+
+                    // Update Local Media Manager with current playing state and artwork
+                    LocalMediaManager.shared.updateStatus(
+                        isPlaying: self.isPlaying, // Use the ViewModel's isPlaying state
+                        title: self.currentTitle,
+                        artwork: self.currentArtwork
+                    )
                 }
             }
         }
