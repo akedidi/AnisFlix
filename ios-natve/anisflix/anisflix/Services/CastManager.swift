@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import MediaPlayer
 #if canImport(GoogleCast)
 import GoogleCast
 
@@ -408,6 +409,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     private func handleSessionConnection(session: GCKSession) {
         print("🚨 [CastManager] handleSessionConnection called")
+        setupRemoteCommands() // Enable Lock Screen
         isConnected = true
         isConnecting = false
         deviceName = session.device.friendlyName
@@ -580,6 +582,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     func sessionManager(_ sessionManager: GCKSessionManager, didEnd session: GCKSession, withError error: Error?) {
         print("❌ [CastManager] Cast Session Ended. Error: \(error?.localizedDescription ?? "None")")
+        clearRemoteCommands() // Disable Lock Screen
         isConnected = false
         isConnecting = false
         deviceName = nil
@@ -880,7 +883,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         }
         
         // If url is nil or not found, disable subtitles
-        print("📢 [CastManager] Disabling subtitles (target not found or nil)")
+        print("📢 [CastManager] Disabling subtitles")
         remoteMediaClient.setActiveTrackIDs([])
     }
     
@@ -902,35 +905,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         remoteMediaClient.setTextTrackStyle(textTrackStyle)
     }
     
-    // Get currently active subtitle based on active tracks
-    func getActiveSubtitle() -> Subtitle? {
-        guard let session = sessionManager?.currentCastSession,
-              let remoteMediaClient = session.remoteMediaClient,
-              let activeTrackIDs = remoteMediaClient.mediaStatus?.activeTrackIDs as? [NSNumber],
-              let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks else {
-            return nil
-        }
-        
-        // Find the active track ID
-        for trackIdValue in activeTrackIDs {
-             if let track = tracks.first(where: { $0.identifier == trackIdValue.intValue && $0.type == .text }) {
-                 // Found active text track
-                 let contentId = track.contentIdentifier
-                 print("🔍 [CastManager] Active active text track: \(track.name ?? "Unknown") (ID: \(contentId ?? "nil"))")
-                 
-                 // Decode contentId (proxy URL) to find original URL
-                 // Format: https://anisflix.vercel.app/api/media-proxy?type=subtitle&url=<ENCODED_URL>...
-                 if let contentId = contentId, let components = URLComponents(string: contentId),
-                    let items = components.queryItems,
-                    let originalUrl = items.first(where: { $0.name == "url" })?.value {
-                     
-                     // Find matching subtitle in currentSubtitles
-                     return currentSubtitles.first { $0.url == originalUrl }
-                 }
-             }
-        }
-        return nil
-    }
+
     
     // MARK: - GCKRemoteMediaClientListener
     
@@ -1008,6 +983,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             // Also update local session state for crash recovery
             saveSessionState()
         }
+        updateNowPlayingInfo()
     }
     
     // MARK: - Device Discovery
@@ -1129,6 +1105,129 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             return nil
         }
     }
+    
+    // Get currently active subtitle based on active tracks
+    func getActiveSubtitle() -> Subtitle? {
+        guard let session = sessionManager?.currentCastSession,
+              let remoteMediaClient = session.remoteMediaClient,
+              let activeTrackIDs = remoteMediaClient.mediaStatus?.activeTrackIDs as? [NSNumber],
+              let tracks = remoteMediaClient.mediaStatus?.mediaInformation?.mediaTracks else {
+            return nil
+        }
+        
+        // Find the active track ID
+        for trackIdValue in activeTrackIDs {
+             if let track = tracks.first(where: { $0.identifier == trackIdValue.intValue && $0.type == .text }) {
+                 // Found active text track
+                 let contentId = track.contentIdentifier
+                 
+                 // Decode contentId (proxy URL) to find original URL
+                 if let contentId = contentId, let components = URLComponents(string: contentId),
+                    let items = components.queryItems,
+                    let originalUrl = items.first(where: { $0.name == "url" })?.value {
+                     
+                     // Find matching subtitle in currentSubtitles
+                     return currentSubtitles.first { $0.url == originalUrl }
+                 }
+             }
+        }
+        return nil
+    }
+
+    func setupRemoteCommands() {
+        print("🔒 [CastManager] Setting up Lock Screen Controls")
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // Play
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            print("🔒 [LockScreen] Play command received")
+            self?.play()
+            return .success
+        }
+        
+        // Pause
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            print("🔒 [LockScreen] Pause command received")
+            self?.pause()
+            return .success
+        }
+        
+        // Seek Forward (skip 15s)
+        commandCenter.skipForwardCommand.preferredIntervals = [15]
+        commandCenter.skipForwardCommand.isEnabled = true
+        commandCenter.skipForwardCommand.addTarget { [weak self] _ in
+            guard let self = self else { return .commandFailed }
+            print("🔒 [LockScreen] Skip Forward 15s")
+            let newTime = (self.mediaStatus?.streamPosition ?? 0) + 15
+            self.seek(to: newTime)
+            return .success
+        }
+        
+        // Seek Backward (skip 15s)
+        commandCenter.skipBackwardCommand.preferredIntervals = [15]
+        commandCenter.skipBackwardCommand.isEnabled = true
+        commandCenter.skipBackwardCommand.addTarget { [weak self] _ in
+            guard let self = self else { return .commandFailed }
+            print("🔒 [LockScreen] Skip Backward 15s")
+            let newTime = max(0, (self.mediaStatus?.streamPosition ?? 0) - 15)
+            self.seek(to: newTime)
+            return .success
+        }
+        
+        // Scrubbing / Seek bar
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self = self, let positionEvent = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            print("🔒 [LockScreen] Seek to \(positionEvent.positionTime)")
+            self.seek(to: positionEvent.positionTime)
+            return .success
+        }
+    }
+    
+    func clearRemoteCommands() {
+        print("🔒 [CastManager] Clearing Lock Screen Controls")
+        let commandCenter = MPRemoteCommandCenter.shared()
+        commandCenter.playCommand.isEnabled = false
+        commandCenter.playCommand.removeTarget(nil)
+        
+        commandCenter.pauseCommand.isEnabled = false
+        commandCenter.pauseCommand.removeTarget(nil)
+        
+        commandCenter.skipForwardCommand.isEnabled = false
+        commandCenter.skipForwardCommand.removeTarget(nil)
+        
+        commandCenter.skipBackwardCommand.isEnabled = false
+        commandCenter.skipBackwardCommand.removeTarget(nil)
+        
+        commandCenter.changePlaybackPositionCommand.isEnabled = false
+        commandCenter.changePlaybackPositionCommand.removeTarget(nil)
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+    
+    func updateNowPlayingInfo() {
+        var nowPlayingInfo = [String: Any]()
+        
+        nowPlayingInfo[MPMediaItemPropertyTitle] = currentTitle
+        
+        // Artwork
+        if let image = currentArtwork {
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+        }
+        
+        // Duration & Progress
+        let duration = mediaStatus?.mediaInformation?.streamDuration ?? 0
+        let currentTime = mediaStatus?.streamPosition ?? 0
+        let rate = (mediaStatus?.playerState == .playing) ? 1.0 : 0.0
+        
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = rate
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
 }
 
 extension CastManager: GCKDiscoveryManagerListener {}
@@ -1204,5 +1303,15 @@ class CastManager: NSObject, ObservableObject {
     func updateSubtitleConfig(activeUrl: String?, offset: Double) {
         print("⚠️ [DummyCastManager] updateSubtitleConfig called")
     }
+    
+    func setupRemoteCommands() {}
+    func clearRemoteCommands() {}
+    func updateNowPlayingInfo() {}
 }
 #endif
+
+// MARK: - Lock Screen & Control Center
+
+    
+
+

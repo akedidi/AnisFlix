@@ -8,7 +8,7 @@
 import Foundation
 
 /// Modèle pour un média (film ou série)
-struct Media: Identifiable, Codable {
+struct Media: Identifiable, Codable, Hashable {
     let id: Int
     let title: String
     let overview: String?
@@ -21,7 +21,7 @@ struct Media: Identifiable, Codable {
     let originalLanguage: String?
     let releaseDate: String?
     
-    enum MediaType: String, Codable {
+    enum MediaType: String, Codable, Hashable {
         case movie = "movie"
         case series = "tv"
     }

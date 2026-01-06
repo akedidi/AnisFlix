@@ -847,8 +847,8 @@ export default async function handler(req, res) {
           const quality = download.resolution || 'Unknown';
           const sizeInMB = download.size ? (parseInt(download.size) / (1024 * 1024)).toFixed(0) : 'Unknown';
 
-          // Create proxy URL for CDN access
-          const proxyUrl = `${baseUrl}/api/moviebox-stream?url=${encodeURIComponent(download.url)}`;
+          // Create proxy URL for CDN access (integrated in movix-proxy)
+          const proxyUrl = `${baseUrl}/api/movix-proxy?path=moviebox-stream&url=${encodeURIComponent(download.url)}`;
 
           return {
             name: `MovieBox VO ${quality}p`,
@@ -886,6 +886,102 @@ export default async function handler(req, res) {
           error: 'MovieBox handler failed',
           details: movieBoxError.message
         });
+      }
+    }
+
+    // GÉRER MOVIEBOX-STREAM PROXY ICI
+    if (decodedPath === 'moviebox-stream') {
+      try {
+        const { url: videoUrl } = queryParams;
+
+        if (!videoUrl) {
+          return res.status(400).json({ error: 'Missing url parameter' });
+        }
+
+        // Validate URL is from MovieBox CDN
+        if (!videoUrl.startsWith('https://bcdnw.hakunaymatata.com/') &&
+          !videoUrl.startsWith('https://bcdnxw.hakunaymatata.com/') &&
+          !videoUrl.startsWith('https://valiw.hakunaymatata.com/')) {
+          return res.status(400).json({ error: 'Invalid CDN URL' });
+        }
+
+        console.log(`📦 [MovieBox Stream] Proxying: ${videoUrl.substring(0, 80)}...`);
+
+        // Check for range request (seeking support)
+        const range = req.headers.range;
+
+        // Request configuration with proper CDN headers
+        const config = {
+          method: 'GET',
+          url: videoUrl,
+          headers: {
+            'User-Agent': 'okhttp/4.12.0',
+            'Referer': 'https://fmoviesunblocked.net/',
+            'Origin': 'https://fmoviesunblocked.net',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Connection': 'keep-alive'
+          },
+          responseType: 'stream',
+          timeout: 0, // No timeout for large files
+          validateStatus: (status) => status < 500
+        };
+
+        // Add range header if present (for seeking)
+        if (range) {
+          config.headers['Range'] = range;
+          console.log(`📦 [MovieBox Stream] Range request: ${range}`);
+        }
+
+        const response = await axios(config);
+
+        // Forward status code
+        res.status(response.status);
+
+        // Forward important headers
+        const headersToForward = [
+          'content-type',
+          'content-length',
+          'content-range',
+          'accept-ranges',
+          'cache-control',
+          'etag',
+          'last-modified'
+        ];
+
+        headersToForward.forEach(header => {
+          if (response.headers[header]) {
+            res.setHeader(header, response.headers[header]);
+          }
+        });
+
+        // Ensure CORS on response
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+        // Pipe the video stream
+        response.data.on('error', (error) => {
+          console.error('📦 [MovieBox Stream] Stream error:', error.message);
+        });
+
+        res.on('close', () => {
+          console.log('📦 [MovieBox Stream] Client closed connection');
+          if (response.data && response.data.destroy) {
+            response.data.destroy();
+          }
+        });
+
+        response.data.pipe(res);
+        return;
+
+      } catch (streamError) {
+        console.error('📦 [MovieBox Stream] Proxy error:', streamError.message);
+
+        if (!res.headersSent) {
+          return res.status(502).json({
+            error: 'Stream proxy failed',
+            details: streamError.message
+          });
+        }
       }
     }
 

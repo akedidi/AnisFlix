@@ -69,8 +69,6 @@ class CustomSceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         
-
-        
         // Create our custom hosting controller with the root view
         let rootView = RootContentView()
         let hostingController = HomeIndicatorHostingController(rootView: rootView)
@@ -79,8 +77,6 @@ class CustomSceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.rootViewController = hostingController
         window?.makeKeyAndVisible()
     }
-    
-
 }
 
 /// Custom UIHostingController that properly propagates home indicator preferences
@@ -167,9 +163,10 @@ struct RootContentView: View {
                         .preferredColorScheme(theme.isDarkMode ? .dark : .light)
                         .transition(.opacity)
                     
-                    // Cast Mini Player (for session recovery when app launches with active Cast)
+                    // Persistent Cast Mini Player
                     CastMiniPlayerView(showControlSheet: $showCastSheet)
-                        .padding(.bottom, 80) // Above tab bar
+                        .padding(.bottom, 90) // Sit above Custom TabBar (approx 50 + safe area)
+                        .transition(.move(edge: .bottom))
                 }
             }
         }
