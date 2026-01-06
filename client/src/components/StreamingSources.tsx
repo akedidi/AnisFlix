@@ -6,6 +6,7 @@ import { useVidMolyLinks } from '@/hooks/useWiFlix';
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
+import { useMovieBox } from '@/hooks/useMovieBox';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -99,6 +100,7 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
+  const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
@@ -323,6 +325,10 @@ const StreamingSources = memo(function StreamingSources({
     // Vérifier Vixsrc (VO uniquement)
     if (language === 'VO') {
       if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
+        return true;
+      }
+      // Vérifier MovieBox (VO uniquement)
+      if (movieBoxData && movieBoxData.success && movieBoxData.streams && movieBoxData.streams.length > 0) {
         return true;
       }
     }
@@ -763,6 +769,24 @@ const StreamingSources = memo(function StreamingSources({
         type: 'm3u8' as const,
         player: 'vixsrc',
         isVixsrc: true,
+        sourceKey: 'VO',
+        quality: stream.quality,
+        language: 'VO'
+      });
+    });
+  }
+
+  // Ajouter les sources MovieBox (VO uniquement)
+  if (selectedLanguage === 'VO' && movieBoxData && movieBoxData.success && movieBoxData.streams) {
+    console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
+    movieBoxData.streams.forEach((stream: any, index: number) => {
+      allSources.push({
+        id: `moviebox-${index}`,
+        name: `${stream.name} - ${stream.size}`,
+        provider: 'moviebox',
+        url: stream.url,
+        type: 'mp4' as const,
+        player: 'moviebox',
         sourceKey: 'VO',
         quality: stream.quality,
         language: 'VO'
