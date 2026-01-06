@@ -91,29 +91,39 @@ struct StreamingSourcesView: View {
     
     // Helper function to format quality display based on provider
     private func displayQuality(for source: StreamingSource) -> String {
+        print("🔍 [displayQuality] Provider: '\(source.provider)', Quality: '\(source.quality)', Type: '\(source.type)'")
+        
         let streamingProviders = ["vidzy", "vidmoly", "vixsrc", "primewire", "2embed", "afterdark"]
         
         if streamingProviders.contains(source.provider.lowercased()) {
-            // For streaming providers, show HD as default
+            print("   ➡️ Streaming provider detected, returning HD")
             return "HD"
         } else if source.provider.lowercased() == "movix" || source.provider.lowercased() == "moviebox" {
-            // For Movix and MovieBox download sources, show actual quality (4K, 1080p, 360p, etc.)
+            print("   ➡️ MovieBox/Movix provider detected!")
             let quality = source.quality.uppercased()
+            print("   Quality uppercased: '\(quality)'")
+            
             if quality.contains("4K") || quality.contains("2160") {
+                print("   ➡️ Returning 4K")
                 return "4K"
             } else if quality.contains("1080") {
+                print("   ➡️ Returning 1080p")
                 return "1080p"
             } else if quality.contains("720") {
+                print("   ➡️ Returning 720p")
                 return "720p"
             } else if quality.contains("480") {
+                print("   ➡️ Returning 480p")
                 return "480p"
             } else if quality.contains("360") {
+                print("   ➡️ Returning 360p")
                 return "360p"
             } else {
+                print("   ➡️ Returning original quality: '\(source.quality)'")
                 return source.quality
             }
         } else {
-            // Fallback to original quality
+            print("   ➡️ Unknown provider, returning original quality: '\(source.quality)'")
             return source.quality
         }
     }

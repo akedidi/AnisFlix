@@ -782,9 +782,9 @@ const StreamingSources = memo(function StreamingSources({
     movieBoxData.streams.forEach((stream: any, index: number) => {
       allSources.push({
         id: `moviebox-${index}`,
-        name: `${stream.name} - ${stream.size}`,
+        name: `MovieBox ${stream.quality} - ${stream.size}`,  // Format: "MovieBox 720p - 2.9 GB"
         provider: 'moviebox',
-        url: stream.url,
+        url: stream.url,  // Already proxied URL
         type: 'mp4' as const,
         player: 'moviebox',
         sourceKey: 'VO',

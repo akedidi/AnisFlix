@@ -938,7 +938,10 @@ class StreamingService {
             var sources: [StreamingSource] = []
             
             if let streams = decoded.streams {
+                print("📦 [MovieBox] Creating \(streams.count) sources")
                 for (index, stream) in streams.enumerated() {
+                    print("📦 [MovieBox] Source #\(index): quality='\(stream.quality)', type='\(stream.type)', provider='\(stream.provider)'")
+                    
                     // MovieBox provides download links, all in VO
                     let source = StreamingSource(
                         id: "moviebox_\(tmdbId)_\(stream.quality)_\(index)",  // Unique ID per source
@@ -948,10 +951,13 @@ class StreamingService {
                         provider: "moviebox",
                         language: "VO"  // All MovieBox sources are VO
                     )
+                    
+                    print("📦 [MovieBox] Created source with ID: \(source.id), provider: '\(source.provider)', quality: '\(source.quality)'")
                     sources.append(source)
                 }
             }
             
+            print("📦 [MovieBox] Returning \(sources.count) total sources")
             return sources
         } catch {
             print("❌ [MovieBox] Error fetching/decoding: \(error)")
