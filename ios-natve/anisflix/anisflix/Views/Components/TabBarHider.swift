@@ -14,9 +14,18 @@ struct TabBarHider: UIViewControllerRepresentable {
         // Use async to ensure hierarchy is established
         DispatchQueue.main.async {
             guard let tabBarController = uiViewController.tabBarController else { return }
-            // Only update if state is different to avoid side effects
-            if tabBarController.tabBar.isHidden != shouldHide {
-                tabBarController.tabBar.isHidden = shouldHide
+            
+            // Force hide/show with animation for reliability
+            if shouldHide && !tabBarController.tabBar.isHidden {
+                UIView.animate(withDuration: 0.2) {
+                    tabBarController.tabBar.alpha = 0
+                }
+                tabBarController.tabBar.isHidden = true
+            } else if !shouldHide && tabBarController.tabBar.isHidden {
+                tabBarController.tabBar.isHidden = false
+                UIView.animate(withDuration: 0.2) {
+                    tabBarController.tabBar.alpha = 1
+                }
             }
         }
     }
