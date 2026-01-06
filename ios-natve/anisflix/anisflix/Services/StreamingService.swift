@@ -938,9 +938,10 @@ class StreamingService {
             var sources: [StreamingSource] = []
             
             if let streams = decoded.streams {
-                for stream in streams {
+                for (index, stream) in streams.enumerated() {
                     // MovieBox provides download links, all in VO
                     let source = StreamingSource(
+                        id: "moviebox_\(tmdbId)_\(stream.quality)_\(index)",  // Unique ID per source
                         url: stream.url,
                         quality: stream.quality,
                         type: stream.type,
