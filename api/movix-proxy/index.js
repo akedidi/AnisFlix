@@ -754,6 +754,16 @@ export default async function handler(req, res) {
     // GÉRER MOVIEBOX ICI
     if (decodedPath === 'moviebox') {
       console.log('📦 ========== MOVIEBOX START ==========');
+
+      // Quick health check response
+      if (queryParams.test === 'ping') {
+        return res.status(200).json({
+          success: true,
+          message: 'MovieBox handler is reachable',
+          timestamp: new Date().toISOString()
+        });
+      }
+
       try {
         const { tmdbId, type, season, episode } = queryParams;
         console.log('📦 [MovieBox] Query:', { tmdbId, type, season, episode });
