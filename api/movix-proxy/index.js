@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
@@ -283,8 +285,6 @@ class MovieBoxScraper {
     this.sessionInfo = null;
 
     // Create axios instance with cookie jar support
-    const { wrapper } = require('axios-cookiejar-support');
-    const { CookieJar } = require('tough-cookie');
     this.jar = new CookieJar();
     this.axiosInstance = wrapper(axios.create({
       jar: this.jar,
