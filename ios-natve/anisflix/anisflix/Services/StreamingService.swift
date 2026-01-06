@@ -557,12 +557,17 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
+        // Add MovieBox sources
+        if let movieBox = movieBox {
+            allSources.append(contentsOf: movieBox)
+        }
+        
         if let fstream = fstream {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "darkibox" and "animeapi")
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" }
+        // Filter for allowed providers (added "darkibox", "animeapi", and "moviebox")
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
