@@ -343,20 +343,21 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add TMDB sources FIRST (includes Vidzy)
+        // Add MovieBox sources FIRST (highest priority - VO download links)
+        if let movieBox = movieBox {
+            allSources.append(contentsOf: movieBox)
+        }
+        
+        // Add TMDB sources (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add Movix/Darkibox Download sources second
+        // Add Movix/Darkibox Download sources
         allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
             allSources.append(contentsOf: universalVO)
-        }
-        
-        if let movieBox = movieBox {
-            allSources.append(contentsOf: movieBox)
         }
         
         // Add AfterDark sources
@@ -375,7 +376,7 @@ class StreamingService {
             allSources.append(contentsOf: animeSources)
         }
         
-        // Filter for allowed providers (added "darkibox" and "animeapi")
+        // Filter for allowed providers
         return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" }
     }
     
@@ -535,15 +536,20 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Anime sources FIRST (High Priority for VidMoly)
+        // Add MovieBox sources FIRST (highest priority - VO download links)
+        if let movieBox = movieBox {
+            allSources.append(contentsOf: movieBox)
+        }
+        
+        // Add Anime sources (High Priority for VidMoly)
         allSources.append(contentsOf: animeSources)
         
-        // Add TMDB sources FIRST (includes Vidzy)
+        // Add TMDB sources (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add Movix/Darkibox Download sources second
+        // Add Movix/Darkibox Download sources
         allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
@@ -557,16 +563,11 @@ class StreamingService {
             allSources.append(contentsOf: vixsrc)
         }
         
-        // Add MovieBox sources
-        if let movieBox = movieBox {
-            allSources.append(contentsOf: movieBox)
-        }
-        
         if let fstream = fstream {
             allSources.append(contentsOf: fstream)
         }
         
-        // Filter for allowed providers (added "darkibox", "animeapi", and "moviebox")
+        // Filter for allowed providers
         return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" }
     }
     
