@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { wrapper } from 'axios-cookiejar-support';
-import { CookieJar } from 'tough-cookie';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
@@ -281,23 +279,14 @@ class MovieBoxScraper {
     this.host = 'h5.aoneroom.com';
     this.baseUrl = `https://${this.host}`;
     this.tmdbApiKey = "68e094699525b18a70bab2f86b1fa706";
-    this.cookiesInitialized = false;
-    this.sessionInfo = null;
-
-    // Create axios instance with cookie jar support
-    this.jar = new CookieJar();
-    this.axiosInstance = wrapper(axios.create({
-      jar: this.jar,
-      withCredentials: true,
-      timeout: 30000
-    }));
+    this.sessionCookie = null; // Store cookie as string
   }
 
   async ensureCookiesAreAssigned() {
-    if (!this.cookiesInitialized) {
+    if (!this.sessionCookie) {
       try {
         console.log('📦 [MovieBox] Initializing session cookies...');
-        const response = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/app/get-latest-app-pkgs?app_name=moviebox`, {
+        const response = await axios.get(`${this.baseUrl}/wefeed-h5-bff/app/get-latest-app-pkgs?app_name=moviebox`, {
           headers: {
             'X-Client-Info': '{"timezone":"Africa/Nairobi"}',
             'Accept-Language': 'en-US,en;q=0.5',
@@ -310,15 +299,35 @@ class MovieBoxScraper {
           }
         });
 
-        this.sessionInfo = response.data?.data || response.data;
-        this.cookiesInitialized = true;
-        console.log('✅ [MovieBox] Session initialized');
+        // Extract Set-Cookie header
+        const setCookie = response.headers['set-cookie'];
+        if (setCookie && setCookie.length > 0) {
+          // Store first cookie (account cookie)
+          this.sessionCookie = setCookie[0].split(';')[0];
+          console.log('✅ [MovieBox] Session initialized');
+        }
 
       } catch (error) {
         console.error('❌ [MovieBox] Failed to initialize session:', error.message);
         throw error;
       }
     }
+  }
+
+  getHeaders() {
+    const headers = {
+      'X-Client-Info': '{"timezone":"Africa/Nairobi"}',
+      'Accept': 'application/json',
+      'User-Agent': 'okhttp/4.12.0',
+      'Content-Type': 'application/json',
+      'Host': this.host
+    };
+
+    if (this.sessionCookie) {
+      headers['Cookie'] = this.sessionCookie;
+    }
+
+    return headers;
   }
 
   async searchByTitle(title, year, type = 'movie') {
@@ -331,19 +340,13 @@ class MovieBoxScraper {
     try {
       console.log(`🔍 [MovieBox] Searching: "${title}" (${year})`);
 
-      const response = await this.axiosInstance.post(`${this.baseUrl}/wefeed-h5-bff/web/subject/search`, {
+      const response = await axios.post(`${this.baseUrl}/wefeed-h5-bff/web/subject/search`, {
         keyword: title,
         page: 1,
         perPage: 24,
         subjectType: type === 'movie' ? 1 : 2
       }, {
-        headers: {
-          'X-Client-Info': '{"timezone":"Africa/Nairobi"}',
-          'Accept': 'application/json',
-          'User-Agent': 'okhttp/4.12.0',
-          'Content-Type': 'application/json',
-          'Host': this.host
-        }
+        headers: this.getHeaders()
       });
 
       const results = response.data?.data?.items || [];
@@ -440,13 +443,9 @@ class MovieBoxScraper {
       console.log(`🎬 [MovieBox] Getting streams for ID: ${subjectId} S${season}E${episode}`);
 
       // Get movie info for referer
-      const infoResponse = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/detail`, {
+      const infoResponse = await axios.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/detail`, {
         params: { subjectId },
-        headers: {
-          'User-Agent': 'okhttp/4.12.0',
-          'Accept': 'application/json',
-          'Host': this.host
-        }
+        headers: this.getHeaders()
       });
 
       const movieInfo = infoResponse.data?.data || infoResponse.data;
@@ -459,22 +458,20 @@ class MovieBoxScraper {
       const refererUrl = `https://fmoviesunblocked.net/spa/videoPlayPage/movies/${detailPath}?id=${subjectId}&type=/movie/detail`;
 
       // Get download links
-      const response = await this.axiosInstance.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/download`, {
+      const headers = this.getHeaders();
+      headers['Referer'] = refererUrl;
+      headers['Origin'] = 'https://fmoviesunblocked.net';
+      headers['X-Forwarded-For'] = '1.1.1.1';
+      headers['CF-Connecting-IP'] = '1.1.1.1';
+      headers['X-Real-IP'] = '1.1.1.1';
+
+      const response = await axios.get(`${this.baseUrl}/wefeed-h5-bff/web/subject/download`, {
         params: {
           subjectId,
           se: season,
           ep: episode
         },
-        headers: {
-          'User-Agent': 'okhttp/4.12.0',
-          'Accept': 'application/json',
-          'Referer': refererUrl,
-          'Origin': 'https://fmoviesunblocked.net',
-          'X-Forwarded-For': '1.1.1.1',
-          'CF-Connecting-IP': '1.1.1.1',
-          'X-Real-IP': '1.1.1.1',
-          'Host': this.host
-        }
+        headers
       });
 
       const data = response.data?.data || response.data;
