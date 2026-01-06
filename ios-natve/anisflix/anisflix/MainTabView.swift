@@ -24,6 +24,9 @@ struct MainTabView: View {
     // State to control CustomTabBar visibility (e.g. for fullscreen)
     @State private var isTabBarHidden = false
     
+    // State for Cast Control Sheet
+    @State private var showCastControlSheet = false
+    
     // Count of downloads in progress or waiting
     var activeDownloadsCount: Int {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
@@ -193,16 +196,29 @@ struct MainTabView: View {
             
             // Custom Floating Tab Bar with dark blur
             if !isTabBarHidden {
-                CustomTabBar(
-                    selectedTab: $selectedTab,
-                    theme: theme,
-                    activeDownloadsCount: activeDownloadsCount,
-                    onTabDoubleTap: { tabIndex in
-                        popToRoot(tabIndex: tabIndex)
-                    }
-                )
+                VStack(spacing: 0) {
+                    Spacer()
+                    
+                    // Mini Player (Above Tab Bar)
+                    CastMiniPlayerView(showControlSheet: $showCastControlSheet)
+                        .padding(.bottom, 10)
+                        
+                    CustomTabBar(
+                        selectedTab: $selectedTab,
+                        theme: theme,
+                        activeDownloadsCount: activeDownloadsCount,
+                        onTabDoubleTap: { tabIndex in
+                            popToRoot(tabIndex: tabIndex)
+                        }
+                    )
+                }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .sheet(isPresented: $showCastControlSheet) {
+            CastControlSheet()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ToggleTabBarVisibility"))) { notification in
             if let shouldHide = notification.object as? Bool {
