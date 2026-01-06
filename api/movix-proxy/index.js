@@ -274,6 +274,7 @@ class VixSrcScraper {
 const vixsrcScraper = new VixSrcScraper();
 
 // ===== MOVIEBOX SCRAPER CLASS =====
+// Version: 1.0.1 - Serverless compatible
 class MovieBoxScraper {
   constructor() {
     this.host = 'h5.aoneroom.com';
