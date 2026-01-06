@@ -856,6 +856,10 @@ class PlayerViewModel: NSObject, ObservableObject {
         ]
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
+        // Show loading spinner while video loads
+        isBuffering = true
+        print("⏳ [Player] Loading started, isBuffering = true")
+        
         if useResourceLoader {
             self.resourceLoaderDelegate = VideoResourceLoaderDelegate()
             asset.resourceLoader.setDelegate(self.resourceLoaderDelegate, queue: .main)
@@ -881,6 +885,9 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Observe duration
         observedItem = item
         item.addObserver(self, forKeyPath: "duration", options: [.new, .initial], context: nil)
+        
+        // Observe playbackLikelyToKeepUp to detect when buffering ends
+        item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.new, .initial], context: nil)
         
         // Observe time
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
@@ -1094,6 +1101,7 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Only remove observer if we actually added one
         if let item = observedItem {
             item.removeObserver(self, forKeyPath: "duration")
+            item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
             observedItem = nil
         }
         resourceLoaderDelegate = nil
@@ -1200,6 +1208,21 @@ class PlayerViewModel: NSObject, ObservableObject {
         if keyPath == "duration", let duration = player.currentItem?.duration.seconds, !duration.isNaN {
             DispatchQueue.main.async {
                 self.duration = duration
+            }
+        }
+        
+        // Handle buffering state
+        if keyPath == "playbackLikelyToKeepUp" {
+            if let item = player.currentItem {
+                DispatchQueue.main.async {
+                    if item.isPlaybackLikelyToKeepUp {
+                        print("✅ [Player] Video ready to play, isBuffering = false")
+                        self.isBuffering = false
+                    } else {
+                        print("⏳ [Player] Buffering..., isBuffering = true")
+                        self.isBuffering = true
+                    }
+                }
             }
         }
     }
