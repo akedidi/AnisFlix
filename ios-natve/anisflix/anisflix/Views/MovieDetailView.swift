@@ -712,20 +712,21 @@ struct MovieDetailView: View {
     private func getSourceDisplayText(source: StreamingSource, filteredSources: [StreamingSource]) -> String {
         let providerIndex = (filteredSources.filter { $0.provider == source.provider }.firstIndex(where: { $0.url == source.url }) ?? 0) + 1
         
-        // For Movix/Darkibox sources, show quality + language
-        if source.provider.lowercased() == "movix" || source.provider.lowercased() == "darkibox" {
+        // For Movix/Darkibox/MovieBox sources, show quality + language
+        if source.provider.lowercased() == "movix" || source.provider.lowercased() == "darkibox" || source.provider.lowercased() == "moviebox" {
             let quality = formatQualityDisplay(source.quality)
             let sameSources = filteredSources.filter { $0.provider == source.provider && formatQualityDisplay($0.quality) == quality }
             if sameSources.count > 1 {
                 let qualityIndex = sameSources.firstIndex(where: { $0.url == source.url }) ?? 0
-                return "\(quality) #\(qualityIndex + 1) (\(source.language))"
+                return "\(quality) #\(qualityIndex + 1)"
             } else {
-                return "\(quality) (\(source.language))"
+                return "\(source.provider.capitalized) \(quality)"
             }
         } else {
             // For streaming sources, show provider + index
             return "\(source.provider.capitalized) \(providerIndex)"
         }
     }
+
 }
 
