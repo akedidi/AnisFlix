@@ -1045,8 +1045,7 @@ class PlayerViewModel: NSObject, ObservableObject {
                 return
             }
             
-            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
-            self.currentArtwork = artwork
+            self.currentArtwork = image
             print("✅ Artwork loaded from local file: \(localPath)")
             
             self.updateNowPlayingInfo()
@@ -1073,8 +1072,7 @@ class PlayerViewModel: NSObject, ObservableObject {
             
             // Create artwork on main thread
             await MainActor.run {
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
-                self.currentArtwork = artwork
+                self.currentArtwork = image
                 print("✅ Artwork downloaded and set: \(urlString)")
                 
                 // Force update of Now Playing Info with the new artwork
