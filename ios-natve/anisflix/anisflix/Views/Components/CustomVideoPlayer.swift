@@ -679,7 +679,7 @@ class PlayerViewModel: NSObject, ObservableObject {
     private var observedItem: AVPlayerItem? // Track the item we're observing
     private(set) var currentUrl: URL? // Track current URL to prevent restart
     private var currentTitle: String? // Track current content title for Now Playing Info
-    private var currentArtwork: MPMediaItemArtwork? // Track downloaded artwork
+    private var currentArtwork: UIImage? // Track downloaded artwork
     var isSwitchingModes = false // Track fullscreen transition
     
     // Metadata for Scrobbling
@@ -741,7 +741,7 @@ class PlayerViewModel: NSObject, ObservableObject {
     
     @objc private func handleTogglePlayPause(_ notification: Notification) {
         print("⏯️ Received via notification: Toggle Play/Pause")
-        playerVM.togglePlayPause()
+        self.togglePlayPause()
     }
     
     func updateMetadata(title: String, posterUrl: String?, localPosterPath: String? = nil) {
@@ -1013,7 +1013,8 @@ class PlayerViewModel: NSObject, ObservableObject {
             
             // Use downloaded artwork if available, otherwise use app icon
             // IMPORTANT: Always replace artwork to prevent showing stale logo from previous channel
-            if let artwork = self.currentArtwork {
+            if let image = self.currentArtwork {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             } else {
                 // Clear existing artwork and use default icon while new artwork downloads
