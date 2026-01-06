@@ -96,8 +96,8 @@ struct StreamingSourcesView: View {
         if streamingProviders.contains(source.provider.lowercased()) {
             // For streaming providers, show HD as default
             return "HD"
-        } else if source.provider.lowercased() == "movix" {
-            // For Movix download sources, show actual quality (4K, 1080p, 360p, etc.)
+        } else if source.provider.lowercased() == "movix" || source.provider.lowercased() == "moviebox" {
+            // For Movix and MovieBox download sources, show actual quality (4K, 1080p, 360p, etc.)
             let quality = source.quality.uppercased()
             if quality.contains("4K") || quality.contains("2160") {
                 return "4K"
