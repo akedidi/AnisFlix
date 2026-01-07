@@ -188,7 +188,8 @@ struct MainTabView: View {
              // GLOBAL FULL PLAYER OVERLAY
              // Keep player in hierarchy to prevent onDisappear cleanup
              // Use zIndex and frame positioning to hide/show while keeping AVPlayerLayer rendering
-             if playerManager.isPresented {
+             // IMPORTANT: Do NOT show this view when Casting to prevent local audio playing in background
+             if playerManager.isPresented && !castManager.isConnected {
                  CustomVideoPlayer(
                     url: playerManager.currentMediaUrl ?? URL(string: "about:blank")!,
                     title: playerManager.currentTitle,
