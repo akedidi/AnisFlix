@@ -100,10 +100,7 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(providers, id: \.id) { provider in
-                                    NavigationLink {
-                                        // Navigate to provider list
-                                        ProviderMediaListView(providerId: provider.id, providerName: provider.name)
-                                    } label: {
+                                    NavigationLink(value: NavigationRoute.providerList(providerId: provider.id, providerName: provider.name)) {
                                         VStack(spacing: 8) {
                                             RoundedRectangle(cornerRadius: 12)
                                                 .fill(Color.white)

@@ -11,6 +11,8 @@ import SwiftUI
 enum NavigationRoute: Hashable {
     case movieDetail(movieId: Int)
     case seriesDetail(seriesId: Int)
+    case providerList(providerId: Int, providerName: String)
+    case downloadedMediaPlayer(itemId: String)
 }
 
 struct MainTabView: View {
@@ -35,73 +37,29 @@ struct MainTabView: View {
     @State private var downloadsPath = NavigationPath()
     @State private var morePath = NavigationPath()
     
-    // IDs to force NavigationStack reconstruction on pop-to-root
-    @State private var homeStackID = UUID()
-    @State private var exploreStackID = UUID()
-    @State private var tvStackID = UUID()
-    @State private var downloadsStackID = UUID()
-    @State private var moreStackID = UUID()
+
     
     // Count of downloads in progress or waiting
     var activeDownloadsCount: Int {
         downloadManager.downloads.filter { $0.state == .downloading || $0.state == .queued || $0.state == .waiting }.count
     }
     
-    // Helper to pop a specific tab to root with native animation
+    // Helper to pop a specific tab to root with proper SwiftUI NavigationPath clearing
     private func popToRoot(tabIndex: Int) {
         print("🔄 [TabView] Pop to root for tab \(tabIndex)")
         
-        // Get the currently visible NavigationController  
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else {
-            print("❌ Could not find window")
-            return
-        }
-        
-        // The currently visible NavigationController is the one we want to pop
-        func findVisibleNavigationController(from viewController: UIViewController?) -> UINavigationController? {
-            guard let viewController = viewController else { return nil }
-            
-            if let navController = viewController as? UINavigationController {
-                // Check if this nav controller has items in its stack
-                if navController.viewControllers.count > 1 {
-                    return navController
-                }
-                // If it has children (e.g. contained view controllers), continue searching inside them
-                // But usually UINavigationController's children ARE the stack.
+        // Simply reset the navigation path for the specific tab
+        // This is the clean, non-destructive way to pop to root in SwiftUI
+        // Using withAnimation as in previous working version 048beb6
+        withAnimation {
+            switch tabIndex {
+            case 0: homePath = NavigationPath()
+            case 1: explorePath = NavigationPath()
+            case 2: tvPath = NavigationPath()
+            case 3: downloadsPath = NavigationPath()
+            case 4: morePath = NavigationPath()
+            default: break
             }
-            
-            // Check presented view controller first (modal/sheet on top)
-            if let presented = viewController.presentedViewController {
-                if let found = findVisibleNavigationController(from: presented) {
-                    return found
-                }
-            }
-            
-            // Check children
-            for child in viewController.children {
-                if let found = findVisibleNavigationController(from: child) {
-                    return found
-                }
-            }
-            
-            return nil
-        }
-        
-        if let navController = findVisibleNavigationController(from: window.rootViewController) {
-            print("✅ Found visible NavigationController with \(navController.viewControllers.count) views in stack")
-            navController.popToRootViewController(animated: true)
-        } else {
-            print("⚠️ No NavigationController with stack > 1 found. Trying fallback ID reset.")
-            // Fallback to ID reset to ensure we go back to root anyway
-             switch tabIndex {
-             case 0: homeStackID = UUID()
-             case 1: exploreStackID = UUID()
-             case 2: tvStackID = UUID()
-             case 3: downloadsStackID = UUID()
-             case 4: moreStackID = UUID()
-             default: break
-             }
         }
     }
     
@@ -119,10 +77,17 @@ struct MainTabView: View {
                                 MovieDetailView(movieId: movieId)
                             case .seriesDetail(let seriesId):
                                 SeriesDetailView(seriesId: seriesId)
+                            case .providerList(let providerId, let providerName):
+                                ProviderMediaListView(providerId: providerId, providerName: providerName)
+                            case .downloadedMediaPlayer(let itemId):
+                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
+                                    DownloadedMediaDetailView(item: item)
+                                } else {
+                                    Text("Download not found")
+                                }
                             }
                         }
                 }
-                .id(homeStackID) // Reset stack when ID changes
                 .tag(0)
                  .toolbar(.hidden, for: .tabBar) // Hide native tab bar
                 
@@ -130,7 +95,6 @@ struct MainTabView: View {
                 NavigationStack(path: $explorePath) {
                     ExploreView()
                 }
-                .id(exploreStackID)
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -138,7 +102,6 @@ struct MainTabView: View {
                 NavigationStack(path: $tvPath) {
                     TVChannelsView()
                 }
-                .id(tvStackID)
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -146,7 +109,6 @@ struct MainTabView: View {
                 NavigationStack(path: $downloadsPath) {
                     DownloadsView()
                 }
-                .id(downloadsStackID)
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
                 
@@ -154,7 +116,6 @@ struct MainTabView: View {
                 NavigationStack(path: $morePath) {
                     MoreView()
                 }
-                .id(moreStackID)
                 .tag(4)
                  .toolbar(.hidden, for: .tabBar)
             }

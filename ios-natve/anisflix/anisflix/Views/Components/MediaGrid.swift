@@ -91,13 +91,7 @@ struct MediaGridCard: View {
     @ObservedObject var theme = AppTheme.shared
     
     var body: some View {
-        NavigationLink {
-            if media.mediaType == .movie {
-                MovieDetailView(movieId: media.id)
-            } else {
-                SeriesDetailView(seriesId: media.id)
-            }
-        } label: {
+        NavigationLink(value: media.mediaType == .movie ? NavigationRoute.movieDetail(movieId: media.id) : NavigationRoute.seriesDetail(seriesId: media.id)) {
             VStack(alignment: .leading, spacing: 8) {
                 // Poster
                 // Poster
