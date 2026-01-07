@@ -10,6 +10,7 @@ import Combine
 
 struct CastControlSheet: View {
     @ObservedObject var castManager = CastManager.shared
+    @ObservedObject var playerManager = GlobalPlayerManager.shared
     @Environment(\.dismiss) var dismiss
     
     // Local state for scrubbing interaction
@@ -55,30 +56,47 @@ struct CastControlSheet: View {
                 Spacer() // Push everything down
                 
                 // Artwork
-                if let artwork = castManager.currentArtwork {
-                    Image(uiImage: artwork)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .cornerRadius(12)
-                        .shadow(radius: 20)
-                        .padding(.horizontal, 60)
-                        .frame(maxHeight: 300) // Restored nice height
-                } else {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.gray.opacity(0.3))
+                // Artwork with buffering spinner
+                ZStack {
+                    if let artwork = castManager.currentArtwork {
+                        Image(uiImage: artwork)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .cornerRadius(12)
+                            .shadow(radius: 20)
+                            .padding(.horizontal, 60)
+                            .frame(maxHeight: 300) // Restored nice height
+                    } else {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.gray.opacity(0.3))
+                            .aspectRatio(2/3, contentMode: .fit)
+                            .overlay(
+                                Image(systemName: "film")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(.gray)
+                            )
+                            .padding(.horizontal, 60)
+                            .frame(maxHeight: 300)
+                    }
+                    
+                    // Spinner Overlay
+                    if castManager.isBuffering {
+                        ZStack {
+                            Color.black.opacity(0.4)
+                                .cornerRadius(12)
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(2.0)
+                        }
                         .aspectRatio(2/3, contentMode: .fit)
-                        .overlay(
-                            Image(systemName: "film")
-                                .font(.system(size: 50))
-                                .foregroundColor(.gray)
-                        )
                         .padding(.horizontal, 60)
                         .frame(maxHeight: 300)
+                    }
                 }
                 
                 // Title
                 VStack(spacing: 6) {
-                    Text(castManager.currentTitle ?? "Unknown Title")
+                    Text(castManager.isLoadingMedia ? "Chargement..." : (playerManager.currentTitle ?? "Unknown Title"))
                         .font(.headline)
                         .bold()
                         .foregroundColor(.white)
@@ -185,6 +203,32 @@ struct CastControlSheet: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.bottom, 50) // Ensure content is above home indicator
+            
+            // Cast: Next Episode Overlay
+            if playerManager.showNextEpisodePrompt {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        NextEpisodeOverlay(
+                            nextEpisodeTitle: playerManager.nextEpisodeTitle,
+                            timeLeft: playerManager.nextEpisodeCountdown,
+                            onCancel: {
+                                playerManager.cancelNextEpisode()
+                            },
+                            onPlayNow: {
+                                playerManager.playNextEpisode()
+                            }
+                        )
+                        Spacer()
+                    }
+                    .padding(.bottom, 120) // Position ABOVE the Stop/Audio buttons
+                }
+                .frame(maxWidth: .infinity)
+                .transition(.move(edge: .bottom))
+                .animation(.easeInOut, value: playerManager.showNextEpisodePrompt)
+                .zIndex(100)
+            }
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             // Increment ticker to force UI refresh every second

@@ -52,8 +52,9 @@ struct StreamingSource: Identifiable, Codable {
     let url: String
     let quality: String
     let language: String
-    let provider: String // "vidmoly", "vidzy", "darki", "unknown"
+    let provider: String // Video host: "vidmoly", "vidzy", "darki", "unknown"
     let type: String // "hls", "mp4", etc.
+    var origin: String? // Scraper/API origin: "fstream", "moviebox", "vixsrc", "tmdb", etc.
     var tracks: [Subtitle]? // Added tracks
     var headers: [String: String]? // Added custom headers support
     
@@ -114,12 +115,13 @@ struct StreamingSource: Identifiable, Codable {
     }
     
     // Init for preview/manual creation
-    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
+    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, origin: String? = nil, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
         self.url = url
         self.quality = quality
         self.type = type
         self.provider = provider
         self.language = language
+        self.origin = origin
         self.tracks = tracks
         self.headers = headers
         
@@ -459,7 +461,8 @@ class StreamingService {
                         quality: player.quality,
                         type: player.type,
                         provider: normalizedProvider,
-                        language: language
+                        language: language,
+                        origin: "fstream"
                     )
                     sources.append(source)
                 }
@@ -469,7 +472,7 @@ class StreamingService {
         return sources
     }
     
-    func fetchSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+    func fetchSeriesSources(seriesId: Int, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo? = nil) async throws -> [StreamingSource] {
         // Fetch from all endpoints concurrently
         async let tmdbSources = fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
@@ -480,13 +483,19 @@ class StreamingService {
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
         // Fetch TMDB info for AfterDark and Movix Download (needs title)
-        let tmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+        // Use provided info if available to avoid race conditions/double calls
+        var finalTmdbInfo: TmdbSeriesInfo? = tmdbInfo
+        
+        if finalTmdbInfo == nil {
+             finalTmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+        }
+
         var afterDarkSources: [StreamingSource] = []
         var movixDownloadSources: [StreamingSource] = []
         // Add Anime sources
         var animeSources: [StreamingSource] = []
         
-        if let info = tmdbInfo {
+        if let info = finalTmdbInfo {
             let title = info.title
             print("ℹ️ [StreamingService] TMDB Info found: \(title)")
             
@@ -602,6 +611,48 @@ class StreamingService {
         return playerLinks
     }
     
+    // NEW: Targeted fetch for next episode optimization
+    func fetchNextEpisodeSources(targetProvider: String, seriesId: Int, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo? = nil) async throws -> [StreamingSource] {
+        print("🎯 [StreamingService] Targeted fetch for provider: \(targetProvider)")
+        
+        switch targetProvider.lowercased() {
+        case "vixsrc":
+            return try await fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+            
+        case "moviebox":
+            return try await fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+            
+        case "universalvo":
+             // UniversalVO usually is a single source, try fetching it
+             return try await fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+            
+        case "afterdark":
+            // AfterDark needs title, ensure we have it
+            guard let info = tmdbInfo else {
+                // Should not happen if caller does setup correctly, but fallback to fetch
+                 let fetchedInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+                 if let title = fetchedInfo?.title {
+                     return (try? await fetchAfterDarkSources(tmdbId: seriesId, type: "tv", title: title, year: nil, season: season, episode: episode)) ?? []
+                 }
+                 return []
+            }
+            return (try? await fetchAfterDarkSources(tmdbId: seriesId, type: "tv", title: info.title, year: nil, season: season, episode: episode)) ?? []
+
+        case "fstream":
+            return try await fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
+
+        case "vidmoly", "vidzy":
+             // These usually come from TMDB scraper or Vixsrc. Hard to know origin if provider is just "vidmoly".
+             // But if currentProvider was stored as "vidmoly", it likely came from TMDB scraper in initial implementation.
+             // We'll try TMDB for these constants.
+             return try await fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
+
+        default:
+            print("⚠️ [StreamingService] Check: Unknown provider '\(targetProvider)', falling back to full fetch")
+            return try await fetchSeriesSources(seriesId: seriesId, season: season, episode: episode, tmdbInfo: tmdbInfo)
+        }
+    }
+    
     private func fetchFStreamSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
         let urlString = "\(baseUrl)/api/movix-proxy?path=fstream/tv/\(seriesId)/season/\(season)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
@@ -659,7 +710,8 @@ class StreamingService {
                         quality: player.quality,
                         type: player.type,
                         provider: normalizedProvider,
-                        language: language
+                        language: language,
+                        origin: "fstream"
                     )
                     sources.append(source)
                 }
@@ -722,6 +774,7 @@ class StreamingService {
                         type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
                         language: "VO",
+                        origin: "moviebox",
                         headers: src.headers
                     )
                     sources.append(source)
@@ -773,6 +826,7 @@ class StreamingService {
                         type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
                         language: "VO",
+                        origin: "moviebox",
                         headers: src.headers
                     )
                     sources.append(source)
@@ -915,7 +969,8 @@ class StreamingService {
                     quality: stream.quality,
                     type: stream.type,
                     provider: "vixsrc",
-                    language: "VO"
+                    language: "VO",
+                    origin: "vixsrc"
                 )
                 sources.append(source)
             }
@@ -994,7 +1049,8 @@ class StreamingService {
                         quality: quality,
                         type: file.type,
                         provider: normalizedProvider,
-                        language: language
+                        language: language,
+                        origin: "universalvo"
                     )
                     sources.append(source)
                 }
@@ -1115,7 +1171,8 @@ class StreamingService {
                     quality: source.quality ?? "HD",
                     type: streamType,
                     provider: "afterdark",
-                    language: language
+                    language: language,
+                    origin: "afterdark"
                 )
                 sources.append(streamSource)
             }
@@ -1475,7 +1532,8 @@ class StreamingService {
                     type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
                     provider: detectedProvider,
                     // Convert "Multi" to "VF" as Multi sources are actually French
-                    language: (source.language?.lowercased().contains("multi") == true) ? "VF" : (source.language ?? "VF")
+                    language: (source.language?.lowercased().contains("multi") == true) ? "VF" : (source.language ?? "VF"),
+                    origin: "movix"
                 )
                 sources.append(streamingSource)
             }
@@ -1624,7 +1682,8 @@ class StreamingService {
                             quality: "HD",
                             type: "embed",
                             provider: "vidmoly",
-                            language: language
+                            language: language,
+                            origin: "movixanime"
                         )
                         sources.append(source)
                         print("   -> Added VidMoly: \(language) - \(normalized.prefix(50))...")
@@ -1769,6 +1828,7 @@ class StreamingService {
                 type: source.type == "hls" ? "m3u8" : "mp4",
                 provider: "animeapi",
                 language: "VO",
+                origin: "animeapi",
                 tracks: subtitles
             )
         }
@@ -1800,5 +1860,181 @@ class StreamingService {
             print("❌ [StreamingService] Failed to fetch IMDB ID: \(error)")
         }
         return nil
+    }
+    
+    // MARK: - Next Episode Logic
+    
+    /// Determines the next episode (S+1 E1 or S same E+1)
+    func fetchNextEpisodeDetails(seriesId: Int, currentSeason: Int, currentEpisode: Int) async -> (season: Int, episode: Int)? {
+        print("⏭️ [StreamingService] Checking for next episode after S\(currentSeason) E\(currentEpisode)...")
+        
+        // Helper to check if episode is released
+        func isReleased(_ ep: Episode) -> Bool {
+            guard let dateStr = ep.airDate, !dateStr.isEmpty else {
+                // STRICTER CHECK: If no date, assume NOT released for "Next Episode" prompt purposes.
+                // We only want to auto-play definitely released episodes.
+                print("⚠️ [StreamingService] Episode S\(ep.seasonNumber) E\(ep.episodeNumber) has NO air_date. Treating as unreleased.")
+                return false
+            }
+            
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd"
+            guard let date = formatter.date(from: dateStr) else {
+                print("⚠️ [StreamingService] Could not parse air_date: '\(dateStr)'. Treating as unreleased.")
+                return false
+            }
+            
+            // Allow if date is today or in past
+            let isPast = date <= Date()
+            print("🗓️ [StreamingService] Checking S\(ep.seasonNumber) E\(ep.episodeNumber): AirDate='\(dateStr)' released? \(isPast)")
+            return isPast
+        }
+        
+        // 1. Check if next episode exists in CURRENT season
+        if let seasonDetails = try? await TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: currentSeason) {
+            let episodes = seasonDetails.episodes
+            let nextEpNum = currentEpisode + 1
+            
+            if let nextEp = episodes.first(where: { $0.episodeNumber == nextEpNum }) {
+                if isReleased(nextEp) {
+                    print("✅ [StreamingService] Found RELEASED next episode in same season: S\(currentSeason) E\(nextEpNum)")
+                    return (currentSeason, nextEpNum)
+                } else {
+                    print("🚫 [StreamingService] Found next episode S\(currentSeason) E\(nextEpNum) but likely UNRELEASED (Date: \(nextEp.airDate ?? "nil"))")
+                }
+            }
+        }
+        
+        // 2. Check if next SEASON exists (Episode 1)
+        let nextSeasonNum = currentSeason + 1
+        if let nextSeasonDetails = try? await TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: nextSeasonNum) {
+            let episodes = nextSeasonDetails.episodes
+            if !episodes.isEmpty {
+                 // Check if Episode 1 exists
+                 if let firstEp = episodes.first(where: { $0.episodeNumber == 1 }) {
+                     if isReleased(firstEp) {
+                         print("✅ [StreamingService] Found RELEASED first episode of next season: S\(nextSeasonNum) E1")
+                         return (nextSeasonNum, 1)
+                     } else {
+                         print("🚫 [StreamingService] Found next season S\(nextSeasonNum) E1 but likely UNRELEASED (Date: \(firstEp.airDate ?? "nil"))")
+                     }
+                 } else if let first = episodes.first {
+                     // Fallback for weird numbering
+                     if isReleased(first) {
+                         return (nextSeasonNum, first.episodeNumber)
+                     }
+                 }
+            }
+        }
+        
+        print("🚫 [StreamingService] No next episode found.")
+        return nil
+    }
+    
+    /// Finds a source that best matches the previous source's criteria
+    func findMatchingSource(sources: [StreamingSource], previousProvider: String, previousLanguage: String, previousQuality: String = "") -> StreamingSource? {
+        print("🔍 [StreamingService] Looking for source matching Provider: \(previousProvider), Language: \(previousLanguage), Quality: \(previousQuality)")
+        print("🔍 [StreamingService] Candidates: \(sources.map { "(\($0.provider), \($0.language), \($0.quality))" })")
+        
+        // 1. Exact Match (Provider + Language + Quality)
+        if !previousQuality.isEmpty {
+            if let exactMatch = sources.first(where: {
+                $0.provider.lowercased() == previousProvider.lowercased() &&
+                $0.language.lowercased() == previousLanguage.lowercased() &&
+                $0.quality.lowercased() == previousQuality.lowercased()
+            }) {
+                print("✅ [StreamingService] Found EXACT match (Provider+Language+Quality): \(exactMatch.provider) (\(exactMatch.language)) [\(exactMatch.quality)]")
+                return exactMatch
+            }
+        }
+        
+        // 2. Provider + Language Match (ignore quality)
+        if let providerLangMatch = sources.first(where: {
+            $0.provider.lowercased() == previousProvider.lowercased() &&
+            $0.language.lowercased() == previousLanguage.lowercased()
+        }) {
+            print("✅ [StreamingService] Found PROVIDER+LANGUAGE match: \(providerLangMatch.provider) (\(providerLangMatch.language)) [\(providerLangMatch.quality)]")
+            return providerLangMatch
+        }
+        
+        // 3. Same Language, Any Provider
+        // Prefer "vidmoly" or "vidzy" if available as they are reliable, else take first
+        let sameLangSources = sources.filter { $0.language.lowercased() == previousLanguage.lowercased() }
+        
+        if let vidmoly = sameLangSources.first(where: { $0.provider == "vidmoly" }) {
+             print("✅ [StreamingService] Found SAME LANGUAGE match (Vidmoly): \(vidmoly.provider)")
+             return vidmoly
+        }
+        
+        if let vidzy = sameLangSources.first(where: { $0.provider == "vidzy" }) {
+             print("✅ [StreamingService] Found SAME LANGUAGE match (Vidzy): \(vidzy.provider)")
+             return vidzy
+        }
+        
+        if let anySameLang = sameLangSources.first {
+            print("✅ [StreamingService] Found SAME LANGUAGE match: \(anySameLang.provider)")
+            return anySameLang
+        }
+        
+        // 4. Fallback: First available source
+        if let first = sources.first {
+            print("⚠️ [StreamingService] No match found. Fallback to first available: \(first.provider) (\(first.language))")
+            return first
+        }
+        
+        print("❌ [StreamingService] No matching source found.")
+        return nil
+    }
+    
+    // MARK: - Source Extraction
+    
+    /// Attempts to extract a direct playable link (mp4/hls) from an embed URL
+    func extractDirectLink(for source: StreamingSource) async -> StreamingSource {
+        let provider = source.provider.lowercased()
+        
+        // Only attempt extraction for providers known to strictly need it if they are embeds
+        // Use existing extraction methods that map to the backend API or proxy helpers
+        if provider == "vidmoly" {
+            print("⛏️ [StreamingService] Extracting VidMoly via existing method...")
+            do {
+                let directUrl = try await extractVidMoly(url: source.url)
+                print("✅ [StreamingService] VidMoly extraction successful: \(directUrl)")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: source.headers
+                )
+            } catch {
+                print("⚠️ [StreamingService] VidMoly extraction failed: \(error). Using original.")
+            }
+        } else if provider == "vidzy" {
+            print("⛏️ [StreamingService] Extracting Vidzy via existing method...")
+            do {
+                let directUrl = try await extractVidzy(url: source.url)
+                print("✅ [StreamingService] Vidzy extraction successful: \(directUrl)")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: source.headers
+                )
+            } catch {
+                 print("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")
+            }
+        }
+        
+        // Return original if no extraction needed or failed
+        return source
     }
 }

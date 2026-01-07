@@ -56,6 +56,8 @@ struct DownloadItem: Identifiable, Codable, Hashable {
     var relativePath: String? // For HLS persistence
     var downloadSpeed: String? // Speed display (e.g. "2.5 MB/s")
     
+    var headers: [String: String]? // Custom headers for download
+    
     var isSeries: Bool {
         return season != nil && episode != nil
     }
@@ -233,7 +235,8 @@ class DownloadManager: NSObject, ObservableObject {
             episode: episode,
             state: .queued, // Start as queued
             progress: 0.0,
-            isHLS: isHLS
+            isHLS: isHLS,
+            headers: source.headers
         )
         
         downloads.append(item)
@@ -682,12 +685,13 @@ class DownloadManager: NSObject, ObservableObject {
         }
     }
     
-    func getDownload(mediaId: Int, season: Int?, episode: Int?, sourceId: String? = nil) -> DownloadItem? {
+    func getDownload(mediaId: Int, season: Int?, episode: Int?, sourceId: String? = nil, language: String? = nil) -> DownloadItem? {
         return downloads.first { item in
             item.mediaId == mediaId &&
             item.season == season &&
             item.episode == episode &&
-            (sourceId == nil || item.sourceId == sourceId)
+            (sourceId == nil || item.sourceId == sourceId) &&
+            (language == nil || item.language.lowercased().contains(language!.lowercased()))
         }
     }
     
@@ -696,7 +700,17 @@ class DownloadManager: NSObject, ObservableObject {
     private func startDownloadTask(for item: DownloadItem) {
         guard let url = URL(string: item.videoUrl) else { return }
         
-        let task = urlSession.downloadTask(with: url)
+        var request = URLRequest(url: url)
+        
+        // Add custom headers if available
+        if let headers = item.headers {
+            for (key, value) in headers {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+            print("📥 [DownloadManager] Starting download with custom headers: \(headers.keys)")
+        }
+        
+        let task = urlSession.downloadTask(with: request)
         task.taskDescription = item.id
         task.resume()
         

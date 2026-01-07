@@ -30,6 +30,7 @@ struct CustomVideoPlayer: View {
     let episode: Int?
     
     @ObservedObject var playerVM: PlayerViewModel
+    @ObservedObject private var globalManager = GlobalPlayerManager.shared
     @StateObject private var castManager = CastManager.shared
     @State private var showControls = true
     @State private var showSubtitlesMenu = false
@@ -158,6 +159,24 @@ struct CustomVideoPlayer: View {
                 .transition(.opacity)
             }
             
+            // Loading Overlay for Next Episode
+            if globalManager.isLoadingNextEpisode {
+                ZStack {
+                    Color.black.opacity(0.8)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(1.5)
+                        Text("Chargement de l'épisode suivant...")
+                            .foregroundColor(.white)
+                            .font(.headline)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
+            
             // Subtitles Overlay
             if !castManager.isConnected, let sub = selectedSubtitle, let text = playerVM.currentSubtitleText {
                 VStack {
@@ -172,6 +191,21 @@ struct CustomVideoPlayer: View {
                         .padding(.bottom, isFullscreen ? 10 : 60)
                 }
                 .transition(.opacity)
+            }
+            
+            // Next Episode Overlay (Netflix Style)
+            if globalManager.showNextEpisodePrompt {
+                NextEpisodeOverlay(
+                    nextEpisodeTitle: globalManager.nextEpisodeTitle,
+                    timeLeft: globalManager.nextEpisodeCountdown,
+                    onCancel: {
+                        globalManager.cancelNextEpisode()
+                    },
+                    onPlayNow: {
+                        globalManager.playNextEpisode()
+                    }
+                )
+                .zIndex(100)
             }
             
             // Controls Overlay - Only when NOT casting
@@ -1016,8 +1050,9 @@ class PlayerViewModel: NSObject, ObservableObject {
             self.currentTime = time.seconds
             self.updateSubtitle()
             
-            // Sync Now Playing Info periodically
-            self.updateNowPlayingInfo()
+            // Sync Now Playing Info periodically - REMOVED to prevent spamming
+            // MPNowPlayingInfoCenter handles time automatically via playback rate
+            // self.updateNowPlayingInfo()
         }
         
         // setupPiP will be called separately with the layer

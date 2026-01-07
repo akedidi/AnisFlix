@@ -25,6 +25,8 @@ struct SeriesDetailView: View {
     // @State private var selectedSourceLanguage = "VF"
     
     @ObservedObject var favoritesManager = FavoritesManager.shared
+    @ObservedObject var playerManager = GlobalPlayerManager.shared
+    @ObservedObject var castManager = CastManager.shared
     
     // Episode selection and sources
     @State private var selectedEpisodeId: Int?
@@ -402,6 +404,29 @@ struct SeriesDetailView: View {
             
             // Fullscreen Player Overlay (Single Instance)
             // Fullscreen Player Overlay Removed (Global Player)
+            
+            // Cast: Next Episode Overlay
+            if castManager.isConnected, playerManager.showNextEpisodePrompt {
+                VStack {
+                    Spacer()
+                    NextEpisodeOverlay(
+                        nextEpisodeTitle: playerManager.nextEpisodeTitle,
+                        timeLeft: playerManager.nextEpisodeCountdown,
+                        onCancel: {
+                            playerManager.cancelNextEpisode()
+                        },
+                        onPlayNow: {
+                            print("⏭️ [SeriesDetailView] User clicked Play Now (Cast Mode)")
+                            playerManager.playNextEpisode()
+                        }
+                    )
+                    .padding(.bottom, 80) // Raise above standard controls
+                    .padding(.horizontal, 16)
+                }
+                .transition(.move(edge: .bottom))
+                .animation(.easeInOut, value: playerManager.showNextEpisodePrompt)
+                .zIndex(100)
+            }
         }
         // .navigationBarHidden(true) removed to show system back button
 
@@ -503,7 +528,11 @@ struct SeriesDetailView: View {
                             season: episode.seasonNumber,
                             episode: episode.episodeNumber,
                             isLive: false,
-                            headers: source.headers
+                            headers: source.headers,
+                            provider: source.provider,
+                            language: source.language,
+                            quality: source.quality,
+                            origin: source.origin // KEY: Pass scraper origin (fstream, moviebox, etc.) for targeted fetch
                         )
                         
                         isLoadingSource = false

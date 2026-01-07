@@ -10,6 +10,7 @@ import Combine
 
 struct CastMiniPlayerView: View {
     @ObservedObject var castManager = CastManager.shared
+    @ObservedObject var playerManager = GlobalPlayerManager.shared // Source of truth for title
     @Binding var showControlSheet: Bool
     
     // Ticker to force UI refresh every second
@@ -52,7 +53,7 @@ struct CastMiniPlayerView: View {
                     
                     // Title & Status
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(castManager.currentTitle ?? "Casting")
+                        Text(castManager.isLoadingMedia ? "Chargement..." : (playerManager.currentTitle ?? "Casting"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .lineLimit(1)

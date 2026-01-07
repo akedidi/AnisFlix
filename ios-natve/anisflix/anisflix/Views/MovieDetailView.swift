@@ -543,7 +543,9 @@ struct MovieDetailView: View {
                             season: nil,
                             episode: nil,
                             isLive: false,
-                            headers: source.headers
+                            headers: source.headers,
+                            provider: source.provider,
+                            language: source.language
                         )
                         
                         self.isLoadingSources = false

@@ -124,7 +124,7 @@ class GlobalPlayerManager: ObservableObject {
     
     // Start playback (replaces current media)
     // serverUrl: Optional URL for Chromecast (used for downloaded videos where local file can't be cast)
-    func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil) {
+    func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil, provider: String? = nil, language: String? = nil, quality: String? = nil, origin: String? = nil, isFromDownload: Bool = false, localPosterPath: String? = nil) {
         
         // 1. Set Metadata
         self.currentMediaUrl = url
@@ -136,6 +136,19 @@ class GlobalPlayerManager: ObservableObject {
         self.episode = episode
         self.isLive = isLive
         self.currentServerUrl = serverUrl // Store server URL for Cast (downloaded videos)
+        self.currentProvider = provider
+        self.currentLanguage = language
+        self.currentQuality = quality
+        self.currentOrigin = origin
+        self.isPlayingFromDownload = isFromDownload
+        
+        // Reset Next Episode State
+        self.resetNextEpisodeState()
+        
+        // Start monitoring for next episode if applicable
+        if !isLive, let _ = mediaId, let _ = season, let _ = episode {
+             self.startNextEpisodeMonitoring()
+        }
         
         // 2. Setup PlayerVM
         playerVM.mediaId = mediaId
@@ -164,7 +177,7 @@ class GlobalPlayerManager: ObservableObject {
             // For now, focusing on local playback as per user request ("partie video").
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode)
         } else {
-             playerVM.setup(url: url, title: title, posterUrl: posterUrl, customHeaders: headers)
+             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers)
              // Seek to saved position after a short delay
              if startTime > 0 {
                  DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -240,4 +253,457 @@ class GlobalPlayerManager: ObservableObject {
         isPresented = true
         isMinimised = false
     }
+    
+    // MARK: - Next Episode Logic
+    
+    @Published var nextEpisode: (number: Int, season: Int)?
+    @Published var nextEpisodeTitle: String = ""
+    @Published var showNextEpisodePrompt: Bool = false
+    @Published var nextEpisodeCountdown: Int = 5
+    @Published var isLoadingNextEpisode: Bool = false
+    private var nextEpisodeTimer: Timer?
+    private var nextEpisodeCancellable: AnyCancellable?
+    private var castCancellable: AnyCancellable?
+    private var hasCheckedForNextEpisode = false
+    private var userCancelledAutoPlay = false
+    
+    // Current Playback Metadata for matching
+    private var currentProvider: String?
+    private var currentLanguage: String? // VF, VOSTFR, VO
+    private var currentQuality: String? // HD, 360p, 480p, 1080p, etc.
+    private var currentOrigin: String? // Scraper origin: "fstream", "moviebox", "vixsrc", etc.
+    private var isPlayingFromDownload: Bool = false // Playback mode: true = downloaded, false = streaming
+    
+    func resetNextEpisodeState() {
+        nextEpisode = nil
+        nextEpisodeTitle = ""
+        showNextEpisodePrompt = false
+        nextEpisodeCountdown = 10
+        nextEpisodeTimer?.invalidate()
+        nextEpisodeTimer = nil
+        
+        nextEpisodeCancellable?.cancel()
+        nextEpisodeCancellable = nil
+        
+        castCancellable?.cancel()
+        castCancellable = nil
+        
+        hasCheckedForNextEpisode = false
+        userCancelledAutoPlay = false
+    }
+    
+    func startNextEpisodeMonitoring() {
+        // Only for Series
+        guard mediaId != nil, season != nil, episode != nil else { return }
+        
+        // 1. Monitor LOCAL Player progress
+        nextEpisodeCancellable = playerVM.$currentTime
+            .combineLatest(playerVM.$duration)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] time, duration in
+                guard let self = self else { return }
+                
+                // IGNORE LOCAL UPDATES if casting (CastManager takes precedence)
+                if CastManager.shared.isConnected { return }
+                
+                // Only process if valid duration
+                guard duration > 0 else { return }
+                
+                self.handleProgressUpdate(time: time, duration: duration)
+            }
+            
+        // 2. Monitor CAST Player progress
+        print("📡 [Monitor] Starting CAST monitoring...")
+        castCancellable = CastManager.shared.$currentTime
+            .receive(on: RunLoop.main)
+            .sink { [weak self] time in
+                guard let self = self else { return }
+                
+                // ONLY process if casting
+                guard CastManager.shared.isConnected else { return }
+                
+                // IGNORE updates if Cast is still playing PREVIOUS media (ghost state)
+                guard CastManager.shared.isPlayingCurrentMedia else { return }
+                
+                // IGNORE if explicitly loading new media (spinner active)
+                // This prevents "briefly jumping to end" issues during transition
+                guard !CastManager.shared.isLoadingMedia else { return }
+                
+                let duration = CastManager.shared.currentDuration
+                
+                // Debug log for Cast specific issues
+                if Int(time) % 5 == 0 {
+                    // print("📡 [Monitor] Cast Tick: \(Int(time))/\(Int(duration))")
+                }
+                
+                guard duration > 0 else { return }
+                
+                self.handleProgressUpdate(time: time, duration: duration)
+            }
+    }
+    
+    // Extracted logic to handle updates from either source
+    private func handleProgressUpdate(time: Double, duration: Double) {
+        
+        // Glitch Protection:
+        // Sometimes Cast reports duration=time momentarily, or duration=buffered.
+        // If we are at the very beginning (< 2 mins), NEVER trigger end detection.
+        // Assuming episodes are > 5 mins.
+        if time < 120 && duration > 300 { return }
+        // Absolute safety for short videos
+        if time < 60 { return }
+        
+        let timeLeft = duration - time
+        
+        // Only log every ~5 seconds to avoid spam
+        if Int(time) % 5 == 0 && time > 0 && timeLeft <= 25 {
+            print("📊 [Monitor] time=\(Int(time))s, timeLeft=\(Int(timeLeft))s, isLoading=\(self.isLoadingNextEpisode), cancelled=\(self.userCancelledAutoPlay), checked=\(self.hasCheckedForNextEpisode), nextEp=\(self.nextEpisode != nil)")
+        }
+        
+        // Stop monitoring if already loading next episode
+        if self.isLoadingNextEpisode {
+            return
+        }
+        
+        // Window Logic: Last 20 seconds (increased from 10)
+        let promptWindow: Double = 20.0
+        
+        if timeLeft <= promptWindow {
+            // Respect user cancellation
+            if self.userCancelledAutoPlay {
+                if Int(time) % 5 == 0 { print("⚠️ [Monitor] BLOCKED: userCancelledAutoPlay=true") }
+                return
+            }
+            
+            // 1. Fetch Data if needed (ensure we fetch before the window fully hits if possible, but here we trigger on window entry)
+            if !self.hasCheckedForNextEpisode {
+                print("📡 [Monitor] Triggering prepareNextEpisode (first time in \(Int(promptWindow))s window)")
+                self.hasCheckedForNextEpisode = true
+                Task {
+                    await self.prepareNextEpisode()
+                }
+            }
+            
+            // 2. Show Prompt & Sync Timer (only if we have next episode data)
+            if self.nextEpisode != nil {
+                if !self.showNextEpisodePrompt {
+                    print("📺 [Monitor] Showing next episode prompt")
+                    self.showNextEpisodePrompt = true
+                }
+                // Sync countdown to actual video time
+                self.nextEpisodeCountdown = max(0, Int(ceil(timeLeft)))
+            }
+            
+            // 3. Auto-play at end (use nextEpisode != nil for robustness)
+            // Use 1.0s buffer. For Cast, sometimes streams end or buffer, so 1s is safe.
+            if timeLeft <= 1.0 && self.nextEpisode != nil {
+                print("⏭️ [GlobalPlayerManager] Time finished (<=1s), auto-playing next episode")
+                self.playNextEpisode()
+            }
+            
+        } else {
+            // Outside Window (e.g. sought back) - Hide Prompt
+            self.userCancelledAutoPlay = false // Reset cancellation if they seek back
+            
+            if self.showNextEpisodePrompt {
+                self.showNextEpisodePrompt = false
+            }
+            
+            // If we seek back significantly, should we reset hasCheckedForNextEpisode?
+            // Maybe not, to avoid re-fetching the SAME next episode info.
+        }
+    }
+    
+    @MainActor
+    func prepareNextEpisode() async {
+        guard let mid = mediaId, let s = season, let e = episode else { return }
+        
+        // 1. Check if next episode exists
+        if let next = await StreamingService.shared.fetchNextEpisodeDetails(seriesId: mid, currentSeason: s, currentEpisode: e) {
+            self.nextEpisode = (number: next.episode, season: next.season)
+            
+            // Fetch Series Name for formatted title
+            var seriesName = ""
+            if let seriesDetails = try? await TMDBService.shared.fetchSeriesDetails(seriesId: mid) {
+                seriesName = seriesDetails.name
+            }
+            
+            // Format: "Series Name - SxEx - Episode Name"
+            // Placeholder init
+            var episodeTitle = "Episode \(next.episode)"
+            
+            // Try to look up Downloaded title if available
+            if let downloaded = DownloadManager.shared.getDownload(mediaId: mid, season: next.season, episode: next.episode) {
+                // Downloaded title usually is just episode name or full name? 
+                // DownloadItem.title is usually just episode title (see DownloadedMediaDetailView logic)
+                episodeTitle = downloaded.title
+            } else {
+                // Fetch real title from TMDB
+                 if let details = try? await TMDBService.shared.fetchSeasonDetails(seriesId: mid, seasonNumber: next.season) {
+                    let episodes = details.episodes
+                    if let ep = episodes.first(where: { $0.episodeNumber == next.episode }) {
+                         episodeTitle = ep.name
+                    }
+                 }
+            }
+            
+            self.nextEpisodeTitle = "\(seriesName) - S\(next.season)E\(next.episode) - \(episodeTitle)"
+            
+            // 2. Ready to show (StartNextEpisodeMonitoring will pick this up on next tick)
+            // We don't need manual timer anymore
+        } else {
+            // NO NEXT EPISODE: This is the last episode of the series
+            print("🚫 [GlobalPlayerManager] No next episode available - this is the last episode")
+            self.nextEpisode = nil
+            self.nextEpisodeTitle = ""
+            self.showNextEpisodePrompt = false // Ensure prompt is hidden
+        }
+    }
+    
+    func startCountdown() {
+        // Deprecated: Countdown is now synced with player progress in startNextEpisodeMonitoring
+    }
+    
+    func cancelNextEpisode() {
+        showNextEpisodePrompt = false
+        nextEpisodeTimer?.invalidate()
+        userCancelledAutoPlay = true
+    }
+    
+    func playNextEpisode() {
+        guard let next = nextEpisode, let seriesId = mediaId else { return }
+        
+        // Prevent re-entry if already loading
+        if isLoadingNextEpisode { return }
+        isLoadingNextEpisode = true
+        
+        cancelNextEpisode() // Hide UI
+        isMinimised = false // Ensure fullscreen
+        
+        // Load it
+        Task {
+            await loadAndPlayEpisode(seriesId: seriesId, season: next.season, episode: next.number)
+        }
+    }
+    
+    @MainActor
+    private func loadAndPlayEpisode(seriesId: Int, season: Int, episode: Int) async {
+        // isLoadingNextEpisode is handled by caller (playNextEpisode)
+        
+        defer {
+            self.isLoadingNextEpisode = false
+        }
+        
+        // 1. Display current playback mode and state
+        print("═══════════════════════════════════════════════════════")
+        print("⏭️ [NextEpisode] Loading S\(season)E\(episode) for series \(seriesId)")
+        print("⏭️ [NextEpisode] Current state:")
+        print("   - currentProvider: \(self.currentProvider ?? "nil")")
+        print("   - currentLanguage: \(self.currentLanguage ?? "nil")")
+        print("   - currentQuality: \(self.currentQuality ?? "nil")")
+        print("   - currentOrigin: \(self.currentOrigin ?? "nil") ← CRITICAL FOR TARGETED FETCH")
+        print("   - isPlayingFromDownload: \(self.isPlayingFromDownload) ← PLAYBACK MODE")
+        print("═══════════════════════════════════════════════════════")
+        
+        // 2. MODE-BASED LOGIC: Download mode vs Streaming mode
+        if self.isPlayingFromDownload {
+            // ═══════════════════════════════════════════════════════
+            // DOWNLOAD MODE: Only check downloads, no streaming
+            // ═══════════════════════════════════════════════════════
+            print("📂 [NextEpisode] MODE: DOWNLOAD - Checking for downloaded episode only...")
+            
+            if let downloaded = DownloadManager.shared.getDownload(mediaId: seriesId, season: season, episode: episode, language: self.currentLanguage),
+               downloaded.state == .completed,
+               let localUrl = downloaded.localVideoUrl {
+                
+                print("✅ [NextEpisode] FOUND DOWNLOADED EPISODE!")
+                print("   - Download language: \(downloaded.language)")
+                print("   - Download quality: \(downloaded.quality)")
+                print("   - Local URL: \(localUrl.lastPathComponent)")
+                self.play(
+                    url: localUrl,
+                    title: self.nextEpisodeTitle.isEmpty ? downloaded.title : self.nextEpisodeTitle,
+                    posterUrl: self.currentPosterUrl,
+                    subtitles: [],
+                    mediaId: seriesId,
+                    season: season,
+                    episode: episode,
+                    isLive: false,
+                    serverUrl: nil,
+                    provider: self.currentProvider, // Keep original provider (e.g., "vidzy")
+                    language: downloaded.language,
+                    quality: downloaded.quality,
+                    origin: self.currentOrigin, // Keep original origin (e.g., "fstream")
+                    isFromDownload: true, // Stay in download mode
+                    localPosterPath: downloaded.localPosterPath
+                )
+                return
+            } else {
+                print("❌ [NextEpisode] No downloaded episode found. Stopping auto-play (download mode only).")
+                // In download mode, if no download found, we stop. User must manually start streaming.
+                return
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // STREAMING MODE: Go directly to streaming fetch (skip download check)
+        // ═══════════════════════════════════════════════════════
+        print("🌐 [NextEpisode] MODE: STREAMING - Fetching sources from origin: \(self.currentOrigin ?? "nil")...")
+        
+        // 2. Fetch Metadata FIRST (to ensure we have title for all providers)
+        print("═══════════════════════════════════════════════════════")
+        print("⏭️ [NextEpisode] Loading S\(season)E\(episode) for series \(seriesId)")
+        print("⏭️ [NextEpisode] MATCHING CRITERIA:")
+        print("   - Previous Provider: \(self.currentProvider ?? "nil")")
+        print("   - Previous Language: \(self.currentLanguage ?? "nil")")
+        print("   - Previous Quality: \(self.currentQuality ?? "nil")")
+        print("═══════════════════════════════════════════════════════")
+        
+        do {
+            print("📡 [NextEpisode] Fetching metadata first...")
+            async let seriesDetailsTask = TMDBService.shared.fetchSeriesDetails(seriesId: seriesId)
+            async let seasonDetailsTask = TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: season)
+            
+            let (seriesDetails, seasonDetails) = try await (seriesDetailsTask, seasonDetailsTask)
+            
+            // Construct TmdbSeriesInfo to pass to StreamingService
+            // This prevents double-fetching and race conditions
+            var seasonsInfo: [StreamingService.TmdbSeasonInfo] = []
+            if let seasons = seriesDetails.seasons {
+                seasonsInfo = seasons.map { StreamingService.TmdbSeasonInfo(seasonNumber: $0.seasonNumber, episodeCount: $0.episodeCount) }
+            }
+            // NOTE: genreIds might be missing in full detail response if mapped differently, assume empty or extract if available
+            // TMDBService.Series usually has genres: [Genre] where Genre has id.
+            let genreIds = seriesDetails.genres.map { $0.id }
+            
+            let tmdbInfo = StreamingService.TmdbSeriesInfo(
+                title: seriesDetails.name,
+                seasons: seasonsInfo,
+                genreIds: genreIds
+            )
+            
+            print("📡 [NextEpisode] Metadata complete. Fetching sources with pre-filled info...")
+            
+            print("📡 [NextEpisode] Metadata complete. Fetching sources with pre-filled info...")
+            
+            // OPTIMIZATION: Try targeted fetch first based on current ORIGIN (scraper source)
+            var sources: [StreamingSource] = []
+            
+            if let origin = self.currentOrigin, !origin.isEmpty {
+                print("✅ [NextEpisode] Checking for targeted ORIGIN: '\(origin)'")
+                print("🎯 [NextEpisode] Attempting TARGETED fetch for origin: \(origin)")
+                sources = (try? await StreamingService.shared.fetchNextEpisodeSources(
+                    targetProvider: origin, // Use origin (fstream, moviebox, etc.) not provider (vidzy, vidmoly, etc.)
+                    seriesId: seriesId,
+                    season: season,
+                    episode: episode,
+                    tmdbInfo: tmdbInfo
+                )) ?? []
+                
+                if !sources.isEmpty {
+                    print("✅ [NextEpisode] Targeted fetch SUCCESS! Found \(sources.count) sources from \(origin)")
+                } else {
+                    print("❌ [NextEpisode] Targeted fetch yielded 0 sources for \(origin)")
+                }
+            } else {
+                 print("⚠️ [NextEpisode] Current origin is nil or empty. Skipping targeted fetch.")
+            }
+            
+            // Fallback to full fetch if targeted fetch failed or found nothing
+            if sources.isEmpty {
+                print("⚠️ [NextEpisode] Falling back to FULL fetch (Targeted fetch failed or skipped)...")
+                sources = try await StreamingService.shared.fetchSeriesSources(
+                    seriesId: seriesId,
+                    season: season,
+                    episode: episode,
+                    tmdbInfo: tmdbInfo
+                )
+            }
+            
+            print("📡 [NextEpisode] Sources fetch complete!")
+            print("   - Sources found: \(sources.count)")
+            
+            // Log sources by language
+            let vfSources = sources.filter { $0.language.lowercased().contains("vf") || $0.language.lowercased().contains("french") }
+            let vostfrSources = sources.filter { $0.language.lowercased().contains("vostfr") }
+            let voSources = sources.filter {
+                let lang = $0.language.lowercased()
+                return !lang.contains("vf") && !lang.contains("french") && !lang.contains("vostfr")
+            }
+            print("   - VF sources: \(vfSources.count)")
+            print("   - VOSTFR sources: \(vostfrSources.count)")
+            print("   - VO sources: \(voSources.count)")
+            
+            // 3. Construct Correct Title
+            let seriesName = seriesDetails.name
+            var episodeName = "Episode \(episode)"
+            
+            if let ep = seasonDetails.episodes.first(where: { $0.episodeNumber == episode }) {
+                episodeName = ep.name
+            }
+            
+            let fullTitle = "\(seriesName) - S\(season)E\(episode) - \(episodeName)"
+            print("🎬 [NextEpisode] Title: \(fullTitle)")
+            
+            // 4. Match Source
+            print("🔍 [NextEpisode] Finding matching source...")
+            let bestSource = StreamingService.shared.findMatchingSource(
+                sources: sources,
+                previousProvider: self.currentProvider ?? "",
+                previousLanguage: self.currentLanguage ?? "",
+                previousQuality: self.currentQuality ?? ""
+            )
+            
+            guard let source = bestSource else {
+                print("❌ [NextEpisode] No sources found for next episode!")
+                return
+            }
+            
+            print("═══════════════════════════════════════════════════════")
+            print("✅ [NextEpisode] SELECTED SOURCE:")
+            print("   - Provider: \(source.provider)")
+            print("   - Language: \(source.language)")
+            print("   - Quality: \(source.quality)")
+            print("   - URL: \(source.url.prefix(80))...")
+            print("═══════════════════════════════════════════════════════")
+            
+            // 5. Extract (if needed)
+            print("⛏️ [NextEpisode] Extracting direct link...")
+            let playableSource = await StreamingService.shared.extractDirectLink(for: source)
+            print("✅ [NextEpisode] Extraction complete: \(playableSource.url.prefix(80))...")
+            
+            // 6. Fetch Subtitles (if enabled/needed)
+            var subtitles: [Subtitle] = []
+            if let externalIds = seriesDetails.externalIds, let imdbId = externalIds.imdbId {
+                print("📝 [NextEpisode] Fetching subtitles for IMDB: \(imdbId)...")
+                subtitles = await StreamingService.shared.getSubtitles(imdbId: imdbId, season: season, episode: episode)
+                print("📝 [NextEpisode] Found \(subtitles.count) subtitles")
+            }
+            
+            // 7. PLAY (Use prepared full title)
+            // 7. PLAY (Use prepared full title)
+            print("▶️ [NextEpisode] Starting playback with origin=\(source.origin ?? "nil"), provider=\(source.provider), language=\(source.language), quality=\(source.quality)")
+            self.play(
+                url: URL(string: playableSource.url)!,
+                title: fullTitle,
+                posterUrl: self.currentPosterUrl,
+                subtitles: subtitles,
+                mediaId: seriesId,
+                season: season,
+                episode: episode,
+                isLive: false,
+                serverUrl: nil,
+                headers: playableSource.headers,
+                provider: source.provider,
+                language: source.language,
+                quality: source.quality,
+                origin: source.origin, // KEY: Pass origin (fstream, moviebox, etc.) for targeted next-episode fetch
+                isFromDownload: false // STREAMING MODE: Stay in streaming mode for next episode
+            )
+            
+        } catch {
+            print("❌ [GlobalPlayerManager] Failed to load next episode: \(error)")
+        }
+    }
 }
+

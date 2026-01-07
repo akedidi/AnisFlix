@@ -309,6 +309,30 @@ struct CompletedDownloadRow: View {
                 
                 // Metadata Badges
                 HStack(spacing: 8) {
+                    // Quality
+                    if !item.quality.isEmpty {
+                        Text(item.quality)
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.secondaryText.opacity(0.2)) 
+                            .foregroundColor(theme.primaryText)
+                            .cornerRadius(4)
+                    }
+                    
+                    // Language
+                    if !item.language.isEmpty {
+                        Text(item.language.uppercased())
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                             .background(AppTheme.primaryRed.opacity(0.8))
+                            .foregroundColor(.white)
+                            .cornerRadius(4)
+                    }
+                    
                     if let size = getFileSize(for: item) {
                         Text(size)
                             .font(.caption2)

@@ -18,10 +18,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     @Published var deviceName: String?
     @Published var mediaStatus: GCKMediaStatus? 
     @Published var currentMediaUrl: URL?
+    @Published var isLoadingMedia: Bool = false
     @Published var currentTitle: String? // Added for UI binding without GoogleCast imports
     @Published var currentArtwork: UIImage?
     @Published var currentPosterUrl: URL? // Stored for reloads
     @Published var currentSubtitles: [Subtitle] = [] // Moved declaration up // Stored for reloads
+    @Published var currentTime: TimeInterval = 0 // Real-time progress for UI
 
     // True when there's actually media loaded on the Chromecast
     var hasMediaLoaded: Bool {
@@ -66,7 +68,18 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     }
     
     var isBuffering: Bool {
-        return mediaStatus?.playerState == .buffering
+        return isLoadingMedia || mediaStatus?.playerState == .buffering || mediaStatus?.playerState == .loading
+    }
+    
+    // Check if the currently playing media on Chromecast matches our local expected media
+    var isPlayingCurrentMedia: Bool {
+        guard let remoteURLString = mediaStatus?.mediaInformation?.contentID,
+              let currentURL = currentMediaUrl else {
+            // If starting up without status, assume mismatch to be safe (wait for status)
+            if currentMediaUrl != nil && mediaStatus?.mediaInformation == nil { return false }
+            return true
+        }
+        return remoteURLString == currentURL.absoluteString
     }
     
     var currentDuration: TimeInterval {
@@ -400,14 +413,14 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
         print("🚨🚨🚨 [CastManager] SESSION_STARTED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
         isResumingSession = false
-        recoveryAttempted = false
+        if !isLoadingMedia { recoveryAttempted = false }
         handleSessionConnection(session: session)
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
         print("🚨🚨🚨 [CastManager] SESSION_RESUMED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
         isResumingSession = true
-        recoveryAttempted = false
+        if !isLoadingMedia { recoveryAttempted = false }
         handleSessionConnection(session: session)
     }
     
@@ -417,8 +430,11 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         isConnecting = false
         deviceName = session.device.friendlyName
         
-        // Reset recovery flag for a fresh attempt
-        recoveryAttempted = false
+        // Reset recovery flag for a fresh attempt ONLY if we are not actively loading new media
+        // If we are loading, we MUST keep recoveryAttempted = true to prevent stale metadata from overwriting
+        if !isLoadingMedia {
+            recoveryAttempted = false
+        }
         
         guard let remoteMediaClient = session.remoteMediaClient else {
             print("❌ [CastManager] RemoteMediaClient is nil!")
@@ -623,18 +639,40 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         print("📢 [CastManager] URL: \(url.absoluteString)")
         print("📢 [CastManager] isLive: \(isLive)")
         
-        self.currentMediaUrl = url
-        self.currentTitle = title // Set explicitly from request
-        self.currentPosterUrl = posterUrl
-        self.currentMediaId = mediaId
-        self.currentSeason = season
-        self.currentEpisode = episode
-        self.currentSubtitles = subtitles // Store for Control Sheet access
-        self.cachedDuration = duration // Cache duration for immediate UI fb
-        self.lastSavedTime = startTime // Cache start time for immediate UI fb
+        // IMMEDIATE PROTECTION & STATE UPDATE
+        self.recoveryAttempted = true
         
-        // Save state for recovery
-        saveSessionState()
+        // Update ALL state immediately (if on main thread) to avoid race conditions
+        let updateBlock = {
+            self.isLoadingMedia = true
+            self.currentMediaUrl = url
+            self.currentTitle = title // Validate: This MUST be the new title
+            self.currentPosterUrl = posterUrl
+            self.currentMediaId = mediaId
+            self.currentSeason = season
+            self.currentEpisode = episode
+            self.currentSubtitles = subtitles
+            self.cachedDuration = duration
+            self.lastSavedTime = startTime
+            
+            self.saveSessionState()
+            
+            // Safety Timeout
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                if self.isLoadingMedia {
+                    print("⚠️ [CastManager] Timeout forcing spinner off")
+                    self.isLoadingMedia = false
+                }
+            }
+        }
+        
+        if Thread.isMainThread {
+            updateBlock()
+        } else {
+            DispatchQueue.main.async(execute: updateBlock)
+        }
+        
+        // Removed separate async block since we do it above
         
         guard let session = sessionManager?.currentCastSession,
               let remoteMediaClient = session.remoteMediaClient else {
@@ -942,6 +980,24 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     func remoteMediaClient(_ client: GCKRemoteMediaClient, didUpdate mediaStatus: GCKMediaStatus?) {
         // Force UI update on main thread
         DispatchQueue.main.async {
+            // Check if loading finished
+            if self.isLoadingMedia, let status = mediaStatus {
+                let remoteID = status.mediaInformation?.contentID
+                let localID = self.currentMediaUrl?.absoluteString
+                
+                // Condition 1: Strict URL match
+                let urlMatch = (remoteID != nil && localID != nil && remoteID == localID)
+                
+                // Condition 2: Playing state + Near start (Fallback if URL mismatch)
+                // If we are playing and within first 30s, assume success
+                let isPlayingStart = (status.playerState == .playing && status.streamPosition < 30.0)
+                
+                if urlMatch || isPlayingStart {
+                    print("✅ [CastManager] Loading finished. URLMatch: \(urlMatch), PlayingStart: \(isPlayingStart)")
+                    self.isLoadingMedia = false
+                }
+            }
+            
             self.mediaStatus = mediaStatus
             self.objectWillChange.send() // Force SwiftUI to refresh views observing this object
         }
@@ -972,9 +1028,25 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     private func startProgressTracking() {
         if progressTimer == nil {
-            print("⏱️ [CastManager] Starting progress tracking (background-safe)")
-            let timer = Timer(timeInterval: 5.0, repeats: true) { [weak self] _ in
-                self?.saveCurrentProgress()
+            print("⏱️ [CastManager] Starting progress tracking (1s interval)")
+            // 1-second timer for UI updates
+            let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                
+                guard let session = self.sessionManager?.currentCastSession,
+                      let remoteMediaClient = session.remoteMediaClient else { return }
+                
+                // 1. Update UI property
+                let time = remoteMediaClient.approximateStreamPosition()
+                self.currentTime = time
+                
+                // Debug Log (Temporary)
+                // print("⏱️ [CastManager] Tick: \(title) - \(Int(time))s")
+                
+                // 2. Save Progress to DB occasionally (e.g. every 5 seconds or if significant change)
+                if Int(time) % 5 == 0 {
+                     self.saveCurrentProgress()
+                }
             }
             // Add to common RunLoop mode so it works in background
             RunLoop.current.add(timer, forMode: .common)

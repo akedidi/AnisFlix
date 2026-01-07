@@ -820,27 +820,33 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : Vidzy > Vidmoly > Reste
+  // Trie final des sources : MovieBox > Vidzy > Vidmoly > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
-      // Rang 0: Vidzy (priorité absolue)
+      // Rang 0: MovieBox (priorité absolue pour VO)
+      if (source.provider.toLowerCase() === 'moviebox' ||
+        source.name.toLowerCase().includes('moviebox')) {
+        return 0;
+      }
+
+      // Rang 1: Vidzy
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
-        return 0;
-      }
-
-      // Rang 1: VidMoly
-      if (source.isVidMoly ||
-        source.provider.toLowerCase() === 'vidmoly' ||
-        source.name.toLowerCase().includes('vidmoly')) {
         return 1;
       }
 
-      // Rang 2: Le reste (Darki, Movix, Vixsrc, etc.)
-      return 2;
+      // Rang 2: VidMoly
+      if (source.isVidMoly ||
+        source.provider.toLowerCase() === 'vidmoly' ||
+        source.name.toLowerCase().includes('vidmoly')) {
+        return 2;
+      }
+
+      // Rang 3: Le reste (Darki, Movix, Vixsrc, etc.)
+      return 3;
     };
 
     const rankA = getRank(a);

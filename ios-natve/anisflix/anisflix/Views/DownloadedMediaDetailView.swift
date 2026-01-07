@@ -194,7 +194,9 @@ struct DownloadedMediaDetailView: View {
                                     season: item.season,
                                     episode: item.episode,
                                     isLive: false,
-                                    serverUrl: serverUrl
+                                    serverUrl: serverUrl,
+                                    provider: "download",
+                                    language: item.language
                                 )
                             }) {
                                 HStack {
