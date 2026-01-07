@@ -60,8 +60,11 @@ class WatchProgressManager: ObservableObject {
             lastWatched: Date()
         )
         
-        progressMap[key] = item
-        saveProgress()
+        // Update on Main Thread for real-time UI updates
+        DispatchQueue.main.async {
+            self.progressMap[key] = item
+            self.saveProgress()
+        }
     }
     
     func getProgress(mediaId: Int, season: Int? = nil, episode: Int? = nil) -> Double {

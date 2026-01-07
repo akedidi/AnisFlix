@@ -39,6 +39,7 @@ struct SeriesDetailView: View {
     @ObservedObject var favoritesManager = FavoritesManager.shared
     @ObservedObject var playerManager = GlobalPlayerManager.shared
     @ObservedObject var castManager = CastManager.shared
+    @ObservedObject var watchProgressManager = WatchProgressManager.shared
     
     // Episode selection and sources
     @State private var selectedEpisodeId: Int?
@@ -358,12 +359,9 @@ struct SeriesDetailView: View {
                                                                     .foregroundColor(theme.secondaryText)
                                                             }
                                                             
-                                                            // Progress Bar
-                                                            let progress = WatchProgressManager.shared.getProgress(
-                                                                mediaId: seriesId,
-                                                                season: episode.seasonNumber,
-                                                                episode: episode.episodeNumber
-                                                            )
+                                                            // Progress Bar - Uses observed WatchProgressManager for real-time updates
+                                                            let progressKey = "series_\(seriesId)_s\(episode.seasonNumber)_e\(episode.episodeNumber)"
+                                                            let progress = watchProgressManager.progressMap[progressKey]?.progress ?? 0
                                                             if progress > 0 {
                                                                 GeometryReader { geometry in
                                                                     ZStack(alignment: .leading) {
