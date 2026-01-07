@@ -21,7 +21,7 @@ struct Media: Identifiable, Codable, Hashable {
     let originalLanguage: String?
     let releaseDate: String?
     
-    enum MediaType: String, Codable, Hashable {
+    enum MediaType: String, Codable {
         case movie = "movie"
         case series = "tv"
     }
@@ -34,6 +34,15 @@ struct Media: Identifiable, Codable, Hashable {
     var backdropURL: URL? {
         guard let path = backdropPath, !path.isEmpty else { return nil }
         return URL(string: "https://image.tmdb.org/t/p/w1280\(path)")
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(mediaType)
+    }
+    
+    static func == (lhs: Media, rhs: Media) -> Bool {
+        return lhs.id == rhs.id && lhs.mediaType == rhs.mediaType
     }
 }
 

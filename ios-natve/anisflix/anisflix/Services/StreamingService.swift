@@ -55,12 +55,14 @@ struct StreamingSource: Identifiable, Codable {
     let provider: String // "vidmoly", "vidzy", "darki", "unknown"
     let type: String // "hls", "mp4", etc.
     var tracks: [Subtitle]? // Added tracks
+    var headers: [String: String]? // Added custom headers support
     
     enum CodingKeys: String, CodingKey {
         case url = "decoded_url"
         case quality
         case language
         case tracks
+        case headers
         // id is excluded
     }
     
@@ -70,6 +72,7 @@ struct StreamingSource: Identifiable, Codable {
         quality = try container.decodeIfPresent(String.self, forKey: .quality) ?? "HD"
         let rawLanguage = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
         tracks = try container.decodeIfPresent([Subtitle].self, forKey: .tracks)
+        headers = try container.decodeIfPresent([String: String].self, forKey: .headers)
         
         // Normalize language (French -> VF, English -> VO, etc.)
         let langLower = rawLanguage.lowercased()
@@ -93,6 +96,8 @@ struct StreamingSource: Identifiable, Codable {
             provider = "vidzy"
         } else if lowerQuality.contains("darki") || lowerUrl.contains("darki") {
             provider = "darki"
+        } else if lowerQuality.contains("moviebox") || lowerUrl.contains("moviebox") || (headers?["Referer"]?.contains("fmovies") ?? false) {
+             provider = "moviebox"
         } else {
             provider = "unknown"
         }
@@ -109,13 +114,14 @@ struct StreamingSource: Identifiable, Codable {
     }
     
     // Init for preview/manual creation
-    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, tracks: [Subtitle]? = nil) {
+    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
         self.url = url
         self.quality = quality
         self.type = type
         self.provider = provider
         self.language = language
         self.tracks = tracks
+        self.headers = headers
         
         if let providedId = id {
             self.id = providedId
@@ -131,6 +137,7 @@ struct StreamingSource: Identifiable, Codable {
         try container.encode(quality, forKey: .quality)
         try container.encode(language, forKey: .language)
         try container.encodeIfPresent(tracks, forKey: .tracks)
+        try container.encodeIfPresent(headers, forKey: .headers)
     }
 }
 
@@ -287,7 +294,10 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
-        async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId, type: "movie")
+        async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
+        
+        // Anime Placeholder
+        var animeTask: Task<[StreamingSource], Error>? = nil
         
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
@@ -295,9 +305,6 @@ class StreamingService {
         let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
         var afterDarkSources: [StreamingSource] = []
         var movixDownloadSources: [StreamingSource] = []
-        
-        // Anime Placeholder
-        var animeSources: [StreamingSource] = []
         
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
@@ -323,37 +330,39 @@ class StreamingService {
             // Check for Animation Genre (16)
             if tmdbInfo?.genreIds.contains(16) == true {
                 print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI...")
-                animeSources = (try? await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)) ?? []
+                animeTask = Task {
+                    return try await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)
+                }
             }
         } else {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, movieBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
+        let (tmdb, fstream, vixsrc, universalVO, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
+        let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
-        print("   - MovieBox: \(movieBox?.count ?? 0)")
+        print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
-        print("   - AnimeAPI: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
         
-        // Add MovieBox sources FIRST (highest priority - VO download links)
-        if let movieBox = movieBox {
-            allSources.append(contentsOf: movieBox)
-        }
-        
-        // Add TMDB sources (includes Vidzy)
+        // Add TMDB sources FIRST (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add Movix/Darkibox Download sources
+        // Add MovieBox sources SECOND (High quality VO)
+        if let mBox = mBox {
+            allSources.append(contentsOf: mBox)
+        }
+        
+        // Add Movix/Darkibox Download sources third
         allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
@@ -466,7 +475,7 @@ class StreamingService {
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-        async let movieBoxSources = fetchMovieBoxSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -522,34 +531,34 @@ class StreamingService {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, movieBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
+        let (tmdb, fstream, vixsrc, universalVO, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         print("   - UniversalVO: \(universalVO?.count ?? 0)")
-        print("   - MovieBox: \(movieBox?.count ?? 0)")
+        print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         print("   - Movix Anime: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
         
-        // Add MovieBox sources FIRST (highest priority - VO download links)
-        if let movieBox = movieBox {
-            allSources.append(contentsOf: movieBox)
-        }
-        
-        // Add Anime sources (High Priority for VidMoly)
+        // Add Anime sources FIRST (High Priority for VidMoly)
         allSources.append(contentsOf: animeSources)
         
-        // Add TMDB sources (includes Vidzy)
+        // Add TMDB sources FIRST (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add Movix/Darkibox Download sources
+        // Add MovieBox sources SECOND (High quality VO)
+        if let mBox = mBox {
+            allSources.append(contentsOf: mBox)
+        }
+        
+        // Add Movix/Darkibox Download sources second
         allSources.append(contentsOf: movixDownloadSources)
         
         if let universalVO = universalVO {
@@ -660,9 +669,123 @@ class StreamingService {
         return sources
     }
     
-    // MARK: - Stubs for Series (To be implemented)
+    // MARK: - MovieBox API
     
-    // MARK: - Subtitles
+    struct MovieBoxResponse: Codable {
+        let streams: [MovieBoxStream]?
+        let success: Bool?
+    }
+    
+    struct MovieBoxStream: Codable {
+        let url: String
+        let directUrl: String?
+        let quality: String?
+        let type: String? // "mp4", "m3u8"
+        let headers: [String: String]?
+    }
+
+    func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        print("🌐 [MovieBox] Fetching Movie URL: \(urlString)")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            print("❌ [MovieBox] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            if let errorData = String(data: data, encoding: .utf8) {
+                print("❌ [MovieBox] Error Response: \(errorData)")
+            }
+            throw URLError(.badServerResponse)
+        }
+        
+        if let jsonString = String(data: data, encoding: .utf8) {
+             print("📄 [MovieBox] Raw Response: \(jsonString)") 
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            if let movieBoxStreams = decoded.streams {
+                for src in movieBoxStreams {
+                    let quality = src.quality ?? "HD"
+                    let targetUrl = src.directUrl ?? src.url
+                    
+                    let source = StreamingSource(
+                        url: targetUrl,
+                        quality: quality,
+                        type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
+                        provider: "moviebox",
+                        language: "VO",
+                        headers: src.headers
+                    )
+                    sources.append(source)
+                }
+            }
+            print("✅ [MovieBox] Found \(sources.count) sources")
+            return sources
+        } catch {
+            print("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+    
+    func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        print("🌐 [MovieBox] Fetching Series URL: \(urlString)")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            print("❌ [MovieBox] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            if let errorData = String(data: data, encoding: .utf8) {
+                print("❌ [MovieBox] Error Response: \(errorData)")
+            }
+            throw URLError(.badServerResponse)
+        }
+        
+        if let jsonString = String(data: data, encoding: .utf8) {
+             print("📄 [MovieBox] Raw Response Series: \(jsonString)")
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            if let movieBoxStreams = decoded.streams {
+                for src in movieBoxStreams {
+                    let quality = src.quality ?? "HD"
+                    let targetUrl = src.directUrl ?? src.url
+                    
+                    let source = StreamingSource(
+                        url: targetUrl,
+                        quality: quality,
+                        type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
+                        provider: "moviebox",
+                        language: "VO",
+                        headers: src.headers
+                    )
+                    sources.append(source)
+                }
+            }
+            print("✅ [MovieBox] Found \(sources.count) sources")
+            return sources
+        } catch {
+            print("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+
     
     func getSubtitles(imdbId: String, season: Int? = nil, episode: Int? = nil) async -> [Subtitle] {
         let urlString: String
@@ -881,93 +1004,6 @@ class StreamingService {
         } catch {
              print("❌ [UniversalVO] Error fetching/decoding: \(error)")
              return []
-        }
-    }
-    
-    // MARK: - MovieBox API
-    func fetchMovieBoxSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=\(type)"
-        if let season = season {
-            urlString += "&season=\(season)"
-        }
-        if let episode = episode {
-            urlString += "&episode=\(episode)"
-        }
-        
-        print("📦 [MovieBox] Fetching URL: \(urlString)")
-        
-        guard let url = URL(string: urlString) else {
-            print("❌ [MovieBox] Invalid URL")
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 30
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                print("❌ [MovieBox] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-                throw URLError(.badServerResponse)
-            }
-            
-            struct MovieBoxResponse: Codable {
-                let success: Bool
-                let streams: [MovieBoxStream]?
-                let matchedContent: MovieBoxMatch?
-                let message: String?
-            }
-            
-            struct MovieBoxStream: Codable {
-                let name: String
-                let quality: String
-                let url: String
-                let size: String
-                let type: String
-                let language: String
-                let provider: String
-            }
-            
-            struct MovieBoxMatch: Codable {
-                let title: String
-            }
-            
-            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
-            print("✅ [MovieBox] Decoded response. Sources count: \(decoded.streams?.count ?? 0)")
-            
-            if let matchedContent = decoded.matchedContent {
-                print("✅ [MovieBox] Matched: \(matchedContent.title)")
-            }
-            
-            var sources: [StreamingSource] = []
-            
-            if let streams = decoded.streams {
-                print("📦 [MovieBox] Creating \(streams.count) sources")
-                for (index, stream) in streams.enumerated() {
-                    print("📦 [MovieBox] Source #\(index): quality='\(stream.quality)', type='\(stream.type)', provider='\(stream.provider)'")
-                    
-                    // MovieBox provides download links, all in VO
-                    let source = StreamingSource(
-                        id: "moviebox_\(tmdbId)_\(stream.quality)_\(index)",  // Unique ID per source
-                        url: stream.url,
-                        quality: stream.quality,
-                        type: stream.type,
-                        provider: "moviebox",
-                        language: "VO"  // All MovieBox sources are VO
-                    )
-                    
-                    print("📦 [MovieBox] Created source with ID: \(source.id), provider: '\(source.provider)', quality: '\(source.quality)'")
-                    sources.append(source)
-                }
-            }
-            
-            print("📦 [MovieBox] Returning \(sources.count) total sources")
-            return sources
-        } catch {
-            print("❌ [MovieBox] Error fetching/decoding: \(error)")
-            return []
         }
     }
     

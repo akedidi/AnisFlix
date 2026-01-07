@@ -78,6 +78,7 @@ struct HomeView: View {
                     // Ideally we add some padding if needed, but safeAreaInset handles header.
                     
                     // Continue Watching Section (conditionnelle)
+                    if !continueWatching.isEmpty {
                         MediaRow(
                             title: theme.t("home.continueWatching"),
                             items: Array(continueWatching.prefix(20)),
@@ -86,7 +87,7 @@ struct HomeView: View {
                             },
                             progressByMediaId: progressByMediaId
                         )
-
+                    }
                     
                     // Providers Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -99,7 +100,10 @@ struct HomeView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 16) {
                                 ForEach(providers, id: \.id) { provider in
-                                    NavigationLink(value: NavigationDestination.providerList(providerId: provider.id, providerName: provider.name)) {
+                                    NavigationLink {
+                                        // Navigate to provider list
+                                        ProviderMediaListView(providerId: provider.id, providerName: provider.name)
+                                    } label: {
                                         VStack(spacing: 8) {
                                             RoundedRectangle(cornerRadius: 12)
                                                 .fill(Color.white)
@@ -710,8 +714,8 @@ struct HomeView: View {
         var processedMediaIds: Set<Int> = []
         
         for item in progressItems {
-            // Only show items that are not complete (< 90% watched)
-            guard item.progress < 0.90 else { continue }
+            // Only show items that are not complete (< 95% watched)
+            guard item.progress < 0.95 else { continue }
             
             // Skip if we already have this media ID (keep the first = most recent)
             if processedMediaIds.contains(item.mediaId) {
@@ -773,7 +777,6 @@ struct HomeView: View {
         progressByMediaId = progDict
     }
 }
-
 
 // Placeholder pour les cartes de films
 struct MovieCardPlaceholder: View {

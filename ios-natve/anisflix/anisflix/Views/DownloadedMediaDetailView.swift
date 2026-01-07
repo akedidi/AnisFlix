@@ -12,11 +12,8 @@ struct DownloadedMediaDetailView: View {
     let item: DownloadItem
     @ObservedObject var theme = AppTheme.shared
     @ObservedObject var watchProgressManager = WatchProgressManager.shared
+    @ObservedObject var playerManager = GlobalPlayerManager.shared
     @Environment(\.presentationMode) var presentationMode
-    
-    @State private var showPlayer = false
-    @State private var isFullscreen = false
-    @StateObject private var playerVM = PlayerViewModel()
     
     var backdropUrl: URL? {
         // Priority 1: Local downloaded file
@@ -156,9 +153,49 @@ struct DownloadedMediaDetailView: View {
                         }
                         
                         // Play Button (Big)
-                        if !showPlayer {
+                        if let localUrl = item.localVideoUrl {
                             Button(action: {
-                                showPlayer = true
+                                // Build poster URL string
+                                let posterUrlStr: String? = {
+                                    if let localPath = item.localPosterPath {
+                                        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                                        return documentsURL.appendingPathComponent(localPath).absoluteString
+                                    } else if let remotePath = item.posterPath {
+                                        return "https://image.tmdb.org/t/p/w500\(remotePath)"
+                                    }
+                                    return nil
+                                }()
+                                
+                                // Convert local subtitles to Subtitle array
+                                let subtitles = item.localSubtitles.map { 
+                                    Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) 
+                                }
+                                
+                                // Format title: For series, include S01E01 - Episode Title
+                                let displayTitle: String = {
+                                    if let season = item.season, let episode = item.episode {
+                                        // item.title is the episode title, we need to construct full title
+                                        // Format: "S01E01 - Episode Title" (series name might not be available here)
+                                        return "S\(String(format: "%02d", season))E\(String(format: "%02d", episode)) - \(item.title)"
+                                    }
+                                    return item.title
+                                }()
+                                
+                                // Build server URL for Cast (Chromecast can't play local files)
+                                let serverUrl = URL(string: item.videoUrl)
+                                
+                                // Use GlobalPlayerManager for consistent UX
+                                playerManager.play(
+                                    url: localUrl,
+                                    title: displayTitle,
+                                    posterUrl: posterUrlStr,
+                                    subtitles: subtitles,
+                                    mediaId: item.mediaId,
+                                    season: item.season,
+                                    episode: item.episode,
+                                    isLive: false,
+                                    serverUrl: serverUrl
+                                )
                             }) {
                                 HStack {
                                     Image(systemName: "play.fill")
@@ -172,9 +209,6 @@ struct DownloadedMediaDetailView: View {
                                 .cornerRadius(12)
                             }
                             .padding(.horizontal, 16)
-                        } else {
-                            // Placeholder for player space when inline
-                             Color.clear.frame(height: 250)
                         }
                         
                         // Overview
@@ -190,131 +224,12 @@ struct DownloadedMediaDetailView: View {
                             .padding(.horizontal, 16)
                         }
                         
-                        Spacer(minLength: 50)
+                        Color.clear.frame(height: 150)
                     }
                     .padding(.top, 24)
                 }
             }
             
-            // Player Overlay
-            if showPlayer, let url = item.localVideoUrl {
-                VStack(spacing: 0) {
-                    // Header above player when inline
-                    if !isFullscreen {
-                        HStack {
-                            Spacer()
-                            
-                            Button(action: {
-                                showPlayer = false
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "xmark.circle.fill")
-                                    Text(theme.t("detail.close"))
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(theme.secondaryText)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(theme.cardBackground)
-                                .cornerRadius(16)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                        .padding(.top, 350) // Approximate position
-                    }
-                    
-                    CustomVideoPlayer(
-                        url: url,
-                        title: item.title,
-                        posterUrl: posterUrl?.absoluteString,
-                        localPosterPath: item.localPosterPath,
-                        subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                        isPresented: $showPlayer,
-                        isFullscreen: $isFullscreen,
-                        showFullscreenButton: true,
-                        mediaId: item.mediaId,
-                        season: item.season,
-                        episode: item.episode,
-                        playerVM: playerVM
-                    )
-                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
-                    .ignoresSafeArea(isFullscreen ? .all : [])
-
-                    .onAppear {
-                        print("▶️ Playing local file: \(url.absoluteString)")
-                        // Verify file existence
-                        if FileManager.default.fileExists(atPath: url.path) {
-                            print("✅ File exists at path: \(url.path)")
-                        } else {
-                            print("❌ File NOT found at path: \(url.path)")
-                        }
-                    }
-                    
-                }
-            }
-            
-            // Player Overlay
-            if showPlayer, let url = item.localVideoUrl {
-                VStack(spacing: 0) {
-                    // Header above player when inline
-                    if !isFullscreen {
-                        HStack {
-                            Spacer()
-                            
-                            Button(action: {
-                                showPlayer = false
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "xmark.circle.fill")
-                                    Text(theme.t("detail.close"))
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(theme.secondaryText)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(theme.cardBackground)
-                                .cornerRadius(16)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 8)
-                        .padding(.top, 350) // Approximate position
-                    }
-                    
-                    CustomVideoPlayer(
-                        url: url,
-                        title: item.title,
-                        localPosterPath: item.localPosterPath,
-                        subtitles: item.localSubtitles.map { Subtitle(url: $0.url.absoluteString, label: $0.label, code: $0.code, flag: $0.flag) },
-                        isPresented: $showPlayer,
-                        isFullscreen: $isFullscreen,
-                        showFullscreenButton: true,
-                        mediaId: item.mediaId,
-                        season: item.season,
-                        episode: item.episode,
-                        playerVM: playerVM
-                    )
-                    .frame(width: UIScreen.main.bounds.width, height: isFullscreen ? UIScreen.main.bounds.height : 250)
-                    .ignoresSafeArea(isFullscreen ? .all : [])
-
-                    .onAppear {
-                        print("▶️ Playing local file: \(url.absoluteString)")
-                        // Verify file existence
-                        if FileManager.default.fileExists(atPath: url.path) {
-                            print("✅ File exists at path: \(url.path)")
-                        } else {
-                            print("❌ File NOT found at path: \(url.path)")
-                        }
-                    }
-                    
-                    if !isFullscreen {
-                        Spacer()
-                    }
-                }
-                .background(isFullscreen ? Color.black : Color.clear)
-                .zIndex(100)
-            }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -324,8 +239,6 @@ struct DownloadedMediaDetailView: View {
                     .foregroundColor(theme.primaryText)
             }
         }
-        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
-        .toolbar(isFullscreen ? .hidden : .visible, for: .tabBar)
     }
     
     // Compute watch progress for this item

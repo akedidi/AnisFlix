@@ -100,7 +100,18 @@ struct MediaCard: View {
     }
     
     var body: some View {
-        NavigationLink(value: media.mediaType == .movie ? NavigationDestination.movieDetail(media) : NavigationDestination.seriesDetail(media)) {
+        NavigationLink {
+            Group {
+                if media.mediaType == .movie {
+                   MovieDetailView(movieId: media.id)
+                } else {
+                    SeriesDetailView(seriesId: media.id)
+                }
+            }
+            .onAppear {
+                print("🔵 NavigationLink ACTIVATED for: \(media.title) (ID: \(media.id), Type: \(media.mediaType == .movie ? "Movie" : "Series"))")
+            }
+        } label: {
             VStack(alignment: .leading, spacing: 8) {
                 // Poster with caching
                 CachedAsyncImagePhased(url: media.posterURL) { phase in

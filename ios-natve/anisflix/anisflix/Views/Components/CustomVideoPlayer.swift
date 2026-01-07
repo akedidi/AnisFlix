@@ -67,12 +67,6 @@ struct CustomVideoPlayer: View {
             // Force Hide TabBar when in Fullscreen
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
-                .onAppear {
-                    // Sync initial state
-                    if isFullscreen {
-                        NotificationCenter.default.post(name: NSNotification.Name("ToggleTabBarVisibility"), object: true)
-                    }
-                }
             
             // Hide Home Indicator when controls are hidden in fullscreen
             HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
@@ -182,21 +176,74 @@ struct CustomVideoPlayer: View {
             
             // Controls Overlay - Only when NOT casting
             if showControls && !castManager.isConnected {
-                VStack {
+                VStack(spacing: 0) {
                     // Top Bar
-                    HStack {
-                        // Close button removed as per user request
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            // Minimize Button - Only show when NOT in fullscreen
+                            /* Removed as per user request
+                            if !isFullscreen {
+                                Button {
+                                    GlobalPlayerManager.shared.toggleMinimise()
+                                } label: {
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(Circle().fill(Color.black.opacity(0.4)))
+                                }
+                            }
+                            */
+                            
+                            // Title - In fullscreen, show inline with controls
+                            if isFullscreen {
+                                Text(title)
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            
+                            Spacer()
+                            
+                            // AirPlay Button (Top Right)
+                            AirPlayView()
+                                .frame(width: 44, height: 44)
+                        }
                         
-                        Text(title)
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            .lineLimit(1)
-                        
-                        Spacer()
-                        
-                        // AirPlay Button (Top Right)
-                        AirPlayView()
-                            .frame(width: 44, height: 44)
+                        // Title Row - Tappable for navigation to detail (only in non-fullscreen mode)
+                        if !isFullscreen {
+                            // Not fullscreen: tappable for navigation
+                            Button {
+                                // Navigate to detail page and minimize player
+                                if let mediaId = mediaId {
+                                    GlobalPlayerManager.shared.toggleMinimise()
+                                    // Post notification to navigate to detail
+                                    NotificationCenter.default.post(
+                                        name: .navigateToDetail,
+                                        object: nil,
+                                        userInfo: [
+                                            "mediaId": mediaId,
+                                            "isMovie": (season == nil && episode == nil)
+                                        ]
+                                    )
+                                }
+                            } label: {
+                                HStack {
+                                    Text(title)
+                                        .foregroundColor(.white)
+                                        .font(.headline)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    
+                                    Spacer()
+                                }
+                            }
+                        }
                     }
                     .padding()
                     .background(
@@ -338,6 +385,15 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
+        .gesture(
+            DragGesture(minimumDistance: 50)
+                .onEnded { value in
+                    // Swipe down to minimize
+                    if value.translation.height > 100 {
+                        GlobalPlayerManager.shared.toggleMinimise()
+                    }
+                }
+        )
         .persistentSystemOverlays(isFullscreen && !showControls ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
@@ -415,6 +471,13 @@ struct CustomVideoPlayer: View {
         }
         .onChange(of: isFullscreen) { fullscreen in
             print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
+            
+            // Manage Custom TabBar Visibility
+            if fullscreen {
+                TabBarManager.shared.hide()
+            } else {
+                TabBarManager.shared.show()
+            }
             
             // Set switching flag to prevent orientation notification from reverting our change
             playerVM.isSwitchingModes = true
@@ -603,10 +666,7 @@ struct CustomVideoPlayer: View {
                 }
             }
         }
-        .onChange(of: isFullscreen) { newValue in
-            // Notify MainTabView to hide/show the custom tab bar
-            NotificationCenter.default.post(name: NSNotification.Name("ToggleTabBarVisibility"), object: newValue)
-        }
+
     }
     
     func formatTime(_ seconds: Double) -> String {
@@ -651,6 +711,7 @@ struct CustomVideoPlayer: View {
 
 extension Notification.Name {
     static let stopPlayback = Notification.Name("stopPlayback")
+    static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
 class PlayerViewModel: NSObject, ObservableObject {
@@ -676,10 +737,15 @@ class PlayerViewModel: NSObject, ObservableObject {
     private var subtitleParser: SubtitleParser?
     private var pipController: AVPictureInPictureController?
     private weak var playerLayer: AVPlayerLayer?
+    
+    // Expose PiP state for GlobalPlayerManager
+    var isPiPActive: Bool {
+        return pipController?.isPictureInPictureActive ?? false
+    }
     private var observedItem: AVPlayerItem? // Track the item we're observing
     private(set) var currentUrl: URL? // Track current URL to prevent restart
     private var currentTitle: String? // Track current content title for Now Playing Info
-    private var currentArtwork: UIImage? // Track downloaded artwork
+    private var currentArtwork: MPMediaItemArtwork? // Track downloaded artwork
     var isSwitchingModes = false // Track fullscreen transition
     
     // Metadata for Scrobbling
@@ -714,14 +780,6 @@ class PlayerViewModel: NSObject, ObservableObject {
             name: .stopPlayback,
             object: nil
         )
-        
-        // Listen for TogglePlayPause (from MiniPlayer)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleTogglePlayPause(_:)),
-            name: NSNotification.Name("TogglePlayPause"),
-            object: nil
-        )
     }
     
     deinit {
@@ -737,11 +795,6 @@ class PlayerViewModel: NSObject, ObservableObject {
                 isPlaying = false
             }
         }
-    }
-    
-    @objc private func handleTogglePlayPause(_ notification: Notification) {
-        print("⏯️ Received via notification: Toggle Play/Pause")
-        self.togglePlayPause()
     }
     
     func updateMetadata(title: String, posterUrl: String?, localPosterPath: String? = nil) {
@@ -764,19 +817,6 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         updateNowPlayingInfo(title: title)
-        
-        // Update Global Player Manager
-        GlobalPlayerManager.shared.updateLocalStatus(
-            isPlaying: isPlaying,
-            title: title,
-            artwork: currentArtwork,
-            url: currentUrl,
-            mediaId: mediaId,
-            season: season,
-            episode: episode,
-            currentTime: currentTime,
-            duration: duration
-        )
     }
     
     // Trakt Scrobbling Helper
@@ -804,7 +844,7 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil) {
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
         
@@ -843,10 +883,9 @@ class PlayerViewModel: NSObject, ObservableObject {
         var finalUrl = url
         var useResourceLoader = false
         
-        // Resource Loader Logic for Providers requiring custom headers
-        let restrictedProviders = ["api/vidmoly", "vidmoly.net", "vidzy", "afterdark", "voe"]
-        if restrictedProviders.contains(where: { url.absoluteString.contains($0) }) {
-            print("🎬 [CustomVideoPlayer] Restricted provider detected (\(url.host ?? "")), enabling ResourceLoader")
+        // VidMoly Logic: Use ResourceLoader to handle custom headers and Content-Type
+        if url.absoluteString.contains("api/vidmoly") || url.absoluteString.contains("vidmoly.net") {
+            print("🎬 [CustomVideoPlayer] VidMoly URL detected, enabling ResourceLoader")
             useResourceLoader = true
             
             // Rewrite scheme to trigger delegate
@@ -855,6 +894,29 @@ class PlayerViewModel: NSObject, ObservableObject {
                 // Add a virtual query param that acts as a suffix for AVPlayer's extension detector (if it checks query)
                 // or just to ensure unique handling.
                 // NOTE: We append it to the query string.
+                if var items = components.queryItems {
+                    items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
+                    components.queryItems = items
+                } else {
+                     components.queryItems = [URLQueryItem(name: "virtual", value: ".m3u8")]
+                }
+                
+                if let customUrl = components.url {
+                    finalUrl = customUrl
+                    print("   - Rewrote URL to: \(finalUrl)")
+                }
+            }
+        }
+        
+        // Vidzy Logic: Use ResourceLoader to sanitize playlists (remove VIDEO-RANGE, I-FRAMES)
+        if url.absoluteString.lowercased().contains("vidzy") {
+            print("🎬 [CustomVideoPlayer] Vidzy URL detected, enabling ResourceLoader")
+            useResourceLoader = true
+            
+            // Rewrite scheme to trigger delegate
+            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                components.scheme = "vidzy-custom"
+                
                 if var items = components.queryItems {
                     items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
                     components.queryItems = items
@@ -887,14 +949,24 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
         
         // Always use AVURLAsset with browser-like User-Agent
-        let headers: [String: String] = [
+        var headers: [String: String] = [
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
-        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
-        // Show loading spinner while video loads
-        isBuffering = true
-        print("⏳ [Player] Loading started, isBuffering = true")
+        // Add Referer header for Vidzy URLs to fix playback
+        let urlString = url.absoluteString.lowercased()
+        if urlString.contains("vidzy") {
+            headers["Referer"] = "https://vidzy.org/"
+            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
+        }
+        
+        // Merge custom headers if provided (e.g. for MovieBox)
+        if let customHeaders = customHeaders {
+            headers.merge(customHeaders) { (_, new) in new }
+            print("🎬 [CustomVideoPlayer] Added custom headers: \(customHeaders.keys)")
+        }
+        
+        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
         if useResourceLoader {
             self.resourceLoaderDelegate = VideoResourceLoaderDelegate()
@@ -918,12 +990,25 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Update Now Playing Info with proper title
         updateNowPlayingInfo(title: currentTitle ?? url.lastPathComponent)
         
-        // Observe duration
+        // Initialize buffering state
+        isBuffering = true
+        
+        // Clear previous observers if any
+        if let oldItem = observedItem {
+            oldItem.removeObserver(self, forKeyPath: "duration")
+            oldItem.removeObserver(self, forKeyPath: "status")
+            oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+            oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+            oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
+        }
+        
+        // Observe item properties
         observedItem = item
         item.addObserver(self, forKeyPath: "duration", options: [.new, .initial], context: nil)
-        
-        // Observe playbackLikelyToKeepUp to detect when buffering ends
+        item.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
         item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackBufferFull", options: [.new, .initial], context: nil)
         
         // Observe time
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
@@ -1020,8 +1105,7 @@ class PlayerViewModel: NSObject, ObservableObject {
             
             // Use downloaded artwork if available, otherwise use app icon
             // IMPORTANT: Always replace artwork to prevent showing stale logo from previous channel
-            if let image = self.currentArtwork {
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+            if let artwork = self.currentArtwork {
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             } else {
                 // Clear existing artwork and use default icon while new artwork downloads
@@ -1052,23 +1136,11 @@ class PlayerViewModel: NSObject, ObservableObject {
                 return
             }
             
-            self.currentArtwork = image
+            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+            self.currentArtwork = artwork
             print("✅ Artwork loaded from local file: \(localPath)")
             
             self.updateNowPlayingInfo()
-            
-            // Update Global Player Manager
-            GlobalPlayerManager.shared.updateLocalStatus(
-                isPlaying: isPlaying,
-                title: currentTitle,
-                artwork: currentArtwork,
-                url: currentUrl,
-                mediaId: mediaId,
-                season: season,
-                episode: episode,
-                currentTime: currentTime,
-                duration: duration
-            )
         } catch {
             print("❌ Failed to load local artwork: \(error)")
         }
@@ -1092,23 +1164,12 @@ class PlayerViewModel: NSObject, ObservableObject {
             
             // Create artwork on main thread
             await MainActor.run {
-                self.currentArtwork = image
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+                self.currentArtwork = artwork
                 print("✅ Artwork downloaded and set: \(urlString)")
                 
                 // Force update of Now Playing Info with the new artwork
                 self.updateNowPlayingInfo()
-                
-                // Update Global Player Manager
-                GlobalPlayerManager.shared.updateLocalStatus(
-                    isPlaying: self.isPlaying, // Keep existing isPlaying state
-                    title: self.currentTitle,
-                    artwork: self.currentArtwork,
-                    mediaId: self.mediaId,
-                    season: self.season,
-                    episode: self.episode,
-                    currentTime: self.currentTime,
-                    duration: self.duration
-                )
             }
         } catch {
             print("❌ Failed to download artwork: \(error)")
@@ -1161,7 +1222,10 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Only remove observer if we actually added one
         if let item = observedItem {
             item.removeObserver(self, forKeyPath: "duration")
+            item.removeObserver(self, forKeyPath: "status")
             item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+            item.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+            item.removeObserver(self, forKeyPath: "playbackBufferFull")
             observedItem = nil
         }
         resourceLoaderDelegate = nil
@@ -1265,24 +1329,56 @@ class PlayerViewModel: NSObject, ObservableObject {
     
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "duration", let duration = player.currentItem?.duration.seconds, !duration.isNaN {
-            DispatchQueue.main.async {
-                self.duration = duration
-            }
-        }
+        guard let item = object as? AVPlayerItem else { return }
         
-        // Handle buffering state
-        if keyPath == "playbackLikelyToKeepUp" {
-            if let item = player.currentItem {
+        switch keyPath {
+        case "duration":
+            let duration = item.duration.seconds
+            if !duration.isNaN {
                 DispatchQueue.main.async {
-                    if item.isPlaybackLikelyToKeepUp {
-                        print("✅ [Player] Video ready to play, isBuffering = false")
-                        self.isBuffering = false
-                    } else {
-                        self.isBuffering = true
+                    self.duration = duration
+                }
+            }
+            
+        case "status":
+            if item.status == .readyToPlay {
+                DispatchQueue.main.async {
+                    // Start playing if not already
+                    if !self.isPlaying {
+                        self.player.play()
+                        self.isPlaying = true
+                    }
+                    self.isBuffering = false
+                }
+            } else if item.status == .failed {
+                print("❌ [PlayerViewModel] AVPlayerItem failed: \(String(describing: item.error))")
+                DispatchQueue.main.async {
+                    self.isBuffering = false
+                }
+            }
+            
+        case "playbackBufferEmpty":
+            if item.isPlaybackBufferEmpty {
+                print("⏳ [PlayerViewModel] Buffer empty, showing spinner")
+                DispatchQueue.main.async {
+                    self.isBuffering = true
+                }
+            }
+            
+        case "playbackLikelyToKeepUp", "playbackBufferFull":
+            if item.isPlaybackLikelyToKeepUp || item.isPlaybackBufferFull {
+                print("▶️ [PlayerViewModel] Buffer likely to keep up, hiding spinner")
+                DispatchQueue.main.async {
+                    self.isBuffering = false
+                    // Resume playback if it was paused due to buffer
+                    if self.player.rate == 0 && self.isPlaying {
+                        self.player.play()
                     }
                 }
             }
+            
+        default:
+            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
         }
     }
 }

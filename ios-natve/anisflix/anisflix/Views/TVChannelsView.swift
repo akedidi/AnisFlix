@@ -216,10 +216,8 @@ struct TVChannelsView: View {
                 VStack(spacing: 0) {
                     if !isFullscreen {
                         // Spacer to push player down below header
-                        // Since we use safeAreaInset for header, we know it consumes top safe area + height.
-                        // It does NOT affect this ZStack overlay.
-                        // So we still need this spacer to clear the header visually.
-                        Color.clear.frame(height: 70)
+                        // Increased to 100 as per user feedback ("descendre encore un peu")
+                        Color.clear.frame(height: 100)
                     }
                     
                     CustomVideoPlayer(
@@ -259,8 +257,11 @@ struct TVChannelsView: View {
                                     .foregroundColor(.white)
                             }
                         }
-                        .padding(8)
+
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2) // Reduced height as per user request
                         .background(AppTheme.primaryRed)
+                        .padding(.top, 10) // Push banner down to avoid overlapping player controls
                         
                         Spacer() // Push to top
                     }
