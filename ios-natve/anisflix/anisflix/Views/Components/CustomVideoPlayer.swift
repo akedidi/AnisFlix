@@ -69,10 +69,7 @@ struct CustomVideoPlayer: View {
             TabBarHider(shouldHide: isFullscreen)
                 .frame(width: 0, height: 0)
             
-            // Hide Home Indicator when controls are hidden in fullscreen
-            HomeIndicatorHider(shouldHide: isFullscreen && !showControls)
-                .frame(width: 0, height: 0)
-                .zIndex(999)
+
             
             ZStack {
             // Full black background - especially important in fullscreen
@@ -213,7 +210,7 @@ struct CustomVideoPlayer: View {
                 VStack(spacing: 0) {
                     // Top Bar
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
+                        HStack(alignment: .center) {
                             // Minimize Button - Only show when NOT in fullscreen
                             /* Removed as per user request
                             if !isFullscreen {
@@ -229,13 +226,42 @@ struct CustomVideoPlayer: View {
                             }
                             */
                             
-                            // Title - In fullscreen, show inline with controls
+                            // Title - Always in the same row as AirPlay
                             if isFullscreen {
                                 Text(title)
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                    .lineLimit(2)
+                                    .lineLimit(1)
                                     .multilineTextAlignment(.leading)
+                            } else {
+                                // Not fullscreen: tappable for navigation
+                                Button {
+                                    // Navigate to detail page and minimize player
+                                    if let mediaId = mediaId {
+                                        GlobalPlayerManager.shared.toggleMinimise()
+                                        // Post notification to navigate to detail
+                                        NotificationCenter.default.post(
+                                            name: .navigateToDetail,
+                                            object: nil,
+                                            userInfo: [
+                                                "mediaId": mediaId,
+                                                "isMovie": (season == nil && episode == nil)
+                                            ]
+                                        )
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Text(title)
+                                            .foregroundColor(.white)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
                             }
                             
                             Spacer()
@@ -243,40 +269,6 @@ struct CustomVideoPlayer: View {
                             // AirPlay Button (Top Right)
                             AirPlayView()
                                 .frame(width: 44, height: 44)
-                        }
-                        
-                        // Title Row - Tappable for navigation to detail (only in non-fullscreen mode)
-                        if !isFullscreen {
-                            // Not fullscreen: tappable for navigation
-                            Button {
-                                // Navigate to detail page and minimize player
-                                if let mediaId = mediaId {
-                                    GlobalPlayerManager.shared.toggleMinimise()
-                                    // Post notification to navigate to detail
-                                    NotificationCenter.default.post(
-                                        name: .navigateToDetail,
-                                        object: nil,
-                                        userInfo: [
-                                            "mediaId": mediaId,
-                                            "isMovie": (season == nil && episode == nil)
-                                        ]
-                                    )
-                                }
-                            } label: {
-                                HStack {
-                                    Text(title)
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.leading)
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                    
-                                    Spacer()
-                                }
-                            }
                         }
                     }
                     .padding()
@@ -428,7 +420,7 @@ struct CustomVideoPlayer: View {
                     }
                 }
         )
-        .persistentSystemOverlays(isFullscreen && !showControls ? .hidden : .automatic)
+        .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
             let isAlreadyPlaying = playerVM.currentUrl == url
