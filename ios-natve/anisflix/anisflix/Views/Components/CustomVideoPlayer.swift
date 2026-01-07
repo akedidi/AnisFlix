@@ -468,6 +468,9 @@ struct CustomVideoPlayer: View {
         .onDisappear {
             print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
             
+            // Force reset Home Indicator
+            HomeIndicatorState.shared.shouldHide = false
+            
             // Stop scrobble when leaving player
             if let mid = mediaId {
                let currentProgress = playerVM.duration > 0 ? (playerVM.currentTime / playerVM.duration) * 100 : 0
@@ -512,6 +515,10 @@ struct CustomVideoPlayer: View {
             withAnimation {
                 showControls = true
             }
+            
+            // Force Home Indicator Update
+            print("🏠 [CustomVideoPlayer] Setting HomeIndicatorState.shouldHide = \(fullscreen)")
+            HomeIndicatorState.shared.shouldHide = fullscreen
             
             // Add a small delay to let SwiftUI settle before forcing rotation
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
