@@ -177,8 +177,8 @@ struct MainTabView: View {
              }
              
              // GLOBAL MINI PLAYER (Above Tab Bar)
-             // Show when: local player is minimized OR Cast has active media
-             if (playerManager.isPresented && playerManager.isMinimised) || (castManager.isConnected && castManager.hasMediaLoaded) {
+             // Show when: local player is minimized AND we are NOT casting (CastMiniPlayerView handles casting)
+             if playerManager.isPresented && playerManager.isMinimised && !castManager.isConnected {
                  MiniPlayerView()
                      .padding(.bottom, tabBarManager.isHidden ? 20 : 80) // Match CastMiniPlayerView positioning
                      .transition(.move(edge: .bottom))

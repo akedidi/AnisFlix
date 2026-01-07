@@ -78,6 +78,16 @@ struct CastMiniPlayerView: View {
                             .foregroundColor(.white)
                             .padding(8)
                     }
+                    
+                    // Stop Cast Button
+                    Button {
+                        castManager.disconnect()
+                    } label: {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white.opacity(0.8))
+                            .padding(8)
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)

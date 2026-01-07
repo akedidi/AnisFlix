@@ -331,7 +331,7 @@ struct SeriesDetailView: View {
                                                                 season: episode.seasonNumber,
                                                                 episode: episode.episodeNumber
                                                             )
-                                                            if progress > 0 && progress < 0.95 {
+                                                            if progress > 0 {
                                                                 GeometryReader { geometry in
                                                                     ZStack(alignment: .leading) {
                                                                         Rectangle()
@@ -341,7 +341,7 @@ struct SeriesDetailView: View {
                                                                         
                                                                         Rectangle()
                                                                             .fill(AppTheme.primaryRed)
-                                                                            .frame(width: geometry.size.width * progress, height: 3)
+                                                                            .frame(width: geometry.size.width * (progress >= 0.95 ? 1.0 : progress), height: 3)
                                                                             .cornerRadius(1.5)
                                                                     }
                                                                 }

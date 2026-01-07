@@ -222,7 +222,7 @@ struct MovieDetailView: View {
                                             // Progress
                                             Rectangle()
                                                 .fill(AppTheme.primaryRed)
-                                                .frame(width: geometry.size.width * CGFloat(progress), height: 3)
+                                                .frame(width: geometry.size.width * CGFloat(progress >= 0.95 ? 1.0 : progress), height: 3)
                                         }
                                     }
                                     .frame(height: 3)
