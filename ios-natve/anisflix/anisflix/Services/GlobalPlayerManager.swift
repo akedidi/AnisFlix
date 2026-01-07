@@ -37,6 +37,7 @@ class GlobalPlayerManager: ObservableObject {
     // Cast Manager reference
     private let castManager = CastManager.shared
     private var cancellables = Set<AnyCancellable>()
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
     // Cast control sheet trigger
     @Published var showCastControlSheet = false
@@ -480,9 +481,22 @@ class GlobalPlayerManager: ObservableObject {
         cancelNextEpisode() // Hide UI
         isMinimised = false // Ensure fullscreen
         
+        // Start Background Task to keep app alive during transition (e.g. while locked with screen off)
+        self.backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
+            self?.endBackgroundTask()
+        }
+        
         // Load it
         Task {
             await loadAndPlayEpisode(seriesId: seriesId, season: next.season, episode: next.number)
+            self.endBackgroundTask()
+        }
+    }
+    
+    private func endBackgroundTask() {
+        if backgroundTask != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTask)
+            backgroundTask = .invalid
         }
     }
     
