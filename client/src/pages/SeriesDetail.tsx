@@ -479,6 +479,12 @@ export default function SeriesDetail() {
                     {genre.name}
                   </Badge>
                 ))}
+                {/* Country of origin */}
+                {series.origin_country?.map((countryCode: string) => (
+                  <Badge key={countryCode} variant="outline" className="border-blue-500 text-blue-400">
+                    🌍 {countryCode}
+                  </Badge>
+                ))}
               </div>
               <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
               <p className="text-muted-foreground leading-relaxed mb-6">

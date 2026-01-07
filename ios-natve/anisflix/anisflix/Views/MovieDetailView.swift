@@ -160,6 +160,25 @@ struct MovieDetailView: View {
                                                     .cornerRadius(16)
                                                     .foregroundColor(theme.secondaryText)
                                             }
+                                            // Country of origin
+                                            if let countries = movie.productionCountries {
+                                                ForEach(countries) { country in
+                                                    HStack(spacing: 4) {
+                                                        Text("🌍")
+                                                        Text(country.name)
+                                                    }
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 6)
+                                                    .background(Color.blue.opacity(0.2))
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 16)
+                                                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                                                    )
+                                                    .cornerRadius(16)
+                                                    .foregroundColor(.blue)
+                                                }
+                                            }
                                         }
                                     }
                                 }

@@ -490,6 +490,12 @@ export default function MovieDetail() {
                     {genre.name}
                   </Badge>
                 ))}
+                {/* Country of origin */}
+                {movie.production_countries?.map((country: any) => (
+                  <Badge key={country.iso_3166_1} variant="outline" className="border-blue-500 text-blue-400">
+                    🌍 {country.name}
+                  </Badge>
+                ))}
               </div>
               <p className="text-lg leading-relaxed text-muted-foreground mb-6">
                 {movie.overview}

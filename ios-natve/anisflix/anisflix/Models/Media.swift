@@ -129,10 +129,23 @@ struct MovieDetail: Codable {
     let genres: [Genre]
     let externalIds: ExternalIds?
     let credits: Credits?
+    let productionCountries: [ProductionCountry]?
     
     struct Genre: Codable, Identifiable {
         let id: Int
         let name: String
+    }
+    
+    struct ProductionCountry: Codable, Identifiable {
+        let iso31661: String
+        let name: String
+        
+        var id: String { iso31661 }
+        
+        private enum CodingKeys: String, CodingKey {
+            case iso31661 = "iso_3166_1"
+            case name
+        }
     }
     
     private enum CodingKeys: String, CodingKey {
@@ -144,6 +157,7 @@ struct MovieDetail: Codable {
         case voteCount = "vote_count"
         case externalIds = "external_ids"
         case credits
+        case productionCountries = "production_countries"
     }
 }
 
@@ -161,6 +175,7 @@ struct SeriesDetail: Codable {
     let externalIds: ExternalIds?
     var seasons: [SeasonSummary]?
     let episodeGroups: EpisodeGroups?
+    let originCountry: [String]?
     
     struct Genre: Codable, Identifiable {
         let id: Int
@@ -195,6 +210,7 @@ struct SeriesDetail: Codable {
         case credits
         case seasons
         case episodeGroups = "episode_groups"
+        case originCountry = "origin_country"
     }
     
     let credits: Credits?

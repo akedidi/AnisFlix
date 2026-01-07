@@ -153,6 +153,25 @@ struct SeriesDetailView: View {
                                                     .foregroundColor(theme.secondaryText)
                                                     .cornerRadius(12)
                                             }
+                                            // Country of origin
+                                            if let countries = series.originCountry {
+                                                ForEach(countries, id: \.self) { countryCode in
+                                                    HStack(spacing: 4) {
+                                                        Text("🌍")
+                                                        Text(countryCode)
+                                                    }
+                                                    .font(.caption)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 4)
+                                                    .background(Color.blue.opacity(0.2))
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 12)
+                                                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                                                    )
+                                                    .cornerRadius(12)
+                                                    .foregroundColor(.blue)
+                                                }
+                                            }
                                         }
                                         .padding(.horizontal, 16)
                                     }
