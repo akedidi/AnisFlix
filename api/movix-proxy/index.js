@@ -500,14 +500,15 @@ class MovieBoxScraper {
       const response = await axios.get(url);
       const data = response.data;
       const title = type === 'tv' ? data.name : data.title;
+      const originalTitle = type === 'tv' ? data.original_name : data.original_title;
       const year = type === 'tv' ? data.first_air_date?.substring(0, 4) : data.release_date?.substring(0, 4);
       const runtime = type === 'tv' ? data.episode_run_time?.[0] : data.runtime;
       const vote_average = data.vote_average;
 
-      return { title, year, runtime, vote_average, data };
+      return { title, originalTitle, year, runtime, vote_average, data };
     } catch (error) {
       console.error('❌ [MovieBox] TMDB fetch failed:', error.message);
-      return { title: 'Unknown', year: 'Unknown', runtime: 0, vote_average: 0, data: {} };
+      return { title: 'Unknown', originalTitle: 'Unknown', year: 'Unknown', runtime: 0, vote_average: 0, data: {} };
     }
   }
 }
@@ -791,14 +792,41 @@ export default async function handler(req, res) {
           });
         }
 
-        console.log(`📦 [MovieBox] TMDB: "${tmdbInfo.title}" (${tmdbInfo.year})`);
+        console.log(`📦 [MovieBox] TMDB: "${tmdbInfo.title}" / Original: "${tmdbInfo.originalTitle}" (${tmdbInfo.year})`);
 
-        // Step 2: Search MovieBox by title
-        const searchResults = await movieBoxScraper.searchByTitle(
+        // Step 2: Search MovieBox by title (try English title first)
+        let searchResults = await movieBoxScraper.searchByTitle(
           tmdbInfo.title,
           tmdbInfo.year,
           type
         );
+
+        // Step 3: Match result using smart algorithm
+        let matchedContent = movieBoxScraper.matchContent(tmdbInfo, searchResults);
+
+        // Step 3b: If no confident match AND original title is different, try with original title
+        if (!matchedContent && tmdbInfo.originalTitle && tmdbInfo.originalTitle !== tmdbInfo.title) {
+          console.log(`📦 [MovieBox] No match with English title. Trying original: "${tmdbInfo.originalTitle}"`);
+
+          const originalSearchResults = await movieBoxScraper.searchByTitle(
+            tmdbInfo.originalTitle,
+            tmdbInfo.year,
+            type
+          );
+
+          if (originalSearchResults.length > 0) {
+            // Try matching with original results
+            matchedContent = movieBoxScraper.matchContent(
+              { ...tmdbInfo, title: tmdbInfo.originalTitle }, // Use original for comparison
+              originalSearchResults
+            );
+
+            if (matchedContent) {
+              console.log(`✅ [MovieBox] Found match using original title!`);
+              searchResults = originalSearchResults;
+            }
+          }
+        }
 
         if (searchResults.length === 0) {
           console.log('📦 [MovieBox] No results found');
@@ -806,12 +834,9 @@ export default async function handler(req, res) {
             success: true,
             streams: [],
             message: 'No MovieBox results found',
-            tmdbInfo: { title: tmdbInfo.title, year: tmdbInfo.year }
+            tmdbInfo: { title: tmdbInfo.title, originalTitle: tmdbInfo.originalTitle, year: tmdbInfo.year }
           });
         }
-
-        // Step 3: Match result using smart algorithm
-        const matchedContent = movieBoxScraper.matchContent(tmdbInfo, searchResults);
 
         if (!matchedContent) {
           console.log('📦 [MovieBox] No confident match');
@@ -819,7 +844,7 @@ export default async function handler(req, res) {
             success: true,
             streams: [],
             message: 'No confident match found',
-            tmdbInfo: { title: tmdbInfo.title, year: tmdbInfo.year },
+            tmdbInfo: { title: tmdbInfo.title, originalTitle: tmdbInfo.originalTitle, year: tmdbInfo.year },
             searchResultsCount: searchResults.length
           });
         }
