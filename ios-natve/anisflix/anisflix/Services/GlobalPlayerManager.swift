@@ -48,11 +48,24 @@ class GlobalPlayerManager: ObservableObject {
             .sink { [weak self] isConnected in
                 guard let self = self else { return }
                 if isConnected && self.isPresented {
-                    // Cast just connected while player is active
+                    // Check if this is a session resume (background recovery)
+                    if self.castManager.isResumingSession {
+                        print("📺 [GlobalPlayerManager] Cast session RESUMED. Skipping auto-load to prevent overwriting playback position.")
+                        // We do NOT want to push local state; we want to sync FROM Cast (which handled by CastManager recovery)
+                        
+                        // Just ensure UI updates
+                        DispatchQueue.main.async {
+                            self.isMinimised = true
+                            self.showCastControlSheet = true
+                        }
+                        return
+                    }
+                    
+                    // Cast just connected while player is active (Intentional user action)
                     // Transfer current media to Cast with current position
                     if let url = self.currentMediaUrl {
                         let currentPosition = self.playerVM.currentTime
-                        print("📺 [GlobalPlayerManager] Cast connected, transferring playback at \(Int(currentPosition))s")
+                        print("📺 [GlobalPlayerManager] Cast connected (fresh), transferring playback at \(Int(currentPosition))s")
                         
                         // Load media to Cast with current position
                         // For downloaded videos, use serverUrl; otherwise use the media URL
@@ -133,7 +146,7 @@ class GlobalPlayerManager: ObservableObject {
         var startTime: TimeInterval = 0
         if let mid = mediaId, !isLive {
             let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
-            if progress > 0 && progress < 0.95 {
+            if progress > 0 {
                 if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
                     print("⏩ [GlobalPlayerManager] Resuming from saved progress: \(Int(savedTime))s")
                     startTime = savedTime

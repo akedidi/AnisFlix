@@ -392,16 +392,21 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     // Track if recovery was attempted
     private var recoveryAttempted = false
     
+    // Track if session is resuming (background -> foreground)
+    @Published var isResumingSession = false
+
     // MARK: - GCKSessionManagerListener
     
     func sessionManager(_ sessionManager: GCKSessionManager, didStart session: GCKSession) {
         print("🚨🚨🚨 [CastManager] SESSION_STARTED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
+        isResumingSession = false
         recoveryAttempted = false
         handleSessionConnection(session: session)
     }
     
     func sessionManager(_ sessionManager: GCKSessionManager, didResumeSession session: GCKSession) {
         print("🚨🚨🚨 [CastManager] SESSION_RESUMED with device: \(session.device.friendlyName ?? "Unknown") 🚨🚨🚨")
+        isResumingSession = true
         recoveryAttempted = false
         handleSessionConnection(session: session)
     }

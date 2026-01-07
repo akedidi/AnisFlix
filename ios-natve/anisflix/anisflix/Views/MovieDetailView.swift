@@ -628,7 +628,12 @@ struct MovieDetailView: View {
                 return "\(quality) (\(source.language))"
             }
         } else {
-            // For streaming sources, show provider + index + quality
+            // For specified providers like Vidmoly, always show HD
+            if source.provider.lowercased() == "vidmoly" {
+                return "\(source.provider.capitalized) \(providerIndex) - HD"
+            }
+            
+            // For other streaming sources, show provider + index + quality
             let quality = formatQualityDisplay(source.quality)
             return "\(source.provider.capitalized) \(providerIndex) - \(quality)"
         }
