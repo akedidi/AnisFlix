@@ -307,9 +307,9 @@ struct CompletedDownloadRow: View {
                 
                 // Metadata Badges
                 HStack(spacing: 8) {
-                    // Quality
+                    // Quality - Always display HD for downloads
                     if !item.quality.isEmpty {
-                        Text(item.quality)
+                        Text("HD")
                             .font(.caption2)
                             .fontWeight(.bold)
                             .padding(.horizontal, 6)
