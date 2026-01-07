@@ -113,9 +113,7 @@ struct DownloadsView: View {
                         List {
                             ForEach(completedDownloads) { item in
                                 ZStack(alignment: .bottomTrailing) {
-                                    NavigationLink {
-                                        DownloadedMediaDetailView(item: item)
-                                    } label: {
+                                    NavigationLink(value: NavigationRoute.downloadedMediaPlayer(itemId: item.id)) {
                                         CompletedDownloadRow(item: item)
                                             .contentShape(Rectangle())
                                     }

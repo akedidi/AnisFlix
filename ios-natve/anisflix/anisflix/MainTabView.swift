@@ -94,6 +94,22 @@ struct MainTabView: View {
                 // Onglet 2: Explorer
                 NavigationStack(path: $explorePath) {
                     ExploreView()
+                        .navigationDestination(for: NavigationRoute.self) { route in
+                            switch route {
+                            case .movieDetail(let movieId):
+                                MovieDetailView(movieId: movieId)
+                            case .seriesDetail(let seriesId):
+                                SeriesDetailView(seriesId: seriesId)
+                            case .providerList(let providerId, let providerName):
+                                ProviderMediaListView(providerId: providerId, providerName: providerName)
+                            case .downloadedMediaPlayer(let itemId):
+                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
+                                    DownloadedMediaDetailView(item: item)
+                                } else {
+                                    Text("Download not found")
+                                }
+                            }
+                        }
                 }
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
@@ -101,6 +117,22 @@ struct MainTabView: View {
                 // Onglet 3: TV Channels
                 NavigationStack(path: $tvPath) {
                     TVChannelsView()
+                        .navigationDestination(for: NavigationRoute.self) { route in
+                            switch route {
+                            case .movieDetail(let movieId):
+                                MovieDetailView(movieId: movieId)
+                            case .seriesDetail(let seriesId):
+                                SeriesDetailView(seriesId: seriesId)
+                            case .providerList(let providerId, let providerName):
+                                ProviderMediaListView(providerId: providerId, providerName: providerName)
+                            case .downloadedMediaPlayer(let itemId):
+                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
+                                    DownloadedMediaDetailView(item: item)
+                                } else {
+                                    Text("Download not found")
+                                }
+                            }
+                        }
                 }
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
@@ -108,6 +140,22 @@ struct MainTabView: View {
                 // Onglet 4: Téléchargements
                 NavigationStack(path: $downloadsPath) {
                     DownloadsView()
+                        .navigationDestination(for: NavigationRoute.self) { route in
+                            switch route {
+                            case .movieDetail(let movieId):
+                                MovieDetailView(movieId: movieId)
+                            case .seriesDetail(let seriesId):
+                                SeriesDetailView(seriesId: seriesId)
+                            case .providerList(let providerId, let providerName):
+                                ProviderMediaListView(providerId: providerId, providerName: providerName)
+                            case .downloadedMediaPlayer(let itemId):
+                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
+                                    DownloadedMediaDetailView(item: item)
+                                } else {
+                                    Text("Download not found")
+                                }
+                            }
+                        }
                 }
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
@@ -115,6 +163,22 @@ struct MainTabView: View {
                 // Onglet 5: Plus (Menu)
                 NavigationStack(path: $morePath) {
                     MoreView()
+                        .navigationDestination(for: NavigationRoute.self) { route in
+                            switch route {
+                            case .movieDetail(let movieId):
+                                MovieDetailView(movieId: movieId)
+                            case .seriesDetail(let seriesId):
+                                SeriesDetailView(seriesId: seriesId)
+                            case .providerList(let providerId, let providerName):
+                                ProviderMediaListView(providerId: providerId, providerName: providerName)
+                            case .downloadedMediaPlayer(let itemId):
+                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
+                                    DownloadedMediaDetailView(item: item)
+                                } else {
+                                    Text("Download not found")
+                                }
+                            }
+                        }
                 }
                 .tag(4)
                  .toolbar(.hidden, for: .tabBar)
