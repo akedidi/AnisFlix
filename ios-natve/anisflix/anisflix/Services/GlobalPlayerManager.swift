@@ -512,14 +512,46 @@ class GlobalPlayerManager: ObservableObject {
             // ═══════════════════════════════════════════════════════
             print("📂 [NextEpisode] MODE: DOWNLOAD - Checking for downloaded episode only...")
             
-            if let downloaded = DownloadManager.shared.getDownload(mediaId: seriesId, season: season, episode: episode, language: self.currentLanguage),
-               downloaded.state == .completed,
+            // 1. Get all completed downloads for this episode matching the current language
+            let candidates = DownloadManager.shared.downloads.filter { item in
+                return item.mediaId == seriesId &&
+                       item.season == season &&
+                       item.episode == episode &&
+                       item.state == .completed &&
+                       (self.currentLanguage == nil || item.language.lowercased().contains(self.currentLanguage!.lowercased()))
+            }
+            
+            if candidates.isEmpty {
+                 print("❌ [NextEpisode] No downloaded episode found for language \(self.currentLanguage ?? "any"). Stopping auto-play.")
+                 return
+            }
+            
+            // 2. Prioritize SAME PROVIDER if exists
+            var selectedDownload: DownloadItem? = nil
+            
+            if let currentProvider = self.currentProvider {
+                // Try to find a download with the same provider
+                // Note: 'provider' might be nil for old downloads, so they won't match, which is expected behavior
+                if let match = candidates.first(where: { $0.provider == currentProvider }) {
+                    print("✅ [NextEpisode] Found exact match (Language + Provider: \(currentProvider))")
+                    selectedDownload = match
+                }
+            }
+            
+            // 3. Fallback: Take the first one if no provider match
+            if selectedDownload == nil {
+                print("⚠️ [NextEpisode] No exact provider match (or provider not set). Using first available candidate.")
+                selectedDownload = candidates.first
+            }
+            
+            if let downloaded = selectedDownload,
                let localUrl = downloaded.localVideoUrl {
                 
-                print("✅ [NextEpisode] FOUND DOWNLOADED EPISODE!")
+                print("✅ [NextEpisode] Playing downloaded episode: \(downloaded.title)")
                 print("   - Download language: \(downloaded.language)")
-                print("   - Download quality: \(downloaded.quality)")
+                print("   - Download provider: \(downloaded.provider ?? "unknown")")
                 print("   - Local URL: \(localUrl.lastPathComponent)")
+                
                 self.play(
                     url: localUrl,
                     title: self.nextEpisodeTitle.isEmpty ? downloaded.title : self.nextEpisodeTitle,
@@ -530,17 +562,16 @@ class GlobalPlayerManager: ObservableObject {
                     episode: episode,
                     isLive: false,
                     serverUrl: nil,
-                    provider: self.currentProvider, // Keep original provider (e.g., "vidzy")
+                    provider: downloaded.provider ?? self.currentProvider, // Update provider if known
                     language: downloaded.language,
                     quality: downloaded.quality,
-                    origin: self.currentOrigin, // Keep original origin (e.g., "fstream")
+                    origin: self.currentOrigin, 
                     isFromDownload: true, // Stay in download mode
                     localPosterPath: downloaded.localPosterPath
                 )
                 return
             } else {
-                print("❌ [NextEpisode] No downloaded episode found. Stopping auto-play (download mode only).")
-                // In download mode, if no download found, we stop. User must manually start streaming.
+                print("❌ [NextEpisode] Download found but local URL is missing. Stopping.")
                 return
             }
         }

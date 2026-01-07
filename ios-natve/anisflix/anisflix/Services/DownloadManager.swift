@@ -57,6 +57,7 @@ struct DownloadItem: Identifiable, Codable, Hashable {
     var downloadSpeed: String? // Speed display (e.g. "2.5 MB/s")
     
     var headers: [String: String]? // Custom headers for download
+    var provider: String? // Source provider (e.g. "vidzy", "vidmoly")
     
     var isSeries: Bool {
         return season != nil && episode != nil
@@ -236,7 +237,8 @@ class DownloadManager: NSObject, ObservableObject {
             state: .queued, // Start as queued
             progress: 0.0,
             isHLS: isHLS,
-            headers: source.headers
+            headers: source.headers,
+            provider: source.provider
         )
         
         downloads.append(item)

@@ -195,8 +195,9 @@ struct DownloadedMediaDetailView: View {
                                     episode: item.episode,
                                     isLive: false,
                                     serverUrl: serverUrl,
-                                    provider: "download",
-                                    language: item.language
+                                    provider: item.provider ?? "download", // Use original provider if available
+                                    language: item.language,
+                                    isFromDownload: true // IMPORTANT: Enable download mode for next episode logic
                                 )
                             }) {
                                 HStack {
