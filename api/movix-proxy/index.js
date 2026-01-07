@@ -374,7 +374,7 @@ class MovieBoxScraper {
 
   matchContent(tmdbInfo, movieBoxResults) {
     const normTmdbTitle = this.normalizeTitle(tmdbInfo.title);
-    const tmdbYear = tmdbInfo.year;
+    const tmdbYear = tmdbInfo.year ? parseInt(tmdbInfo.year) : null;
     const tmdbDuration = tmdbInfo.runtime; // in minutes
 
     console.log(`🎯 [MovieBox] Matching: "${tmdbInfo.title}" (${tmdbYear}) ${tmdbDuration}min`);
@@ -385,8 +385,17 @@ class MovieBoxScraper {
     for (const item of movieBoxResults) {
       let score = 0;
       const normItemTitle = this.normalizeTitle(item.title);
-      const itemYear = item.releaseDate?.substring(0, 4);
+      const itemYear = item.releaseDate ? parseInt(item.releaseDate.substring(0, 4)) : null;
       const itemDuration = item.duration ? Math.floor(item.duration / 60) : 0;
+
+      // STRICT YEAR CHECK: Skip items with wrong year (more than 1 year difference)
+      if (tmdbYear && itemYear) {
+        const yearDiff = Math.abs(tmdbYear - itemYear);
+        if (yearDiff > 1) {
+          console.log(`   ❌ Skipping "${item.title}" (${itemYear}) - Year mismatch (expected ${tmdbYear})`);
+          continue; // Skip this result entirely
+        }
+      }
 
       // Exact title match (100 points)
       if (normTmdbTitle === normItemTitle) {
@@ -395,9 +404,14 @@ class MovieBoxScraper {
         score += 50;
       }
 
-      // Year match (50 points)
-      if (tmdbYear === itemYear) {
-        score += 50;
+      // Year match bonus (only for items that passed the strict check)
+      if (tmdbYear && itemYear) {
+        const yearDiff = Math.abs(tmdbYear - itemYear);
+        if (yearDiff === 0) {
+          score += 50; // Exact year match
+        } else if (yearDiff === 1) {
+          score += 30; // Off by 1 year
+        }
       }
 
       // Duration match ±5 min (30 points)
@@ -424,6 +438,7 @@ class MovieBoxScraper {
       }
     }
 
+    // Require score >= 100 for a confident match
     if (bestMatch && bestScore >= 100) {
       console.log(`✅ [MovieBox] Best match: "${bestMatch.title}" (Score: ${bestScore})`);
       return bestMatch;
