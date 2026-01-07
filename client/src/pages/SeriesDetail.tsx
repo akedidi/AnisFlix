@@ -29,6 +29,14 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { cn, formatDuration } from "@/lib/utils";
+
+// Convert ISO country code to flag emoji
+const getCountryFlag = (countryCode: string): string => {
+  const code = countryCode.toUpperCase();
+  const flag = code.split('').map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65)).join('');
+  return flag;
+};
+
 export default function SeriesDetail() {
   const { id } = useRouteParams<{ id: string }>();
   const { navigate } = useAppNavigation();
@@ -482,7 +490,7 @@ export default function SeriesDetail() {
                 {/* Country of origin */}
                 {series.origin_country?.map((countryCode: string) => (
                   <Badge key={countryCode} variant="outline" className="border-blue-500 text-blue-400">
-                    🌍 {countryCode}
+                    {getCountryFlag(countryCode)} {countryCode}
                   </Badge>
                 ))}
               </div>

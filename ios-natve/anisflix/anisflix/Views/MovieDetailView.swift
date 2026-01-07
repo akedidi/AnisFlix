@@ -8,6 +8,18 @@
 import SwiftUI
 import Combine
 
+// Convert ISO country code to flag emoji
+func countryFlag(for countryCode: String) -> String {
+    let base: UInt32 = 127397
+    var flag = ""
+    for scalar in countryCode.uppercased().unicodeScalars {
+        if let unicodeScalar = UnicodeScalar(base + scalar.value) {
+            flag.unicodeScalars.append(unicodeScalar)
+        }
+    }
+    return flag
+}
+
 struct MovieDetailView: View {
     let movieId: Int
     
@@ -164,8 +176,8 @@ struct MovieDetailView: View {
                                             if let countries = movie.productionCountries {
                                                 ForEach(countries) { country in
                                                     HStack(spacing: 4) {
-                                                        Text("🌍")
-                                                        Text(country.name)
+                                                        Text(countryFlag(for: country.iso31661))
+                                                        Text(country.iso31661)
                                                     }
                                                     .font(.caption)
                                                     .padding(.horizontal, 12)

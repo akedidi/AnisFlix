@@ -27,6 +27,13 @@ import { navPaths } from "@/lib/nativeNavigation";
 import { cn, formatDuration } from "@/lib/utils";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 
+// Convert ISO country code to flag emoji
+const getCountryFlag = (countryCode: string): string => {
+  const code = countryCode.toUpperCase();
+  const flag = code.split('').map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65)).join('');
+  return flag;
+};
+
 export default function MovieDetail() {
   const { id } = useRouteParams<{ id: string }>();
   const movieId = parseInt(id || "0");
@@ -493,7 +500,7 @@ export default function MovieDetail() {
                 {/* Country of origin */}
                 {movie.production_countries?.map((country: any) => (
                   <Badge key={country.iso_3166_1} variant="outline" className="border-blue-500 text-blue-400">
-                    🌍 {country.name}
+                    {getCountryFlag(country.iso_3166_1)} {country.iso_3166_1}
                   </Badge>
                 ))}
               </div>
