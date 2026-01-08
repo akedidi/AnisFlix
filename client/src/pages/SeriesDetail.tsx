@@ -556,10 +556,12 @@ export default function SeriesDetail() {
                       const validEpisodeCount = isSelectedSeason && seasonDetails?.episodes
                         ? seasonDetails.episodes.filter((episode: any) => {
                           if (!episode.air_date) return true;
-                          const episodeDate = new Date(episode.air_date);
-                          const todayDate = new Date();
-                          todayDate.setHours(0, 0, 0, 0);
-                          return episodeDate <= todayDate;
+                          const today = new Date();
+                          const year = today.getFullYear();
+                          const month = String(today.getMonth() + 1).padStart(2, '0');
+                          const day = String(today.getDate()).padStart(2, '0');
+                          const todayStr = `${year}-${month}-${day}`;
+                          return episode.air_date <= todayStr;
                         }).length
                         : season.episode_count;
 
@@ -606,11 +608,11 @@ export default function SeriesDetail() {
                               .filter((episode: any) => {
                                 if (!episode.air_date) return true;
                                 const today = new Date();
-                                // Utiliser la date actuelle sans l'heure pour comparer
-                                const episodeDate = new Date(episode.air_date);
-                                const todayDate = new Date();
-                                todayDate.setHours(0, 0, 0, 0);
-                                return episodeDate <= todayDate;
+                                const year = today.getFullYear();
+                                const month = String(today.getMonth() + 1).padStart(2, '0');
+                                const day = String(today.getDate()).padStart(2, '0');
+                                const todayStr = `${year}-${month}-${day}`;
+                                return episode.air_date <= todayStr;
                               })
                               .length === 0 ? (
                               <p className="text-muted-foreground italic">Aucun épisode disponible pour le moment.</p>
@@ -619,10 +621,11 @@ export default function SeriesDetail() {
                                 .filter((episode: any) => {
                                   if (!episode.air_date) return true;
                                   const today = new Date();
-                                  const episodeDate = new Date(episode.air_date);
-                                  const todayDate = new Date();
-                                  todayDate.setHours(0, 0, 0, 0);
-                                  return episodeDate <= todayDate;
+                                  const year = today.getFullYear();
+                                  const month = String(today.getMonth() + 1).padStart(2, '0');
+                                  const day = String(today.getDate()).padStart(2, '0');
+                                  const todayStr = `${year}-${month}-${day}`;
+                                  return episode.air_date <= todayStr;
                                 })
                                 .map((episode: any) => {
                                   const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
