@@ -32,6 +32,28 @@ info() {
     echo -e "${YELLOW}ℹ️  $1${NC}"
 }
 
+    # 0. Increment Build Number (Auto-increment version)
+    info "Incrémentation de la version..."
+    
+    # Check if agvtool is available
+    if command -v xcrun agvtool &> /dev/null; then
+        # Increment version
+        xcrun agvtool next-version -all
+        
+        # Read new version
+        BUILD_NUMBER=$(xcrun agvtool what-version -terse)
+        MARKETING_VERSION=$(xcrun agvtool what-marketing-version -terse1)
+        if [ -z "$MARKETING_VERSION" ]; then
+            MARKETING_VERSION="1.0"
+        fi
+        
+        # Construct full version string (Example: 1.0.42)
+        FULL_VERSION="$MARKETING_VERSION.$BUILD_NUMBER"
+        success "Nouvelle version : $FULL_VERSION"
+    else
+        error "agvtool non trouvé. Impossible d'incrémenter la version."
+    fi
+
 # 1. Nettoyage
 info "Nettoyage..."
 rm -rf "./build"
@@ -121,8 +143,8 @@ if [ -f "$IPA_NAME" ]; then
     # Date YYYY-MM-DD
     DATE=$(date +%Y-%m-%d)
     
-    # Version based on timestamp (e.g. 1.0.TIMESTAMP) or just update the entry
-    VERSION="1.0.$(date +%s)"
+    # Use the ACTUAL version we just built
+    VERSION="$FULL_VERSION"
     DOWNLOAD_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa"
     
     # Check if JSON exists
@@ -130,8 +152,7 @@ if [ -f "$IPA_NAME" ]; then
         # Create temp file
         TMP_JSON=$(mktemp)
         
-        # Use node to update JSON cleanly if available, else awk/sed which is brittle.
-        # Let's write a tiny inline node script since this is a React Native env (node is guaranteed)
+        # Use node to update JSON cleanly
         
         node -e "
             const fs = require('fs');
@@ -152,16 +173,12 @@ if [ -f "$IPA_NAME" ]; then
                 // Update App Bundle ID
                 data.apps[0].bundleIdentifier = '$BUNDLE_ID';
                 
-                // Ensure versions array exists
-                if (!data.apps[0].versions) data.apps[0].versions = [];
-                // Add new version
-                data.apps[0].versions.unshift(newVersion);
-                // Keep only last 5 versions to avoid huge file
-                data.apps[0].versions = data.apps[0].versions.slice(0, 5);
+                // SINGLE VERSION POLICY: Overwrite versions array with ONLY the new version
+                data.apps[0].versions = [newVersion];
             }
             
             fs.writeFileSync('$JSON_FILE', JSON.stringify(data, null, 2));
-        " && success "sidestore.json mis à jour (Bundle ID: $BUNDLE_ID)" || error "Erreur lors de la mise à jour du JSON"
+        " && success "sidestore.json mis à jour avec la version unique : $VERSION" || error "Erreur lors de la mise à jour du JSON"
         
     else
         error "Fichier $JSON_FILE introuvable"
