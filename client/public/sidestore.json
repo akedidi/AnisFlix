@@ -16,7 +16,7 @@
           "size": 3900248,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedReleaseNotes": "Fix: Resolve critical version mismatch (1.0.7) & update developer name"
+          "versionDescription": "Fix: Resolve critical version mismatch (1.0.7) & update developer name"
         }
       ]
     }

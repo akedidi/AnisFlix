@@ -158,6 +158,13 @@ if [ -f "$IPA_NAME" ]; then
     # Date YYYY-MM-DD
     DATE=$(date +%Y-%m-%d)
     
+    # Get last commit message for "What's New"
+    # Escape quotes and newlines for JSON safety
+    COMMIT_MSG=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/"/\\"/g' | sed 's/  */ /g')
+    if [ -z "$COMMIT_MSG" ]; then
+        COMMIT_MSG="Bug fixes and improvements"
+    fi
+    
     # Use the ACTUAL version we just built
     VERSION="$FULL_VERSION"
     DOWNLOAD_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa"
@@ -177,7 +184,8 @@ if [ -f "$IPA_NAME" ]; then
                 date: '$DATE',
                 size: $FILE_SIZE_BYTES,
                 downloadURL: '$DOWNLOAD_URL',
-                minOSVersion: '15.0'
+                minOSVersion: '15.0',
+                versionDescription: '$COMMIT_MSG'
             };
             
             // Update Top Level Bundle ID if needed
@@ -185,9 +193,10 @@ if [ -f "$IPA_NAME" ]; then
             
             // Add to beginning of versions array
             if (data.apps && data.apps.length > 0) {
-                // Update App Bundle ID
+                // Update App Metadata
                 data.apps[0].bundleIdentifier = '$BUNDLE_ID';
                 data.apps[0].developerName = 'Anisika'; // User requested name
+                data.apps[0].localizedDescription = 'AnisFlix est votre compagnon de streaming ultime. Regardez vos films, séries et chaînes TV préférés en haute qualité.';
                 
                 // SINGLE VERSION POLICY: Overwrite versions array with ONLY the new version
                 data.apps[0].versions = [newVersion];
