@@ -47,12 +47,22 @@ info() {
             MARKETING_VERSION="1.0"
         fi
         
-        # Construct full version string (Example: 1.0.42)
         # We enforce MARKETING VERSION to match this so SideStore checks pass (Expected: 1.0.42, Found: 1.0.42)
         FULL_VERSION="1.0.$BUILD_NUMBER"
         
         info "Mise à jour de la Marketing Version vers $FULL_VERSION..."
-        xcrun agvtool new-marketing-version "$FULL_VERSION"
+        
+        # Use sed to FORCE update MARKETING_VERSION in project file because agvtool is flaky
+        PBXPROJ="anisflix.xcodeproj/project.pbxproj"
+        if [ -f "$PBXPROJ" ]; then
+            sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $FULL_VERSION;/g" "$PBXPROJ"
+            success "MARKETING_VERSION mis à jour via sed vers $FULL_VERSION"
+        else
+            error "Fichier projet introuvable : $PBXPROJ"
+        fi
+        
+        # Also run agvtool just in case, but rely on sed
+        xcrun agvtool new-marketing-version "$FULL_VERSION" > /dev/null 2>&1
         
         success "Nouvelle version : $FULL_VERSION"
     else
