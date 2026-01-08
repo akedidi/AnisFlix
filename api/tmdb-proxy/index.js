@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 
             let seriesData = await tmdbFetch(`/tv/${seriesIdNum}`, {
                 language,
-                append_to_response: 'external_ids,credits,episode_groups'
+                append_to_response: 'external_ids,credits,episode_groups,watch/providers'
             });
 
             seriesData = await processEpisodeGroups(seriesData, seriesIdNum, language);

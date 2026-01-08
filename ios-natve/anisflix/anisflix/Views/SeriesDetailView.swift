@@ -31,6 +31,7 @@ struct SeriesDetailView: View {
     
     @State private var videos: [Video] = []
     @State private var seasonDetails: SeasonDetails?
+    @State private var additionalWatchProviders: WatchProvidersResponse?
     @State private var isSeasonLoading = false
     @State private var selectedSeason = 1
     // Removed local state to use theme persistence
@@ -190,6 +191,9 @@ struct SeriesDetailView: View {
                                     }
                                     .padding(.horizontal, -16)
                                 }
+                                
+                                // Watch Providers
+                                WatchProvidersView(providers: series.watchProviders ?? additionalWatchProviders)
                             }
                             
                             // Overview
@@ -598,6 +602,18 @@ struct SeriesDetailView: View {
             self.series = seriesDetails
             self.similarSeries = similarResults
             self.videos = videosResults
+            
+            // Fetch watch providers independently since Proxy might optionally miss them or be outdated
+            Task {
+                do {
+                    let providers = try await TMDBService.shared.fetchSeriesWatchProviders(seriesId: seriesId)
+                    await MainActor.run {
+                        self.additionalWatchProviders = providers
+                    }
+                } catch {
+                    print("⚠️ Failed to fetch independent watch providers: \(error)")
+                }
+            }
             
             // Load first season
             await loadSeasonDetails()

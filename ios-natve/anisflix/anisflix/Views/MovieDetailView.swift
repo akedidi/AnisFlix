@@ -197,6 +197,9 @@ struct MovieDetailView: View {
                             }
                             .padding(.horizontal, 16)
                             
+                            // Watch Providers
+                            WatchProvidersView(providers: movie.watchProviders)
+                            
                             // Trailer Button
                             if let trailer = videos.first(where: { $0.type == "Trailer" && $0.site == "YouTube" }) ?? videos.first(where: { $0.site == "YouTube" }) {
                                 Button(action: {

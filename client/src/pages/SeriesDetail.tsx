@@ -13,6 +13,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
+import WatchProviders from "@/components/WatchProviders";
 import CommonLayout from "@/components/CommonLayout";
 import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
@@ -20,7 +21,7 @@ import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 import { useMovixAnime, extractVidMolyFromAnime } from "@/hooks/useMovixAnime";
 import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
 
-import { getImageUrl } from "@/lib/tmdb";
+import { getImageUrl, tmdb } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
 import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -98,6 +99,18 @@ export default function SeriesDetail() {
       setSelectedSeasonNumber(firstAvailableSeason);
     }
   }, [series, isLoadingSeries]);
+
+  const [additionalProviders, setAdditionalProviders] = useState<any>(null);
+
+  // Fallback for watch providers if proxy misses them
+  useEffect(() => {
+    if (series && !isLoadingSeries && !series["watch/providers"]) {
+      console.log('⚠️ Proxy missed watch providers, fetching independently...');
+      tmdb.getSeriesProviders(seriesId)
+        .then(res => setAdditionalProviders(res))
+        .catch(err => console.error('Failed to fetch fallback providers', err));
+    }
+  }, [series, isLoadingSeries, seriesId]);
 
   const { data: videos } = useSeriesVideos(seriesId);
   // Ensure we only fetch season details AFTER the series has been loaded and processed
@@ -494,6 +507,9 @@ export default function SeriesDetail() {
                   </Badge>
                 ))}
               </div>
+
+              <WatchProviders providers={series["watch/providers"] || additionalProviders} className="mb-6" />
+
               <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
               <p className="text-muted-foreground leading-relaxed mb-6">
                 {series.overview || "Aucun synopsis disponible."}

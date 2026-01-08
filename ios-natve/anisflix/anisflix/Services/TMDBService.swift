@@ -198,7 +198,7 @@ class TMDBService {
     // MARK: - Media Details
     
     func fetchMovieDetails(movieId: Int, language: String = "fr-FR") async throws -> MovieDetail {
-        let endpoint = "\(baseURL)/movie/\(movieId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits"
+        let endpoint = "\(baseURL)/movie/\(movieId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits,watch/providers"
         return try await fetch(from: endpoint)
     }
     
@@ -208,6 +208,11 @@ class TMDBService {
         print("🎬 [TMDBService] Fetching series via proxy: \(endpoint)")
         return try await fetch(from: endpoint)
     }    
+    func fetchSeriesWatchProviders(seriesId: Int) async throws -> WatchProvidersResponse {
+        let endpoint = "\(baseURL)/tv/\(seriesId)/watch/providers?api_key=\(apiKey)"
+        return try await fetch(from: endpoint)
+    }
+
     // MARK: - Videos (Trailers)
     
     func fetchVideos(mediaId: Int, type: Media.MediaType, language: String = "fr-FR") async throws -> [Video] {

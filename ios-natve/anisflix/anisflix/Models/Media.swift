@@ -130,6 +130,7 @@ struct MovieDetail: Codable {
     let externalIds: ExternalIds?
     let credits: Credits?
     let productionCountries: [ProductionCountry]?
+    let watchProviders: WatchProvidersResponse?
     
     struct Genre: Codable, Identifiable {
         let id: Int
@@ -158,6 +159,7 @@ struct MovieDetail: Codable {
         case externalIds = "external_ids"
         case credits
         case productionCountries = "production_countries"
+        case watchProviders = "watch/providers"
     }
 }
 
@@ -176,6 +178,7 @@ struct SeriesDetail: Codable {
     var seasons: [SeasonSummary]?
     let episodeGroups: EpisodeGroups?
     let originCountry: [String]?
+    let watchProviders: WatchProvidersResponse?
     
     struct Genre: Codable, Identifiable {
         let id: Int
@@ -211,6 +214,7 @@ struct SeriesDetail: Codable {
         case seasons
         case episodeGroups = "episode_groups"
         case originCountry = "origin_country"
+        case watchProviders = "watch/providers"
     }
     
     let credits: Credits?
@@ -239,6 +243,39 @@ struct ExternalIds: Codable {
         case imdbId = "imdb_id"
     }
 }
+
+// MARK: - Watch Providers Models
+
+struct WatchProvidersResponse: Codable {
+    let results: [String: WatchProviderRegion]?
+}
+
+struct WatchProviderRegion: Codable {
+    let link: String?
+    let flatrate: [WatchProvider]?
+    let rent: [WatchProvider]?
+    let buy: [WatchProvider]?
+}
+
+struct WatchProvider: Codable, Identifiable {
+    let providerId: Int
+    let providerName: String
+    let logoPath: String?
+    
+    var id: Int { providerId }
+    
+    private enum CodingKeys: String, CodingKey {
+        case providerId = "provider_id"
+        case providerName = "provider_name"
+        case logoPath = "logo_path"
+    }
+    
+    var logoURL: URL? {
+        guard let path = logoPath else { return nil }
+        return URL(string: "https://image.tmdb.org/t/p/original\(path)")
+    }
+}
+
 
 // MARK: - Episode Groups Models
 

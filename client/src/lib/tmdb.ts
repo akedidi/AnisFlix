@@ -128,7 +128,7 @@ export const tmdb = {
   },
 
   getMovieDetails: async (movieId: number) => {
-    return tmdbFetch(`/movie/${movieId}`, { append_to_response: 'external_ids' });
+    return tmdbFetch(`/movie/${movieId}`, { append_to_response: 'external_ids,watch/providers' });
   },
 
   getMovieVideos: async (movieId: number) => {

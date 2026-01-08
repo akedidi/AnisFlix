@@ -11,6 +11,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
+import WatchProviders from "@/components/WatchProviders";
 import CommonLayout from "@/components/CommonLayout";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
 import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
@@ -504,6 +505,9 @@ export default function MovieDetail() {
                   </Badge>
                 ))}
               </div>
+
+              <WatchProviders providers={movie["watch/providers"]} className="mb-6" />
+
               <p className="text-lg leading-relaxed text-muted-foreground mb-6">
                 {movie.overview}
               </p>
