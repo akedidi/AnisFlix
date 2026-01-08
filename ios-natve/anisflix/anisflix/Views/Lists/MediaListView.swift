@@ -24,6 +24,65 @@ struct MediaListView: View {
         GridItem(.flexible(), spacing: 16)
     ]
     
+    // Convenience Init for NavigationRoute
+    init(mediaType: Media.MediaType, category: String, genreId: Int? = nil) {
+        let theme = AppTheme.shared
+        
+        // Determine Title
+        switch category {
+        case "popular":
+            self.title = mediaType == .movie ? theme.t("movies.popular") : theme.t("series.popular")
+        case "upcoming":
+             self.title = "À venir"
+        case "top_rated":
+             self.title = "Mieux notés"
+        default:
+             self.title = category.capitalized
+        }
+        
+        // Assign Fetcher
+        self.fetcher = { page in
+            let language = theme.selectedLanguage == "fr" ? "fr-FR" :
+                          theme.selectedLanguage == "en" ? "en-US" :
+                          theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+            
+            // Prioritize Genre Search if ID is present
+            if let genreId = genreId {
+                 if mediaType == .movie {
+                     return try await TMDBService.shared.fetchMoviesByGenre(genreId: genreId, page: page, language: language)
+                 } else {
+                     return try await TMDBService.shared.fetchSeriesByGenre(genreId: genreId, page: page, language: language)
+                 }
+            }
+            
+            // Category Search
+            switch category {
+            case "popular":
+                 if mediaType == .movie {
+                     return try await TMDBService.shared.fetchPopularMovies(page: page, language: language)
+                 } else {
+                     return try await TMDBService.shared.fetchPopularSeries(page: page, language: language)
+                 }
+            case "latest":
+                 if mediaType == .movie {
+                     return try await TMDBService.shared.fetchLatestMovies(page: page, language: language)
+                 } else {
+                      // Fallback for series if no latest endpoint
+                     return try await TMDBService.shared.fetchPopularSeries(page: page, language: language)
+                 }
+            default:
+                 return []
+            }
+        }
+    }
+    
+    // Default Memberwise Init (must be explicitly redeclared if we add custom inits, or we lose it? No, structs keep it unless we override? Swift structs lose memberwise init if ANY custom init is defined.)
+    // We need to restore the memberwise init.
+    init(title: String, fetcher: @escaping (Int) async throws -> [Media]) {
+        self.title = title
+        self.fetcher = fetcher
+    }
+    
     var body: some View {
         ZStack {
             theme.backgroundColor.ignoresSafeArea()

@@ -41,21 +41,14 @@ struct SeriesView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 20) {
                     
-                    // Dernières Séries
+                    // DerniÃ¨res SÃ©ries
                     MediaRow(
                         title: theme.t("series.latest"),
                         items: Array(latestSeries.prefix(10)),
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.latest"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchLatestSeries(page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .latestSeries
                     )
                     
                     // Action & Adventure
@@ -65,14 +58,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.action"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ACTION, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.ACTION, genreName: theme.t("series.action"), mediaType: .series)
                     )
                     
                     // Drama
@@ -82,14 +68,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.drama"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DRAMA, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.DRAMA, genreName: theme.t("series.drama"), mediaType: .series)
                     )
                     
                     // Crime
@@ -99,14 +78,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.crime"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.CRIME, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.CRIME, genreName: theme.t("series.crime"), mediaType: .series)
                     )
                     
                     // Mystery
@@ -116,14 +88,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.mystery"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.MYSTERY, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.MYSTERY, genreName: theme.t("series.mystery"), mediaType: .series)
                     )
                     
                     // Documentary
@@ -133,14 +98,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.documentary"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.DOCUMENTARY, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.DOCUMENTARY, genreName: theme.t("series.documentary"), mediaType: .series)
                     )
                     
                     // Sci-Fi & Fantasy
@@ -150,14 +108,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.sciFi"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.SCI_FI, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.SCI_FI, genreName: theme.t("series.sciFi"), mediaType: .series)
                     )
                     
                     // Animation
@@ -167,14 +118,7 @@ struct SeriesView: View {
                         onItemClick: { media in
                             print("Series clicked: \(media.id)")
                         },
-                        seeAllDestination: {
-                            MediaListView(
-                                title: theme.t("series.animation"),
-                                fetcher: { page in
-                                    try await TMDBService.shared.fetchSeriesByGenre(genreId: GENRES.ANIMATION, page: page)
-                                }
-                            )
-                        }
+                        seeAllRoute: .genreList(genreId: GENRES.ANIMATION, genreName: theme.t("series.animation"), mediaType: .series)
                     )
                     
                 }

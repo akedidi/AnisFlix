@@ -11,8 +11,9 @@ struct MediaRow<Destination: View>: View {
     let title: String
     let items: [Media]
     let onItemClick: (Media) -> Void
-    let seeAllDestination: Destination?
-    let progressByMediaId: [Int: Double]? // Optional progress dictionary
+    var seeAllRoute: NavigationRoute?
+    var seeAllDestination: Destination?
+    let progressByMediaId: [Int: Double]?
     
     @ObservedObject var theme = AppTheme.shared
     
@@ -21,13 +22,30 @@ struct MediaRow<Destination: View>: View {
         items: [Media],
         onItemClick: @escaping (Media) -> Void,
         progressByMediaId: [Int: Double]? = nil,
-        @ViewBuilder seeAllDestination: () -> Destination
+        seeAllRoute: NavigationRoute? = nil,
+        @ViewBuilder seeAllDestination: () -> Destination = { EmptyView() }
     ) {
         self.title = title
         self.items = items
         self.onItemClick = onItemClick
-        self.seeAllDestination = seeAllDestination()
         self.progressByMediaId = progressByMediaId
+        self.seeAllRoute = seeAllRoute
+        self.seeAllDestination = seeAllDestination()
+    }
+    
+    init(
+        title: String,
+        items: [Media],
+        onItemClick: @escaping (Media) -> Void,
+        progressByMediaId: [Int: Double]? = nil,
+        seeAllRoute: NavigationRoute
+    ) where Destination == EmptyView {
+        self.title = title
+        self.items = items
+        self.onItemClick = onItemClick
+        self.progressByMediaId = progressByMediaId
+        self.seeAllRoute = seeAllRoute
+        self.seeAllDestination = nil
     }
     
     init(
@@ -39,8 +57,9 @@ struct MediaRow<Destination: View>: View {
         self.title = title
         self.items = items
         self.onItemClick = onItemClick
-        self.seeAllDestination = nil
         self.progressByMediaId = progressByMediaId
+        self.seeAllRoute = nil
+        self.seeAllDestination = nil
     }
     
     var body: some View {
@@ -54,7 +73,17 @@ struct MediaRow<Destination: View>: View {
                 
                 Spacer()
                 
-                if let destination = seeAllDestination {
+                if let route = seeAllRoute {
+                    NavigationLink(value: route) {
+                        HStack(spacing: 4) {
+                            Text("Voir tout")
+                                .font(.subheadline)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                        }
+                        .foregroundColor(AppTheme.primaryRed)
+                    }
+                } else if let destination = seeAllDestination, !(destination is EmptyView) {
                     NavigationLink {
                         destination
                     } label: {
@@ -92,12 +121,6 @@ struct MediaCard: View {
     let progress: Double? // Optional progress (0.0 to 1.0)
     
     @ObservedObject var theme = AppTheme.shared
-    
-    init(media: Media, onTap: @escaping () -> Void, progress: Double? = nil) {
-        self.media = media
-        self.onTap = onTap
-        self.progress = progress
-    }
     
     var body: some View {
         NavigationLink(value: media.mediaType == .movie ? NavigationRoute.movieDetail(movieId: media.id) : NavigationRoute.seriesDetail(seriesId: media.id)) {

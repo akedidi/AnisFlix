@@ -27,25 +27,20 @@ struct WatchProvidersView: View {
                             HStack(spacing: 12) {
                                 ForEach(uniqueProviders) { provider in
                                     if let url = provider.logoURL {
-                                        Button(action: {
-                                            if let link = regionData.link, let url = URL(string: link) {
-                                                UIApplication.shared.open(url)
-                                            }
-                                        }) {
-                                            AsyncImage(url: url) { phase in
-                                                if let image = phase.image {
-                                                    image
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fit)
-                                                        .frame(width: 44, height: 44)
-                                                        .cornerRadius(8)
-                                                        .shadow(radius: 2)
-                                                } else {
-                                                    Rectangle()
-                                                        .fill(theme.cardBackground)
-                                                        .frame(width: 44, height: 44)
-                                                        .cornerRadius(8)
-                                                }
+                                        // Button removed as per user request to make providers non-clickable
+                                        AsyncImage(url: url) { phase in
+                                            if let image = phase.image {
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 44, height: 44)
+                                                    .cornerRadius(8)
+                                                    .shadow(radius: 2)
+                                            } else {
+                                                Rectangle()
+                                                    .fill(theme.cardBackground)
+                                                    .frame(width: 44, height: 44)
+                                                    .cornerRadius(8)
                                             }
                                         }
                                     }

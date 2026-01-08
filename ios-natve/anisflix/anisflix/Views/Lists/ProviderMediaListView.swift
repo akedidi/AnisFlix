@@ -86,16 +86,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Films",
                                     items: Array(movies.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Films",
-                                        genreId: nil,
-                                        mediaType: .movie
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Films", genreId: nil, mediaType: .movie)
+                                )
                             }
                             
                             // Séries
@@ -103,16 +96,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Séries",
                                     items: Array(series.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Séries",
-                                        genreId: nil,
-                                        mediaType: .series
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Séries", genreId: nil, mediaType: .series)
+                                )
                             }
                             
                             // Films d'Action
@@ -120,16 +106,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Films d'Action",
                                     items: Array(actionMovies.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Films d'Action",
-                                        genreId: 28,
-                                        mediaType: .movie
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Films d'Action", genreId: 28, mediaType: .movie)
+                                )
                             }
                             
                             // Films de Drame
@@ -137,16 +116,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Films de Drame",
                                     items: Array(dramaMovies.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Films de Drame",
-                                        genreId: 18,
-                                        mediaType: .movie
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Films de Drame", genreId: 18, mediaType: .movie)
+                                )
                             }
                             
                             // Films de Comédie
@@ -154,16 +126,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Films de Comédie",
                                     items: Array(comedyMovies.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Films de Comédie",
-                                        genreId: 35,
-                                        mediaType: .movie
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Films de Comédie", genreId: 35, mediaType: .movie)
+                                )
                             }
                             
                             // Séries d'Action
@@ -171,16 +136,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Séries d'Action",
                                     items: Array(actionSeries.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Séries d'Action",
-                                        genreId: 10759,
-                                        mediaType: .series
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Séries d'Action", genreId: 10759, mediaType: .series)
+                                )
                             }
                             
                             // Séries de Drame
@@ -188,16 +146,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Séries de Drame",
                                     items: Array(dramaSeries.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Séries de Drame",
-                                        genreId: 18,
-                                        mediaType: .series
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Séries de Drame", genreId: 18, mediaType: .series)
+                                )
                             }
                             
                             // Séries de Comédie
@@ -205,16 +156,9 @@ struct ProviderMediaListView: View {
                                 MediaRow(
                                     title: "Séries de Comédie",
                                     items: Array(comedySeries.prefix(10)),
-                                    onItemClick: { _ in }
-                                ) {
-                                    ProviderCategoryListView(
-                                        providerId: providerId,
-                                        providerName: providerName,
-                                        category: "Séries de Comédie",
-                                        genreId: 35,
-                                        mediaType: .series
-                                    )
-                                }
+                                    onItemClick: { _ in },
+                                    seeAllRoute: .providerCategoryList(providerId: providerId, providerName: providerName, category: "Séries de Comédie", genreId: 35, mediaType: .series)
+                                )
                             }
 
                             

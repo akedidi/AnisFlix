@@ -154,10 +154,9 @@ struct HomeView: View {
                             items: Array(latestMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to movie: \(media.id)")
-                            }
-                        ) {
-                            LatestMoviesView()
-                        }
+                            },
+                            seeAllRoute: .latestMovies
+                        )
                     }
                     
                     // Dernières Séries
@@ -167,10 +166,9 @@ struct HomeView: View {
                             items: Array(latestSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to series: \(media.id)")
-                            }
-                        ) {
-                            LatestSeriesView()
-                        }
+                            },
+                            seeAllRoute: .latestSeries
+                        )
                     }
                     
                     // Films Populaires
@@ -180,10 +178,9 @@ struct HomeView: View {
                             items: Array(popularMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to movie: \(media.id)")
-                            }
-                        ) {
-                            PopularMoviesView()
-                        }
+                            },
+                            seeAllRoute: .popularMovies
+                        )
                     }
                     
                     // Séries Populaires
@@ -193,10 +190,9 @@ struct HomeView: View {
                             items: Array(popularSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to series: \(media.id)")
-                            }
-                        ) {
-                            PopularSeriesView()
-                        }
+                            },
+                            seeAllRoute: .popularSeries
+                        )
                     }
                     
                     // Anime - Derniers Films
@@ -206,10 +202,9 @@ struct HomeView: View {
                             items: Array(animeMoviesLatest.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to anime movie: \(media.id)")
-                            }
-                        ) {
-                            GenreMediaListView(genreId: 16, genreName: "Anime - Derniers Films", mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .genreList(genreId: 16, genreName: "Anime - Derniers Films", mediaType: .movie)
+                        )
                     }
                     
                     // Anime - Dernières Séries
@@ -219,10 +214,9 @@ struct HomeView: View {
                             items: Array(animeSeriesLatest.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to anime series: \(media.id)")
-                            }
-                        ) {
-                            GenreMediaListView(genreId: 16, genreName: "Anime - Dernières Séries", mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .genreList(genreId: 16, genreName: "Anime - Dernières Séries", mediaType: .series)
+                        )
                     }
                     
                     // Anime - Films Populaires
@@ -232,10 +226,9 @@ struct HomeView: View {
                             items: Array(animeMoviesPopular.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to anime movie: \(media.id)")
-                            }
-                        ) {
-                            GenreMediaListView(genreId: 16, genreName: "Anime - Films Populaires", mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .genreList(genreId: 16, genreName: "Anime - Films Populaires", mediaType: .movie)
+                        )
                     }
                     
                     // Anime - Séries Populaires
@@ -245,10 +238,9 @@ struct HomeView: View {
                             items: Array(animeSeriesPopular.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to anime series: \(media.id)")
-                            }
-                        ) {
-                            GenreMediaListView(genreId: 16, genreName: "Anime - Séries Populaires", mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .genreList(genreId: 16, genreName: "Anime - Séries Populaires", mediaType: .series)
+                        )
                     }
                     
                     // Netflix
@@ -258,10 +250,9 @@ struct HomeView: View {
                             items: Array(netflixMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Netflix movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 8, providerName: "Netflix", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 8, providerName: "Netflix", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !netflixSeries.isEmpty {
@@ -270,10 +261,9 @@ struct HomeView: View {
                             items: Array(netflixSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Netflix series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 8, providerName: "Netflix", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 8, providerName: "Netflix", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Amazon Prime
@@ -283,10 +273,9 @@ struct HomeView: View {
                             items: Array(amazonMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Amazon movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 9, providerName: "Amazon Prime", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 9, providerName: "Amazon Prime", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !amazonSeries.isEmpty {
@@ -295,10 +284,9 @@ struct HomeView: View {
                             items: Array(amazonSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Amazon series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 9, providerName: "Amazon Prime", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 9, providerName: "Amazon Prime", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Apple TV+
@@ -308,10 +296,9 @@ struct HomeView: View {
                             items: Array(appleTVMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Apple TV movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 350, providerName: "Apple TV+", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 350, providerName: "Apple TV+", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !appleTVSeries.isEmpty {
@@ -320,10 +307,9 @@ struct HomeView: View {
                             items: Array(appleTVSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Apple TV series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 350, providerName: "Apple TV+", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 350, providerName: "Apple TV+", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Disney+
@@ -333,10 +319,9 @@ struct HomeView: View {
                             items: Array(disneyMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Disney movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 337, providerName: "Disney+", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 337, providerName: "Disney+", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !disneySeries.isEmpty {
@@ -345,10 +330,9 @@ struct HomeView: View {
                             items: Array(disneySeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Disney series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 337, providerName: "Disney+", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 337, providerName: "Disney+", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // HBO Max
@@ -358,10 +342,9 @@ struct HomeView: View {
                             items: Array(hboMaxMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to HBO movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 384, providerName: "HBO Max", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 384, providerName: "HBO Max", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !hboMaxSeries.isEmpty {
@@ -370,10 +353,9 @@ struct HomeView: View {
                             items: Array(hboMaxSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to HBO series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 384, providerName: "HBO Max", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 384, providerName: "HBO Max", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Canal+
@@ -383,10 +365,9 @@ struct HomeView: View {
                             items: Array(canalMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Canal+ movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 381, providerName: "Canal+", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 381, providerName: "Canal+", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !canalSeries.isEmpty {
@@ -395,10 +376,9 @@ struct HomeView: View {
                             items: Array(canalSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Canal+ series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 381, providerName: "Canal+", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 381, providerName: "Canal+", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Crunchyroll
@@ -408,10 +388,9 @@ struct HomeView: View {
                             items: Array(crunchyrollMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Crunchyroll movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 283, providerName: "Crunchyroll", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 283, providerName: "Crunchyroll", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !crunchyrollSeries.isEmpty {
@@ -420,10 +399,9 @@ struct HomeView: View {
                             items: Array(crunchyrollSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Crunchyroll series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 283, providerName: "Crunchyroll", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 283, providerName: "Crunchyroll", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // ADN
@@ -433,10 +411,9 @@ struct HomeView: View {
                             items: Array(adnMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to ADN movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 415, providerName: "ADN", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 415, providerName: "ADN", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !adnSeries.isEmpty {
@@ -445,10 +422,9 @@ struct HomeView: View {
                             items: Array(adnSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to ADN series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 415, providerName: "ADN", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 415, providerName: "ADN", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // Arte
@@ -458,10 +434,9 @@ struct HomeView: View {
                             items: Array(arteMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Arte movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 234, providerName: "Arte", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 234, providerName: "Arte", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !arteSeries.isEmpty {
@@ -470,10 +445,9 @@ struct HomeView: View {
                             items: Array(arteSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to Arte series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 234, providerName: "Arte", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 234, providerName: "Arte", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // MUBI
@@ -483,10 +457,9 @@ struct HomeView: View {
                             items: Array(mubiMovies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to MUBI movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 11, providerName: "MUBI", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 11, providerName: "MUBI", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !mubiSeries.isEmpty {
@@ -495,10 +468,9 @@ struct HomeView: View {
                             items: Array(mubiSeries.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to MUBI series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 11, providerName: "MUBI", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 11, providerName: "MUBI", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // TF1+
@@ -508,10 +480,9 @@ struct HomeView: View {
                             items: Array(tf1Movies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to TF1+ movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 1754, providerName: "TF1+", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 1754, providerName: "TF1+", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !tf1Series.isEmpty {
@@ -520,10 +491,9 @@ struct HomeView: View {
                             items: Array(tf1Series.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to TF1+ series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 1754, providerName: "TF1+", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 1754, providerName: "TF1+", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                     
                     // M6+
@@ -533,10 +503,9 @@ struct HomeView: View {
                             items: Array(m6Movies.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to M6+ movie: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 147, providerName: "M6+", category: "Films", genreId: nil, mediaType: .movie)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 147, providerName: "M6+", category: "Films", genreId: nil, mediaType: .movie)
+                        )
                     }
                     
                     if !m6Series.isEmpty {
@@ -545,10 +514,9 @@ struct HomeView: View {
                             items: Array(m6Series.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to M6+ series: \(media.id)")
-                            }
-                        ) {
-                            ProviderCategoryListView(providerId: 147, providerName: "M6+", category: "Séries", genreId: nil, mediaType: .series)
-                        }
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 147, providerName: "M6+", category: "Séries", genreId: nil, mediaType: .series)
+                        )
                     }
                 }
                 .padding(.bottom, 150)  // Increased padding for floating tab bar and cast banner

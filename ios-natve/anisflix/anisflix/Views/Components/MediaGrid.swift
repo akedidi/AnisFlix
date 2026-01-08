@@ -181,9 +181,6 @@ struct MediaGridCard: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
-        .simultaneousGesture(TapGesture().onEnded {
-            onTap()
-        })
     }
 }
 

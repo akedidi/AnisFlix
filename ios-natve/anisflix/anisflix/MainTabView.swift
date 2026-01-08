@@ -13,6 +13,14 @@ enum NavigationRoute: Hashable {
     case seriesDetail(seriesId: Int)
     case providerList(providerId: Int, providerName: String)
     case downloadedMediaPlayer(itemId: String)
+
+    case latestMovies
+    case latestSeries
+    case popularMovies
+    case popularSeries
+    case mediaList(type: Media.MediaType, category: String, genreId: Int?)
+    case genreList(genreId: Int, genreName: String, mediaType: Media.MediaType)
+    case providerCategoryList(providerId: Int, providerName: String, category: String, genreId: Int?, mediaType: Media.MediaType)
 }
 
 struct MainTabView: View {
@@ -85,6 +93,20 @@ struct MainTabView: View {
                                 } else {
                                     Text("Download not found")
                                 }
+                            case .latestMovies:
+                                LatestMoviesView()
+                            case .latestSeries:
+                                LatestSeriesView()
+                            case .popularMovies:
+                                PopularMoviesView()
+                            case .popularSeries:
+                                PopularSeriesView()
+                            case .mediaList(let type, let category, let genreId):
+                                MediaListView(mediaType: type, category: category, genreId: genreId)
+                            case .genreList(let genreId, let genreName, let mediaType):
+                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
+                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
+                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
                             }
                         }
                 }
@@ -108,6 +130,20 @@ struct MainTabView: View {
                                 } else {
                                     Text("Download not found")
                                 }
+                            case .latestMovies:
+                                LatestMoviesView()
+                            case .latestSeries:
+                                LatestSeriesView()
+                            case .popularMovies:
+                                PopularMoviesView()
+                            case .popularSeries:
+                                PopularSeriesView()
+                            case .mediaList(let type, let category, let genreId):
+                                MediaListView(mediaType: type, category: category, genreId: genreId)
+                            case .genreList(let genreId, let genreName, let mediaType):
+                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
+                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
+                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
                             }
                         }
                 }
@@ -131,6 +167,20 @@ struct MainTabView: View {
                                 } else {
                                     Text("Download not found")
                                 }
+                            case .latestMovies:
+                                LatestMoviesView()
+                            case .latestSeries:
+                                LatestSeriesView()
+                            case .popularMovies:
+                                PopularMoviesView()
+                            case .popularSeries:
+                                PopularSeriesView()
+                            case .mediaList(let type, let category, let genreId):
+                                MediaListView(mediaType: type, category: category, genreId: genreId)
+                            case .genreList(let genreId, let genreName, let mediaType):
+                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
+                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
+                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
                             }
                         }
                 }
@@ -154,6 +204,20 @@ struct MainTabView: View {
                                 } else {
                                     Text("Download not found")
                                 }
+                            case .latestMovies:
+                                LatestMoviesView()
+                            case .latestSeries:
+                                LatestSeriesView()
+                            case .popularMovies:
+                                PopularMoviesView()
+                            case .popularSeries:
+                                PopularSeriesView()
+                            case .mediaList(let type, let category, let genreId):
+                                MediaListView(mediaType: type, category: category, genreId: genreId)
+                            case .genreList(let genreId, let genreName, let mediaType):
+                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
+                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
+                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
                             }
                         }
                 }
@@ -177,6 +241,20 @@ struct MainTabView: View {
                                 } else {
                                     Text("Download not found")
                                 }
+                            case .latestMovies:
+                                LatestMoviesView()
+                            case .latestSeries:
+                                LatestSeriesView()
+                            case .popularMovies:
+                                PopularMoviesView()
+                            case .popularSeries:
+                                PopularSeriesView()
+                            case .mediaList(let type, let category, let genreId):
+                                MediaListView(mediaType: type, category: category, genreId: genreId)
+                            case .genreList(let genreId, let genreName, let mediaType):
+                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
+                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
+                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
                             }
                         }
                 }
