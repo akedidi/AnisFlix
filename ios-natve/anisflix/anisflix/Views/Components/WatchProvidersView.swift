@@ -53,7 +53,6 @@ struct WatchProvidersView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
                     .padding(.top, 8)
                 }
             }

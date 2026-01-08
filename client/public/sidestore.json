@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.11",
+          "version": "1.0.12",
           "date": "2026-01-08",
-          "size": 3913399,
+          "size": 3913483,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "versionDescription": "feat: display watch providers on web and ios with fallback logic "
+          "versionDescription": "chore: update ipa version 1.0.11 "
         }
       ]
     }
