@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.8",
+          "version": "1.0.10",
           "date": "2026-01-08",
-          "size": 3900245,
+          "size": 3899861,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "versionDescription": "fix: Use versionDescription for SideStore release notes "
+          "versionDescription": "build: Release v1.0.8 with subtitle position fix "
         }
       ]
     }

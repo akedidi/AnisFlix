@@ -140,8 +140,19 @@ struct SettingsView: View {
             }
 
             // Bottom padding for Cast Banner
+            // Version Info
             Section {
-                 Color.clear.frame(height: 100)
+                 HStack {
+                    Text("Version")
+                    Spacer()
+                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                        .foregroundColor(.secondary)
+                 }
+            }
+            
+            // Bottom padding for Custom TabBar
+            Section {
+                 Color.clear.frame(height: 50)
                      .listRowBackground(Color.clear)
             }
         }
