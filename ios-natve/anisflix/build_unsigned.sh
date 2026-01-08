@@ -89,11 +89,21 @@ if [ -f "$IPA_NAME" ]; then
     
     PUBLIC_DIR="../../client/public"
     DEST_IPA="$PUBLIC_DIR/anisflix.ipa"
+    DEST_ICON="$PUBLIC_DIR/icon.png"
     JSON_FILE="$PUBLIC_DIR/sidestore.json"
     
     # Copy IPA
     cp "$IPA_NAME" "$DEST_IPA"
     success "IPA copiée vers $DEST_IPA"
+    
+     # Extract and Copy Icon (Try to find AppIcon60x60@2x.png which is 120x120, good for SideStore)
+    ICON_SRC="$ARCHIVE_PATH/Products/Applications/$SCHEME.app/AppIcon60x60@2x.png"
+    if [ -f "$ICON_SRC" ]; then
+        cp "$ICON_SRC" "$DEST_ICON"
+        success "Icône copiée vers $DEST_ICON"
+    else
+        echo "⚠️ Icône non trouvée à $ICON_SRC"
+    fi
     
     # Get File Size in Bytes
     FILE_SIZE_BYTES=$(stat -f%z "$IPA_NAME")
