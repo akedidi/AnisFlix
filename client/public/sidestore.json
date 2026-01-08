@@ -7,7 +7,7 @@
       "name": "AnisFlix",
       "bundleIdentifier": "com.anis.anisflix",
       "developerName": "Anisika",
-      "localizedDescription": "AnisFlix Streaming App",
+      "localizedDescription": "AnisFlix est votre compagnon de streaming ultime. Regardez vos films, séries et chaînes TV préférés en haute qualité.",
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
@@ -15,7 +15,8 @@
           "date": "2026-01-08",
           "size": 3900248,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
-          "minOSVersion": "15.0"
+          "minOSVersion": "15.0",
+          "localizedReleaseNotes": "Fix: Resolve critical version mismatch (1.0.7) & update developer name"
         }
       ]
     }
