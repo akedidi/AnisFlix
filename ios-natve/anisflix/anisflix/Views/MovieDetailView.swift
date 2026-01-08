@@ -172,24 +172,29 @@ struct MovieDetailView: View {
                                                     .cornerRadius(16)
                                                     .foregroundColor(theme.secondaryText)
                                             }
-                                            // Country of origin
-                                            if let countries = movie.productionCountries {
-                                                ForEach(countries) { country in
-                                                    HStack(spacing: 4) {
-                                                        Text(countryFlag(for: country.iso31661))
-                                                        Text(country.iso31661)
-                                                    }
-                                                    .font(.caption)
-                                                    .padding(.horizontal, 12)
-                                                    .padding(.vertical, 6)
-                                                    .background(Color.blue.opacity(0.2))
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 16)
-                                                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
-                                                    )
-                                                    .cornerRadius(16)
-                                                    .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                                
+                                // Country of origin
+                                if let countries = movie.productionCountries {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack {
+                                            ForEach(countries) { country in
+                                                HStack(spacing: 4) {
+                                                    Text(countryFlag(for: country.iso31661))
+                                                    Text(country.iso31661)
                                                 }
+                                                .font(.caption)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(Color.blue.opacity(0.2))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 16)
+                                                        .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                                                )
+                                                .cornerRadius(16)
+                                                .foregroundColor(.blue)
                                             }
                                         }
                                     }
@@ -226,7 +231,6 @@ struct MovieDetailView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.top, 16)
-                            }
                             }
                             
                             // Overview
@@ -431,8 +435,8 @@ struct MovieDetailView: View {
                     .frame(width: UIScreen.main.bounds.width)
                 }
 
+                }
             }
-
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {

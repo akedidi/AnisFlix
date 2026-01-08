@@ -498,7 +498,10 @@ export default function MovieDetail() {
                     {genre.name}
                   </Badge>
                 ))}
-                {/* Country of origin */}
+              </div>
+
+              {/* Country of origin */}
+              <div className="flex flex-wrap gap-2 mb-6">
                 {movie.production_countries?.map((country: any) => (
                   <Badge key={country.iso_3166_1} variant="outline" className="border-blue-500 text-blue-400">
                     {getCountryFlag(country.iso_3166_1)} {country.iso_3166_1}

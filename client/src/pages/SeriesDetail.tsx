@@ -500,7 +500,10 @@ export default function SeriesDetail() {
                     {genre.name}
                   </Badge>
                 ))}
-                {/* Country of origin */}
+              </div>
+
+              {/* Country of origin */}
+              <div className="flex flex-wrap gap-2 mb-6">
                 {series.origin_country?.map((countryCode: string) => (
                   <Badge key={countryCode} variant="outline" className="border-blue-500 text-blue-400">
                     {getCountryFlag(countryCode)} {countryCode}
