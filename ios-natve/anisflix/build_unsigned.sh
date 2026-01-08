@@ -83,6 +83,64 @@ if [ -f "$IPA_NAME" ]; then
     echo "📱 IPA: $(pwd)/$IPA_NAME"
     echo "📦 Taille: $SIZE"
     echo ""
+
+    # 4. SideStore Automation
+    echo "🔄 Mise à jour SideStore..."
+    
+    PUBLIC_DIR="../../client/public"
+    DEST_IPA="$PUBLIC_DIR/anisflix.ipa"
+    JSON_FILE="$PUBLIC_DIR/sidestore.json"
+    
+    # Copy IPA
+    cp "$IPA_NAME" "$DEST_IPA"
+    success "IPA copiée vers $DEST_IPA"
+    
+    # Get File Size in Bytes
+    FILE_SIZE_BYTES=$(stat -f%z "$IPA_NAME")
+    
+    # Date YYYY-MM-DD
+    DATE=$(date +%Y-%m-%d)
+    
+    # Version based on timestamp (e.g. 1.0.TIMESTAMP) or just update the entry
+    VERSION="1.0.$(date +%s)"
+    DOWNLOAD_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa"
+    
+    # Check if JSON exists
+    if [ -f "$JSON_FILE" ]; then
+        # Create temp file
+        TMP_JSON=$(mktemp)
+        
+        # Use node to update JSON cleanly if available, else awk/sed which is brittle.
+        # Let's write a tiny inline node script since this is a React Native env (node is guaranteed)
+        
+        node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('$JSON_FILE', 'utf8'));
+            const newVersion = {
+                version: '$VERSION',
+                date: '$DATE',
+                size: $FILE_SIZE_BYTES,
+                downloadURL: '$DOWNLOAD_URL',
+                minOSVersion: '15.0'
+            };
+            
+            // Add to beginning of versions array
+            if (data.apps && data.apps.length > 0) {
+                // Ensure versions array exists
+                if (!data.apps[0].versions) data.apps[0].versions = [];
+                // Add new version
+                data.apps[0].versions.unshift(newVersion);
+                // Keep only last 5 versions to avoid huge file
+                data.apps[0].versions = data.apps[0].versions.slice(0, 5);
+            }
+            
+            fs.writeFileSync('$JSON_FILE', JSON.stringify(data, null, 2));
+        " && success "sidestore.json mis à jour" || error "Erreur lors de la mise à jour du JSON"
+        
+    else
+        error "Fichier $JSON_FILE introuvable"
+    fi
+    
 else
     error "Le fichier IPA n'a pas été créé"
 fi

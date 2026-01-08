@@ -755,9 +755,8 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         
-        if let jsonString = String(data: data, encoding: .utf8) {
-             print("📄 [MovieBox] Raw Response: \(jsonString)") 
-        }
+        // Log removed as per user request
+
         
         do {
             let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
@@ -766,7 +765,10 @@ class StreamingService {
             if let movieBoxStreams = decoded.streams {
                 for src in movieBoxStreams {
                     let quality = src.quality ?? "HD"
-                    let targetUrl = src.directUrl ?? src.url
+                    // FIX: Use proxied URL (`src.url`) instead of direct URL for Chromecast compatibility
+                    // The direct URL requires headers (Referer/Origin) which Chromecast does not support.
+                    // The proxied URL (`/api/movix-proxy?path=moviebox-stream...`) handles headers server-side.
+                    let targetUrl = src.url
                     
                     let source = StreamingSource(
                         url: targetUrl,
@@ -807,9 +809,8 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         
-        if let jsonString = String(data: data, encoding: .utf8) {
-             print("📄 [MovieBox] Raw Response Series: \(jsonString)")
-        }
+        // Log removed as per user request
+
         
         do {
             let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
@@ -818,7 +819,8 @@ class StreamingService {
             if let movieBoxStreams = decoded.streams {
                 for src in movieBoxStreams {
                     let quality = src.quality ?? "HD"
-                    let targetUrl = src.directUrl ?? src.url
+                    // FIX: Use proxied URL (`src.url`) instead of direct URL for Chromecast compatibility
+                    let targetUrl = src.url
                     
                     let source = StreamingSource(
                         url: targetUrl,
