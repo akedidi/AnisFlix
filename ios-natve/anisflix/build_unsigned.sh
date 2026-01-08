@@ -108,6 +108,16 @@ if [ -f "$IPA_NAME" ]; then
     # Get File Size in Bytes
     FILE_SIZE_BYTES=$(stat -f%z "$IPA_NAME")
     
+    # Get Bundle ID from Info.plist
+    INFO_PLIST="$ARCHIVE_PATH/Products/Applications/$SCHEME.app/Info.plist"
+    if [ -f "$INFO_PLIST" ]; then
+        BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$INFO_PLIST")
+        success "Bundle ID détecté : $BUNDLE_ID"
+    else
+        BUNDLE_ID="com.anis.anisflix" # Fallback (should ideally error out)
+        echo "⚠️ Info.plist non trouvé, fallback sur $BUNDLE_ID"
+    fi
+    
     # Date YYYY-MM-DD
     DATE=$(date +%Y-%m-%d)
     
@@ -134,8 +144,14 @@ if [ -f "$IPA_NAME" ]; then
                 minOSVersion: '15.0'
             };
             
+            // Update Top Level Bundle ID if needed
+            data.identifier = '$BUNDLE_ID';
+            
             // Add to beginning of versions array
             if (data.apps && data.apps.length > 0) {
+                // Update App Bundle ID
+                data.apps[0].bundleIdentifier = '$BUNDLE_ID';
+                
                 // Ensure versions array exists
                 if (!data.apps[0].versions) data.apps[0].versions = [];
                 // Add new version
@@ -145,7 +161,7 @@ if [ -f "$IPA_NAME" ]; then
             }
             
             fs.writeFileSync('$JSON_FILE', JSON.stringify(data, null, 2));
-        " && success "sidestore.json mis à jour" || error "Erreur lors de la mise à jour du JSON"
+        " && success "sidestore.json mis à jour (Bundle ID: $BUNDLE_ID)" || error "Erreur lors de la mise à jour du JSON"
         
     else
         error "Fichier $JSON_FILE introuvable"

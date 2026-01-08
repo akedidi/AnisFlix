@@ -1,15 +1,22 @@
 {
   "name": "AnisFlix",
-  "identifier": "com.anisflix.ios",
+  "identifier": "com.anis.anisflix",
   "sourceURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/sidestore.json",
   "apps": [
     {
       "name": "AnisFlix",
-      "bundleIdentifier": "com.anisflix.ios",
+      "bundleIdentifier": "com.anis.anisflix",
       "developerName": "Anis Kedidi",
       "localizedDescription": "AnisFlix Streaming App",
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
+        {
+          "version": "1.0.1767877380",
+          "date": "2026-01-08",
+          "size": 3900248,
+          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
+          "minOSVersion": "15.0"
+        },
         {
           "version": "1.0.1767876604",
           "date": "2026-01-08",
