@@ -205,11 +205,12 @@ export const tmdb = {
     return tmdbFetch(`/tv/${seriesId}/videos`);
   },
 
-  // Season Details (via Proxy)
   getSeasonDetails: async (seriesId: number, seasonNumber: number, language?: string) => {
     // Use centralized TMDB proxy - handles virtual seasons, sequential numbering, and generic name fallback
     const lang = language || getLanguageCode(getLanguage());
-    const response = await fetch(`/api/tmdb-proxy?type=season&seriesId=${seriesId}&seasonNumber=${seasonNumber}&language=${lang}`);
+    // Add cache buster timestamp to match iOS behavior and force fresh fetch
+    const timestamp = new Date().getTime();
+    const response = await fetch(`/api/tmdb-proxy?type=season&seriesId=${seriesId}&seasonNumber=${seasonNumber}&language=${lang}&_t=${timestamp}`);
     if (!response.ok) throw new Error('TMDB Proxy request failed');
     return response.json();
   },
