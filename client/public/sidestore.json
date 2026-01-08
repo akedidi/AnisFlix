@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.10",
+          "version": "1.0.11",
           "date": "2026-01-08",
-          "size": 3899861,
+          "size": 3913399,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "versionDescription": "build: Release v1.0.8 with subtitle position fix "
+          "versionDescription": "feat: display watch providers on web and ios with fallback logic "
         }
       ]
     }
