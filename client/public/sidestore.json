@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.7",
+          "version": "1.0.8",
           "date": "2026-01-08",
-          "size": 3900248,
+          "size": 3900245,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "versionDescription": "Fix: Resolve critical version mismatch (1.0.7) & update developer name"
+          "versionDescription": "fix: Use versionDescription for SideStore release notes "
         }
       ]
     }
