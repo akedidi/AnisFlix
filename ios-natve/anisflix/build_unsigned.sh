@@ -48,7 +48,12 @@ info() {
         fi
         
         # Construct full version string (Example: 1.0.42)
-        FULL_VERSION="$MARKETING_VERSION.$BUILD_NUMBER"
+        # We enforce MARKETING VERSION to match this so SideStore checks pass (Expected: 1.0.42, Found: 1.0.42)
+        FULL_VERSION="1.0.$BUILD_NUMBER"
+        
+        info "Mise à jour de la Marketing Version vers $FULL_VERSION..."
+        xcrun agvtool new-marketing-version "$FULL_VERSION"
+        
         success "Nouvelle version : $FULL_VERSION"
     else
         error "agvtool non trouvé. Impossible d'incrémenter la version."
@@ -172,6 +177,7 @@ if [ -f "$IPA_NAME" ]; then
             if (data.apps && data.apps.length > 0) {
                 // Update App Bundle ID
                 data.apps[0].bundleIdentifier = '$BUNDLE_ID';
+                data.apps[0].developerName = 'Anisika'; // User requested name
                 
                 // SINGLE VERSION POLICY: Overwrite versions array with ONLY the new version
                 data.apps[0].versions = [newVersion];

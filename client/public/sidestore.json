@@ -6,14 +6,14 @@
     {
       "name": "AnisFlix",
       "bundleIdentifier": "com.anis.anisflix",
-      "developerName": "Anis Kedidi",
+      "developerName": "Anisika",
       "localizedDescription": "AnisFlix Streaming App",
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.3",
+          "version": "1.0.5",
           "date": "2026-01-08",
-          "size": 3900248,
+          "size": 3900247,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0"
         }
