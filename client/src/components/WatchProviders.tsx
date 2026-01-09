@@ -62,14 +62,13 @@ export default function WatchProviders({ providers, className }: WatchProvidersP
                 {uniqueProviders.map((provider) => (
                     <div
                         key={provider.provider_id}
-                        className="relative group cursor-pointer"
+                        className="relative group"
                         title={provider.provider_name}
-                        onClick={() => link && window.open(link, '_blank')}
                     >
                         <img
                             src={getImageUrl(provider.logo_path, "original")}
                             alt={provider.provider_name}
-                            className="w-12 h-12 rounded-lg shadow-md transition-transform hover:scale-105"
+                            className="w-12 h-12 rounded-lg shadow-md"
                         />
                         {/* Tooltip on hover */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
