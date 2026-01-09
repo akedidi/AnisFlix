@@ -405,7 +405,7 @@ class MovieBoxScraper {
           continue; // Skip items without duration when we have TMDB runtime
         }
         const durationDiff = Math.abs(tmdbDuration - itemDuration);
-        if (durationDiff > 10) {
+        if (durationDiff > 20) {
           console.log(`   ❌ Skipping "${item.title}" - Duration mismatch (${itemDuration}min vs expected ${tmdbDuration}min, diff: ${durationDiff}min)`);
           continue; // Skip this result entirely
         }
