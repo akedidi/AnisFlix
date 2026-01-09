@@ -34,7 +34,8 @@ export const useUniversalVOSources = (
                 return null;
             }
         },
-        enabled: !!id && (type === 'movie' || (type === 'tv' && !!season && !!episode)),
+        enabled: false, // API BROKEN - Disabled Globally
+        // enabled: !!id && (type === 'movie' || (type === 'tv' && !!season && !!episode)),
         staleTime: 10 * 60 * 1000, // 10 minutes
         retry: 1
     });

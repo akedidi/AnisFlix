@@ -41,7 +41,7 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -321,6 +321,7 @@ export default function MovieDetail() {
           type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
           name: source.name,
           isDarki: source.isDarki,
+          provider: (source as any).provider,
         });
         setIsLoadingSource(false);
         return;
@@ -638,6 +639,7 @@ export default function MovieDetail() {
                     backdropPath={movie.backdrop_path}
                     imdbId={movie.imdb_id}
                     tracks={(selectedSource as any).tracks}
+                    provider={selectedSource.provider}
                   />
                 )}
               </div>

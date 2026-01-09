@@ -45,6 +45,7 @@ interface VideoPlayerProps {
   imdbId?: string;
   tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>; // Add tracks for external subtitles
   hasNextEpisode?: boolean; // For series: true if there's a next episode
+  provider?: string; // Source provider (e.g. 'vixsrc', 'vidmoly')
 }
 
 export default function VideoPlayer({
@@ -59,7 +60,8 @@ export default function VideoPlayer({
   episodeNumber,
   imdbId,
   tracks = [], // Default to empty array
-  hasNextEpisode
+  hasNextEpisode,
+  provider
 }: VideoPlayerProps) {
   console.log(`📺 [VIDEO PLAYER PROPS] src=${src} tracks=${JSON.stringify(tracks)}`);
 
@@ -909,6 +911,7 @@ export default function VideoPlayer({
             mediaType={mediaType}
             season={seasonNumber}
             episode={episodeNumber}
+            provider={provider}
           />
         )}
       </div>

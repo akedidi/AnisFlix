@@ -371,9 +371,11 @@ struct CustomVideoPlayer: View {
                                 }
                             }
                             
-                            // Chromecast Button (Bottom Right)
-                            CastButton()
-                                .frame(width: 44, height: 44)
+                            // Chromecast Button (Bottom Right) - Hidden for Vixsrc sources (incompatible with Cast)
+                            if globalManager.currentProvider?.lowercased() != "vixsrc" {
+                                CastButton()
+                                    .frame(width: 44, height: 44)
+                            }
                             
                             // PiP Button
                             Button {

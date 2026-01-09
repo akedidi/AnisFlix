@@ -42,6 +42,7 @@ interface CustomVideoControlsProps {
   mediaType?: string;
   season?: number;
   episode?: number;
+  provider?: string;
 }
 
 export default function CustomVideoControls({
@@ -74,12 +75,15 @@ export default function CustomVideoControls({
   mediaType,
   season,
   episode,
+  provider,
 }: CustomVideoControlsProps) {
   // Debug: Log subtitles prop
   console.log(`🎬 [CustomVideoControls] subtitles prop:`, subtitles.length, subtitles);
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
 
   useEffect(() => {
     const video = videoRef.current;
@@ -336,7 +340,7 @@ export default function CustomVideoControls({
             </DropdownMenu>
           )}
 
-          {mediaUrl && (
+          {mediaUrl && provider !== 'vixsrc' && (
             <div className="h-9 w-9">
               <ChromecastButton
                 mediaUrl={mediaUrl}

@@ -295,7 +295,8 @@ class StreamingService {
         async let tmdbSources = fetchTmdbSources(movieId: movieId)
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
-        async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
+        // DISABLED: UniversalVO API is broken
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
         
         // Anime Placeholder
@@ -340,14 +341,15 @@ class StreamingService {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
+        // DISABLED: UniversalVO API is broken - removed from tuple
+        let (tmdb, fstream, vixsrc, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources)
         let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
-        print("   - UniversalVO: \(universalVO?.count ?? 0)")
+        // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
@@ -367,9 +369,10 @@ class StreamingService {
         // Add Movix/Darkibox Download sources third
         allSources.append(contentsOf: movixDownloadSources)
         
-        if let universalVO = universalVO {
-            allSources.append(contentsOf: universalVO)
-        }
+        // DISABLED: UniversalVO API is broken
+        // if let universalVO = universalVO {
+        //     allSources.append(contentsOf: universalVO)
+        // }
         
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
@@ -477,7 +480,8 @@ class StreamingService {
         async let tmdbSources = fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-        async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        // DISABLED: UniversalVO API is broken
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
@@ -540,13 +544,14 @@ class StreamingService {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        let (tmdb, fstream, vixsrc, universalVO, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? universalVOSources, try? movieBoxSources)
+        // DISABLED: UniversalVO API is broken - removed from tuple
+        let (tmdb, fstream, vixsrc, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
-        print("   - UniversalVO: \(universalVO?.count ?? 0)")
+        // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
@@ -570,9 +575,10 @@ class StreamingService {
         // Add Movix/Darkibox Download sources second
         allSources.append(contentsOf: movixDownloadSources)
         
-        if let universalVO = universalVO {
-            allSources.append(contentsOf: universalVO)
-        }
+        // DISABLED: UniversalVO API is broken
+        // if let universalVO = universalVO {
+        //     allSources.append(contentsOf: universalVO)
+        // }
         
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)

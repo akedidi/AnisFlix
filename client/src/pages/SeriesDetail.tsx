@@ -43,7 +43,7 @@ export default function SeriesDetail() {
   const { navigate } = useAppNavigation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }> } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }>; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
@@ -791,6 +791,7 @@ export default function SeriesDetail() {
                                                     episodeNumber={episode.episode_number}
                                                     imdbId={series?.external_ids?.imdb_id}
                                                     tracks={(selectedSource as any).tracks}
+                                                    provider={(selectedSource as any).provider}
                                                     hasNextEpisode={(() => {
                                                       // Check if there's a next episode in the same season
                                                       const episodes = seasonDetails?.episodes || [];
