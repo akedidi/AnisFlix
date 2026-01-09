@@ -16,7 +16,7 @@
           "size": 3926031,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "versionDescription": "chore(api): Remove non-functional Primewire scraper "
+          "localizedDescription": "chore(api): Remove non-functional Primewire scraper "
         }
       ]
     }

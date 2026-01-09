@@ -185,7 +185,7 @@ if [ -f "$IPA_NAME" ]; then
                 size: $FILE_SIZE_BYTES,
                 downloadURL: '$DOWNLOAD_URL',
                 minOSVersion: '15.0',
-                versionDescription: '$COMMIT_MSG'
+                localizedDescription: '$COMMIT_MSG'
             };
             
             // Update Top Level Bundle ID if needed
