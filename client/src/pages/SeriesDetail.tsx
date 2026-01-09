@@ -791,6 +791,16 @@ export default function SeriesDetail() {
                                                     episodeNumber={episode.episode_number}
                                                     imdbId={series?.external_ids?.imdb_id}
                                                     tracks={(selectedSource as any).tracks}
+                                                    hasNextEpisode={(() => {
+                                                      // Check if there's a next episode in the same season
+                                                      const episodes = seasonDetails?.episodes || [];
+                                                      const currentIndex = episodes.findIndex((e: any) => e.episode_number === episode.episode_number);
+                                                      if (currentIndex < episodes.length - 1) return true;
+
+                                                      // Check if there's a next season
+                                                      const currentSeasonIndex = sortedSeasons.findIndex((s: any) => s.season_number === selectedSeasonNumber);
+                                                      return currentSeasonIndex < sortedSeasons.length - 1;
+                                                    })()}
                                                   />
                                                 </>
                                               )}

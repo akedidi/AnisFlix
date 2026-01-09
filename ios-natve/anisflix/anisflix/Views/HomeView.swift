@@ -679,8 +679,23 @@ struct HomeView: View {
         var processedMediaIds: Set<Int> = []
         
         for item in progressItems {
-            // Only show items that are not complete (< 95% watched)
-            guard item.progress < 0.95 else { continue }
+            // For movies: hide if complete (>= 95% watched)
+            // For series: if >= 95%, check if there's a next episode
+            if item.season == nil && item.episode == nil {
+                // Movie - skip if complete
+                guard item.progress < 0.95 else { continue }
+            } else {
+                // Series episode
+                if item.progress >= 0.95 {
+                    // Check if there's a next episode
+                    let hasNext = await checkHasNextEpisode(seriesId: item.mediaId, season: item.season ?? 1, episode: item.episode ?? 1)
+                    if !hasNext {
+                        print("⏭️ Skipping completed series episode with no next episode: S\(item.season ?? 0)E\(item.episode ?? 0)")
+                        continue
+                    }
+                    print("✅ Keeping completed episode with next available: S\(item.season ?? 0)E\(item.episode ?? 0)")
+                }
+            }
             
             // Skip if we already have this media ID (keep the first = most recent)
             if processedMediaIds.contains(item.mediaId) {
@@ -740,6 +755,34 @@ struct HomeView: View {
         print("✅ Loaded \(orderedMedia.count) unique Continue Watching items")
         continueWatching = orderedMedia
         progressByMediaId = progDict
+    }
+    
+    // Check if there's a next episode after the given season/episode
+    private func checkHasNextEpisode(seriesId: Int, season: Int, episode: Int) async -> Bool {
+        do {
+            let seriesDetail = try await TMDBService.shared.fetchSeriesDetails(seriesId: seriesId)
+            let seasons = seriesDetail.seasons ?? []
+            
+            // Find current season info
+            if let currentSeason = seasons.first(where: { $0.seasonNumber == season }) {
+                // Check if there's a next episode in the same season
+                if episode < currentSeason.episodeCount {
+                    return true
+                }
+                
+                // Check if there's a next season
+                let nextSeasonNumber = season + 1
+                if seasons.contains(where: { $0.seasonNumber == nextSeasonNumber && $0.episodeCount > 0 }) {
+                    return true
+                }
+            }
+            
+            return false
+        } catch {
+            print("❌ Error checking next episode for series \(seriesId): \(error)")
+            // On error, assume there might be a next episode (fail-safe)
+            return true
+        }
     }
 }
 

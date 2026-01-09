@@ -152,9 +152,21 @@ export default function Home() {
   // Charger la progression réelle depuis localStorage
   const [continueWatching, setContinueWatching] = useState(() => {
     const progress = getWatchProgress();
-    // Ne montrer que les vidéos avec progression < 90%
+    // Filter logic:
+    // - Movies: show if progress < 90% and > 0
+    // - Series: show if progress < 90% OR (progress >= 90% AND hasNextEpisode is true)
     return progress
-      .filter(p => p.progress < 90 && p.progress > 0)
+      .filter(p => {
+        if (p.progress <= 0) return false;
+
+        // For series (tv), if episode is finished (90%+), only show if there's a next episode
+        if (p.mediaType === 'tv' && p.progress >= 90) {
+          return p.hasNextEpisode === true;
+        }
+
+        // For movies or unfinished series episodes
+        return p.progress < 90;
+      })
       .slice(0, 20) // Limiter l'affichage aux 20 derniers
       .map(p => ({
         id: p.mediaId, // ID réel (seriesId pour les séries, movieId pour les films)
@@ -173,7 +185,17 @@ export default function Home() {
       const progress = getWatchProgress();
       setContinueWatching(
         progress
-          .filter(p => p.progress < 90 && p.progress > 0) // < 90% pour masquer les finis
+          .filter(p => {
+            if (p.progress <= 0) return false;
+
+            // For series (tv), if episode is finished (90%+), only show if there's a next episode
+            if (p.mediaType === 'tv' && p.progress >= 90) {
+              return p.hasNextEpisode === true;
+            }
+
+            // For movies or unfinished series episodes
+            return p.progress < 90;
+          })
           .slice(0, 20) // Limiter l'affichage aux 20 derniers
           .map(p => ({
             id: p.mediaId,

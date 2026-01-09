@@ -44,6 +44,7 @@ interface VideoPlayerProps {
   episodeNumber?: number;
   imdbId?: string;
   tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>; // Add tracks for external subtitles
+  hasNextEpisode?: boolean; // For series: true if there's a next episode
 }
 
 export default function VideoPlayer({
@@ -57,7 +58,8 @@ export default function VideoPlayer({
   seasonNumber,
   episodeNumber,
   imdbId,
-  tracks = [] // Default to empty array
+  tracks = [], // Default to empty array
+  hasNextEpisode
 }: VideoPlayerProps) {
   console.log(`📺 [VIDEO PLAYER PROPS] src=${src} tracks=${JSON.stringify(tracks)}`);
 
@@ -402,6 +404,7 @@ export default function VideoPlayer({
           progress,
           seasonNumber,
           episodeNumber,
+          hasNextEpisode,
         });
 
         lastSaveTimeRef.current = now;
@@ -451,6 +454,7 @@ export default function VideoPlayer({
           progress: 100,
           seasonNumber,
           episodeNumber,
+          hasNextEpisode,
         });
 
         const type = mediaType === 'tv' ? 'episode' : 'movie';

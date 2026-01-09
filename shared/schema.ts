@@ -19,6 +19,7 @@ export interface WatchProgress {
   // Pour les séries uniquement
   seasonNumber?: number;
   episodeNumber?: number;
+  hasNextEpisode?: boolean; // True if there's a next episode available
 }
 
 // Favorites
