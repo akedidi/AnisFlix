@@ -53,7 +53,7 @@ struct CastMiniPlayerView: View {
                     
                     // Title & Status
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(castManager.isLoadingMedia ? "Chargement..." : (playerManager.currentTitle ?? "Casting"))
+                        Text(castManager.isLoadingMedia ? "Chargement..." : (castManager.currentTitle ?? "Casting"))
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .lineLimit(1)

@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.14",
+          "version": "1.0.15",
           "date": "2026-01-09",
           "size": 3924625,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix: Navigation Films/Séries Populaires + providers non-cliquables"
+          "localizedDescription": "fix: Titre et navigation dans Cast Control Sheet"
         }
       ]
     }

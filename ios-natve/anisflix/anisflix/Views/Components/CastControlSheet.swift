@@ -96,12 +96,39 @@ struct CastControlSheet: View {
                 
                 // Title
                 VStack(spacing: 6) {
-                    Text(castManager.isLoadingMedia ? "Chargement..." : (playerManager.currentTitle ?? "Unknown Title"))
-                        .font(.headline)
-                        .bold()
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
+                    Button {
+                        // Navigate to detail page
+                        if let mediaId = castManager.currentMediaId {
+                            dismiss()
+                            // Post notification to navigate to detail
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                NotificationCenter.default.post(
+                                    name: .navigateToDetail,
+                                    object: nil,
+                                    userInfo: [
+                                        "mediaId": mediaId,
+                                        "isMovie": (castManager.currentSeason == nil && castManager.currentEpisode == nil)
+                                    ]
+                                )
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(castManager.isLoadingMedia ? "Chargement..." : (castManager.currentTitle ?? "Unknown Title"))
+                                .font(.headline)
+                                .bold()
+                                .foregroundColor(.white)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.center)
+                            
+                            if castManager.currentMediaId != nil {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    .disabled(castManager.currentMediaId == nil)
                     
                     Text("Casting to \(castManager.deviceName ?? "Chromecast")")
                         .font(.caption)

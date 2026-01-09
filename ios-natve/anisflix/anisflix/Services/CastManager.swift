@@ -265,9 +265,9 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     // Progress Tracking
     private var progressTimer: Timer?
-    private var currentMediaId: Int?
-    private var currentSeason: Int?
-    private var currentEpisode: Int?
+    private(set) var currentMediaId: Int?
+    private(set) var currentSeason: Int?
+    private(set) var currentEpisode: Int?
     private var lastSavedTime: TimeInterval = 0
     
     override init() {
