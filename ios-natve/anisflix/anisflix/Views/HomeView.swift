@@ -678,6 +678,7 @@ struct HomeView: View {
         var progDict: [Int: Double] = [:]
         var processedMediaIds: Set<Int> = []
         
+        for item in progressItems {
             // STRICT DEDUPLICATION:
             // Check if we've already visited this media ID (regardless of whether we decided to show it or not).
             // This ensures we only evaluate the MOST RECENT progress item for any given media.
