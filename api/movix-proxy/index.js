@@ -398,7 +398,12 @@ class MovieBoxScraper {
       }
 
       // STRICT DURATION CHECK: Skip items with more than 10 minutes difference
-      if (tmdbDuration && itemDuration) {
+      // Also skip items without duration data when TMDB has runtime (to avoid wrong matches)
+      if (tmdbDuration) {
+        if (!item.duration || item.duration === 0) {
+          console.log(`   ⚠️ Skipping "${item.title}" - No duration data (TMDB expects ${tmdbDuration}min)`);
+          continue; // Skip items without duration when we have TMDB runtime
+        }
         const durationDiff = Math.abs(tmdbDuration - itemDuration);
         if (durationDiff > 10) {
           console.log(`   ❌ Skipping "${item.title}" - Duration mismatch (${itemDuration}min vs expected ${tmdbDuration}min, diff: ${durationDiff}min)`);
@@ -406,11 +411,24 @@ class MovieBoxScraper {
         }
       }
 
-      // Exact title match (100 points)
+      // STRICT TITLE MATCH: Only exact match or very similar titles
+      // No more loose substring matching (prevents 'The Housemaid' matching 'Welcome to Trouble - The Housemaids 3')
       if (normTmdbTitle === normItemTitle) {
-        score += 100;
-      } else if (normItemTitle.includes(normTmdbTitle) || normTmdbTitle.includes(normItemTitle)) {
-        score += 50;
+        score += 100; // Exact match
+      } else {
+        // Only accept if title lengths are very similar (within 20% or 5 chars)
+        const lengthDiff = Math.abs(normTmdbTitle.length - normItemTitle.length);
+        const maxLengthDiffAllowed = Math.max(5, Math.floor(normTmdbTitle.length * 0.2));
+
+        if (lengthDiff <= maxLengthDiffAllowed && normItemTitle.includes(normTmdbTitle)) {
+          score += 70; // Close match - substring with similar length
+        } else if (lengthDiff <= maxLengthDiffAllowed && normTmdbTitle.includes(normItemTitle)) {
+          score += 70; // Close match - TMDB title contains item title
+        } else {
+          // Title too different - skip this item entirely
+          console.log(`   ❌ Skipping "${item.title}" - Title mismatch (length diff: ${lengthDiff}, max allowed: ${maxLengthDiffAllowed})`);
+          continue;
+        }
       }
 
       // Year match bonus (only for items that passed the strict check)
