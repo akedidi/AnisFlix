@@ -1047,7 +1047,7 @@ export default async function handler(req, res) {
         const cheerio = await import('cheerio');
         const crypto = await import('crypto');
 
-        const PRIMEWIRE_URL = 'https://www.primewire.tf';
+        const PRIMEWIRE_URL = 'https://www.primewire.li';
         const DS_KEY = 'JyjId97F9PVqUPuMO0';
 
         // SHA1 helper
@@ -1179,7 +1179,7 @@ export default async function handler(req, res) {
           });
         }
 
-        const jsUrl = `https://primewire.tf/js/app-${appJsMatch[1]}.js`;
+        const jsUrl = `${PRIMEWIRE_URL.replace('www.', '')}/js/app-${appJsMatch[1]}.js`;
         console.log('🎬 [Primewire] Fetching app.js:', jsUrl);
 
         const jsRes = await axios.get(jsUrl, {
@@ -1211,7 +1211,7 @@ export default async function handler(req, res) {
         const streams = [];
         for (const key of serverKeys.slice(0, 5)) { // Limit to 5 servers
           try {
-            const mediaUrl = `https://primewire.tf/links/go/${key}`;
+            const mediaUrl = `${PRIMEWIRE_URL.replace('www.', '')}/links/go/${key}`;
             console.log('🎬 [Primewire] Fetching:', mediaUrl);
 
             const mediaRes = await axios.get(mediaUrl, {
