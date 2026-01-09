@@ -1070,14 +1070,34 @@ export default async function handler(req, res) {
         });
 
         const $search = cheerio.load(searchRes.data);
+
+        // Debug: log HTML structure
+        console.log('🎬 [Primewire] Search response length:', searchRes.data.length);
+        console.log('🎬 [Primewire] Search HTML preview:', searchRes.data.substring(0, 500));
+
+        // Try multiple selectors
         let originalLink = $search('.index_container .index_item.index_item_ie a').attr('href');
+        if (!originalLink) {
+          originalLink = $search('.index_item a').first().attr('href');
+        }
+        if (!originalLink) {
+          originalLink = $search('a[href*="/movie/"]').first().attr('href');
+        }
+        if (!originalLink) {
+          originalLink = $search('a[href*="/tv/"]').first().attr('href');
+        }
 
         if (!originalLink) {
-          console.log('🎬 [Primewire] No search results found');
+          console.log('🎬 [Primewire] No search results found. Available links:',
+            $search('a').map((i, el) => $search(el).attr('href')).get().slice(0, 10));
           return res.status(200).json({
             success: false,
             error: `No search results found for IMDB ID: ${imdb}`,
-            streams: []
+            streams: [],
+            debug: {
+              htmlLength: searchRes.data.length,
+              preview: searchRes.data.substring(0, 300)
+            }
           });
         }
 
