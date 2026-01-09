@@ -397,6 +397,15 @@ class MovieBoxScraper {
         }
       }
 
+      // STRICT DURATION CHECK: Skip items with more than 10 minutes difference
+      if (tmdbDuration && itemDuration) {
+        const durationDiff = Math.abs(tmdbDuration - itemDuration);
+        if (durationDiff > 10) {
+          console.log(`   ❌ Skipping "${item.title}" - Duration mismatch (${itemDuration}min vs expected ${tmdbDuration}min, diff: ${durationDiff}min)`);
+          continue; // Skip this result entirely
+        }
+      }
+
       // Exact title match (100 points)
       if (normTmdbTitle === normItemTitle) {
         score += 100;
@@ -414,7 +423,7 @@ class MovieBoxScraper {
         }
       }
 
-      // Duration match ±5 min (30 points)
+      // Duration match ±5 min (30 points) - items already passed strict check
       if (tmdbDuration && itemDuration) {
         const durationDiff = Math.abs(tmdbDuration - itemDuration);
         if (durationDiff <= 5) {
