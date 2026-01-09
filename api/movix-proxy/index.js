@@ -1047,7 +1047,7 @@ export default async function handler(req, res) {
         const cheerio = await import('cheerio');
         const crypto = await import('crypto');
 
-        const PRIMEWIRE_URL = 'https://primewire.id';
+        const PRIMEWIRE_URL = 'https://primewire.mov';
         const DS_KEY = 'JyjId97F9PVqUPuMO0';
 
         // SHA1 helper
