@@ -1033,6 +1033,181 @@ export default async function handler(req, res) {
       }
     }
 
+    // GÉRER 111MOVIES ICI
+    if (decodedPath === '111movies') {
+      console.log('🎬 ========== 111MOVIES START ==========');
+      try {
+        const { tmdb, imdb, season, episode } = queryParams;
+        console.log('🎬 [111Movies] Query:', { tmdb, imdb, season, episode });
+
+        if (!tmdb && !imdb) {
+          return res.status(400).json({ error: 'Missing tmdb or imdb parameter' });
+        }
+
+        const DOMAIN = 'https://111movies.com';
+        const userAgent = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36';
+
+        // Build page URL
+        let pageUrl;
+        if (season && episode) {
+          const id = imdb || tmdb;
+          pageUrl = `${DOMAIN}/tv/${id}/${season}/${episode}`;
+        } else {
+          const id = imdb || tmdb;
+          pageUrl = `${DOMAIN}/movie/${id}`;
+        }
+
+        console.log('🎬 [111Movies] Fetching:', pageUrl);
+
+        // Fetch page
+        const pageRes = await axios.get(pageUrl, {
+          headers: {
+            'User-Agent': userAgent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': DOMAIN,
+            'Cache-Control': 'no-cache'
+          },
+          timeout: 15000
+        });
+
+        const responseText = pageRes.data;
+        console.log('🎬 [111Movies] Response length:', responseText.length);
+
+        // Extract encoded data
+        const match = responseText.match(/{\"data\":\"(.*?)\"/);
+        if (!match) {
+          console.log('🎬 [111Movies] No data found in response');
+          return res.status(200).json({
+            success: false,
+            error: 'No data found in page',
+            streams: []
+          });
+        }
+
+        const rawData = match[1];
+        console.log('🎬 [111Movies] Found raw data, length:', rawData.length);
+
+        // Import crypto for AES
+        const crypto = await import('crypto');
+
+        // AES encryption
+        const keyHex = '85a893b1171833dffaecf7731235ec416afccc6ffe29d41c16976b83f5e500b2';
+        const ivHex = '8648b679a4168c5ed1f41f5d642417e6';
+        const key = Buffer.from(keyHex, 'hex');
+        const iv = Buffer.from(ivHex, 'hex');
+
+        const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+        let encrypted = cipher.update(rawData, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+
+        // XOR
+        const xorKey = Buffer.from('f6482348', 'hex');
+        let xorResult = '';
+        for (let i = 0; i < encrypted.length; i++) {
+          xorResult += String.fromCharCode(
+            encrypted.charCodeAt(i) ^ xorKey[i % xorKey.length]
+          );
+        }
+
+        // Custom encode function
+        function customEncode(input) {
+          const src = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_';
+          const dst = 'MeKUPFfDy_QaGcLwT1bj4xn0g-quZH2vYWE56om3XStdzhl9AICisrN7OVpkJBR8';
+
+          let b64 = Buffer.from(input)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=/g, '');
+
+          let result = '';
+          for (let char of b64) {
+            const idx = src.indexOf(char);
+            result += idx !== -1 ? dst[idx] : char;
+          }
+          return result;
+        }
+
+        const encodedFinal = customEncode(xorResult);
+
+        // API servers request
+        const staticPath = '7ae59bfb/zac/g/APA912UWa5x0rMiGGcNeljgP7t8jA2Rt6lmnqqlv9r-5R9IjA_kbxjGxmWzw23y5WukwjDEAX0UDWlcUeJD-buSc0fwrRH8zieg0PuZJpqXbhUUCMuQCFS1zVPhlSHTkCyDHyolJ-9tBOOGgmIMKsVJRKAHG66Z44BMb9vWN6ByRjF-8vD6v1u1';
+        const apiServers = `${DOMAIN}/${staticPath}/${encodedFinal}/sr`;
+
+        console.log('🎬 [111Movies] Fetching servers...');
+        const serversRes = await axios.post(apiServers, {}, {
+          headers: {
+            Referer: DOMAIN,
+            'User-Agent': userAgent,
+            'Content-Type': 'image/gif',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          timeout: 15000
+        });
+
+        const servers = serversRes.data;
+        console.log('🎬 [111Movies] Servers:', JSON.stringify(servers));
+
+        if (!Array.isArray(servers) || servers.length === 0) {
+          return res.status(200).json({
+            success: false,
+            error: 'No servers found',
+            streams: []
+          });
+        }
+
+        // Pick a random server
+        const server = servers[Math.floor(Math.random() * servers.length)].data;
+        const apiStream = `${DOMAIN}/${staticPath}/${server}`;
+
+        console.log('🎬 [111Movies] Fetching stream from server...');
+        const streamRes = await axios.post(apiStream, {}, {
+          headers: {
+            Referer: DOMAIN,
+            'User-Agent': userAgent,
+            'Content-Type': 'image/gif',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          timeout: 15000
+        });
+
+        const streamData = streamRes.data;
+        console.log('🎬 [111Movies] Stream data:', JSON.stringify(streamData));
+
+        if (!streamData || !streamData.url) {
+          return res.status(200).json({
+            success: false,
+            error: 'No stream URL found',
+            streams: []
+          });
+        }
+
+        console.log('✅ [111Movies] Success! Stream URL:', streamData.url.substring(0, 80) + '...');
+
+        return res.status(200).json({
+          success: true,
+          streams: [{
+            name: '111Movies VO',
+            url: streamData.url,
+            type: 'hls',
+            quality: 'Auto',
+            language: 'VO',
+            provider: '111Movies'
+          }],
+          subtitles: streamData.subtitles || []
+        });
+
+      } catch (error) {
+        console.error('❌ [111Movies] Error:', error.message);
+        return res.status(500).json({
+          success: false,
+          error: error.message,
+          streams: []
+        });
+      }
+    }
+
     // GÉRER ANIME-API ICI
     if (decodedPath === 'anime-api') {
       console.log('🎌 ========== ANIME-API START ==========');
