@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.16",
+          "version": "1.0.17",
           "date": "2026-01-09",
-          "size": 3926031,
+          "size": 3925158,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "chore(api): Remove non-functional Primewire scraper "
+          "localizedDescription": "fix(ios): Fix syntax error in HomeView (missing loop) "
         }
       ]
     }
