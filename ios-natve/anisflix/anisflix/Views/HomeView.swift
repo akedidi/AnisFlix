@@ -678,7 +678,18 @@ struct HomeView: View {
         var progDict: [Int: Double] = [:]
         var processedMediaIds: Set<Int> = []
         
-        for item in progressItems {
+            // STRICT DEDUPLICATION:
+            // Check if we've already visited this media ID (regardless of whether we decided to show it or not).
+            // This ensures we only evaluate the MOST RECENT progress item for any given media.
+            // If the latest item is "finished" and we decide to hide it, we MUST NOT fall back to an older item for the same media.
+            if processedMediaIds.contains(item.mediaId) {
+                // print("⚠️ Skipping older duplicate media ID: \(item.mediaId)")
+                continue
+            }
+            
+            // Mark this ID as processed immediately
+            processedMediaIds.insert(item.mediaId)
+            
             // For movies: hide if complete (>= 95% watched)
             // For series: if >= 95%, check if there's a next episode
             if item.season == nil && item.episode == nil {
@@ -696,14 +707,6 @@ struct HomeView: View {
                     print("✅ Keeping completed episode with next available: S\(item.season ?? 0)E\(item.episode ?? 0)")
                 }
             }
-            
-            // Skip if we already have this media ID (keep the first = most recent)
-            if processedMediaIds.contains(item.mediaId) {
-                print("⚠️ Skipping duplicate media ID: \(item.mediaId)")
-                continue
-            }
-            
-            processedMediaIds.insert(item.mediaId)
             
             do {
                 var media: Media?

@@ -149,64 +149,54 @@ export default function Home() {
     { id: 147, name: "M6+", logoPath: "/tmYzlEKeiWStvXwC1QdpXIASpN4.jpg" },
   ];
 
-  // Charger la progression réelle depuis localStorage
-  const [continueWatching, setContinueWatching] = useState(() => {
+  // Charger la progression réelle depuis localStorage avec déduplication
+  const getFilteredContinueWatching = () => {
     const progress = getWatchProgress();
-    // Filter logic:
-    // - Movies: show if progress < 90% and > 0
-    // - Series: show if progress < 90% OR (progress >= 90% AND hasNextEpisode is true)
+
+    // 1. Sort by lastWatched descending (most recent first)
+    progress.sort((a, b) => new Date(b.lastWatched).getTime() - new Date(a.lastWatched).getTime());
+
+    const seenMediaIds = new Set<number>();
+
     return progress
       .filter(p => {
         if (p.progress <= 0) return false;
 
+        // Skip if we already have this media ID (keep the first = most recent)
+        if (seenMediaIds.has(p.mediaId)) return false;
+
         // For series (tv), if episode is finished (90%+), only show if there's a next episode
+        let keep = false;
         if (p.mediaType === 'tv' && p.progress >= 90) {
-          return p.hasNextEpisode === true;
+          keep = p.hasNextEpisode === true;
+        } else {
+          // For movies or unfinished series episodes
+          keep = p.progress < 90;
         }
 
-        // For movies or unfinished series episodes
-        return p.progress < 90;
+        if (keep) {
+          seenMediaIds.add(p.mediaId);
+        }
+        return keep;
       })
       .slice(0, 20) // Limiter l'affichage aux 20 derniers
       .map(p => ({
-        id: p.mediaId, // ID réel (seriesId pour les séries, movieId pour les films)
-        title: p.title, // Contient déjà "S{season}E{episode}" pour les séries
+        id: p.mediaId,
+        title: p.title,
         posterPath: p.posterPath,
         rating: 0,
         year: "",
         progress: p.progress,
         mediaType: p.mediaType,
       }));
-  });
+  };
+
+  const [continueWatching, setContinueWatching] = useState(getFilteredContinueWatching);
 
   // Mettre à jour la liste toutes les 10 secondes
   useEffect(() => {
     const interval = setInterval(() => {
-      const progress = getWatchProgress();
-      setContinueWatching(
-        progress
-          .filter(p => {
-            if (p.progress <= 0) return false;
-
-            // For series (tv), if episode is finished (90%+), only show if there's a next episode
-            if (p.mediaType === 'tv' && p.progress >= 90) {
-              return p.hasNextEpisode === true;
-            }
-
-            // For movies or unfinished series episodes
-            return p.progress < 90;
-          })
-          .slice(0, 20) // Limiter l'affichage aux 20 derniers
-          .map(p => ({
-            id: p.mediaId,
-            title: p.title,
-            posterPath: p.posterPath,
-            rating: 0,
-            year: "",
-            progress: p.progress,
-            mediaType: p.mediaType,
-          }))
-      );
+      setContinueWatching(getFilteredContinueWatching());
     }, 10000);
 
     return () => clearInterval(interval);
