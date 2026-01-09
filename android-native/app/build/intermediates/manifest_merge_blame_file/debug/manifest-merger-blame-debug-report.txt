@@ -1,0 +1,273 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.anis.anisflix"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:5:5-67
+11-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:5:22-64
+12    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+12-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:6:5-79
+12-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:6:22-76
+13    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+13-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:7:5-77
+13-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:7:22-74
+14    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+14-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:8:5-92
+14-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:8:22-89
+15
+16    <!-- Declare support for both touch and TV interactions -->
+17    <uses-feature
+17-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:11:5-13:36
+18        android:name="android.hardware.touchscreen"
+18-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:12:9-52
+19        android:required="false" />
+19-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:13:9-33
+20    <uses-feature
+20-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:14:5-16:36
+21        android:name="android.software.leanback"
+21-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:15:9-49
+22        android:required="false" />
+22-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:16:9-33
+23
+24    <queries>
+24-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:14:5-16:15
+25        <package android:name="com.google.android.gms.policy_cast_dynamite" />
+25-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:15:9-79
+25-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:15:18-76
+26    </queries>
+27
+28    <permission
+28-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:22:5-24:47
+29        android:name="com.anis.anisflix.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+29-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:23:9-81
+30        android:protectionLevel="signature" />
+30-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:24:9-44
+31
+32    <uses-permission android:name="com.anis.anisflix.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+32-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:26:5-97
+32-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:26:22-94
+33
+34    <application
+34-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:18:5-55:19
+35        android:name="com.anisflix.AnisflixApp"
+35-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:19:9-36
+36        android:allowBackup="true"
+36-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:20:9-35
+37        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+37-->[androidx.core:core:1.12.0] /Users/aniskedidi/.gradle/caches/transforms-3/e35148928766ba474d1cb3351e5365ce/transformed/core-1.12.0/AndroidManifest.xml:28:18-86
+38        android:debuggable="true"
+39        android:extractNativeLibs="false"
+40        android:icon="@mipmap/ic_launcher"
+40-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:21:9-43
+41        android:label="@string/app_name"
+41-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:22:9-41
+42        android:roundIcon="@mipmap/ic_launcher_round"
+42-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:23:9-54
+43        android:supportsRtl="true"
+43-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:24:9-35
+44        android:testOnly="true"
+45        android:theme="@style/Theme.Anisflix" >
+45-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:25:9-46
+46        <activity
+46-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:28:9-40:20
+47            android:name="com.anisflix.MainActivity"
+47-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:29:13-41
+48            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"
+48-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:32:13-91
+49            android:exported="true"
+49-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:30:13-36
+50            android:label="@string/app_name"
+50-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:33:13-45
+51            android:supportsPictureInPicture="true"
+51-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:31:13-52
+52            android:theme="@style/Theme.Anisflix" >
+52-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:34:13-50
+53            <intent-filter>
+53-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:35:13-39:29
+54                <action android:name="android.intent.action.MAIN" />
+54-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:36:17-69
+54-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:36:25-66
+55
+56                <category android:name="android.intent.category.LAUNCHER" />
+56-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:37:17-77
+56-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:37:27-74
+57                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+57-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:38:17-86
+57-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:38:27-83
+58            </intent-filter>
+59        </activity>
+60
+61        <meta-data
+61-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:41:9-43:72
+62            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+62-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:42:13-93
+63            android:value="com.anisflix.ui.cast.CastOptionsProvider" />
+63-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:43:13-69
+64
+65        <service
+65-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:45:9-53:19
+66            android:name="com.anisflix.service.AnisflixDownloadService"
+66-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:46:13-60
+67            android:exported="false"
+67-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:47:13-37
+68            android:foregroundServiceType="dataSync" >
+68-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:48:13-53
+69            <intent-filter>
+69-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:49:13-52:29
+70                <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART" />
+70-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:50:17-99
+70-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:50:25-96
+71
+72                <category android:name="android.intent.category.DEFAULT" />
+72-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:51:17-76
+72-->/Users/aniskedidi/Documents/perso/AnisFlix/android-native/app/src/main/AndroidManifest.xml:51:27-73
+73            </intent-filter>
+74        </service>
+75
+76        <receiver
+76-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:19:9-21:40
+77            android:name="com.google.android.gms.cast.framework.media.MediaIntentReceiver"
+77-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:20:13-91
+78            android:exported="false" />
+78-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:21:13-37
+79
+80        <service
+80-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:23:9-25:40
+81            android:name="com.google.android.gms.cast.framework.ReconnectionService"
+81-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:24:13-85
+82            android:exported="false" />
+82-->[com.google.android.gms:play-services-cast-framework:21.4.0] /Users/aniskedidi/.gradle/caches/transforms-3/f9c510e477569f9cdedf26d374c5706a/transformed/play-services-cast-framework-21.4.0/AndroidManifest.xml:25:13-37
+83
+84        <activity
+84-->[com.google.android.gms:play-services-base:18.0.1] /Users/aniskedidi/.gradle/caches/transforms-3/11dcb74bb926f2db025d684db249cdbc/transformed/play-services-base-18.0.1/AndroidManifest.xml:20:9-22:45
+85            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+85-->[com.google.android.gms:play-services-base:18.0.1] /Users/aniskedidi/.gradle/caches/transforms-3/11dcb74bb926f2db025d684db249cdbc/transformed/play-services-base-18.0.1/AndroidManifest.xml:20:19-85
+86            android:exported="false"
+86-->[com.google.android.gms:play-services-base:18.0.1] /Users/aniskedidi/.gradle/caches/transforms-3/11dcb74bb926f2db025d684db249cdbc/transformed/play-services-base-18.0.1/AndroidManifest.xml:22:19-43
+87            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+87-->[com.google.android.gms:play-services-base:18.0.1] /Users/aniskedidi/.gradle/caches/transforms-3/11dcb74bb926f2db025d684db249cdbc/transformed/play-services-base-18.0.1/AndroidManifest.xml:21:19-78
+88
+89        <meta-data
+89-->[com.google.android.gms:play-services-basement:18.0.0] /Users/aniskedidi/.gradle/caches/transforms-3/23ed0c7d7d1af3b2d8a7def7dc46429b/transformed/play-services-basement-18.0.0/AndroidManifest.xml:21:9-23:69
+90            android:name="com.google.android.gms.version"
+90-->[com.google.android.gms:play-services-basement:18.0.0] /Users/aniskedidi/.gradle/caches/transforms-3/23ed0c7d7d1af3b2d8a7def7dc46429b/transformed/play-services-basement-18.0.0/AndroidManifest.xml:22:13-58
+91            android:value="@integer/google_play_services_version" />
+91-->[com.google.android.gms:play-services-basement:18.0.0] /Users/aniskedidi/.gradle/caches/transforms-3/23ed0c7d7d1af3b2d8a7def7dc46429b/transformed/play-services-basement-18.0.0/AndroidManifest.xml:23:13-66
+92
+93        <provider
+93-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+94            android:name="androidx.startup.InitializationProvider"
+94-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+95            android:authorities="com.anis.anisflix.androidx-startup"
+95-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+96            android:exported="false" >
+96-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
+97            <meta-data
+97-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+98                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+98-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
+99                android:value="androidx.startup" />
+99-->[androidx.emoji2:emoji2:1.3.0] /Users/aniskedidi/.gradle/caches/transforms-3/b60136b03b33e68b05669171ba709284/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+100            <meta-data
+100-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/aniskedidi/.gradle/caches/transforms-3/d42c427713f2823b33a2ba57e06e212b/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:29:13-31:52
+101                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+101-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/aniskedidi/.gradle/caches/transforms-3/d42c427713f2823b33a2ba57e06e212b/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:30:17-78
+102                android:value="androidx.startup" />
+102-->[androidx.lifecycle:lifecycle-process:2.7.0] /Users/aniskedidi/.gradle/caches/transforms-3/d42c427713f2823b33a2ba57e06e212b/transformed/lifecycle-process-2.7.0/AndroidManifest.xml:31:17-49
+103            <meta-data
+103-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+104                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+105                android:value="androidx.startup" />
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+106        </provider>
+107
+108        <activity
+108-->[androidx.compose.ui:ui-test-manifest:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/40fe25b327eb154602565f4f7be2119f/transformed/ui-test-manifest-1.6.1/AndroidManifest.xml:23:9-25:39
+109            android:name="androidx.activity.ComponentActivity"
+109-->[androidx.compose.ui:ui-test-manifest:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/40fe25b327eb154602565f4f7be2119f/transformed/ui-test-manifest-1.6.1/AndroidManifest.xml:24:13-63
+110            android:exported="true" />
+110-->[androidx.compose.ui:ui-test-manifest:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/40fe25b327eb154602565f4f7be2119f/transformed/ui-test-manifest-1.6.1/AndroidManifest.xml:25:13-36
+111        <activity
+111-->[androidx.compose.ui:ui-tooling-android:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/83958e6b95bef6354da74910b6fa05fd/transformed/ui-tooling-release/AndroidManifest.xml:23:9-25:39
+112            android:name="androidx.compose.ui.tooling.PreviewActivity"
+112-->[androidx.compose.ui:ui-tooling-android:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/83958e6b95bef6354da74910b6fa05fd/transformed/ui-tooling-release/AndroidManifest.xml:24:13-71
+113            android:exported="true" />
+113-->[androidx.compose.ui:ui-tooling-android:1.6.1] /Users/aniskedidi/.gradle/caches/transforms-3/83958e6b95bef6354da74910b6fa05fd/transformed/ui-tooling-release/AndroidManifest.xml:25:13-36
+114
+115        <receiver
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+116            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+117            android:directBootAware="false"
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+118            android:enabled="true"
+118-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+119            android:exported="true"
+119-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+120            android:permission="android.permission.DUMP" >
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
+121            <intent-filter>
+121-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+122                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+122-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+122-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
+123            </intent-filter>
+124            <intent-filter>
+124-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+125                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+126            </intent-filter>
+127            <intent-filter>
+127-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+128                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+128-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+129            </intent-filter>
+130            <intent-filter>
+130-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+131                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+131-->[androidx.profileinstaller:profileinstaller:1.3.1] /Users/aniskedidi/.gradle/caches/transforms-3/d3856b0791f861116913fc798557ea2e/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+132            </intent-filter>
+133        </receiver>
+134
+135        <service
+135-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:29:9-35:19
+136            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+136-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:30:13-103
+137            android:exported="false" >
+137-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:31:13-37
+138            <meta-data
+138-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:32:13-34:39
+139                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+139-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:33:17-94
+140                android:value="cct" />
+140-->[com.google.android.datatransport:transport-backend-cct:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/0c9f454fc9025c317f46c7f6dee09365/transformed/transport-backend-cct-3.1.3/AndroidManifest.xml:34:17-36
+141        </service>
+142        <service
+142-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:26:9-30:19
+143            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+143-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:27:13-117
+144            android:exported="false"
+144-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:28:13-37
+145            android:permission="android.permission.BIND_JOB_SERVICE" >
+145-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:29:13-69
+146        </service>
+147
+148        <receiver
+148-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:32:9-34:40
+149            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+149-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:33:13-132
+150            android:exported="false" />
+150-->[com.google.android.datatransport:transport-runtime:3.1.3] /Users/aniskedidi/.gradle/caches/transforms-3/fc6f34ed89c54f08d297f03d2c4ff072/transformed/transport-runtime-3.1.3/AndroidManifest.xml:34:13-37
+151    </application>
+152
+153</manifest>

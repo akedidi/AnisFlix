@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AnisFlix</string>
+    <string name="download_channel_description">Fichiers en cours de téléchargement</string>
+    <string name="download_channel_name">Téléchargements</string>
+    <style name="Theme.Anisflix" parent="android:Theme.Material.Light.NoActionBar">
+        
+    </style>
+</resources>

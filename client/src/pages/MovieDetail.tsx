@@ -377,7 +377,8 @@ export default function MovieDetail() {
           type: "m3u8",
           name: source.name,
           isVidMoly: false,
-          isDarki: false
+          isDarki: false,
+          provider: 'vixsrc'
         });
         setIsLoadingSource(false);
         return;

@@ -55,6 +55,7 @@ interface StreamingSourcesProps {
     quality?: string;
     language?: string;
     tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
+    provider?: string;
   }) => void;
   isLoadingSource: boolean;
   season?: number;
@@ -926,7 +927,8 @@ const StreamingSources = memo(function StreamingSources({
           name: source.name,
           quality: source.quality,
           language: source.language,
-          isVixsrc: true
+          isVixsrc: true,
+          provider: 'vixsrc'
         });
         /* REMOVED MANUAL FETCH
         try {
@@ -961,7 +963,8 @@ const StreamingSources = memo(function StreamingSources({
               name: source.name,
               quality: stream.quality || source.quality,
               language: source.language,
-              isVixsrc: true
+              isVixsrc: true,
+              provider: 'vixsrc'
             });
           } else {
             throw new Error('Pas de streams dans la réponse');

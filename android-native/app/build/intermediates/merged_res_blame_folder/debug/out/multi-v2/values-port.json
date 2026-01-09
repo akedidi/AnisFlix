@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.anisflix.app-mergeDebugResources-69:/values-port/values-port.xml",
+            "map": [
+                {
+                    "source": "/Users/aniskedidi/.gradle/caches/transforms-3/8be2c0b6ac37aea9b1460479ab063bc3/transformed/appcompat-1.6.1/res/values-port/values-port.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "55",
+                        "endOffsets": "106"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.anisflix.app-mergeDebugResources-69:/values-watch-v20/values-watch-v20.xml",
+            "map": [
+                {
+                    "source": "/Users/aniskedidi/.gradle/caches/transforms-3/8be2c0b6ac37aea9b1460479ab063bc3/transformed/appcompat-1.6.1/res/values-watch-v20/values-watch-v20.xml",
+                    "from": {
+                        "startLines": "2,5,8",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,214,385",
+                        "endLines": "4,7,10",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "209,380,553"
+                    }
+                }
+            ]
+        }
+    ]
+}

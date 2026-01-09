@@ -418,7 +418,8 @@ export default function SeriesDetail() {
         type: "m3u8",
         name: source.name,
         quality: source.quality,
-        language: source.language
+        language: source.language,
+        provider: 'vixsrc'
       });
       setIsLoadingSource(false);
       return;
