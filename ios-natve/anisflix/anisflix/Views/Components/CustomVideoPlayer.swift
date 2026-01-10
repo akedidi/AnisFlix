@@ -1051,9 +1051,10 @@ class PlayerViewModel: NSObject, ObservableObject {
             self.currentTime = time.seconds
             self.updateSubtitle()
             
-            // Sync Now Playing Info periodically - REMOVED to prevent spamming
-            // MPNowPlayingInfoCenter handles time automatically via playback rate
-            // self.updateNowPlayingInfo()
+            // Sync Now Playing Info periodically (every 5 seconds) for lock screen progress
+            if Int(time.seconds) % 5 == 0 {
+                self.updateNowPlayingInfo()
+            }
         }
         
         // setupPiP will be called separately with the layer
@@ -1095,12 +1096,31 @@ class PlayerViewModel: NSObject, ObservableObject {
             return .success
         }
         
+        // Toggle Play/Pause Command (used by lock screen main button)
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.removeTarget(nil)
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] event in
+            print("🎧 [REMOTE] Toggle Play/Pause command received")
+            guard let self = self else { return .commandFailed }
+            if self.isPlaying {
+                self.player.pause()
+                self.isPlaying = false
+            } else {
+                self.player.play()
+                self.isPlaying = true
+            }
+            self.updateNowPlayingInfo()
+            return .success
+        }
+        
         // Skip Backward 10s
         commandCenter.skipBackwardCommand.isEnabled = true
         commandCenter.skipBackwardCommand.preferredIntervals = [10]
         commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+            print("🎧 [REMOTE] Skip Backward 10s")
             guard let self = self else { return .commandFailed }
             self.seek(to: max(0, self.currentTime - 10))
+            self.updateNowPlayingInfo()
             return .success
         }
         
@@ -1108,8 +1128,10 @@ class PlayerViewModel: NSObject, ObservableObject {
         commandCenter.skipForwardCommand.isEnabled = true
         commandCenter.skipForwardCommand.preferredIntervals = [10]
         commandCenter.skipForwardCommand.addTarget { [weak self] event in
+            print("🎧 [REMOTE] Skip Forward 10s")
             guard let self = self else { return .commandFailed }
             self.seek(to: min(self.duration, self.currentTime + 10))
+            self.updateNowPlayingInfo()
             return .success
         }
         
@@ -1118,6 +1140,7 @@ class PlayerViewModel: NSObject, ObservableObject {
         commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let self = self, let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
             self.seek(to: event.positionTime)
+            self.updateNowPlayingInfo()
             return .success
         }
     }
