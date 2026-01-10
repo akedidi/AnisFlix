@@ -1,0 +1,18 @@
+{
+    "name": "vidsrc-scraper",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "VidSrc stream scraper with Playwright",
+    "main": "server.mjs",
+    "scripts": {
+        "start": "node server.mjs"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "node-fetch": "^3.3.2",
+        "p-limit": "^4.0.0",
+        "playwright": "^1.40.0"
+    }
+}

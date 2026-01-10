@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.18",
-          "date": "2026-01-09",
-          "size": 3924889,
+          "version": "1.0.19",
+          "date": "2026-01-10",
+          "size": 3927285,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix: ensure provider is passed for Vixsrc sources to hide Chromecast button "
+          "localizedDescription": "fix: increase MovieBox duration tolerance from 10 to 20 minutes "
         }
       ]
     }

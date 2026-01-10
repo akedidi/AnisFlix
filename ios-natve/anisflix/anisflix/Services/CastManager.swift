@@ -9,6 +9,7 @@ import Foundation
 import Combine
 #if canImport(GoogleCast)
 import GoogleCast
+import MediaPlayer
 
 class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRemoteMediaClientListener {
     static let shared = CastManager()
@@ -116,6 +117,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             if let image = UIImage(data: data) {
                 await MainActor.run {
                     self.currentArtwork = image
+                    self.updateLockScreenInfo()
                 }
             }
         } catch {
@@ -376,6 +378,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         let criteria = GCKDiscoveryCriteria(applicationID: appId)
         let options = GCKCastOptions(discoveryCriteria: criteria)
         options.physicalVolumeButtonsWillControlDeviceVolume = true
+        options.suspendSessionsWhenBackgrounded = false
         
         GCKCastContext.setSharedInstanceWith(options)
         
@@ -398,6 +401,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         }
         
         startDiscovery()
+        setupRemoteTransportControls()
     }
     
     // @Published var currentSubtitles: [Subtitle] = [] // Moved to top property declarations
@@ -606,6 +610,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         deviceName = nil
         mediaStatus = nil
         currentMediaUrl = nil
+        self.updateLockScreenInfo()
         
         stopProgressTracking()
         clearSessionState() // Clear cached state on clean disconnect
@@ -627,12 +632,6 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     }
     
     // MARK: - Media Control
-
-
-    
-
-
-    // MARK: - Media Control
     
     func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, duration: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
@@ -648,6 +647,9 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             self.currentMediaUrl = url
             self.currentTitle = title // Validate: This MUST be the new title
             self.currentPosterUrl = posterUrl
+            if let urlString = posterUrl?.absoluteString {
+                Task { await self.downloadArtwork(from: urlString) }
+            }
             self.currentMediaId = mediaId
             self.currentSeason = season
             self.currentEpisode = episode
@@ -656,6 +658,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             self.lastSavedTime = startTime
             
             self.saveSessionState()
+            self.updateLockScreenInfo()
             
             // Safety Timeout
             DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
@@ -999,6 +1002,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             }
             
             self.mediaStatus = mediaStatus
+            self.updateLockScreenInfo()
             self.objectWillChange.send() // Force SwiftUI to refresh views observing this object
         }
         
@@ -1118,6 +1122,105 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         // Clear list to force refresh UI
         self.discoveredDevices = []
         startDiscovery()
+    }
+    
+    // MARK: - Lock Screen Controls
+    
+    private func setupRemoteTransportControls() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // Reset (in case previously set)
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.stopCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        
+        // Remove existing targets to avoid duplicates
+        commandCenter.playCommand.removeTarget(nil)
+        commandCenter.pauseCommand.removeTarget(nil)
+        commandCenter.stopCommand.removeTarget(nil)
+        commandCenter.changePlaybackPositionCommand.removeTarget(nil)
+        
+        // Play Command
+        commandCenter.playCommand.addTarget { [weak self] event in
+            guard let self = self, let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
+            client.play()
+            return .success
+        }
+        
+        // Pause Command
+        commandCenter.pauseCommand.addTarget { [weak self] event in
+            guard let self = self, let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
+            client.pause()
+            return .success
+        }
+        
+        // Stop Command
+        commandCenter.stopCommand.addTarget { [weak self] event in
+             guard let self = self, let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
+             client.stop()
+             return .success
+        }
+        
+        // Seek Command
+        commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard let self = self,
+                  let event = event as? MPChangePlaybackPositionCommandEvent,
+                  let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
+            
+            let time = event.positionTime
+            let seekOptions = GCKMediaSeekOptions()
+            seekOptions.interval = time
+            seekOptions.resumeState = .play
+            client.seek(with: seekOptions)
+            return .success
+        }
+    }
+    
+    // Call this whenever metadata or state changes
+    private func updateLockScreenInfo() {
+        // Only update if connected to Cast
+        guard isConnected else {
+             // If disconnected, we might want to clear it OR leave it to local player if active.
+             // But here we manage Cast info.
+             if MPNowPlayingInfoCenter.default().nowPlayingInfo?[MPMediaItemPropertyArtist] as? String == "AnisFlix (Chromecast)" {
+                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+             }
+             return
+        }
+        
+        var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+        
+        // Metadata
+        if let title = currentTitle {
+            nowPlayingInfo[MPMediaItemPropertyTitle] = title
+        }
+        
+        nowPlayingInfo[MPMediaItemPropertyArtist] = "AnisFlix (Chromecast)"
+        
+        // Artwork
+        if let artwork = currentArtwork {
+            let artworkItem = MPMediaItemArtwork(boundsSize: artwork.size) { size in
+                return artwork
+            }
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = artworkItem
+        }
+        
+        // Playback State
+        if let status = mediaStatus {
+            let duration = status.mediaInformation?.streamDuration ?? cachedDuration
+            let currentTime = status.streamPosition
+            let rate = (status.playerState == .playing) ? 1.0 : 0.0
+            
+            if duration > 0 && !duration.isNaN && !duration.isInfinite {
+                 nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+            }
+            
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = rate
+        }
+        
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
     
     func stopDiscovery() {
