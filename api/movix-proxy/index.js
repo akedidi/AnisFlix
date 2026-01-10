@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
+import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
 // Cache persists across requests on warm function instances
@@ -556,6 +557,7 @@ class MovieBoxScraper {
 }
 
 const movieBoxScraper = new MovieBoxScraper();
+const fourKHDHubScraper = new FourKHDHubScraper();
 
 
 export default async function handler(req, res) {
@@ -771,6 +773,67 @@ export default async function handler(req, res) {
     }
 
     // GÉRER UNIVERSALVO ICI
+    if (decodedPath === 'universalvo') {
+      console.log('🚀 [Movix Proxy] Routing to UniversalVO handler');
+      try {
+        // Verify we don't pass crazy episode numbers
+        const { season, episode } = queryParams;
+        // Use resolved
+        if (resolvedSeason && resolvedEpisode) {
+          req.query.season = resolvedSeason.toString();
+          req.query.episode = resolvedEpisode.toString();
+          console.log(`🚀 [Movix Proxy] UniversalVO injected remapped S${resolvedSeason}E${resolvedEpisode}`);
+        }
+
+        await handleUniversalVO(req, res);
+      } catch (error) {
+        console.error('❌ [Movix Proxy] UniversalVO Handler Error:', error);
+        res.status(500).json({
+          error: 'Internal Server Error in UniversalVO handler',
+          details: error.message,
+          stack: error.stack
+        });
+      }
+      return;
+    }
+
+    // GÉRER FOURKHDHUB ICI
+    if (decodedPath === 'fourkhdhub' || decodedPath === '4KHDHUB') {
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({ error: 'Missing parameters (tmdbId, type)' });
+        }
+
+        console.log(`🚀 [MOVIX PROXY 4KHDHUB] Request: ${type} ${tmdbId} S${season}E${episode}`);
+
+        // 1. Fetch TMDB Info to get title/year
+        // Use existing vixsrcScraper helper or MovieBox helper to fetch TMDB info quickly
+        const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+
+        if (tmdbInfo.title === 'Unknown') {
+          return res.status(404).json({ error: 'TMDB Info not found' });
+        }
+
+        // 2. Fetch Streams
+        const streams = await fourKHDHubScraper.getStreams(
+          tmdbId,
+          type,
+          type === 'tv' ? parseInt(season) : null,
+          type === 'tv' ? parseInt(episode) : null,
+          tmdbInfo
+        );
+
+        return res.status(200).json({ success: true, streams });
+
+      } catch (error) {
+        console.error('[MOVIX PROXY 4KHDHUB ERROR]', error.message);
+        return res.status(500).json({ error: 'Erreur proxy 4KHDHub', details: error.message });
+      }
+    }
+
+    // GÉRER MOVIEBOX ICI
     if (decodedPath === 'universalvo') {
       console.log('🚀 [Movix Proxy] Routing to UniversalVO handler');
       try {

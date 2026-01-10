@@ -298,6 +298,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
+        async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         
         // Anime Placeholder
         var animeTask: Task<[StreamingSource], Error>? = nil
@@ -342,7 +343,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources)
         let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
@@ -351,6 +352,7 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
+        print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         
@@ -388,6 +390,11 @@ class StreamingService {
         // Add AnimeAPI sources
         if !animeSources.isEmpty {
             allSources.append(contentsOf: animeSources)
+        }
+        
+        // Add 4KHDHub sources
+        if let hub4k = hub4k {
+            allSources.append(contentsOf: hub4k)
         }
         
         // Filter for allowed providers
@@ -482,7 +489,9 @@ class StreamingService {
         async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // DISABLED: UniversalVO API is broken
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+        async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -545,7 +554,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -591,8 +600,80 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
+        if let hub4k = hub4k {
+            allSources.append(contentsOf: hub4k)
+        }
+        
         // Filter for allowed providers
         return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" }
+    }
+    
+    private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")!
+        var queryItems = [
+            URLQueryItem(name: "path", value: "4KHDHUB"),
+            URLQueryItem(name: "tmdbId", value: String(tmdbId)),
+            URLQueryItem(name: "type", value: type)
+        ]
+        
+        if let season = season, let episode = episode {
+            queryItems.append(URLQueryItem(name: "season", value: String(season)))
+            queryItems.append(URLQueryItem(name: "episode", value: String(episode)))
+        }
+        
+        components.queryItems = queryItems
+        
+        guard let url = components.url else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        print("🚀 [StreamingService] Fetching 4KHDHub: \(url.absoluteString)")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            
+            if httpResponse.statusCode != 200 {
+                print("❌ [StreamingService] 4KHDHub Error: Status \(httpResponse.statusCode)")
+                return []
+            }
+            
+            // Expected response: { success: true, streams: [...] }
+            struct FourKHDHubResponse: Codable {
+                let success: Bool
+                let streams: [FourKHDHubStream]?
+            }
+            
+            struct FourKHDHubStream: Codable {
+                let url: String
+                let quality: String?
+                let provider: String?
+                let label: String?
+                let size: String?
+                let type: String?
+            }
+            
+            let decoded = try JSONDecoder().decode(FourKHDHubResponse.self, from: data)
+            
+            return (decoded.streams ?? []).map { stream in
+                StreamingSource(
+                    url: stream.url,
+                    quality: stream.quality ?? "HD",
+                    type: stream.type ?? "mkv",
+                    provider: "4khdhub",
+                    language: "VO", // Always VO for this provider
+                    origin: "4khdhub"
+                )
+            }
+            
+        } catch {
+            print("❌ [StreamingService] 4KHDHub Exception: \(error.localizedDescription)")
+            return []
+        }
     }
     
     private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
