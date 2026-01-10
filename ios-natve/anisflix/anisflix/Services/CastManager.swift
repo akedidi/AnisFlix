@@ -10,6 +10,7 @@ import Combine
 #if canImport(GoogleCast)
 import GoogleCast
 import MediaPlayer
+import AVFoundation
 
 class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRemoteMediaClientListener {
     static let shared = CastManager()
@@ -271,6 +272,34 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     private(set) var currentSeason: Int?
     private(set) var currentEpisode: Int?
     private var lastSavedTime: TimeInterval = 0
+    
+    // Silent audio player for Now Playing activation during Cast
+    private var silentAudioPlayer: AVAudioPlayer?
+    
+    private func startSilentAudioForNowPlaying() {
+        guard silentAudioPlayer == nil else { return }
+        
+        guard let silenceURL = Bundle.main.url(forResource: "silence", withExtension: "wav") else {
+            print("⚠️ [CastManager] silence.wav not found in bundle")
+            return
+        }
+        
+        do {
+            silentAudioPlayer = try AVAudioPlayer(contentsOf: silenceURL)
+            silentAudioPlayer?.numberOfLoops = -1  // Infinite loop
+            silentAudioPlayer?.volume = 0.01       // Nearly silent
+            silentAudioPlayer?.play()
+            print("🔇 [CastManager] Silent audio started for Now Playing activation")
+        } catch {
+            print("❌ [CastManager] Failed to start silent audio: \(error)")
+        }
+    }
+    
+    private func stopSilentAudioForNowPlaying() {
+        silentAudioPlayer?.stop()
+        silentAudioPlayer = nil
+        print("🔇 [CastManager] Silent audio stopped")
+    }
     
     override init() {
         super.init()
@@ -612,6 +641,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         currentMediaUrl = nil
         self.updateLockScreenInfo()
         
+        stopSilentAudioForNowPlaying()
         stopProgressTracking()
         clearSessionState() // Clear cached state on clean disconnect
     }
@@ -1020,9 +1050,13 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             
             if status.playerState == .playing {
                 startProgressTracking()
+                startSilentAudioForNowPlaying()
             } else {
                 if status.playerState != .buffering {
                      stopProgressTracking()
+                }
+                if status.playerState == .idle || status.playerState == .unknown {
+                    stopSilentAudioForNowPlaying()
                 }
             }
         }
