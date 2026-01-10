@@ -1,6 +1,8 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { wrapper } from 'axios-cookiejar-support';
+import { CookieJar } from 'tough-cookie';
 
 // ==========================================
 // HELPERS
@@ -77,6 +79,17 @@ export class FourKHDHubScraper {
         this.baseUrl = 'https://4khdhub.dad';
         this.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+        // Initialize Cookie Jar and Axios Client
+        this.jar = new CookieJar();
+        this.client = wrapper(axios.create({
+            jar: this.jar,
+            headers: {
+                'User-Agent': this.userAgent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            }
+        }));
+
         // Cache for Base URL resolution
         this.finalBaseUrl = null;
         this.lastBaseUrlCheck = 0;
@@ -91,12 +104,7 @@ export class FourKHDHubScraper {
 
         try {
             log(`📡 [4KHDHub] Resolving Base URL...`);
-            const response = await axios.get(this.baseUrl, {
-                headers: {
-                    'User-Agent': this.userAgent,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                },
+            const response = await this.client.get(this.baseUrl, {
                 maxRedirects: 5,
                 validateStatus: status => status < 400
             });
@@ -125,12 +133,9 @@ export class FourKHDHubScraper {
         log(`🔍 [4KHDHub] Searching: ${searchUrl}`);
 
         try {
-            const response = await axios.get(searchUrl, {
+            const response = await this.client.get(searchUrl, {
                 headers: {
-                    'User-Agent': this.userAgent,
-                    'Referer': this.baseUrl,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
+                    'Referer': this.baseUrl
                 }
             });
 
@@ -192,13 +197,7 @@ export class FourKHDHubScraper {
     async resolveRedirectUrl(redirectUrl, logs = []) {
         const log = (msg) => { logs.push(msg); console.log(msg); };
         try {
-            const response = await axios.get(redirectUrl, {
-                headers: {
-                    'User-Agent': this.userAgent,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                }
-            });
+            const response = await this.client.get(redirectUrl); // Headers inherited from client default
             const html = response.data;
 
             // Pattern 1: Rot13 ('o','...')
@@ -298,8 +297,8 @@ export class FourKHDHubScraper {
 
             // Check if resolvedUrl needs another hop (the var url= pattern)
             // Fetch it
-            const landingRes = await axios.get(resolvedUrl, {
-                headers: { 'User-Agent': this.userAgent, 'Referer': referer }
+            const landingRes = await this.client.get(resolvedUrl, {
+                headers: { 'Referer': referer }
             });
             const landingHtml = landingRes.data;
             const redirectMatch = landingHtml.match(/var url ?= ?'(.*?)'/);
@@ -318,8 +317,8 @@ export class FourKHDHubScraper {
             log(`⬇️ [4KHDHub] Fetching Final Page: ${finalPageUrl}`);
 
             // Perform the "HubCloud Extractor" logic on the final page
-            const linksRes = await axios.get(finalPageUrl, {
-                headers: { 'User-Agent': this.userAgent, 'Referer': startLink } // Referer chain?
+            const linksRes = await this.client.get(finalPageUrl, {
+                headers: { 'Referer': startLink } // Referer chain?
             });
             const $hub = cheerio.load(linksRes.data);
 
@@ -373,12 +372,9 @@ export class FourKHDHubScraper {
         if (!pageUrl) return [];
 
         try {
-            const response = await axios.get(pageUrl, {
+            const response = await this.client.get(pageUrl, {
                 headers: {
-                    'User-Agent': this.userAgent,
-                    'Referer': this.baseUrl,
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
+                    'Referer': this.baseUrl
                 }
             });
 
