@@ -357,7 +357,7 @@ export class FourKHDHubScraper {
             return results;
 
         } catch (error) {
-            // console.warn(`⚠️ [4KHDHub] Extraction failed: ${error.message}`);
+            log(`⚠️ [4KHDHub] Extraction failed: ${error.message}`);
             return null;
         }
     }
