@@ -7,6 +7,9 @@ import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
 import { useMovieBox } from '@/hooks/useMovieBox';
+import { useFourKHDHub } from '@/hooks/useFourKHDHub';
+import { Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +21,7 @@ interface Source {
   name: string;
   provider: string;
   url?: string;
-  type?: "m3u8" | "mp4" | "embed";
+  type?: "m3u8" | "mp4" | "embed" | "mkv";
   player?: string;
   isFStream?: boolean;
   isMovixDownload?: boolean;
@@ -27,7 +30,9 @@ interface Source {
   isDarkibox?: boolean;
   isDarki?: boolean;
   isVixsrc?: boolean;
+  isVixsrc?: boolean;
   isAnimeAPI?: boolean;
+  isFourKHDHub?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -43,7 +48,7 @@ interface StreamingSourcesProps {
   genres?: { id: number; name: string }[];
   onSourceClick: (source: {
     url: string;
-    type: "m3u8" | "mp4" | "embed";
+    type: "m3u8" | "mp4" | "embed" | "mkv";
     name: string;
     isFStream?: boolean;
     isMovixDownload?: boolean;
@@ -101,7 +106,9 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
+
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
+  const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
@@ -793,6 +800,26 @@ const StreamingSources = memo(function StreamingSources({
         language: 'VO'
       });
     });
+
+  }
+
+  // Ajouter les sources 4KHDHub (VO uniquement)
+  if (selectedLanguage === 'VO' && fourKHDHubData && fourKHDHubData.success && fourKHDHubData.streams) {
+    console.log('📦 [4KHDHub] Sources trouvées:', fourKHDHubData.streams);
+    fourKHDHubData.streams.forEach((stream: any, index: number) => {
+      allSources.push({
+        id: `4khdhub-${index}`,
+        name: `4KHDHub ${stream.quality} - ${stream.size}`,
+        provider: '4khdhub',
+        url: stream.url,
+        type: 'mkv' as const,
+        player: '4khdhub',
+        sourceKey: 'VO',
+        quality: stream.quality,
+        language: 'VO',
+        isFourKHDHub: true
+      });
+    });
   }
 
 
@@ -937,22 +964,22 @@ const StreamingSources = memo(function StreamingSources({
             tmdbId: id.toString(),
             type: type
           });
-
+  
           if (season) params.append('season', season.toString());
           if (episode) params.append('episode', episode.toString());
-
+  
           const response = await fetch(`/api/vixsrc?${params.toString()}`);
-
+  
           if (!response.ok) {
             throw new Error(`Erreur extraction Vixsrc: ${response.statusText}`);
           }
-
+  
           const data = await response.json();
-
+  
           if (data.success && data.streams && data.streams.length > 0) {
             const stream = data.streams[0];
             console.log('✅ Stream Vixsrc extrait:', stream.url);
-
+  
             // IMPORTANT: Like iOS, wrap the URL in vixsrc-proxy to handle CORS/Headers
             // AND append .m3u8 extension hint for Safari/Browsers which are pickier than AVPlayer
             const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}&ext=.m3u8`;
@@ -1016,7 +1043,7 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
@@ -1156,35 +1183,56 @@ const StreamingSources = memo(function StreamingSources({
             console.log('🎬 Rendu source:', source);
             return (
               <div key={source.id} className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full justify-between h-auto py-3"
-                  onClick={() => handleSourceClick(source)}
-                  disabled={loadingSources.has(source.id)}
-                >
-                  <span className="flex items-center gap-2">
-                    <Play className="w-4 h-4" />
-                    {source.name}
-                    {source.isVixsrc && (
-                      <Badge variant="default" className="text-xs">
-                        Vixsrc
-                      </Badge>
-                    )}
-                    {source.quality && (
-                      <Badge variant="secondary" className="text-xs">
-                        {source.quality}
-                      </Badge>
-                    )}
-                    {source.language && source.language !== 'MULTI' && (
-                      <Badge variant="outline" className="text-xs">
-                        {source.language}
-                      </Badge>
-                    )}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {loadingSources.has(source.id) ? t("streaming.loading") : "Regarder"}
-                  </span>
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between h-auto py-3"
+                    onClick={() => handleSourceClick(source)}
+                    disabled={loadingSources.has(source.id)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Play className="w-4 h-4" />
+                      {source.name}
+                      {source.isVixsrc && (
+                        <Badge variant="default" className="text-xs">
+                          Vixsrc
+                        </Badge>
+                      )}
+                      {source.isFourKHDHub && (
+                        <Badge variant="destructive" className="text-xs">
+                          MKV
+                        </Badge>
+                      )}
+                      {source.quality && (
+                        <Badge variant="secondary" className="text-xs">
+                          {source.quality}
+                        </Badge>
+                      )}
+                      {source.language && source.language !== 'MULTI' && (
+                        <Badge variant="outline" className="text-xs">
+                          {source.language}
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {loadingSources.has(source.id) ? t("streaming.loading") : "Regarder"}
+                    </span>
+                  </Button>
+                  {source.isFourKHDHub && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(source.url || '');
+                        toast.success("Lien copié !");
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })

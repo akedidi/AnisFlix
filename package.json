@@ -171,6 +171,7 @@
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.17",
+    "ts-node": "^10.9.2",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
     "vercel": "^48.2.9",

@@ -94,8 +94,7 @@ export class FourKHDHubScraper {
                 maxRedirects: 5,
                 validateStatus: status => status < 400
             });
-            // Axios follows redirects by default. The final URL is in response.request.res.responseUrl (Node) or response.config.url
-            // In axios response object: response.request.res.responseUrl is reliable for Node
+
             if (response.request && response.request.res && response.request.res.responseUrl) {
                 this.finalBaseUrl = new URL(response.request.res.responseUrl).origin;
             } else {
@@ -161,6 +160,9 @@ export class FourKHDHubScraper {
             }
 
             if (bestMatch) {
+                if (bestMatch.startsWith('/')) {
+                    bestMatch = `${baseUrl}${bestMatch}`;
+                }
                 console.log(`✅ [4KHDHub] Found Page: ${bestMatch}`);
                 return bestMatch;
             }
@@ -174,6 +176,7 @@ export class FourKHDHubScraper {
         }
     }
 
+    // Resolve HubCloud Redirect URL (rot13 or var url = ...)
     async resolveRedirectUrl(redirectUrl) {
         try {
             const response = await axios.get(redirectUrl, {
@@ -181,26 +184,41 @@ export class FourKHDHubScraper {
             });
             const html = response.data;
 
-            // Match: var url = '...' OR 'o','...' pattern for rot13
-            // Code from TS: const redirectDataMatch = redirectHtml.match(/'o','(.*?)'/) as string[];
-
+            // Pattern 1: Rot13 ('o','...') - seen in HubCloud.ts (actually FourKHDHub.ts private resolveRedirectUrl)
             const redirectDataMatch = html.match(/'o','(.*?)'/);
             if (redirectDataMatch) {
-                // Logic: JSON.parse(atob(rot13Cipher(atob(atob(match)))))
-                const step1 = Buffer.from(redirectDataMatch[1], 'base64').toString('binary'); // atob
-                const step2 = Buffer.from(step1, 'base64').toString('binary'); // atob
-                const step3 = rot13(step2); // rot13
-                const step4 = Buffer.from(step3, 'base64').toString('binary'); // atob
+                try {
+                    const step1 = Buffer.from(redirectDataMatch[1], 'base64').toString('binary');
+                    const step2 = Buffer.from(step1, 'base64').toString('binary');
+                    const step3 = rot13(step2);
+                    const step4 = Buffer.from(step3, 'base64').toString('binary');
+                    const json = JSON.parse(step4);
+                    if (json && json.o) {
+                        const finalUrl = Buffer.from(json.o, 'base64').toString('binary');
+                        return finalUrl;
+                    }
+                } catch (e) { console.warn("Rot13 decode failed", e); }
+            }
 
-                const json = JSON.parse(step4);
-                if (json && json.o) {
-                    const finalUrl = Buffer.from(json.o, 'base64').toString('binary'); // atob
-                    return finalUrl;
+            // Pattern 2: HubDrive s('o','...')
+            const hubDriveMatch = html.match(/s\('o','(.*?)'/);
+            if (hubDriveMatch) {
+                try {
+                    const input = hubDriveMatch[1];
+                    const step1 = Buffer.from(input, 'base64').toString('binary');
+                    const step2 = Buffer.from(step1, 'base64').toString('binary');
+                    const step3 = rot13(step2);
+                    const step4 = Buffer.from(step3, 'base64').toString('binary');
+                    const json = JSON.parse(step4);
+                    if (json && json.o) {
+                        return Buffer.from(json.o, 'base64').toString('binary');
+                    }
+                } catch (e) {
+                    console.warn("HubDrive decode failed", e);
                 }
             }
 
-            // Alternative HubCloud regex? 
-            // HubCloud.ts uses: const redirectUrlMatch = redirectHtml.match(/var url ?= ?'(.*?)'/);
+            // Pattern 3: Simple redirect (HubCloud extractor logic)
             const simpleMatch = html.match(/var url ?= ?'(.*?)'/);
             if (simpleMatch) {
                 return simpleMatch[1];
@@ -214,53 +232,83 @@ export class FourKHDHubScraper {
     }
 
     async extractSourceResults($, el, referer, type) {
-        // Logic ported from extractSourceResults in TS
-        // Find "HubCloud" links inside the element
         const $el = $(el);
-
-        const fileTitle = $el.find('.file-title, .episode-file-title').text().trim();
         const localHtml = $el.html();
 
         const size = parseBytes(localHtml) || "Unknown Size";
         const heightMatch = localHtml.match(/\d{3,}p/);
         const quality = heightMatch ? heightMatch[0] : "HD";
-        const countryCodes = findCountryCodes(localHtml);
 
-        // We look for direct HubCloud link first
-        let hubCloudLink = null;
-
+        // 1. Try finding HubCloud link directly
+        let startLink = null;
         $el.find('a').each((i, a) => {
             if ($(a).text().includes('HubCloud')) {
-                hubCloudLink = $(a).attr('href');
+                startLink = $(a).attr('href');
             }
         });
 
-        // If not, look for HubDrive and follow redirect
-        if (!hubCloudLink) {
-            // Logic for HubDrive -> HubCloud (skipped for simplicity/speed unless necessary)
-            // TS implementation does 2 hops for HubDrive. 
-            // Let's implement if HubCloud direct is missing.
-            // ...
-            // For now, let's focus on HubCloud direct links which seem common.
-        }
-
-        if (!hubCloudLink) return null;
-
-        try {
-            // Resolve the HubCloud landing page
-            const resolvedHubCloudUrl = await this.resolveRedirectUrl(hubCloudLink);
-            if (!resolvedHubCloudUrl) return null;
-
-            // Now fetch HubCloud page to get the FSL/PixelServer links
-            // Headers: Referer should be the pageUrl
-            const hubPageRes = await axios.get(resolvedHubCloudUrl, {
-                headers: {
-                    'User-Agent': this.userAgent,
-                    'Referer': referer
+        // 2. If no HubCloud, look for HubDrive
+        if (!startLink) {
+            $el.find('a').each((i, a) => {
+                if ($(a).text().includes('HubDrive') || $(a).text().includes('Drive')) {
+                    startLink = $(a).attr('href');
                 }
             });
+        }
 
-            const $hub = cheerio.load(hubPageRes.data);
+        if (!startLink) return null;
+
+        try {
+            // Step 1: Resolve the initial link (HubDrive -> HubCloud OR HubCloud -> Landing)
+            let resolvedUrl = await this.resolveRedirectUrl(startLink);
+
+            // Fallback: If resolution failed (it's not a redirect page) but matches known domains, use it directly
+            if (!resolvedUrl && (startLink.includes('hubdrive') || startLink.includes('hubcloud'))) {
+                console.log("⚠️ [4KHDHub] Resolution fallback used.");
+                resolvedUrl = startLink;
+            }
+
+            if (!resolvedUrl) {
+                console.log("❌ [4KHDHub] resolvedUrl is null");
+                return null;
+            }
+            console.log(`✅ [4KHDHub] Resolved URL: ${resolvedUrl}`);
+
+            let finalPageUrl = null;
+
+            // Check if resolvedUrl needs another hop (the var url= pattern)
+            // Fetch it
+            const landingRes = await axios.get(resolvedUrl, {
+                headers: { 'User-Agent': this.userAgent, 'Referer': referer }
+            });
+            const landingHtml = landingRes.data;
+            const redirectMatch = landingHtml.match(/var url ?= ?'(.*?)'/);
+
+            if (redirectMatch) {
+                finalPageUrl = redirectMatch[1];
+                console.log(`✅ [4KHDHub] Found secondary redirect: ${finalPageUrl}`);
+            } else {
+                // If resolveRedirectUrl returns a URL, it means it successfully decoded 'o'.
+                // If it returned null, it failed.
+                // If resolvedUrl is valid, use it.
+                finalPageUrl = resolvedUrl;
+                console.log(`ℹ️ [4KHDHub] No secondary redirect found, using resolvedURL as final.`);
+            }
+
+            console.log(`⬇️ [4KHDHub] Fetching Final Page: ${finalPageUrl}`);
+
+            // Perform the "HubCloud Extractor" logic on the final page
+            const linksRes = await axios.get(finalPageUrl, {
+                headers: { 'User-Agent': this.userAgent, 'Referer': startLink } // Referer chain?
+            });
+            const $hub = cheerio.load(linksRes.data);
+
+            // console.log(`📄 [4KHDHub] Final Page HTML (first 500): ${linksRes.data.substring(0, 500)}`);
+            const allLinks = [];
+            $hub('a').each((i, el) => allLinks.push($hub(el).text()));
+            // console.log(`🔗 [4KHDHub] Links found on page: ${allLinks.length}`);
+            // console.log(`🔗 [4KHDHub] Link texts: ${allLinks.join(', ')}`);
+
             const results = [];
 
             // FSL Links
@@ -268,19 +316,18 @@ export class FourKHDHubScraper {
                 const text = $hub(a).text();
                 const href = $hub(a).attr('href');
 
-                if (href && text.includes('FSL') && !text.includes('FSLv2')) {
+                if ((href && text.includes('FSL') && !text.includes('FSLv2')) || (href && text.includes('[HubCloud Server]'))) {
                     results.push({
                         url: href,
-                        quality: quality, // Use the quality from the parent container
-                        provider: 'FourKHDHub', // Source provider
-                        label: `HubCloud (FSL) - ${quality}`,
+                        quality: quality,
+                        provider: 'FourKHDHub',
+                        label: `HubCloud - ${quality}`,
                         size: size,
-                        type: 'mkv' // As requested
+                        type: 'mkv'
                     });
                 }
 
                 if (href && text.includes('PixelServer')) {
-                    // PixelServer URL often needs rewriting /u/ -> /api/file/
                     const dlUrl = href.replace('/u/', '/api/file/');
                     results.push({
                         url: dlUrl,
@@ -296,17 +343,13 @@ export class FourKHDHubScraper {
             return results;
 
         } catch (error) {
-            console.warn(`⚠️ [4KHDHub] Extraction failed for item: ${error.message}`);
+            // console.warn(`⚠️ [4KHDHub] Extraction failed: ${error.message}`);
             return null;
         }
     }
 
     async getStreams(tmdbId, type = 'movie', season = null, episode = null, tmdbInfo = null) {
-        if (!tmdbInfo) {
-            // Should fetch if not provided, but caller (proxy) usually provides names
-            // We need Title + Year
-            throw new Error("TMDB Info required (Title/Year)");
-        }
+        if (!tmdbInfo) throw new Error("TMDB Info required (Title/Year)");
 
         const { title, year } = tmdbInfo;
         const isSeries = type === 'tv';
@@ -323,41 +366,25 @@ export class FourKHDHubScraper {
             const promises = [];
 
             if (isSeries) {
-                // SERIES LOGIC
-                // Find episode container
                 const seasonStr = `S${String(season).padStart(2, '0')}`;
                 const epiStr = `Episode-${String(episode).padStart(2, '0')}`;
-
-                // Find season block/element
-                // The structure in TS: .episode-item -> filter title Sxx
-                // Then find .episode-download-item -> filter Ep-xx
-
-                // We iterate over all episode items to find the right season
                 const episodeItems = $('.episode-item').filter((i, el) => {
                     return $(el).find('.episode-title').text().includes(seasonStr);
                 });
 
                 episodeItems.each((i, el) => {
-                    // In this season block, find the episode download item
                     const dlItem = $(el).find('.episode-download-item').filter((j, item) => {
                         return $(item).text().includes(epiStr);
                     });
-
-                    if (dlItem.length > 0) {
-                        promises.push(this.extractSourceResults($, dlItem, pageUrl, type));
-                    }
+                    if (dlItem.length > 0) promises.push(this.extractSourceResults($, dlItem, pageUrl, type));
                 });
-
             } else {
-                // MOVIE LOGIC
-                // Iterate over .download-item
                 $('.download-item').each((i, el) => {
                     promises.push(this.extractSourceResults($, el, pageUrl, type));
                 });
             }
 
             const resultsNested = await Promise.all(promises);
-            // Flatten results
             const allStreams = resultsNested.flat().filter(r => r !== null);
 
             console.log(`🎬 [4KHDHub] Found ${allStreams.length} streams`);
