@@ -817,15 +817,17 @@ export default async function handler(req, res) {
         }
 
         // 2. Fetch Streams
+        const debugLogs = [];
         const streams = await fourKHDHubScraper.getStreams(
           tmdbId,
           type,
           type === 'tv' ? parseInt(season) : null,
           type === 'tv' ? parseInt(episode) : null,
-          tmdbInfo
+          tmdbInfo,
+          debugLogs
         );
 
-        return res.status(200).json({ success: true, streams });
+        return res.status(200).json({ success: true, streams, debug: debugLogs });
 
       } catch (error) {
         console.error('[MOVIX PROXY 4KHDHUB ERROR]', error.message);

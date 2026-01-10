@@ -82,13 +82,15 @@ export class FourKHDHubScraper {
         this.lastBaseUrlCheck = 0;
     }
 
-    async getBaseUrl() {
+    async getBaseUrl(logs = []) {
+        const log = (msg) => { logs.push(msg); console.log(msg); };
         const now = Date.now();
         if (this.finalBaseUrl && (now - this.lastBaseUrlCheck < 3600000)) { // 1 hour TTL
             return this.finalBaseUrl;
         }
 
         try {
+            log(`📡 [4KHDHub] Resolving Base URL...`);
             const response = await axios.get(this.baseUrl, {
                 headers: {
                     'User-Agent': this.userAgent,
@@ -106,20 +108,21 @@ export class FourKHDHubScraper {
             }
 
             this.lastBaseUrlCheck = now;
-            console.log(`📡 [4KHDHub] Resolved Base URL: ${this.finalBaseUrl}`);
+            log(`📡 [4KHDHub] Resolved Base URL: ${this.finalBaseUrl}`);
             return this.finalBaseUrl;
         } catch (error) {
-            console.warn(`⚠️ [4KHDHub] Failed to resolve base URL, using default: ${error.message}`);
+            log(`⚠️ [4KHDHub] Failed to resolve base URL, using default: ${error.message}`);
             return this.baseUrl;
         }
     }
 
-    async fetchPageUrl(name, year, isSeries, season) {
-        const baseUrl = await this.getBaseUrl();
+    async fetchPageUrl(name, year, isSeries, season, logs = []) {
+        const log = (msg) => { logs.push(msg); console.log(msg); };
+        const baseUrl = await this.getBaseUrl(logs);
         const query = `${name} ${year}`;
         const searchUrl = `${baseUrl}/?s=${encodeURIComponent(query)}`;
 
-        console.log(`🔍 [4KHDHub] Searching: ${searchUrl}`);
+        log(`🔍 [4KHDHub] Searching: ${searchUrl}`);
 
         try {
             const response = await axios.get(searchUrl, {
@@ -172,21 +175,22 @@ export class FourKHDHubScraper {
                 if (bestMatch.startsWith('/')) {
                     bestMatch = `${baseUrl}${bestMatch}`;
                 }
-                console.log(`✅ [4KHDHub] Found Page: ${bestMatch}`);
+                log(`✅ [4KHDHub] Found Page: ${bestMatch}`);
                 return bestMatch;
             }
 
-            console.log('⚠️ [4KHDHub] No matching page found');
+            log('⚠️ [4KHDHub] No matching page found');
             return null;
 
         } catch (error) {
-            console.error(`❌ [4KHDHub] Search failed: ${error.message}`);
+            log(`❌ [4KHDHub] Search failed: ${error.message}`);
             return null;
         }
     }
 
     // Resolve HubCloud Redirect URL (rot13 or var url = ...)
-    async resolveRedirectUrl(redirectUrl) {
+    async resolveRedirectUrl(redirectUrl, logs = []) {
+        const log = (msg) => { logs.push(msg); console.log(msg); };
         try {
             const response = await axios.get(redirectUrl, {
                 headers: {
@@ -197,7 +201,7 @@ export class FourKHDHubScraper {
             });
             const html = response.data;
 
-            // Pattern 1: Rot13 ('o','...') - seen in HubCloud.ts (actually FourKHDHub.ts private resolveRedirectUrl)
+            // Pattern 1: Rot13 ('o','...')
             const redirectDataMatch = html.match(/'o','(.*?)'/);
             if (redirectDataMatch) {
                 try {
@@ -210,7 +214,9 @@ export class FourKHDHubScraper {
                         const finalUrl = Buffer.from(json.o, 'base64').toString('binary');
                         return finalUrl;
                     }
-                } catch (e) { console.warn("Rot13 decode failed", e); }
+                } catch (e) {
+                    // silent failure or log check
+                }
             }
 
             // Pattern 2: HubDrive s('o','...')
@@ -227,11 +233,11 @@ export class FourKHDHubScraper {
                         return Buffer.from(json.o, 'base64').toString('binary');
                     }
                 } catch (e) {
-                    console.warn("HubDrive decode failed", e);
+                    // silent
                 }
             }
 
-            // Pattern 3: Simple redirect (HubCloud extractor logic)
+            // Pattern 3: Simple redirect
             const simpleMatch = html.match(/var url ?= ?'(.*?)'/);
             if (simpleMatch) {
                 return simpleMatch[1];
@@ -239,12 +245,13 @@ export class FourKHDHubScraper {
 
             return null;
         } catch (error) {
-            console.error(`❌ [4KHDHub] Redirect resolution failed: ${error.message}`);
+            log(`❌ [4KHDHub] Redirect resolution failed: ${error.message}`);
             return null;
         }
     }
 
-    async extractSourceResults($, el, referer, type) {
+    async extractSourceResults($, el, referer, type, logs = []) {
+        const log = (msg) => { logs.push(msg); console.log(msg); };
         const $el = $(el);
         const localHtml = $el.html();
 
@@ -273,19 +280,19 @@ export class FourKHDHubScraper {
 
         try {
             // Step 1: Resolve the initial link (HubDrive -> HubCloud OR HubCloud -> Landing)
-            let resolvedUrl = await this.resolveRedirectUrl(startLink);
+            let resolvedUrl = await this.resolveRedirectUrl(startLink, logs);
 
             // Fallback: If resolution failed (it's not a redirect page) but matches known domains, use it directly
             if (!resolvedUrl && (startLink.includes('hubdrive') || startLink.includes('hubcloud'))) {
-                console.log("⚠️ [4KHDHub] Resolution fallback used.");
+                log("⚠️ [4KHDHub] Resolution fallback used.");
                 resolvedUrl = startLink;
             }
 
             if (!resolvedUrl) {
-                console.log("❌ [4KHDHub] resolvedUrl is null");
+                log("❌ [4KHDHub] resolvedUrl is null");
                 return null;
             }
-            console.log(`✅ [4KHDHub] Resolved URL: ${resolvedUrl}`);
+            log(`✅ [4KHDHub] Resolved URL: ${resolvedUrl}`);
 
             let finalPageUrl = null;
 
@@ -299,28 +306,22 @@ export class FourKHDHubScraper {
 
             if (redirectMatch) {
                 finalPageUrl = redirectMatch[1];
-                console.log(`✅ [4KHDHub] Found secondary redirect: ${finalPageUrl}`);
+                log(`✅ [4KHDHub] Found secondary redirect: ${finalPageUrl}`);
             } else {
                 // If resolveRedirectUrl returns a URL, it means it successfully decoded 'o'.
                 // If it returned null, it failed.
                 // If resolvedUrl is valid, use it.
                 finalPageUrl = resolvedUrl;
-                console.log(`ℹ️ [4KHDHub] No secondary redirect found, using resolvedURL as final.`);
+                log(`ℹ️ [4KHDHub] No secondary redirect found, using resolvedURL as final.`);
             }
 
-            console.log(`⬇️ [4KHDHub] Fetching Final Page: ${finalPageUrl}`);
+            log(`⬇️ [4KHDHub] Fetching Final Page: ${finalPageUrl}`);
 
             // Perform the "HubCloud Extractor" logic on the final page
             const linksRes = await axios.get(finalPageUrl, {
                 headers: { 'User-Agent': this.userAgent, 'Referer': startLink } // Referer chain?
             });
             const $hub = cheerio.load(linksRes.data);
-
-            // console.log(`📄 [4KHDHub] Final Page HTML (first 500): ${linksRes.data.substring(0, 500)}`);
-            const allLinks = [];
-            $hub('a').each((i, el) => allLinks.push($hub(el).text()));
-            // console.log(`🔗 [4KHDHub] Links found on page: ${allLinks.length}`);
-            // console.log(`🔗 [4KHDHub] Link texts: ${allLinks.join(', ')}`);
 
             const results = [];
 
@@ -361,13 +362,14 @@ export class FourKHDHubScraper {
         }
     }
 
-    async getStreams(tmdbId, type = 'movie', season = null, episode = null, tmdbInfo = null) {
+    async getStreams(tmdbId, type = 'movie', season = null, episode = null, tmdbInfo = null, logs = []) {
+        const log = (msg) => { logs.push(msg); console.log(msg); };
         if (!tmdbInfo) throw new Error("TMDB Info required (Title/Year)");
 
         const { title, year } = tmdbInfo;
         const isSeries = type === 'tv';
 
-        const pageUrl = await this.fetchPageUrl(title, year, isSeries, season);
+        const pageUrl = await this.fetchPageUrl(title, year, isSeries, season, logs);
         if (!pageUrl) return [];
 
         try {
@@ -394,22 +396,22 @@ export class FourKHDHubScraper {
                     const dlItem = $(el).find('.episode-download-item').filter((j, item) => {
                         return $(item).text().includes(epiStr);
                     });
-                    if (dlItem.length > 0) promises.push(this.extractSourceResults($, dlItem, pageUrl, type));
+                    if (dlItem.length > 0) promises.push(this.extractSourceResults($, dlItem, pageUrl, type, logs));
                 });
             } else {
                 $('.download-item').each((i, el) => {
-                    promises.push(this.extractSourceResults($, el, pageUrl, type));
+                    promises.push(this.extractSourceResults($, el, pageUrl, type, logs));
                 });
             }
 
             const resultsNested = await Promise.all(promises);
             const allStreams = resultsNested.flat().filter(r => r !== null);
 
-            console.log(`🎬 [4KHDHub] Found ${allStreams.length} streams`);
+            log(`🎬 [4KHDHub] Found ${allStreams.length} streams`);
             return allStreams;
 
         } catch (error) {
-            console.error(`❌ [4KHDHub] Stream extraction failed: ${error.message}`);
+            log(`❌ [4KHDHub] Stream extraction failed: ${error.message}`);
             return [];
         }
     }
