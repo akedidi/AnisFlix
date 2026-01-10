@@ -271,6 +271,8 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     private(set) var currentMediaId: Int?
     private(set) var currentSeason: Int?
     private(set) var currentEpisode: Int?
+    private(set) var totalEpisodesInSeason: Int?
+    private(set) var seriesTitle: String?  // Base title without episode info
     private var lastSavedTime: TimeInterval = 0
     
     // Silent audio player for Now Playing activation during Cast
@@ -663,7 +665,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
     
     // MARK: - Media Control
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, duration: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, duration: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, totalEpisodesInSeason: Int? = nil, seriesTitle: String? = nil) {
         print("📢 [CastManager] Request to load media: \(title)")
         print("📢 [CastManager] URL: \(url.absoluteString)")
         print("📢 [CastManager] isLive: \(isLive)")
@@ -683,6 +685,8 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             self.currentMediaId = mediaId
             self.currentSeason = season
             self.currentEpisode = episode
+            self.totalEpisodesInSeason = totalEpisodesInSeason
+            self.seriesTitle = seriesTitle ?? (season != nil ? title : nil)  // Store base title for series
             self.currentSubtitles = subtitles
             self.cachedDuration = duration
             self.lastSavedTime = startTime
@@ -1058,6 +1062,64 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 if status.playerState == .idle || status.playerState == .unknown {
                     stopSilentAudioForNowPlaying()
                 }
+                
+                // Auto-play next episode detection
+                if status.playerState == .idle && status.idleReason == .finished {
+                    if let season = currentSeason, let episode = currentEpisode, let mediaId = currentMediaId {
+                        handleEpisodeFinished(mediaId: mediaId, season: season, episode: episode)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Auto-Play Next Episode
+    
+    private func handleEpisodeFinished(mediaId: Int, season: Int, episode: Int) {
+        let nextEpisode = episode + 1
+        
+        // Check if there's a next episode in the season
+        if let total = totalEpisodesInSeason, nextEpisode > total {
+            print("📺 [CastManager] Season \(season) finished, no more episodes (total: \(total))")
+            return
+        }
+        
+        print("📺 [CastManager] Auto-playing next episode: S\(season)E\(nextEpisode)")
+        
+        Task {
+            do {
+                let sources = try await StreamingService.shared.fetchSeriesSources(
+                    seriesId: mediaId,
+                    season: season,
+                    episode: nextEpisode
+                )
+                
+                guard let source = sources.first, let url = URL(string: source.url) else {
+                    print("❌ [CastManager] No sources found for next episode S\(season)E\(nextEpisode)")
+                    return
+                }
+                
+                print("✅ [CastManager] Found source for next episode: \(source.provider)")
+                
+                await MainActor.run {
+                    // Build title for next episode
+                    let baseTitle = self.seriesTitle ?? self.currentTitle ?? "Episode"
+                    let nextTitle = "\(baseTitle) S\(season)E\(nextEpisode)"
+                    
+                    self.loadMedia(
+                        url: url,
+                        title: nextTitle,
+                        posterUrl: self.currentPosterUrl,
+                        subtitles: source.tracks ?? [],
+                        mediaId: mediaId,
+                        season: season,
+                        episode: nextEpisode,
+                        totalEpisodesInSeason: self.totalEpisodesInSeason,
+                        seriesTitle: self.seriesTitle
+                    )
+                }
+            } catch {
+                print("❌ [CastManager] Failed to fetch next episode sources: \(error)")
             }
         }
     }
@@ -1444,7 +1506,7 @@ class CastManager: NSObject, ObservableObject {
         print("⚠️ Google Cast SDK not available. Casting disabled.")
     }
     
-    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
+    func loadMedia(url: URL, title: String, posterUrl: URL?, subtitles: [Subtitle] = [], activeSubtitleUrl: String? = nil, startTime: TimeInterval = 0, isLive: Bool = false, subtitleOffset: Double = 0, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, totalEpisodesInSeason: Int? = nil, seriesTitle: String? = nil) {
         print("⚠️ Google Cast SDK not available. Cannot load media.")
     }
     

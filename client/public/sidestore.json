@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.21",
+          "version": "1.0.22",
           "date": "2026-01-10",
-          "size": 3932086,
+          "size": 3931971,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "Add Lock Screen controls for Chromecast (silent audio trick) + v1.0.20 "
+          "localizedDescription": "Fix lock screen controls: add togglePlayPause + skip commands v1.0.21 "
         }
       ]
     }
