@@ -885,10 +885,19 @@ class PlayerViewModel: NSObject, ObservableObject {
         
         // Store the title if provided
         if let title = title {
+            print("📺 [PlayerVM] setup() called with title: '\(title)'")
             currentTitle = title
-            print("📺 [PlayerVM] New title set: \(title)")
+            
+            // Force reset of NowPlayingInfo to ensure update is triggered correctly
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            
             // Force immediate Now Playing update with new title
-            updateNowPlayingInfo(title: title)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("📺 [PlayerVM] Forcing NowPlaying update for: '\(title)'")
+                self.updateNowPlayingInfo(title: title)
+            }
+        } else {
+             print("⚠️ [PlayerVM] setup() called WITHOUT title!")
         }
         
         // Artwork Loading with Priority

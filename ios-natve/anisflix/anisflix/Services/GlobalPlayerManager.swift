@@ -130,6 +130,7 @@ class GlobalPlayerManager: ObservableObject {
     func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil, provider: String? = nil, language: String? = nil, quality: String? = nil, origin: String? = nil, isFromDownload: Bool = false, localPosterPath: String? = nil) {
         
         // 1. Set Metadata
+        print("🎬 [GlobalPlayerManager] Play requested. Title: '\(title)', URL: \(url)")
         self.currentMediaUrl = url
         self.currentTitle = title
         self.currentPosterUrl = posterUrl

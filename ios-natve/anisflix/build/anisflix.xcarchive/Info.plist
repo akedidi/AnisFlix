@@ -13,9 +13,9 @@
 		<key>CFBundleIdentifier</key>
 		<string>com.anis.anisflix</string>
 		<key>CFBundleShortVersionString</key>
-		<string>1.0.25</string>
+		<string>1.0.26</string>
 		<key>CFBundleVersion</key>
-		<string>25</string>
+		<string>26</string>
 		<key>SigningIdentity</key>
 		<string></string>
 		<key>Team</key>
@@ -24,7 +24,7 @@
 	<key>ArchiveVersion</key>
 	<integer>2</integer>
 	<key>CreationDate</key>
-	<date>2026-01-10T17:33:25Z</date>
+	<date>2026-01-10T17:44:00Z</date>
 	<key>Name</key>
 	<string>AnisFlix</string>
 	<key>SchemeName</key>
