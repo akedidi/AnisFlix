@@ -1189,6 +1189,20 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             return .success
         }
         
+        // Toggle Play/Pause Command (used by lock screen main button)
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.removeTarget(nil)
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] event in
+            guard let self = self, let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
+            
+            if client.mediaStatus?.playerState == .playing {
+                client.pause()
+            } else {
+                client.play()
+            }
+            return .success
+        }
+        
         // Stop Command
         commandCenter.stopCommand.addTarget { [weak self] event in
              guard let self = self, let client = self.sessionManager?.currentCastSession?.remoteMediaClient else { return .commandFailed }
@@ -1206,6 +1220,44 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             let seekOptions = GCKMediaSeekOptions()
             seekOptions.interval = time
             seekOptions.resumeState = .play
+            client.seek(with: seekOptions)
+            return .success
+        }
+        
+        // Skip Forward Command (10 seconds)
+        commandCenter.skipForwardCommand.isEnabled = true
+        commandCenter.skipForwardCommand.preferredIntervals = [10]
+        commandCenter.skipForwardCommand.removeTarget(nil)
+        commandCenter.skipForwardCommand.addTarget { [weak self] event in
+            guard let self = self,
+                  let client = self.sessionManager?.currentCastSession?.remoteMediaClient,
+                  let status = client.mediaStatus else { return .commandFailed }
+            
+            let currentTime = status.streamPosition
+            let newTime = currentTime + 10.0
+            
+            let seekOptions = GCKMediaSeekOptions()
+            seekOptions.interval = newTime
+            seekOptions.resumeState = .unchanged
+            client.seek(with: seekOptions)
+            return .success
+        }
+        
+        // Skip Backward Command (10 seconds)
+        commandCenter.skipBackwardCommand.isEnabled = true
+        commandCenter.skipBackwardCommand.preferredIntervals = [10]
+        commandCenter.skipBackwardCommand.removeTarget(nil)
+        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+            guard let self = self,
+                  let client = self.sessionManager?.currentCastSession?.remoteMediaClient,
+                  let status = client.mediaStatus else { return .commandFailed }
+            
+            let currentTime = status.streamPosition
+            let newTime = max(0, currentTime - 10.0)
+            
+            let seekOptions = GCKMediaSeekOptions()
+            seekOptions.interval = newTime
+            seekOptions.resumeState = .unchanged
             client.seek(with: seekOptions)
             return .success
         }

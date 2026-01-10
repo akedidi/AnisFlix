@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.20",
+          "version": "1.0.21",
           "date": "2026-01-10",
-          "size": 3927934,
+          "size": 3932086,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "Fix CastManager (Lock Screen & Background) + Build v1.0.19 "
+          "localizedDescription": "Add Lock Screen controls for Chromecast (silent audio trick) + v1.0.20 "
         }
       ]
     }
