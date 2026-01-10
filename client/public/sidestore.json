@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.26",
+          "version": "1.0.27",
           "date": "2026-01-10",
-          "size": 3934804,
+          "size": 3933077,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "Fix local video lock screen title update on episode change v1.0.25 "
+          "localizedDescription": "Fix auto-play title update by forcing clean NowPlaying reset v1.0.26 "
         }
       ]
     }

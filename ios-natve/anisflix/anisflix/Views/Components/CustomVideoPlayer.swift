@@ -888,13 +888,10 @@ class PlayerViewModel: NSObject, ObservableObject {
             print("📺 [PlayerVM] setup() called with title: '\(title)'")
             currentTitle = title
             
-            // Force reset of NowPlayingInfo to ensure update is triggered correctly
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-            
-            // Force immediate Now Playing update with new title
+            // Force clean update with new title using reset: true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("📺 [PlayerVM] Forcing NowPlaying update for: '\(title)'")
-                self.updateNowPlayingInfo(title: title)
+                print("📺 [PlayerVM] Forcing Clean NowPlaying update for: '\(title)'")
+                self.updateNowPlayingInfo(title: title, reset: true)
             }
         } else {
              print("⚠️ [PlayerVM] setup() called WITHOUT title!")
@@ -1157,14 +1154,24 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func updateNowPlayingInfo(title: String? = nil) {
+    func updateNowPlayingInfo(title: String? = nil, reset: Bool = false) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+            var nowPlayingInfo: [String: Any]
+            
+            if reset {
+                print("♻️ [PlayerVM] Resetting NowPlayingInfo from scratch")
+                nowPlayingInfo = [String: Any]()
+            } else {
+                nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [String: Any]()
+            }
             
             // Always set title from currentTitle if available
             let titleToUse = title ?? self.currentTitle ?? self.currentUrl?.lastPathComponent ?? "Unknown"
+            
+            print("🎵 [PlayerVM] Updating NowPlayingInfo - Title: '\(titleToUse)' (Requested: '\(title ?? "nil")', Current: '\(self.currentTitle ?? "nil")')")
+            
             nowPlayingInfo[MPMediaItemPropertyTitle] = titleToUse
             
             if self.duration > 0 {
@@ -1179,17 +1186,22 @@ class PlayerViewModel: NSObject, ObservableObject {
             if let artwork = self.currentArtwork {
                 nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
             } else {
-                // Clear existing artwork and use default icon while new artwork downloads
+                // Clear existing artwork if reset, or if we want to ensure no stale artwork
+                if reset {
+                     nowPlayingInfo[MPMediaItemPropertyArtwork] = nil
+                }
+                
+                // Load default icon
                 if let image = UIImage(named: "AppIcon") ?? UIImage(systemName: "film") {
-                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
-                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                     let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in return image }
+                     nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
                 }
             }
             
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-            print("🎵 Now Playing Info updated - Title: \(titleToUse)")
         }
     }
+
     
     private func loadArtworkFromLocalFile(at localPath: String) {
         let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
