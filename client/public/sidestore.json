@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.27",
+          "version": "1.0.28",
           "date": "2026-01-10",
-          "size": 3933077,
+          "size": 3933232,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "Fix auto-play title update by forcing clean NowPlaying reset v1.0.26 "
+          "localizedDescription": "Fix auto-play n-1 title title issue with clean info reset v1.0.27 "
         }
       ]
     }

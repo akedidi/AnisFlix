@@ -624,6 +624,12 @@ struct CustomVideoPlayer: View {
             playerVM.updateMetadata(title: title, posterUrl: newPosterUrl)
         }
         .onChange(of: url) { newUrl in
+            // CRITIQUE : Empêcher la Vue d'écraser le titre avec une valeur périmée si le Manager a déjà fait le setup
+            if playerVM.currentUrl == newUrl {
+                print("📺 [CustomVideoPlayer] Skipping setup from View update: PlayerVM already has this URL. (Prevents stale title overwrite)")
+                return
+            }
+            
             if castManager.isConnected {
                 print("📺 URL changed while casting. Loading new media...")
                 castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
