@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import Combine
 import MobileVLCKit
 
 // MARK: - VLC Player ViewModel
