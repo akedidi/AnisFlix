@@ -135,6 +135,12 @@ class VLCPlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             self.currentTime = time
             self.duration = length
             self.progress = length > 0 ? time / length : 0
+            
+            // If time is progressing, video is playing - disable buffering
+            if time > 0 {
+                self.isBuffering = false
+                self.isPlaying = true
+            }
         }
     }
 }
