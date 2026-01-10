@@ -71,22 +71,17 @@ export class FourKHDHubScraper {
 
             log(`✅ [WebStreamr] Found ${data.streams.length} raw streams`);
 
-            // Map streams to AnisFlix format
-            const mappedStreams = data.streams.map(stream => {
-                // Filter content? User wanted "4KHDHUB" specific?
-                // The response shows "WebStreamr | Hayduk ... 🔗 HubCloud (FSL) from 4KHDHub"
-                // mapping to:
-                /*
-                 {
-                    url: href,
-                    quality: quality,
-                    provider: 'FourKHDHub',
-                    label: `HubCloud - ${quality}`,
-                    size: size,
-                    type: 'mkv'
-                }
-                */
+            // Filter to only keep FSL links (HubCloud FSL)
+            const fslStreams = data.streams.filter(stream => {
+                const title = stream.title || "";
+                // Keep only FSL links, exclude PixelServer and VixSrc
+                return title.includes("FSL") || title.includes("HubCloud Server");
+            });
 
+            log(`🔍 [WebStreamr] Filtered to ${fslStreams.length} FSL streams`);
+
+            // Map streams to AnisFlix format
+            const mappedStreams = fslStreams.map(stream => {
                 const title = stream.title || "";
                 const name = stream.name || "";
 
@@ -101,17 +96,7 @@ export class FourKHDHubScraper {
                 const size = sizeMatch ? sizeMatch[1] : null;
 
                 // Provider label
-                // Attempt to keep existing naming convention if it matches
-                let label = "WebStreamr";
-                if (title.includes("HubCloud") && title.includes("PixelServer")) label = `HubCloud (Pixel) - ${quality}`;
-                else if (title.includes("HubCloud")) label = `HubCloud - ${quality}`;
-                else {
-                    label = `${name.replace('WebStreamr | ', '')} - ${quality}`;
-                }
-
-                // URL fix for PixelServer (as seen in previous code)?
-                // Previous code: dlUrl = href.replace('/u/', '/api/file/');
-                // WebStreamr response already has: "https://pixeldrain.dev/api/file/..." so it seems handled.
+                let label = `HubCloud FSL - ${quality}`;
 
                 return {
                     url: stream.url,
