@@ -29,6 +29,8 @@ class GlobalPlayerManager: ObservableObject {
     @Published var mediaId: Int?
     @Published var season: Int?
     @Published var episode: Int?
+    @Published var totalEpisodesInSeason: Int?
+    @Published var seriesTitle: String?
     @Published var isLive: Bool = false
     
     // Server URL for Cast (used for downloaded videos where local file can't be cast)
@@ -176,7 +178,7 @@ class GlobalPlayerManager: ObservableObject {
             // But usually Cast loads from URL directly. If URL is signed/proxy, it might work.
             // If headers are needed for authentication, Cast might fail. 
             // For now, focusing on local playback as per user request ("partie video").
-            castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode)
+            castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
              playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers)
              // Seek to saved position after a short delay

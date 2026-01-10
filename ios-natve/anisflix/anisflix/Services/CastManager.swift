@@ -1036,6 +1036,12 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
             }
             
             self.mediaStatus = mediaStatus
+            
+            // Update currentTime for background monitoring (GlobalPlayerManager uses this for next episode detection)
+            if let status = mediaStatus {
+                self.currentTime = status.streamPosition
+            }
+            
             self.updateLockScreenInfo()
             self.objectWillChange.send() // Force SwiftUI to refresh views observing this object
         }
@@ -1062,13 +1068,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
                 if status.playerState == .idle || status.playerState == .unknown {
                     stopSilentAudioForNowPlaying()
                 }
-                
-                // Auto-play next episode detection
-                if status.playerState == .idle && status.idleReason == .finished {
-                    if let season = currentSeason, let episode = currentEpisode, let mediaId = currentMediaId {
-                        handleEpisodeFinished(mediaId: mediaId, season: season, episode: episode)
-                    }
-                }
+                // Note: Auto-play next episode is handled by GlobalPlayerManager via $currentTime monitoring
             }
         }
     }
