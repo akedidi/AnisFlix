@@ -1,6 +1,3 @@
-
-import axios from 'axios';
-import * as cheerio from 'cheerio';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { wrapper } from 'axios-cookiejar-support';
