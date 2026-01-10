@@ -75,7 +75,7 @@ function findCountryCodes(html) {
 export class FourKHDHubScraper {
     constructor() {
         this.baseUrl = 'https://4khdhub.dad';
-        this.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        this.userAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
         // Cache for Base URL resolution
         this.finalBaseUrl = null;
@@ -90,7 +90,11 @@ export class FourKHDHubScraper {
 
         try {
             const response = await axios.get(this.baseUrl, {
-                headers: { 'User-Agent': this.userAgent },
+                headers: {
+                    'User-Agent': this.userAgent,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                },
                 maxRedirects: 5,
                 validateStatus: status => status < 400
             });
@@ -119,7 +123,12 @@ export class FourKHDHubScraper {
 
         try {
             const response = await axios.get(searchUrl, {
-                headers: { 'User-Agent': this.userAgent }
+                headers: {
+                    'User-Agent': this.userAgent,
+                    'Referer': this.baseUrl,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
 
             const $ = cheerio.load(response.data);
@@ -180,7 +189,11 @@ export class FourKHDHubScraper {
     async resolveRedirectUrl(redirectUrl) {
         try {
             const response = await axios.get(redirectUrl, {
-                headers: { 'User-Agent': this.userAgent }
+                headers: {
+                    'User-Agent': this.userAgent,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
             const html = response.data;
 
@@ -359,7 +372,12 @@ export class FourKHDHubScraper {
 
         try {
             const response = await axios.get(pageUrl, {
-                headers: { 'User-Agent': this.userAgent }
+                headers: {
+                    'User-Agent': this.userAgent,
+                    'Referer': this.baseUrl,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
 
             const $ = cheerio.load(response.data);
