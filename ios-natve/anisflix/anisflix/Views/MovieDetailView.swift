@@ -40,6 +40,11 @@ struct MovieDetailView: View {
     @State private var extractionError: String?
     @State private var watchProgress: Double? // Watch progress (0.0 to 1.0)
     
+    // VLC Player for MKV
+    @State private var showVLCPlayer = false
+    @State private var vlcURL: URL?
+    @State private var vlcTitle: String?
+    
     var body: some View {
         ZStack(alignment: .top) {
             theme.backgroundColor.ignoresSafeArea()
@@ -448,6 +453,11 @@ struct MovieDetailView: View {
         .task {
             await loadData()
         }
+        .fullScreenCover(isPresented: $showVLCPlayer) {
+            if let url = vlcURL {
+                VLCPlayerView(url: url, title: vlcTitle, posterUrl: movie?.posterPath != nil ? URL(string: "https://image.tmdb.org/t/p/w500\(movie!.posterPath!)") : nil)
+            }
+        }
     }
     
     private func loadData() async {
@@ -553,6 +563,18 @@ struct MovieDetailView: View {
                     // UniversalVO and Vixsrc sources are already proxied, use directly
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")
                     streamUrl = source.url
+                } else if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
+                    // 4KHDHub sources are MKV - route to VLC player
+                    print("🎬 [MovieDetailView] MKV source detected, using VLC player")
+                    if let url = URL(string: source.url) {
+                        await MainActor.run {
+                            self.vlcURL = url
+                            self.vlcTitle = self.movie?.title ?? "Movie"
+                            self.showVLCPlayer = true
+                            self.isLoadingSources = false
+                        }
+                    }
+                    return
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")

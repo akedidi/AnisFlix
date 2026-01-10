@@ -4,4 +4,5 @@ target 'AnisFlix' do
   use_frameworks!
 
   pod 'google-cast-sdk'
+  pod 'MobileVLCKit', '~> 3.6'
 end

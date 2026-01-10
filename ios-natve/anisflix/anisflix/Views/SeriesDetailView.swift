@@ -49,6 +49,11 @@ struct SeriesDetailView: View {
     @State private var isLoadingSource = false
     @State private var extractionError: String?
     
+    // VLC Player for MKV
+    @State private var showVLCPlayer = false
+    @State private var vlcURL: URL?
+    @State private var vlcTitle: String?
+    
     @Namespace private var animation
     
     var body: some View {
@@ -473,6 +478,11 @@ struct SeriesDetailView: View {
         .task {
             await loadSeriesDetails()
         }
+        .fullScreenCover(isPresented: $showVLCPlayer) {
+            if let url = vlcURL {
+                VLCPlayerView(url: url, title: vlcTitle, posterUrl: series?.posterPath != nil ? URL(string: "https://image.tmdb.org/t/p/w500\(series!.posterPath!)") : nil)
+            }
+        }
     }
     
     // MARK: - Actions
@@ -535,6 +545,18 @@ struct SeriesDetailView: View {
                     // UniversalVO and Vixsrc sources are already proxied, use directly
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
                     finalURL = URL(string: source.url)
+                } else if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
+                    // 4KHDHub sources are MKV - route to VLC player
+                    print("🎬 [SeriesDetailView] MKV source detected, using VLC player")
+                    if let url = URL(string: source.url) {
+                        await MainActor.run {
+                            self.vlcURL = url
+                            self.vlcTitle = "\(self.series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber)"
+                            self.showVLCPlayer = true
+                            self.isLoadingSource = false
+                        }
+                    }
+                    return
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
