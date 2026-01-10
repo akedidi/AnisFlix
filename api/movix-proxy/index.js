@@ -537,7 +537,7 @@ class MovieBoxScraper {
   }
 
   async getTmdbInfo(tmdbId, type) {
-    const url = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}?api_key=${this.tmdbApiKey}`;
+    const url = `https://api.themoviedb.org/3/${type === 'tv' ? 'tv' : 'movie'}/${tmdbId}?api_key=${this.tmdbApiKey}&append_to_response=external_ids`;
 
     try {
       const response = await axios.get(url);
@@ -548,7 +548,12 @@ class MovieBoxScraper {
       const runtime = type === 'tv' ? data.episode_run_time?.[0] : data.runtime;
       const vote_average = data.vote_average;
 
-      return { title, originalTitle, year, runtime, vote_average, data };
+      let imdb_id = data.imdb_id;
+      if (!imdb_id && data.external_ids) {
+        imdb_id = data.external_ids.imdb_id;
+      }
+
+      return { title, originalTitle, year, runtime, vote_average, imdb_id, data };
     } catch (error) {
       console.error('❌ [MovieBox] TMDB fetch failed:', error.message);
       return { title: 'Unknown', originalTitle: 'Unknown', year: 'Unknown', runtime: 0, vote_average: 0, data: {} };
