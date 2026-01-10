@@ -1,8 +1,12 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
 
 // ==========================================
 // HELPERS
@@ -93,6 +97,55 @@ export class FourKHDHubScraper {
         // Cache for Base URL resolution
         this.finalBaseUrl = null;
         this.lastBaseUrlCheck = 0;
+    }
+
+    async getBrowser() {
+        let executablePath = await chromium.executablePath();
+        if (!executablePath) {
+            // Local fallback for macOS (User's OS)
+            executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        }
+
+        return await puppeteer.launch({
+            args: [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox'],
+            defaultViewport: chromium.defaultViewport,
+            executablePath: executablePath,
+            headless: chromium.headless === false ? false : 'new', // Handle local vs prod headless
+            ignoreHTTPSErrors: true
+        });
+    }
+
+    async fetchWithBrowser(url, browser, referer) {
+        let page = null;
+        try {
+            page = await browser.newPage();
+            await page.setUserAgent(this.userAgent);
+            if (referer) {
+                await page.setExtraHTTPHeaders({ 'Referer': referer });
+            }
+
+            // Block images/fonts to speed up
+            await page.setRequestInterception(true);
+            page.on('request', (req) => {
+                if (['image', 'stylesheet', 'font'].includes(req.resourceType())) {
+                    req.abort();
+                } else {
+                    req.continue();
+                }
+            });
+
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+            // Get final URL after redirects
+            const finalUrl = page.url();
+            const content = await page.content();
+
+            await page.close();
+            return { content, finalUrl };
+        } catch (error) {
+            if (page) await page.close().catch(() => { });
+            throw error;
+        }
     }
 
     async getBaseUrl(logs = []) {
@@ -249,7 +302,7 @@ export class FourKHDHubScraper {
         }
     }
 
-    async extractSourceResults($, el, referer, type, logs = []) {
+    async extractSourceResults($, el, referer, type, browser, logs = []) {
         const log = (msg) => { logs.push(msg); console.log(msg); };
         const $el = $(el);
         const localHtml = $el.html();
@@ -279,48 +332,38 @@ export class FourKHDHubScraper {
 
         try {
             // Step 1: Resolve the initial link (HubDrive -> HubCloud OR HubCloud -> Landing)
-            let resolvedUrl = await this.resolveRedirectUrl(startLink, logs);
+            // Use Axios first for speed, fallback to browser if needed? 
+            // Actually, HubCloud IS the problem, so use Browser directly if available
 
-            // Fallback: If resolution failed (it's not a redirect page) but matches known domains, use it directly
-            if (!resolvedUrl && (startLink.includes('hubdrive') || startLink.includes('hubcloud'))) {
-                log("⚠️ [4KHDHub] Resolution fallback used.");
-                resolvedUrl = startLink;
-            }
-
-            if (!resolvedUrl) {
-                log("❌ [4KHDHub] resolvedUrl is null");
-                return null;
-            }
-            log(`✅ [4KHDHub] Resolved URL: ${resolvedUrl}`);
-
+            let resolvedUrl = null;
             let finalPageUrl = null;
+            let pageContent = null;
 
-            // Check if resolvedUrl needs another hop (the var url= pattern)
-            // Fetch it
-            const landingRes = await this.client.get(resolvedUrl, {
-                headers: { 'Referer': referer }
-            });
-            const landingHtml = landingRes.data;
-            const redirectMatch = landingHtml.match(/var url ?= ?'(.*?)'/);
+            log(`🚀 [4KHDHub] Using Puppeteer for: ${startLink}`);
 
+            // Fetch the start link with Puppeteer to handle all redirects and JS
+            const { content, finalUrl } = await this.fetchWithBrowser(startLink, browser, referer);
+            pageContent = content;
+            resolvedUrl = finalUrl;
+
+            log(`✅ [4KHDHub] Browser landed on: ${resolvedUrl}`);
+
+            // Check if we are on the landing page with "var url ="
+            const redirectMatch = pageContent.match(/var url ?= ?'(.*?)'/);
             if (redirectMatch) {
                 finalPageUrl = redirectMatch[1];
-                log(`✅ [4KHDHub] Found secondary redirect: ${finalPageUrl}`);
+                log(`✅ [4KHDHub] Found JS redirect: ${finalPageUrl}`);
+
+                // One more hop
+                const res2 = await this.fetchWithBrowser(finalPageUrl, browser, resolvedUrl);
+                pageContent = res2.content;
+                finalPageUrl = res2.finalUrl;
             } else {
-                // If resolveRedirectUrl returns a URL, it means it successfully decoded 'o'.
-                // If it returned null, it failed.
-                // If resolvedUrl is valid, use it.
                 finalPageUrl = resolvedUrl;
-                log(`ℹ️ [4KHDHub] No secondary redirect found, using resolvedURL as final.`);
             }
 
-            log(`⬇️ [4KHDHub] Fetching Final Page: ${finalPageUrl}`);
-
-            // Perform the "HubCloud Extractor" logic on the final page
-            const linksRes = await this.client.get(finalPageUrl, {
-                headers: { 'Referer': startLink } // Referer chain?
-            });
-            const $hub = cheerio.load(linksRes.data);
+            log(`⬇️ [4KHDHub] Parsing Final Page: ${finalPageUrl}`);
+            const $hub = cheerio.load(pageContent);
 
             const results = [];
 
@@ -371,7 +414,12 @@ export class FourKHDHubScraper {
         const pageUrl = await this.fetchPageUrl(title, year, isSeries, season, logs);
         if (!pageUrl) return [];
 
+        let browser = null;
         try {
+            // Launch Browser ONCE
+            log("🌐 [4KHDHub] Launching Browser...");
+            browser = await this.getBrowser();
+
             const response = await this.client.get(pageUrl, {
                 headers: {
                     'Referer': this.baseUrl
@@ -392,11 +440,11 @@ export class FourKHDHubScraper {
                     const dlItem = $(el).find('.episode-download-item').filter((j, item) => {
                         return $(item).text().includes(epiStr);
                     });
-                    if (dlItem.length > 0) promises.push(this.extractSourceResults($, dlItem, pageUrl, type, logs));
+                    if (dlItem.length > 0) promises.push(this.extractSourceResults($, dlItem, pageUrl, type, browser, logs));
                 });
             } else {
                 $('.download-item').each((i, el) => {
-                    promises.push(this.extractSourceResults($, el, pageUrl, type, logs));
+                    promises.push(this.extractSourceResults($, el, pageUrl, type, browser, logs));
                 });
             }
 
@@ -409,6 +457,11 @@ export class FourKHDHubScraper {
         } catch (error) {
             log(`❌ [4KHDHub] Stream extraction failed: ${error.message}`);
             return [];
+        } finally {
+            if (browser) {
+                await browser.close().catch(() => { });
+                log("🌐 [4KHDHub] Browser Closed.");
+            }
         }
     }
 }
