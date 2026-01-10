@@ -1203,6 +1203,11 @@ const StreamingSources = memo(function StreamingSources({
                           MKV
                         </Badge>
                       )}
+                      {source.isFourKHDHub && (
+                        <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-700 border-yellow-500">
+                          Chrome Only
+                        </Badge>
+                      )}
                       {source.quality && (
                         <Badge variant="secondary" className="text-xs">
                           {source.quality}
