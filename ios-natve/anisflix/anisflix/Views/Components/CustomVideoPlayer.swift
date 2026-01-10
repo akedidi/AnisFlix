@@ -886,6 +886,9 @@ class PlayerViewModel: NSObject, ObservableObject {
         // Store the title if provided
         if let title = title {
             currentTitle = title
+            print("📺 [PlayerVM] New title set: \(title)")
+            // Force immediate Now Playing update with new title
+            updateNowPlayingInfo(title: title)
         }
         
         // Artwork Loading with Priority
