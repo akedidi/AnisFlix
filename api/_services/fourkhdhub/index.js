@@ -88,6 +88,7 @@ export class FourKHDHubScraper {
                 // Parse quality from name or title
                 let quality = "HD";
                 if (name.includes("2160p") || title.includes("2160p")) quality = "4K";
+                else if (name.includes("1440p") || title.includes("1440p")) quality = "2K";
                 else if (name.includes("1080p") || title.includes("1080p")) quality = "1080p";
                 else if (name.includes("720p") || title.includes("720p")) quality = "720p";
 
