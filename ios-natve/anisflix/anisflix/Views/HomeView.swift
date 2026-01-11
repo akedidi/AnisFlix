@@ -106,7 +106,7 @@ struct HomeView: View {
                                                 .fill(Color.white)
                                                 .frame(width: 90, height: 90)
                                                 .overlay(
-                                                    AsyncImage(url: URL(string: "https://image.tmdb.org/t/p/w200\(provider.logo)")) { phase in
+                                                    CachedAsyncImagePhased(url: URL(string: "https://image.tmdb.org/t/p/w200\(provider.logo)")) { phase in
                                                         switch phase {
                                                         case .success(let image):
                                                             image

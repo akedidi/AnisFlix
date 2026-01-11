@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import MobileVLCKit
 
 class GlobalPlayerManager: ObservableObject {
     static let shared = GlobalPlayerManager()
@@ -32,6 +33,13 @@ class GlobalPlayerManager: ObservableObject {
     @Published var totalEpisodesInSeason: Int?
     @Published var seriesTitle: String?
     @Published var isLive: Bool = false
+    
+    // VLC Player Sheet (for MKV/4KHDHub sources)
+    @Published var showVLCSheet = false
+    @Published var vlcURL: URL?
+    @Published var vlcTitle: String?
+    @Published var vlcPosterUrl: URL?
+    @Published var isVLCMinimized = false // For VLC mini-player
     
     // Server URL for Cast (used for downloaded videos where local file can't be cast)
     private var currentServerUrl: URL?
@@ -125,9 +133,34 @@ class GlobalPlayerManager: ObservableObject {
             .store(in: &cancellables)
     }
     
+    // MARK: - VLC Playback Management
+    // (Method removed - reverting to local view model)
+    
+    // Force stop ALL players (AVPlayer + VLC) to prevent double audio
+    func stopAllPlayback() {
+        print("🛑 [GlobalPlayerManager] STOP ALL PLAYBACK TRIGGERED")
+        
+        // 1. Stop AVPlayer
+        if playerVM.isPlaying {
+            print("   - Stopping AVPlayer")
+            playerVM.player.pause()
+            playerVM.isPlaying = false
+        }
+        
+        // 2. Stop VLC Player
+        // VLC managed locally by View now - no shared instance to stop
+        
+        // 3. Reset states
+        isMinimised = false
+        showVLCSheet = false
+    }
+
     // Start playback (replaces current media)
     // serverUrl: Optional URL for Chromecast (used for downloaded videos where local file can't be cast)
     func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil, provider: String? = nil, language: String? = nil, quality: String? = nil, origin: String? = nil, isFromDownload: Bool = false, localPosterPath: String? = nil) {
+        
+        // 0. STOP EVERYTHING FIRST
+        stopAllPlayback()
         
         // 1. Set Metadata
         print("🎬 [GlobalPlayerManager] Play requested. Title: '\(title)', URL: \(url)")
@@ -181,13 +214,43 @@ class GlobalPlayerManager: ObservableObject {
             // For now, focusing on local playback as per user request ("partie video").
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
-             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers)
+             // Detect if we need VLC (MKV/4KHDHub sources)
+             print("🔍 [GlobalPlayerManager] Checking for VLC: provider='\(provider ?? "nil")', extension='\(url.pathExtension)'")
+             let useVLC = provider?.lowercased() == "4khdhub" || 
+                          provider?.lowercased() == "fourkhdhub" ||
+                          url.pathExtension.lowercased() == "mkv"
+             
+             print("🎬 [GlobalPlayerManager] useVLC decision: \(useVLC)")
+             
+             if useVLC {
+                  // Use standalone VLCPlayerView for MKV files (proven to work)
+                  print("✅ [GlobalPlayerManager] MKV/4KHDHub source detected, using standalone VLCPlayerView")
+                  
+                  // Stop AVPlayer if running
+                  if playerVM.isPlaying {
+                      playerVM.player.pause()
+                      playerVM.isPlaying = false
+                  }
+                  
+                  self.vlcURL = url
+                  self.vlcTitle = title
+                  self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
+                  self.showVLCSheet = true
+                  return // Don't show standard player
+             } else {
+                 print("ℹ️ [GlobalPlayerManager] Using standard AVPlayer")
+             }
+             
+             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers, useVLCPlayer: false)
+             
              // Seek to saved position after a short delay
              if startTime > 0 {
                  DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                      self?.playerVM.seek(to: startTime)
                  }
              }
+             
+             // Start playback
              playerVM.player.play()
              playerVM.isPlaying = true
         }
@@ -245,8 +308,12 @@ class GlobalPlayerManager: ObservableObject {
             return
         }
         
-        // Normal close - stop playback
-        playerVM.player.pause()
+        // Normal close - stop playback (both AVPlayer and VLC)
+        if playerVM.useVLC {
+            playerVM.stopVLC()
+        } else {
+            playerVM.player.pause()
+        }
         isPresented = false
         isMinimised = false
         currentMediaUrl = nil

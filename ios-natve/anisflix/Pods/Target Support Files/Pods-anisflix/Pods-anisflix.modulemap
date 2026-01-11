@@ -1,6 +1,0 @@
-framework module Pods_AnisFlix {
-  umbrella header "Pods-AnisFlix-umbrella.h"
-
-  export *
-  module * { export * }
-}

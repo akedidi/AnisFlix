@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
+import { AfterDarkScraper } from "../_services/afterdark/index.js";
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
 // Cache persists across requests on warm function instances
@@ -562,7 +563,9 @@ class MovieBoxScraper {
 }
 
 const movieBoxScraper = new MovieBoxScraper();
+const movieBoxScraper = new MovieBoxScraper();
 const fourKHDHubScraper = new FourKHDHubScraper();
+const afterDarkScraper = new AfterDarkScraper();
 
 
 export default async function handler(req, res) {
@@ -800,6 +803,47 @@ export default async function handler(req, res) {
         });
       }
       return;
+    }
+
+    // GÉRER AFTERDARK ICI
+    if (decodedPath === 'afterdark') {
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+        let { title, year, originalTitle } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({ error: 'Missing parameters (tmdbId, type)' });
+        }
+
+        // Fetch TMDB info if title or year is missing
+        if (!title || (!year && type === 'movie')) {
+          console.log(`🚀 [MOVIX PROXY AFTERDARK] Fetching TMDB info for ${type} ${tmdbId}`);
+          const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+          if (tmdbInfo.title && tmdbInfo.title !== 'Unknown') {
+            title = tmdbInfo.title;
+            year = tmdbInfo.year;
+            originalTitle = tmdbInfo.originalTitle;
+          }
+        }
+
+        console.log(`🚀 [MOVIX PROXY AFTERDARK] Request: ${type} "${title}" (${year}) S${season}E${episode}`);
+
+        const streams = await afterDarkScraper.getStreams(
+          tmdbId,
+          type,
+          title,
+          year,
+          season,
+          episode,
+          originalTitle
+        );
+
+        return res.status(200).json({ success: true, streams });
+
+      } catch (error) {
+        console.error('[MOVIX PROXY AFTERDARK ERROR]', error.message);
+        return res.status(500).json({ error: 'Erreur proxy AfterDark', details: error.message });
+      }
     }
 
     // GÉRER FOURKHDHUB ICI

@@ -28,7 +28,7 @@ struct WatchProvidersView: View {
                                 ForEach(uniqueProviders) { provider in
                                     if let url = provider.logoURL {
                                         // Button removed as per user request to make providers non-clickable
-                                        AsyncImage(url: url) { phase in
+                                        CachedAsyncImagePhased(url: url) { phase in
                                             if let image = phase.image {
                                                 image
                                                     .resizable()

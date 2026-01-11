@@ -907,9 +907,6 @@ export default function VideoPlayer({
             onSubtitleOffsetChange={handleSubtitleOffsetChange}
             subtitleFontSize={subtitleFontSize}
             onSubtitleFontSizeChange={handleSubtitleFontSizeChange}
-            mediaId={mediaId}
-            mediaType={mediaType}
-            season={seasonNumber}
             episode={episodeNumber}
             provider={provider}
           />

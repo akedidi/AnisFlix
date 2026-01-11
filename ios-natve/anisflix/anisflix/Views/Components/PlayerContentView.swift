@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import MobileVLCKit
 
 struct PlayerContentView: View {
     @ObservedObject var castManager = CastManager.shared
@@ -27,6 +28,11 @@ struct PlayerContentView: View {
             
             if castManager.isConnected {
                 CastPlaceholderView()
+            } else if playerVM.useVLC, let vlcPlayer = playerVM.vlcPlayer {
+                // VLC Player for MKV/unsupported formats
+                VLCVideoViewWrapper(player: vlcPlayer)
+                    .background(Color.black)
+                    .ignoresSafeArea(.all, edges: .all)
             } else {
                 VideoPlayerView(player: playerVM.player, playerVM: playerVM)
                     .background(Color.black)
@@ -62,3 +68,85 @@ struct PlayerContentView: View {
         }
     }
 }
+
+// MARK: - VLC Video View Wrapper (UIViewRepresentable)
+struct VLCVideoViewWrapper: UIViewRepresentable {
+    let player: VLCMediaPlayer
+    
+    func makeUIView(context: Context) -> UIView {
+        let view = VLCRenderView()
+        view.backgroundColor = .black
+        view.player = player
+        
+        // Force drawable assignment immediately if possible
+        print("🎬 [VLCVideoViewWrapper] makeUIView - assigning player and drawable")
+        player.drawable = view
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // Ensure drawable is always set to current view
+        if player.drawable as? UIView !== uiView {
+            print("🎬 [VLCVideoViewWrapper] updateUIView - Reassigning drawable (was mismatch)")
+            player.drawable = uiView
+        }
+        
+        // Also update the player property on the view in case it changed
+        if let renderView = uiView as? VLCRenderView {
+            if renderView.player != player {
+                print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
+                renderView.player = player
+                player.drawable = renderView
+            }
+        }
+    }
+}
+
+// Custom UIView that sets VLC drawable when added to window
+class VLCRenderView: UIView {
+    weak var player: VLCMediaPlayer?
+    private var hasStartedPlayback = false
+    
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            print("🎬 [VLCRenderView] didMoveToWindow - window attached, bounds: \(bounds)")
+            // Defer drawable assignment to next run loop to allow layer setup
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                print("🎬 [VLCRenderView] Setting drawable (deferred)")
+                self.player?.drawable = self
+                self.checkAndStartPlayback()
+            }
+        }
+    }
+    
+    private func checkAndStartPlayback() {
+        guard let player = player, !hasStartedPlayback else { return }
+        
+        hasStartedPlayback = true
+        // Longer delay to ensure OpenGL context is created
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            print("▶️ [VLCRenderView] Attempting to start playback...")
+            if player.state != .playing {
+                player.play()
+                print("▶️ [VLCRenderView] play() called")
+            }
+        }
+    }
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if window != nil && bounds.width > 0 && bounds.height > 0 {
+            if player?.drawable as? UIView !== self {
+                print("🎬 [VLCRenderView] layoutSubviews - reassigning drawable")
+                player?.drawable = self
+            }
+            // Ensure playback starts if it hasn't yet (e.g. if didMoveToWindow didn't trigger it)
+            checkAndStartPlayback()
+        }
+    }
+}
+
+

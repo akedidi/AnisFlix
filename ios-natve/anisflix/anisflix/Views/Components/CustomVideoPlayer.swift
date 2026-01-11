@@ -9,6 +9,7 @@ import SwiftUI
 import AVKit
 import Combine
 import MediaPlayer
+import MobileVLCKit
 #if canImport(GoogleCast)
 import GoogleCast
 #endif
@@ -755,7 +756,7 @@ extension Notification.Name {
     static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
-class PlayerViewModel: NSObject, ObservableObject {
+class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     @Published var player = AVPlayer()
     @Published var isPlaying = false {
         didSet {
@@ -794,6 +795,11 @@ class PlayerViewModel: NSObject, ObservableObject {
     var season: Int?
     var episode: Int?
     var progress: Double = 0
+    
+    // VLC Player for MKV support - Re-integration
+    @Published var useVLC = false
+    @Published var vlcPlayer: VLCMediaPlayer?
+    private var vlcTimeObserver: Timer?
     
     private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
     private var artworkTask: Task<Void, Never>?
@@ -885,13 +891,21 @@ class PlayerViewModel: NSObject, ObservableObject {
         }
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false) {
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
         
+        // Cleanup previous VLC player if switching modes
+        if useVLC && !useVLCPlayer {
+            cleanupVLC()
+        }
+        
+        // Set VLC mode
+        self.useVLC = useVLCPlayer
+        
         // Store the title if provided
         if let title = title {
-            print("📺 [PlayerVM] setup() called with title: '\(title)'")
+            print("📺 [PlayerVM] setup() called with title: '\(title)' (VLC: \(useVLCPlayer))")
             currentTitle = title
             
             // Force clean update with new title using reset: true
@@ -922,13 +936,26 @@ class PlayerViewModel: NSObject, ObservableObject {
         // If same URL, just ensure playing and return
         if url == currentUrl {
             if !isPlaying {
-                player.play()
+                if useVLC, let vlc = vlcPlayer {
+                    vlc.play()
+                } else {
+                    player.play()
+                }
                 isPlaying = true
             }
             return
         }
         
         currentUrl = url
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // VLC PLAYER BRANCH (for MKV and other formats not supported by AVPlayer)
+        // ═══════════════════════════════════════════════════════════════════
+        if useVLCPlayer {
+            print("🎬 [PlayerVM] Using VLC player for: \(url)")
+            setupVLCPlayer(url: url, customHeaders: customHeaders)
+            return
+        }
         
         var finalUrl = url
         var useResourceLoader = false
@@ -1065,6 +1092,21 @@ class PlayerViewModel: NSObject, ObservableObject {
             guard let self = self, !self.isSeeking else { return }
             self.currentTime = time.seconds
             self.updateSubtitle()
+            
+            // Sync isPlaying state with actual player rate
+            // This fixes the issue where UI shows "Play" button while video is playing
+            if !self.useVLC {
+                let isActuallyPlaying = self.player.rate > 0 && self.player.error == nil
+                if self.isPlaying != isActuallyPlaying {
+                    // Only update if mismatch (and not buffering/seeking logic overriding it)
+                    // We check rate to be sure.
+                    // Note: buffering might pause player (rate 0) but we still consider it "playing" intents.
+                    // But if rate > 0, we MUST be isPlaying = true.
+                    if isActuallyPlaying {
+                         self.isPlaying = true
+                    }
+                }
+            }
             
             // Sync Now Playing Info periodically (every 5 seconds) for lock screen progress
             if Int(time.seconds) % 5 == 0 {
@@ -1347,12 +1389,22 @@ class PlayerViewModel: NSObject, ObservableObject {
     }
     
     func togglePlayPause() {
-        if isPlaying {
-            player.pause()
-            isPlaying = false
+        if useVLC, let vlc = vlcPlayer {
+            if isPlaying {
+                vlc.pause()
+                isPlaying = false
+            } else {
+                vlc.play()
+                isPlaying = true
+            }
         } else {
-            player.play()
-            isPlaying = true
+            if isPlaying {
+                player.pause()
+                isPlaying = false
+            } else {
+                player.play()
+                isPlaying = true
+            }
         }
         
         // Update Now Playing Info to sync with system
@@ -1361,8 +1413,195 @@ class PlayerViewModel: NSObject, ObservableObject {
     }
     
     func seek(to time: Double) {
-        player.seek(to: CMTime(seconds: time, preferredTimescale: 600))
+        if useVLC, let vlc = vlcPlayer {
+            guard duration > 0 else { return }
+            let position = Float(time / duration)
+            vlc.position = position
+        } else {
+            player.seek(to: CMTime(seconds: time, preferredTimescale: 600))
+        }
     }
+    
+    // MARK: - VLC Player Methods
+    
+    private func setupVLCPlayer(url: URL, customHeaders: [String: String]?) {
+        print("🎬 [PlayerVM] setupVLCPlayer called with URL: \(url)")
+        
+        // Cleanup any existing VLC player
+        cleanupVLC()
+        
+        print("🎬 [PlayerVM] Creating new VLC player...")
+        // Create new VLC player
+        // Create new VLC player
+        let vlc = VLCMediaPlayer()
+        
+        // Enable Debug Logging for troubleshooting
+        vlc.libraryInstance.debugLogging = true
+        vlc.libraryInstance.debugLoggingLevel = 3 // Verbose
+        
+        let media = VLCMedia(url: url)
+        print("🎬 [PlayerVM] VLCMedia created for: \(url.absoluteString)")
+        
+        // Set network caching and user agent
+        var options: [String: Any] = [
+            "network-caching": 3000,
+            "http-user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+        ]
+        
+        // Add custom headers if provided
+        if let headers = customHeaders {
+            for (key, value) in headers {
+                options["http-\(key.lowercased())"] = value
+            }
+        }
+        
+        media.addOptions(options)
+        
+        vlc.media = media
+        vlc.delegate = self // Set delegate to receive state/time updates
+        
+        self.vlcPlayer = vlc
+        print("🎬 [PlayerVM] vlcPlayer set, useVLC=\(useVLC), vlcPlayer is nil: \(vlcPlayer == nil)")
+        
+        // Set initial state
+        isBuffering = true
+        isPlaying = false 
+        
+        // Fallback Force Playback (Safety Net)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self, let player = self.vlcPlayer else { return }
+            // Only force play if drawable is attached to avoid "nil view" errors
+            if (player.state == .stopped || player.state == .ended) && player.drawable != nil {
+                print("⚠️ [PlayerVM] Fallback: Forcing VLC play() (Drawable is set)")
+                player.play()
+            }
+        }
+        
+        // Setup time observer for VLC
+        vlcTimeObserver = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self = self, let vlc = self.vlcPlayer else { return }
+            
+            let time = Double(vlc.time.intValue) / 1000.0
+            let length = Double(vlc.media?.length.intValue ?? 0) / 1000.0
+            
+            DispatchQueue.main.async {
+                if !self.isSeeking {
+                    self.currentTime = time
+                }
+                if length > 0 {
+                    self.duration = length
+                }
+                
+                // Update buffering state
+                if time > 0 {
+                    self.isBuffering = false
+                }
+                
+                // Update playing state based on VLC state
+                let state = vlc.state
+                let wasPlaying = self.isPlaying
+                let nowPlaying = (state == .playing || state == .buffering)
+                
+                if wasPlaying != nowPlaying {
+                    print("🎬 [PlayerVM] VLC state changed: \(state.rawValue), isPlaying: \(nowPlaying)")
+                    self.isPlaying = nowPlaying
+                }
+                
+                // Update subtitles
+                self.updateSubtitle()
+                
+                // Sync Now Playing Info periodically
+                if Int(time) % 5 == 0 && time > 0 {
+                    self.updateNowPlayingInfo()
+                }
+            }
+        }
+        
+        // Initialize remote commands
+        setupRemoteCommands()
+        
+        // NOTE: Playback is NOT started here. It is started by VLCRenderView in PlayerContentView
+        // when the drawable is assigned. This prevents black screen issues.
+        
+        // Update Now Playing Info
+        updateNowPlayingInfo(title: currentTitle ?? url.lastPathComponent)
+        
+        print("✅ [PlayerVM] VLC player setup complete - Waiting for View to attach drawable")
+    }
+    
+    private func cleanupVLC() {
+        vlcTimeObserver?.invalidate()
+        vlcTimeObserver = nil
+        vlcPlayer?.stop()
+        vlcPlayer = nil
+        useVLC = false
+        print("🧹 [PlayerVM] VLC player cleaned up")
+    }
+    
+    /// Public method to stop VLC playback
+    func stopVLC() {
+        print("⏹️ [PlayerVM] stopVLC called")
+        cleanupVLC()
+    }
+    
+    // MARK: - VLCMediaPlayerDelegate
+    
+    func mediaPlayerStateChanged(_ aNotification: Notification!) {
+        guard let vlc = vlcPlayer else { return }
+        
+        switch vlc.state {
+        case .playing:
+            print("▶️ [PlayerVM-Delegate] VLC Playing")
+            DispatchQueue.main.async {
+                self.isPlaying = true
+                self.isBuffering = false
+            }
+        case .paused:
+             print("⏸️ [PlayerVM-Delegate] VLC Paused")
+             DispatchQueue.main.async {
+                 self.isPlaying = false
+                 self.isBuffering = false
+             }
+        case .stopped:
+             print("⏹️ [PlayerVM-Delegate] VLC Stopped")
+             DispatchQueue.main.async {
+                 self.isPlaying = false
+                 self.isBuffering = false
+             }
+        case .buffering:
+             print("⏳ [PlayerVM-Delegate] VLC Buffering")
+             DispatchQueue.main.async {
+                 self.isBuffering = true
+             }
+        case .error:
+             print("❌ [PlayerVM-Delegate] VLC Error")
+             DispatchQueue.main.async {
+                 self.isBuffering = false
+                 self.isPlaying = false
+             }
+        case .ended:
+             print("🏁 [PlayerVM-Delegate] VLC Ended")
+             DispatchQueue.main.async {
+                 self.isPlaying = false
+             }
+        default:
+            break
+        }
+    }
+    
+    func mediaPlayerTimeChanged(_ aNotification: Notification!) {
+        guard let vlc = vlcPlayer else { return }
+        // Let the Timer handle UI updates to avoid too frequent updates,
+        // but this delegate method confirms playback is actually progressing.
+        // We can use this to double-check buffering state.
+        if isBuffering {
+             DispatchQueue.main.async {
+                 self.isBuffering = false
+             }
+        }
+    }
+    
+
     
     func loadSubtitles(url: URL) {
         Task {

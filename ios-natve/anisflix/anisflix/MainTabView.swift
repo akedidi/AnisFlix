@@ -288,6 +288,9 @@ struct MainTabView: View {
                      .zIndex(100) // Ensure it's above content but below full player overlay
              }
              
+             // VLC MINI PLAYER (REMOVED: User requested Classic Mode only)
+             // if playerManager.isVLCMinimized && !playerManager.showVLCSheet { ... }
+             
              // GLOBAL FULL PLAYER OVERLAY
              // Keep player in hierarchy to prevent onDisappear cleanup
              // Use zIndex and frame positioning to hide/show while keeping AVPlayerLayer rendering
@@ -342,6 +345,20 @@ struct MainTabView: View {
             CastControlSheet()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        // VLC Player for MKV/4KHDHub sources
+        .fullScreenCover(isPresented: $playerManager.showVLCSheet) {
+            if let url = playerManager.vlcURL {
+                VLCPlayerView(
+                    url: url,
+                    title: playerManager.vlcTitle,
+                    posterUrl: playerManager.vlcPosterUrl,
+                    mediaId: playerManager.mediaId,
+                    season: playerManager.season,
+                    episode: playerManager.episode
+                )
+                .edgesIgnoringSafeArea(.all)
+            }
         }
     }
 }

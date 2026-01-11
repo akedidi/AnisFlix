@@ -28,3 +28,8 @@ app/
 
 # Allow android-native development
 !android-native/**
+
+ios-natve/anisflix/Pods/
+Pods/
+ios-natve/anisflix/build/
+

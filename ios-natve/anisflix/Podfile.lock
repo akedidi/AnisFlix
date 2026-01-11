@@ -1,16 +1,20 @@
 PODS:
   - google-cast-sdk (4.8.4)
+  - MobileVLCKit (3.7.1)
 
 DEPENDENCIES:
   - google-cast-sdk
+  - MobileVLCKit (~> 3.6)
 
 SPEC REPOS:
   trunk:
     - google-cast-sdk
+    - MobileVLCKit
 
 SPEC CHECKSUMS:
   google-cast-sdk: 32f65af50d164e3c475e79ad123db3cc26fbcd37
+  MobileVLCKit: 8692c27d106f409f97074d145860cfa1e7b59e5c
 
-PODFILE CHECKSUM: b10b2f930bbd7fd692695a73b2ed1d900173850b
+PODFILE CHECKSUM: f81bd555ccb8f4c91ead1e5e39e47926191c9900
 
 COCOAPODS: 1.16.2

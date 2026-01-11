@@ -40,11 +40,6 @@ struct MovieDetailView: View {
     @State private var extractionError: String?
     @State private var watchProgress: Double? // Watch progress (0.0 to 1.0)
     
-    // VLC Player for MKV
-    @State private var showVLCPlayer = false
-    @State private var vlcURL: URL?
-    @State private var vlcTitle: String?
-    
     var body: some View {
         ZStack(alignment: .top) {
             theme.backgroundColor.ignoresSafeArea()
@@ -380,11 +375,14 @@ struct MovieDetailView: View {
                                                                     .font(.title3)
                                                                 
                                                                 let displayText = getSourceDisplayText(source: source, filteredSources: filteredSources)
+                                                                let is4kHub = source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub"
                                                                 
-                                                                Text(displayText)
-                                                                    .font(.headline)
+                                                                Text(is4kHub ? "\(displayText) (VLC Player)" : displayText)
+                                                                    .font(.subheadline) // Reduced from headline
                                                                     .fontWeight(.medium)
                                                                     .foregroundColor(theme.primaryText)
+                                                                    .lineLimit(1)
+                                                                    .minimumScaleFactor(0.8)
                                                                 
                                                                 Spacer()
                                                                 
@@ -395,6 +393,21 @@ struct MovieDetailView: View {
                                                             .padding(12)
                                                             .background(theme.cardBackground)
                                                             .cornerRadius(8)
+                                                        }
+                                                        
+                                                        // Copy Button for 4khdhub
+                                                        if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
+                                                            Button(action: {
+                                                                UIPasteboard.general.string = source.url
+                                                                let generator = UINotificationFeedbackGenerator()
+                                                                generator.notificationOccurred(.success)
+                                                            }) {
+                                                                Image(systemName: "doc.on.doc")
+                                                                    .foregroundColor(theme.secondaryText)
+                                                                    .padding(12)
+                                                                    .background(theme.cardBackground)
+                                                                    .cornerRadius(8)
+                                                            }
                                                         }
                                                         
                                                         DownloadButton(source: source, media: getMedia(from: movie), season: nil, episode: nil)
@@ -452,11 +465,6 @@ struct MovieDetailView: View {
         }
         .task {
             await loadData()
-        }
-        .fullScreenCover(isPresented: $showVLCPlayer) {
-            if let url = vlcURL {
-                VLCPlayerView(url: url, title: vlcTitle, posterUrl: movie?.posterPath != nil ? URL(string: "https://image.tmdb.org/t/p/w500\(movie!.posterPath!)") : nil)
-            }
         }
     }
     
@@ -564,17 +572,9 @@ struct MovieDetailView: View {
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")
                     streamUrl = source.url
                 } else if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
-                    // 4KHDHub sources are MKV - route to VLC player
-                    print("🎬 [MovieDetailView] MKV source detected, using VLC player")
-                    if let url = URL(string: source.url) {
-                        await MainActor.run {
-                            self.vlcURL = url
-                            self.vlcTitle = self.movie?.title ?? "Movie"
-                            self.showVLCPlayer = true
-                            self.isLoadingSources = false
-                        }
-                    }
-                    return
+                    // 4KHDHub sources are MKV - route through GlobalPlayerManager (uses VLC)
+                    print("🎬 [MovieDetailView] MKV source detected, routing to GlobalPlayerManager with VLC")
+                    streamUrl = source.url
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")

@@ -49,11 +49,6 @@ struct SeriesDetailView: View {
     @State private var isLoadingSource = false
     @State private var extractionError: String?
     
-    // VLC Player for MKV
-    @State private var showVLCPlayer = false
-    @State private var vlcURL: URL?
-    @State private var vlcTitle: String?
-    
     @Namespace private var animation
     
     var body: some View {
@@ -478,11 +473,6 @@ struct SeriesDetailView: View {
         .task {
             await loadSeriesDetails()
         }
-        .fullScreenCover(isPresented: $showVLCPlayer) {
-            if let url = vlcURL {
-                VLCPlayerView(url: url, title: vlcTitle, posterUrl: series?.posterPath != nil ? URL(string: "https://image.tmdb.org/t/p/w500\(series!.posterPath!)") : nil)
-            }
-        }
     }
     
     // MARK: - Actions
@@ -546,17 +536,9 @@ struct SeriesDetailView: View {
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
                     finalURL = URL(string: source.url)
                 } else if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
-                    // 4KHDHub sources are MKV - route to VLC player
-                    print("🎬 [SeriesDetailView] MKV source detected, using VLC player")
-                    if let url = URL(string: source.url) {
-                        await MainActor.run {
-                            self.vlcURL = url
-                            self.vlcTitle = "\(self.series?.name ?? "") - S\(episode.seasonNumber)E\(episode.episodeNumber)"
-                            self.showVLCPlayer = true
-                            self.isLoadingSource = false
-                        }
-                    }
-                    return
+                    // 4KHDHub sources are MKV - route through GlobalPlayerManager (uses VLC)
+                    print("🎬 [SeriesDetailView] MKV source detected, routing to GlobalPlayerManager with VLC")
+                    finalURL = URL(string: source.url)
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
@@ -870,11 +852,14 @@ struct SeriesDetailView: View {
                                                 .font(.title3)
                                             
                                             let displayText = getSourceDisplayText(source: source, filteredSources: filterSources(episodeSources, language: theme.preferredSourceLanguage))
+                                            let is4kHub = source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub"
                                             
-                                            Text(displayText)
-                                                .font(.headline)
+                                            Text(is4kHub ? "\(displayText) (VLC Player)" : displayText)
+                                                .font(.subheadline) // Reduced from headline
                                                 .fontWeight(.medium)
                                                 .foregroundColor(theme.primaryText)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.8)
                                             
                                             Spacer()
                                             
@@ -885,6 +870,21 @@ struct SeriesDetailView: View {
                                         .padding(12)
                                         .background(theme.cardBackground)
                                         .cornerRadius(8)
+                                    }
+                                    
+                                    // Copy Button for 4khdhub
+                                    if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
+                                        Button(action: {
+                                            UIPasteboard.general.string = source.url
+                                            let generator = UINotificationFeedbackGenerator()
+                                            generator.notificationOccurred(.success)
+                                        }) {
+                                            Image(systemName: "doc.on.doc")
+                                                .foregroundColor(theme.secondaryText)
+                                                .padding(12)
+                                                .background(theme.cardBackground)
+                                                .cornerRadius(8)
+                                        }
                                     }
                                     
                                     DownloadButton(

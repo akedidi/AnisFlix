@@ -62,6 +62,7 @@ class WatchProgressManager: ObservableObject {
         
         // Update on Main Thread for real-time UI updates
         DispatchQueue.main.async {
+            print("💾 [WatchProgress] SAVING Key: \(key) | Time: \(Int(currentTime))s / \(Int(duration))s")
             self.progressMap[key] = item
             self.saveProgress()
         }

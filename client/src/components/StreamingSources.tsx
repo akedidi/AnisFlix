@@ -7,7 +7,9 @@ import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
 import { useMovieBox } from '@/hooks/useMovieBox';
+
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
+import { useAfterDark } from '@/hooks/useAfterDark';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,9 +32,10 @@ interface Source {
   isDarkibox?: boolean;
   isDarki?: boolean;
   isVixsrc?: boolean;
-  isVixsrc?: boolean;
+
   isAnimeAPI?: boolean;
   isFourKHDHub?: boolean;
+  isAfterDark?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -109,6 +112,7 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
+  const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode);
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
@@ -339,6 +343,17 @@ const StreamingSources = memo(function StreamingSources({
       if (movieBoxData && movieBoxData.success && movieBoxData.streams && movieBoxData.streams.length > 0) {
         return true;
       }
+    }
+
+    // Vérifier AfterDark (VF, VOSTFR, VO)
+    if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+      if (afterDarkData.streams.some((s: any) => {
+        const lang = s.language?.toLowerCase() || 'vf';
+        if (language === 'VF') return lang === 'vf' || lang === 'multi';
+        if (language === 'VOSTFR') return lang === 'vostfr';
+        if (language === 'VO') return lang === 'vo';
+        return false;
+      })) return true;
     }
 
     console.log(`❌ hasSourcesForLanguage(${language}) - Aucune source trouvée`);
@@ -823,6 +838,35 @@ const StreamingSources = memo(function StreamingSources({
   }
 
 
+  // Ajouter les sources AfterDark
+  if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+    console.log('🌑 [AfterDark] Sources trouvées:', afterDarkData.streams);
+    afterDarkData.streams.forEach((stream: any, index: number) => {
+      const lang = stream.language?.toLowerCase() || 'vf';
+      let mappedLang = 'VF';
+
+      if (lang === 'vo') mappedLang = 'VO';
+      if (lang === 'vostfr') mappedLang = 'VOSTFR';
+      if (lang === 'multi') mappedLang = 'VF';
+
+      if (selectedLanguage !== mappedLang) return;
+
+      allSources.push({
+        id: `afterdark-${index}`,
+        name: stream.name || `AfterDark ${stream.quality}`,
+        provider: 'afterdark',
+        url: stream.url,
+        type: 'm3u8' as const,
+        player: 'afterdark',
+        sourceKey: mappedLang,
+        quality: stream.quality,
+        language: mappedLang,
+        isAfterDark: true
+      });
+    });
+  }
+
+
 
 
   /**
@@ -873,8 +917,13 @@ const StreamingSources = memo(function StreamingSources({
         return 2;
       }
 
-      // Rang 3: Le reste (Darki, Movix, Vixsrc, etc.)
-      return 3;
+      // Rang 3: AfterDark
+      if (source.isAfterDark || source.provider.toLowerCase() === 'afterdark') {
+        return 3;
+      }
+
+      // Rang 4: Le reste (Darki, Movix, Vixsrc, etc.)
+      return 4;
     };
 
     const rankA = getRank(a);
@@ -1029,6 +1078,16 @@ const StreamingSources = memo(function StreamingSources({
           name: source.name,
           language: source.language
         });
+      } else if (source.isAfterDark) {
+        console.log('✅ Source AfterDark détectée, URL:', source.url);
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const,
+          name: source.name,
+          quality: source.quality,
+          language: source.language,
+          provider: 'afterdark'
+        });
       } else {
         console.log('❌ Type de source non reconnu:', source);
       }
@@ -1043,7 +1102,7 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub || isLoadingAfterDark) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
