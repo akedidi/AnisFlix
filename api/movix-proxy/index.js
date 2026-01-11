@@ -808,10 +808,22 @@ export default async function handler(req, res) {
     // GÉRER AFTERDARK ICI
     if (decodedPath === 'afterdark') {
       try {
-        const { tmdbId, type, title, year, season, episode, originalTitle } = queryParams;
+        const { tmdbId, type, season, episode } = queryParams;
+        let { title, year, originalTitle } = queryParams;
 
         if (!tmdbId || !type) {
           return res.status(400).json({ error: 'Missing parameters (tmdbId, type)' });
+        }
+
+        // Fetch TMDB info if title or year is missing
+        if (!title || (!year && type === 'movie')) {
+          console.log(`🚀 [MOVIX PROXY AFTERDARK] Fetching TMDB info for ${type} ${tmdbId}`);
+          const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+          if (tmdbInfo.title && tmdbInfo.title !== 'Unknown') {
+            title = tmdbInfo.title;
+            year = tmdbInfo.year;
+            originalTitle = tmdbInfo.originalTitle;
+          }
         }
 
         console.log(`🚀 [MOVIX PROXY AFTERDARK] Request: ${type} "${title}" (${year}) S${season}E${episode}`);
