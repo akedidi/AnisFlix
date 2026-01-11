@@ -563,7 +563,7 @@ class MovieBoxScraper {
 }
 
 const movieBoxScraper = new MovieBoxScraper();
-const movieBoxScraper = new MovieBoxScraper();
+
 const fourKHDHubScraper = new FourKHDHubScraper();
 const afterDarkScraper = new AfterDarkScraper();
 
