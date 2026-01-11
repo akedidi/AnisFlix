@@ -20,10 +20,13 @@ export const useAfterDark = (
     type: 'movie' | 'tv',
     id: number,
     season?: number,
-    episode?: number
+    episode?: number,
+    title?: string,
+    year?: string,
+    originalTitle?: string
 ) => {
     return useQuery<AfterDarkResponse>({
-        queryKey: ['afterdark', type, id, season, episode],
+        queryKey: ['afterdark', type, id, season, episode, title, year, originalTitle],
         queryFn: async () => {
             const params = new URLSearchParams({
                 path: 'afterdark',
@@ -31,12 +34,11 @@ export const useAfterDark = (
                 type,
             });
 
-            if (season !== undefined) {
-                params.append('season', season.toString());
-            }
-            if (episode !== undefined) {
-                params.append('episode', episode.toString());
-            }
+            if (season !== undefined) params.append('season', season.toString());
+            if (episode !== undefined) params.append('episode', episode.toString());
+            if (title) params.append('title', title);
+            if (year) params.append('year', year);
+            if (originalTitle) params.append('originalTitle', originalTitle);
 
             const response = await axios.get('/api/movix-proxy', {
                 params,

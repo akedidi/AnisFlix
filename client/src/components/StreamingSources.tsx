@@ -112,7 +112,8 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
-  const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode);
+  // Pass title for better AfterDark matching, year/originalTitle left undefined as not in props
+  const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
