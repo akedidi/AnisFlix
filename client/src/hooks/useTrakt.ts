@@ -55,6 +55,11 @@ export function useTrakt() {
         episode?: number
     ) => {
         try {
+            // Prevent scrobbling if not connected
+            if (!isConnected) {
+                return;
+            }
+
             // Normalize progress: Trakt expects 0-100 (percentage)
             // If progress looks like a fraction (0-1), convert to percentage
             let normalizedProgress = progress;
