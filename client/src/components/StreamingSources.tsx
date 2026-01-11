@@ -923,6 +923,11 @@ const StreamingSources = memo(function StreamingSources({
         return 3;
       }
 
+      // Rang 10: 4KHDHub (Dernier)
+      if (source.isFourKHDHub || source.provider.toLowerCase() === '4khdhub') {
+        return 10;
+      }
+
       // Rang 4: Le reste (Darki, Movix, Vixsrc, etc.)
       return 4;
     };

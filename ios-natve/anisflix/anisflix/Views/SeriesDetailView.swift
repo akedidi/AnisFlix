@@ -841,7 +841,15 @@ struct SeriesDetailView: View {
                             .padding(.vertical, 20)
                     } else {
                         VStack(spacing: 12) {
-                            ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage).sorted { s1, s2 in s1.provider.lowercased() == "vidzy" && s2.provider.lowercased() != "vidzy" }.enumerated()), id: \.element.id) { index, source in
+                            ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage).sorted { s1, s2 in
+                                func getRank(_ source: StreamingSource) -> Int {
+                                    let provider = source.provider.lowercased()
+                                    if provider == "vidzy" { return 0 }
+                                    if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
+                                    return 1
+                                }
+                                return getRank(s1) < getRank(s2)
+                            }.enumerated()), id: \.element.id) { index, source in
                                 HStack(spacing: 8) {
                                     Button(action: {
                                         handleSourceSelection(source, episode: episode)

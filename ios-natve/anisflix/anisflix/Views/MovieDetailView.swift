@@ -350,10 +350,13 @@ struct MovieDetailView: View {
 
                                         let filteredSources = filterSources(sources, language: theme.preferredSourceLanguage)
                                             .sorted { s1, s2 in
-                                                // Vidzy first, then others
-                                                let rank1 = s1.provider.lowercased() == "vidzy" ? 0 : 1
-                                                let rank2 = s2.provider.lowercased() == "vidzy" ? 0 : 1
-                                                return rank1 < rank2
+                                                func getRank(_ source: StreamingSource) -> Int {
+                                                    let provider = source.provider.lowercased()
+                                                    if provider == "vidzy" { return 0 }
+                                                    if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
+                                                    return 1
+                                                }
+                                                return getRank(s1) < getRank(s2)
                                             }
                                         
                                         if filteredSources.isEmpty {
