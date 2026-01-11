@@ -818,15 +818,22 @@ export default async function handler(req, res) {
         // Fetch TMDB info if title or year is missing
         if (!title || (!year && type === 'movie')) {
           console.log(`🚀 [MOVIX PROXY AFTERDARK] Fetching TMDB info for ${type} ${tmdbId}`);
-          const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
-          if (tmdbInfo.title && tmdbInfo.title !== 'Unknown') {
-            title = tmdbInfo.title;
-            year = tmdbInfo.year;
-            originalTitle = tmdbInfo.originalTitle;
+          try {
+            const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+            console.log(`✅ [MOVIX PROXY AFTERDARK] TMDB Info received:`, JSON.stringify(tmdbInfo));
+            if (tmdbInfo.title && tmdbInfo.title !== 'Unknown') {
+              title = tmdbInfo.title;
+              year = tmdbInfo.year;
+              originalTitle = tmdbInfo.originalTitle;
+            }
+          } catch (tmdbError) {
+            console.error(`❌ [MOVIX PROXY AFTERDARK] TMDB Fetch Failed:`, tmdbError.message);
           }
         }
 
-        console.log(`🚀 [MOVIX PROXY AFTERDARK] Request: ${type} "${title}" (${year}) S${season}E${episode}`);
+        console.log(`🚀 [MOVIX PROXY AFTERDARK] Calling Scraper with:`, {
+          tmdbId, type, title, year, season, episode, originalTitle
+        });
 
         const streams = await afterDarkScraper.getStreams(
           tmdbId,

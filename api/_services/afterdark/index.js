@@ -45,16 +45,31 @@ export class AfterDarkScraper {
 
             const fullUrl = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}?${params.toString()}`;
 
-            console.log(`🌑 [AfterDark] Fetching: ${fullUrl}`);
+            console.log(`🌑 [AfterDark] Full URL: ${fullUrl}`);
+            console.log(`🌑 [AfterDark] Query Params:`, params.toString());
 
             const response = await axios.get(fullUrl, {
                 headers: this.headers,
-                timeout: 10000
+                timeout: 10000,
+                validateStatus: null // Capture all status codes
             });
 
+            console.log(`🌑 [AfterDark] Response Status: ${response.status}`);
+
+            if (response.status !== 200) {
+                console.error(`❌ [AfterDark] Request failed with status ${response.status}`);
+                console.error(`❌ [AfterDark] Response body:`, JSON.stringify(response.data));
+                return [];
+            }
+
             const data = response.data;
+            console.log(`🌑 [AfterDark] Response keys:`, Object.keys(data));
+            if (data.sources) {
+                console.log(`🌑 [AfterDark] Sources count raw: ${data.sources.length}`);
+            }
 
             if (!data || !data.sources || !Array.isArray(data.sources)) {
+                console.warn(`⚠️ [AfterDark] No sources array in response`);
                 return [];
             }
 
