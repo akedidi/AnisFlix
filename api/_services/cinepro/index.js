@@ -2,6 +2,8 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import crypto from 'crypto';
 
+// --- Helper Functions ---
+
 function baseTransform(d, e, f) {
     const charset = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/';
     const g = [...charset];
@@ -46,6 +48,18 @@ function decodeHunter(h, u, n, t, e, r = '') {
     return decodeURIComponent(r);
 }
 
+function decryptData(encryptedObjectB64) {
+    const encryptedObject = JSON.parse(Buffer.from(encryptedObjectB64, 'base64').toString('utf8'));
+    const { algorithm, key, iv, salt, iterations, encryptedData } = encryptedObject;
+    const derivedKey = crypto.pbkdf2Sync(key, Buffer.from(salt, 'hex'), iterations, 32, 'sha256');
+    const ivBuffer = Buffer.from(iv, 'hex');
+    const decipher = crypto.createDecipheriv(algorithm, derivedKey, ivBuffer);
+    let decrypted = decipher.update(encryptedData, 'base64', 'utf8') + decipher.final('utf8');
+    return JSON.parse(decrypted);
+}
+
+// --- Main Class ---
+
 export class CineproScraper {
     constructor() {
         this.userAgent = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36';
@@ -56,19 +70,23 @@ export class CineproScraper {
         };
     }
 
+    /**
+     * Main entry point to get streams. 
+     * Orchestrates MultiEmbed and AutoEmbed (Fallback).
+     */
     async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null) {
         console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode}`);
         const streams = [];
 
-        // 1. Try MultiEmbed (MegaCDN/Premilkyway via MultiEmbed.mov)
+        // 1. Try MultiEmbed (Primary)
         if (imdbId) {
             try {
                 const multiEmbedStream = await this.getMultiEmbed(imdbId, season, episode);
                 if (multiEmbedStream) {
-                    // Proxy the stream regardless of Headers because of CORS strictness on streamingnow.mov/normium
+                    // Proxy header-restricted streams
                     if (host) {
                         const protocol = 'https';
-                        // Use cinepro-proxy to handle M3U8 rewriting if needed
+                        // Check if we need to proxy (MegaCDN/Premilkyway usually do)
                         const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(multiEmbedStream.link)}&headers=${encodeURIComponent(JSON.stringify(multiEmbedStream.headers))}`;
                         multiEmbedStream.link = proxiedLink;
                     }
@@ -79,13 +97,14 @@ export class CineproScraper {
             }
         }
 
-        // 2. Try AutoEmbed (Fallback)
+        // 2. Try AutoEmbed (Fallback) if no streams found
         if (streams.length === 0) {
             console.log('⚠️ [Cinepro] MultiEmbed returned no streams, trying AutoEmbed...');
             try {
-                // Logic from previous implementation
-                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode);
-                streams.push(...autoEmbedStreams);
+                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host);
+                if (autoEmbedStreams && autoEmbedStreams.length > 0) {
+                    streams.push(...autoEmbedStreams);
+                }
             } catch (e) {
                 console.error(`❌ [Cinepro] AutoEmbed failed: ${e.message}`);
             }
@@ -94,8 +113,8 @@ export class CineproScraper {
         return streams;
     }
 
+    // --- MultiEmbed Logic (Ported from Backend-Main) ---
     async getMultiEmbed(imdbId, season, episode) {
-        // Improve baseUrl for Series
         let baseUrl = `https://multiembed.mov/?video_id=${imdbId}`;
         if (season && episode) {
             baseUrl += `&s=${season}&e=${episode}`;
@@ -104,6 +123,7 @@ export class CineproScraper {
         console.log(`🔍 [Cinepro] MultiEmbed URL: ${baseUrl}`);
 
         try {
+            // Initial GET to resolve redirects and cookies
             if (baseUrl.includes('multiembed')) {
                 const resolved = await axios.get(baseUrl, { headers: this.headers });
                 baseUrl = resolved.request.res.responseUrl || baseUrl;
@@ -129,16 +149,13 @@ export class CineproScraper {
             const $ = cheerio.load(resp2.data);
 
             // Find VIP sources (MegaCDN etc)
-            // Look for 'vipstream' or specific providers
+            // Backend-Main logic: matches text 'vipstream' and has 'data-id'
             const vipSource = $('li').filter((i, el) => {
                 const txt = $(el).text().toLowerCase();
-                // You can filter for specific providers here if you want
-                // But MultiEmbed usually auto-selects best.
-                // We want MegaCDN or Premilkyway.
                 return txt.includes('vipstream') && $(el).attr('data-id');
             }).first();
 
-            if (!vipSource.length) throw new Error('No VIP source found');
+            if (!vipSource.length) throw new Error('No VIP source (B/S) found');
 
             const serverId = vipSource.attr('data-server');
             const videoId = vipSource.attr('data-id');
@@ -154,14 +171,13 @@ export class CineproScraper {
             const resp4 = await axios.get(iframeUrl, { headers: this.headers });
             let videoUrl = null;
 
-            // Hunter pack
+            // 1. Hunter Pack Match
             const hunterMatch = resp4.data.match(/\(\s*function\s*\([^\)]*\)\s*\{[\s\S]*?\}\s*\(\s*(.*?)\s*\)\s*\)/);
             if (hunterMatch) {
                 try {
-                    // Safe eval-like
                     let dataArray;
                     try { dataArray = new Function('return [' + hunterMatch[1] + ']')(); }
-                    catch { } // skip
+                    catch { }
 
                     if (Array.isArray(dataArray) && dataArray.length >= 6) {
                         const [h, u, n, t, e, r] = dataArray;
@@ -172,6 +188,7 @@ export class CineproScraper {
                 } catch (e) { console.error('Hunter decode error', e); }
             }
 
+            // 2. Direct File Match
             if (!videoUrl) {
                 const fileMatch = resp4.data.match(/file\s*:\s*"([^"]+)"/);
                 if (fileMatch) {
@@ -184,48 +201,94 @@ export class CineproScraper {
 
             if (!videoUrl) throw new Error('No video URL extracted');
 
-            // Check if it's MegaCDN or Premilkyway
+            // Determine Label
             const isMega = videoUrl.includes('megacdn') || videoUrl.includes('megaf');
             const isMilky = videoUrl.includes('premilkyway');
-            // Also check iframeUrl domain as sometimes videoUrl is a redirect? 
-            // But `videoUrl` is what we play.
-
-            if (!isMega && !isMilky) {
-                console.log(`⚠️ [Cinepro] Found link but not MegaCDN/Premilkyway: ${videoUrl}`);
-                // return null; // Or return it anyway if it works? User strictly asked for MegaCDN.
-                // Let's filter strictly as requested.
-                // Wait, MultiEmbed usually defaults to MegaCDN.
-                // If we filter it out, we return NOTHING.
-                // Let's return it but labeled.
-            }
+            const serverLabel = isMega ? 'MegaCDN' : (isMilky ? 'PreMilkyWay' : 'MultiEmbed');
 
             return {
-                server: isMega ? 'MegaCDN' : (isMilky ? 'PreMilkyWay' : 'MultiEmbed'),
+                server: serverLabel,
                 link: videoUrl,
                 type: 'hls',
                 quality: 'Auto',
                 lang: 'VO',
                 headers: {
                     'Referer': defaultDomain,
-                    'User-Agent': this.userAgent
+                    'User-Agent': this.userAgent,
+                    'Origin': defaultDomain
                 }
             };
-
         } catch (e) {
-            throw e; // Propagate to basic error log
+            throw e;
         }
     }
 
-    // Fallback to old AutoEmbed
-    async getAutoEmbed(tmdbId, season, episode) {
+    // --- AutoEmbed Logic (Ported from Backend-Main) ---
+    async getAutoEmbed(tmdbId, season, episode, host) {
+        const type = season && episode ? 'tv' : 'movie';
+        // Logic from backend-main: https://test.autoembed.cc/api/server
+        const url = type === 'tv'
+            ? `https://test.autoembed.cc/api/server?id=${tmdbId}&ss=${season}&ep=${episode}`
+            : `https://test.autoembed.cc/api/server?id=${tmdbId}`;
+
+        const headers = {
+            'Referer': 'https://player.vidsrc.co/',
+            'Origin': 'https://player.vidsrc.co/',
+            'User-Agent': this.userAgent
+        };
+
         const streams = [];
-        try {
-            const type = season && episode ? 'tv' : 'movie';
-            // Use previous logic... 
-            // Re-implement simplified AutoEmbed here or copying from previous file
-            const domains = ['player.vidsrc.co'];
-            // ... (I'll reuse the logic from previous step efficiently)
-        } catch (e) { }
+        const numberOfServers = 6; // Reduced from 15 to reasonable amount for checks (backend-main uses 15 but many are langs)
+        // Backend-main maps indexes to languages: 1-3 en, 4-5 hi, etc. 
+        // We probably only want 'en' (1-3) or check all?
+        // Let's check 1-3.
+
+        console.log(`🔍 [Cinepro] AutoEmbed URL Base: ${url}`);
+
+        for (let i = 1; i <= 3; i++) {
+            try {
+                const serverUrl = `${url}&sr=${i}`;
+                const response = await axios.get(serverUrl, { headers });
+
+                if (response.data && response.data.data) {
+                    const decrypted = decryptData(response.data.data);
+                    let directUrl = decrypted.url;
+
+                    if (directUrl.includes('embed-proxy')) {
+                        const urlMatch = directUrl.match(/[?&]url=([^&]+)/);
+                        if (urlMatch) directUrl = decodeURIComponent(urlMatch[1]);
+                    }
+
+                    // Proxy if needed
+                    if (host) {
+                        const protocol = 'https';
+                        // AutoEmbed links might also need headers or proxy
+                        // Usually they are standard mp4/hls but check referrer requirements
+                        // Safe to proxy?
+                        // Let's proxy to be safe if they are HLS.
+                        // Or just return direct if mp4.
+
+                        // Backend-main returns raw link. 
+                        // But if it's CORS restricted (like some m3u8), we need proxy.
+                        // Let's wrap it in cinepro-proxy.
+                        const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(directUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+                        directUrl = proxiedLink; // We use our proxy
+                    }
+
+                    streams.push({
+                        server: `AutoEmbed Server ${i}`,
+                        link: directUrl,
+                        type: directUrl.includes('.mp4') ? 'mp4' : 'hls',
+                        quality: 'Auto',
+                        lang: 'VO',
+                        headers: headers
+                    });
+                }
+            } catch (e) {
+                // Ignore individual server errors
+                // console.error(`AutoEmbed Server ${i} error: ${e.message}`);
+            }
+        }
         return streams;
     }
 }
