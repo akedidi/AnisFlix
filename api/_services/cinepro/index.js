@@ -81,23 +81,26 @@ export class CineproScraper {
         // 1. Try MultiEmbed (Primary)
         if (imdbId) {
             try {
-                const multiEmbedStream = await this.getMultiEmbed(imdbId, season, episode);
-                if (multiEmbedStream) {
-                    // Proxy header-restricted streams
-                    if (host) {
-                        const protocol = 'https';
-                        // Check if we need to proxy (MegaCDN/Premilkyway usually do)
-                        const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(multiEmbedStream.link)}&headers=${encodeURIComponent(JSON.stringify(multiEmbedStream.headers))}`;
-                        multiEmbedStream.link = proxiedLink;
-                    }
-                    streams.push(multiEmbedStream);
+                const multiEmbedStreams = await this.getMultiEmbed(imdbId, season, episode);
+                if (multiEmbedStreams && multiEmbedStreams.length > 0) {
+                    multiEmbedStreams.forEach(stream => {
+                        // Proxy header-restricted streams
+                        if (host) {
+                            const protocol = 'https';
+                            const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(stream.link)}&headers=${encodeURIComponent(JSON.stringify(stream.headers))}`;
+                            stream.link = proxiedLink;
+                        }
+                        streams.push(stream);
+                    });
                 }
             } catch (e) {
                 console.error(`❌ [Cinepro] MultiEmbed failed: ${e.message}`);
             }
         }
 
-        // 2. Try AutoEmbed (Fallback) if no streams found
+        // 2. Try AutoEmbed (Fallback) if few streams found (or always try?)
+        // Let's always try for more sources if < 2, or if explicitly requested deep scan.
+        // For now, if MultiEmbed has streams, we usually trust them. But if user says "Multi Res", maybe AutoEmbed has more.
         if (streams.length === 0) {
             console.log('⚠️ [Cinepro] MultiEmbed returned no streams, trying AutoEmbed...');
             try {
@@ -113,7 +116,7 @@ export class CineproScraper {
         return streams;
     }
 
-    // --- MultiEmbed Logic (Ported from Backend-Main) ---
+    // --- MultiEmbed Logic ---
     async getMultiEmbed(imdbId, season, episode) {
         let baseUrl = `https://multiembed.mov/?video_id=${imdbId}`;
         if (season && episode) {
@@ -121,11 +124,13 @@ export class CineproScraper {
         }
 
         console.log(`🔍 [Cinepro] MultiEmbed URL: ${baseUrl}`);
+        // Return array of streams
+        const foundStreams = [];
 
         try {
             // Initial GET to resolve redirects and cookies
             if (baseUrl.includes('multiembed')) {
-                const resolved = await axios.get(baseUrl, { headers: this.headers });
+                const resolved = await axios.get(baseUrl, { headers: this.headers, timeout: 5000 });
                 baseUrl = resolved.request.res.responseUrl || baseUrl;
             }
 
@@ -136,7 +141,7 @@ export class CineproScraper {
                 'button-referer': ''
             };
 
-            const resp1 = await axios.post(baseUrl, new URLSearchParams(dataPayload), { headers: this.headers });
+            const resp1 = await axios.post(baseUrl, new URLSearchParams(dataPayload), { headers: this.headers, timeout: 5000 });
             const tokenMatch = resp1.data.match(/load_sources\(\"(.*?)\"\)/);
             if (!tokenMatch) throw new Error('Token not found');
             const token = tokenMatch[1];
@@ -144,89 +149,109 @@ export class CineproScraper {
             const resp2 = await axios.post(
                 'https://streamingnow.mov/response.php',
                 new URLSearchParams({ token }),
-                { headers: this.headers }
+                { headers: this.headers, timeout: 5000 }
             );
             const $ = cheerio.load(resp2.data);
 
-            // Find VIP sources (MegaCDN etc)
-            // Backend-Main logic: matches text 'vipstream' and has 'data-id'
-            const vipSource = $('li').filter((i, el) => {
+            // Find ALL VIP sources
+            const vipSources = [];
+            $('li').each((i, el) => {
                 const txt = $(el).text().toLowerCase();
-                return txt.includes('vipstream') && $(el).attr('data-id');
-            }).first();
+                const id = $(el).attr('data-id');
+                if (txt.includes('vipstream') && id) {
+                    vipSources.push({
+                        id,
+                        server: $(el).attr('data-server'),
+                        name: txt
+                    });
+                }
+            });
 
-            if (!vipSource.length) throw new Error('No VIP source (B/S) found');
+            if (vipSources.length === 0) throw new Error('No VIP source found');
 
-            const serverId = vipSource.attr('data-server');
-            const videoId = vipSource.attr('data-id');
-
-            const vipUrl = `https://streamingnow.mov/playvideo.php?video_id=${videoId}&server_id=${serverId}&token=${token}&init=1`;
-            const resp3 = await axios.get(vipUrl, { headers: this.headers });
-
-            const $2 = cheerio.load(resp3.data);
-            let iframeUrl = $2('iframe.source-frame.show').attr('src') || $2('iframe.source-frame').attr('src');
-
-            if (!iframeUrl) throw new Error('Iframe src empty');
-
-            const resp4 = await axios.get(iframeUrl, { headers: this.headers });
-            let videoUrl = null;
-
-            // 1. Hunter Pack Match
-            const hunterMatch = resp4.data.match(/\(\s*function\s*\([^\)]*\)\s*\{[\s\S]*?\}\s*\(\s*(.*?)\s*\)\s*\)/);
-            if (hunterMatch) {
+            // Try ALL sources
+            for (const source of vipSources) {
                 try {
-                    let dataArray;
-                    try { dataArray = new Function('return [' + hunterMatch[1] + ']')(); }
-                    catch { }
+                    const serverId = source.server;
+                    const videoId = source.id;
 
-                    if (Array.isArray(dataArray) && dataArray.length >= 6) {
-                        const [h, u, n, t, e, r] = dataArray;
-                        const decoded = decodeHunter(h, u, n, t, e, r);
-                        const videoMatch = decoded.match(/file:"(https?:\/\/[^"]+)"/);
-                        if (videoMatch) videoUrl = videoMatch[1];
+                    const vipUrl = `https://streamingnow.mov/playvideo.php?video_id=${videoId}&server_id=${serverId}&token=${token}&init=1`;
+                    const resp3 = await axios.get(vipUrl, { headers: this.headers, timeout: 5000 });
+
+                    const $2 = cheerio.load(resp3.data);
+                    let iframeUrl = $2('iframe').attr('src');
+
+                    if (!iframeUrl) {
+                        // Check for Captcha
+                        if (resp3.data.includes('captcha') || resp3.data.includes('Wait a moment')) {
+                            console.error(`⚠️ [Cinepro] Captcha/Block on source ${source.name}`);
+                        }
+                        continue;
                     }
-                } catch (e) { console.error('Hunter decode error', e); }
-            }
 
-            // 2. Direct File Match
-            if (!videoUrl) {
-                const fileMatch = resp4.data.match(/file\s*:\s*"([^"]+)"/);
-                if (fileMatch) {
-                    let rawUrl = fileMatch[1];
-                    const proxySrcMatch = rawUrl.match(/src=([^&]+)/);
-                    if (proxySrcMatch) rawUrl = decodeURIComponent(proxySrcMatch[1]);
-                    videoUrl = rawUrl;
+                    const resp4 = await axios.get(iframeUrl, { headers: this.headers, timeout: 5000 });
+                    let videoUrl = null;
+
+                    // 1. Hunter Pack Match
+                    const hunterMatch = resp4.data.match(/\(\s*function\s*\([^\)]*\)\s*\{[\s\S]*?\}\s*\(\s*(.*?)\s*\)\s*\)/);
+                    if (hunterMatch) {
+                        try {
+                            let dataArray;
+                            try { dataArray = new Function('return [' + hunterMatch[1] + ']')(); }
+                            catch { }
+
+                            if (Array.isArray(dataArray) && dataArray.length >= 6) {
+                                const [h, u, n, t, e, r] = dataArray;
+                                const decoded = decodeHunter(h, u, n, t, e, r);
+                                const videoMatch = decoded.match(/file:"(https?:\/\/[^"]+)"/);
+                                if (videoMatch) videoUrl = videoMatch[1];
+                            }
+                        } catch (e) { console.error('Hunter decode error', e); }
+                    }
+
+                    // 2. Direct File Match
+                    if (!videoUrl) {
+                        const fileMatch = resp4.data.match(/file\s*:\s*"([^"]+)"/);
+                        if (fileMatch) {
+                            let rawUrl = fileMatch[1];
+                            const proxySrcMatch = rawUrl.match(/src=([^&]+)/);
+                            if (proxySrcMatch) rawUrl = decodeURIComponent(proxySrcMatch[1]);
+                            videoUrl = rawUrl;
+                        }
+                    }
+
+                    if (videoUrl) {
+                        const isMega = videoUrl.includes('megacdn') || videoUrl.includes('megaf');
+                        const isMilky = videoUrl.includes('premilkyway');
+                        const serverLabel = isMega ? 'MegaCDN' : (isMilky ? 'PreMilkyWay' : 'MultiEmbed');
+
+                        foundStreams.push({
+                            server: serverLabel,
+                            link: videoUrl,
+                            type: 'hls',
+                            quality: 'Auto',
+                            lang: 'VO',
+                            headers: {
+                                'Referer': defaultDomain,
+                                'User-Agent': this.userAgent,
+                                'Origin': defaultDomain
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error(`[Cinepro] Error processing source ${source.name}: ${err.message}`);
                 }
             }
 
-            if (!videoUrl) throw new Error('No video URL extracted');
-
-            // Determine Label
-            const isMega = videoUrl.includes('megacdn') || videoUrl.includes('megaf');
-            const isMilky = videoUrl.includes('premilkyway');
-            const serverLabel = isMega ? 'MegaCDN' : (isMilky ? 'PreMilkyWay' : 'MultiEmbed');
-
-            return {
-                server: serverLabel,
-                link: videoUrl,
-                type: 'hls',
-                quality: 'Auto',
-                lang: 'VO',
-                headers: {
-                    'Referer': defaultDomain,
-                    'User-Agent': this.userAgent,
-                    'Origin': defaultDomain
-                }
-            };
+            return foundStreams;
         } catch (e) {
             throw e;
         }
     }
 
-    // --- AutoEmbed Logic (Ported from Backend-Main) ---
+    // --- AutoEmbed Logic ---
     async getAutoEmbed(tmdbId, season, episode, host) {
         const type = season && episode ? 'tv' : 'movie';
-        // Logic from backend-main: https://test.autoembed.cc/api/server
         const url = type === 'tv'
             ? `https://test.autoembed.cc/api/server?id=${tmdbId}&ss=${season}&ep=${episode}`
             : `https://test.autoembed.cc/api/server?id=${tmdbId}`;
@@ -238,17 +263,15 @@ export class CineproScraper {
         };
 
         const streams = [];
-        const numberOfServers = 6; // Reduced from 15 to reasonable amount for checks (backend-main uses 15 but many are langs)
-        // Backend-main maps indexes to languages: 1-3 en, 4-5 hi, etc. 
-        // We probably only want 'en' (1-3) or check all?
-        // Let's check 1-3.
+        // Increased range to check more AutoEmbed servers
+        const numberOfServers = 6;
 
         console.log(`🔍 [Cinepro] AutoEmbed URL Base: ${url}`);
 
-        for (let i = 1; i <= 3; i++) {
+        for (let i = 1; i <= numberOfServers; i++) {
             try {
                 const serverUrl = `${url}&sr=${i}`;
-                const response = await axios.get(serverUrl, { headers });
+                const response = await axios.get(serverUrl, { headers, timeout: 5000 });
 
                 if (response.data && response.data.data) {
                     const decrypted = decryptData(response.data.data);
@@ -259,20 +282,10 @@ export class CineproScraper {
                         if (urlMatch) directUrl = decodeURIComponent(urlMatch[1]);
                     }
 
-                    // Proxy if needed
                     if (host) {
                         const protocol = 'https';
-                        // AutoEmbed links might also need headers or proxy
-                        // Usually they are standard mp4/hls but check referrer requirements
-                        // Safe to proxy?
-                        // Let's proxy to be safe if they are HLS.
-                        // Or just return direct if mp4.
-
-                        // Backend-main returns raw link. 
-                        // But if it's CORS restricted (like some m3u8), we need proxy.
-                        // Let's wrap it in cinepro-proxy.
                         const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(directUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
-                        directUrl = proxiedLink; // We use our proxy
+                        directUrl = proxiedLink;
                     }
 
                     streams.push({
@@ -286,7 +299,6 @@ export class CineproScraper {
                 }
             } catch (e) {
                 // Ignore individual server errors
-                // console.error(`AutoEmbed Server ${i} error: ${e.message}`);
             }
         }
         return streams;
