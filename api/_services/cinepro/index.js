@@ -56,7 +56,7 @@ export class CineproScraper {
         };
     }
 
-    async getStreams(tmdbId, season = null, episode = null, imdbId = null) {
+    async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null) {
         console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode}`);
         const streams = [];
 
@@ -65,6 +65,13 @@ export class CineproScraper {
             try {
                 const multiEmbedStream = await this.getMultiEmbed(imdbId, season, episode);
                 if (multiEmbedStream) {
+                    // Proxy the stream regardless of Headers because of CORS strictness on streamingnow.mov/normium
+                    if (host) {
+                        const protocol = 'https';
+                        // Use cinepro-proxy to handle M3U8 rewriting if needed
+                        const proxiedLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(multiEmbedStream.link)}&headers=${encodeURIComponent(JSON.stringify(multiEmbedStream.headers))}`;
+                        multiEmbedStream.link = proxiedLink;
+                    }
                     streams.push(multiEmbedStream);
                 }
             } catch (e) {
@@ -84,7 +91,6 @@ export class CineproScraper {
             }
         }
 
-        // Filter here? MultiEmbed returns one specific stream usually.
         return streams;
     }
 

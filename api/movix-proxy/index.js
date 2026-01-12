@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { URL } from 'url';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
@@ -595,6 +596,68 @@ export default async function handler(req, res) {
     // Décoder le path pour éviter le double encodage
     const decodedPath = decodeURIComponent(path);
 
+    // GÉRER CINEPRO PROXY WRAPPER (Rewrites M3U8)
+    if (decodedPath === 'cinepro-proxy') {
+      const { url: m3u8Url, headers: headerStr } = queryParams;
+      if (!m3u8Url) return res.status(400).json({ error: 'Missing url' });
+
+      try {
+        const decodedUrl = decodeURIComponent(m3u8Url);
+        const headers = headerStr ? JSON.parse(decodeURIComponent(headerStr)) : {};
+
+        // console.log(`🔄 [CINEPRO PROXY] Fetching: ${decodedUrl}`);
+
+        const response = await axios({
+          method: 'GET',
+          url: decodedUrl,
+          headers: {
+            ...headers,
+            'Accept-Encoding': 'gzip, deflate, br'
+          },
+          responseType: 'arraybuffer'
+        });
+
+        const content = response.data;
+        const contentStr = content.toString('utf8');
+
+        // Detect M3U8 by content or extension (some servers send wrong content-type)
+        if (contentStr.includes('#EXTM3U')) {
+          const baseUrl = new URL(decodedUrl);
+          const basePath = baseUrl.href.substring(0, baseUrl.href.lastIndexOf('/') + 1);
+          const protocol = req.headers['x-forwarded-proto'] || 'https';
+          const hostUrl = `${protocol}://${req.headers.host}/api/movix-proxy?path=cinepro-proxy`;
+
+          const rewriteLine = (line) => {
+            try {
+              const absoluteUrl = new URL(line, basePath).href;
+              return `${hostUrl}&url=${encodeURIComponent(absoluteUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+            } catch (e) { return line; }
+          };
+
+          const lines = contentStr.split('\n');
+          const rewritten = lines.map(line => {
+            if (line.trim().startsWith('#') || line.trim() === '') return line;
+            return rewriteLine(line.trim());
+          }).join('\n');
+
+          res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+          res.send(rewritten);
+          return;
+        } else {
+          const headersToForward = ['content-type', 'content-length', 'cache-control'];
+          headersToForward.forEach(h => {
+            if (response.headers[h]) res.setHeader(h, response.headers[h]);
+          });
+          res.send(content);
+          return;
+        }
+
+      } catch (e) {
+        console.error('[CINEPRO PROXY ERROR]', e.message);
+        return res.status(502).send(e.message);
+      }
+    }
+
     // GÉRER ZENIME PROXY WRAPPER (pour contourner la restriction d'origine)
     if (decodedPath === 'zenime-proxy') {
       const { url: m3u8Url } = queryParams;
@@ -870,7 +933,8 @@ export default async function handler(req, res) {
         const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
         const imdbId = tmdbInfo.imdb_id || tmdbInfo.data?.external_ids?.imdb_id;
 
-        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId);
+        const host = req.headers.host || 'anisflix.vercel.app';
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId, host);
 
         console.log(`✅ [MOVIX PROXY CINEPRO] Found ${streams.length} streams.`);
         return res.status(200).json({ success: true, streams });
