@@ -865,7 +865,12 @@ export default async function handler(req, res) {
         }
 
         console.log(`🚀 [MOVIX PROXY CINEPRO] Fetching streams for ${type} ${tmdbId}`);
-        const streams = await cineproScraper.getStreams(tmdbId, season, episode);
+
+        // Fetch TMDB Info to get IMDB ID
+        const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
+        const imdbId = tmdbInfo.imdb_id || tmdbInfo.data?.external_ids?.imdb_id;
+
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId);
 
         console.log(`✅ [MOVIX PROXY CINEPRO] Found ${streams.length} streams.`);
         return res.status(200).json({ success: true, streams });
