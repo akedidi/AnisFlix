@@ -216,8 +216,8 @@ struct TVChannelsView: View {
                 VStack(spacing: 0) {
                     if !isFullscreen {
                         // Spacer to push player down below header
-                        // Increased to 100 as per user feedback ("descendre encore un peu")
-                        Color.clear.frame(height: 100)
+                        // User requested ~70 to match header height (100 was too much)
+                        Color.clear.frame(height: 70)
                     }
                     
                     CustomVideoPlayer(
@@ -259,9 +259,9 @@ struct TVChannelsView: View {
                         }
 
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 2) // Reduced height as per user request
+                        .padding(.vertical, 8) // Increased height (was 2)
                         .background(AppTheme.primaryRed)
-                        .padding(.top, 10) // Push banner down to avoid overlapping player controls
+                        .padding(.top, 0) // No gap between player and bar
                         
                         Spacer() // Push to top
                     }

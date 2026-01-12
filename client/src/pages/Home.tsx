@@ -59,6 +59,8 @@ export default function Home() {
   const { data: amazonMoviesData } = useMoviesByProvider(9);
   const { data: hboMaxSeriesData } = useSeriesByProvider(384);
   const { data: hboMaxMoviesData } = useMoviesByProvider(384);
+  const { data: peacockMoviesData } = useMoviesByProvider(386, 1, "US");
+  const { data: peacockSeriesData } = useSeriesByProvider(386, 1, "US");
   const {
     data: crunchyrollSeriesData,
     isLoading: isLoadingCrunchyrollSeries,
@@ -96,6 +98,8 @@ export default function Home() {
   const amazonMovies = amazonMoviesData?.results || [];
   const hboMaxSeries = hboMaxSeriesData?.results || [];
   const hboMaxMovies = hboMaxMoviesData?.results || [];
+  const peacockMovies = peacockMoviesData?.results || [];
+  const peacockSeries = peacockSeriesData?.results || [];
   const crunchyrollSeries = crunchyrollSeriesData?.results || [];
   const crunchyrollMovies = crunchyrollMoviesData?.results || []; // This hook was not in the original, but is implied by the carousel
   const disneyMovies = disneyMoviesData?.results || [];
@@ -140,6 +144,7 @@ export default function Home() {
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
     { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
+    { id: 386, name: "Peacock", logoPath: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg" },
     { id: 381, name: "Canal+", logoPath: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg" },
     { id: 283, name: "Crunchyroll", logoPath: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg" },
     { id: 415, name: "ADN", logoPath: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg" },
@@ -451,6 +456,27 @@ export default function Home() {
                 items={hboMaxSeries.slice(0, 10)}
                 onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
                 showSeeAllButton={true}
+              />
+            )}
+
+            {/* Peacock */}
+            {peacockMovies.length > 0 && (
+              <MediaCarousel
+                title={`Peacock - ${t("home.latestMovies")}`}
+                items={peacockMovies.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.movie(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/386/movies"
+              />
+            )}
+
+            {peacockSeries.length > 0 && (
+              <MediaCarousel
+                title={`Peacock - ${t("home.latestSeries")}`}
+                items={peacockSeries.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                showSeeAllButton={true}
+                seeAllLink="/provider/386/series"
               />
             )}
 

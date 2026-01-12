@@ -33,6 +33,8 @@ struct HomeView: View {
     @State private var disneySeries: [Media] = []
     @State private var hboMaxMovies: [Media] = []
     @State private var hboMaxSeries: [Media] = []
+    @State private var peacockMovies: [Media] = []
+    @State private var peacockSeries: [Media] = []
     @State private var canalMovies: [Media] = []
     @State private var canalSeries: [Media] = []
     @State private var crunchyrollMovies: [Media] = []
@@ -60,6 +62,7 @@ struct HomeView: View {
         (id: 531, name: "Paramount+", logo: "/xbhHHa1YgtpwhC8lb1NQ3ACVcLd.jpg"),
         (id: 337, name: "Disney+", logo: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg"),
         (id: 1899, name: "HBO Max", logo: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg"),
+        (id: 386, name: "Peacock", logo: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg"),
         (id: 381, name: "Canal+", logo: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg"),
         (id: 283, name: "Crunchyroll", logo: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg"),
         (id: 415, name: "ADN", logo: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg"),
@@ -358,6 +361,29 @@ struct HomeView: View {
                         )
                     }
                     
+                    // Peacock
+                    if !peacockMovies.isEmpty {
+                        MediaRow(
+                            title: "Peacock - Films",
+                            items: Array(peacockMovies.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Peacock movie: \(media.id)")
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 386, providerName: "Peacock", category: "Films", genreId: nil, mediaType: .movie)
+                        )
+                    }
+                    
+                    if !peacockSeries.isEmpty {
+                        MediaRow(
+                            title: "Peacock - Séries",
+                            items: Array(peacockSeries.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to Peacock series: \(media.id)")
+                            },
+                            seeAllRoute: .providerCategoryList(providerId: 386, providerName: "Peacock", category: "Séries", genreId: nil, mediaType: .series)
+                        )
+                    }
+                    
                     // Canal+
                     if !canalMovies.isEmpty {
                         MediaRow(
@@ -588,6 +614,8 @@ struct HomeView: View {
         async let disneySer = TMDBService.shared.fetchSeriesByProvider(providerId: 337, language: language)
         async let hboMov = TMDBService.shared.fetchMoviesByProvider(providerId: 384, language: language)
         async let hboSer = TMDBService.shared.fetchSeriesByProvider(providerId: 384, language: language)
+        async let peacockMov = TMDBService.shared.fetchMoviesByProvider(providerId: 386, language: "en-US")
+        async let peacockSer = TMDBService.shared.fetchSeriesByProvider(providerId: 386, language: "en-US")
         async let canalMov = TMDBService.shared.fetchMoviesByProvider(providerId: 381, language: language)
         async let canalSer = TMDBService.shared.fetchSeriesByProvider(providerId: 381, language: language)
         async let crunchyrollMov = TMDBService.shared.fetchMoviesByProvider(providerId: 283, language: language)
@@ -611,7 +639,7 @@ struct HomeView: View {
                 animeMoviesLat, animeMoviesPop, animeSeriesLat, animeSeriesPop,
                 netflixMov, netflixSer, amazonMov, amazonSer,
                 appleMov, appleSer, disneyMov, disneySer,
-                hboMov, hboSer, canalMov, canalSer, crunchyrollMov, crunchyrollSer,
+                hboMov, hboSer, peacockMov, peacockSer, canalMov, canalSer, crunchyrollMov, crunchyrollSer,
                 adnMov, adnSer, arteMov, arteSer, mubiMov, mubiSer,
                 tf1Mov, tf1Ser, m6Mov, m6Ser
             )
@@ -638,20 +666,22 @@ struct HomeView: View {
             disneySeries = results.15
             hboMaxMovies = results.16
             hboMaxSeries = results.17
-            canalMovies = results.18
-            canalSeries = results.19
-            crunchyrollMovies = results.20
-            crunchyrollSeries = results.21
-            adnMovies = results.22
-            adnSeries = results.23
-            arteMovies = results.24
-            arteSeries = results.25
-            mubiMovies = results.26
-            mubiSeries = results.27
-            tf1Movies = results.28
-            tf1Series = results.29
-            m6Movies = results.30
-            m6Series = results.31
+            peacockMovies = results.18
+            peacockSeries = results.19
+            canalMovies = results.20
+            canalSeries = results.21
+            crunchyrollMovies = results.22
+            crunchyrollSeries = results.23
+            adnMovies = results.24
+            adnSeries = results.25
+            arteMovies = results.26
+            arteSeries = results.27
+            mubiMovies = results.28
+            mubiSeries = results.29
+            tf1Movies = results.30
+            tf1Series = results.31
+            m6Movies = results.32
+            m6Series = results.33
             
             // Load Continue Watching from WatchProgressManager
             await loadContinueWatching()
