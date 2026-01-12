@@ -855,6 +855,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // GÉRER CINEPRO ICI
+    if (decodedPath === 'cinepro') {
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId || !type) {
+          return res.status(400).json({ error: 'Missing parameters (tmdbId, type)' });
+        }
+
+        console.log(`🚀 [MOVIX PROXY CINEPRO] Fetching streams for ${type} ${tmdbId}`);
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode);
+
+        console.log(`✅ [MOVIX PROXY CINEPRO] Found ${streams.length} streams.`);
+        return res.status(200).json({ success: true, streams });
+
+      } catch (error) {
+        console.error('❌ [MOVIX PROXY CINEPRO] Error:', error);
+        return res.status(500).json({
+          error: 'Internal Server Error in Cinepro handler',
+          details: error.message,
+        });
+      }
+    }
+
     // GÉRER FOURKHDHUB ICI
     if (decodedPath === 'fourkhdhub' || decodedPath === '4KHDHUB') {
       try {
