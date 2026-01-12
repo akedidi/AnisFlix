@@ -62,7 +62,7 @@ struct HomeView: View {
         (id: 531, name: "Paramount+", logo: "/xbhHHa1YgtpwhC8lb1NQ3ACVcLd.jpg"),
         (id: 337, name: "Disney+", logo: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg"),
         (id: 1899, name: "HBO Max", logo: "/Ajqyt5aNxNGjmF9uOfxArGrdf3X.jpg"),
-        (id: 386, name: "Peacock", logo: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg"),
+        (id: 386, name: "Peacock", logo: "/2aGrp1xw3qhwCYvNGAJZPdjfeeX.jpg"),
         (id: 381, name: "Canal+", logo: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg"),
         (id: 283, name: "Crunchyroll", logo: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg"),
         (id: 415, name: "ADN", logo: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg"),

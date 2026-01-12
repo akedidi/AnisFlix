@@ -144,7 +144,7 @@ export default function Home() {
     { id: 531, name: "Paramount+", logoPath: "/h5DcR0J2EESLitnhR8xLG1QymTE.jpg" },
     { id: 337, name: "Disney+", logoPath: "/7rwgEs15tFwyR9NPQ5vpzxTj19Q.jpg" },
     { id: 384, name: "HBO Max", logoPath: "/jbe4gVSfRlbPTdESXhEKpornsfu.jpg" },
-    { id: 386, name: "Peacock", logoPath: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg" },
+    { id: 386, name: "Peacock", logoPath: "/2aGrp1xw3qhwCYvNGAJZPdjfeeX.jpg" },
     { id: 381, name: "Canal+", logoPath: "/geOzgeKZWpZC3lymAVEHVIk3X0q.jpg" },
     { id: 283, name: "Crunchyroll", logoPath: "/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg" },
     { id: 415, name: "ADN", logoPath: "/w86FOwg0bbgUSHWWnjOTuEjsUvq.jpg" },

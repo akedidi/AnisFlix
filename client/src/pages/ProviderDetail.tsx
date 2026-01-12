@@ -110,7 +110,7 @@ const providers: Record<number, Provider> = {
   386: {
     id: 386,
     name: "Peacock",
-    logoPath: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg",
+    logoPath: "/2aGrp1xw3qhwCYvNGAJZPdjfeeX.jpg",
     description: "Peacock est un service de streaming américain de NBCUniversal, offrant des films, séries et événements sportifs.",
   },
 };
