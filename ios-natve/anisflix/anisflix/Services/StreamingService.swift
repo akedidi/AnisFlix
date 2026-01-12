@@ -212,6 +212,20 @@ struct AfterDarkSource: Codable {
     }
 }
 
+// MARK: - Cinepro Response Structures
+struct CineproResponse: Codable {
+    let success: Bool?
+    let streams: [CineproStream]?
+}
+
+struct CineproStream: Codable {
+    let server: String?
+    let link: String
+    let type: String?
+    let quality: String?
+    let lang: String?
+}
+
 // MARK: - Cpasmal Response Structures
 struct CpasmalResponse: Codable {
     let success: Bool?
@@ -299,6 +313,7 @@ class StreamingService {
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
+        async let cineproSources = fetchCineproSources(tmdbId: movieId)
         
         // Anime Placeholder
         var animeTask: Task<[StreamingSource], Error>? = nil
@@ -343,7 +358,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources)
         let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
@@ -353,6 +368,7 @@ class StreamingService {
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
+        print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         
@@ -397,8 +413,13 @@ class StreamingService {
             allSources.append(contentsOf: hub4k)
         }
         
+        // Add Cinepro sources
+        if let cinepro = cinepro {
+            allSources.append(contentsOf: cinepro)
+        }
+        
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -492,6 +513,7 @@ class StreamingService {
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -554,7 +576,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -562,6 +584,8 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
+        print("   - 4KHDHub: \(hub4k?.count ?? 0)")
+        print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         print("   - Movix Anime: \(animeSources.count)")
@@ -604,8 +628,12 @@ class StreamingService {
             allSources.append(contentsOf: hub4k)
         }
         
+        if let cinepro = cinepro {
+            allSources.append(contentsOf: cinepro)
+        }
+        
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" }
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {

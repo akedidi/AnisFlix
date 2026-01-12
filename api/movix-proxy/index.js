@@ -2,6 +2,7 @@ import axios from 'axios';
 import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
+import { CineproScraper } from "../_services/cinepro/index.js";
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
 // Cache persists across requests on warm function instances
@@ -566,6 +567,7 @@ const movieBoxScraper = new MovieBoxScraper();
 
 const fourKHDHubScraper = new FourKHDHubScraper();
 const afterDarkScraper = new AfterDarkScraper();
+const cineproScraper = new CineproScraper();
 
 
 export default async function handler(req, res) {
