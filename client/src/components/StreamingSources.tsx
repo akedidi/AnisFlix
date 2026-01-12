@@ -10,6 +10,7 @@ import { useMovieBox } from '@/hooks/useMovieBox';
 
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
+import { useCinepro } from '@/hooks/useCinepro';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -114,6 +115,7 @@ const StreamingSources = memo(function StreamingSources({
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
   // Pass title for better AfterDark matching, year/originalTitle left undefined as not in props
   const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
+  const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
@@ -342,6 +344,10 @@ const StreamingSources = memo(function StreamingSources({
       }
       // Vérifier MovieBox (VO uniquement)
       if (movieBoxData && movieBoxData.success && movieBoxData.streams && movieBoxData.streams.length > 0) {
+        return true;
+      }
+      // Vérifier Cinepro (VO uniquement)
+      if (cineproData && cineproData.success && cineproData.streams && cineproData.streams.length > 0) {
         return true;
       }
     }
@@ -838,6 +844,24 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
+
+  // Ajouter les sources Cinepro (VO uniquement)
+  if (selectedLanguage === 'VO' && cineproData && cineproData.success && cineproData.streams) {
+    console.log('🔍 [Cinepro] Sources trouvées:', cineproData.streams);
+    cineproData.streams.forEach((stream: any, index: number) => {
+      allSources.push({
+        id: `cinepro-${index}`,
+        name: `${stream.server || 'Cinepro'} (VO)`,
+        provider: 'cinepro',
+        url: stream.link,
+        type: stream.type === 'mp4' ? 'mp4' : 'm3u8',
+        player: 'cinepro',
+        sourceKey: 'VO',
+        quality: stream.quality || 'Auto',
+        language: 'VO'
+      });
+    });
+  }
 
   // Ajouter les sources AfterDark
   if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
