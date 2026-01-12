@@ -179,6 +179,8 @@ export default {
   "provider.noMoviesAvailableSuffix": "disponible sur",
   "provider.noSeriesAvailablePrefix": "Aucune série",
   "provider.noSeriesAvailableSuffix": "disponible sur",
+  "provider.notFound": "Fournisseur non trouvé",
+  "provider.chooseAnother": "Veuillez choisir un autre fournisseur",
 
   // Additional movie/series genres
   "movies.family": "Famille",
@@ -269,6 +271,7 @@ export default {
   "platform.mubi": "MUBI",
   "platform.tf1": "TF1+",
   "platform.m6": "M6+",
+  "platform.peacock": "Peacock",
 
   // 404 page
   "notFound.title": "404 Page Not Found",
