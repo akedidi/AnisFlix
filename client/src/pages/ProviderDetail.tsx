@@ -107,6 +107,12 @@ const providers: Record<number, Provider> = {
     logoPath: "/tmYzlEKeiWStvXwC1QdpXIASpN4.jpg",
     description: "M6+ est la plateforme de streaming du groupe M6, avec replay, direct et contenus inédits.",
   },
+  386: {
+    id: 386,
+    name: "Peacock",
+    logoPath: "/gKChkSjlCFh64K3NnZc9dYvE124.jpg",
+    description: "Peacock est un service de streaming américain de NBCUniversal, offrant des films, séries et événements sportifs.",
+  },
 };
 
 export default function ProviderDetail() {
@@ -143,7 +149,8 @@ export default function ProviderDetail() {
 
   // Logic Region: iOS Strategy
   // Amazon (9) -> US, Others -> FR
-  const region = provider.id === 9 ? "US" : "FR";
+  // Peacock (386) -> US
+  const region = (provider.id === 9 || provider.id === 386) ? "US" : "FR";
 
   // Fetch data with specific region
   const { data: moviesData, isLoading: moviesLoading } = useMoviesByProvider(provider.id, 1, region);

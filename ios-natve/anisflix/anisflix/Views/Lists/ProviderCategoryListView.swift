@@ -135,9 +135,14 @@ struct ProviderCategoryListView: View {
             print("📥 [ProviderCategoryListView] Loading page \(currentPage)...")
         }
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
+        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        
+        // Peacock (386) is US-only, force English to ensure content visibility
+        if providerId == 386 {
+            language = "en-US"
+        }
         
         print("📺 Loading \(providerName) - \(category) - Page 1")
         
@@ -154,9 +159,13 @@ struct ProviderCategoryListView: View {
         isLoading = true
         let nextPage = currentPage + 1
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
+        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        
+        if providerId == 386 {
+            language = "en-US"
+        }
         
         print("📄 Loading page \(nextPage) for \(providerName) - \(category)")
         
@@ -173,7 +182,10 @@ struct ProviderCategoryListView: View {
             // Determine region based on provider
             // Amazon Prime (9) uses US catalog
             // HBO Max (1899) uses FR catalog
-            let region = (providerId == 9) ? "US" : "FR"
+            // Amazon Prime (9) uses US catalog
+            // HBO Max (1899) uses FR catalog
+            // Peacock (386) uses US catalog
+            let region = (providerId == 9 || providerId == 386) ? "US" : "FR"
             
             if let genre = genreId {
                 // Use provider+genre combined query

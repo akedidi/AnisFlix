@@ -183,16 +183,22 @@ struct ProviderMediaListView: View {
             isLoading = true
         }
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
+        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
                       theme.selectedLanguage == "en" ? "en-US" :
                       theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        
+        // Peacock (386) is US-only, force English to ensure content visibility
+        if providerId == 386 {
+            language = "en-US"
+        }
         
         print("📺 Loading \(providerName) content...")
         
         // Determine region based on provider
         // Amazon Prime (9) uses US catalog
         // HBO Max (1899) uses FR catalog (available in France via Canal+ or other partners)
-        let region = (providerId == 9) ? "US" : "FR"
+        // Peacock (386) uses US catalog
+        let region = (providerId == 9 || providerId == 386) ? "US" : "FR"
         print("🌍 Using region: \(region) for provider: \(providerId)")
         
         do {

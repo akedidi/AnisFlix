@@ -90,8 +90,8 @@ const PROVIDERS = {
   68: 'Microsoft Store',
   192: 'YouTube',
   7: 'Vudu',
-  386: 'Peacock Premium',
-  387: 'Peacock'
+  386: 'Peacock',
+  387: 'Peacock Premium'
 };
 
 export default function ProviderSeriesGenre() {
