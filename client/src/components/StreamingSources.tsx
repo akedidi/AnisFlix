@@ -151,6 +151,7 @@ const StreamingSources = memo(function StreamingSources({
   });
 
   // Debug des valeurs passées au hook
+  console.log('🔍 [STREAMING SOURCES DEBUG] Props:', { imdbId, type, id, title, season, episode }); // ADDED LOG
   console.log('🔍 [STREAMING SOURCES] Hook Parameters:', {
     type: type,
     id: id,
@@ -972,6 +973,7 @@ const StreamingSources = memo(function StreamingSources({
 
   const handleDownloadVideo = (source: Source, e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('🔍 [DOWNLOAD DEBUG] Video download clicked for:', source); // ADDED LOG
 
     // MP4/MKV -> Direct Download
     if (source.type === 'mp4' || source.type === 'mkv' || (source.url && (source.url.endsWith('.mp4') || source.url.endsWith('.mkv')))) {
@@ -985,6 +987,7 @@ const StreamingSources = memo(function StreamingSources({
   };
 
   const handleDownloadSubtitles = async () => {
+    console.log('🔍 [DOWNLOAD DEBUG] Subtitles download clicked. IMDB ID:', imdbId); // ADDED LOG
     if (!imdbId) {
       toast.error("IMDB ID missing, cannot fetch subtitles");
       return;
