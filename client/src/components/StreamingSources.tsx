@@ -11,12 +11,11 @@ import { useMovieBox } from '@/hooks/useMovieBox';
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
 import { useCinepro } from '@/hooks/useCinepro';
-import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, ExternalLink } from 'lucide-react';
+import { Loader2, Play, ExternalLink, Download, Copy, FileText } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface Source {
@@ -971,6 +970,49 @@ const StreamingSources = memo(function StreamingSources({
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
+  const handleDownloadVideo = (source: Source, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // MP4/MKV -> Direct Download
+    if (source.type === 'mp4' || source.type === 'mkv' || (source.url && (source.url.endsWith('.mp4') || source.url.endsWith('.mkv')))) {
+      window.open(source.url, '_blank');
+      toast.success(t("Download started"));
+      return;
+    }
+
+    // HLS/M3U8 -> Warning
+    toast.error("HLS streams cannot be downloaded directly. Please use a specialized tool or choose an MP4 source (MovieBox).");
+  };
+
+  const handleDownloadSubtitles = async () => {
+    if (!imdbId) {
+      toast.error("IMDB ID missing, cannot fetch subtitles");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      action: 'subtitles',
+      imdbId: imdbId,
+      type: type,
+      title: title || 'video'
+    });
+
+    if (season) params.append('season', season.toString());
+    if (episode) params.append('episode', episode.toString());
+
+    const url = `/api/proxy?${params.toString()}`;
+
+    // Trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Subtitle download started...");
+  };
+
   const handleSourceClick = async (source: any) => {
     console.log('🔍 StreamingSources handleSourceClick appelé avec source:', source);
     console.log('🔍 Source URL complète:', source.url);
@@ -1217,32 +1259,46 @@ const StreamingSources = memo(function StreamingSources({
 
 
 
-      {/* Sélecteur de langue - toujours afficher les onglets */}
-      <div className="flex gap-2">
-        <Button
-          variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedLanguage('VF')}
-          disabled={!hasSourcesForLanguage('VF')}
-        >
-          {t("streaming.vf")}
-        </Button>
-        <Button
-          variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedLanguage('VOSTFR')}
-          disabled={!hasSourcesForLanguage('VOSTFR')}
-        >
-          {t("streaming.vostfr")}
-        </Button>
-        <Button
-          variant={selectedLanguage === 'VO' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedLanguage('VO')}
-          disabled={!hasSourcesForLanguage('VO')}
-        >
-          VO
-        </Button>
+      <div className="flex gap-2 items-center">
+        <div className="flex gap-2">
+          <Button
+            variant={selectedLanguage === 'VF' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLanguage('VF')}
+            disabled={!hasSourcesForLanguage('VF')}
+          >
+            {t("streaming.vf")}
+          </Button>
+          <Button
+            variant={selectedLanguage === 'VOSTFR' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLanguage('VOSTFR')}
+            disabled={!hasSourcesForLanguage('VOSTFR')}
+          >
+            {t("streaming.vostfr")}
+          </Button>
+          <Button
+            variant={selectedLanguage === 'VO' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedLanguage('VO')}
+            disabled={!hasSourcesForLanguage('VO')}
+          >
+            VO
+          </Button>
+        </div>
+
+        {imdbId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={handleDownloadSubtitles}
+            title="Download all subtitles as ZIP"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Subtitles
+          </Button>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -1326,6 +1382,16 @@ const StreamingSources = memo(function StreamingSources({
                       <Copy className="w-4 h-4" />
                     </Button>
                   )}
+
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={(e) => handleDownloadVideo(source, e)}
+                    title="Download Video"
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             );

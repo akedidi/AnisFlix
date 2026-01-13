@@ -1,8 +1,104 @@
 import axios from 'axios';
+import archiver from 'archiver';
 
 const TRAKT_CLIENT_ID = process.env.TRAKT_CLIENT_ID;
 const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET;
 const REDIRECT_URI = 'https://anisflix.vercel.app/auth/trakt/callback';
+
+// --- Subtitle Helpers ---
+
+const LANGUAGE_FLAGS = {
+  fre: "🇫🇷", eng: "🇬🇧", spa: "🇪🇸", ger: "🇩🇪", ita: "🇮🇹", por: "🇵🇹", rus: "🇷🇺", tur: "🇹🇷", ara: "🇸🇦", chi: "🇨🇳", jpn: "🇯🇵", kor: "🇰🇷", dut: "🇳🇱", pol: "🇵🇱", swe: "🇸🇪", dan: "🇩🇰", fin: "🇫🇮", nor: "🇳🇴", cze: "🇨🇿", hun: "🇭🇺", rom: "🇷🇴", bul: "🇧🇬", gre: "🇬🇷", heb: "🇮🇱", tha: "🇹🇭", vie: "🇻🇳", ind: "🇮🇩", may: "🇲🇾", per: "🇮🇷", ukr: "🇺🇦", hrv: "🇭🇷", srp: "🇷🇸", slv: "🇸🇮", slk: "🇸🇰", lit: "🇱🇹", lav: "🇱🇻", est: "🇪🇪", zho: "🇨🇳", spl: "🇪🇸"
+};
+
+const LANGUAGE_NAMES = {
+  fre: "Francais", eng: "English", spa: "Espagnol", ger: "Allemand", ita: "Italien", ara: "Arabe"
+};
+
+function srtToVtt(srtContent) {
+  if (!srtContent) return "";
+  return "WEBVTT\n\n" + srtContent
+    .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, "$1.$2")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
+}
+
+async function handleSubtitlesZip(req, res) {
+  const { imdbId, type, season, episode, title } = req.query;
+
+  if (!imdbId || !type) {
+    return res.status(400).json({ error: 'Missing parameters (imdbId, type)' });
+  }
+
+  try {
+    let url = "";
+    if (type === "movie") {
+      url = `https://opensubtitles-v3.strem.io/subtitles/movie/${imdbId}.json`;
+    } else {
+      if (!season || !episode) return res.status(400).json({ error: 'Missing season/episode' });
+      const effEpisode = parseInt(episode) > 100 ? 1 : episode; // Anime absolute mapping fix
+      url = `https://opensubtitles-v3.strem.io/subtitles/series/${imdbId}:${season}:${effEpisode}.json`;
+    }
+
+    console.log(`[ZIP SUBS] Fetching list from: ${url}`);
+    const response = await axios.get(url);
+
+    if (!response.data || !response.data.subtitles || !Array.isArray(response.data.subtitles)) {
+      return res.status(404).json({ error: 'No subtitles found to zip' });
+    }
+
+    const subtitles = response.data.subtitles;
+    console.log(`[ZIP SUBS] Found ${subtitles.length} subtitles`);
+
+    // Create Zip
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    // Set Headers
+    const safeTitle = (title || imdbId).replace(/[^a-zA-Z0-9]/g, '_');
+    const filename = `${safeTitle}_subtitles.zip`;
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    archive.pipe(res);
+
+    // Limit to prevent timeouts/limits (e.g. max 20 subs)
+    const limit = 20;
+    const selectedSubs = subtitles.slice(0, limit);
+
+    for (const sub of selectedSubs) {
+      try {
+        const subUrl = sub.url;
+        const lang = sub.lang;
+        const langName = LANGUAGE_NAMES[lang] || lang;
+        const subId = sub.id;
+
+        // Fetch subtitle content
+        const subResp = await axios.get(subUrl, { responseType: 'text' });
+        let content = subResp.data;
+        let ext = 'srt';
+
+        // Convert to VTT? Or keep SRT? Let's keep SRT as it's more compatible for offline VLC
+        // Actually, existing system converts to VTT. Let's provide SRT if possible, or source format.
+        // OpenSubtitles V3 usually returns SRT.
+
+        if (content.startsWith('WEBVTT')) ext = 'vtt';
+
+        const entryName = `${langName}_${subId}.${ext}`;
+        archive.append(content, { name: entryName });
+
+      } catch (e) {
+        console.warn(`[ZIP SUBS] Failed to fetch sub ${sub.id}: ${e.message}`);
+      }
+    }
+
+    await archive.finalize();
+
+  } catch (error) {
+    console.error('[ZIP SUBS] Error:', error.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to generate zip' });
+  }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -14,6 +110,11 @@ export default async function handler(req, res) {
   }
 
   const { type, url, channelId, action } = req.query;
+
+  // New Actions
+  if (action === 'subtitles') {
+    return handleSubtitlesZip(req, res);
+  }
 
   if (!type) {
     return res.status(400).json({ error: 'Type parameter is required' });
