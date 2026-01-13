@@ -101,6 +101,12 @@ export default async function handler(req, res) {
         'Cache-Control': 'no-cache'
       };
 
+      // Si action=download, forcer le téléchargement
+      if (action === 'download') {
+        const filename = targetUrl.split('/').pop().split('?')[0] || 'video.mp4';
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      }
+
       // **Logique pour les playlists .m3u8**
       if (finalUrl.includes('.m3u8')) {
         requestHeaders['Accept'] = 'application/vnd.apple.mpegurl, application/x-mpegURL, application/octet-stream, */*';
@@ -123,12 +129,17 @@ export default async function handler(req, res) {
           // Réécrire les URLs pour qu'elles passent par notre proxy
           let modifiedPlaylist = response.data;
 
+          // Use current host for rewritten URLs
+          const protocol = req.headers['x-forwarded-proto'] || 'https';
+          const host = req.headers.host;
+          const baseUrl = `${protocol}://${host}`;
+
           modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.m3u8[^\s\n]*/g, (match) => {
-            return `/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+            return `${baseUrl}/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
           });
 
           modifiedPlaylist = modifiedPlaylist.replace(/https?:\/\/[^\s\n]+\.ts[^\s\n]*/g, (match) => {
-            return `/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
+            return `${baseUrl}/api/vidmoly?url=${encodeURIComponent(match)}&referer=${encodeURIComponent(refererUrl)}`;
           });
 
           res.writeHead(200, { 'Content-Type': 'application/vnd.apple.mpegurl' });
@@ -155,15 +166,26 @@ export default async function handler(req, res) {
             timeout: 15000,
             maxRedirects: 5
           });
-          res.writeHead(response.status, response.headers);
+
+          // Forward content-type if not already set (HEAD might set it?)
+          if (response.headers['content-type']) {
+            res.setHeader('Content-Type', response.headers['content-type']);
+          }
+          if (response.headers['content-length']) {
+            res.setHeader('Content-Length', response.headers['content-length']);
+          }
+
+          res.writeHead(response.status); // Don't forward full headers to avoid conflicts
           response.data.pipe(res);
         }
       }
 
     } catch (error) {
       console.error(`[VIDMOLY PROXY] Erreur:`, error.message);
-      res.writeHead(error.response ? error.response.status : 500);
-      res.end();
+      if (!res.headersSent) {
+        res.writeHead(error.response ? error.response.status : 500);
+        res.end();
+      }
     }
     return;
   }

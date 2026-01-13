@@ -1008,40 +1008,59 @@ const StreamingSources = memo(function StreamingSources({
       } catch (err) { console.error(err); }
     }
 
-    // 2. Identify if HLS or MP4 (Extracted links are usually HLS/m3u8)
-    // If it's HLS, we can't download easily without transcoding unless we accept the m3u8 file itself
-    // BUT user wants to download.
-    // If it is m3u8, we SHOW WARNING.
-    // IF it is MP4/MKV, we PROXY.
-
+    // 2. Identification and Proxy Logic
+    const isVidmolyOrVidzy = source.name.toLowerCase().includes('vidmoly') || source.name.toLowerCase().includes('vidzy') || downloadUrl.includes('vidmoly') || downloadUrl.includes('vidzy');
     const isHls = downloadUrl.includes('.m3u8');
     const isMp4 = downloadUrl.includes('.mp4') || downloadUrl.includes('.mkv') || source.type === 'mp4' || source.type === 'mkv';
 
-    // Default to proxy for everything that isn't a simple direct link we want to handle locally
-    // For HLS, this will download the .m3u8 file. This is better than nothing/error.
+    // Special handling for Vidmoly/Vidzy (Use dedicated proxy that rewrites m3u8)
+    if (isVidmolyOrVidzy) {
+      // Use the vidmoly proxy which handles m3u8 rewriting and proper headers
+      // Referer logic matches Swift: Use source.url (normalized)
+      let referer = source.url || 'https://vidmoly.net/';
+      if (referer.includes('vidmoly.to')) referer = referer.replace('vidmoly.to', 'vidmoly.net');
 
-    // Ensure Referer is set for extracted sources if missing
-    if (!downloadHeaders['Referer'] && !downloadHeaders['referer']) {
-      downloadHeaders['Referer'] = source.url;
-      downloadHeaders['Origin'] = new URL(source.url || '').origin;
+      const params = new URLSearchParams({
+        url: downloadUrl,
+        referer: referer,
+        action: 'download' // Force Content-Disposition
+      });
+
+      const proxyLink = `/api/vidmoly?${params.toString()}`;
+      console.log('🔗 [DOWNLOAD] Generated VidMoly/Vidzy proxy URL:', proxyLink);
+      window.open(proxyLink, '_blank');
+      toast.success(t("Download started via VidMoly Proxy"));
+      return;
     }
 
-    // Construct Proxy URL
-    const params = new URLSearchParams({
-      action: 'video',
-      url: downloadUrl,
-      headers: JSON.stringify(downloadHeaders)
-    });
+    if (isMp4) {
+      // Construct Generic Proxy URL
+      const params = new URLSearchParams({
+        action: 'video',
+        url: downloadUrl,
+        headers: JSON.stringify(downloadHeaders)
+      });
 
-    const proxyLink = `/api/proxy?${params.toString()}`;
-    console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
+      const proxyLink = `/api/proxy?${params.toString()}`;
+      console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
 
-    window.open(proxyLink, '_blank');
+      window.open(proxyLink, '_blank');
+      toast.success(t("Download started via Proxy"));
+      return;
+    }
 
     if (isHls) {
       toast.info("Downloading HLS playlist (.m3u8). Use a player like VLC to view it.");
+      // Still try generic proxy as fallback if not caught by Vidmoly check
+      const params = new URLSearchParams({
+        action: 'video',
+        url: downloadUrl,
+        headers: JSON.stringify(downloadHeaders)
+      });
+      window.open(`/api/proxy?${params.toString()}`, '_blank');
     } else {
-      toast.success(t("Download started via Proxy"));
+      // Fallback for unknown types (maybe direct link?)
+      window.open(downloadUrl, '_blank');
     }
   };
 
