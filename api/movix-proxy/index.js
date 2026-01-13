@@ -1769,6 +1769,35 @@ export default async function handler(req, res) {
     }
 
 
+    // GÉRER CINEPRO PROXY (Source scraping)
+    if (decodedPath === 'cinepro') {
+      console.log('🎬 [Movix Proxy] Routing to Cinepro handler');
+      try {
+        const { tmdbId, imdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId && !imdbId) {
+          return res.status(400).json({ error: 'Paramètre tmdbId ou imdbId manquant' });
+        }
+
+        console.log(`🎬 [Cinepro] Fetching streams for TMDB:${tmdbId} IMDB:${imdbId}`);
+
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId);
+
+        console.log(`🎬 [Cinepro] Found ${streams.length} streams`);
+        return res.status(200).json({
+          success: true,
+          sources: streams,
+          count: streams.length
+        });
+      } catch (error) {
+        console.error('❌ [Cinepro Error]', error.message);
+        return res.status(500).json({
+          error: 'Erreur Cinepro Scraper',
+          details: error.message
+        });
+      }
+    }
+
     // GÉRER AFTERDARK ICI
     if (decodedPath === 'afterdark') {
       console.log('🌙 [Movix Proxy] Routing to AfterDark handler');
