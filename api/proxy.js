@@ -54,7 +54,13 @@ async function handleSubtitlesZip(req, res) {
     const archive = archiver('zip', { zlib: { level: 9 } });
 
     // Set Headers
-    const safeTitle = (title || imdbId).replace(/[^a-zA-Z0-9]/g, '_');
+    let safeTitle = (title || imdbId).replace(/[^a-zA-Z0-9]/g, '_');
+
+    // Add Season/Episode info if available
+    if (type !== 'movie' && season && episode) {
+      safeTitle += `_S${season}E${episode}`;
+    }
+
     const filename = `${safeTitle}_subtitles.zip`;
 
     res.setHeader('Content-Type', 'application/zip');
