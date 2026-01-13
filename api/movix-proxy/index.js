@@ -1773,7 +1773,14 @@ export default async function handler(req, res) {
 
     // GÉRER CINEPRO PROXY (Source scraping)
     if (decodedPath === 'cinepro') {
-      console.log('🎬 [Movix Proxy] Routing to Cinepro handler');
+      const logs = [];
+      const log = (msg) => {
+        console.log(msg);
+        logs.push(msg);
+      };
+
+      log('🎬 [Movix Proxy] Routing to Cinepro handler (Debug Mode)');
+
       try {
         const { tmdbId, imdbId, type, season, episode } = queryParams;
 
@@ -1784,34 +1791,38 @@ export default async function handler(req, res) {
         // Fetch IMDB ID if missing (needed for MultiEmbed)
         let finalImdbId = imdbId;
         if (!finalImdbId && tmdbId) {
-          console.log(`🎬 [Cinepro] Missing IMDB ID. Fetching from TMDB for ${tmdbId}...`);
-          const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type || 'movie');
-          if (tmdbInfo.imdb_id) {
-            finalImdbId = tmdbInfo.imdb_id;
-            console.log(`🎬 [Cinepro] Found IMDB ID: ${finalImdbId}`);
-          } else {
-            console.log(`⚠️ [Cinepro] Could not find IMDB ID for ${tmdbId}`);
-          }
+          log(`🎬 [Cinepro] Missing IMDB ID. Fetching from TMDB for ${tmdbId}...`);
+          try {
+            const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type || 'movie');
+            if (tmdbInfo.imdb_id) {
+              finalImdbId = tmdbInfo.imdb_id;
+              log(`🎬 [Cinepro] Found IMDB ID: ${finalImdbId}`);
+            } else {
+              log(`⚠️ [Cinepro] Could not find IMDB ID for ${tmdbId}`);
+            }
+          } catch (e) { log(`⚠️ [Cinepro] TMDB Fetch Error: ${e.message}`); }
         }
 
-        console.log(`🎬 [Cinepro] Fetching streams for TMDB:${tmdbId} IMDB:${finalImdbId}`);
+        log(`🎬 [Cinepro] Fetching streams for TMDB:${tmdbId} IMDB:${finalImdbId}`);
 
         const host = req.headers.host; // Pass host for correct proxy URL generation
 
         // Helper: Puppeteer Fetcher for Cloudflare protected APIs (like AutoEmbed)
         const puppeteerFetcher = async (url, options = {}) => {
-          console.log(`🎭 [Puppeteer] Fetching: ${url}`);
+          log(`🎭 [Puppeteer] Fetching: ${url}`);
           let browser = null;
           try {
             // Configure chromium path for Vercel vs Local
             // On Vercel, chromium.executablePath() returns the path. 
             // Locally it might be null/error if library not designed for it.
-            // We'll trust that @sparticuz/chromium handles environment detection or we fallback.
+
+            const execPath = await chromium.executablePath();
+            log(`🎭 [Puppeteer] Executable Path: ${execPath || 'Local default'}`);
 
             browser = await puppeteer.launch({
               args: chromium.args,
               defaultViewport: chromium.defaultViewport,
-              executablePath: await chromium.executablePath() || '/usr/bin/chromium', // Fallback
+              executablePath: execPath || '/usr/bin/chromium', // Fallback
               headless: chromium.headless,
               ignoreHTTPSErrors: true
             });
@@ -1825,10 +1836,11 @@ export default async function handler(req, res) {
 
             // Extract inner text (which is the JSON response, perhaps auto-rendered by browser)
             const bodyText = await page.evaluate(() => document.body.innerText);
+            log(`🎭 [Puppeteer] Success. Body length: ${bodyText.length}`);
             return { data: bodyText };
 
           } catch (e) {
-            console.error('🎭 [Puppeteer] Error:', e.message);
+            log(`🎭 [Puppeteer] Error: ${e.message}`);
             if (browser) await browser.close();
             throw e;
           } finally {
@@ -1838,17 +1850,20 @@ export default async function handler(req, res) {
 
         const streams = await cineproScraper.getStreams(tmdbId, season, episode, finalImdbId, host, puppeteerFetcher);
 
-        console.log(`🎬 [Cinepro] Found ${streams.length} streams`);
+        log(`🎬 [Cinepro] Found ${streams.length} streams`);
         return res.status(200).json({
           success: true,
           sources: streams,
-          count: streams.length
+          count: streams.length,
+          debugLogs: logs
         });
       } catch (error) {
         console.error('❌ [Cinepro Error]', error.message);
+        logs.push(`❌ [Cinepro Error] ${error.message}`);
         return res.status(500).json({
           error: 'Erreur Cinepro Scraper',
-          details: error.message
+          details: error.message,
+          debugLogs: logs
         });
       }
     }
