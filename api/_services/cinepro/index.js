@@ -315,8 +315,11 @@ export class CineproScraper {
                     }
                     streams.push({ server: `AutoEmbed Server ${i}`, link: directUrl, type: directUrl.includes('.mp4') ? 'mp4' : 'hls', quality: 'Auto', lang: 'VO', headers: headers });
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error(`❌ [Cinepro] AutoEmbed Server ${i} failed: ${e.message}`);
+            }
         }
+        console.log(`✅ [Cinepro] AutoEmbed finished with ${streams.length} streams`);
         return streams;
     }
 }
