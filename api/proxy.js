@@ -100,6 +100,45 @@ async function handleSubtitlesZip(req, res) {
   }
 }
 
+async function handleVideoProxy(req, res) {
+  const { url, headers } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required for video proxy' });
+  }
+
+  const decodedUrl = decodeURIComponent(url);
+  const requestHeaders = headers ? JSON.parse(decodeURIComponent(headers)) : {};
+
+  // Default headers if not provided
+  if (!requestHeaders['User-Agent']) {
+    requestHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
+  try {
+    console.log(`[VIDEO PROXY] Proxying: ${decodedUrl}`);
+
+    const response = await axios.get(decodedUrl, {
+      responseType: 'stream',
+      headers: requestHeaders,
+      timeout: 60000 // 1 minute timeout for connection
+    });
+
+    // Forward important headers
+    if (response.headers['content-type']) res.setHeader('Content-Type', response.headers['content-type']);
+    if (response.headers['content-length']) res.setHeader('Content-Length', response.headers['content-length']);
+
+    // Force download
+    const filename = decodedUrl.split('/').pop().split('?')[0] || 'video.mp4';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('[VIDEO PROXY] Error:', error.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Video proxy failed' });
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
@@ -114,6 +153,9 @@ export default async function handler(req, res) {
   // New Actions
   if (action === 'subtitles') {
     return handleSubtitlesZip(req, res);
+  }
+  if (action === 'video') {
+    return handleVideoProxy(req, res);
   }
 
   if (!type) {

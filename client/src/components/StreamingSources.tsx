@@ -975,10 +975,23 @@ const StreamingSources = memo(function StreamingSources({
     e.stopPropagation();
     console.log('🔍 [DOWNLOAD DEBUG] Video download clicked for:', source); // ADDED LOG
 
-    // MP4/MKV -> Direct Download
+    // MP4/MKV -> Proxy Download with Headers
     if (source.type === 'mp4' || source.type === 'mkv' || (source.url && (source.url.endsWith('.mp4') || source.url.endsWith('.mkv')))) {
-      window.open(source.url, '_blank');
-      toast.success(t("Download started"));
+
+      // Construct Proxy URL
+      const params = new URLSearchParams({
+        action: 'video',
+        url: source.url || '',
+        // Pass headers if available (e.g. from Cinepro/Vixsrc/Darkibox which require Referer/Origin)
+        headers: (source as any).headers ? JSON.stringify((source as any).headers) : ''
+      });
+
+      const downloadUrl = `/api/proxy?${params.toString()}`;
+      console.log('🔗 [DOWNLOAD] Generated proxy URL:', downloadUrl);
+
+      // Trigger download
+      window.open(downloadUrl, '_blank');
+      toast.success(t("Download started via Proxy"));
       return;
     }
 
@@ -1290,18 +1303,17 @@ const StreamingSources = memo(function StreamingSources({
           </Button>
         </div>
 
-        {imdbId && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={handleDownloadSubtitles}
-            title="Download all subtitles as ZIP"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Subtitles
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          onClick={handleDownloadSubtitles}
+          title="Download all subtitles as ZIP"
+          disabled={!imdbId} // Disable instead of hide if missing
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          {imdbId ? "Subtitles" : "No Subtitles (No IMDB)"}
+        </Button>
       </div>
 
       <div className="space-y-3">
