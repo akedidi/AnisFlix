@@ -1017,27 +1017,31 @@ const StreamingSources = memo(function StreamingSources({
     const isHls = downloadUrl.includes('.m3u8');
     const isMp4 = downloadUrl.includes('.mp4') || downloadUrl.includes('.mkv') || source.type === 'mp4' || source.type === 'mkv';
 
-    if (isMp4) {
-      // Construct Proxy URL
-      const params = new URLSearchParams({
-        action: 'video',
-        url: downloadUrl,
-        headers: JSON.stringify(downloadHeaders)
-      });
+    // Default to proxy for everything that isn't a simple direct link we want to handle locally
+    // For HLS, this will download the .m3u8 file. This is better than nothing/error.
 
-      const proxyLink = `/api/proxy?${params.toString()}`;
-      console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
-
-      window.open(proxyLink, '_blank');
-      toast.success(t("Download started via Proxy"));
-      return;
+    // Ensure Referer is set for extracted sources if missing
+    if (!downloadHeaders['Referer'] && !downloadHeaders['referer']) {
+      downloadHeaders['Referer'] = source.url;
+      downloadHeaders['Origin'] = new URL(source.url || '').origin;
     }
 
+    // Construct Proxy URL
+    const params = new URLSearchParams({
+      action: 'video',
+      url: downloadUrl,
+      headers: JSON.stringify(downloadHeaders)
+    });
+
+    const proxyLink = `/api/proxy?${params.toString()}`;
+    console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
+
+    window.open(proxyLink, '_blank');
+
     if (isHls) {
-      toast.error("HLS streams (m3u8) cannot be downloaded directly. Use IDM or similar.");
+      toast.info("Downloading HLS playlist (.m3u8). Use a player like VLC to view it.");
     } else {
-      // Fallback for unknown types (maybe direct link?)
-      window.open(downloadUrl, '_blank');
+      toast.success(t("Download started via Proxy"));
     }
   };
 
