@@ -27,13 +27,13 @@ export class DarkiboxExtractor {
                 if (unpacker.detect()) {
                     const unpacked = unpacker.unpack();
                     if (unpacked) {
-                        // Look for file:"..." or "file":"..."
-                        const fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i) ||
-                            unpacked.match(/src\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+                        // Look for file:"..." or "file":"..." - accept m3u8, mp4, mkv
+                        const fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i) ||
+                            unpacked.match(/src\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i);
 
                         if (fileMatch) {
                             m3u8Url = fileMatch[1];
-                            console.log('[DarkiboxExtractor] Found m3u8 in unpacked JS');
+                            console.log('[DarkiboxExtractor] Found video URL in unpacked JS:', m3u8Url);
                         }
                     }
                 }
@@ -41,10 +41,10 @@ export class DarkiboxExtractor {
 
             // Strategy 2: Look for file pattern directly in HTML (sometimes not packed)
             if (!m3u8Url) {
-                const directMatch = html.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+                const directMatch = html.match(/file\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i);
                 if (directMatch) {
                     m3u8Url = directMatch[1];
-                    console.log('[DarkiboxExtractor] Found m3u8 directly in HTML');
+                    console.log('[DarkiboxExtractor] Found video URL directly in HTML:', m3u8Url);
                 }
             }
 

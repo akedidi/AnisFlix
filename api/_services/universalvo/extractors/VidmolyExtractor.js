@@ -17,22 +17,22 @@ export class VidmolyExtractor {
             let m3u8Url = null;
 
             // Vidmoly usually has file: "..." in script
-            const fileMatch = html.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+            const fileMatch = html.match(/file\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i);
 
             if (fileMatch) {
                 m3u8Url = fileMatch[1];
-                console.log('[VidmolyExtractor] Found m3u8 URL');
+                console.log('[VidmolyExtractor] Found video URL');
             } else {
                 // Try looking for 'sources: [{file: ...}]'
                 const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+)["']/i);
                 if (sourcesMatch) {
                     m3u8Url = sourcesMatch[1];
-                    console.log('[VidmolyExtractor] Found m3u8 in sources array');
+                    console.log('[VidmolyExtractor] Found video in sources array');
                 }
             }
 
             if (!m3u8Url) {
-                return new ErrorObject('No m3u8 found', 'Vidmoly', 404, 'Could not extract m3u8 URL', false, true);
+                return new ErrorObject('No video URL found', 'Vidmoly', 404, 'Could not extract video URL', false, true);
             }
 
             return {
