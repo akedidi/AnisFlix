@@ -1818,6 +1818,7 @@ export default async function handler(req, res) {
 
             const execPath = await chromium.executablePath();
             log(`🎭 [Puppeteer] Executable Path: ${execPath || 'Local default'}`);
+            // Force Deploy Update: 2026-01-13T01:30:00Z
 
             browser = await puppeteer.launch({
               args: chromium.args,
