@@ -4,6 +4,8 @@ import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
 import { CineproScraper } from "../_services/cinepro/index.js";
+import puppeteer from 'puppeteer-core';
+import chromium from '@sparticuz/chromium'; // For Cloudflare bypass on Vercel
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
 // Cache persists across requests on warm function instances
@@ -1779,9 +1781,62 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Paramètre tmdbId ou imdbId manquant' });
         }
 
-        console.log(`🎬 [Cinepro] Fetching streams for TMDB:${tmdbId} IMDB:${imdbId}`);
+        // Fetch IMDB ID if missing (needed for MultiEmbed)
+        let finalImdbId = imdbId;
+        if (!finalImdbId && tmdbId) {
+          console.log(`🎬 [Cinepro] Missing IMDB ID. Fetching from TMDB for ${tmdbId}...`);
+          const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type || 'movie');
+          if (tmdbInfo.imdb_id) {
+            finalImdbId = tmdbInfo.imdb_id;
+            console.log(`🎬 [Cinepro] Found IMDB ID: ${finalImdbId}`);
+          } else {
+            console.log(`⚠️ [Cinepro] Could not find IMDB ID for ${tmdbId}`);
+          }
+        }
 
-        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId);
+        console.log(`🎬 [Cinepro] Fetching streams for TMDB:${tmdbId} IMDB:${finalImdbId}`);
+
+        const host = req.headers.host; // Pass host for correct proxy URL generation
+
+        // Helper: Puppeteer Fetcher for Cloudflare protected APIs (like AutoEmbed)
+        const puppeteerFetcher = async (url, options = {}) => {
+          console.log(`🎭 [Puppeteer] Fetching: ${url}`);
+          let browser = null;
+          try {
+            // Configure chromium path for Vercel vs Local
+            // On Vercel, chromium.executablePath() returns the path. 
+            // Locally it might be null/error if library not designed for it.
+            // We'll trust that @sparticuz/chromium handles environment detection or we fallback.
+
+            browser = await puppeteer.launch({
+              args: chromium.args,
+              defaultViewport: chromium.defaultViewport,
+              executablePath: await chromium.executablePath() || '/usr/bin/chromium', // Fallback
+              headless: chromium.headless,
+              ignoreHTTPSErrors: true
+            });
+
+            const page = await browser.newPage();
+            await page.setUserAgent(options.headers?.['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            await page.setExtraHTTPHeaders(options.headers || {});
+
+            // Wait for network idle or dom content loaded
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+            // Extract inner text (which is the JSON response, perhaps auto-rendered by browser)
+            const bodyText = await page.evaluate(() => document.body.innerText);
+            return { data: bodyText };
+
+          } catch (e) {
+            console.error('🎭 [Puppeteer] Error:', e.message);
+            if (browser) await browser.close();
+            throw e;
+          } finally {
+            if (browser) await browser.close();
+          }
+        };
+
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode, finalImdbId, host, puppeteerFetcher);
 
         console.log(`🎬 [Cinepro] Found ${streams.length} streams`);
         return res.status(200).json({

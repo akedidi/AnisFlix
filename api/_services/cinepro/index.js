@@ -149,14 +149,14 @@ export class CineproScraper {
         return results;
     }
 
-    async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null) {
+    async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null, fetcher = null) {
         console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode}`);
         const streams = [];
 
         // 1. Try MultiEmbed
         if (imdbId) {
             try {
-                const multiEmbedStreams = await this.getMultiEmbed(imdbId, season, episode);
+                const multiEmbedStreams = await this.getMultiEmbed(imdbId, season, episode, fetcher);
                 if (multiEmbedStreams && multiEmbedStreams.length > 0) {
                     for (const s of multiEmbedStreams) {
                         const processed = await this.processStream(s, host);
@@ -172,7 +172,7 @@ export class CineproScraper {
         if (streams.length === 0) {
             console.log('⚠️ [Cinepro] MultiEmbed returned no streams, trying AutoEmbed...');
             try {
-                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host);
+                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher);
                 if (autoEmbedStreams && autoEmbedStreams.length > 0) {
                     for (const s of autoEmbedStreams) {
                         const processed = await this.processStream(s, host);
@@ -188,13 +188,18 @@ export class CineproScraper {
     }
 
     // --- MultiEmbed Logic ---
-    async getMultiEmbed(imdbId, season, episode) {
+    async getMultiEmbed(imdbId, season, episode, fetcher = null) {
         let baseUrl = `https://multiembed.mov/?video_id=${imdbId}`;
+        /* MultiEmbed usually requires Puppeteer for Captcha/Cloudflare too. 
+           If fetcher is provided, we could use it, but logic is complex (click play etc). 
+           For now, we leave standard logic or partial fetcher usage if simple GET. */
+
         if (season && episode) {
             baseUrl += `&s=${season}&e=${episode}`;
         }
         const foundStreams = [];
         try {
+            // ... existing logic ...
             if (baseUrl.includes('multiembed')) {
                 const resolved = await axios.get(baseUrl, { headers: this.headers, timeout: 5000 });
                 baseUrl = resolved.request.res.responseUrl || baseUrl;
@@ -262,7 +267,7 @@ export class CineproScraper {
     }
 
     // --- AutoEmbed Logic ---
-    async getAutoEmbed(tmdbId, season, episode, host) {
+    async getAutoEmbed(tmdbId, season, episode, host, fetcher = null) {
         const type = season && episode ? 'tv' : 'movie';
         const url = type === 'tv'
             ? `https://test.autoembed.cc/api/server?id=${tmdbId}&ss=${season}&ep=${episode}`
@@ -273,9 +278,27 @@ export class CineproScraper {
         for (let i = 1; i <= numberOfServers; i++) {
             try {
                 const serverUrl = `${url}&sr=${i}`;
-                const response = await axios.get(serverUrl, { headers, timeout: 5000 });
-                if (response.data && response.data.data) {
-                    const decrypted = decryptData(response.data.data);
+                let responseData;
+
+                if (fetcher) {
+                    // Use Puppeteer fetcher if available
+                    try {
+                        console.log(`[Cinepro] Using custom fetcher for: ${serverUrl}`);
+                        const fetched = await fetcher(serverUrl, { headers });
+                        // fetcher should return object with 'data' property containing JSON (string or object)
+                        responseData = typeof fetched.data === 'string' ? JSON.parse(fetched.data) : fetched.data;
+                    } catch (err) {
+                        console.error(`[Cinepro] Custom fetcher failed: ${err.message}`);
+                        // Fallback to axios if fetcher fails? or continue
+                        continue;
+                    }
+                } else {
+                    const response = await axios.get(serverUrl, { headers, timeout: 5000 });
+                    responseData = response.data;
+                }
+
+                if (responseData && responseData.data) {
+                    const decrypted = decryptData(responseData.data);
                     let directUrl = decrypted.url;
                     if (directUrl.includes('embed-proxy')) {
                         const urlMatch = directUrl.match(/[?&]url=([^&]+)/);
