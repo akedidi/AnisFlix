@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink, Download, Copy, FileText } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
+import { apiClient } from "@/lib/apiClient"; // ADDED IMPORT
 
 interface Source {
   id: string;
@@ -971,32 +972,73 @@ const StreamingSources = memo(function StreamingSources({
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
 
-  const handleDownloadVideo = (source: Source, e: React.MouseEvent) => {
+  const handleDownloadVideo = async (source: Source, e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('🔍 [DOWNLOAD DEBUG] Video download clicked for:', source); // ADDED LOG
+    console.log('🔍 [DOWNLOAD DEBUG] Video download clicked for:', source);
 
-    // MP4/MKV -> Proxy Download with Headers
-    if (source.type === 'mp4' || source.type === 'mkv' || (source.url && (source.url.endsWith('.mp4') || source.url.endsWith('.mkv')))) {
+    let downloadUrl = source.url || '';
+    let downloadHeaders = (source as any).headers || {};
 
+    // 1. Extraction logic for Embed sources
+    if (source.isAfterDark || source.name.toLowerCase().includes('darki') || source.url?.includes('darkibox') || source.url?.includes('vidzy')) {
+      toast.info("Extracting download link...");
+      try {
+        const response = await apiClient.post('/api/extract', { type: 'darkibox', url: source.url });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.m3u8Url) {
+            downloadUrl = data.m3u8Url;
+            console.log('✅ [DOWNLOAD] Extracted Darki URL:', downloadUrl);
+          }
+        } else {
+          console.error("Extraction failed");
+        }
+      } catch (err) {
+        console.error("Extraction error:", err);
+      }
+    } else if (source.name.toLowerCase().includes('vidmoly')) {
+      toast.info("Extracting download link...");
+      try {
+        // Vidmoly extraction
+        const result = await apiClient.extractVidMoly(source.url || '');
+        if (result.success && result.m3u8Url) {
+          downloadUrl = result.m3u8Url;
+          console.log('✅ [DOWNLOAD] Extracted Vidmoly URL:', downloadUrl);
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    // 2. Identify if HLS or MP4 (Extracted links are usually HLS/m3u8)
+    // If it's HLS, we can't download easily without transcoding unless we accept the m3u8 file itself
+    // BUT user wants to download.
+    // If it is m3u8, we SHOW WARNING.
+    // IF it is MP4/MKV, we PROXY.
+
+    const isHls = downloadUrl.includes('.m3u8');
+    const isMp4 = downloadUrl.includes('.mp4') || downloadUrl.includes('.mkv') || source.type === 'mp4' || source.type === 'mkv';
+
+    if (isMp4) {
       // Construct Proxy URL
       const params = new URLSearchParams({
         action: 'video',
-        url: source.url || '',
-        // Pass headers if available (e.g. from Cinepro/Vixsrc/Darkibox which require Referer/Origin)
-        headers: (source as any).headers ? JSON.stringify((source as any).headers) : ''
+        url: downloadUrl,
+        headers: JSON.stringify(downloadHeaders)
       });
 
-      const downloadUrl = `/api/proxy?${params.toString()}`;
-      console.log('🔗 [DOWNLOAD] Generated proxy URL:', downloadUrl);
+      const proxyLink = `/api/proxy?${params.toString()}`;
+      console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
 
-      // Trigger download
-      window.open(downloadUrl, '_blank');
+      window.open(proxyLink, '_blank');
       toast.success(t("Download started via Proxy"));
       return;
     }
 
-    // HLS/M3U8 -> Warning
-    toast.error("HLS streams cannot be downloaded directly. Please use a specialized tool or choose an MP4 source (MovieBox).");
+    if (isHls) {
+      toast.error("HLS streams (m3u8) cannot be downloaded directly. Use IDM or similar.");
+    } else {
+      // Fallback for unknown types (maybe direct link?)
+      window.open(downloadUrl, '_blank');
+    }
   };
 
   const handleDownloadSubtitles = async () => {
