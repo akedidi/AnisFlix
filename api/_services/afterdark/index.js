@@ -26,7 +26,7 @@ export class AfterDarkScraper {
         try {
             // Use Cloudflare Worker to bypass Vercel/AfterDark restrictions
             // Default to localhost for dev, or env var for prod
-            const WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || 'https://anisflix-worker.akedidi.workers.dev';
+            const WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || 'https://anisflix.kedidi-anis.workers.dev';
 
             // Construct params for the worker
             const params = new URLSearchParams();
