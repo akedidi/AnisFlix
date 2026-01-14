@@ -24,11 +24,15 @@ export class AfterDarkScraper {
 
     async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null) {
         try {
-            let url = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}?tmdbId=${tmdbId}`;
+            // Use Cloudflare Worker to bypass Vercel/AfterDark restrictions
+            // Default to localhost for dev, or env var for prod
+            const WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || 'https://anisflix-worker.akedidi.workers.dev';
 
+            // Construct params for the worker
             const params = new URLSearchParams();
+            params.append('path', 'afterdark'); // Routing param for Worker
             params.append('tmdbId', tmdbId);
-
+            params.append('type', type); // Worker needs 'type' to decide endpoint
             if (title) params.append('title', title);
 
             if (type === 'movie') {
@@ -39,25 +43,23 @@ export class AfterDarkScraper {
                 if (episode) params.append('episode', episode);
             }
 
-            // Reconstruct URL with params manually to match Swift implementation exactly if needed, 
-            // but axios params or URLSearchParams is safer.
-            // Swift uses: urlString += "&key=value"
+            const targetUrl = `${WORKER_URL}?${params.toString()}`;
 
-            const fullUrl = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}?${params.toString()}`;
+            console.log(`🌑 [AfterDark] Delegating to Worker: ${targetUrl}`);
 
-            console.log(`🌑 [AfterDark] Full URL: ${fullUrl}`);
-            console.log(`🌑 [AfterDark] Query Params:`, params.toString());
-
-            const response = await axios.get(fullUrl, {
-                headers: this.headers,
-                timeout: 10000,
-                validateStatus: null // Capture all status codes
+            const response = await axios.get(targetUrl, {
+                headers: {
+                    // No need for specific AfterDark headers here, the Worker handles them
+                    'User-Agent': 'AnisFlix-Vercel-Proxy',
+                },
+                timeout: 15000,
+                validateStatus: null
             });
 
-            console.log(`🌑 [AfterDark] Response Status: ${response.status}`);
+            console.log(`🌑 [AfterDark] Worker Response Status: ${response.status}`);
 
             if (response.status !== 200) {
-                console.error(`❌ [AfterDark] Request failed with status ${response.status}`);
+                console.error(`❌ [AfterDark] Worker request failed with status ${response.status}`);
                 console.error(`❌ [AfterDark] Response body:`, JSON.stringify(response.data));
                 return [];
             }
