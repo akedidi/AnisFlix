@@ -24,15 +24,15 @@ export class AfterDarkScraper {
 
     async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null) {
         try {
-            // Use Cloudflare Worker to bypass Vercel/AfterDark restrictions
-            // Default to localhost for dev, or env var for prod
-            const WORKER_URL = process.env.CLOUDFLARE_WORKER_URL || 'https://anisflix.kedidi-anis.workers.dev';
+            // Use corsproxy.io directly to bypass AfterDark/Cloudflare restrictions
+            // This bypasses our own AnisFlix Worker which was just a wrapper around this anyway
+            const PROXY_URL = 'https://corsproxy.io/?';
 
-            // Construct params for the worker
+            // Construct the real target URL for AfterDark
+            let targetEndpoint = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}`;
             const params = new URLSearchParams();
-            params.append('path', 'afterdark'); // Routing param for Worker
             params.append('tmdbId', tmdbId);
-            params.append('type', type); // Worker needs 'type' to decide endpoint
+
             if (title) params.append('title', title);
 
             if (type === 'movie') {
@@ -43,23 +43,26 @@ export class AfterDarkScraper {
                 if (episode) params.append('episode', episode);
             }
 
-            const targetUrl = `${WORKER_URL}?${params.toString()}`;
+            // Combine Proxy + Target + Params
+            const fullTargetUrl = `${targetEndpoint}?${params.toString()}`;
+            const finalUrl = `${PROXY_URL}${fullTargetUrl}`;
 
-            console.log(`🌑 [AfterDark] Delegating to Worker: ${targetUrl}`);
+            console.log(`🌑 [AfterDark] Fetching via Proxy: ${finalUrl}`);
 
-            const response = await axios.get(targetUrl, {
+            const response = await axios.get(finalUrl, {
                 headers: {
-                    // No need for specific AfterDark headers here, the Worker handles them
                     'User-Agent': 'AnisFlix-Vercel-Proxy',
+                    'Origin': 'https://afterdark.mom', // Corsproxy usually forwards or requires mimicking
+                    'Referer': 'https://afterdark.mom/'
                 },
                 timeout: 15000,
                 validateStatus: null
             });
 
-            console.log(`🌑 [AfterDark] Worker Response Status: ${response.status}`);
+            console.log(`🌑 [AfterDark] Response Status: ${response.status}`);
 
             if (response.status !== 200) {
-                console.error(`❌ [AfterDark] Worker request failed with status ${response.status}`);
+                console.error(`❌ [AfterDark] Request failed with status ${response.status}`);
                 console.error(`❌ [AfterDark] Response body:`, JSON.stringify(response.data));
                 return [];
             }

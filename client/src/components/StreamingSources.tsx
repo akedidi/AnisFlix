@@ -481,23 +481,34 @@ const StreamingSources = memo(function StreamingSources({
     // Ajouter les sources groupées par qualité
     Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
       sources.forEach((source: any, index: number) => {
-        // Convert MULTI to VF as Multi sources are actually French
-        const isMulti = source.language === 'MULTI' || source.language?.toLowerCase() === 'multi';
-        const languageLabel = isMulti ? 'VF' :
-          source.language === 'FRE' ? 'Français' :
-            source.language === 'ENG' ? 'Anglais' : source.language;
+        // Filter out Alpha sources as requested
+        if (source.label === 'Alpha') return;
+
+        // Normalize Language for Display
+        let languageDisplay = source.language || 'VF';
+        const langLower = languageDisplay.toLowerCase();
+
+        if (['vf', 'vff', 'vfq', 'truefrench', 'french'].some(l => langLower.includes(l)) || langLower === 'multi') {
+          languageDisplay = 'VF';
+        } else if (langLower.includes('english') || langLower.includes('eng') || langLower === 'vo') {
+          languageDisplay = 'VO';
+        } else {
+          // Keep original if not standard
+          languageDisplay = source.language;
+        }
+
+        const languageLabel = languageDisplay;
 
         // Ajouter un numéro si plusieurs sources de même qualité
         const qualityLabel = sources.length > 1 ? `${quality} #${index + 1}` : quality;
 
-        // Modifier l'URL pour forcer les sous-titres français
-        let modifiedUrl = source.m3u8;
-        if (isMulti || source.language === 'FRE') {
-          // Ajouter le paramètre pour forcer les sous-titres français
-          const url = new URL(source.m3u8);
-          url.searchParams.set('subtitle', 'fr');
-          modifiedUrl = url.toString();
-        }
+        // Modifier l'URL pour forcer les sous-titres français si nécessaire
+        // Note: For now we just use the url directly, but we can append params if needed.
+        const originalUrl = source.m3u8 || source.src || "";
+        // Some providers might need specific params for french subs if Multi
+        const isMulti = source.language?.toLowerCase().includes('multi');
+        // Example: logic to add subs if needed, for now keep original
+        const modifiedUrl = originalUrl;
 
         allSources.push({
           id: `movix-download-${quality.toLowerCase()}-${index}`,

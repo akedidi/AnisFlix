@@ -261,6 +261,7 @@ struct MovixDownloadSource: Codable {
     let language: String?
     let quality: String?
     let m3u8: String?
+    let label: String?
 }
 
 struct MovixDownloadResponse: Codable {
@@ -1191,39 +1192,26 @@ class StreamingService {
         season: Int? = nil,
         episode: Int? = nil
     ) async throws -> [StreamingSource] {
-        var urlString = "https://afterdark.mom/api/sources"
+        var urlString = "\(baseUrl)/api/movix-proxy?path=afterdark"
         
         if type == "movie" {
-            urlString += "/movies?"
-            var params: [String] = []
-            params.append("tmdbId=\(tmdbId)")
-            if let title = title {
-                let encoded = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
-                params.append("title=\(encoded)")
-            }
-            if let year = year {
-                params.append("year=\(year)")
-            }
-            if let originalTitle = originalTitle {
-                let encoded = originalTitle.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? originalTitle
-                params.append("originalTitle=\(encoded)")
-            }
-            urlString += params.joined(separator: "&")
-        } else if type == "tv" {
-            urlString += "/shows?"
-            var params: [String] = []
-            params.append("tmdbId=\(tmdbId)")
-            if let season = season {
-                params.append("season=\(season)")
-            }
-            if let episode = episode {
-                params.append("episode=\(episode)")
-            }
-            if let title = title {
-                let encoded = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? title
-                params.append("title=\(encoded)")
-            }
-            urlString += params.joined(separator: "&")
+            urlString += "&type=movie&tmdbId=\(tmdbId)"
+        } else {
+             urlString += "&type=tv&tmdbId=\(tmdbId)"
+             if let s = season { urlString += "&season=\(s)" }
+             if let e = episode { urlString += "&episode=\(e)" }
+        }
+        
+        if let t = title {
+            let encoded = t.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? t
+            urlString += "&title=\(encoded)"
+        }
+        if let y = year {
+             urlString += "&year=\(y)"
+        }
+        if let ot = originalTitle {
+             let encoded = ot.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ot
+             urlString += "&originalTitle=\(encoded)"
         }
         
         guard let url = URL(string: urlString) else {
@@ -1634,6 +1622,11 @@ class StreamingService {
                 let streamUrl = source.m3u8 ?? source.src ?? ""
                 guard !streamUrl.isEmpty else { continue }
                 
+                // Filter Alpha sources
+                if let label = source.label, label == "Alpha" {
+                    continue
+                }
+
                 // Detect provider from URL: darkibox.com = Darkibox, otherwise = Movix
                 let detectedProvider: String
                 if streamUrl.lowercased().contains("darkibox.com") {
@@ -1642,14 +1635,31 @@ class StreamingService {
                     detectedProvider = "movix"
                 }
                 
+                // Improved mapping
+                var lang = (source.language ?? "VF").lowercased()
+                let normalizedLang: String
+                
+                if lang.contains("french") || lang.contains("français") || lang == "fr" || lang == "vff" || lang == "vfq" || lang == "truefrench" || lang.contains("multi") {
+                    normalizedLang = "VF"
+                } else if lang.contains("english") || lang == "en" || lang == "eng" || lang.contains("vo") {
+                   if lang.contains("vostfr") {
+                       normalizedLang = "VOSTFR"
+                   } else {
+                       normalizedLang = "VO"
+                   }
+                } else if lang.contains("vostfr") {
+                    normalizedLang = "VOSTFR"
+                } else {
+                    normalizedLang = "VF"
+                }
+                
                 let streamingSource = StreamingSource(
                     id: "\(detectedProvider)-download-\(movixId)-\(index)",
                     url: streamUrl,
                     quality: source.quality ?? "HD",
                     type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
                     provider: detectedProvider,
-                    // Convert "Multi" to "VF" as Multi sources are actually French
-                    language: (source.language?.lowercased().contains("multi") == true) ? "VF" : (source.language ?? "VF"),
+                    language: normalizedLang,
                     origin: "movix"
                 )
                 sources.append(streamingSource)
@@ -1951,6 +1961,32 @@ class StreamingService {
         }
     }
         
+    // MARK: - Cinepro API
+    private func fetchCineproSources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=cinepro&tmdbId=\(tmdbId)&type=\(season == nil ? "movie" : "tv")"
+        if let s = season { urlString += "&season=\(s)" }
+        if let e = episode { urlString += "&episode=\(e)" }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        struct CineproResponse: Codable {
+            let success: Bool
+            let streams: [StreamingSource]?
+        }
+        
+        let result = try? JSONDecoder().decode(CineproResponse.self, from: data)
+        return result?.streams ?? []
+    }
+
     // MARK: - ID Conversion Helpers
     
     func fetchImdbId(tmdbId: Int, type: String) async -> String? {
