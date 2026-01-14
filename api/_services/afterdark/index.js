@@ -24,14 +24,17 @@ export class AfterDarkScraper {
 
     async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null) {
         try {
-            // Use corsproxy.io directly to bypass AfterDark/Cloudflare restrictions
-            // This bypasses our own AnisFlix Worker which was just a wrapper around this anyway
-            const PROXY_URL = 'https://corsproxy.io/?';
+            // Use Cloudflare Worker as intermediate proxy to bypass blocking
+            // Vercel IPs -> corsproxy.io often gets blocked
+            // Worker IPs -> corsproxy.io usually works
+            const WORKER_URL = 'https://anisflix.kedidi-anis.workers.dev';
 
-            // Construct the real target URL for AfterDark
-            let targetEndpoint = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}`;
+            // Parameters for the worker
+            // params are: path=afterdark, type, tmdbId, ...
             const params = new URLSearchParams();
+            params.append('path', 'afterdark');
             params.append('tmdbId', tmdbId);
+            params.append('type', type);
 
             if (title) params.append('title', title);
 
@@ -43,27 +46,22 @@ export class AfterDarkScraper {
                 if (episode) params.append('episode', episode);
             }
 
-            // Combine Proxy + Target + Params
-            const fullTargetUrl = `${targetEndpoint}?${params.toString()}`;
-            const finalUrl = `${PROXY_URL}${fullTargetUrl}`;
-
-            console.log(`🌑 [AfterDark] Fetching via Proxy: ${finalUrl}`);
+            const finalUrl = `${WORKER_URL}?${params.toString()}`;
+            console.log(`🌑 [AfterDark] Fetching via Worker: ${finalUrl}`);
 
             const response = await axios.get(finalUrl, {
                 headers: {
                     'User-Agent': 'AnisFlix-Vercel-Proxy',
-                    'Origin': 'https://afterdark.mom', // Corsproxy usually forwards or requires mimicking
-                    'Referer': 'https://afterdark.mom/'
                 },
-                timeout: 15000,
+                timeout: 20000,
                 validateStatus: null
             });
 
             console.log(`🌑 [AfterDark] Response Status: ${response.status}`);
 
             if (response.status !== 200) {
-                console.error(`❌ [AfterDark] Request failed with status ${response.status}`);
-                console.error(`❌ [AfterDark] Response body:`, JSON.stringify(response.data));
+                console.warn(`⚠️ [AfterDark] Worker returned status ${response.status}`);
+                // Fallback? No, just return empty if worker fails.
                 return [];
             }
 
