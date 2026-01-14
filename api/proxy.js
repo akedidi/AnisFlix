@@ -1,5 +1,11 @@
 import axios from 'axios';
 import archiver from 'archiver';
+import ffmpeg from 'fluent-ffmpeg';
+import ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
+
+// Set FFmpeg path
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+console.log(`[PROXY] Using FFmpeg binary at: ${ffmpegInstaller.path}`);
 
 const TRAKT_CLIENT_ID = process.env.TRAKT_CLIENT_ID;
 const TRAKT_CLIENT_SECRET = process.env.TRAKT_CLIENT_SECRET;
@@ -145,6 +151,73 @@ async function handleVideoProxy(req, res) {
   }
 }
 
+async function handleDownloadProxy(req, res) {
+  const { url, headers: headersStr, filename } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url for download' });
+  }
+
+  const outputFilename = filename || 'video.mp4';
+
+  // Parse headers
+  let customHeaders = '';
+  if (headersStr) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(headersStr));
+      // Format for ffmpeg: "Key: Value\r\nKey2: Value2\r\n"
+      customHeaders = Object.entries(parsed)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('\r\n') + '\r\n';
+    } catch (e) {
+      console.error('[DOWNLOAD PROXY] Failed to parse headers:', e);
+    }
+  }
+
+  console.log(`[DOWNLOAD PROXY] Starting download for: ${url}`);
+  if (customHeaders) console.log(`[DOWNLOAD PROXY] Headers: \n${customHeaders}`);
+
+  // Set response headers
+  res.setHeader('Content-Type', 'video/mp4');
+  res.setHeader('Content-Disposition', `attachment; filename="${outputFilename}"`);
+
+  // Create FFmpeg command
+  const command = ffmpeg(url);
+
+  if (customHeaders) {
+    command.inputOptions([
+      '-headers', customHeaders,
+      '-user_agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    ]);
+  }
+
+  command
+    .outputOptions([
+      '-c copy',           // Copy stream (no re-encoding) - FASTEST
+      '-movflags frag_keyframe+empty_moov', // REQUIRED for streaming MP4
+      '-bsf:a aac_adtstoasc' // Fix for AAC audio in some HLS streams
+    ])
+    .format('mp4')
+    .on('start', (commandLine) => {
+      console.log('[DOWNLOAD PROXY] Spawned Ffmpeg with command: ' + commandLine);
+    })
+    .on('error', (err) => {
+      console.error('[DOWNLOAD PROXY] Error:', err.message);
+      // If headers haven't been sent, send 500. If partial, just end.
+      if (!res.headersSent) {
+        res.status(500).end();
+      } else {
+        res.end();
+      }
+    })
+    .on('end', () => {
+      console.log('[DOWNLOAD PROXY] Finished processing');
+    });
+
+  // Pipe directly to response
+  command.pipe(res, { end: true });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range');
@@ -162,6 +235,9 @@ export default async function handler(req, res) {
   }
   if (action === 'video') {
     return handleVideoProxy(req, res);
+  }
+  if (action === 'download') {
+    return handleDownloadProxy(req, res);
   }
 
   if (!type) {

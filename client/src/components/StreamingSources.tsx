@@ -1050,8 +1050,10 @@ const StreamingSources = memo(function StreamingSources({
       params.append('headers', JSON.stringify(downloadHeaders));
     }
 
-    // Use /api/download which implements the fluent-ffmpeg solution (handles Headers + HLS->MP4 + MP4 Copy)
-    const downloadEndpoint = '/api/download'; // Maps to api/download.js
+    // Use /api/proxy?action=download which implements the fluent-ffmpeg solution (handles Headers + HLS->MP4 + MP4 Copy)
+    const downloadEndpoint = '/api/proxy';
+    params.append('action', 'download');
+
     const finalLink = `${downloadEndpoint}?${params.toString()}`;
 
     console.log('🔗 [DOWNLOAD] Generated FFmpeg Download URL:', finalLink);
