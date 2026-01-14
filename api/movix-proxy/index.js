@@ -104,8 +104,8 @@ const MOVIX_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'application/json, text/plain, */*',
   'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-  'Referer': 'https://movix.site/',
-  'Origin': 'https://movix.site',
+  'Referer': 'https://movix.blog/',
+  'Origin': 'https://movix.blog',
 };
 
 class VixSrcScraper {
@@ -2127,7 +2127,7 @@ export default async function handler(req, res) {
 
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
-    const baseMovixUrl = 'https://api.movix.site';
+    const baseMovixUrl = 'https://api.movix.blog';
 
     if (decodedPath === 'search' && queryParams.title) {
       // Optimisation : Utiliser anime/search par défaut pour les recherches avec titre
