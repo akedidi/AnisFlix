@@ -1019,6 +1019,14 @@ const StreamingSources = memo(function StreamingSources({
     // If it's MP4/MKV with headers, we can also use api/proxy (it supports simple copy).
     // If it's MP4 without headers, direct link might fail (CORS/Referer) so safer to use proxy too.
 
+    // EXCEPTION: 4KHDHub links are direct MKV downloads that don't need proxying
+    if ((source as any).isFourKHDHub || source.name.toLowerCase().includes('4khdhub') || source.provider === '4khdhub') {
+      console.log('✅ [DOWNLOAD] Direct download for 4KHDHub (no proxy needed)');
+      window.open(downloadUrl, '_blank');
+      toast.success(t("Download started..."));
+      return;
+    }
+
     const hasHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
 
     // Configurer les headers spécifiques pour Vidmoly/Vidzy si nécessaire
@@ -1364,17 +1372,19 @@ const StreamingSources = memo(function StreamingSources({
           </Button>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto"
-          onClick={handleDownloadSubtitles}
-          title="Download all subtitles as ZIP"
-          disabled={!imdbId} // Disable instead of hide if missing
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          {imdbId ? "Subtitles" : "No Subtitles (No IMDB)"}
-        </Button>
+        {false && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={handleDownloadSubtitles}
+            title="Download all subtitles as ZIP"
+            disabled={!imdbId} // Disable instead of hide if missing
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {imdbId ? "Subtitles" : "No Subtitles (No IMDB)"}
+          </Button>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -1459,15 +1469,18 @@ const StreamingSources = memo(function StreamingSources({
                     </Button>
                   )}
 
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={(e) => handleDownloadVideo(source, e)}
-                    title="Download Video"
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
+                  {/* Only show download button for 4KHDHub (Direct MKV) to save bandwidth */}
+                  {((source as any).isFourKHDHub || source.provider === '4khdhub') && (
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={(e) => handleDownloadVideo(source, e)}
+                      title="Download Video"
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             );
