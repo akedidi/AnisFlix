@@ -16,45 +16,35 @@ export class VidmolyExtractor {
             const html = response.data;
             let m3u8Url = null;
 
-            // Robust Heuristic Search
-            const candidates = [];
+            // Priority 1: Check for mp4/mkv match first (Direct file)
+            let fileMatch = html.match(/file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
 
-            // Regex to capture key-value pairs for file/src/download
-            const patterns = [
-                /download\s*:\s*["']([^"']+)["']/gi,
-                /file\s*:\s*["']([^"']+)["']/gi,
-                /src\s*:\s*["']([^"']+)["']/gi,
-                /sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+)["']/gi // sources: [{file: '...'}]
-            ];
-
-            patterns.forEach(regex => {
-                let match;
-                // Need to copy regex or reset lastIndex if global?
-                // Actually using new RegExp inside loop or ensuring reset.
-                // Simpler: iterate matches on html string
-                while ((match = regex.exec(html)) !== null) {
-                    const url = match[1];
-                    if (!url.startsWith('http') && !url.startsWith('//')) return;
-
-                    let score = 0;
-                    if (url.includes('.mp4') || url.includes('.mkv')) score += 10;
-                    if (match[0].toLowerCase().includes('download')) score += 5;
-                    if (url.includes('.m3u8')) score -= 5;
-
-                    candidates.push({ url, score });
+            if (fileMatch) {
+                m3u8Url = fileMatch[1];
+                console.log('[VidmolyExtractor] Found MP4/MKV URL');
+            } else {
+                // Priority 2: Check for m3u8 match (Direct file)
+                fileMatch = html.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+                if (fileMatch) {
+                    m3u8Url = fileMatch[1];
+                    console.log('[VidmolyExtractor] Found M3U8 URL');
                 }
-            });
+            }
 
-            // specific check for sources array if not caught above due to formatting
-            // ... (above regex handles basic sources: [{file:}])
-
-            // Sort by score descending
-            candidates.sort((a, b) => b.score - a.score);
-
-            if (candidates.length > 0) {
-                m3u8Url = candidates[0].url;
-                const type = m3u8Url.includes('.m3u8') ? 'HLS' : 'MP4/Video';
-                console.log(`[VidmolyExtractor] Selected best candidate (${type}):`, m3u8Url);
+            if (!m3u8Url) {
+                // Priority 3: Check for MP4 in sources array
+                const sourcesMatchMp4 = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
+                if (sourcesMatchMp4) {
+                    m3u8Url = sourcesMatchMp4[1];
+                    console.log('[VidmolyExtractor] Found video (MP4) in sources array');
+                } else {
+                    // Priority 4: Fallback to any file in sources
+                    const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+)["']/i);
+                    if (sourcesMatch) {
+                        m3u8Url = sourcesMatch[1];
+                        console.log('[VidmolyExtractor] Found video (fallback) in sources array');
+                    }
+                }
             }
 
             if (!m3u8Url) {
