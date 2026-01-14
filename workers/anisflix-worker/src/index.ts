@@ -73,8 +73,11 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
 
     console.log(`[Worker] Proxying to: ${targetUrl.toString()}`);
 
+    // Use corsproxy.io to bypass Cloudflare IP blocking
+    const proxyUrl = 'https://corsproxy.io/?' + targetUrl.toString();
+
     try {
-        const response = await fetch(targetUrl.toString(), {
+        const response = await fetch(proxyUrl, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -88,8 +91,7 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'none',
                 'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1',
-                'Connection': 'keep-alive'
+                'Upgrade-Insecure-Requests': '1'
             }
         });
 
@@ -100,7 +102,8 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
-                'X-Debug-Target-URL': targetUrl.toString() // Debugging header
+                'X-Debug-Target-URL': targetUrl.toString(),
+                'X-Debug-Proxy-URL': proxyUrl
             }
         });
     } catch (error: any) {
