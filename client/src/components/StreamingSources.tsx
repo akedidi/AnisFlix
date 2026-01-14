@@ -1015,30 +1015,26 @@ const StreamingSources = memo(function StreamingSources({
 
     // 3. Download Routing Logic
     // If we have headers, we MUST use a proxy that supports them.
-    // If it's HLS, we use our new ffmpeg-based downloader (api/download).
-    // If it's MP4/MKV with headers, we can also use api/download (it supports simple copy).
+    // If it's HLS, we use our new ffmpeg-based downloader (api/proxy?action=download).
+    // If it's MP4/MKV with headers, we can also use api/proxy (it supports simple copy).
     // If it's MP4 without headers, direct link might fail (CORS/Referer) so safer to use proxy too.
 
     const hasHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
 
+    // Configurer les headers spécifiques pour Vidmoly/Vidzy si nécessaire
     if (isVidmolyOrVidzy) {
-      // ... (Keep existing Vidmoly logic if it works, or migrate? Vidmoly proxy logic is specific)
-      // Existing vidmoly proxy (lines 1017-1033) handles its own things. Keep it for now.
+      console.log('Use FFmpeg download for Vidmoly/Vidzy (HLS -> MP4)');
       let referer = source.url || 'https://vidmoly.net/';
       if (referer.includes('vidmoly.to')) referer = referer.replace('vidmoly.to', 'vidmoly.net');
 
-      const params = new URLSearchParams({
-        url: downloadUrl,
-        referer: referer,
-        action: 'download' // Force Content-Disposition
-      });
-
-      const proxyLink = `/api/vidmoly?${params.toString()}`;
-      console.log('🔗 [DOWNLOAD] Generated VidMoly/Vidzy proxy URL:', proxyLink);
-      window.open(proxyLink, '_blank');
-      toast.success(t("Download started via VidMoly Proxy"));
-      return;
+      if (!downloadHeaders) downloadHeaders = {};
+      downloadHeaders['Referer'] = referer;
+      // Vidmoly needs Origin sometimes too
+      downloadHeaders['Origin'] = 'https://vidmoly.net';
     }
+
+    // REMOVED: Old Vidmoly proxy logic that just returned m3u8. 
+    // Now we fall through to the ffmpeg proxy below.
 
     // For everything else (Cinepro, Darkibox, MovieBox etc.)
     const params = new URLSearchParams({
@@ -1046,7 +1042,7 @@ const StreamingSources = memo(function StreamingSources({
       filename: `${title || 'video'}.${isHls ? 'mp4' : 'mp4'}`, // converting HLS to MP4
     });
 
-    if (hasHeaders) {
+    if (downloadHeaders && Object.keys(downloadHeaders).length > 0) {
       params.append('headers', JSON.stringify(downloadHeaders));
     }
 
