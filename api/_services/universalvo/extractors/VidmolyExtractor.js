@@ -16,18 +16,34 @@ export class VidmolyExtractor {
             const html = response.data;
             let m3u8Url = null;
 
-            // Vidmoly usually has file: "..." in script
-            const fileMatch = html.match(/file\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i);
+            // Priority 1: Check for mp4/mkv match first
+            let fileMatch = html.match(/file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
 
             if (fileMatch) {
                 m3u8Url = fileMatch[1];
-                console.log('[VidmolyExtractor] Found video URL');
+                console.log('[VidmolyExtractor] Found MP4/MKV URL');
             } else {
-                // Try looking for 'sources: [{file: ...}]'
-                const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+)["']/i);
-                if (sourcesMatch) {
-                    m3u8Url = sourcesMatch[1];
-                    console.log('[VidmolyExtractor] Found video in sources array');
+                // Priority 2: Check for m3u8 match
+                fileMatch = html.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+                if (fileMatch) {
+                    m3u8Url = fileMatch[1];
+                    console.log('[VidmolyExtractor] Found M3U8 URL');
+                }
+            }
+
+            if (!m3u8Url) {
+                // Try looking for 'sources: [{file: ...}]' - Priority 1 MP4
+                const sourcesMatchMp4 = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
+                if (sourcesMatchMp4) {
+                    m3u8Url = sourcesMatchMp4[1];
+                    console.log('[VidmolyExtractor] Found video (MP4) in sources array');
+                } else {
+                    // Priority 2 M3U8
+                    const sourcesMatch = html.match(/sources\s*:\s*\[\s*\{\s*file\s*:\s*["']([^"']+)["']/i);
+                    if (sourcesMatch) {
+                        m3u8Url = sourcesMatch[1];
+                        console.log('[VidmolyExtractor] Found video (fallback) in sources array');
+                    }
                 }
             }
 

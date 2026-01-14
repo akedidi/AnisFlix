@@ -27,13 +27,22 @@ export class DarkiboxExtractor {
                 if (unpacker.detect()) {
                     const unpacked = unpacker.unpack();
                     if (unpacked) {
-                        // Look for file:"..." or "file":"..." - accept m3u8, mp4, mkv
-                        const fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i) ||
-                            unpacked.match(/src\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/i);
+                        // Priority 1: Look for MP4 or MKV specifically
+                        let fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i) ||
+                            unpacked.match(/src\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
 
                         if (fileMatch) {
                             m3u8Url = fileMatch[1];
-                            console.log('[DarkiboxExtractor] Found video URL in unpacked JS:', m3u8Url);
+                            console.log('[DarkiboxExtractor] Found MP4/MKV URL in unpacked JS:', m3u8Url);
+                        } else {
+                            // Priority 2: Look for M3U8
+                            fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i) ||
+                                unpacked.match(/src\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+
+                            if (fileMatch) {
+                                m3u8Url = fileMatch[1];
+                                console.log('[DarkiboxExtractor] Found M3U8 URL in unpacked JS:', m3u8Url);
+                            }
                         }
                     }
                 }
