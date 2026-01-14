@@ -33,3 +33,11 @@ ios-natve/anisflix/Pods/
 Pods/
 ios-natve/anisflix/build/
 
+
+# Logs
+*.log
+api/*.log
+
+# User Interface State (Local Xcode user settings)
+*.userinterfacestate
+*.xcuserstate
