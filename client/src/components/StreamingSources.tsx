@@ -1013,10 +1013,17 @@ const StreamingSources = memo(function StreamingSources({
     const isHls = downloadUrl.includes('.m3u8');
     const isMp4 = downloadUrl.includes('.mp4') || downloadUrl.includes('.mkv') || source.type === 'mp4' || source.type === 'mkv';
 
-    // Special handling for Vidmoly/Vidzy (Use dedicated proxy that rewrites m3u8)
+    // 3. Download Routing Logic
+    // If we have headers, we MUST use a proxy that supports them.
+    // If it's HLS, we use our new ffmpeg-based downloader (api/download).
+    // If it's MP4/MKV with headers, we can also use api/download (it supports simple copy).
+    // If it's MP4 without headers, direct link might fail (CORS/Referer) so safer to use proxy too.
+
+    const hasHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
+
     if (isVidmolyOrVidzy) {
-      // Use the vidmoly proxy which handles m3u8 rewriting and proper headers
-      // Referer logic matches Swift: Use source.url (normalized)
+      // ... (Keep existing Vidmoly logic if it works, or migrate? Vidmoly proxy logic is specific)
+      // Existing vidmoly proxy (lines 1017-1033) handles its own things. Keep it for now.
       let referer = source.url || 'https://vidmoly.net/';
       if (referer.includes('vidmoly.to')) referer = referer.replace('vidmoly.to', 'vidmoly.net');
 
@@ -1033,35 +1040,26 @@ const StreamingSources = memo(function StreamingSources({
       return;
     }
 
-    if (isMp4) {
-      // Construct Generic Proxy URL
-      const params = new URLSearchParams({
-        action: 'video',
-        url: downloadUrl,
-        headers: JSON.stringify(downloadHeaders)
-      });
+    // For everything else (Cinepro, Darkibox, MovieBox etc.)
+    const params = new URLSearchParams({
+      url: downloadUrl,
+      filename: `${title || 'video'}.${isHls ? 'mp4' : 'mp4'}`, // converting HLS to MP4
+    });
 
-      const proxyLink = `/api/proxy?${params.toString()}`;
-      console.log('🔗 [DOWNLOAD] Generated proxy URL:', proxyLink);
-
-      window.open(proxyLink, '_blank');
-      toast.success(t("Download started via Proxy"));
-      return;
+    if (hasHeaders) {
+      params.append('headers', JSON.stringify(downloadHeaders));
     }
 
-    if (isHls) {
-      toast.info("Downloading HLS playlist (.m3u8). Use a player like VLC to view it.");
-      // Still try generic proxy as fallback if not caught by Vidmoly check
-      const params = new URLSearchParams({
-        action: 'video',
-        url: downloadUrl,
-        headers: JSON.stringify(downloadHeaders)
-      });
-      window.open(`/api/proxy?${params.toString()}`, '_blank');
-    } else {
-      // Fallback for unknown types (maybe direct link?)
-      window.open(downloadUrl, '_blank');
-    }
+    // Use /api/download which implements the fluent-ffmpeg solution (handles Headers + HLS->MP4 + MP4 Copy)
+    const downloadEndpoint = '/api/download'; // Maps to api/download.js
+    const finalLink = `${downloadEndpoint}?${params.toString()}`;
+
+    console.log('🔗 [DOWNLOAD] Generated FFmpeg Download URL:', finalLink);
+    console.log('🔗 [DOWNLOAD] Headers:', downloadHeaders);
+
+    // Opening in new tab triggers the browser download behavior via Content-Disposition
+    window.open(finalLink, '_blank');
+    toast.success(isHls ? t("Conversion & Download started...") : t("Download started..."));
   };
 
   const handleDownloadSubtitles = async () => {
