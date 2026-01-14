@@ -13,7 +13,28 @@ export class VidmolyExtractor {
                 }
             });
 
-            const html = response.data;
+            let html = response.data;
+
+            // Handle "Click to Play" / "Please wait" gating
+            if (html.includes('startLoading') && html.includes('?g=')) {
+                console.log('[VidmolyExtractor] Detected Click-to-Play gating, extracting token...');
+                const tokenMatch = html.match(/url\s*\+=\s*['"]\?g=([^'"]+)['"]/);
+
+                if (tokenMatch) {
+                    const token = tokenMatch[1];
+                    const newUrl = `${url}?g=${token}`;
+                    console.log(`[VidmolyExtractor] Refetching with token: ${newUrl}`);
+
+                    const response2 = await axios.get(newUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Referer': 'https://vidmoly.to/'
+                        }
+                    });
+                    html = response2.data;
+                }
+            }
+
             let m3u8Url = null;
 
             // Priority 1: Check for mp4/mkv match first (Direct file)
