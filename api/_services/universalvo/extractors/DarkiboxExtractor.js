@@ -27,22 +27,42 @@ export class DarkiboxExtractor {
                 if (unpacker.detect()) {
                     const unpacked = unpacker.unpack();
                     if (unpacked) {
-                        // Priority 1: Look for MP4 or MKV specifically
-                        let fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i) ||
-                            unpacked.match(/src\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
+                        // Robust Heuristic Search
+                        const candidates = [];
 
-                        if (fileMatch) {
-                            m3u8Url = fileMatch[1];
-                            console.log('[DarkiboxExtractor] Found MP4/MKV URL in unpacked JS:', m3u8Url);
-                        } else {
-                            // Priority 2: Look for M3U8
-                            fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i) ||
-                                unpacked.match(/src\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i);
+                        // Regex to capture key-value pairs for file/src/download
+                        const patterns = [
+                            /download\s*:\s*["']([^"']+)["']/gi,
+                            /file\s*:\s*["']([^"']+)["']/gi,
+                            /src\s*:\s*["']([^"']+)["']/gi
+                        ];
 
-                            if (fileMatch) {
-                                m3u8Url = fileMatch[1];
-                                console.log('[DarkiboxExtractor] Found M3U8 URL in unpacked JS:', m3u8Url);
+                        patterns.forEach(regex => {
+                            let match;
+                            while ((match = regex.exec(unpacked)) !== null) {
+                                const url = match[1];
+                                // Basic cleanup
+                                if (!url.startsWith('http') && !url.startsWith('//')) return;
+
+                                let score = 0;
+                                if (url.includes('.mp4') || url.includes('.mkv')) score += 10;
+                                if (match[0].toLowerCase().includes('download')) score += 5;
+                                if (url.includes('.m3u8')) score -= 5;
+
+                                candidates.push({ url, score });
                             }
+                        });
+
+                        // Sort by score descending
+                        candidates.sort((a, b) => b.score - a.score);
+
+                        if (candidates.length > 0) {
+                            // If highest score is > 0, it's likely an MP4 or Download link
+                            // Even if it's 0 (unknown file), it might be MP4 without extension.
+                            // If it's negative (m3u8), we take it if nothing else.
+                            m3u8Url = candidates[0].url;
+                            const type = m3u8Url.includes('.m3u8') ? 'HLS' : 'MP4/Video';
+                            console.log(`[DarkiboxExtractor] Selected best candidate (${type}):`, m3u8Url);
                         }
                     }
                 }
