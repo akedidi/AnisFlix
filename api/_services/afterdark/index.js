@@ -61,8 +61,14 @@ export class AfterDarkScraper {
 
             if (response.status !== 200) {
                 console.warn(`⚠️ [AfterDark] Worker returned status ${response.status}`);
-                // Fallback? No, just return empty if worker fails.
-                return [];
+                return [{
+                    name: `DEBUG: Worker Status ${response.status} - ${response.statusText}`,
+                    url: "debug",
+                    quality: "HD",
+                    type: "m3u8",
+                    provider: "debug",
+                    language: "VO"
+                }];
             }
 
             const data = response.data;
@@ -73,7 +79,14 @@ export class AfterDarkScraper {
 
             if (!data || !data.sources || !Array.isArray(data.sources)) {
                 console.warn(`⚠️ [AfterDark] No sources array in response`);
-                return [];
+                return [{
+                    name: `DEBUG: Invalid Data - Keys: ${Object.keys(data || {}).join(',')}`,
+                    url: "debug",
+                    quality: "HD",
+                    type: "m3u8",
+                    provider: "debug",
+                    language: "debug"
+                }];
             }
 
             const sources = data.sources
@@ -120,7 +133,14 @@ export class AfterDarkScraper {
 
         } catch (error) {
             console.error(`❌ [AfterDark] Error: ${error.message}`);
-            return [];
+            return [{
+                name: `DEBUG: Error - ${error.message}`,
+                url: "debug",
+                quality: "HD",
+                type: "m3u8",
+                provider: "debug",
+                language: "debug"
+            }];
         }
     }
 }
