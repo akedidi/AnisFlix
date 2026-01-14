@@ -96,6 +96,7 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
             headers: {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': '*',
+                'X-Debug-Target-URL': targetUrl.toString() // Debugging header
             }
         });
     } catch (error: any) {
