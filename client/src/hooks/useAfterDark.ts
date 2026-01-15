@@ -133,9 +133,11 @@ const processAfterDarkData = (data: any): AfterDarkResponse => {
             const langTag = source.language || language; // Keep original tag for display (e.g. VFQ)
 
             // Headers required by AfterDark
+            // Headers required by AfterDark
+            // TEST RESULTS: 'proxy.afterdark.baby' -> 403. 'afterdark.mom' -> 200.
             const headers = {
-                'Referer': 'https://proxy.afterdark.baby/',
-                'Origin': 'https://proxy.afterdark.baby',
+                'Referer': 'https://afterdark.mom/',
+                'Origin': 'https://afterdark.mom',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             };
 
