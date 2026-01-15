@@ -134,19 +134,25 @@ const processAfterDarkData = (data: any): AfterDarkResponse => {
 
             // Headers required by AfterDark
             // Headers required by AfterDark
-            // STRATEGY: Use Proxy but strip headers to mimic "Clean" request (like 'curl')
-            // This worked in local Node script ("No Headers" -> 200 OK)
-            const headers = {
-                'Referer': '', // Explicitly empty to override proxy defaults
-                'Origin': '',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            };
+            // STRATEGY: Hybrid Approach based on Provider
 
-            // WRAP IN PROXY URL (Mandatory because Browser cannot send clean headers)
             const originalUrl = source.file || source.url;
             let finalUrl = originalUrl;
+            let headers = {};
 
-            if (originalUrl && type === 'm3u8') {
+            // 1. Darkibox (Alpha) -> Use CorsProxy.io (Fastest, proven to work)
+            if (originalUrl && originalUrl.includes('darkibox.com')) {
+                finalUrl = `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`;
+                // No extra headers needed for CorsProxy
+            }
+            // 2. AfterDark Proxy (Lisa, Fusion, Lyssara) -> Use MovixProxy (Robust with Headers)
+            else if (originalUrl && (originalUrl.includes('proxy.afterdark') || originalUrl.includes('vidzy'))) {
+                headers = {
+                    'Referer': 'https://afterdark.mom/',
+                    'Origin': 'https://afterdark.mom',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                };
+                // Wrap in local proxy to send these headers server-side
                 const proxyBase = '/api/movix-proxy';
                 finalUrl = `${proxyBase}?path=proxy/hls&link=${encodeURIComponent(originalUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
             }
