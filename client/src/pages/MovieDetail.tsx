@@ -592,7 +592,8 @@ export default function MovieDetail() {
                   genres={movie.genres}
                   onSourceClick={handleSourceSelect}
                   isLoadingSource={isLoadingSource}
-                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark || isLoadingAnimeAPI}
+                  imdbId={movie.imdb_id}
+                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAnimeAPI}
                 />
               </div>
             ) : (
