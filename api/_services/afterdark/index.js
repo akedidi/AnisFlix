@@ -82,7 +82,7 @@ export class AfterDarkScraper {
                 }
             ];
 
-            let lastError = null;
+            let attempts = [];
             let successData = null;
 
             for (const proxy of proxies) {
@@ -99,18 +99,25 @@ export class AfterDarkScraper {
                         successData = response.data;
                         break; // Stop loop on success
                     } else {
-                        console.warn(`⚠️ [AfterDark] Failed with ${proxy.name} (Status: ${response.status})`);
-                        lastError = `Status ${response.status}`;
+                        // Capture failure details (status, body preview)
+                        const preview = typeof response.data === 'string'
+                            ? response.data.substring(0, 100).replace(/\n/g, ' ')
+                            : 'Object or empty';
+
+                        const msg = `Failed ${proxy.name}: Status ${response.status} - Body: ${preview}`;
+                        console.warn(`⚠️ [AfterDark] ${msg}`);
+                        attempts.push(msg);
                     }
                 } catch (err) {
-                    console.warn(`⚠️ [AfterDark] Error with ${proxy.name}: ${err.message}`);
-                    lastError = err.message;
+                    const msg = `Error ${proxy.name}: ${err.message}`;
+                    console.warn(`⚠️ [AfterDark] ${msg}`);
+                    attempts.push(msg);
                 }
             }
 
             if (!successData) {
                 return [{
-                    name: `DEBUG: All proxies failed. Last error: ${lastError}`,
+                    name: `DEBUG: Proxies Failed. Trace: ${attempts.join(' | ')}`,
                     url: "debug",
                     quality: "HD",
                     type: "m3u8",
