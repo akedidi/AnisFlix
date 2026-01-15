@@ -9,8 +9,13 @@
  */
 
 export interface Env {
-    PROXY_SECRET: string;
 }
+
+const CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+};
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -20,11 +25,8 @@ export default {
         // Handle CORS Preflight
         if (request.method === 'OPTIONS') {
             return new Response(null, {
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                    'Access-Control-Allow-Headers': '*',
-                }
+                status: 204,
+                headers: CORS_HEADERS
             });
         }
 
@@ -32,7 +34,7 @@ export default {
         if (url.pathname === '/health') {
             return new Response('ok', {
                 status: 200,
-                headers: { 'Access-Control-Allow-Origin': '*' }
+                headers: CORS_HEADERS
             });
         }
 
@@ -44,7 +46,7 @@ export default {
 
         return new Response('AnisFlix Worker Active. Specify ?path=...', {
             status: 200,
-            headers: { 'Access-Control-Allow-Origin': '*' }
+            headers: CORS_HEADERS
         });
     },
 };
@@ -110,7 +112,7 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
             status: response.status,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
+                ...CORS_HEADERS,
                 'X-Debug-Target-URL': targetUrl.toString(),
                 'X-Debug-Proxy-URL': proxyUrl
             }
@@ -120,7 +122,7 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
             status: 500,
             headers: {
                 'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
+                ...CORS_HEADERS
             }
         });
     }
