@@ -1881,89 +1881,11 @@ export default async function handler(req, res) {
           });
         }
 
-        // Headers pour éviter le 403 - Maximum browser mimicry
-        const afterdarkHeaders = {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Accept-Encoding': 'gzip, deflate, br, zstd',
-          'Referer': 'https://afterdark.mom/',
-          'Origin': 'https://afterdark.mom',
-          'Connection': 'keep-alive',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-          'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Priority': 'u=1, i',
-          'DNT': '1',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          // Add cookie to appear more like a real browser session
-          'Cookie': '_ga=GA1.1.123456789.1234567890; _ga_XXXXXXXXXX=GS1.1.1234567890.1.0.1234567890.0.0.0'
-        };
+        // Use the scraper class which routes through the Worker for header cleaning
+        const sources = await afterdarkScraper.getStreams(tmdbId, type, title, year, season, episode, originalTitle);
 
-        let afterdarkUrl;
-        const baseUrl = 'https://afterdark.mom/api/sources';
+        console.log(`🌙 [AfterDark] Found ${sources.length} sources via Scraper/Worker`);
 
-        if (type === 'movie') {
-          const params = new URLSearchParams({
-            tmdbId,
-            ...(title && { title }),
-            ...(year && { year }),
-            ...(originalTitle && { originalTitle })
-          });
-          afterdarkUrl = `${baseUrl}/movies?${params}`;
-        } else if (type === 'tv') {
-          if (!season || !episode) {
-            return res.status(400).json({
-              error: 'Paramètres season et episode requis pour les séries'
-            });
-          }
-          const params = new URLSearchParams({
-            tmdbId,
-            season,
-            episode,
-            ...(title && { title })
-          });
-          afterdarkUrl = `${baseUrl}/shows?${params}`;
-        } else {
-          return res.status(400).json({ error: 'Type invalide (movie ou tv)' });
-        }
-
-        console.log(`🌙 [AfterDark] Request: ${afterdarkUrl}`);
-
-        const response = await axios.get(afterdarkUrl, {
-          headers: afterdarkHeaders,
-          timeout: 15000
-        });
-
-        // Transformer la réponse AfterDark au format attendu
-        const sources = [];
-        if (response.data && Array.isArray(response.data)) {
-          for (const item of response.data) {
-            // Filtrer uniquement les liens non-proxifiés
-            if (item.proxied !== false) {
-              console.log(`🌙 [AfterDark] Skipping proxied link: ${item.url || item.link}`);
-              continue;
-            }
-
-            // AfterDark retourne 'kind' au lieu de 'type'
-            const streamType = item.kind || (item.url?.includes('.m3u8') ? 'hls' : 'mp4');
-
-            sources.push({
-              url: item.url || item.link,
-              quality: item.quality || 'HD',
-              type: streamType === 'hls' ? 'm3u8' : streamType,
-              provider: 'afterdark',
-              language: 'VF',
-              server: item.server || item.name || 'AfterDark'
-            });
-          }
-        }
-
-        console.log(`🌙 [AfterDark] Found ${sources.length} sources`);
         return res.status(200).json({
           success: true,
           sources,
@@ -1972,33 +1894,11 @@ export default async function handler(req, res) {
 
       } catch (afterdarkError) {
         console.error('❌ [AfterDark Error]', afterdarkError.message);
-        console.error('❌ [AfterDark] Stack:', afterdarkError.stack);
-
-        if (afterdarkError.response) {
-          const status = afterdarkError.response.status;
-          console.error('❌ [AfterDark] HTTP Status:', status);
-          console.error('❌ [AfterDark] Response Data:', afterdarkError.response.data);
-
-          // Si c'est un 403, retourner une réponse vide au lieu d'une erreur
-          // Car AfterDark bloque souvent les IPs de datacenter
-          if (status === 403) {
-            console.warn('⚠️ [AfterDark] 403 Forbidden - Returning empty sources (likely IP blocked)');
-            return res.status(200).json({
-              success: true,
-              sources: [],
-              count: 0,
-              warning: 'AfterDark API blocked request (403)'
-            });
-          }
-        }
-
         return res.status(500).json({
           error: 'Erreur proxy AfterDark',
-          details: afterdarkError.message,
-          statusCode: afterdarkError.response?.status
+          details: afterdarkError.message
         });
       }
-      return; // CRITICAL FIX: prevent fallthrough to other handlers
     }
 
     // GÉRER PROXY HLS (Streaming avec headers personnalisés)
