@@ -48,29 +48,45 @@ export const useVideoDownload = () => {
         }
     };
 
+    const fetchText = async (url: string) => {
+        try {
+            console.log('Trying direct fetch:', url);
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Direct fetch failed: ${res.status}`);
+            return await res.text();
+        } catch (e) {
+            console.warn('Direct fetch failed, trying proxy...', e);
+            // Fallback to proxy
+            const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+            const res = await fetch(proxyUrl);
+            if (!res.ok) throw new Error(`Proxy fetch failed: ${res.status}`);
+            return await res.text();
+        }
+    };
+
     const downloadVideo = async (m3u8Url: string, fileName: string = 'video.mp4') => {
         setLoading(true);
         setMessage('Initializing...');
         setProgress(0);
+        console.log('🚀 [Downloader] Starting download for:', m3u8Url);
 
         try {
             // Ensure FFmpeg is loaded
+            console.log('🚀 [Downloader] Loading FFmpeg...');
             const ffmpeg = await loadFFmpeg();
 
             if (!ffmpeg.isLoaded()) {
                 await ffmpeg.load();
             }
+            console.log('🚀 [Downloader] FFmpeg loaded!');
 
             setMessage('Fetching playlist...');
 
-            // 1. Manually fetch the M3U8 to handle relative paths
-            const response = await fetch(m3u8Url);
-            if (!response.ok) throw new Error(`Failed to fetch playlist: ${response.statusText}`);
-            const originalM3u8 = await response.text();
+            // 1. Fetch M3U8 with fallback
+            const originalM3u8 = await fetchText(m3u8Url);
+            console.log('🚀 [Downloader] Playlist fetched. Length:', originalM3u8.length);
 
             // 2. Rewrite relative URLs to absolute
-            // Also parse to check if it's a master playlist (variant streams) vs media playlist
-            // But simple replacement works for most cases
             const modifiedM3u8 = originalM3u8.split('\n').map(line => {
                 const trimmed = line.trim();
                 // Check if line is a URL (not empty, not starting with #)
@@ -81,21 +97,26 @@ export const useVideoDownload = () => {
             }).join('\n');
 
             ffmpeg.FS('writeFile', 'input.m3u8', modifiedM3u8);
+            console.log('🚀 [Downloader] Playlist written to FS');
 
             setMessage('Downloading & Transcoding...');
 
             ffmpeg.setProgress(({ ratio }: { ratio: number }) => {
-                setProgress(Math.round(ratio * 100));
-                setMessage(`Downloading: ${Math.round(ratio * 100)}%`);
+                const pct = Math.round(ratio * 100);
+                console.log(`🚀 [Downloader] Progress: ${pct}%`);
+                setProgress(pct);
+                setMessage(`Downloading: ${pct}%`);
             });
 
             // 3. Run FFmpeg
+            console.log('🚀 [Downloader] Running FFmpeg...');
             await ffmpeg.run(
                 '-i', 'input.m3u8',
                 '-c', 'copy',
                 '-bsf:a', 'aac_adtstoasc',
                 'output.mp4'
             );
+            console.log('🚀 [Downloader] FFmpeg finished');
 
             setMessage('Saving file...');
             const data = ffmpeg.FS('readFile', 'output.mp4');
@@ -125,7 +146,7 @@ export const useVideoDownload = () => {
         } catch (error: any) {
             console.error('FFmpeg Download Error:', error);
             let errMsg = error.message;
-            if (errMsg.includes('Load failed')) errMsg = 'Network Error (CORS?) or Codec issue';
+            if (errMsg.includes('Load failed')) errMsg = 'Network Error (CORS?) or Codec issue. Check console.';
             setMessage(`Error: ${errMsg}`);
             throw new Error(errMsg);
         } finally {
