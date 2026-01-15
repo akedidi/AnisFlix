@@ -58,7 +58,7 @@ export class AfterDarkScraper {
                     name: 'Cloudflare Worker',
                     url: `https://anisflix.kedidi-anis.workers.dev?${workerParams.toString()}`,
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'User-Agent': 'AnisFlix-Vercel-Proxy',
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                         'Sec-Fetch-Dest': 'document',
                         'Sec-Fetch-Mode': 'navigate',
