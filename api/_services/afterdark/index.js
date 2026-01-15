@@ -24,20 +24,12 @@ export class AfterDarkScraper {
 
     async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null) {
         try {
-            // Use Cloudflare Worker as intermediate proxy to bypass blocking
-            // Vercel IPs -> corsproxy.io often gets blocked
-            // Worker IPs -> corsproxy.io usually works
-            const WORKER_URL = 'https://anisflix.kedidi-anis.workers.dev';
-
-            // Parameters for the worker
-            // params are: path=afterdark, type, tmdbId, ...
+            // Strategy: Try multiple proxies in sequence until one works
+            // Vercel IPs are often blocked, so we need redundancy.
+            const targetEndpoint = `${this.baseUrl}/${type === 'movie' ? 'movies' : 'shows'}`;
             const params = new URLSearchParams();
-            params.append('path', 'afterdark');
             params.append('tmdbId', tmdbId);
-            params.append('type', type);
-
             if (title) params.append('title', title);
-
             if (type === 'movie') {
                 if (year) params.append('year', year);
                 if (originalTitle) params.append('originalTitle', originalTitle);
@@ -45,44 +37,89 @@ export class AfterDarkScraper {
                 if (season) params.append('season', season);
                 if (episode) params.append('episode', episode);
             }
+            const fullTargetUrl = `${targetEndpoint}?${params.toString()}`;
 
-            const finalUrl = `${WORKER_URL}?${params.toString()}`;
-            console.log(`🌑 [AfterDark] Fetching via Worker: ${finalUrl}`);
+            // Worker Params
+            const workerParams = new URLSearchParams();
+            workerParams.append('path', 'afterdark');
+            workerParams.append('tmdbId', tmdbId);
+            workerParams.append('type', type);
+            if (title) workerParams.append('title', title);
+            if (type === 'movie') {
+                if (year) workerParams.append('year', year);
+                if (originalTitle) workerParams.append('originalTitle', originalTitle);
+            } else {
+                if (season) workerParams.append('season', season);
+                if (episode) workerParams.append('episode', episode);
+            }
 
-            const response = await axios.get(finalUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                    'Sec-Ch-Ua-Mobile': '?0',
-                    'Sec-Ch-Ua-Platform': '"macOS"',
-                    'Sec-Fetch-Dest': 'document',
-                    'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none',
-                    'Sec-Fetch-User': '?1',
-                    'Upgrade-Insecure-Requests': '1'
+            const proxies = [
+                {
+                    name: 'Cloudflare Worker',
+                    url: `https://anisflix.kedidi-anis.workers.dev?${workerParams.toString()}`,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
                 },
-                timeout: 20000,
-                validateStatus: null
-            });
+                {
+                    name: 'CorsProxy.io',
+                    url: `https://corsproxy.io/?${fullTargetUrl}`,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Origin': 'https://afterdark.mom',
+                        'Referer': 'https://afterdark.mom/'
+                    }
+                },
+                {
+                    name: 'AllOrigins',
+                    url: `https://api.allorigins.win/raw?url=${encodeURIComponent(fullTargetUrl)}`,
+                    headers: {}
+                }
+            ];
 
-            console.log(`🌑 [AfterDark] Response Status: ${response.status}`);
+            let lastError = null;
+            let successData = null;
 
-            if (response.status !== 200) {
-                console.warn(`⚠️ [AfterDark] Worker returned status ${response.status}`);
+            for (const proxy of proxies) {
+                console.log(`🌑 [AfterDark] Trying proxy: ${proxy.name} -> ${proxy.url}`);
+                try {
+                    const response = await axios.get(proxy.url, {
+                        headers: proxy.headers,
+                        timeout: 15000,
+                        validateStatus: null
+                    });
+
+                    if (response.status === 200 && response.data && Array.isArray(response.data.sources)) {
+                        console.log(`✅ [AfterDark] Success with ${proxy.name}`);
+                        successData = response.data;
+                        break; // Stop loop on success
+                    } else {
+                        console.warn(`⚠️ [AfterDark] Failed with ${proxy.name} (Status: ${response.status})`);
+                        lastError = `Status ${response.status}`;
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ [AfterDark] Error with ${proxy.name}: ${err.message}`);
+                    lastError = err.message;
+                }
+            }
+
+            if (!successData) {
                 return [{
-                    name: `DEBUG: Worker Status ${response.status} - ${response.statusText}`,
+                    name: `DEBUG: All proxies failed. Last error: ${lastError}`,
                     url: "debug",
                     quality: "HD",
                     type: "m3u8",
                     provider: "debug",
-                    language: "VO"
+                    language: "debug"
                 }];
             }
 
-            const data = response.data;
+            const data = successData;
             console.log(`🌑 [AfterDark] Response keys:`, Object.keys(data));
             if (data.sources) {
                 console.log(`🌑 [AfterDark] Sources count raw: ${data.sources.length}`);
