@@ -258,11 +258,31 @@ export default function VideoPlayer({
       // Use HLS.js for m3u8 streams on browsers that don't natively support it (or where we force it)
       if (Hls.isSupported()) {
         console.log('📺 [VideoPlayer] Using HLS.js for m3u8 stream (Not Safari)');
-        const hls = new Hls({
+        const hlsConfig = {
           enableWorker: true,
           lowLatencyMode: false,
           backBufferLength: 90
-        });
+        };
+
+        // If the source is proxied via CorsProxy, we MUST enforce the proxy for all segments/fragments
+        // to avoid "Connection Refused" when Hls.js tries to fetch direct internal links.
+        if (src.includes('corsproxy.io') && Hls.DefaultConfig.loader) {
+          console.log('🛡️ [VideoPlayer] Enabling Universal Proxy Loader (CorsProxy Mode)');
+
+          class ProxiedLoader extends (Hls.DefaultConfig.loader as any) {
+            load(context: any, config: any, callbacks: any) {
+              // Wrap URL if it's not already proxied
+              if (context.url && !context.url.includes('corsproxy.io')) {
+                // console.log(`🔄 [VideoPlayer] Proxying internal request: ${context.url}`);
+                context.url = `https://corsproxy.io/?${encodeURIComponent(context.url)}`;
+              }
+              super.load(context, config, callbacks);
+            }
+          }
+          (hlsConfig as any).loader = ProxiedLoader;
+        }
+
+        const hls = new Hls(hlsConfig);
 
         hls.loadSource(src);
         hls.attachMedia(video);
