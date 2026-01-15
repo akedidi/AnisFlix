@@ -69,7 +69,9 @@ export class AfterDarkScraper {
                         return this.processSources(data.sources);
                     }
                 } catch (err) {
-                    console.error(`❌ [AfterDark] Puppeteer Fetch Failed: ${err.message}`);
+                    const msg = `Puppeteer Failed: ${err.message}`;
+                    console.error(`❌ [AfterDark] ${msg}`);
+                    attempts.push(msg);
                     // Fallthrough to proxies
                 }
             }
