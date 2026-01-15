@@ -114,11 +114,10 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
-  // Pass title for better AfterDark matching, year/originalTitle left undefined as not in props
   const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
-  const { downloadVideo, loading: isDownloading, progress: downloadProgress, message: downloadMessage } = useVideoDownload();
-
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const { downloadVideo } = useVideoDownload();
 
   console.log('🔍 [VIXSRC DEBUG]', {
     type, id, season, episode,
@@ -1043,12 +1042,24 @@ const StreamingSources = memo(function StreamingSources({
     // Client-Side Download using FFmpeg
     console.log('✅ [DOWNLOAD] Starting Client-Side FFmpeg Download');
 
+    setDownloadingId(source.id);
+
     // Show toast for start
-    toast.promise(downloadVideo(downloadUrl, `${title || 'video'}.mp4`), {
+    const promise = downloadVideo(downloadUrl, `${title || 'video'}.mp4`);
+
+    toast.promise(promise, {
       loading: 'Downloading & Converting locally... (Classic Download)',
       success: 'Download ready!',
       error: (err) => `Download failed: ${err.message}`
     });
+
+    try {
+      await promise;
+    } catch (e) {
+      // Error handled by toast
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const handleDownloadSubtitles = async () => {
@@ -1453,6 +1464,7 @@ const StreamingSources = memo(function StreamingSources({
                   )}
 
                   {/* Always show download button if URL is present */}
+                  {/* Always show download button if URL is present */}
                   {source.url && (
                     <Button
                       variant="secondary"
@@ -1460,9 +1472,9 @@ const StreamingSources = memo(function StreamingSources({
                       className="shrink-0"
                       onClick={(e) => handleDownloadVideo(source, e)}
                       title="Download Video (Local)"
-                      disabled={isDownloading}
+                      disabled={downloadingId === source.id}
                     >
-                      {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                      {downloadingId === source.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     </Button>
                   )}
                 </div>

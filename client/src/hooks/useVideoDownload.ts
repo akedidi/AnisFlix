@@ -1,63 +1,68 @@
 
-import { useState, useRef } from 'react';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { toBlobURL } from '@ffmpeg/util';
+import { useState, useRef, useEffect } from 'react';
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
 
 export const useVideoDownload = () => {
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [message, setMessage] = useState('');
-    const ffmpegRef = useRef(new FFmpeg());
+    // Use useRef to keep the ffmpeg instance stable
+    const ffmpegRef = useRef(createFFmpeg({ log: true }));
 
     const downloadVideo = async (m3u8Url: string, fileName: string = 'video.mp4') => {
         setLoading(true);
-        setMessage('Initializing FFmpeg...');
+        setMessage('Initializing FFmpeg v0.11 (Compatible Mode)...');
         setProgress(0);
 
         const ffmpeg = ffmpegRef.current;
 
         try {
-            // Load FFmpeg.wasm
-            const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-            await ffmpeg.load({
-                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-            });
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
 
             setMessage('Downloading & Transcoding...');
 
             // Hook into progress
-            ffmpeg.on('progress', ({ progress: p }) => {
-                setProgress(Math.round(p * 100));
+            ffmpeg.setProgress(({ ratio }) => {
+                setProgress(Math.round(ratio * 100));
             });
 
-            // FFmpeg command to download M3U8 and output MP4
-            // Input URL must be CORS-enabled.
-            await ffmpeg.exec([
+            // FFmpeg v0.11 run command
+            // We use the URL directly as input. 
+            // Note: If CORS issues persist with direct URL, we might need to fetch blobs manually,
+            // but usually ffmpeg.wasm handles this via fetch inside if the server allows CORS.
+            await ffmpeg.run(
                 '-i', m3u8Url,
                 '-c', 'copy',
-                '-bsf:a', 'aac_adtstoasc', // Often needed for HLS to MP4
+                '-bsf:a', 'aac_adtstoasc',
                 'output.mp4'
-            ]);
+            );
 
             setMessage('Finalizing...');
-            const data = await ffmpeg.readFile('output.mp4');
+            const data = ffmpeg.FS('readFile', 'output.mp4');
 
             // Create download link
-            const u8 = data as Uint8Array;
-            const url = URL.createObjectURL(new Blob([u8 as any], { type: 'video/mp4' }));
+            // v0.11 FS('readFile') returns Uint8Array directly
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // Cleanup check: ffmpeg.FS('unlink', 'output.mp4')?
+            try { ffmpeg.FS('unlink', 'output.mp4'); } catch (e) { }
+            // URL.revokeObjectURL(url); // Keep it alive for a bit for the download to start
 
             setMessage('Done!');
         } catch (error: any) {
             console.error('FFmpeg error:', error);
             setMessage(`Error: ${error.message}`);
+            // If it's a SharedArrayBuffer error, it means we still have issues, but v0.11 usually avoids this by default
+            if (error.message.includes('SharedArrayBuffer')) {
+                setMessage('Error: Your browser requires strict security for this feature. Try Chrome Desktop.');
+            }
         } finally {
             setLoading(false);
         }
