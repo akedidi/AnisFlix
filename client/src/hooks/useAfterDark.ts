@@ -141,19 +141,11 @@ const processAfterDarkData = (data: any): AfterDarkResponse => {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             };
 
-            // WRAP IN PROXY URL to ensure headers are sent server-side (Bypassing Browser CORS/403)
-            const originalUrl = source.file || source.url;
-            let finalUrl = originalUrl;
-
-            if (originalUrl && type === 'm3u8') {
-                // Determine API base URL (relative for Vercel)
-                const proxyBase = '/api/movix-proxy';
-                finalUrl = `${proxyBase}?path=proxy/hls&link=${encodeURIComponent(originalUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
-            }
-
+            // USER REQUESTED: Client calls video directly (not API)
+            // Note: Hls.js/Player must handle these headers for this to work.
             return {
                 name: `${label} - ${langTag} ${quality}`,
-                url: finalUrl,
+                url: source.file || source.url, // DIRECT URL
                 quality: quality,
                 type: type,
                 provider: 'afterdark',
