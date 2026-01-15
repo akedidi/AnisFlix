@@ -1881,8 +1881,46 @@ export default async function handler(req, res) {
           });
         }
 
-        // Use the scraper class which routes through the Worker for header cleaning
-        const sources = await afterdarkScraper.getStreams(tmdbId, type, title, year, season, episode, originalTitle);
+        // Use Puppeteer to bypass Cloudflare Challenge directly from Vercel
+        const afterdarkPuppeteerFetcher = async (url, options = {}) => {
+          console.log(`🎭 [Puppeteer/AD] Fetching: ${url}`);
+          let browser = null;
+          try {
+            const execPath = await chromium.executablePath();
+            browser = await puppeteer.launch({
+              args: chromium.args,
+              defaultViewport: chromium.defaultViewport,
+              executablePath: execPath || '/usr/bin/chromium',
+              headless: chromium.headless,
+              ignoreHTTPSErrors: true
+            });
+
+            const page = await browser.newPage();
+            await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+
+            // Extra headers (Referer/Origin)
+            if (options.headers) {
+              await page.setExtraHTTPHeaders(options.headers);
+            }
+
+            // Go to URL and wait for Network Idle (Cloudflare challenge might take a moment)
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 25000 });
+
+            // Get JSON content from body
+            const innerText = await page.evaluate(() => document.body.innerText);
+
+            await browser.close();
+            return { data: innerText };
+
+          } catch (e) {
+            console.error(`🎭 [Puppeteer/AD] Error: ${e.message}`);
+            if (browser) await browser.close();
+            throw e; // Scraper will fallback to Worker/Proxy
+          }
+        };
+
+        // Pass puppeteerFetcher to scraper
+        const sources = await afterdarkScraper.getStreams(tmdbId, type, title, year, season, episode, originalTitle, afterdarkPuppeteerFetcher);
 
         console.log(`🌙 [AfterDark] Found ${sources.length} sources via Scraper/Worker`);
 

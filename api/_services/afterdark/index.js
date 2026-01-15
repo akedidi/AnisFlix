@@ -22,7 +22,7 @@ export class AfterDarkScraper {
         };
     }
 
-    async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null) {
+    async getStreams(tmdbId, type, title, year, season = null, episode = null, originalTitle = null, fetcher = null) {
         try {
             // Strategy: Try multiple proxies in sequence until one works
             // Vercel IPs are often blocked, so we need redundancy.
@@ -38,6 +38,41 @@ export class AfterDarkScraper {
                 if (episode) params.append('episode', episode);
             }
             const fullTargetUrl = `${targetEndpoint}?${params.toString()}`;
+
+            // Priority 1: Use provided fetcher (Puppeteer) if available
+            // This is the Vercel-side solution to bypass Cloudflare Challenge
+            if (fetcher) {
+                console.log(`🌑 [AfterDark] Using custom fetcher (Puppeteer) for: ${fullTargetUrl}`);
+                try {
+                    const response = await fetcher(fullTargetUrl, {
+                        headers: this.headers
+                    });
+
+                    // Parse response if it's a string (Puppeteer typically returns text or object)
+                    let data = response.data;
+                    if (typeof data === 'string') {
+                        try {
+                            data = JSON.parse(data);
+                        } catch (e) {
+                            console.warn(`⚠️ [AfterDark] Failed to parse Puppeteer response as JSON. Body preview: ${data.substring(0, 50)}...`);
+                        }
+                    }
+
+                    if (data && Array.isArray(data)) {
+                        // AfterDark direct API returns array of sources
+                        // Wrap it in { sources: ... } to match proxy format expected below
+                        data = { sources: data };
+                    }
+
+                    if (data && Array.isArray(data.sources)) {
+                        console.log(`✅ [AfterDark] Success with Puppeteer`);
+                        return this.processSources(data.sources);
+                    }
+                } catch (err) {
+                    console.error(`❌ [AfterDark] Puppeteer Fetch Failed: ${err.message}`);
+                    // Fallthrough to proxies
+                }
+            }
 
             // Worker Params
             const workerParams = new URLSearchParams();
