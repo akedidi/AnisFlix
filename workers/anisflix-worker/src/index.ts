@@ -84,6 +84,10 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
 
     console.log(`[Worker] Direct Target: ${targetUrl.toString()}`);
 
+    // FALLBACK: Direct fetch failed (403), so we MUST use CorsProxy.
+    const fullTargetUrl = targetUrl.toString();
+    const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(fullTargetUrl);
+
     // --- LE SECRET EST ICI ---
     // On ne copie PAS les headers de 'request'. On en crée de nouveaux.
     // Cela supprime 'x-vercel-id', 'cf-connecting-ip', etc.
@@ -94,13 +98,20 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
         "Accept-Language": "en-US,en;q=0.5",
         // On fait croire au site qu'on vient de chez lui (Anti-Hotlink bypass)
         "Referer": "https://afterdark.mom/",
-        "Origin": "https://afterdark.mom"
+        "Origin": "https://afterdark.mom",
+
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+
+        // IP Spoofing (Essentiel pour Vercel -> CorsProxy)
+        "X-Forwarded-For": "1.1.1.1",
+        "X-Real-IP": "1.1.1.1",
+        "CF-Connecting-IP": "1.1.1.1"
     };
 
     try {
-        // On appelle DIRECTEMENT le site avec les headers propres
-        // Note: Si Cloudflare bloque l'IP du worker, on devra remettre corsproxy ici.
-        const response = await fetch(targetUrl.toString(), {
+        // On appelle via CorsProxy avec les headers propres
+        const response = await fetch(proxyUrl, {
             method: "GET",
             headers: cleanHeaders
         });
