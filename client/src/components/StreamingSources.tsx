@@ -114,8 +114,7 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
-  // useAfterDark removed from Web Client as requested
-  // const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
+  const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { downloadVideo } = useVideoDownload();
@@ -355,8 +354,8 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
 
-    // Vérifier AfterDark (VF, VOSTFR, VO) - REMOVED
-    /* if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+    // Vérifier AfterDark (VF, VOSTFR, VO)
+    if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
       if (afterDarkData.streams.some((s: any) => {
         const lang = s.language?.toLowerCase() || 'vf';
         if (language === 'VF') return lang === 'vf' || lang === 'multi';
@@ -364,7 +363,7 @@ const StreamingSources = memo(function StreamingSources({
         if (language === 'VO') return lang === 'vo';
         return false;
       })) return true;
-    } */
+    }
 
     console.log(`❌ hasSourcesForLanguage(${language}) - Aucune source trouvée`);
     return false;
@@ -797,6 +796,36 @@ const StreamingSources = memo(function StreamingSources({
     }
   } else if (isAnimeSeries) {
     console.log('❌ Pas de sources VidMoly Anime - animeVidMolyData:', animeVidMolyData, 'hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
+  }
+
+  // Add AfterDark sources
+  if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+    console.log('🔍 [AfterDark] Adding sources:', afterDarkData.streams);
+    afterDarkData.streams.forEach((stream: any, index: number) => {
+      let langMatches = false;
+      const lang = stream.language?.toLowerCase() || 'vf';
+
+      if (selectedLanguage === 'VF') {
+        langMatches = (lang === 'vf' || lang === 'multi' || lang.includes('french'));
+      } else if (selectedLanguage === 'VOSTFR') {
+        langMatches = (lang === 'vostfr');
+      } else if (selectedLanguage === 'VO') {
+        langMatches = (lang === 'vo' || lang === 'eng' || lang.includes('english'));
+      }
+
+      if (langMatches) {
+        allSources.push({
+          id: `afterdark-${stream.quality || 'HD'}-${index}`,
+          name: stream.name,
+          provider: 'afterdark',
+          url: stream.url,
+          type: 'm3u8',
+          isAfterDark: true,
+          quality: stream.quality || 'HD',
+          language: stream.language
+        });
+      }
+    });
   }
 
 
