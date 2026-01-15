@@ -28,17 +28,18 @@ export const useAfterDark = (
     return useQuery<AfterDarkResponse>({
         queryKey: ['afterdark', type, id, season, episode, title, year, originalTitle],
         queryFn: async () => {
-            const params = new URLSearchParams({
+            const params = {
                 path: 'afterdark',
                 tmdbId: id.toString(),
                 type,
-            });
+                ...(season !== undefined && { season: season.toString() }),
+                ...(episode !== undefined && { episode: episode.toString() }),
+                ...(title && { title }),
+                ...(year && { year }),
+                ...(originalTitle && { originalTitle }),
+            };
 
-            if (season !== undefined) params.append('season', season.toString());
-            if (episode !== undefined) params.append('episode', episode.toString());
-            if (title) params.append('title', title);
-            if (year) params.append('year', year);
-            if (originalTitle) params.append('originalTitle', originalTitle);
+            console.log(`🌑 [AfterDark Client] Fetching from /api/movix-proxy with params: ${JSON.stringify(params)}`);
 
             const response = await axios.get('/api/movix-proxy', {
                 params,

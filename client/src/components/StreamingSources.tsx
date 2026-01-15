@@ -11,6 +11,7 @@ import { useMovieBox } from '@/hooks/useMovieBox';
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
 import { useCinepro } from '@/hooks/useCinepro';
+import { useVideoDownload } from '@/hooks/useVideoDownload';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -116,6 +117,7 @@ const StreamingSources = memo(function StreamingSources({
   // Pass title for better AfterDark matching, year/originalTitle left undefined as not in props
   const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
+  const { downloadVideo, loading: isDownloading, progress: downloadProgress, message: downloadMessage } = useVideoDownload();
 
 
   console.log('🔍 [VIXSRC DEBUG]', {
@@ -1038,45 +1040,15 @@ const StreamingSources = memo(function StreamingSources({
       return;
     }
 
-    const hasHeaders = downloadHeaders && Object.keys(downloadHeaders).length > 0;
+    // Client-Side Download using FFmpeg
+    console.log('✅ [DOWNLOAD] Starting Client-Side FFmpeg Download');
 
-    // Configurer les headers spécifiques pour Vidmoly/Vidzy si nécessaire
-    if (isVidmolyOrVidzy) {
-      console.log('Use FFmpeg download for Vidmoly/Vidzy (HLS -> MP4)');
-      let referer = source.url || 'https://vidmoly.net/';
-      if (referer.includes('vidmoly.to')) referer = referer.replace('vidmoly.to', 'vidmoly.net');
-
-      if (!downloadHeaders) downloadHeaders = {};
-      downloadHeaders['Referer'] = referer;
-      // Vidmoly needs Origin sometimes too
-      downloadHeaders['Origin'] = 'https://vidmoly.net';
-    }
-
-    // REMOVED: Old Vidmoly proxy logic that just returned m3u8. 
-    // Now we fall through to the ffmpeg proxy below.
-
-    // For everything else (Cinepro, Darkibox, MovieBox etc.)
-    const params = new URLSearchParams({
-      url: downloadUrl,
-      filename: `${title || 'video'}.${isHls ? 'mp4' : 'mp4'}`, // converting HLS to MP4
+    // Show toast for start
+    toast.promise(downloadVideo(downloadUrl, `${title || 'video'}.mp4`), {
+      loading: 'Downloading & Converting locally... (Classic Download)',
+      success: 'Download ready!',
+      error: (err) => `Download failed: ${err.message}`
     });
-
-    if (downloadHeaders && Object.keys(downloadHeaders).length > 0) {
-      params.append('headers', JSON.stringify(downloadHeaders));
-    }
-
-    // Use /api/proxy?action=download which implements the fluent-ffmpeg solution (handles Headers + HLS->MP4 + MP4 Copy)
-    const downloadEndpoint = '/api/proxy';
-    params.append('action', 'download');
-
-    const finalLink = `${downloadEndpoint}?${params.toString()}`;
-
-    console.log('🔗 [DOWNLOAD] Generated FFmpeg Download URL:', finalLink);
-    console.log('🔗 [DOWNLOAD] Headers:', downloadHeaders);
-
-    // Opening in new tab triggers the browser download behavior via Content-Disposition
-    window.open(finalLink, '_blank');
-    toast.success(isHls ? t("Conversion & Download started...") : t("Download started..."));
   };
 
   const handleDownloadSubtitles = async () => {
@@ -1383,7 +1355,7 @@ const StreamingSources = memo(function StreamingSources({
           </Button>
         </div>
 
-        {false && (
+        {true && (
           <Button
             variant="ghost"
             size="sm"
@@ -1480,16 +1452,17 @@ const StreamingSources = memo(function StreamingSources({
                     </Button>
                   )}
 
-                  {/* Only show download button for 4KHDHub (Direct MKV) to save bandwidth */}
-                  {((source as any).isFourKHDHub || source.provider === '4khdhub') && (
+                  {/* Always show download button if URL is present */}
+                  {source.url && (
                     <Button
                       variant="secondary"
                       size="icon"
                       className="shrink-0"
                       onClick={(e) => handleDownloadVideo(source, e)}
-                      title="Download Video"
+                      title="Download Video (Local)"
+                      disabled={isDownloading}
                     >
-                      <Download className="w-4 h-4" />
+                      {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     </Button>
                   )}
                 </div>
