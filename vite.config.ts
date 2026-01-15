@@ -37,10 +37,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    headers: {
-      "Cross-Origin-Embedder-Policy": "credentialless",
-      "Cross-Origin-Opener-Policy": "same-origin",
-    },
     fs: {
       strict: true,
       deny: ["**/.*"],
