@@ -59,7 +59,6 @@ export class AfterDarkScraper {
                     url: `https://anisflix.kedidi-anis.workers.dev?${workerParams.toString()}`,
                     headers: {
                         'User-Agent': 'AnisFlix-Vercel-Proxy',
-                        'x-anisflix-proxy': process.env.ANISFLIX_PROXY_SECRET,
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
                         'Sec-Fetch-Dest': 'document',
                         'Sec-Fetch-Mode': 'navigate',

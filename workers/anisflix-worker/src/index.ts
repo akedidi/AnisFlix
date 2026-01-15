@@ -36,15 +36,6 @@ export default {
             });
         }
 
-        // Secret Header Check
-        const secretHeader = request.headers.get('x-anisflix-proxy');
-        if (!secretHeader || secretHeader !== env.PROXY_SECRET) {
-            return new Response('Forbidden', {
-                status: 403,
-                headers: { 'Access-Control-Allow-Origin': '*' }
-            });
-        }
-
         const path = params.get('path');
 
         if (path === 'afterdark') {
