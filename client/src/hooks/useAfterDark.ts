@@ -39,13 +39,71 @@ export const useAfterDark = (
                 ...(originalTitle && { originalTitle }),
             };
 
-            console.log(`🌑 [AfterDark Client] Fetching from /api/movix-proxy with params: ${JSON.stringify(params)}`);
+            console.log(`🌑 [AfterDark Client] Fetching DIRECTLY from AfterDark: ${JSON.stringify(params)}`);
 
-            const response = await axios.get('/api/movix-proxy', {
-                params,
-            });
+            const baseUrl = `https://afterdark.mom/api/sources/${type === 'movie' ? 'movies' : 'shows'}`;
+            const url = new URL(baseUrl);
 
-            return response.data;
+            // Append params manually to match the exact format requested
+            // params object keys might need mapping
+            url.searchParams.append('tmdbId', id.toString());
+            if (title) url.searchParams.append('title', title);
+
+            if (type === 'movie') {
+                if (year) url.searchParams.append('year', year);
+                if (originalTitle) url.searchParams.append('originalTitle', originalTitle);
+            } else {
+                if (season) url.searchParams.append('season', season!.toString());
+                if (episode) url.searchParams.append('episode', episode!.toString());
+            }
+
+            // Direct call to AfterDark
+            // WARNING: This will fail if the browser enforces CORS and the server doesn't allow it.
+            const response = await axios.get(url.toString());
+
+            const data = response.data;
+            if (!data || !data.sources || !Array.isArray(data.sources)) {
+                return { success: false, streams: [] };
+            }
+
+            // Client-side parsing (Replicated from server scraper)
+            const streams = data.sources
+                .filter((source: any) => {
+                    if (source.proxied !== false) return false;
+                    if (source.kind !== 'hls') return false;
+                    return true;
+                })
+                .map((source: any) => {
+                    let language = 'VF';
+                    const lang = (source.language || '').toLowerCase();
+
+                    if (lang === 'english' || lang === 'eng' || lang === 'en' || lang.includes('vo')) {
+                        language = 'VO';
+                    } else if (lang === 'multi') {
+                        language = 'VF';
+                    } else if (lang.includes('vostfr')) {
+                        language = 'VOSTFR';
+                    }
+
+                    return {
+                        name: `AfterDark ${language} ${source.quality || 'HD'}`,
+                        url: source.url,
+                        quality: source.quality || 'HD',
+                        type: 'm3u8',
+                        provider: 'afterdark',
+                        language: language,
+                        headers: {
+                            'Referer': 'https://proxy.afterdark.click/',
+                            'Origin': 'https://proxy.afterdark.click',
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        }
+                    };
+                });
+
+            return {
+                success: true,
+                streams: streams
+            };
         },
         enabled: !!id,
         staleTime: 1000 * 60 * 10, // 10 minutes

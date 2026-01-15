@@ -67,6 +67,9 @@ export class AfterDarkScraper {
                     if (data && Array.isArray(data.sources)) {
                         console.log(`✅ [AfterDark] Success with Puppeteer`);
                         return this.processSources(data.sources);
+                    } else {
+                        const preview = typeof data === 'string' ? data.substring(0, 100) : 'Object';
+                        attempts.push(`Puppeteer Data Invalid: ${preview}`);
                     }
                 } catch (err) {
                     const msg = `Puppeteer Failed: ${err.message}`;
