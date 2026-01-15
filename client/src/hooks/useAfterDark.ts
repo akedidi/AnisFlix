@@ -132,21 +132,33 @@ const processAfterDarkData = (data: any): AfterDarkResponse => {
             const quality = source.quality || 'HD';
             const langTag = source.language || language; // Keep original tag for display (e.g. VFQ)
 
+            // Headers required by AfterDark
+            const headers = {
+                'Referer': 'https://proxy.afterdark.baby/',
+                'Origin': 'https://proxy.afterdark.baby',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            };
+
+            // WRAP IN PROXY URL to ensure headers are sent server-side (Bypassing Browser CORS/403)
+            const originalUrl = source.file || source.url;
+            let finalUrl = originalUrl;
+
+            if (originalUrl && type === 'm3u8') {
+                // Determine API base URL (relative for Vercel)
+                const proxyBase = '/api/movix-proxy';
+                finalUrl = `${proxyBase}?path=proxy/hls&link=${encodeURIComponent(originalUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
+            }
+
             return {
-                name: `${label} - ${langTag} ${quality}`, // Richer name: "Lisa - VFQ HD"
-                url: source.file || source.url, // "file" is used in the JSON example
+                name: `${label} - ${langTag} ${quality}`,
+                url: finalUrl,
                 quality: quality,
-                type: type, // 'm3u8' | 'mp4' | 'embed'
+                type: type,
                 provider: 'afterdark',
-                language: language, // Category (VF, VO, VOSTFR)
-                // Pass extra metadata if needed for UI
+                language: language,
                 originalLanguage: source.language,
                 isProxied: source.proxied,
-                headers: {
-                    'Referer': 'https://proxy.afterdark.click/',
-                    'Origin': 'https://proxy.afterdark.click',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                }
+                headers: headers
             };
         });
 
