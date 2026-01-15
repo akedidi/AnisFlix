@@ -9,6 +9,7 @@
  */
 
 export interface Env {
+    PROXY_SECRET: string;
 }
 
 export default {
@@ -24,6 +25,23 @@ export default {
                     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
                     'Access-Control-Allow-Headers': '*',
                 }
+            });
+        }
+
+        // Health Check
+        if (url.pathname === '/health') {
+            return new Response('ok', {
+                status: 200,
+                headers: { 'Access-Control-Allow-Origin': '*' }
+            });
+        }
+
+        // Secret Header Check
+        const secretHeader = request.headers.get('x-anisflix-proxy');
+        if (!secretHeader || secretHeader !== env.PROXY_SECRET) {
+            return new Response('Forbidden', {
+                status: 403,
+                headers: { 'Access-Control-Allow-Origin': '*' }
             });
         }
 
