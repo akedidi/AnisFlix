@@ -96,34 +96,52 @@ export const useAfterDark = (
 };
 
 // Helper to parse data (shared between strategies)
+// Helper to parse data (shared between strategies)
 const processAfterDarkData = (data: any): AfterDarkResponse => {
     const rawSources = Array.isArray(data.sources) ? data.sources : [];
 
+    // User requested to include ALL sources (proxied, mp4, etc.)
     const streams = rawSources
-        .filter((source: any) => {
-            if (source.proxied !== false) return false;
-            if (source.kind !== 'hls') return false;
-            return true;
-        })
         .map((source: any) => {
+            // Map Language
             let language = 'VF';
             const lang = (source.language || '').toLowerCase();
 
-            if (lang === 'english' || lang === 'eng' || lang === 'en' || lang.includes('vo')) {
+            if (lang === 'english' || lang === 'eng' || lang === 'en' || lang.includes('vo') && !lang.includes('vostfr')) {
                 language = 'VO';
             } else if (lang === 'multi') {
-                language = 'VF';
+                language = 'VF'; // Usually Multi includes VF
             } else if (lang.includes('vostfr')) {
                 language = 'VOSTFR';
+            } else if (lang === 'vff' || lang === 'truefrench' || lang === 'fr') {
+                language = 'VF';
+            } else if (lang === 'vfq') {
+                language = 'VF'; // Map VFQ to VF category for now
             }
 
+            // Determine Type
+            let type = 'm3u8';
+            if (source.embed === true) {
+                type = 'embed';
+            } else if (source.kind === 'mp4') {
+                type = 'mp4';
+            }
+
+            // Label construction
+            const label = source.label || 'AfterDark';
+            const quality = source.quality || 'HD';
+            const langTag = source.language || language; // Keep original tag for display (e.g. VFQ)
+
             return {
-                name: `AfterDark ${language} ${source.quality || 'HD'}`,
-                url: source.url,
-                quality: source.quality || 'HD',
-                type: 'm3u8',
+                name: `${label} - ${langTag} ${quality}`, // Richer name: "Lisa - VFQ HD"
+                url: source.file || source.url, // "file" is used in the JSON example
+                quality: quality,
+                type: type, // 'm3u8' | 'mp4' | 'embed'
                 provider: 'afterdark',
-                language: language,
+                language: language, // Category (VF, VO, VOSTFR)
+                // Pass extra metadata if needed for UI
+                originalLanguage: source.language,
+                isProxied: source.proxied,
                 headers: {
                     'Referer': 'https://proxy.afterdark.click/',
                     'Origin': 'https://proxy.afterdark.click',
