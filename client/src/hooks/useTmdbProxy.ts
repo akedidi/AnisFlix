@@ -9,6 +9,9 @@ interface TmdbProxyLink {
 
 interface TmdbProxyResponse {
     player_links?: TmdbProxyLink[];
+    current_episode?: {
+        player_links?: TmdbProxyLink[];
+    };
 }
 
 const fetchTmdbProxy = async (type: 'movie' | 'tv', id: number, season?: number, episode?: number): Promise<TmdbProxyResponse | null> => {
@@ -25,7 +28,8 @@ const fetchTmdbProxy = async (type: 'movie' | 'tv', id: number, season?: number,
             id,
             season,
             episode,
-            links: data.player_links?.length || 0
+            rootLinks: data.player_links?.length || 0,
+            episodeLinks: data.current_episode?.player_links?.length || 0
         });
 
         return data;
@@ -50,7 +54,10 @@ export const useTmdbProxy = (type: 'movie' | 'tv', id: number, season?: number, 
 export const useTmdbProxyLinks = (type: 'movie' | 'tv', id: number, season?: number, episode?: number) => {
     const { data, isLoading } = useTmdbProxy(type, id, season, episode);
 
-    const luluvidLinks = (data?.player_links || []).filter(link =>
+    // Check both root player_links (Movies) and current_episode.player_links (Series)
+    const allLinks = data?.current_episode?.player_links || data?.player_links || [];
+
+    const luluvidLinks = allLinks.filter(link =>
         link.decoded_url.includes('luluvid') || link.decoded_url.includes('lulustream')
     );
 
