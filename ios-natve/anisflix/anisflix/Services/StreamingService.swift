@@ -1387,6 +1387,7 @@ class StreamingService {
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         
         let body: [String: String] = ["type": "vidzy", "url": url]
         request.httpBody = try JSONEncoder().encode(body)
@@ -1432,6 +1433,7 @@ class StreamingService {
         var request = URLRequest(url: apiUrl)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         
         let body: [String: String] = ["type": "luluvid", "url": url]
         request.httpBody = try JSONEncoder().encode(body)
@@ -1612,7 +1614,11 @@ class StreamingService {
         }
         
         print("🔍 [Movix] Searching for: \(title)")
-        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
@@ -1669,7 +1675,11 @@ class StreamingService {
         }
         
         print("📥 [Movix] Fetching download sources: \(path)")
-        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
@@ -1756,6 +1766,7 @@ class StreamingService {
         print("🎬 [Movix Anime] Search URL: \(searchURL)")
         
         var request = URLRequest(url: searchURL)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -1953,6 +1964,7 @@ class StreamingService {
         print("🎌 [AnimeAPI iOS] Request: \(apiURL)")
         
         var request = URLRequest(url: apiURL)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 30
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -2033,6 +2045,7 @@ class StreamingService {
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
         var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -2143,6 +2156,7 @@ class StreamingService {
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
         var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 15
         
         let (data, response) = try await URLSession.shared.data(for: request)
