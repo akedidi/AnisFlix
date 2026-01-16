@@ -336,7 +336,7 @@ struct DownloadButtonContent: View {
         StreamingSourcesView(sources: [
             StreamingSource(id: "1", url: "", quality: "1080p", type: "m3u8", provider: "FStream", language: "Français"),
             StreamingSource(id: "3", url: "", quality: "HD", type: "m3u8", provider: "Darkibox", language: "Français")
-        ], media: Media(id: 1, title: "Test Movie", overview: "", posterPath: nil, backdropPath: nil, rating: 0, year: "", mediaType: .movie, voteCount: 0, originalLanguage: "", releaseDate: "")) { _ in }
+        ], media: Media(id: 1, title: "Test Movie", overview: "", posterPath: nil, backdropPath: nil, rating: 0, year: "", mediaType: .movie, voteCount: 0, originalLanguage: "", releaseDate: "", episodeInfo: nil)) { _ in }
     }
 }
 

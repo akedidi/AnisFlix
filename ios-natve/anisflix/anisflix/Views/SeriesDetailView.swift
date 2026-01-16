@@ -122,11 +122,11 @@ struct SeriesDetailView: View {
                                     // Favorite Button
                                     // Favorite Button
                                     Button {
-                                        favoritesManager.toggle(Media(id: seriesId, title: series.name, overview: series.overview, posterPath: series.posterPath, backdropPath: series.backdropPath, rating: series.voteAverage, year: String(series.firstAirDate?.prefix(4) ?? ""), mediaType: .series, voteCount: 0, originalLanguage: "en", releaseDate: nil))
+                                        favoritesManager.toggle(Media(id: seriesId, title: series.name, overview: series.overview, posterPath: series.posterPath, backdropPath: series.backdropPath, rating: series.voteAverage, year: String(series.firstAirDate?.prefix(4) ?? ""), mediaType: .series, voteCount: 0, originalLanguage: "en", releaseDate: nil, episodeInfo: nil))
                                     } label: {
-                                        Image(systemName: favoritesManager.isFavorite(Media(id: seriesId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .series, voteCount: nil, originalLanguage: nil, releaseDate: nil)) ? "heart.fill" : "heart")
+                                        Image(systemName: favoritesManager.isFavorite(Media(id: seriesId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .series, voteCount: nil, originalLanguage: nil, releaseDate: nil, episodeInfo: nil)) ? "heart.fill" : "heart")
                                             .font(.title2)
-                                            .foregroundColor(favoritesManager.isFavorite(Media(id: seriesId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .series, voteCount: nil, originalLanguage: nil, releaseDate: nil)) ? AppTheme.primaryRed : theme.secondaryText)
+                                            .foregroundColor(favoritesManager.isFavorite(Media(id: seriesId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .series, voteCount: nil, originalLanguage: nil, releaseDate: nil, episodeInfo: nil)) ? AppTheme.primaryRed : theme.secondaryText)
                                             .padding(10)
                                             .background(theme.cardBackground)
                                             .clipShape(Circle())
