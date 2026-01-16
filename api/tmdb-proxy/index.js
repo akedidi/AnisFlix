@@ -248,11 +248,11 @@ export default async function handler(req, res) {
                             thetvdb_id: ep.show?.thetvdb_id
                         });
                     }
+                    if (uniqueSeriesMap.size >= 15) break;
                 }
 
-                // Search TMDB for each unique series
-                const results = [];
-                for (const [title, data] of uniqueSeriesMap) {
+                // Search TMDB for each unique series (Parallel)
+                const promises = Array.from(uniqueSeriesMap.entries()).map(async ([title, data]) => {
                     try {
                         const searchResult = await tmdbFetch('/search/tv', {
                             query: title,
@@ -263,7 +263,7 @@ export default async function handler(req, res) {
                             const series = searchResult.results[0];
                             const ep = data.betaEpisode;
 
-                            results.push({
+                            return {
                                 id: series.id,
                                 title: series.name,
                                 name: series.name,
@@ -284,14 +284,16 @@ export default async function handler(req, res) {
                                     title: ep.title,
                                     date: ep.date
                                 }
-                            });
+                            };
                         }
                     } catch (searchError) {
                         console.error(`❌ [TMDB] Search failed for: ${title}`);
                     }
+                    return null;
+                });
 
-                    if (results.length >= 20) break;
-                }
+                const rawResults = await Promise.all(promises);
+                const results = rawResults.filter(Boolean); // Filter out nulls
 
                 console.log(`✅ [TMDB PROXY] Returning ${results.length} latest episodes`);
 
