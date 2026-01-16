@@ -168,6 +168,20 @@ struct MediaCard: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(AppTheme.borderGray.opacity(0.3), lineWidth: 1)
                 )
+                .overlay(alignment: .topLeading) {
+                    // Episode badge if available
+                    if let epInfo = media.episodeInfo {
+                        Text("S\(epInfo.season)E\(epInfo.episode)")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(AppTheme.primaryRed)
+                            .cornerRadius(4)
+                            .padding(6)
+                    }
+                }
                 .overlay(
                     // Progress bar if available
                     Group {

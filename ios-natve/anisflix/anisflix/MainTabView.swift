@@ -16,6 +16,7 @@ enum NavigationRoute: Hashable {
 
     case latestMovies
     case latestSeries
+    case latestEpisodes
     case popularMovies
     case popularSeries
     case mediaList(type: Media.MediaType, category: String, genreId: Int?)
@@ -97,6 +98,8 @@ struct MainTabView: View {
                                 LatestMoviesView()
                             case .latestSeries:
                                 LatestSeriesView()
+                            case .latestEpisodes:
+                                LatestEpisodesView()
                             case .popularMovies:
                                 PopularMoviesView()
                             case .popularSeries:
@@ -134,6 +137,8 @@ struct MainTabView: View {
                                 LatestMoviesView()
                             case .latestSeries:
                                 LatestSeriesView()
+                            case .latestEpisodes:
+                                LatestEpisodesView()
                             case .popularMovies:
                                 PopularMoviesView()
                             case .popularSeries:
@@ -171,6 +176,8 @@ struct MainTabView: View {
                                 LatestMoviesView()
                             case .latestSeries:
                                 LatestSeriesView()
+                            case .latestEpisodes:
+                                LatestEpisodesView()
                             case .popularMovies:
                                 PopularMoviesView()
                             case .popularSeries:
@@ -208,6 +215,8 @@ struct MainTabView: View {
                                 LatestMoviesView()
                             case .latestSeries:
                                 LatestSeriesView()
+                            case .latestEpisodes:
+                                LatestEpisodesView()
                             case .popularMovies:
                                 PopularMoviesView()
                             case .popularSeries:
@@ -245,6 +254,8 @@ struct MainTabView: View {
                                 LatestMoviesView()
                             case .latestSeries:
                                 LatestSeriesView()
+                            case .latestEpisodes:
+                                LatestEpisodesView()
                             case .popularMovies:
                                 PopularMoviesView()
                             case .popularSeries:

@@ -10,6 +10,7 @@ import MovieDetail from "@/pages/MovieDetail";
 import SeriesDetail from "@/pages/SeriesDetail";
 import LatestMovies from "@/pages/LatestMovies";
 import LatestSeries from "@/pages/LatestSeries";
+import LatestEpisodes from "@/pages/LatestEpisodes";
 import PopularMovies from "@/pages/PopularMovies";
 import PopularSeries from "@/pages/PopularSeries";
 import MovieGenre from "@/pages/MovieGenre";
@@ -88,6 +89,7 @@ export default function AppWeb() {
         <Route path="/series/:id" component={SeriesDetail} />
         <Route path="/latest-movies" component={LatestMovies} />
         <Route path="/latest-series" component={LatestSeries} />
+        <Route path="/latest-episodes" component={LatestEpisodes} />
         <Route path="/popular-movies" component={PopularMovies} />
         <Route path="/popular-series" component={PopularSeries} />
         <Route path="/movies/genre/:id" component={MovieGenre} />

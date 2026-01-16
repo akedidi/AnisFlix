@@ -64,17 +64,86 @@ class TMDBService {
         return response.results.map { $0.toMedia(mediaType: .series) }
     }
     
-    // MARK: - Latest Episodes (BetaSeries)
+    // MARK: - Latest Episodes (TMDB Airing Today)
     
-    func fetchLatestEpisodes(language: String? = nil) async throws -> [Media] {
+    func fetchLatestEpisodes(page: Int = 1, language: String? = nil) async throws -> [Media] {
         let lang = language ?? AppTheme.shared.tmdbLanguageCode
         
-        let endpoint = "\(proxyBaseURL)?type=series&filter=last-episodes&language=\(lang)"
+        let endpoint = "\(proxyBaseURL)?type=series&filter=last-episodes&language=\(lang)&page=\(page)"
         
-        print("📺 [TMDBService] Fetching latest episodes via BetaSeries proxy: \(endpoint)")
+        print("📺 [TMDBService] Fetching latest episodes: \(endpoint)")
         
-        let response: TMDBResponse = try await fetch(from: endpoint)
-        return response.results.map { $0.toMedia(mediaType: .series) }
+        // Use custom response struct that includes episodeInfo
+        let response: LatestEpisodesResponse = try await fetch(from: endpoint)
+        return response.results.map { item in
+            let date = item.firstAirDate ?? ""
+            let year = date.isEmpty ? "" : String(date.prefix(4))
+            
+            var epInfo: Media.EpisodeInfo? = nil
+            if let ei = item.episodeInfo {
+                epInfo = Media.EpisodeInfo(
+                    season: ei.season,
+                    episode: ei.episode,
+                    title: ei.title,
+                    date: ei.date
+                )
+            }
+            
+            return Media(
+                id: item.id,
+                title: item.name ?? item.title ?? "Sans titre",
+                overview: item.overview,
+                posterPath: item.posterPath,
+                backdropPath: item.backdropPath,
+                rating: item.voteAverage,
+                year: year,
+                mediaType: .series,
+                voteCount: nil,
+                originalLanguage: nil,
+                releaseDate: date,
+                episodeInfo: epInfo
+            )
+        }
+    }
+    
+    // Custom response for latest episodes with episodeInfo
+    private struct LatestEpisodesResponse: Codable {
+        let results: [LatestEpisodeItem]
+        let page: Int
+        let totalPages: Int?
+        
+        private enum CodingKeys: String, CodingKey {
+            case results, page
+            case totalPages = "total_pages"
+        }
+    }
+    
+    private struct LatestEpisodeItem: Codable {
+        let id: Int
+        let title: String?
+        let name: String?
+        let overview: String?
+        let posterPath: String?
+        let backdropPath: String?
+        let voteAverage: Double?
+        let firstAirDate: String?
+        let episodeInfo: EpisodeInfoResponse?
+        
+        private enum CodingKeys: String, CodingKey {
+            case id, title, name, overview
+            case posterPath = "poster_path"
+            case backdropPath = "backdrop_path"
+            case voteAverage = "vote_average"
+            case firstAirDate = "first_air_date"
+            case episodeInfo
+        }
+    }
+    
+    private struct EpisodeInfoResponse: Codable {
+        let season: Int
+        let episode: Int
+        let title: String?
+        let date: String?
     }
     
     // MARK: - Movies by Provider

@@ -316,6 +316,7 @@ export default function Home() {
                 title={t("home.latestEpisodes")}
                 items={latestEpisodes.slice(0, 10)}
                 onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+                seeAllLink="/latest-episodes"
               />
             )}
 

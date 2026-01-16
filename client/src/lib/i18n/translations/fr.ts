@@ -18,6 +18,7 @@ export default {
   "home.popularSeries": "Séries populaires",
   "home.latestSeries": "Dernières séries",
   "home.latestEpisodes": "Derniers épisodes",
+  "latestEpisodes.description": "Découvrez les derniers épisodes diffusés aujourd'hui.",
   "home.trending": "Tendances",
   "home.topRated": "Les mieux notés",
   "home.downloads": "Téléchargements",

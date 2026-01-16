@@ -1,4 +1,4 @@
-  import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, ArrowLeft, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -12,6 +12,12 @@ interface Media {
   year?: string;
   progress?: number;
   mediaType?: "movie" | "tv" | "anime" | "documentary";
+  episodeInfo?: {
+    season: number;
+    episode: number;
+    title?: string;
+    date?: string;
+  } | null;
 }
 
 interface MediaCarouselProps {
@@ -33,9 +39,9 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
     if (scrollRef.current) {
       const container = scrollRef.current;
       const { scrollLeft, scrollWidth, clientWidth } = container;
-  // Find the width of a single poster (assume all are same)
-  const poster = container.querySelector('div'); // first child div is a poster
-  const posterWidth = poster ? poster.clientWidth + 16 : 192; // 16px gap, fallback 192px
+      // Find the width of a single poster (assume all are same)
+      const poster = container.querySelector('div'); // first child div is a poster
+      const posterWidth = poster ? poster.clientWidth + 16 : 192; // 16px gap, fallback 192px
 
       let newScrollLeft;
       if (direction === 'left') {
@@ -67,7 +73,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
   };
 
   return (
-    <div className="space-y-4 group fade-in-up" data-testid={`carousel-${title.toLowerCase().replace(/\s+/g, "-")}`}> 
+    <div className="space-y-4 group fade-in-up" data-testid={`carousel-${title.toLowerCase().replace(/\s+/g, "-")}`}>
       <div className="flex items-center justify-between">
         <h2 className="text-2xl md:text-3xl font-semibold">{title}</h2>
         {(seeAllLink || showSeeAllButton) && (
@@ -77,7 +83,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
             onClick={() => {
               // Déterminer la route cible
               let targetPath: string | null = null;
-              
+
               if (seeAllLink) {
                 targetPath = seeAllLink;
               } else if (sectionId) {
@@ -104,28 +110,28 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
                   targetPath = isSeries ? '/paramount-series' : '/paramount-movies';
                 }
               }
-              
+
               // Réinitialiser la pagination pour cette route avant la navigation
               if (targetPath) {
                 try {
                   // Normaliser le chemin (supprimer les paramètres de requête et les hash)
                   const normalizedPath = targetPath.split('?')[0].split('#')[0];
-                  
+
                   // Supprimer la pagination sauvegardée pour cette route
                   const storage = JSON.parse(localStorage.getItem('paginationState') || '{}');
                   delete storage[normalizedPath];
                   localStorage.setItem('paginationState', JSON.stringify(storage));
-                  
+
                   const session = JSON.parse(sessionStorage.getItem('paginationLast') || '{}');
                   delete session[normalizedPath];
                   sessionStorage.setItem('paginationLast', JSON.stringify(session));
-                  
+
                   console.log('[MediaCarousel] Réinitialisation pagination pour:', normalizedPath);
                 } catch (err) {
                   console.error('[MediaCarousel] Erreur lors de la réinitialisation de la pagination:', err);
                 }
               }
-              
+
               // Naviguer vers la route
               if (seeAllLink) {
                 setLocation(seeAllLink);
@@ -179,11 +185,17 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {items.map((item) => (
-            <div key={item.id} className="w-40 md:w-48 flex-shrink-0">
+            <div key={item.id} className="w-40 md:w-48 flex-shrink-0 relative">
               <MediaCard
                 {...item}
                 onClick={() => onItemClick?.(item)}
               />
+              {/* Episode badge */}
+              {item.episodeInfo && (
+                <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded z-10">
+                  S{item.episodeInfo.season}E{item.episodeInfo.episode}
+                </div>
+              )}
             </div>
           ))}
         </div>

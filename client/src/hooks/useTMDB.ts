@@ -134,14 +134,14 @@ export const useLatestProviderSeries = (page = 1) => {
   });
 };
 
-// Latest Episodes from BetaSeries API
-export const useLatestEpisodes = () => {
+// Latest Episodes from TMDB Airing Today
+export const useLatestEpisodes = (page = 1) => {
   return useQuery({
-    queryKey: ["episodes", "latest"],
+    queryKey: ["episodes", "latest", page],
     queryFn: async () => {
       const language = localStorage.getItem("language") || "fr-FR";
       const response = await fetch(
-        `https://anisflix.vercel.app/api/tmdb-proxy?type=series&filter=last-episodes&language=${language}`
+        `https://anisflix.vercel.app/api/tmdb-proxy?type=series&filter=last-episodes&language=${language}&page=${page}`
       );
       if (!response.ok) throw new Error("Failed to fetch latest episodes");
       const data = await response.json();

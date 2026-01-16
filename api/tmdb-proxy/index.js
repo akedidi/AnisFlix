@@ -218,45 +218,84 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
         }
 
-        // Endpoint 1d: Latest Episodes (TMDB Airing Today - fallback from BetaSeries)
+        // Endpoint 1d: Latest Episodes (TMDB Airing Today with episode details)
         if (type === 'series' && req.query.filter === 'last-episodes') {
-            console.log(`📺 [TMDB PROXY] Fetching Airing Today Series (Lang: ${language})`);
+            const requestedPage = parseInt(req.query.page) || 1;
+            console.log(`📺 [TMDB PROXY] Fetching Airing Today Series (Lang: ${language}, Page: ${requestedPage})`);
 
             try {
-                // Use TMDB's airing_today endpoint (reliable fallback)
+                // Use TMDB's airing_today endpoint with pagination
                 const airingData = await tmdbFetch('/tv/airing_today', {
                     language: language,
-                    page: 1
+                    page: requestedPage
                 });
 
                 const series = airingData.results || [];
-                console.log(`📺 [TMDB] Got ${series.length} airing today series`);
+                console.log(`📺 [TMDB] Got ${series.length} airing today series on page ${requestedPage}`);
 
-                // Format results to match MediaItem structure
-                const results = series.slice(0, 15).map(show => ({
-                    id: show.id,
-                    title: show.name,
-                    name: show.name,
-                    overview: show.overview,
-                    poster_path: show.poster_path,
-                    posterPath: show.poster_path,
-                    backdrop_path: show.backdrop_path,
-                    backdropPath: show.backdrop_path,
-                    vote_average: show.vote_average,
-                    rating: show.vote_average,
-                    first_air_date: show.first_air_date,
-                    year: show.first_air_date?.substring(0, 4) || '',
-                    media_type: 'tv',
-                    mediaType: 'tv'
-                }));
+                // Fetch episode details for each series in parallel
+                const resultsWithEpisodes = await Promise.all(
+                    series.map(async (show) => {
+                        try {
+                            // Fetch full series details to get last_episode_to_air
+                            const details = await tmdbFetch(`/tv/${show.id}`, {
+                                language: language
+                            });
 
-                console.log(`✅ [TMDB PROXY] Returning ${results.length} airing today series`);
+                            const lastEp = details.last_episode_to_air;
+
+                            return {
+                                id: show.id,
+                                title: show.name,
+                                name: show.name,
+                                overview: show.overview,
+                                poster_path: show.poster_path,
+                                posterPath: show.poster_path,
+                                backdrop_path: show.backdrop_path,
+                                backdropPath: show.backdrop_path,
+                                vote_average: show.vote_average,
+                                rating: show.vote_average,
+                                first_air_date: show.first_air_date,
+                                year: show.first_air_date?.substring(0, 4) || '',
+                                media_type: 'tv',
+                                mediaType: 'tv',
+                                episodeInfo: lastEp ? {
+                                    season: lastEp.season_number,
+                                    episode: lastEp.episode_number,
+                                    title: lastEp.name,
+                                    date: lastEp.air_date
+                                } : null
+                            };
+                        } catch (err) {
+                            // Fallback without episode info
+                            return {
+                                id: show.id,
+                                title: show.name,
+                                name: show.name,
+                                overview: show.overview,
+                                poster_path: show.poster_path,
+                                posterPath: show.poster_path,
+                                backdrop_path: show.backdrop_path,
+                                backdropPath: show.backdrop_path,
+                                vote_average: show.vote_average,
+                                rating: show.vote_average,
+                                first_air_date: show.first_air_date,
+                                year: show.first_air_date?.substring(0, 4) || '',
+                                media_type: 'tv',
+                                mediaType: 'tv',
+                                episodeInfo: null
+                            };
+                        }
+                    })
+                );
+
+                console.log(`✅ [TMDB PROXY] Returning ${resultsWithEpisodes.length} series with episode info`);
 
                 return res.status(200).json({
-                    page: 1,
-                    total_pages: 1,
-                    total_results: results.length,
-                    results: results
+                    page: requestedPage,
+                    total_pages: Math.min(airingData.total_pages || 1, 8), // Cap at 8 pages (~150 items)
+                    total_results: Math.min(airingData.total_results || resultsWithEpisodes.length, 150),
+                    results: resultsWithEpisodes
                 });
 
             } catch (tmdbError) {

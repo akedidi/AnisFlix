@@ -163,14 +163,15 @@ struct HomeView: View {
                         )
                     }
                     
-                    // Derniers Épisodes (BetaSeries)
+                    // Derniers Épisodes (TMDB Airing Today)
                     if !latestEpisodes.isEmpty {
                         MediaRow(
                             title: theme.t("episodes.latest"),
                             items: Array(latestEpisodes.prefix(10)),
                             onItemClick: { media in
                                 print("Navigate to series from episode: \(media.id)")
-                            }
+                            },
+                            seeAllRoute: .latestEpisodes
                         )
                     }
                     

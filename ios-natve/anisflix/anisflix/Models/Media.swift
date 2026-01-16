@@ -20,6 +20,14 @@ struct Media: Identifiable, Codable, Hashable {
     let voteCount: Int?
     let originalLanguage: String?
     let releaseDate: String?
+    let episodeInfo: EpisodeInfo?
+    
+    struct EpisodeInfo: Codable, Hashable {
+        let season: Int
+        let episode: Int
+        let title: String?
+        let date: String?
+    }
     
     enum MediaType: String, Codable {
         case movie = "movie"
@@ -109,7 +117,8 @@ struct TMDBMedia: Codable {
             mediaType: mediaType,
             voteCount: voteCount,
             originalLanguage: originalLanguage,
-            releaseDate: date
+            releaseDate: date,
+            episodeInfo: nil
         )
     }
 }
