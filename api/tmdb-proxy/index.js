@@ -252,6 +252,14 @@ export default async function handler(req, res) {
                             // Fetch full series details
                             const details = await tmdbFetch(`/tv/${show.id}`, { language });
 
+                            // Filter out unwanted genres: News (10763), Reality (10764), Talk (10767), Documentary (99)
+                            const unwantedGenres = [10763, 10764, 10767, 99];
+                            const hasUnwantedGenre = details.genres?.some(g => unwantedGenres.includes(g.id));
+
+                            if (hasUnwantedGenre) {
+                                return null;
+                            }
+
                             const networks = details.networks || [];
 
                             // Check if ANY of the show's networks are from allowed countries
