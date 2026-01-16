@@ -1427,6 +1427,51 @@ class StreamingService {
         throw URLError(.cannotParseResponse)
     }
     
+    func extractLuluvid(url: String) async throws -> String {
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = ["type": "luluvid", "url": url]
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        print("📤 Extracting Luluvid: \(url)")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        
+        if httpResponse.statusCode != 200 {
+            print("❌ Luluvid extraction failed with status: \(httpResponse.statusCode)")
+            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                print("❌ Error details: \(errorJson)")
+            }
+            throw URLError(.badServerResponse)
+        }
+        
+        struct ExtractResponse: Codable {
+            let success: Bool
+            let m3u8Url: String?
+            let error: String?
+            let type: String?
+        }
+        
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        
+        if let m3u8 = result.m3u8Url {
+            print("✅ Luluvid extracted: \(m3u8)")
+            return m3u8
+        } else if let error = result.error {
+            print("❌ Luluvid API Error: \(error)")
+            throw NSError(domain: "StreamingService", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
+        }
+        
+        throw URLError(.cannotParseResponse)
+    }
+    
     // MARK: - Proxy Helpers
     
     func getVidMolyProxyUrl(url: String, referer: String) -> String {
@@ -2135,22 +2180,15 @@ class StreamingService {
                     if player.name.lowercased().contains("luluvid") || player.url.contains("luluvid") {
                         let provider = "luluvid"
                         
-                        // Luluvid links are embeds (e.g. luluvid.com/e/...), need to be proxied to extract M3U8
-                        // Web client uses: /api/movix-proxy?path=cinepro-proxy&url=...
-                        var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
-                        let queryItems = [
-                            URLQueryItem(name: "path", value: "cinepro-proxy"),
-                            URLQueryItem(name: "url", value: player.url)
-                        ]
-                        components.queryItems = queryItems
-                        let finalUrl = components.url?.absoluteString ?? player.url
+                        // Use raw URL for client-side extraction (via /api/extract)
+                        let finalUrl = player.url
                         
                         print("🔗 [Wiflix] Found Luluvid (\(lang)): \(finalUrl)")
                         
                         sources.append(StreamingSource(
                             url: finalUrl,
                             quality: "HD", // Luluvid defaults to HD
-                            type: "m3u8", // Proxy returns m3u8
+                            type: "embed", // Embed before extraction
                             provider: provider,
                             language: lang,
                             origin: "wiflix",

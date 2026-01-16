@@ -758,7 +758,7 @@ const StreamingSources = memo(function StreamingSources({
         const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
 
         let sourceUrl = player.url;
-        let sourceType = 'embed' as const;
+        let sourceType: 'embed' | 'm3u8' = 'embed';
 
         if (isLuluvid) {
           sourceUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(player.url)}`;
