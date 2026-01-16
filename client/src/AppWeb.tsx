@@ -61,6 +61,7 @@ import ParamountSeries from "@/pages/ParamountSeries";
 import VidSrcTest from "@/components/VidSrcTest";
 import MovixDownloadTest from "@/components/MovixDownloadTest";
 import MovixDownloadChecker from "@/components/MovixDownloadChecker";
+import VideoDownloadTest from "@/pages/VideoDownloadTest";
 
 /**
  * Composant wrapper pour utiliser le hook de préservation du scroll à l'intérieur du Router
@@ -95,7 +96,7 @@ export default function AppWeb() {
         <Route path="/series-genre/:genre" component={SeriesGenreNew} />
         <Route path="/provider/:providerId/films/category/:genre" component={ProviderMoviesGenre} />
         <Route path="/provider/:providerId/series/category/:genre" component={ProviderSeriesGenre} />
-        
+
         {/* Anime routes */}
         <Route path="/anime-movies-latest" component={AnimeMoviesLatest} />
         <Route path="/anime-series-latest" component={AnimeSeriesLatest} />
@@ -104,7 +105,7 @@ export default function AppWeb() {
         <Route path="/settings" component={Settings} />
         <Route path="/tv-channels" component={TVChannels} />
         <Route path="/favorites" component={Favorites} />
-        
+
         {/* Provider routes */}
         <Route path="/netflix" component={NetflixContent} />
         <Route path="/netflix-content" component={NetflixContent} />
@@ -123,7 +124,7 @@ export default function AppWeb() {
         <Route path="/provider/:id/series" component={ProviderSeriesGenre} />
         <Route path="/provider/:id/movies/:genre" component={ProviderMoviesGenre} />
         <Route path="/provider/:id/series/:genre" component={ProviderSeriesGenre} />
-        
+
         {/* Provider Movies routes */}
         <Route path="/netflix-movies" component={NetflixMovies} />
         <Route path="/netflix-movies-original" component={NetflixMovies} />
@@ -134,7 +135,7 @@ export default function AppWeb() {
         <Route path="/hbo-max-movies" component={HBOMaxMovies} />
         <Route path="/apple-tv-movies" component={AppleTVMovies} />
         <Route path="/paramount-movies" component={ParamountMovies} />
-        
+
         {/* Provider Series routes */}
         <Route path="/netflix-series" component={NetflixSeries} />
         <Route path="/amazon-series" component={AmazonSeries} />
@@ -142,11 +143,12 @@ export default function AppWeb() {
         <Route path="/hbo-max-series" component={HBOMaxSeries} />
         <Route path="/apple-tv-series" component={AppleTVSeries} />
         <Route path="/paramount-series" component={ParamountSeries} />
-        
+
         {/* Test routes */}
         <Route path="/test/vidsrc" component={VidSrcTest} />
         <Route path="/test/movix-download" component={MovixDownloadTest} />
         <Route path="/test/movix-checker" component={MovixDownloadChecker} />
+        <Route path="/test/video-download" component={VideoDownloadTest} />
       </Router>
 
       {/* Mobile Bottom Navigation - rendu à la racine pour être toujours visible */}

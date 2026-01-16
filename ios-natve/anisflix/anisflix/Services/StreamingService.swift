@@ -329,16 +329,16 @@ class StreamingService {
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
             
-            // Fetch AfterDark sources
-            if let year = tmdbInfo?.year {
-                afterDarkSources = (try? await fetchAfterDarkSources(
-                    tmdbId: movieId,
-                    type: "movie",
-                    title: title,
-                    year: year,
-                    originalTitle: tmdbInfo?.originalTitle
-                )) ?? []
-            }
+            // DISABLED: AfterDark sources
+            // if let year = tmdbInfo?.year {
+            //     afterDarkSources = (try? await fetchAfterDarkSources(
+            //         tmdbId: movieId,
+            //         type: "movie",
+            //         title: title,
+            //         year: year,
+            //         originalTitle: tmdbInfo?.originalTitle
+            //     )) ?? []
+            // }
             
             // Fetch Movix Download sources (TMDB ID matching)
             movixDownloadSources = (try? await fetchMovixDownloadSources(
@@ -399,7 +399,7 @@ class StreamingService {
         // }
         
         // Add AfterDark sources
-        allSources.append(contentsOf: afterDarkSources)
+        // DISABLED: allSources.append(contentsOf: afterDarkSources)
         
         if let vixsrc = vixsrc {
             allSources.append(contentsOf: vixsrc)
@@ -551,13 +551,13 @@ class StreamingService {
                  print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count))")
             }
             
-            // Fetch AfterDark sources
-            afterDarkSources = (try? await fetchAfterDarkSources(
-                tmdbId: seriesId,
-                type: "tv",
-                title: title,
-                year: nil,
-                season: season,
+            // DISABLED: AfterDark sources
+            // afterDarkSources = (try? await fetchAfterDarkSources(
+            //     tmdbId: seriesId,
+            //     type: "tv",
+            //     title: title,
+            //     year: nil,
+            //     season: season,
                 episode: episode
             )) ?? []
             
@@ -620,7 +620,7 @@ class StreamingService {
         // }
         
         // Add AfterDark sources
-        allSources.append(contentsOf: afterDarkSources)
+        // DISABLED: allSources.append(contentsOf: afterDarkSources)
         
         if let vixsrc = vixsrc {
             allSources.append(contentsOf: vixsrc)
@@ -1972,7 +1972,7 @@ class StreamingService {
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 10
+        request.timeoutInterval = 15
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -1980,13 +1980,50 @@ class StreamingService {
             return []
         }
         
-        struct CineproResponse: Codable {
-            let success: Bool
-            let streams: [StreamingSource]?
+        // API returns: { success: true, streams: [{ server, link, type, quality, lang, headers }] }
+        struct CineproApiStream: Codable {
+            let server: String?
+            let link: String
+            let type: String?
+            let quality: String?
+            let lang: String?
+            let headers: [String: String]?
         }
         
-        let result = try? JSONDecoder().decode(CineproResponse.self, from: data)
-        return result?.streams ?? []
+        struct CineproApiResponse: Codable {
+            let success: Bool?
+            let streams: [CineproApiStream]?
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(CineproApiResponse.self, from: data)
+            
+            return (decoded.streams ?? []).map { stream in
+                // Determine provider based on server name
+                let provider: String
+                if stream.server?.lowercased().contains("megacdn") == true {
+                    provider = "megacdn"
+                } else if stream.server?.lowercased().contains("milkyway") == true {
+                    provider = "premilkyway"
+                } else {
+                    provider = "cinepro"
+                }
+                
+                return StreamingSource(
+                    url: stream.link,
+                    quality: stream.quality ?? "Auto",
+                    type: stream.type ?? "hls",
+                    provider: provider,
+                    language: stream.lang ?? "VO",
+                    origin: "cinepro",
+                    tracks: nil,
+                    headers: stream.headers
+                )
+            }
+        } catch {
+            print("❌ [StreamingService] Cinepro decode error: \(error)")
+            return []
+        }
     }
 
     // MARK: - ID Conversion Helpers

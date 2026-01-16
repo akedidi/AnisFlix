@@ -96,6 +96,7 @@ export class CineproScraper {
             autoLink = `${protocol}://${host}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(streamObj.link)}&headers=${encodeURIComponent(JSON.stringify(streamObj.headers))}`;
         }
 
+
         results.push({
             ...streamObj,
             link: autoLink,

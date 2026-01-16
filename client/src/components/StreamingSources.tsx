@@ -114,7 +114,10 @@ const StreamingSources = memo(function StreamingSources({
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
-  const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
+  // DISABLED: AfterDark sources
+  // const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
+  const afterDarkData: { success: boolean; streams: any[] } | null = null;
+  const isLoadingAfterDark = false;
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { downloadVideo } = useVideoDownload();
@@ -354,8 +357,8 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
 
-    // Vérifier AfterDark (VF, VOSTFR, VO)
-    if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+    // Vérifier AfterDark (VF, VOSTFR, VO) - DISABLED
+    if (afterDarkData !== null && afterDarkData.success && afterDarkData.streams) {
       if (afterDarkData.streams.some((s: any) => {
         const lang = s.language?.toLowerCase() || 'vf';
         if (language === 'VF') return lang === 'vf' || lang === 'multi';
@@ -798,8 +801,8 @@ const StreamingSources = memo(function StreamingSources({
     console.log('❌ Pas de sources VidMoly Anime - animeVidMolyData:', animeVidMolyData, 'hasAnimeVidMolyLinks:', hasAnimeVidMolyLinks);
   }
 
-  // Add AfterDark sources
-  if (afterDarkData && afterDarkData.success && afterDarkData.streams) {
+  // DISABLED: AfterDark sources
+  if (afterDarkData !== null && afterDarkData.success && afterDarkData.streams) {
     console.log('🔍 [AfterDark] Adding sources:', afterDarkData.streams);
     afterDarkData.streams.forEach((stream: any, index: number) => {
       let langMatches = false;
@@ -888,13 +891,23 @@ const StreamingSources = memo(function StreamingSources({
   }
 
 
-  // Ajouter les sources Cinepro (VO uniquement)
+  // Ajouter les sources Cinepro MegaCDN (VO uniquement) - PRIORITIZED AT TOP
+  // Use unshift to add at the beginning of the array so MegaCDN appears first
   if (selectedLanguage === 'VO' && cineproData && cineproData.success && cineproData.streams) {
-    console.log('🔍 [Cinepro] Sources trouvées:', cineproData.streams);
-    cineproData.streams.forEach((stream: any, index: number) => {
-      allSources.push({
-        id: `cinepro-${index}`,
-        name: `${stream.server || 'Cinepro'} (VO)`,
+    console.log('🔍 [Cinepro MegaCDN] Sources trouvées (prioritized):', cineproData.streams);
+    // Sort by quality (1080p first, then 720p, then 360p)
+    const qualityOrder = ['1080p', '720p', '480p', '360p', 'Auto'];
+    const sortedStreams = [...cineproData.streams].sort((a: any, b: any) => {
+      const qA = qualityOrder.indexOf(a.quality || 'Auto');
+      const qB = qualityOrder.indexOf(b.quality || 'Auto');
+      return (qA === -1 ? 999 : qA) - (qB === -1 ? 999 : qB);
+    });
+
+    // Add in reverse order so highest quality ends up first after all unshifts
+    sortedStreams.reverse().forEach((stream: any, index: number) => {
+      allSources.unshift({
+        id: `cinepro-megacdn-${index}`,
+        name: `⭐ ${stream.server || 'MegaCDN'} ${stream.quality || 'Auto'} (VO)`,
         provider: 'cinepro',
         url: stream.link,
         type: stream.type === 'mp4' ? 'mp4' : 'm3u8',

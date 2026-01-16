@@ -632,6 +632,16 @@ export default async function handler(req, res) {
           const rewriteLine = (line) => {
             try {
               const absoluteUrl = new URL(line, basePath).href;
+
+              // Check if it's MegaCDN and NOT a manifest (i.e. it's a TS segment)
+              // We want to offload segments to external proxy, but keep manifests internal for rewriting
+              const isManifest = absoluteUrl.includes('.m3u8');
+              const isMegaCDN = absoluteUrl.includes('megacdn') || absoluteUrl.includes('megaf');
+
+              if (isMegaCDN && !isManifest) {
+                return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(absoluteUrl)}`;
+              }
+
               return `${hostUrl}&url=${encodeURIComponent(absoluteUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
             } catch (e) { return line; }
           };
