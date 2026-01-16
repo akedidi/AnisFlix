@@ -217,6 +217,8 @@ struct DownloadButton: View {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
                 } else if source.provider == "vidzy" {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
+                } else if source.provider == "luluvid" {
+                    streamUrl = try await StreamingService.shared.extractLuluvid(url: source.url)
                 } else {
                     streamUrl = source.url
                 }
