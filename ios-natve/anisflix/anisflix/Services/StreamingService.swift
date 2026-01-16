@@ -316,6 +316,7 @@ class StreamingService {
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
         async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
+
         
         // Anime Placeholder
         var animeTask: Task<[StreamingSource], Error>? = nil
@@ -360,7 +361,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources)
         let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
@@ -371,6 +372,7 @@ class StreamingService {
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - Cinepro: \(cinepro?.count ?? 0)")
+        print("   - Wiflix: \(wiflix?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         
@@ -597,6 +599,7 @@ class StreamingService {
         print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
+        print("   - Wiflix: \(wiflix?.count ?? 0)")
         print("   - Movix Anime: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
@@ -2084,7 +2087,9 @@ class StreamingService {
     }
 
     private func fetchWiflixSources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/movix-proxy?path=wiflix&tmdbId=\(tmdbId)&type=\(season == nil ? "movie" : "tv")"
+        let typePath = season == nil ? "movie" : "tv"
+        var urlString = "\(baseUrl)/api/movix-proxy?path=wiflix/\(typePath)/\(tmdbId)"
+        
         if let s = season { urlString += "&season=\(s)" }
         if let e = episode { urlString += "&episode=\(e)" }
         
@@ -2101,78 +2106,70 @@ class StreamingService {
             return []
         }
         
-        // Reuse Cinepro structs as structure is likely identical or similar for movix-proxy family
-        struct WiflixApiStream: Codable {
-            let server: String?
-            let link: String
-            let type: String?
-            let quality: String?
-            let lang: String?
-            let headers: [String: String]?
+        // Correct Wiflix Structs based on user JSON
+        struct WiflixPlayer: Codable {
+            let name: String
+            let url: String
+            let episode: Int?
+            let type: String? // "VF", "VOSTFR"
+        }
+        
+        struct WiflixPlayersDict: Codable {
+            let vf: [WiflixPlayer]?
+            let vostfr: [WiflixPlayer]?
         }
         
         struct WiflixApiResponse: Codable {
             let success: Bool?
-            let streams: [WiflixApiStream]?
+            let players: WiflixPlayersDict?
         }
         
         do {
             let decoded = try JSONDecoder().decode(WiflixApiResponse.self, from: data)
+            var sources: [StreamingSource] = []
             
-            return (decoded.streams ?? []).map { stream in
-                // Detect Luluvid
-                let provider: String
-                if stream.server?.lowercased().contains("luluvid") == true || stream.link.contains("luluvid") {
-                    provider = "luluvid"
-                } else {
-                    provider = "wiflix"
-                }
-                
-                // User requested DIRECT links for Luluvid on iOS
-                var finalUrl = stream.link
-                var finalHeaders = stream.headers
-                
-                if provider == "luluvid" {
-                     print("🔗 [Wiflix] Using DIRECT link for \(provider): \(finalUrl)")
-                } else {
-                     // Default to Proxy for others if needed, or Direct?
-                     // Following MegaCDN pattern: Direct if safe, Proxy if CORS.
-                     // Assuming Wiflix sources might need proxy if not Luluvid/MegaCDN-like.
-                     // For now, let's keep others possibly direct or proxied?
-                     // Previous instruction said "direct for megacdn ... luluvid too".
-                     // Safe default for unknown Wiflix sources might be Proxy.
-                     
-                    var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
-                    var queryItems = [
-                        URLQueryItem(name: "path", value: "cinepro-proxy"), // using cinepro-proxy generic path? or generic?
-                        // The user didn't specify proxy path for wiflix sources.
-                        // Assuming they are similar to Cinepro.
-                        URLQueryItem(name: "url", value: stream.link)
-                    ]
-                    
-                    if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
-                        queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+            let processPlayers = { (players: [WiflixPlayer]?, lang: String) in
+                guard let players = players else { return }
+                for player in players {
+                    // Check for Luluvid
+                    if player.name.lowercased().contains("luluvid") || player.url.contains("luluvid") {
+                        let provider = "luluvid"
+                        
+                        // Luluvid links are embeds (e.g. luluvid.com/e/...), need to be proxied to extract M3U8
+                        // Web client uses: /api/movix-proxy?path=cinepro-proxy&url=...
+                        var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
+                        let queryItems = [
+                            URLQueryItem(name: "path", value: "cinepro-proxy"),
+                            URLQueryItem(name: "url", value: player.url)
+                        ]
+                        components.queryItems = queryItems
+                        let finalUrl = components.url?.absoluteString ?? player.url
+                        
+                        print("🔗 [Wiflix] Found Luluvid (\(lang)): \(finalUrl)")
+                        
+                        sources.append(StreamingSource(
+                            url: finalUrl,
+                            quality: "HD", // Luluvid defaults to HD
+                            type: "m3u8", // Proxy returns m3u8
+                            provider: provider,
+                            language: lang,
+                            origin: "wiflix",
+                            tracks: nil,
+                            headers: nil
+                        ))
                     }
-                    
-                    components.queryItems = queryItems
-                    finalUrl = components.url?.absoluteString ?? stream.link
-                    finalHeaders = nil // Headers handled by proxy
-                    print("🔗 [Wiflix] Using PROXY for \(provider): \(finalUrl)")
                 }
-                
-                return StreamingSource(
-                    url: finalUrl,
-                    quality: stream.quality ?? "Auto",
-                    type: "m3u8",
-                    provider: provider, // "luluvid" or "wiflix"
-                    language: stream.lang ?? "VO",
-                    origin: "wiflix",
-                    tracks: nil,
-                    headers: finalHeaders
-                )
             }
+            
+            processPlayers(decoded.players?.vf, "VF")
+            processPlayers(decoded.players?.vostfr, "VOSTFR") // Map to "VO" or "VOSTFR"? Using "VOSTFR" as per UI
+            
+            return sources
+            
         } catch {
             print("❌ [StreamingService] Wiflix decode error: \(error)")
+            // Try printing string for partial debug if needed
+            // if let str = String(data: data, encoding: .utf8) { print("Dump: \(str)") }
             return []
         }
     }

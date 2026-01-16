@@ -723,7 +723,7 @@ const StreamingSources = memo(function StreamingSources({
         const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
 
         let sourceUrl = player.url;
-        let sourceType = 'embed' as const;
+        let sourceType: 'embed' | 'm3u8' = 'embed';
 
         if (isLuluvid) {
           // For Luluvid, route through proxy to extract M3U8
@@ -741,6 +741,7 @@ const StreamingSources = memo(function StreamingSources({
           player: providerKey,
           isVidMoly: !isLuluvid, // For specialized click handling if needed
           isLuluvid: isLuluvid, // Add flags if needed
+          quality: isLuluvid ? 'HD' : undefined, // Luluvid defaults to HD
           sourceKey: 'VF'
         };
         console.log(`✅ Ajout source ${providerName} VF:`, source);
@@ -773,6 +774,7 @@ const StreamingSources = memo(function StreamingSources({
           player: providerKey,
           isVidMoly: !isLuluvid,
           isLuluvid: isLuluvid,
+          quality: isLuluvid ? 'HD' : undefined, // Luluvid defaults to HD
           sourceKey: 'VOSTFR'
         };
         console.log(`✅ Ajout source ${providerName} VOSTFR:`, source);
