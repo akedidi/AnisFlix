@@ -962,34 +962,40 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : MovieBox > Vidzy > Vidmoly > Reste
+  // Trie final des sources : MegaCDN > MovieBox > Vidzy > Vidmoly > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
-      // Rang 0: MovieBox (priorité absolue pour VO)
-      if (source.provider.toLowerCase() === 'moviebox' ||
-        source.name.toLowerCase().includes('moviebox')) {
+      // Rang 0: MegaCDN (priorité absolue pour VO - sources Cinepro)
+      if (source.provider?.toLowerCase() === 'cinepro' ||
+        source.name.toLowerCase().includes('megacdn')) {
         return 0;
       }
 
-      // Rang 1: Vidzy
+      // Rang 1: MovieBox
+      if (source.provider.toLowerCase() === 'moviebox' ||
+        source.name.toLowerCase().includes('moviebox')) {
+        return 1;
+      }
+
+      // Rang 2: Vidzy
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
-        return 1;
-      }
-
-      // Rang 2: VidMoly
-      if (source.isVidMoly ||
-        source.provider.toLowerCase() === 'vidmoly' ||
-        source.name.toLowerCase().includes('vidmoly')) {
         return 2;
       }
 
-      // Rang 3: AfterDark
-      if (source.isAfterDark || source.provider.toLowerCase() === 'afterdark') {
+      // Rang 3: VidMoly
+      if (source.isVidMoly ||
+        source.provider.toLowerCase() === 'vidmoly' ||
+        source.name.toLowerCase().includes('vidmoly')) {
         return 3;
+      }
+
+      // Rang 4: AfterDark
+      if (source.isAfterDark || source.provider.toLowerCase() === 'afterdark') {
+        return 4;
       }
 
       // Rang 10: 4KHDHub (Dernier)
@@ -997,8 +1003,8 @@ const StreamingSources = memo(function StreamingSources({
         return 10;
       }
 
-      // Rang 4: Le reste (Darki, Movix, Vixsrc, etc.)
-      return 4;
+      // Rang 5: Le reste (Darki, Movix, Vixsrc, etc.)
+      return 5;
     };
 
     const rankA = getRank(a);

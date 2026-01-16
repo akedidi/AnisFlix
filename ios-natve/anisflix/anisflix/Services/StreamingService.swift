@@ -375,17 +375,22 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add TMDB sources FIRST (includes Vidzy)
+        // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
+        if let cinepro = cinepro {
+            allSources.append(contentsOf: cinepro)
+        }
+        
+        // Add TMDB sources (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add MovieBox sources SECOND (High quality VO)
+        // Add MovieBox sources (High quality VO)
         if let mBox = mBox {
             allSources.append(contentsOf: mBox)
         }
         
-        // Add Movix/Darkibox Download sources third
+        // Add Movix/Darkibox Download sources
         allSources.append(contentsOf: movixDownloadSources)
         
         // DISABLED: UniversalVO API is broken
@@ -409,14 +414,9 @@ class StreamingService {
             allSources.append(contentsOf: animeSources)
         }
         
-        // Add 4KHDHub sources
+        // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
-        }
-        
-        // Add Cinepro sources
-        if let cinepro = cinepro {
-            allSources.append(contentsOf: cinepro)
         }
         
         // Filter for allowed providers
@@ -593,20 +593,25 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Anime sources FIRST (High Priority for VidMoly)
+        // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
+        if let cinepro = cinepro {
+            allSources.append(contentsOf: cinepro)
+        }
+        
+        // Add Anime sources (High Priority for VidMoly)
         allSources.append(contentsOf: animeSources)
         
-        // Add TMDB sources FIRST (includes Vidzy)
+        // Add TMDB sources (includes Vidzy)
         if let tmdb = tmdb {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add MovieBox sources SECOND (High quality VO)
+        // Add MovieBox sources (High quality VO)
         if let mBox = mBox {
             allSources.append(contentsOf: mBox)
         }
         
-        // Add Movix/Darkibox Download sources second
+        // Add Movix/Darkibox Download sources
         allSources.append(contentsOf: movixDownloadSources)
         
         // DISABLED: UniversalVO API is broken
@@ -625,12 +630,9 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
+        // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
-        }
-        
-        if let cinepro = cinepro {
-            allSources.append(contentsOf: cinepro)
         }
         
         // Filter for allowed providers

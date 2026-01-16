@@ -208,18 +208,8 @@ export class CineproScraper {
         }
         const foundStreams = [];
         try {
-            // ... existing logic ...
-            if (baseUrl.includes('multiembed')) {
-                // Use CorsProxy.io to bypass Vercel 403 on initial navigation
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`;
-                console.log(`[Cinepro] Proxying MultiEmbed initial request via corsproxy.io`);
-                const resolved = await axios.get(proxyUrl, { headers: this.headers, timeout: 8000 });
-                // Note: resolved.request.res.responseUrl might be the proxy URL now, need to be careful if we rely on redirection updates
-                // But usually we just need the body or the final effective URL if it redirects. 
-                // For MultiEmbed, the important part is getting the content or the resolved 'real' URL if it was a shortlink.
-                // Assuming baseUrl doesn't drastically change structure or we can extract it.
-                // If corsproxy follows redirects, resolved.data is the destination content.
-            }
+            // Direct request to MultiEmbed (corsproxy.io was ineffective)
+            const resolved = await axios.get(baseUrl, { headers: this.headers, timeout: 8000 });
             const defaultDomain = new URL(baseUrl).origin + '/';
             // ... (rest of logic handles POST which proxies might simplify or complicate, 
             // but the prompt specifically asked to integrate corsproxy on necessary calls)
@@ -249,16 +239,14 @@ export class CineproScraper {
                     const serverId = source.server;
                     const videoId = source.id;
                     const vipUrl = `https://streamingnow.mov/playvideo.php?video_id=${videoId}&server_id=${serverId}&token=${token}&init=1`;
-                    // Proxy the VIP URL fetch as well (it's a GET)
-                    const proxyVipUrl = `https://corsproxy.io/?${encodeURIComponent(vipUrl)}`;
-                    const resp3 = await axios.get(proxyVipUrl, { headers: this.headers, timeout: 5000 });
+                    // Direct fetch (corsproxy.io was ineffective)
+                    const resp3 = await axios.get(vipUrl, { headers: this.headers, timeout: 5000 });
                     const $2 = cheerio.load(resp3.data);
                     let iframeUrl = $2('iframe').attr('src');
                     if (!iframeUrl) continue;
 
-                    // Proxy the iframe fetch (GET)
-                    const proxyIframeUrl = `https://corsproxy.io/?${encodeURIComponent(iframeUrl)}`;
-                    const resp4 = await axios.get(proxyIframeUrl, { headers: this.headers, timeout: 5000 });
+                    // Direct fetch (corsproxy.io was ineffective)
+                    const resp4 = await axios.get(iframeUrl, { headers: this.headers, timeout: 5000 });
                     let videoUrl = null;
                     const hunterMatch = resp4.data.match(/\(\s*function\s*\([^\)]*\)\s*\{[\s\S]*?\}\s*\(\s*(.*?)\s*\)\s*\)\s*\)/);
                     if (hunterMatch) {
@@ -294,54 +282,149 @@ export class CineproScraper {
         } catch (e) { throw e; }
     }
 
-    // --- AutoEmbed Logic ---
+    // --- AutoEmbed Logic (MegaCDN Only - Server 10) ---
     async getAutoEmbed(tmdbId, season, episode, host, fetcher = null) {
         const type = season && episode ? 'tv' : 'movie';
-        const url = type === 'tv'
+        const baseUrl = type === 'tv'
             ? `https://test.autoembed.cc/api/server?id=${tmdbId}&ss=${season}&ep=${episode}`
             : `https://test.autoembed.cc/api/server?id=${tmdbId}`;
         const headers = { 'Referer': 'https://player.vidsrc.co/', 'Origin': 'https://player.vidsrc.co/', 'User-Agent': this.userAgent };
         const streams = [];
-        const numberOfServers = 6;
-        for (let i = 1; i <= numberOfServers; i++) {
-            try {
-                const serverUrl = `${url}&sr=${i}`;
-                let responseData;
 
-                if (fetcher) {
-                    // Use Puppeteer fetcher if available
+        // Only fetch Server 10 (MegaCDN - most reliable with multi-resolution)
+        const megaCdnServer = 10;
+        const serverUrl = `${baseUrl}&sr=${megaCdnServer}`;
+
+        try {
+            console.log(`[Cinepro] Fetching MegaCDN (Server ${megaCdnServer})...`);
+
+            // Use cors.eu.org proxy
+            const proxyUrl = `https://cors.eu.org/${serverUrl}`;
+            const response = await axios.get(proxyUrl, { headers, timeout: 10000 });
+            const responseData = response.data;
+
+            if (responseData && responseData.data) {
+                const decrypted = decryptData(responseData.data);
+                let directUrl = decrypted.url;
+
+                // De-proxy the URL (extract real MegaCDN URL from sexyproxy.aether.mom wrapper)
+                if (directUrl.includes('proxy') && directUrl.includes('url=')) {
+                    const urlMatch = directUrl.match(/[?&]url=([^&]+)/);
+                    if (urlMatch) directUrl = decodeURIComponent(urlMatch[1]);
+                }
+
+                console.log(`[Cinepro] MegaCDN raw URL: ${directUrl}`);
+
+                // Check if this is a MegaCDN URL
+                if (directUrl.includes('megacdn')) {
+                    // Fetch the master playlist to get available resolutions
                     try {
-                        console.log(`[Cinepro] Using custom fetcher for: ${serverUrl}`);
-                        const fetched = await fetcher(serverUrl, { headers });
-                        // fetcher should return object with 'data' property containing JSON (string or object)
-                        responseData = typeof fetched.data === 'string' ? JSON.parse(fetched.data) : fetched.data;
-                    } catch (err) {
-                        console.error(`[Cinepro] Custom fetcher failed: ${err.message}`);
-                        // Fallback to axios if fetcher fails? or continue
-                        continue;
+                        const masterPlaylistResponse = await axios.get(directUrl, { timeout: 8000 });
+                        const masterPlaylist = masterPlaylistResponse.data;
+
+                        // Parse resolutions from master playlist
+                        // Format: #EXT-X-STREAM-INF:...RESOLUTION=WIDTHxHEIGHT\nURL
+                        const lines = masterPlaylist.split('\n');
+                        const resolutions = [];
+
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            if (line.startsWith('#EXT-X-STREAM-INF')) {
+                                // Extract resolution and bandwidth
+                                const resMatch = line.match(/RESOLUTION=(\d+)x(\d+)/);
+                                const bwMatch = line.match(/BANDWIDTH=(\d+)/);
+                                const nextLine = lines[i + 1]?.trim();
+
+                                if (resMatch && nextLine && !nextLine.startsWith('#')) {
+                                    const width = parseInt(resMatch[1]);
+                                    const height = parseInt(resMatch[2]);
+                                    const bandwidth = bwMatch ? parseInt(bwMatch[1]) : 0;
+
+                                    // Construct absolute URL if relative
+                                    let streamUrl = nextLine;
+                                    if (!streamUrl.startsWith('http')) {
+                                        const baseUrlParts = directUrl.split('/');
+                                        baseUrlParts.pop(); // Remove playlist.m3u8
+                                        streamUrl = baseUrlParts.join('/') + '/' + nextLine;
+                                    }
+
+                                    // Determine quality label
+                                    let quality = 'Auto';
+                                    if (height >= 1080) quality = '1080p';
+                                    else if (height >= 720) quality = '720p';
+                                    else if (height >= 480) quality = '480p';
+                                    else if (height >= 360) quality = '360p';
+                                    else quality = `${height}p`;
+
+                                    resolutions.push({
+                                        quality,
+                                        width,
+                                        height,
+                                        bandwidth,
+                                        url: streamUrl
+                                    });
+                                }
+                            }
+                        }
+
+                        // Sort by resolution (highest first)
+                        resolutions.sort((a, b) => b.height - a.height);
+
+                        if (resolutions.length > 0) {
+                            console.log(`[Cinepro] MegaCDN: Found ${resolutions.length} resolutions`);
+
+                            // Add each resolution as a separate stream
+                            for (const res of resolutions) {
+                                streams.push({
+                                    server: `MegaCDN ${res.quality}`,
+                                    link: res.url,
+                                    type: 'hls',
+                                    quality: res.quality,
+                                    lang: 'VO',
+                                    headers: {}  // MegaCDN has open CORS, no special headers needed
+                                });
+                            }
+                        } else {
+                            // Fallback: if we couldn't parse resolutions, add the master playlist
+                            console.log(`[Cinepro] MegaCDN: No resolutions parsed, using master playlist`);
+                            streams.push({
+                                server: 'MegaCDN Auto',
+                                link: directUrl,
+                                type: 'hls',
+                                quality: 'Auto',
+                                lang: 'VO',
+                                headers: {}
+                            });
+                        }
+                    } catch (playlistErr) {
+                        console.error(`[Cinepro] MegaCDN playlist fetch failed: ${playlistErr.message}`);
+                        // Still add the URL even if we can't fetch the playlist
+                        streams.push({
+                            server: 'MegaCDN',
+                            link: directUrl,
+                            type: 'hls',
+                            quality: 'Auto',
+                            lang: 'VO',
+                            headers: {}
+                        });
                     }
                 } else {
-                    // Use CorsProxy.io here too for standard AutoEmbed requests
-                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(serverUrl)}`;
-                    // console.log(`[Cinepro] Proxying AutoEmbed via corsproxy.io: ${serverUrl}`);
-                    const response = await axios.get(proxyUrl, { headers, timeout: 8000 });
-                    responseData = response.data;
+                    // Not MegaCDN, add as-is
+                    streams.push({
+                        server: 'AutoEmbed Server 10',
+                        link: directUrl,
+                        type: directUrl.includes('.mp4') ? 'mp4' : 'hls',
+                        quality: 'Auto',
+                        lang: 'VO',
+                        headers: headers
+                    });
                 }
-
-                if (responseData && responseData.data) {
-                    const decrypted = decryptData(responseData.data);
-                    let directUrl = decrypted.url;
-                    if (directUrl.includes('embed-proxy')) {
-                        const urlMatch = directUrl.match(/[?&]url=([^&]+)/);
-                        if (urlMatch) directUrl = decodeURIComponent(urlMatch[1]);
-                    }
-                    streams.push({ server: `AutoEmbed Server ${i}`, link: directUrl, type: directUrl.includes('.mp4') ? 'mp4' : 'hls', quality: 'Auto', lang: 'VO', headers: headers });
-                }
-            } catch (e) {
-                console.error(`❌ [Cinepro] AutoEmbed Server ${i} failed: ${e.message}`);
             }
+        } catch (e) {
+            console.error(`❌ [Cinepro] MegaCDN (Server ${megaCdnServer}) failed: ${e.message}`);
         }
-        console.log(`✅ [Cinepro] AutoEmbed finished with ${streams.length} streams`);
+
+        console.log(`✅ [Cinepro] AutoEmbed (MegaCDN) finished with ${streams.length} streams`);
         return streams;
     }
 }
