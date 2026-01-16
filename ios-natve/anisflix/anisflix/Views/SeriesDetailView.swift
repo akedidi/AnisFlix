@@ -491,7 +491,8 @@ struct SeriesDetailView: View {
     
     private func handleSourceSelection(_ source: StreamingSource, episode: Episode) {
         print("🔘 [SeriesDetailView] Play button clicked for source: \(source.provider) - \(source.quality)")
-        print("▶️ [SeriesDetailView] Playing source (Series): \(source.provider) - \(source.url)")
+        let urlType = source.url.contains("movix-proxy") ? "PROXY" : "DIRECT"
+        print("▶️ [SeriesDetailView] Playing source (Series) [\(urlType)]: \(source.provider) - \(source.url)")
         isLoadingSource = true
         extractionError = nil
         

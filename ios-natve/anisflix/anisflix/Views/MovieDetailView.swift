@@ -557,7 +557,8 @@ struct MovieDetailView: View {
     
     private func playSource(_ source: StreamingSource) {
         print("🔘 [MovieDetailView] Play button clicked for source: \(source.provider) - \(source.quality)")
-        print("▶️ [MovieDetailView] Playing source: \(source.provider) - \(source.url)")
+        let urlType = source.url.contains("movix-proxy") ? "PROXY" : "DIRECT"
+        print("▶️ [MovieDetailView] Playing source [\(urlType)]: \(source.provider) - \(source.url)")
         extractionError = nil
         
         Task {
