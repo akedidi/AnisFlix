@@ -41,7 +41,7 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -310,7 +310,7 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean }) => {
     setIsLoadingSource(true);
     try {
       // Si l'URL est déjà fournie (MovixDownload, Darki, AnimeAPI ou autres sources directes), on l'utilise directement
@@ -630,6 +630,18 @@ export default function MovieDetail() {
                     backdropPath={movie.backdrop_path}
                     onClose={handleClosePlayer}
                   />
+                ) : selectedSource.type === 'embed' && selectedSource.isLuluvid ? (
+                  <div className="aspect-video w-full bg-black rounded-lg overflow-hidden relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <iframe
+                        src={selectedSource.url}
+                        className="w-full h-full"
+                        frameBorder="0"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      />
+                    </div>
+                  </div>
                 ) : (
                   <VideoPlayer
                     src={selectedSource.url}

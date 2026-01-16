@@ -12,6 +12,7 @@ import { useMovieBox } from '@/hooks/useMovieBox';
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
 import { useCinepro } from '@/hooks/useCinepro';
+import { useTmdbProxyLinks } from '@/hooks/useTmdbProxy';
 import { useVideoDownload } from '@/hooks/useVideoDownload';
 import { toast } from 'sonner';
 
@@ -39,6 +40,7 @@ interface Source {
   isAnimeAPI?: boolean;
   isFourKHDHub?: boolean;
   isAfterDark?: boolean;
+  isLuluvid?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
@@ -120,6 +122,7 @@ const StreamingSources = memo(function StreamingSources({
   const afterDarkData: { success: boolean; streams: any[] } | null = null;
   const isLoadingAfterDark = false;
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
+  const { data: tmdbProxyData, isLoading: isLoadingTmdbProxy, hasLinks: hasTmdbProxyLinks } = useTmdbProxyLinks(type, id, season, episode);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { downloadVideo } = useVideoDownload();
 
@@ -786,6 +789,41 @@ const StreamingSources = memo(function StreamingSources({
     console.log('❌ Pas de sources VidMoly - vidmolyData:', vidmolyData, 'hasVidMolyLinks:', hasVidMolyLinks);
   }
 
+
+  // Ajouter les sources TMDB Proxy (Luluvid)
+  if (hasTmdbProxyLinks && tmdbProxyData) {
+    console.log('🔍 [TMDB PROXY] Ajout des sources Luluvid:', tmdbProxyData);
+    let tmdbProxyCounter = 1;
+
+    tmdbProxyData.forEach((link) => {
+      const lang = (link.language || 'VF').toUpperCase();
+      const displayLang = lang.includes('FRENCH') ? 'VF' : lang;
+
+      // Filter by selected language
+      if (selectedLanguage === 'VF' && !['VF', 'VFF', 'VFQ'].includes(displayLang)) return;
+      if (selectedLanguage === 'VOSTFR' && displayLang !== 'VOSTFR') return;
+      if (selectedLanguage === 'VO' && displayLang !== 'VO') return;
+
+      // Use direct URL for embed
+      const sourceUrl = link.decoded_url;
+
+      const source: Source = {
+        id: `tmdb-proxy-luluvid-${tmdbProxyCounter}`,
+        name: `Luluvid ${tmdbProxyCounter} (${displayLang})`,
+        provider: 'luluvid',
+        url: sourceUrl,
+        type: 'embed',
+        player: 'luluvid',
+        quality: link.quality || 'HD',
+        language: displayLang,
+        isLuluvid: true
+      };
+
+      allSources.push(source);
+      tmdbProxyCounter++;
+    });
+  }
+
   // Ajouter les sources VidMoly anime si disponibles (pour les séries anime)
   if (isAnimeSeries && animeVidMolyData && hasAnimeVidMolyLinks) {
     console.log('🔍 StreamingSources - Anime VidMoly data:', animeVidMolyData);
@@ -957,13 +995,13 @@ const StreamingSources = memo(function StreamingSources({
     afterDarkData.streams.forEach((stream: any, index: number) => {
       const lang = stream.language?.toLowerCase() || 'vf';
       let mappedLang = 'VF';
-
+  
       if (lang === 'vo') mappedLang = 'VO';
       if (lang === 'vostfr') mappedLang = 'VOSTFR';
       if (lang === 'multi') mappedLang = 'VF';
-
+  
       if (selectedLanguage !== mappedLang) return;
-
+  
       allSources.push({
         id: `afterdark-${index}`,
         name: stream.name || `AfterDark ${stream.quality}`,
@@ -1260,22 +1298,22 @@ const StreamingSources = memo(function StreamingSources({
             tmdbId: id.toString(),
             type: type
           });
-  
+   
           if (season) params.append('season', season.toString());
           if (episode) params.append('episode', episode.toString());
-  
+   
           const response = await fetch(`/api/vixsrc?${params.toString()}`);
-  
+   
           if (!response.ok) {
             throw new Error(`Erreur extraction Vixsrc: ${response.statusText}`);
           }
-  
+   
           const data = await response.json();
-  
+   
           if (data.success && data.streams && data.streams.length > 0) {
             const stream = data.streams[0];
             console.log('✅ Stream Vixsrc extrait:', stream.url);
-  
+   
             // IMPORTANT: Like iOS, wrap the URL in vixsrc-proxy to handle CORS/Headers
             // AND append .m3u8 extension hint for Safari/Browsers which are pickier than AVPlayer
             const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}&ext=.m3u8`;

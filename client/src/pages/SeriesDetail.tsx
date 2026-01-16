@@ -43,7 +43,7 @@ export default function SeriesDetail() {
   const { navigate } = useAppNavigation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed"; name: string; isVidMoly?: boolean; isDarki?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }>; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }>; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
@@ -339,7 +339,7 @@ export default function SeriesDetail() {
 
   const handleSourceClick = async (source: {
     url: string;
-    type: "m3u8" | "mp4" | "embed";
+    type: "m3u8" | "mp4" | "embed" | "mkv";
     name: string;
     isFStream?: boolean;
     isMovixDownload?: boolean;
@@ -349,6 +349,7 @@ export default function SeriesDetail() {
     quality?: string;
     language?: string;
     tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
+    isLuluvid?: boolean;
   }) => {
     if (!series || !selectedEpisode) return;
     // Si l'URL est déjà fournie (MovixDownload, Darki ou autres sources directes), on l'utilise directement
@@ -773,12 +774,24 @@ export default function SeriesDetail() {
                                                     setIsLoadingSource(false);
                                                   }}
                                                 />
+                                              ) : selectedSource.type === 'embed' && selectedSource.isLuluvid ? (
+                                                <div className="aspect-video w-full bg-black rounded-lg overflow-hidden relative">
+                                                  <div className="absolute inset-0 flex items-center justify-center">
+                                                    <iframe
+                                                      src={selectedSource.url}
+                                                      className="w-full h-full"
+                                                      frameBorder="0"
+                                                      allowFullScreen
+                                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    />
+                                                  </div>
+                                                </div>
                                               ) : (
                                                 <>
                                                   {console.log('🎥 [SeriesDetail] Rendering VideoPlayer with tracks:', (selectedSource as any).tracks)}
                                                   <VideoPlayer
                                                     src={selectedSource.url}
-                                                    type={selectedSource.type === "embed" ? "m3u8" : selectedSource.type}
+                                                    type={selectedSource.type === "embed" ? "m3u8" : (selectedSource.type === "mkv" ? "mp4" : selectedSource.type)}
                                                     posterPath={series.backdrop_path}
                                                     title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
                                                     onClose={() => {
