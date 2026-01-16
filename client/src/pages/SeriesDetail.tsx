@@ -353,8 +353,12 @@ export default function SeriesDetail() {
   }) => {
     if (!series || !selectedEpisode) return;
     // Si l'URL est déjà fournie (MovixDownload, Darki ou autres sources directes), on l'utilise directement
-    // EXCEPTION: VidMoly et Vidzy (isFStream) doivent passer par l'extraction
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isFStream) {
+    // EXCEPTION: VidMoly, Vidzy (isFStream) et Luluvid doivent passer par l'extraction
+
+    // Check for Luluvid by flag, provider OR name to be absolutely sure
+    const isLuluvidSource = source.isLuluvid || (source as any).provider === 'luluvid' || source.name.toLowerCase().includes('luluvid');
+
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isFStream && !isLuluvidSource) {
       console.log(`🎌 [handleSourceSelect] Setting source with tracks:`, source.tracks);
       setSelectedSource({
         url: source.url,
@@ -413,8 +417,10 @@ export default function SeriesDetail() {
     }
 
     // Pour Luluvid, extraire le m3u8 via le backend
-    if (source.isLuluvid) {
+    if (isLuluvidSource) {
       console.log("🎬 Extraction Luluvid pour:", source.url);
+      if (!source.url) return; // Should not happen given logic above but safe to check
+
       const m3u8Url = await extractLuluvidM3u8(source.url);
       console.log("🎬 Résultat extraction Luluvid:", m3u8Url);
 

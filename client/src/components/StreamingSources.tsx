@@ -65,6 +65,7 @@ interface StreamingSourcesProps {
     isDarki?: boolean;
     isVixsrc?: boolean;
     isAnimeAPI?: boolean;
+    isLuluvid?: boolean;
     quality?: string;
     language?: string;
     tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
@@ -1344,6 +1345,18 @@ const StreamingSources = memo(function StreamingSources({
           });
         } */
 
+
+      } else if (source.isLuluvid) {
+        console.log('✅ Source Luluvid détectée, via proxy');
+        onSourceClick({
+          url: source.url,
+          type: 'm3u8' as const, // Always treat as m3u8 for extraction
+          name: source.name,
+          quality: source.quality,
+          language: source.language,
+          isLuluvid: true,
+          provider: 'luluvid'
+        });
 
       } else if ((source as any).isAnimeAPI) {
         console.log('✅ Source AnimeAPI détectée, passage des tracks:', (source as any).tracks);
