@@ -309,9 +309,10 @@ export default async function handler(req, res) {
                     })
                 );
 
-                // Remove filtered items (nulls) and deduplicate
+                // Remove filtered items (nulls), deduplicate, and ensure valid data
                 const finalResults = enrichedResults
                     .filter(item => item !== null)
+                    .filter(item => item.episodeInfo && (item.poster_path || item.posterPath)) // Strict check for metadata
                     .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
 
                 console.log(`✅ [TMDB PROXY] Returning ${finalResults.length} filtered series (Western Networks)`);
