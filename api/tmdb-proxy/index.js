@@ -271,7 +271,15 @@ export default async function handler(req, res) {
                                 return null;
                             }
 
-                            const lastEp = details.last_episode_to_air;
+                            // Determine the correct "latest" episode
+                            // TMDB sometimes lists today's episode as "next_episode_to_air" until later in the day
+                            let latestEp = details.last_episode_to_air;
+                            const nextEp = details.next_episode_to_air;
+                            const todayDate = new Date().toISOString().slice(0, 10);
+
+                            if (nextEp && nextEp.air_date && nextEp.air_date <= todayDate) {
+                                latestEp = nextEp;
+                            }
 
                             return {
                                 id: show.id,
@@ -288,11 +296,11 @@ export default async function handler(req, res) {
                                 year: show.first_air_date?.substring(0, 4) || '',
                                 media_type: 'tv',
                                 mediaType: 'tv',
-                                episodeInfo: lastEp ? {
-                                    season: lastEp.season_number,
-                                    episode: lastEp.episode_number,
-                                    title: lastEp.name,
-                                    date: lastEp.air_date
+                                episodeInfo: latestEp ? {
+                                    season: latestEp.season_number,
+                                    episode: latestEp.episode_number,
+                                    title: latestEp.name,
+                                    date: latestEp.air_date
                                 } : null
                             };
                         } catch (err) {
