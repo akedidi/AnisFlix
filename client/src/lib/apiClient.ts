@@ -174,6 +174,20 @@ export class ApiClient {
   }
 
   /**
+   * Extrait Luluvid avec gestion Capacitor
+   */
+  async extractLuluvid(url: string): Promise<any> {
+    // Note: Utiliser 'luluvid' ou 'lulustream' comme type
+    const response = await this.post('/api/extract', { type: 'luluvid', url });
+
+    if (!response.ok) {
+      throw new Error(`Luluvid extraction failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
    * Proxy VidMoly avec gestion Capacitor
    */
   getVidMolyProxyUrl(url: string, referer?: string): string {

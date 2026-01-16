@@ -188,11 +188,44 @@ export async function extractVidMolyM3u8(vidmolyUrl: string): Promise<string | n
       return null;
     }
 
-    console.log('📺 VidMoly m3u8 URL directe:', m3u8Url);
     return m3u8Url;
   } catch (error) {
     console.error('Erreur lors de l\'extraction VidMoly:', error);
     // Ne pas re-throw pour éviter les crashes, retourner null à la place
+    return null;
+  }
+}
+
+/**
+ * Extrait le lien m3u8 depuis une URL Luluvid en utilisant l'API backend
+ * @param luluvidUrl - URL complète de la page Luluvid
+ * @returns Le lien m3u8 extrait ou null si échec
+ */
+export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | null> {
+  try {
+    const { apiClient } = await import('./apiClient');
+    console.log('🔍 Luluvid extraction avec API client pour:', luluvidUrl);
+
+    const data = await apiClient.extractLuluvid(luluvidUrl);
+    console.log('✅ Luluvid API Response:', data);
+
+    if (data.error) {
+      console.error('Erreur API Luluvid:', data.error);
+      throw new Error(data.error);
+    }
+
+    // Le backend retourne "file" ou "m3u8"
+    const m3u8Url = data.file || data.m3u8 || (data.sources && data.sources[0]?.file);
+
+    if (!m3u8Url) {
+      console.log('⚠️ Aucun lien m3u8 trouvé pour Luluvid');
+      return null;
+    }
+
+    console.log('📺 Luluvid m3u8 URL directe:', m3u8Url);
+    return m3u8Url;
+  } catch (error) {
+    console.error('Erreur lors de l\'extraction Luluvid:', error);
     return null;
   }
 }

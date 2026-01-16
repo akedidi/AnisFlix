@@ -812,7 +812,7 @@ const StreamingSources = memo(function StreamingSources({
         name: `Luluvid ${tmdbProxyCounter} (${displayLang})`,
         provider: 'luluvid',
         url: sourceUrl,
-        type: 'embed',
+        type: 'm3u8',
         player: 'luluvid',
         quality: link.quality || 'HD',
         language: displayLang,

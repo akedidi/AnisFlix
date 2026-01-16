@@ -2545,7 +2545,7 @@ class StreamingService {
                          id: "tmdb-proxy-luluvid-\(index)",
                          url: url,
                          quality: link.quality ?? "HD", // Default to HD
-                         type: "luluvid", // Triggers client-side extraction
+                         type: "hls", // Must be hls/mp4 to be visible in UI, extraction handled by provider check
                          provider: "luluvid",
                          language: normalizedLang,
                          origin: "tmdb-proxy"

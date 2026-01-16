@@ -23,7 +23,7 @@ import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
 
 import { getImageUrl, tmdb } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { getSeriesStream, extractVidzyM3u8 } from "@/lib/movix";
+import { getSeriesStream, extractVidzyM3u8, extractLuluvidM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -409,6 +409,29 @@ export default function SeriesDetail() {
       } finally {
         setIsLoadingSource(false);
       }
+      return;
+    }
+
+    // Pour Luluvid, extraire le m3u8 via le backend
+    if (source.isLuluvid) {
+      console.log("🎬 Extraction Luluvid pour:", source.url);
+      const m3u8Url = await extractLuluvidM3u8(source.url);
+      console.log("🎬 Résultat extraction Luluvid:", m3u8Url);
+
+      if (!m3u8Url) {
+        console.warn("⚠️ Aucun lien m3u8 trouvé pour Luluvid");
+        alert("Aucun lien de streaming trouvé pour cette source Luluvid");
+        setIsLoadingSource(false);
+        return;
+      }
+
+      setSelectedSource({
+        url: m3u8Url,
+        type: "m3u8",
+        name: source.name,
+        provider: 'luluvid'
+      });
+      setIsLoadingSource(false);
       return;
     }
     // Logic moved to StreamingSources.tsx to handle proxy wrapping and extensions
