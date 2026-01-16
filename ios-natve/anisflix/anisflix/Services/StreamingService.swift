@@ -2011,30 +2011,39 @@ class StreamingService {
                     provider = "cinepro"
                 }
                 
-                // Construct proxied URL for ALL Cinepro sources (MegaCDN, Luluvid, etc.)
-                // This ensures headers (Referer) and IP restrictions are handled by the server proxy.
-                var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
-                var queryItems = [
-                    URLQueryItem(name: "path", value: "cinepro-proxy"),
-                    URLQueryItem(name: "url", value: stream.link)
-                ]
+                // Construct proxied URL for Cinepro sources EXCEPT MegaCDN and Luluvid
+                // MegaCDN and Luluvid links are accessed directly on iOS to avoid proxy overhead (no CORS issue)
+                var finalUrl = stream.link
+                var finalHeaders = stream.headers
                 
-                if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
-                    queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+                if provider != "megacdn" && provider != "luluvid" {
+                    var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
+                    var queryItems = [
+                        URLQueryItem(name: "path", value: "cinepro-proxy"),
+                        URLQueryItem(name: "url", value: stream.link)
+                    ]
+                    
+                    if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
+                        queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+                    }
+                    
+                    components.queryItems = queryItems
+                    finalUrl = components.url?.absoluteString ?? stream.link
+                    finalHeaders = nil // Headers handled by proxy
+                    print("🔗 [Cinepro] Using PROXY for \(provider): \(finalUrl)")
+                } else {
+                    print("🔗 [Cinepro] Using DIRECT link for \(provider): \(finalUrl)")
                 }
                 
-                components.queryItems = queryItems
-                let proxiedUrl = components.url?.absoluteString ?? stream.link
-                
                 return StreamingSource(
-                    url: proxiedUrl, // Use proxied URL
+                    url: finalUrl,
                     quality: stream.quality ?? "Auto", // Use API provided quality
                     type: "m3u8", // Always M3U8 for these proxies
                     provider: provider,
                     language: stream.lang ?? "VO",
                     origin: "cinepro",
                     tracks: nil,
-                    headers: nil // Headers are handled by the proxy URL itself
+                    headers: finalHeaders
                 )
             }
         } catch {
