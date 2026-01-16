@@ -1187,48 +1187,7 @@ const StreamingSources = memo(function StreamingSources({
     // Marquer cette source comme en cours de chargement
     setLoadingSources(prev => new Set(prev).add(source.id));
 
-    // Gestion spéciale pour Luluvid (extraction via client + corsproxy)
-    if (source.isLuluvid) {
-      toast.info("Extraction Luluvid en cours...");
-      try {
-        const targetUrl = source.url;
-        const proxyBase = 'https://corsproxy.io/?';
-        const proxiedPageUrl = `${proxyBase}${encodeURIComponent(targetUrl)}`;
 
-        console.log(`[Luluvid] Fetching page: ${proxiedPageUrl}`);
-        const response = await axios.get(proxiedPageUrl);
-        const html = response.data;
-
-        let match = html.match(/sources:\s*\[\{file:"([^"]+)"/);
-        if (!match) match = html.match(/file:"([^"]+)"/);
-
-        if (match && match[1]) {
-          const m3u8Url = match[1];
-          console.log(`[Luluvid] Extracted M3U8: ${m3u8Url}`);
-
-          const proxiedStreamUrl = `${proxyBase}${encodeURIComponent(m3u8Url)}`;
-
-          onSourceClick({
-            ...source,
-            url: proxiedStreamUrl,
-            type: 'm3u8' as const
-          });
-          toast.success("Flux Luluvid prêt !");
-        } else {
-          throw new Error("Impossible d'extraire le lien vidéo");
-        }
-      } catch (error) {
-        console.error('[Luluvid] Extraction failed:', error);
-        toast.error("Erreur Luluvid: Impossible de récupérer le flux");
-      } finally {
-        setLoadingSources(prev => {
-          const next = new Set(prev);
-          next.delete(source.id);
-          return next;
-        });
-      }
-      return;
-    }
 
     try {
       if (source.isFStream) {
