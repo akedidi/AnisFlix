@@ -2030,6 +2030,14 @@ class StreamingService {
                     finalHeaders = nil // Headers handled by proxy
                     print("🔗 [Cinepro] Using PROXY for \(provider): \(finalUrl)")
                 } else {
+                    // For MegaCDN, the API itself might return a proxied URL in `stream.link`.
+                    // We must UNWRAP it to get the direct link.
+                    if finalUrl.contains("movix-proxy"), let components = URLComponents(string: finalUrl), let queryItems = components.queryItems {
+                        if let innerUrl = queryItems.first(where: { $0.name == "url" })?.value {
+                            finalUrl = innerUrl
+                            print("🔓 [Cinepro] Unwrapped MegaCDN URL: \(finalUrl)")
+                        }
+                    }
                     print("🔗 [Cinepro] Using DIRECT link for \(provider): \(finalUrl)")
                 }
                 
