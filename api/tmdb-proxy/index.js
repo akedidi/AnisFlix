@@ -222,63 +222,41 @@ export default async function handler(req, res) {
         // Filtered to Networks from Western countries (US/GB/FR/CA/AU)
         if (type === 'series' && req.query.filter === 'last-episodes') {
             const clientPage = parseInt(req.query.page) || 1;
-            console.log(`📺 [TMDB PROXY] Fetching Airing Today - Western Networks (Lang: ${language}, ClientPage: ${clientPage})`);
+            console.log(`📺 [TMDB PROXY] Fetching Latest Episodes (Discover) - Western Networks (Lang: ${language}, ClientPage: ${clientPage})`);
 
             try {
-                // Strategy: "Aggressive Batch Fetch"
-                // Since we filter strictly by 14 networks, we need to scan MANY TMDB pages to fill one client page.
-                // Ratio estimate: <5% retention. To get 20 items, scan ~300 candidates.
-                // Fetch 15 TMDB pages per client page.
-                const TMDB_PAGES_PER_CLIENT_PAGE = 15;
-                const startPage = (clientPage - 1) * TMDB_PAGES_PER_CLIENT_PAGE + 1;
-                const endPage = startPage + TMDB_PAGES_PER_CLIENT_PAGE - 1;
+                // Strategy: Use /discover/tv to filter strictly by network server-side
+                // and expand the date range to 1 month to ensure volume (200+ results).
 
-                console.log(`🆕 [TMDB PROXY] Fetching Airing Today - Aggressive Batch ${startPage}-${endPage} (Lang: ${language}, ClientPage: ${clientPage})`);
-
-                const pagesToFetch = [];
-                for (let p = startPage; p <= endPage; p++) {
-                    pagesToFetch.push(p);
-                }
-
-                // Fetch all 15 pages in parallel
-                const listResponses = await Promise.all(
-                    pagesToFetch.map(p =>
-                        tmdbFetch('/tv/airing_today', {
-                            language,
-                            page: p,
-                            timezone: 'America/New_York' // improved timezone for global day coverage
-                        }).catch(err => ({ results: [], total_pages: 0 }))
-                    )
-                );
-
-                // Aggregate raw results
-                const allCandidates = listResponses.flatMap(r => r.results || []);
-                const rawTotalPages = listResponses[0]?.total_pages || 100;
-                // Adjust total pages report to client based on the ratio
-                const maxTMDBPages = Math.ceil(rawTotalPages / TMDB_PAGES_PER_CLIENT_PAGE);
-
-                console.log(`📺 [TMDB] Fetched TMDB pages ${startPage}-${endPage}. Candidates: ${allCandidates.length}`);
-
-                // Fetch episode details and apply Network Origin filtering in parallel
-                // Define allowed networks (14 from Home page - verified Network IDs)
+                // Allowed Networks (14 from Home page)
                 // Netflix (213), Amazon (1024), Apple TV+ (2552), Disney+ (2739), 
                 // HBO (49), HBO Max (3186), Max (6783), Peacock (3353), Paramount+ (4330)
                 // Canal+ (285), TF1 (290), M6 (712), Arte (662, 1628)
-                // Note: CR/ADN/MUBI are distributors mostly, their content usually originates from JP/Other networks
-                const allowedNetworkIds = [
-                    213, // Netflix
-                    1024, // Amazon
-                    2552, // Apple TV+
-                    2739, // Disney+
-                    49, 3186, 6783, // HBO, HBO Max, Max
-                    3353, // Peacock
-                    4330, // Paramount+
-                    285, // Canal+
-                    290, // TF1
-                    712, // M6
-                    662, 1628 // Arte (DE/FR)
-                ];
+                const allowedNetworkIds = "213|1024|2552|2739|49|3186|6783|3353|4330|285|290|712|662|1628";
 
+                const today = new Date();
+                const todayStr = today.toISOString().slice(0, 10);
+                const pastDate = new Date();
+                pastDate.setDate(pastDate.getDate() - 60); // Look back 60 days to fill the list (ensures >200 items)
+                const pastDateStr = pastDate.toISOString().slice(0, 10);
+
+                // Fetch directly from discover
+                const data = await tmdbFetch('/discover/tv', {
+                    language,
+                    page: clientPage,
+                    'with_networks': allowedNetworkIds,
+                    'air_date.lte': todayStr,
+                    'air_date.gte': pastDateStr,
+                    'sort_by': 'popularity.desc', // Show popular recent stuff first
+                    timezone: 'America/New_York'
+                });
+
+                const allCandidates = data.results || [];
+                const maxTMDBPages = data.total_pages;
+
+                console.log(`📺 [TMDB] Fetched Discover Page ${clientPage}. Candidates: ${allCandidates.length}`);
+
+                // Fetch episode details (we still need to enrich with exact episode info and filter specific genres)
                 const enrichedResults = await Promise.all(
                     allCandidates.map(async (show) => {
                         try {
@@ -290,17 +268,6 @@ export default async function handler(req, res) {
                             const hasUnwantedGenre = details.genres?.some(g => unwantedGenres.includes(g.id));
 
                             if (hasUnwantedGenre) {
-                                return null;
-                            }
-
-                            const networks = details.networks || [];
-
-                            // Check if ANY of the show's networks match the allowed IDs
-                            const hasAllowedNetwork = networks.some(network =>
-                                allowedNetworkIds.includes(network.id)
-                            );
-
-                            if (!hasAllowedNetwork) {
                                 return null;
                             }
 
@@ -351,8 +318,8 @@ export default async function handler(req, res) {
 
                 return res.status(200).json({
                     page: clientPage,
-                    total_pages: Math.ceil(maxTMDBPages / 2),
-                    total_results: (listResponses[0]?.total_results || 200), // Original total to allow scrolling
+                    total_pages: maxTMDBPages,
+                    total_results: data.total_results,
                     results: finalResults
                 });
 
