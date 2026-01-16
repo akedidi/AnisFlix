@@ -310,6 +310,16 @@ export class CineproScraper {
                         const masterPlaylistResponse = await axios.get(directUrl, { timeout: 8000 });
                         const masterPlaylist = masterPlaylistResponse.data;
 
+                        // VALIDATION: Check if we got a valid M3U8 playlist
+                        // If AutoEmbed doesn't have this content, it may return HTML or an error page
+                        if (typeof masterPlaylist !== 'string' || !masterPlaylist.includes('#EXTM3U')) {
+                            console.log('[Cinepro] ⚠️ Stream validation FAILED - not a valid M3U8 playlist');
+                            console.log('[Cinepro] Content preview:', String(masterPlaylist).substring(0, 200));
+                            return []; // Return empty - this content is not available
+                        }
+
+                        console.log('[Cinepro] ✅ Stream validation PASSED - valid M3U8 playlist');
+
                         // Parse resolutions from master playlist
                         // Format: #EXT-X-STREAM-INF:...RESOLUTION=WIDTHxHEIGHT\nURL
                         const lines = masterPlaylist.split('\n');
