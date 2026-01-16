@@ -2005,18 +2005,16 @@ class StreamingService {
                     provider = "megacdn"
                 } else if stream.server?.lowercased().contains("milkyway") == true {
                     provider = "premilkyway"
-                } else if stream.server?.lowercased().contains("luluvid") == true || stream.link.contains("luluvid") {
-                    provider = "luluvid"
                 } else {
                     provider = "cinepro"
                 }
                 
-                // Construct proxied URL for Cinepro sources EXCEPT MegaCDN and Luluvid
-                // MegaCDN and Luluvid links are accessed directly on iOS to avoid proxy overhead (no CORS issue)
+                // Construct proxied URL for Cinepro sources EXCEPT MegaCDN
+                // MegaCDN links are accessed directly on iOS to avoid proxy overhead (no CORS issue)
                 var finalUrl = stream.link
                 var finalHeaders = stream.headers
                 
-                if provider != "megacdn" && provider != "luluvid" {
+                if provider != "megacdn" {
                     var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
                     var queryItems = [
                         URLQueryItem(name: "path", value: "cinepro-proxy"),
@@ -2035,9 +2033,21 @@ class StreamingService {
                     print("🔗 [Cinepro] Using DIRECT link for \(provider): \(finalUrl)")
                 }
                 
+                // Extract Quality from Server Name for MegaCDN (e.g. "MegaCDN 1080p")
+                var finalQuality = stream.quality ?? "Auto"
+                if provider == "megacdn" && (finalQuality == "Auto" || finalQuality.isEmpty) {
+                    if let serverName = stream.server {
+                        if serverName.contains("1080p") { finalQuality = "1080p" }
+                        else if serverName.contains("720p") { finalQuality = "720p" }
+                        else if serverName.contains("480p") { finalQuality = "480p" }
+                        else if serverName.contains("360p") { finalQuality = "360p" }
+                        else if serverName.contains("4k") || serverName.contains("2160p") { finalQuality = "4K" }
+                    }
+                }
+
                 return StreamingSource(
                     url: finalUrl,
-                    quality: stream.quality ?? "Auto", // Use API provided quality
+                    quality: finalQuality,
                     type: "m3u8", // Always M3U8 for these proxies
                     provider: provider,
                     language: stream.lang ?? "VO",
@@ -2048,6 +2058,100 @@ class StreamingService {
             }
         } catch {
             print("❌ [StreamingService] Cinepro decode error: \(error)")
+            return []
+        }
+    }
+
+    private func fetchWiflixSources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=wiflix&tmdbId=\(tmdbId)&type=\(season == nil ? "movie" : "tv")"
+        if let s = season { urlString += "&season=\(s)" }
+        if let e = episode { urlString += "&episode=\(e)" }
+        
+        print("🌐 [Wiflix] Fetching URL: \(urlString)")
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        // Reuse Cinepro structs as structure is likely identical or similar for movix-proxy family
+        struct WiflixApiStream: Codable {
+            let server: String?
+            let link: String
+            let type: String?
+            let quality: String?
+            let lang: String?
+            let headers: [String: String]?
+        }
+        
+        struct WiflixApiResponse: Codable {
+            let success: Bool?
+            let streams: [WiflixApiStream]?
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(WiflixApiResponse.self, from: data)
+            
+            return (decoded.streams ?? []).map { stream in
+                // Detect Luluvid
+                let provider: String
+                if stream.server?.lowercased().contains("luluvid") == true || stream.link.contains("luluvid") {
+                    provider = "luluvid"
+                } else {
+                    provider = "wiflix"
+                }
+                
+                // User requested DIRECT links for Luluvid on iOS
+                var finalUrl = stream.link
+                var finalHeaders = stream.headers
+                
+                if provider == "luluvid" {
+                     print("🔗 [Wiflix] Using DIRECT link for \(provider): \(finalUrl)")
+                } else {
+                     // Default to Proxy for others if needed, or Direct?
+                     // Following MegaCDN pattern: Direct if safe, Proxy if CORS.
+                     // Assuming Wiflix sources might need proxy if not Luluvid/MegaCDN-like.
+                     // For now, let's keep others possibly direct or proxied?
+                     // Previous instruction said "direct for megacdn ... luluvid too".
+                     // Safe default for unknown Wiflix sources might be Proxy.
+                     
+                    var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
+                    var queryItems = [
+                        URLQueryItem(name: "path", value: "cinepro-proxy"), // using cinepro-proxy generic path? or generic?
+                        // The user didn't specify proxy path for wiflix sources.
+                        // Assuming they are similar to Cinepro.
+                        URLQueryItem(name: "url", value: stream.link)
+                    ]
+                    
+                    if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
+                        queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+                    }
+                    
+                    components.queryItems = queryItems
+                    finalUrl = components.url?.absoluteString ?? stream.link
+                    finalHeaders = nil // Headers handled by proxy
+                    print("🔗 [Wiflix] Using PROXY for \(provider): \(finalUrl)")
+                }
+                
+                return StreamingSource(
+                    url: finalUrl,
+                    quality: stream.quality ?? "Auto",
+                    type: "m3u8",
+                    provider: provider, // "luluvid" or "wiflix"
+                    language: stream.lang ?? "VO",
+                    origin: "wiflix",
+                    tracks: nil,
+                    headers: finalHeaders
+                )
+            }
+        } catch {
+            print("❌ [StreamingService] Wiflix decode error: \(error)")
             return []
         }
     }
