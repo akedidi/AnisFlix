@@ -1,4 +1,5 @@
 import { useState, useEffect, memo, useCallback } from 'react';
+import axios from "axios";
 import { useFStream } from '@/hooks/useFStream';
 import { useMovixDownload } from '@/hooks/useMovixDownload';
 import { useVidMolyLinks } from '@/hooks/useWiFlix';
