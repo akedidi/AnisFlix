@@ -219,15 +219,18 @@ export default async function handler(req, res) {
         }
 
         // Endpoint 1d: Latest Episodes (TMDB Airing Today with episode details)
+        // Filtered to Western providers (Europe + US) using watch_region
         if (type === 'series' && req.query.filter === 'last-episodes') {
             const requestedPage = parseInt(req.query.page) || 1;
-            console.log(`📺 [TMDB PROXY] Fetching Airing Today Series (Lang: ${language}, Page: ${requestedPage})`);
+            console.log(`📺 [TMDB PROXY] Fetching Airing Today Series - Western Providers (Lang: ${language}, Page: ${requestedPage})`);
 
             try {
-                // Use TMDB's airing_today endpoint with pagination
+                // Use TMDB's airing_today endpoint with watch_region filter for Western providers
+                // FR = France (covers most European streaming platforms)
                 const airingData = await tmdbFetch('/tv/airing_today', {
                     language: language,
-                    page: requestedPage
+                    page: requestedPage,
+                    watch_region: 'FR'
                 });
 
                 const series = airingData.results || [];
