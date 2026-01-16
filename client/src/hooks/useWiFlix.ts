@@ -71,36 +71,30 @@ export const useVidMolyLinks = (type: 'movie' | 'tv', id: number, season?: numbe
   if (wiflixData?.players) {
     console.log('🔍 WiFlix data reçue pour', type, id, ':', wiflixData);
 
-    // Filtrer les liens VidMoly
-    if (wiflixData.players.vf) {
-      console.log('🔍 Players VF disponibles pour', type, id, ':', wiflixData.players.vf.map(p => p.name));
-      vidmolyLinks.vf = wiflixData.players.vf.filter(player => {
-        const isVidMoly = player.name === 'vidmoly.net' ||
-          player.name === 'vidmoly.to' ||
-          player.name === 'myvidplay.com' ||
-          player.name === 'christopheruntilpoint.com' ||
-          player.name === 'waaw1.tv';
-        if (isVidMoly) {
-          console.log('✅ Lien VidMoly VF trouvé pour', type, id, ':', player.url);
-          console.log('🔍 Player complet VidMoly VF:', player);
-        }
-        return isVidMoly;
+    // Filtrer les liens VidMoly et Luluvid
+    const filterLinks = (players: WiFlixPlayer[]) => {
+      return players.filter(player => {
+        const name = player.name.toLowerCase();
+        const isVidMoly = name.includes('vidmoly') ||
+          name.includes('myvidplay') ||
+          name.includes('christopheruntilpoint') ||
+          name.includes('waaw1');
+
+        const isLuluvid = name.includes('luluvid') || name.includes('lulustream');
+
+        if (isVidMoly) console.log('✅ Lien VidMoly trouvé:', player.url);
+        if (isLuluvid) console.log('✅ Lien Luluvid trouvé:', player.url);
+
+        return isVidMoly || isLuluvid;
       });
+    };
+
+    if (wiflixData.players.vf) {
+      vidmolyLinks.vf = filterLinks(wiflixData.players.vf);
     }
 
     if (wiflixData.players.vostfr) {
-      console.log('🔍 Players VOSTFR disponibles pour', type, id, ':', wiflixData.players.vostfr.map(p => p.name));
-      vidmolyLinks.vostfr = wiflixData.players.vostfr.filter(player => {
-        const isVidMoly = player.name === 'vidmoly.net' ||
-          player.name === 'vidmoly.to' ||
-          player.name === 'myvidplay.com' ||
-          player.name === 'christopheruntilpoint.com' ||
-          player.name === 'waaw1.tv';
-        if (isVidMoly) {
-          console.log('✅ Lien VidMoly VOSTFR trouvé pour', type, id, ':', player.url);
-        }
-        return isVidMoly;
-      });
+      vidmolyLinks.vostfr = filterLinks(wiflixData.players.vostfr);
     }
   }
 

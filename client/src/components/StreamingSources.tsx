@@ -714,39 +714,49 @@ const StreamingSources = memo(function StreamingSources({
     let vidmolyCounter = 1;
 
     if (selectedLanguage === 'VF' && vidmolyData.vf) {
-      console.log('🔍 Ajout des sources VidMoly VF:', vidmolyData.vf);
+      console.log('🔍 Ajout des sources VidMoly/Luluvid VF:', vidmolyData.vf);
       vidmolyData.vf.forEach((player: any) => {
-        console.log('🔍 Player VidMoly VF original:', player);
+        console.log('🔍 Player VF original:', player);
+        const isLuluvid = player.name.toLowerCase().includes('luluvid') || player.name.toLowerCase().includes('lulustream');
+        const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
+        const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
+
         const source = {
-          id: `vidmoly-vf-${vidmolyCounter}`,
-          name: `VidMoly${vidmolyCounter} (VF)`,
-          provider: 'vidmoly',
+          id: `${providerKey}-vf-${vidmolyCounter}`,
+          name: `${providerName} ${vidmolyCounter} (VF)`,
+          provider: providerKey,
           url: player.url,
           type: 'embed' as const,
-          player: 'vidmoly',
-          isVidMoly: true,
+          player: providerKey,
+          isVidMoly: !isLuluvid, // For specialized click handling if needed
+          isLuluvid: isLuluvid, // Add flags if needed
           sourceKey: 'VF'
         };
-        console.log('✅ Ajout source VidMoly VF:', source);
+        console.log(`✅ Ajout source ${providerName} VF:`, source);
         allSources.push(source);
         vidmolyCounter++;
       });
     }
 
     if (selectedLanguage === 'VOSTFR' && vidmolyData.vostfr) {
-      console.log('🔍 Ajout des sources VidMoly VOSTFR:', vidmolyData.vostfr);
+      console.log('🔍 Ajout des sources VidMoly/Luluvid VOSTFR:', vidmolyData.vostfr);
       vidmolyData.vostfr.forEach((player: any) => {
+        const isLuluvid = player.name.toLowerCase().includes('luluvid') || player.name.toLowerCase().includes('lulustream');
+        const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
+        const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
+
         const source = {
-          id: `vidmoly-vostfr-${vidmolyCounter}`,
-          name: `VidMoly${vidmolyCounter} (VOSTFR)`,
-          provider: 'vidmoly',
+          id: `${providerKey}-vostfr-${vidmolyCounter}`,
+          name: `${providerName} ${vidmolyCounter} (VOSTFR)`,
+          provider: providerKey,
           url: player.url,
           type: 'embed' as const,
-          player: 'vidmoly',
-          isVidMoly: true,
+          player: providerKey,
+          isVidMoly: !isLuluvid,
+          isLuluvid: isLuluvid,
           sourceKey: 'VOSTFR'
         };
-        console.log('✅ Ajout source VidMoly VOSTFR:', source);
+        console.log(`✅ Ajout source ${providerName} VOSTFR:`, source);
         allSources.push(source);
         vidmolyCounter++;
       });
@@ -975,33 +985,33 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : MovieBox > MegaCDN > Vidzy > Vidmoly > Reste
+  // Trie final des sources : Vidzy > MovieBox > MegaCDN > Luluvid > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
-      // Rang 0: MovieBox (Priorité absolue)
-      if (source.provider.toLowerCase() === 'moviebox' ||
-        source.name.toLowerCase().includes('moviebox')) {
-        return 0;
-      }
-
-      // Rang 1: MegaCDN (sources Cinepro)
-      if (source.provider?.toLowerCase() === 'cinepro' ||
-        source.name.toLowerCase().includes('megacdn')) {
-        return 1;
-      }
-
-      // Rang 2: Luluvid
-      if (source.name.toLowerCase().includes('luluvid') ||
-        source.url?.includes('luluvid')) {
-        return 2;
-      }
-
-      // Rang 3: Vidzy
+      // Rang 0: Vidzy (Priorité absolue - User Request)
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
+        return 0;
+      }
+
+      // Rang 1: MovieBox
+      if (source.provider.toLowerCase() === 'moviebox' ||
+        source.name.toLowerCase().includes('moviebox')) {
+        return 1;
+      }
+
+      // Rang 2: MegaCDN (sources Cinepro)
+      if (source.provider?.toLowerCase() === 'cinepro' ||
+        source.name.toLowerCase().includes('megacdn')) {
+        return 2;
+      }
+
+      // Rang 3: Luluvid
+      if (source.name.toLowerCase().includes('luluvid') ||
+        source.url?.includes('luluvid')) {
         return 3;
       }
 
