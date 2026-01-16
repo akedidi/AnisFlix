@@ -15,7 +15,7 @@ const fetchTmdbProxy = async (type: 'movie' | 'tv', id: number, season?: number,
     try {
         let url = `/api/movix-proxy?path=tmdb/${type}/${id}`;
         if (season && episode) {
-            url += `?season=${season}&episode=${episode}`;
+            url += `&season=${season}&episode=${episode}`;
         }
 
         const { data } = await axios.get<TmdbProxyResponse>(url);
