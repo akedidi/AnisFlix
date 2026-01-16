@@ -722,12 +722,22 @@ const StreamingSources = memo(function StreamingSources({
         const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
         const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
 
+        let sourceUrl = player.url;
+        let sourceType = 'embed' as const;
+
+        if (isLuluvid) {
+          // For Luluvid, route through proxy to extract M3U8
+          // The proxy will detect Luluvid domain, extract M3U8, and process it
+          sourceUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(player.url)}`;
+          sourceType = 'm3u8' as const;
+        }
+
         const source = {
           id: `${providerKey}-vf-${vidmolyCounter}`,
           name: `${providerName} ${vidmolyCounter} (VF)`,
           provider: providerKey,
-          url: player.url,
-          type: 'embed' as const,
+          url: sourceUrl,
+          type: sourceType,
           player: providerKey,
           isVidMoly: !isLuluvid, // For specialized click handling if needed
           isLuluvid: isLuluvid, // Add flags if needed
@@ -746,12 +756,20 @@ const StreamingSources = memo(function StreamingSources({
         const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
         const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
 
+        let sourceUrl = player.url;
+        let sourceType = 'embed' as const;
+
+        if (isLuluvid) {
+          sourceUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(player.url)}`;
+          sourceType = 'm3u8' as const;
+        }
+
         const source = {
           id: `${providerKey}-vostfr-${vidmolyCounter}`,
           name: `${providerName} ${vidmolyCounter} (VOSTFR)`,
           provider: providerKey,
-          url: player.url,
-          type: 'embed' as const,
+          url: sourceUrl,
+          type: sourceType,
           player: providerKey,
           isVidMoly: !isLuluvid,
           isLuluvid: isLuluvid,
