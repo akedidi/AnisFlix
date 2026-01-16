@@ -203,29 +203,16 @@ export async function extractVidMolyM3u8(vidmolyUrl: string): Promise<string | n
  */
 export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | null> {
   try {
-    const { apiClient } = await import('./apiClient');
-    console.log('🔍 Luluvid extraction avec API client pour:', luluvidUrl);
+    console.log('🔍 Luluvid proxy generation for:', luluvidUrl);
 
-    const data = await apiClient.extractLuluvid(luluvidUrl);
-    console.log('✅ Luluvid API Response:', data);
+    // Construct the proxy URL directly
+    // The backend's cinepro-proxy handles extraction and header wrapping
+    const proxyUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(luluvidUrl)}`;
 
-    if (data.error) {
-      console.error('Erreur API Luluvid:', data.error);
-      throw new Error(data.error);
-    }
-
-    // Le backend retourne "file" ou "m3u8"
-    const m3u8Url = data.file || data.m3u8 || (data.sources && data.sources[0]?.file);
-
-    if (!m3u8Url) {
-      console.log('⚠️ Aucun lien m3u8 trouvé pour Luluvid');
-      return null;
-    }
-
-    console.log('📺 Luluvid m3u8 URL directe:', m3u8Url);
-    return m3u8Url;
+    console.log('✅ Generated Luluvid Proxy URL:', proxyUrl);
+    return proxyUrl;
   } catch (error) {
-    console.error('Erreur lors de l\'extraction Luluvid:', error);
+    console.error('Erreur lors de la génération du proxy Luluvid:', error);
     return null;
   }
 }

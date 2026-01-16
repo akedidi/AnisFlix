@@ -814,7 +814,7 @@ const StreamingSources = memo(function StreamingSources({
         url: sourceUrl,
         type: 'm3u8',
         player: 'luluvid',
-        quality: link.quality || 'HD',
+        quality: 'HD', // Luluvid is always HD
         language: displayLang,
         isLuluvid: true
       };

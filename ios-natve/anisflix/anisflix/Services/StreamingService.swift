@@ -2541,11 +2541,15 @@ class StreamingService {
                      let lang = (link.language ?? "VF").uppercased()
                      let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
                      
+                     // Strict encoding for the URL parameter (like JS encodeURIComponent)
+                     let allowed = CharacterSet.alphanumerics
+                     let encodedUrl = url.addingPercentEncoding(withAllowedCharacters: allowed) ?? url
+                     
                      let source = StreamingSource(
                          id: "tmdb-proxy-luluvid-\(index)",
-                         url: url,
-                         quality: link.quality ?? "HD", // Default to HD
-                         type: "hls", // Must be hls/mp4 to be visible in UI, extraction handled by provider check
+                         url: "\(baseUrl)/api/movix-proxy?path=cinepro-proxy&url=\(encodedUrl)", // Use backend proxy for direct HLS
+                         quality: "HD", // Force HD as requested
+                         type: "hls", // Must be hls/mp4 to be visible in UI
                          provider: "luluvid",
                          language: normalizedLang,
                          origin: "tmdb-proxy"
