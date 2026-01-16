@@ -655,7 +655,7 @@ export default async function handler(req, res) {
       if (!m3u8Url) return res.status(400).json({ error: 'Missing url' });
 
       try {
-        const decodedUrl = decodeURIComponent(m3u8Url);
+        let decodedUrl = decodeURIComponent(m3u8Url);
         const headers = headerStr ? JSON.parse(decodeURIComponent(headerStr)) : {};
 
         // SPECIAL CASE: LULUVID
@@ -663,9 +663,12 @@ export default async function handler(req, res) {
         if (decodedUrl.includes('luluvid.com')) {
           const extracted = await luluvidExtractor.extract(decodedUrl);
           if (extracted && extracted.stream) {
-            console.log(`✅ [Luluvid] Redirecting to extracted source: ${extracted.stream}`);
-            // Redirect client directly to the M3U8 (since it supports CORS *)
-            return res.redirect(302, extracted.stream);
+            console.log(`✅ [Luluvid] Extracted source: ${extracted.stream}`);
+            // Update URL to the extracted partial/full M3U8
+            decodedUrl = extracted.stream;
+
+            // Merge headers (Referer is crucial)
+            Object.assign(headers, extracted.headers);
           } else {
             throw new Error('Failed to extract Luluvid stream');
           }
