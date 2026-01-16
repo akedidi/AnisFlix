@@ -2240,7 +2240,7 @@ class StreamingService {
                         sources.append(StreamingSource(
                             url: finalUrl,
                             quality: "HD", // Luluvid defaults to HD
-                            type: "embed", // Embed before extraction
+                            type: "hls", // Consistent with TMDB Proxy (will be extracted by extractDirectLink)
                             provider: provider,
                             language: lang,
                             origin: "wiflix",
@@ -2462,8 +2462,9 @@ class StreamingService {
             } catch {
                  print("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")
             }
+
         } else if provider == "luluvid" {
-            print("⛏️ [StreamingService] Extracting Luluvid via client-side method...")
+            print("⛏️ [StreamingService] Extracting Luluvid via internal method...")
             do {
                 let directUrl = try await extractLuluvid(url: source.url)
                 print("✅ [StreamingService] Luluvid extraction successful: \(directUrl)")
@@ -2476,7 +2477,11 @@ class StreamingService {
                     language: source.language,
                     origin: source.origin,
                     tracks: source.tracks,
-                    headers: source.headers
+                    headers: [
+                        "Referer": "https://luluvid.com/", // Important headers for playback
+                        "Origin": "https://luluvid.com",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    ]
                 )
             } catch {
                  print("⚠️ [StreamingService] Luluvid extraction failed: \(error). Using original.")
@@ -2486,6 +2491,8 @@ class StreamingService {
         // Return original if no extraction needed or failed
         return source
     }
+
+
     // MARK: - TMDB Proxy API (Luluvid Integration)
     
     private func fetchTmdbProxySources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
@@ -2541,14 +2548,12 @@ class StreamingService {
                      let lang = (link.language ?? "VF").uppercased()
                      let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
                      
-                     // Strict encoding for the URL parameter (like JS encodeURIComponent)
-                     let allowed = CharacterSet.alphanumerics
-                     let encodedUrl = url.addingPercentEncoding(withAllowedCharacters: allowed) ?? url
-                     
+                     // Use direct HLS type but rely on extractLink to handle the extraction logic internally
+                     // This matches the user's request for "internal treatment"
                      let source = StreamingSource(
                          id: "tmdb-proxy-luluvid-\(index)",
-                         url: "\(baseUrl)/api/movix-proxy?path=cinepro-proxy&url=\(encodedUrl)", // Use backend proxy for direct HLS
-                         quality: "HD", // Force HD as requested
+                         url: url,
+                         quality: "HD",
                          type: "hls", // Must be hls/mp4 to be visible in UI
                          provider: "luluvid",
                          language: normalizedLang,
