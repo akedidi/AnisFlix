@@ -1454,19 +1454,7 @@ const StreamingSources = memo(function StreamingSources({
           </Button>
         </div>
 
-        {true && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={handleDownloadSubtitles}
-            title="Download all subtitles as ZIP"
-            disabled={!imdbId} // Disable instead of hide if missing
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            {imdbId ? "Subtitles" : "No Subtitles (No IMDB)"}
-          </Button>
-        )}
+
       </div>
 
       <div className="space-y-3">
@@ -1552,8 +1540,8 @@ const StreamingSources = memo(function StreamingSources({
                   )}
 
                   {/* Always show download button if URL is present */}
-                  {/* Always show download button if URL is present */}
-                  {source.url && (
+                  {/* Only show download button for 4KHDHub sources */}
+                  {source.url && source.isFourKHDHub && (
                     <Button
                       variant="secondary"
                       size="icon"
