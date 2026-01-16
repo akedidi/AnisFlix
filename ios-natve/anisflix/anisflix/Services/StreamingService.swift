@@ -2491,7 +2491,7 @@ class StreamingService {
     private func fetchTmdbProxySources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
         var urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/\(season == nil ? "movie" : "tv")/\(tmdbId)"
         if let s = season, let e = episode {
-            urlString += "?season=\(s)&episode=\(e)"
+            urlString += "&season=\(s)&episode=\(e)"
         }
         
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
@@ -2517,35 +2517,41 @@ class StreamingService {
             let language: String?
         }
         
+        struct CurrentEpisode: Codable {
+            let player_links: [TmdbProxyLink]?
+        }
+        
         struct TmdbProxyResponse: Codable {
             let player_links: [TmdbProxyLink]?
+            let current_episode: CurrentEpisode?
         }
         
         do {
             let result = try JSONDecoder().decode(TmdbProxyResponse.self, from: data)
             var sources: [StreamingSource] = []
             
-            if let links = result.player_links {
-                for (index, link) in links.enumerated() {
-                    let url = link.decoded_url
-                    
-                    // Filter for Luluvid / Lulustream
-                    if url.contains("luluvid") || url.contains("lulustream") {
-                         let lang = (link.language ?? "VF").uppercased()
-                         let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
-                         
-                         let source = StreamingSource(
-                             id: "tmdb-proxy-luluvid-\(index)",
-                             url: url,
-                             quality: link.quality ?? "HD", // Default to HD
-                             type: "luluvid", // Triggers client-side extraction
-                             provider: "luluvid",
-                             language: normalizedLang,
-                             origin: "tmdb-proxy"
-                         )
-                         sources.append(source)
-                         print("✅ [TMDB Proxy] Added Luluvid: \(url)")
-                    }
+            // Check both root player_links and current_episode.player_links
+            let links = result.current_episode?.player_links ?? result.player_links ?? []
+            
+            for (index, link) in links.enumerated() {
+                let url = link.decoded_url
+                
+                // Filter for Luluvid / Lulustream
+                if url.contains("luluvid") || url.contains("lulustream") {
+                     let lang = (link.language ?? "VF").uppercased()
+                     let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
+                     
+                     let source = StreamingSource(
+                         id: "tmdb-proxy-luluvid-\(index)",
+                         url: url,
+                         quality: link.quality ?? "HD", // Default to HD
+                         type: "luluvid", // Triggers client-side extraction
+                         provider: "luluvid",
+                         language: normalizedLang,
+                         origin: "tmdb-proxy"
+                     )
+                     sources.append(source)
+                     print("✅ [TMDB Proxy] Added Luluvid: \(url)")
                 }
             }
             return sources
