@@ -518,6 +518,8 @@ const StreamingSources = memo(function StreamingSources({
         // Example: logic to add subs if needed, for now keep original
         const modifiedUrl = originalUrl;
 
+        const isLuluvidSource = modifiedUrl.includes('luluvid') || modifiedUrl.includes('lulustream');
+
         allSources.push({
           id: `movix-download-${quality.toLowerCase()}-${index}`,
           name: `${qualityLabel} (${languageLabel})`,
@@ -525,6 +527,7 @@ const StreamingSources = memo(function StreamingSources({
           url: modifiedUrl,
           type: 'm3u8' as const,
           isMovixDownload: true,
+          isLuluvid: isLuluvidSource, // Correctly flag Luluvid sources
           quality: quality,
           // Store as VF for Multi sources
           language: isMulti ? 'VF' : source.language
