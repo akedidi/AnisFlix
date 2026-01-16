@@ -975,28 +975,34 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : MegaCDN > MovieBox > Vidzy > Vidmoly > Reste
+  // Trie final des sources : MovieBox > MegaCDN > Vidzy > Vidmoly > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
-      // Rang 0: MegaCDN (priorité absolue pour VO - sources Cinepro)
-      if (source.provider?.toLowerCase() === 'cinepro' ||
-        source.name.toLowerCase().includes('megacdn')) {
+      // Rang 0: MovieBox (Priorité absolue)
+      if (source.provider.toLowerCase() === 'moviebox' ||
+        source.name.toLowerCase().includes('moviebox')) {
         return 0;
       }
 
-      // Rang 1: MovieBox
-      if (source.provider.toLowerCase() === 'moviebox' ||
-        source.name.toLowerCase().includes('moviebox')) {
+      // Rang 1: MegaCDN (sources Cinepro)
+      if (source.provider?.toLowerCase() === 'cinepro' ||
+        source.name.toLowerCase().includes('megacdn')) {
         return 1;
       }
 
-      // Rang 2: Vidzy
+      // Rang 2: Luluvid
+      if (source.name.toLowerCase().includes('luluvid') ||
+        source.url?.includes('luluvid')) {
+        return 2;
+      }
+
+      // Rang 3: Vidzy
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
-        return 2;
+        return 3;
       }
 
       // Rang 3: VidMoly

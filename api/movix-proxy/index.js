@@ -279,6 +279,56 @@ class VixSrcScraper {
 
 const vixsrcScraper = new VixSrcScraper();
 
+// ===== LULUVID EXTRACTOR CLASS =====
+class LuluvidExtractor {
+  constructor() {
+    this.timeout = 15000; // 15s timeout
+    this.userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+  }
+
+  async extract(url) {
+    try {
+      console.log(`🚀 [Luluvid] Extracting: ${url}`);
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': this.userAgent,
+          'Referer': 'https://luluvid.com/' // Important
+        },
+        timeout: this.timeout
+      });
+
+      const html = response.data;
+      let m3u8 = null;
+
+      // Regex for jwplayer sources
+      let match = html.match(/sources:\s*\[\{file:"([^"]+)"/);
+      if (!match) match = html.match(/file:"([^"]+)"/);
+
+      if (match && match[1]) {
+        m3u8 = match[1];
+        console.log(`✅ [Luluvid] Found M3U8: ${m3u8.substring(0, 50)}...`);
+
+        // Return direct stream info
+        return {
+          stream: m3u8,
+          headers: {
+            'Referer': 'https://luluvid.com/',
+            'Origin': 'https://luluvid.com',
+            'User-Agent': this.userAgent
+          }
+        };
+      }
+
+      console.error('❌ [Luluvid] No M3U8 found in HTML');
+      return null;
+
+    } catch (error) {
+      console.error(`❌ [Luluvid] Extraction failed: ${error.message}`);
+      return null;
+    }
+  }
+}
+
 // ===== MOVIEBOX SCRAPER CLASS =====
 // Version: 1.0.1 - Serverless compatible
 class MovieBoxScraper {
@@ -567,6 +617,7 @@ class MovieBoxScraper {
 }
 
 const movieBoxScraper = new MovieBoxScraper();
+const luluvidExtractor = new LuluvidExtractor();
 
 const fourKHDHubScraper = new FourKHDHubScraper();
 const afterDarkScraper = new AfterDarkScraper();
@@ -607,7 +658,26 @@ export default async function handler(req, res) {
         const decodedUrl = decodeURIComponent(m3u8Url);
         const headers = headerStr ? JSON.parse(decodeURIComponent(headerStr)) : {};
 
+        // SPECIAL CASE: LULUVID
+        // Luluvid pages are not direct M3U8, we need to extract them.
+        if (decodedUrl.includes('luluvid.com')) {
+          const extracted = await luluvidExtractor.extract(decodedUrl);
+          if (extracted && extracted.stream) {
+            console.log(`✅ [Luluvid] Redirecting to extracted source: ${extracted.stream}`);
+            // Redirect client directly to the M3U8 (since it supports CORS *)
+            return res.redirect(302, extracted.stream);
+          } else {
+            throw new Error('Failed to extract Luluvid stream');
+          }
+        }
+
         // console.log(`🔄 [CINEPRO PROXY] Fetching: ${decodedUrl}`);
+
+        // Detect if we should Stream or Buffer
+        const isSegment = decodedUrl.includes('.ts') || decodedUrl.includes('.mp4');
+        const responseType = isSegment ? 'stream' : 'arraybuffer';
+
+        // console.log(`🔄 [CINEPRO PROXY] Fetching: ${decodedUrl} (Mode: ${isSegment ? 'Stream' : 'Buffer'})`);
 
         const response = await axios({
           method: 'GET',
@@ -616,9 +686,24 @@ export default async function handler(req, res) {
             ...headers,
             'Accept-Encoding': 'gzip, deflate, br'
           },
-          responseType: 'arraybuffer'
+          responseType: responseType
         });
 
+        // 1. STREAMING MODE (Video Segments)
+        // Pipe directly to client to avoid memory issues
+        if (isSegment) {
+          const headersToForward = ['content-type', 'content-length', 'cache-control'];
+          headersToForward.forEach(h => {
+            if (response.headers[h]) res.setHeader(h, response.headers[h]);
+          });
+          // Ensure access control for client
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          response.data.pipe(res);
+          return;
+        }
+
+        // 2. BUFFERING MODE (Playlists)
+        // We need to read the content to rewrite URLs
         const content = response.data;
         const contentStr = content.toString('utf8');
 
@@ -632,16 +717,7 @@ export default async function handler(req, res) {
           const rewriteLine = (line) => {
             try {
               const absoluteUrl = new URL(line, basePath).href;
-
-              // Check if it's MegaCDN and NOT a manifest (i.e. it's a TS segment)
-              // We want to offload segments to external proxy, but keep manifests internal for rewriting
-              const isManifest = absoluteUrl.includes('.m3u8');
-              const isMegaCDN = absoluteUrl.includes('megacdn') || absoluteUrl.includes('megaf');
-
-              if (isMegaCDN && !isManifest) {
-                return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(absoluteUrl)}`;
-              }
-
+              // All content goes through internal proxy to ensure connectivity (Port 2228 is blocked by public proxies)
               return `${hostUrl}&url=${encodeURIComponent(absoluteUrl)}&headers=${encodeURIComponent(JSON.stringify(headers))}`;
             } catch (e) { return line; }
           };
