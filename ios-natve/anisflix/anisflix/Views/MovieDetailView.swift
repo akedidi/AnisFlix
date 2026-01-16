@@ -353,9 +353,12 @@ struct MovieDetailView: View {
                                                 func getRank(_ source: StreamingSource) -> Int {
                                                     let provider = source.provider.lowercased()
                                                     if provider == "vidzy" { return 0 }
+                                                    if provider == "moviebox" { return 1 }
+                                                    if provider == "vixsrc" { return 2 }
+                                                    if provider == "megacdn" || provider == "cinepro" { return 3 }
                                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                                     if provider.contains("luluvid") { return 99 }
-                                                    return 1
+                                                    return 5 // Default rank (e.g. VidMoly)
                                                 }
                                                 return getRank(s1) < getRank(s2)
                                             }

@@ -1022,6 +1022,12 @@ const StreamingSources = memo(function StreamingSources({
         return 1;
       }
 
+      // Rang 1.5: Vixsrc (Added for prioritization)
+      if (source.provider.toLowerCase() === 'vixsrc' ||
+        source.name.toLowerCase().includes('vixsrc')) {
+        return 1.5;
+      }
+
       // Rang 2: MegaCDN (sources Cinepro)
       if (source.provider?.toLowerCase() === 'cinepro' ||
         source.name.toLowerCase().includes('megacdn')) {

@@ -2005,19 +2005,36 @@ class StreamingService {
                     provider = "megacdn"
                 } else if stream.server?.lowercased().contains("milkyway") == true {
                     provider = "premilkyway"
+                } else if stream.server?.lowercased().contains("luluvid") == true || stream.link.contains("luluvid") {
+                    provider = "luluvid"
                 } else {
                     provider = "cinepro"
                 }
                 
+                // Construct proxied URL for ALL Cinepro sources (MegaCDN, Luluvid, etc.)
+                // This ensures headers (Referer) and IP restrictions are handled by the server proxy.
+                var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
+                var queryItems = [
+                    URLQueryItem(name: "path", value: "cinepro-proxy"),
+                    URLQueryItem(name: "url", value: stream.link)
+                ]
+                
+                if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
+                    queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+                }
+                
+                components.queryItems = queryItems
+                let proxiedUrl = components.url?.absoluteString ?? stream.link
+                
                 return StreamingSource(
-                    url: stream.link,
-                    quality: stream.quality ?? "Auto",
-                    type: stream.type ?? "hls",
+                    url: proxiedUrl, // Use proxied URL
+                    quality: stream.quality ?? "Auto", // Use API provided quality
+                    type: "m3u8", // Always M3U8 for these proxies
                     provider: provider,
                     language: stream.lang ?? "VO",
                     origin: "cinepro",
                     tracks: nil,
-                    headers: stream.headers
+                    headers: nil // Headers are handled by the proxy URL itself
                 )
             }
         } catch {
