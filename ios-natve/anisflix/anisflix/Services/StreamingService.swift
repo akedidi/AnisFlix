@@ -315,6 +315,7 @@ class StreamingService {
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
+        async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
         
         // Anime Placeholder
         var animeTask: Task<[StreamingSource], Error>? = nil
@@ -378,6 +379,11 @@ class StreamingService {
         // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
+        }
+        
+        // Add Wiflix sources (Luluvid)
+        if let wiflix = wiflix {
+            allSources.append(contentsOf: wiflix)
         }
         
         // Add TMDB sources (includes Vidzy)
@@ -515,6 +521,7 @@ class StreamingService {
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
+        async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -577,7 +584,8 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources)
+        // DISABLED: UniversalVO API is broken - removed from tuple
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -596,6 +604,11 @@ class StreamingService {
         // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
+        }
+
+        // Add Wiflix sources (Luluvid)
+        if let wiflix = wiflix {
+            allSources.append(contentsOf: wiflix)
         }
         
         // Add Anime sources (High Priority for VidMoly)
