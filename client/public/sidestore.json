@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.29",
-          "date": "2026-01-11",
-          "size": 19596038,
+          "version": "1.0.30",
+          "date": "2026-01-17",
+          "size": 19659335,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "Fix iOS VLC Player: Fresh instance strategy to fix decoding errors, improved UI/gestures, removed Chromecast button. Reverted Web audio warning. "
+          "localizedDescription": "fix: filter out latest episodes missing poster or episode info "
         }
       ]
     }

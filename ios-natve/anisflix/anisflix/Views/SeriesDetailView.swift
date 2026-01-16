@@ -955,7 +955,8 @@ struct SeriesDetailView: View {
             mediaType: .series,
             voteCount: 0,
             originalLanguage: "en",
-            releaseDate: series?.firstAirDate
+            releaseDate: series?.firstAirDate,
+            episodeInfo: nil
         )
     }
     

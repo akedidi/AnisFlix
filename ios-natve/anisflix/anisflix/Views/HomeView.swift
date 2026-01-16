@@ -774,7 +774,8 @@ struct HomeView: View {
                         mediaType: .movie,
                         voteCount: detail.voteCount,
                         originalLanguage: nil,
-                        releaseDate: nil
+                        releaseDate: nil,
+                        episodeInfo: nil
                     )
                 } else {
                     // It's a series
@@ -790,7 +791,8 @@ struct HomeView: View {
                         mediaType: .series,
                         voteCount: 0,
                         originalLanguage: nil,
-                        releaseDate: nil
+                        releaseDate: nil,
+                        episodeInfo: nil
                     )
                 }
                 

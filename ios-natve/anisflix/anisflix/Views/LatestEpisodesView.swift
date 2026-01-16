@@ -112,59 +112,68 @@ struct LatestEpisodesView: View {
                     }
                     .padding(.horizontal, 16)
                     
-                    // Pagination
-                    if totalPages > 1 {
-                        HStack(spacing: 20) {
-                            Button(action: {
-                                if currentPage > 1 {
-                                    currentPage -= 1
-                                    Task { await loadEpisodes() }
+                    if !episodes.isEmpty {
+                        // Infinite scrolling trigger
+                        if currentPage < totalPages && !isLoading {
+                            Color.clear
+                                .frame(height: 50)
+                                .onAppear {
+                                    Task {
+                                        await loadMoreEpisodes()
+                                    }
                                 }
-                            }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.title2)
-                                    .foregroundColor(currentPage > 1 ? AppTheme.primaryRed : theme.secondaryText)
-                            }
-                            .disabled(currentPage <= 1)
                             
-                            Text("Page \(currentPage) / \(totalPages)")
-                                .foregroundColor(theme.primaryText)
-                            
-                            Button(action: {
-                                if currentPage < totalPages {
-                                    currentPage += 1
-                                    Task { await loadEpisodes() }
-                                }
-                            }) {
-                                Image(systemName: "chevron.right")
-                                    .font(.title2)
-                                    .foregroundColor(currentPage < totalPages ? AppTheme.primaryRed : theme.secondaryText)
+                            if isLoading {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
                             }
-                            .disabled(currentPage >= totalPages)
                         }
-                        .padding(.vertical, 20)
                     }
                 }
             }
             .padding(.bottom, 100)
         }
-        .background(theme.background)
+        .background(theme.backgroundColor)
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await loadEpisodes()
+            if episodes.isEmpty {
+                await loadEpisodes()
+            }
         }
     }
-    
+        
     private func loadEpisodes() async {
         isLoading = true
         do {
-            let result = try await TMDBService.shared.fetchLatestEpisodes(page: currentPage)
+            let result = try await TMDBService.shared.fetchLatestEpisodes(page: 1)
             await MainActor.run {
                 episodes = result
+                currentPage = 1
                 isLoading = false
             }
         } catch {
             print("❌ Failed to load latest episodes: \(error)")
+            await MainActor.run {
+                isLoading = false
+            }
+        }
+    }
+    
+    private func loadMoreEpisodes() async {
+        guard !isLoading else { return }
+        isLoading = true
+        
+        let nextPage = currentPage + 1
+        do {
+            let result = try await TMDBService.shared.fetchLatestEpisodes(page: nextPage)
+            await MainActor.run {
+                episodes.append(contentsOf: result)
+                currentPage = nextPage
+                isLoading = false
+            }
+        } catch {
+            print("❌ Failed to load more episodes: \(error)")
             await MainActor.run {
                 isLoading = false
             }

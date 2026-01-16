@@ -121,7 +121,8 @@ struct MovieDetailView: View {
                                             mediaType: .movie,
                                             voteCount: movie.voteCount,
                                             originalLanguage: nil,
-                                            releaseDate: movie.releaseDate
+                                            releaseDate: movie.releaseDate,
+                                            episodeInfo: nil
                                         )
                                         
                                         if favoritesManager.isFavorite(media) {
@@ -130,7 +131,7 @@ struct MovieDetailView: View {
                                             favoritesManager.add(media)
                                         }
                                     }) {
-                                        Image(systemName: favoritesManager.isFavorite(Media(id: movieId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .movie, voteCount: nil, originalLanguage: nil, releaseDate: nil, episodeInfo: nil)) ? "heart.fill" : "heart")
+                                    Image(systemName: favoritesManager.isFavorite(Media(id: movieId, title: "", overview: nil, posterPath: nil, backdropPath: nil, rating: nil, year: nil, mediaType: .movie, voteCount: nil, originalLanguage: nil, releaseDate: nil, episodeInfo: nil)) ? "heart.fill" : "heart")
                                             .font(.title2)
                                             .foregroundColor(favoritesManager.isFavorite(id: movie.id) ? AppTheme.primaryRed : theme.secondaryText)
                                     }
@@ -667,7 +668,8 @@ struct MovieDetailView: View {
             mediaType: .movie,
             voteCount: movie.voteCount,
             originalLanguage: nil,
-            releaseDate: movie.releaseDate
+            releaseDate: movie.releaseDate,
+            episodeInfo: nil
         )
     }
     
