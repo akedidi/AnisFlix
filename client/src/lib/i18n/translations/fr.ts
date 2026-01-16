@@ -17,6 +17,7 @@ export default {
   "home.latestMovies": "Derniers films",
   "home.popularSeries": "Séries populaires",
   "home.latestSeries": "Dernières séries",
+  "home.latestEpisodes": "Derniers épisodes",
   "home.trending": "Tendances",
   "home.topRated": "Les mieux notés",
   "home.downloads": "Téléchargements",

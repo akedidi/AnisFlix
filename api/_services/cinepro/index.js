@@ -182,7 +182,7 @@ export class CineproScraper {
         if (streams.length === 0) {
             console.log('⚠️ [Cinepro] MultiEmbed returned no streams, trying AutoEmbed...');
             try {
-                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher);
+                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher, imdbId);
                 if (autoEmbedStreams && autoEmbedStreams.length > 0) {
                     for (const s of autoEmbedStreams) {
                         const processed = await this.processStream(s, host);
@@ -284,11 +284,15 @@ export class CineproScraper {
     }
 
     // --- AutoEmbed Logic (MegaCDN Only - Server 10) ---
-    async getAutoEmbed(tmdbId, season, episode, host, fetcher = null) {
+    async getAutoEmbed(tmdbId, season, episode, host, fetcher = null, imdbId = null) {
         const type = season && episode ? 'tv' : 'movie';
+
+        // Use IMDB ID for movies if available for better accuracy
+        const idParam = (type === 'movie' && imdbId) ? imdbId : tmdbId;
+
         const baseUrl = type === 'tv'
-            ? `https://test.autoembed.cc/api/server?id=${tmdbId}&ss=${season}&ep=${episode}`
-            : `https://test.autoembed.cc/api/server?id=${tmdbId}`;
+            ? `https://test.autoembed.cc/api/server?id=${idParam}&ss=${season}&ep=${episode}`
+            : `https://test.autoembed.cc/api/server?id=${idParam}`;
         const headers = { 'Referer': 'https://player.vidsrc.co/', 'Origin': 'https://player.vidsrc.co/', 'User-Agent': this.userAgent };
         const streams = [];
 

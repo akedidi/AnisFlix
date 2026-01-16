@@ -223,39 +223,30 @@ struct DownloadButton: View {
     }
     
     private func startExtractionAndDownload() {
+        // Block Luluvid downloads - iOS limitation with HLS headers
+        if source.provider == "luluvid" {
+            extractionError = "Le téléchargement n'est pas disponible pour les sources Luluvid. Utilisez la lecture en streaming."
+            return
+        }
+        
         isExtracting = true
         extractionError = nil
         
         Task {
             do {
                 var streamUrl: String
-                var downloadSource = source // Copy source to modify headers if needed
                 
                 if source.provider == "vidmoly" {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
                 } else if source.provider == "vidzy" {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
-                } else if source.provider == "luluvid" {
-                    streamUrl = try await StreamingService.shared.extractLuluvid(url: source.url)
-                    // Add required headers for Luluvid HLS segments
-                    downloadSource = StreamingSource(
-                        id: source.id,
-                        url: source.url,
-                        quality: source.quality,
-                        type: source.type,
-                        provider: source.provider,
-                        language: source.language,
-                        origin: source.origin,
-                        tracks: source.tracks,
-                        headers: ["Referer": "https://luluvid.com/", "Origin": "https://luluvid.com"]
-                    )
                 } else {
                     streamUrl = source.url
                 }
                 
                 await MainActor.run {
                     downloadManager.startDownload(
-                        source: downloadSource,
+                        source: source,
                         media: media,
                         season: season,
                         episode: episode,

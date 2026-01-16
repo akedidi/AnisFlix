@@ -64,6 +64,19 @@ class TMDBService {
         return response.results.map { $0.toMedia(mediaType: .series) }
     }
     
+    // MARK: - Latest Episodes (BetaSeries)
+    
+    func fetchLatestEpisodes(language: String? = nil) async throws -> [Media] {
+        let lang = language ?? AppTheme.shared.tmdbLanguageCode
+        
+        let endpoint = "\(proxyBaseURL)?type=series&filter=last-episodes&language=\(lang)"
+        
+        print("📺 [TMDBService] Fetching latest episodes via BetaSeries proxy: \(endpoint)")
+        
+        let response: TMDBResponse = try await fetch(from: endpoint)
+        return response.results.map { $0.toMedia(mediaType: .series) }
+    }
+    
     // MARK: - Movies by Provider
     
     // MARK: - Movies by Provider

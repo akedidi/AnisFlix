@@ -15,6 +15,7 @@ import {
   useLatestMovies,
   usePopularSeries,
   useLatestProviderSeries,
+  useLatestEpisodes,
   useMoviesByProvider,
   useSeriesByProvider,
   useMoviesByGenre,
@@ -38,6 +39,7 @@ export default function Home() {
   const { data: latestMoviesData } = useLatestMovies();
   const { data: popularSeriesData } = usePopularSeries();
   const { data: latestSeriesData } = useLatestProviderSeries();
+  const { data: latestEpisodesData } = useLatestEpisodes();
 
   // Fetch anime data
   const { data: animeMoviesData } = useMoviesByGenre(16); // Animation genre
@@ -49,6 +51,7 @@ export default function Home() {
   const latestMovies = latestMoviesData?.results || [];
   const popularSeries = popularSeriesData?.results || [];
   const latestSeries = latestSeriesData?.results || [];
+  const latestEpisodes = latestEpisodesData?.results || [];
   const animeMovies = animeMoviesData?.results || [];
   const animeSeries = animeSeriesData?.results || [];
   const popularAnimeMovies = popularAnimeMoviesData?.results || [];
@@ -307,6 +310,14 @@ export default function Home() {
               onItemClick={(item) => navigate(navPaths.movie(item.id))}
               seeAllLink="/latest-movies"
             />
+
+            {latestEpisodes.length > 0 && (
+              <MediaCarousel
+                title={t("home.latestEpisodes")}
+                items={latestEpisodes.slice(0, 10)}
+                onItemClick={(item) => navigate(navPaths.seriesDetail(item.id))}
+              />
+            )}
 
             <MediaCarousel
               title={t("home.latestSeries")}

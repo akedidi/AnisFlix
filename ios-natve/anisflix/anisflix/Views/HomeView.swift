@@ -15,6 +15,7 @@ struct HomeView: View {
     @State private var latestMovies: [Media] = []
     @State private var popularSeries: [Media] = []
     @State private var latestSeries: [Media] = []
+    @State private var latestEpisodes: [Media] = []
     
     // Anime
     @State private var animeMoviesLatest: [Media] = []
@@ -159,6 +160,17 @@ struct HomeView: View {
                                 print("Navigate to movie: \(media.id)")
                             },
                             seeAllRoute: .latestMovies
+                        )
+                    }
+                    
+                    // Derniers Épisodes (BetaSeries)
+                    if !latestEpisodes.isEmpty {
+                        MediaRow(
+                            title: theme.t("episodes.latest"),
+                            items: Array(latestEpisodes.prefix(10)),
+                            onItemClick: { media in
+                                print("Navigate to series from episode: \(media.id)")
+                            }
                         )
                     }
                     
@@ -595,6 +607,7 @@ struct HomeView: View {
         async let moviesLatest = TMDBService.shared.fetchLatestMovies(language: language)
         async let seriesPopular = TMDBService.shared.fetchPopularSeries(language: language)
         async let seriesLatest = TMDBService.shared.fetchLatestSeries(language: language)
+        async let episodesLatest = TMDBService.shared.fetchLatestEpisodes(language: language)
         
         // Anime (genre 16 = Animation)
         // MATCHING WEB LOGIC EXACTLY: Web uses Genre 16 default (Popularity) for both "Latest" and "Popular"
@@ -641,12 +654,14 @@ struct HomeView: View {
                 appleMov, appleSer, disneyMov, disneySer,
                 hboMov, hboSer, peacockMov, peacockSer, canalMov, canalSer, crunchyrollMov, crunchyrollSer,
                 adnMov, adnSer, arteMov, arteSer, mubiMov, mubiSer,
-                tf1Mov, tf1Ser, m6Mov, m6Ser
+                tf1Mov, tf1Ser, m6Mov, m6Ser,
+                episodesLatest
             )
             
             print("✅ All API calls completed successfully!")
             print("📊 Popular movies count: \(results.0.count)")
             print("📊 Latest movies count: \(results.1.count)")
+            print("📊 Latest episodes count: \(results.34.count)")
             
             popularMovies = results.0
             latestMovies = results.1
@@ -682,6 +697,7 @@ struct HomeView: View {
             tf1Series = results.31
             m6Movies = results.32
             m6Series = results.33
+            latestEpisodes = results.34
             
             // Load Continue Watching from WatchProgressManager
             await loadContinueWatching()

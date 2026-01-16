@@ -218,6 +218,96 @@ export default async function handler(req, res) {
             return res.status(200).json(data);
         }
 
+        // Endpoint 1d: Latest Episodes (BetaSeries API)
+        if (type === 'series' && req.query.filter === 'last-episodes') {
+            const BETASERIES_API_KEY = '60130ce87e6b';
+
+            console.log(`📺 [TMDB PROXY] Fetching Latest Episodes from BetaSeries (Lang: ${language})`);
+
+            try {
+                // Fetch episodes from BetaSeries planning/incoming
+                const betaResponse = await axios.get('https://api.betaseries.com/planning/incoming', {
+                    headers: {
+                        'X-BetaSeries-Key': BETASERIES_API_KEY
+                    },
+                    params: {
+                        limit: 50
+                    }
+                });
+
+                const episodes = betaResponse.data?.episodes || [];
+                console.log(`📺 [BetaSeries] Got ${episodes.length} episodes`);
+
+                // Get unique series and fetch TMDB details
+                const uniqueSeriesMap = new Map();
+                for (const ep of episodes) {
+                    const showTitle = ep.show?.title || ep.show;
+                    if (showTitle && !uniqueSeriesMap.has(showTitle)) {
+                        uniqueSeriesMap.set(showTitle, {
+                            betaEpisode: ep,
+                            thetvdb_id: ep.show?.thetvdb_id
+                        });
+                    }
+                }
+
+                // Search TMDB for each unique series
+                const results = [];
+                for (const [title, data] of uniqueSeriesMap) {
+                    try {
+                        const searchResult = await tmdbFetch('/search/tv', {
+                            query: title,
+                            language: language
+                        });
+
+                        if (searchResult.results && searchResult.results.length > 0) {
+                            const series = searchResult.results[0];
+                            const ep = data.betaEpisode;
+
+                            results.push({
+                                id: series.id,
+                                title: series.name,
+                                name: series.name,
+                                overview: series.overview,
+                                poster_path: series.poster_path,
+                                posterPath: series.poster_path,
+                                backdrop_path: series.backdrop_path,
+                                backdropPath: series.backdrop_path,
+                                vote_average: series.vote_average,
+                                rating: series.vote_average,
+                                first_air_date: series.first_air_date,
+                                year: series.first_air_date?.substring(0, 4) || '',
+                                media_type: 'tv',
+                                mediaType: 'tv',
+                                episodeInfo: {
+                                    season: ep.season,
+                                    episode: ep.episode,
+                                    title: ep.title,
+                                    date: ep.date
+                                }
+                            });
+                        }
+                    } catch (searchError) {
+                        console.error(`❌ [TMDB] Search failed for: ${title}`);
+                    }
+
+                    if (results.length >= 20) break;
+                }
+
+                console.log(`✅ [TMDB PROXY] Returning ${results.length} latest episodes`);
+
+                return res.status(200).json({
+                    page: 1,
+                    total_pages: 1,
+                    total_results: results.length,
+                    results: results
+                });
+
+            } catch (betaError) {
+                console.error('❌ [BetaSeries] API Error:', betaError.message);
+                return res.status(500).json({ error: 'BetaSeries API error', message: betaError.message });
+            }
+        }
+
         // Endpoint 2: Season Details
         if (type === 'season' && seriesId && seasonNumber !== undefined) {
             const seriesIdNum = parseInt(seriesId, 10);

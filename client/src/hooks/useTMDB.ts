@@ -134,6 +134,32 @@ export const useLatestProviderSeries = (page = 1) => {
   });
 };
 
+// Latest Episodes from BetaSeries API
+export const useLatestEpisodes = () => {
+  return useQuery({
+    queryKey: ["episodes", "latest"],
+    queryFn: async () => {
+      const language = localStorage.getItem("language") || "fr-FR";
+      const response = await fetch(
+        `https://anisflix.vercel.app/api/tmdb-proxy?type=series&filter=last-episodes&language=${language}`
+      );
+      if (!response.ok) throw new Error("Failed to fetch latest episodes");
+      const data = await response.json();
+      return {
+        results: data.results.map((item: any) => ({
+          ...transformSeries(item),
+          episodeInfo: item.episodeInfo,
+        })),
+        total_pages: data.total_pages,
+        page: data.page,
+      };
+    },
+    staleTime: 1000 * 60 * 15, // 15 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+  });
+};
+
+
 export const useMovieDetails = (movieId: number) => {
   return useQuery({
     queryKey: ["movie", movieId],

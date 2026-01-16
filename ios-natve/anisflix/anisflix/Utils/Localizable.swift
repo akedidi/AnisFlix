@@ -58,6 +58,7 @@ struct Localizable {
         "home.byProvider": "Par Plateforme",
         "movies.popular": "Films Populaires",
         "series.popular": "Séries Populaires",
+        "episodes.latest": "Derniers épisodes",
         
         // Movies
         "movies.latest": "Derniers films",
@@ -181,6 +182,7 @@ struct Localizable {
         "home.byProvider": "By Platform",
         "movies.popular": "Popular Movies",
         "series.popular": "Popular Series",
+        "episodes.latest": "Latest Episodes",
         
         "movies.latest": "Latest Movies",
         "movies.action": "Action",
@@ -299,6 +301,7 @@ struct Localizable {
         "home.byProvider": "Por Plataforma",
         "movies.popular": "Películas Populares",
         "series.popular": "Series Populares",
+        "episodes.latest": "Últimos Episodios",
         
         "movies.latest": "Últimas películas",
         "movies.action": "Acción",
@@ -417,6 +420,7 @@ struct Localizable {
         "home.byProvider": "حسب المنصة",
         "movies.popular": "أفلام شائعة",
         "series.popular": "مسلسلات شائعة",
+        "episodes.latest": "أحدث الحلقات",
         
         "movies.latest": "أحدث الأفلام",
         "movies.action": "أكشن",
@@ -535,6 +539,7 @@ struct Localizable {
         "home.byProvider": "Nach Anbieter",
         "movies.popular": "Beliebte Filme",
         "series.popular": "Beliebte Serien",
+        "episodes.latest": "Neueste Episoden",
         
         "movies.latest": "Neueste Filme",
         "movies.action": "Action",
@@ -653,6 +658,7 @@ struct Localizable {
         "home.byProvider": "Per Piattaforma",
         "movies.popular": "Film Popolari",
         "series.popular": "Serie Popolari",
+        "episodes.latest": "Ultimi Episodi",
         
         "movies.latest": "Ultimi Film",
         "movies.action": "Azione",
@@ -771,6 +777,7 @@ struct Localizable {
         "home.byProvider": "Por Plataforma",
         "movies.popular": "Filmes Populares",
         "series.popular": "Séries Populares",
+        "episodes.latest": "Últimos Episódios",
         
         "movies.latest": "Últimos Filmes",
         "movies.action": "Ação",
