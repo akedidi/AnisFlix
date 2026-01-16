@@ -213,12 +213,20 @@ class DownloadManager: NSObject, ObservableObject {
         let finalUrl = extractedUrl ?? source.url
         
         // Detect HLS
-        let isHLS = finalUrl.contains(".m3u8") || 
+        var isHLS = finalUrl.contains(".m3u8") || 
                     source.type == "hls" ||
                     source.provider == "vidmoly" || 
                     source.provider == "vidzy" ||
                     source.provider == "vixsrc" ||
                     source.provider == "luluvid"
+        
+        // WORKAROUND: Luluvid HLS downloads fail with 403 due to iOS limitation
+        // AVAssetDownloadTask doesn't propagate custom headers to segment requests
+        // For now, we'll try anyway but log a warning
+        if source.provider == "luluvid" {
+            print("⚠️ [DownloadManager] Luluvid download may fail - iOS limitation with HLS headers")
+            print("   Attempting download anyway... If 403 error occurs, this is expected.")
+        }
         
         // Initialize as queued
         let item = DownloadItem(
@@ -725,12 +733,31 @@ class DownloadManager: NSObject, ObservableObject {
     private func startHLSDownload(for item: DownloadItem) {
         guard let url = URL(string: item.videoUrl) else { return }
         
+        print("📥 [DownloadManager] Starting HLS download for: \(item.title)")
+        print("   - URL: \(url)")
+        print("   - Provider: \(item.provider ?? "unknown")")
+        print("   - Headers: \(item.headers ?? [:])")
+        
+        // For Luluvid, headers alone won't work with AVAssetDownloadTask
+        // iOS doesn't propagate AVURLAssetHTTPHeaderFieldsKey to segment requests
+        if item.provider?.lowercased() == "luluvid" {
+            print("⚠️ [DownloadManager] Luluvid detected - using ResourceLoader for headers")
+        }
+        
         var options: [String: Any]? = nil
         if let headers = item.headers {
             options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
         }
         
         let asset = AVURLAsset(url: url, options: options)
+        
+        // For Luluvid, attach a resource loader delegate to inject headers
+        if item.provider?.lowercased() == "luluvid" || url.absoluteString.contains("tnmr.org") {
+            let delegate = LuluvidResourceLoaderDelegate()
+            asset.resourceLoader.setDelegate(delegate, queue: .main)
+            // Store delegate to prevent deallocation
+            luluvidResourceLoaders[item.id] = delegate
+        }
         
         // Create an AVAssetDownloadTask
         // We use the item.id as the asset title for identification
@@ -739,8 +766,13 @@ class DownloadManager: NSObject, ObservableObject {
             task.resume()
             activeAssetDownloads[item.id] = task
             updateState(for: item.id, state: .downloading)
+        } else {
+            print("❌ [DownloadManager] Failed to create AVAssetDownloadTask")
         }
     }
+    
+    // Resource loader storage
+    private var luluvidResourceLoaders: [String: LuluvidResourceLoaderDelegate] = [:]
     
     private func updateState(for id: String, state: DownloadState) {
         if let index = downloads.firstIndex(where: { $0.id == id }) {
@@ -958,5 +990,57 @@ extension DownloadManager: AVAssetDownloadDelegate {
                 }
             }
         }
+    }
+}
+
+// MARK: - Luluvid Resource Loader Delegate
+// This delegate intercepts HLS segment requests and injects required headers
+
+class LuluvidResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
+    private let session: URLSession
+    
+    override init() {
+        let config = URLSessionConfiguration.default
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        self.session = URLSession(configuration: config)
+        super.init()
+    }
+    
+    func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
+        guard let url = loadingRequest.request.url else { return false }
+        
+        print("🔄 [LuluvidDownloadLoader] Intercepting: \(url.lastPathComponent)")
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://luluvid.com/", forHTTPHeaderField: "Referer")
+        request.setValue("https://luluvid.com", forHTTPHeaderField: "Origin")
+        
+        let task = session.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("❌ [LuluvidDownloadLoader] Error: \(error.localizedDescription)")
+                loadingRequest.finishLoading(with: error)
+                return
+            }
+            
+            guard let data = data, let response = response as? HTTPURLResponse else {
+                loadingRequest.finishLoading(with: NSError(domain: "LuluvidLoader", code: -1, userInfo: nil))
+                return
+            }
+            
+            print("📥 [LuluvidDownloadLoader] Response: \(response.statusCode) for \(url.lastPathComponent) (\(data.count) bytes)")
+            
+            if let contentType = response.mimeType {
+                loadingRequest.contentInformationRequest?.contentType = contentType
+            }
+            loadingRequest.contentInformationRequest?.contentLength = Int64(data.count)
+            loadingRequest.contentInformationRequest?.isByteRangeAccessSupported = true
+            
+            loadingRequest.dataRequest?.respond(with: data)
+            loadingRequest.finishLoading()
+        }
+        task.resume()
+        
+        return true
     }
 }

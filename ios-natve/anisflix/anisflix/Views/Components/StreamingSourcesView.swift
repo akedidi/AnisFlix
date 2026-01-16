@@ -25,7 +25,24 @@ struct StreamingSourcesView: View {
     @ObservedObject var theme = AppTheme.shared
     
     var groupedSources: [String: [StreamingSource]] {
-        Dictionary(grouping: sources, by: { $0.provider })
+        let grouped = Dictionary(grouping: sources, by: { $0.provider })
+        // Sort sources within each group by quality (descending: 1080p > 720p > 480p > 360p)
+        return grouped.mapValues { sources in
+            sources.sorted { s1, s2 in
+                getQualityValue(s1.quality) > getQualityValue(s2.quality)
+            }
+        }
+    }
+    
+    // Extract numeric quality value for sorting
+    private func getQualityValue(_ quality: String) -> Int {
+        let q = quality.lowercased()
+        if q.contains("4k") || q.contains("2160") { return 2160 }
+        if q.contains("1080") { return 1080 }
+        if q.contains("720") { return 720 }
+        if q.contains("480") { return 480 }
+        if q.contains("360") { return 360 }
+        return 0
     }
     
     var providers: [String] {
@@ -212,6 +229,7 @@ struct DownloadButton: View {
         Task {
             do {
                 var streamUrl: String
+                var downloadSource = source // Copy source to modify headers if needed
                 
                 if source.provider == "vidmoly" {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
@@ -219,13 +237,25 @@ struct DownloadButton: View {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
                 } else if source.provider == "luluvid" {
                     streamUrl = try await StreamingService.shared.extractLuluvid(url: source.url)
+                    // Add required headers for Luluvid HLS segments
+                    downloadSource = StreamingSource(
+                        id: source.id,
+                        url: source.url,
+                        quality: source.quality,
+                        type: source.type,
+                        provider: source.provider,
+                        language: source.language,
+                        origin: source.origin,
+                        tracks: source.tracks,
+                        headers: ["Referer": "https://luluvid.com/", "Origin": "https://luluvid.com"]
+                    )
                 } else {
                     streamUrl = source.url
                 }
                 
                 await MainActor.run {
                     downloadManager.startDownload(
-                        source: source,
+                        source: downloadSource,
                         media: media,
                         season: season,
                         episode: episode,
