@@ -936,7 +936,7 @@ const StreamingSources = memo(function StreamingSources({
     sortedStreams.reverse().forEach((stream: any, index: number) => {
       allSources.unshift({
         id: `cinepro-megacdn-${index}`,
-        name: `⭐ ${stream.server || 'MegaCDN'} ${stream.quality || 'Auto'} (VO)`,
+        name: `${stream.server || 'MegaCDN'} ${stream.quality || 'Auto'} (VO)`,
         provider: 'cinepro',
         url: stream.link,
         type: stream.type === 'mp4' ? 'mp4' : 'm3u8',
