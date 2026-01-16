@@ -316,6 +316,7 @@ class StreamingService {
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
         async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
+        async let tmdbProxySources = fetchTmdbProxySources(tmdbId: movieId)
 
         
         // Anime Placeholder
@@ -361,7 +362,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
@@ -373,6 +374,7 @@ class StreamingService {
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - Wiflix: \(wiflix?.count ?? 0)")
+        print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         
@@ -425,6 +427,11 @@ class StreamingService {
         // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
+        }
+        
+        // Add TMDB Proxy sources (Luluvid)
+        if let tmdbProxy = tmdbProxy {
+            allSources.append(contentsOf: tmdbProxy)
         }
         
         // Filter for allowed providers
@@ -524,6 +531,7 @@ class StreamingService {
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
         async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
+        async let tmdbProxySources = fetchTmdbProxySources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -587,7 +595,7 @@ class StreamingService {
         
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources)
+        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -600,6 +608,7 @@ class StreamingService {
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Movix Download: \(movixDownloadSources.count)")
         print("   - Wiflix: \(wiflix?.count ?? 0)")
+        print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
         print("   - Movix Anime: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
@@ -649,6 +658,11 @@ class StreamingService {
         // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
+        }
+        
+        // Add TMDB Proxy sources (Luluvid)
+        if let tmdbProxy = tmdbProxy {
+            allSources.append(contentsOf: tmdbProxy)
         }
         
         // Filter for allowed providers
@@ -1435,54 +1449,50 @@ class StreamingService {
     }
     
     func extractLuluvid(url: String) async throws -> String {
-        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
-        var request = URLRequest(url: apiUrl)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        guard let luluvidUrl = URL(string: url) else {
+            throw URLError(.badURL)
+        }
+        
+        print("🚀 [Luluvid iOS] Extracting locally: \(url)")
+        
+        var request = URLRequest(url: luluvidUrl)
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
-        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
-        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
-        request.setValue("navigate", forHTTPHeaderField: "Sec-Fetch-Mode")
-        request.setValue("none", forHTTPHeaderField: "Sec-Fetch-Site")
-        request.setValue("document", forHTTPHeaderField: "Sec-Fetch-Dest")
-        
-        let body: [String: String] = ["type": "luluvid", "url": url]
-        request.httpBody = try JSONEncoder().encode(body)
-        
-        print("📤 Extracting Luluvid: \(url)")
+        request.setValue("https://luluvid.com/", forHTTPHeaderField: "Referer")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse else {
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
+              let html = String(data: data, encoding: .utf8) else {
+            print("❌ [Luluvid iOS] Failed to fetch page. Status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
             throw URLError(.badServerResponse)
         }
         
-        if httpResponse.statusCode != 200 {
-            print("❌ Luluvid extraction failed with status: \(httpResponse.statusCode)")
-            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("❌ Error details: \(errorJson)")
-            }
-            throw URLError(.badServerResponse)
+        // Regex Extraction logic (NSRegularExpression for reliability)
+        // Pattern 1: sources: [{file:"https://..."}]
+        let pattern1 = #"sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']"#
+        // Pattern 2: file: "https://..."
+        let pattern2 = #"file:\s*["']([^"']+)["']"#
+        
+        var m3u8Url: String? = nil
+        
+        let range = NSRange(html.startIndex..<html.endIndex, in: html)
+        
+        if let regex1 = try? NSRegularExpression(pattern: pattern1),
+           let match = regex1.firstMatch(in: html, options: [], range: range),
+           let captureRange = Range(match.range(at: 1), in: html) {
+            m3u8Url = String(html[captureRange])
+        } else if let regex2 = try? NSRegularExpression(pattern: pattern2),
+                  let match = regex2.firstMatch(in: html, options: [], range: range),
+                  let captureRange = Range(match.range(at: 1), in: html) {
+            m3u8Url = String(html[captureRange])
         }
         
-        struct ExtractResponse: Codable {
-            let success: Bool
-            let m3u8Url: String?
-            let error: String?
-            let type: String?
+        if let extracted = m3u8Url {
+            print("✅ [Luluvid iOS] Extracted M3U8: \(extracted)")
+            return extracted
         }
         
-        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
-        
-        if let m3u8 = result.m3u8Url {
-            print("✅ Luluvid extracted: \(m3u8)")
-            return m3u8
-        } else if let error = result.error {
-            print("❌ Luluvid API Error: \(error)")
-            throw NSError(domain: "StreamingService", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
-        }
-        
+        print("❌ [Luluvid iOS] No M3U8 found in HTML")
         throw URLError(.cannotParseResponse)
     }
     
@@ -2452,9 +2462,96 @@ class StreamingService {
             } catch {
                  print("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")
             }
+        } else if provider == "luluvid" {
+            print("⛏️ [StreamingService] Extracting Luluvid via client-side method...")
+            do {
+                let directUrl = try await extractLuluvid(url: source.url)
+                print("✅ [StreamingService] Luluvid extraction successful: \(directUrl)")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    quality: source.quality,
+                    type: "hls", // It's always HLS
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: source.headers
+                )
+            } catch {
+                 print("⚠️ [StreamingService] Luluvid extraction failed: \(error). Using original.")
+            }
         }
         
         // Return original if no extraction needed or failed
         return source
+    }
+    // MARK: - TMDB Proxy API (Luluvid Integration)
+    
+    private func fetchTmdbProxySources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/\(season == nil ? "movie" : "tv")/\(tmdbId)"
+        if let s = season, let e = episode {
+            urlString += "?season=\(s)&episode=\(e)"
+        }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        print("🌍 [TMDB Proxy] Fetching: \(urlString)")
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        struct TmdbProxyLink: Codable {
+            let decoded_url: String
+            let quality: String?
+            let language: String?
+        }
+        
+        struct TmdbProxyResponse: Codable {
+            let player_links: [TmdbProxyLink]?
+        }
+        
+        do {
+            let result = try JSONDecoder().decode(TmdbProxyResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            if let links = result.player_links {
+                for (index, link) in links.enumerated() {
+                    let url = link.decoded_url
+                    
+                    // Filter for Luluvid / Lulustream
+                    if url.contains("luluvid") || url.contains("lulustream") {
+                         let lang = (link.language ?? "VF").uppercased()
+                         let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
+                         
+                         let source = StreamingSource(
+                             id: "tmdb-proxy-luluvid-\(index)",
+                             url: url,
+                             quality: link.quality ?? "HD", // Default to HD
+                             type: "luluvid", // Triggers client-side extraction
+                             provider: "luluvid",
+                             language: normalizedLang,
+                             origin: "tmdb-proxy"
+                         )
+                         sources.append(source)
+                         print("✅ [TMDB Proxy] Added Luluvid: \(url)")
+                    }
+                }
+            }
+            return sources
+        } catch {
+            print("❌ [TMDB Proxy] Decode error: \(error)")
+            return []
+        }
     }
 }
