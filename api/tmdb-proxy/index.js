@@ -219,31 +219,49 @@ export default async function handler(req, res) {
         }
 
         // Endpoint 1d: Latest Episodes (TMDB Airing Today with episode details)
-        // Filtered to Western providers (Europe + US) using watch_region
+        // Filtered to Networks from Western countries (US/GB/FR/CA/AU)
         if (type === 'series' && req.query.filter === 'last-episodes') {
-            const requestedPage = parseInt(req.query.page) || 1;
-            console.log(`📺 [TMDB PROXY] Fetching Airing Today Series - Western Providers (Lang: ${language}, Page: ${requestedPage})`);
+            const clientPage = parseInt(req.query.page) || 1;
+            console.log(`📺 [TMDB PROXY] Fetching Airing Today - Western Networks (Lang: ${language}, ClientPage: ${clientPage})`);
 
             try {
-                // Use TMDB's airing_today endpoint with watch_region filter for Western providers
-                // FR = France (covers most European streaming platforms)
-                const airingData = await tmdbFetch('/tv/airing_today', {
-                    language: language,
-                    page: requestedPage,
-                    watch_region: 'FR'
-                });
+                // Strategy: Fetch 2 TMDB pages for every 1 Client page to improve density after filtering
+                // Client Page 1 -> TMDB Pages 1, 2
+                // Client Page 2 -> TMDB Pages 3, 4
+                const startPage = (clientPage - 1) * 2 + 1;
+                const pagesToFetch = [startPage, startPage + 1];
 
-                const series = airingData.results || [];
-                console.log(`📺 [TMDB] Got ${series.length} airing today series on page ${requestedPage}`);
+                // First, list requests in parallel to get candidates
+                const listResponses = await Promise.all(pagesToFetch.map(p =>
+                    tmdbFetch('/tv/airing_today', { language, page: p })
+                        .catch(err => ({ results: [], total_pages: 0 })) // Handle out of bounds or errors gracefully
+                ));
 
-                // Fetch episode details for each series in parallel
-                const resultsWithEpisodes = await Promise.all(
-                    series.map(async (show) => {
+                // Aggregate raw results
+                const allCandidates = listResponses.flatMap(r => r.results || []);
+                const maxTMDBPages = listResponses[0]?.total_pages || 1;
+
+                console.log(`📺 [TMDB] Fetched TMDB pages ${pagesToFetch.join(', ')}. Candidates: ${allCandidates.length}`);
+
+                // Fetch episode details and apply Network Origin filtering in parallel
+                const allowedNetworkOrigins = ['US', 'GB', 'FR', 'CA', 'AU'];
+
+                const enrichedResults = await Promise.all(
+                    allCandidates.map(async (show) => {
                         try {
-                            // Fetch full series details to get last_episode_to_air
-                            const details = await tmdbFetch(`/tv/${show.id}`, {
-                                language: language
-                            });
+                            // Fetch full series details
+                            const details = await tmdbFetch(`/tv/${show.id}`, { language });
+
+                            const networks = details.networks || [];
+
+                            // Check if ANY of the show's networks are from allowed countries
+                            const hasWesternNetwork = networks.some(network =>
+                                allowedNetworkOrigins.includes(network.origin_country)
+                            );
+
+                            if (!hasWesternNetwork) {
+                                return null;
+                            }
 
                             const lastEp = details.last_episode_to_air;
 
@@ -270,35 +288,23 @@ export default async function handler(req, res) {
                                 } : null
                             };
                         } catch (err) {
-                            // Fallback without episode info
-                            return {
-                                id: show.id,
-                                title: show.name,
-                                name: show.name,
-                                overview: show.overview,
-                                poster_path: show.poster_path,
-                                posterPath: show.poster_path,
-                                backdrop_path: show.backdrop_path,
-                                backdropPath: show.backdrop_path,
-                                vote_average: show.vote_average,
-                                rating: show.vote_average,
-                                first_air_date: show.first_air_date,
-                                year: show.first_air_date?.substring(0, 4) || '',
-                                media_type: 'tv',
-                                mediaType: 'tv',
-                                episodeInfo: null
-                            };
+                            return null;
                         }
                     })
                 );
 
-                console.log(`✅ [TMDB PROXY] Returning ${resultsWithEpisodes.length} series with episode info`);
+                // Remove filtered items (nulls) and deduplicate
+                const finalResults = enrichedResults
+                    .filter(item => item !== null)
+                    .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+
+                console.log(`✅ [TMDB PROXY] Returning ${finalResults.length} filtered series (Western Networks)`);
 
                 return res.status(200).json({
-                    page: requestedPage,
-                    total_pages: Math.min(airingData.total_pages || 1, 8), // Cap at 8 pages (~150 items)
-                    total_results: Math.min(airingData.total_results || resultsWithEpisodes.length, 150),
-                    results: resultsWithEpisodes
+                    page: clientPage,
+                    total_pages: Math.ceil(maxTMDBPages / 2),
+                    total_results: (listResponses[0]?.total_results || 200), // Original total to allow scrolling
+                    results: finalResults
                 });
 
             } catch (tmdbError) {
