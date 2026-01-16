@@ -1028,17 +1028,17 @@ const StreamingSources = memo(function StreamingSources({
         return 2;
       }
 
-      // Rang 3: Luluvid
-      if (source.name.toLowerCase().includes('luluvid') ||
-        source.url?.includes('luluvid')) {
-        return 3;
-      }
-
       // Rang 3: VidMoly
       if (source.isVidMoly ||
         source.provider.toLowerCase() === 'vidmoly' ||
         source.name.toLowerCase().includes('vidmoly')) {
         return 3;
+      }
+
+      // Rang 10: Luluvid (Last Priority - User Request)
+      if (source.name.toLowerCase().includes('luluvid') ||
+        source.url?.includes('luluvid')) {
+        return 10;
       }
 
       // Rang 4: AfterDark

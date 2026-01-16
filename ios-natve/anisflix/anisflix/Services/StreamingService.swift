@@ -420,7 +420,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -636,7 +636,7 @@ class StreamingService {
         }
         
         // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" }
+        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {

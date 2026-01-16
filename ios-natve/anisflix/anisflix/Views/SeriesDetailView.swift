@@ -846,6 +846,7 @@ struct SeriesDetailView: View {
                                     let provider = source.provider.lowercased()
                                     if provider == "vidzy" { return 0 }
                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
+                                    if provider.contains("luluvid") { return 99 }
                                     return 1
                                 }
                                 return getRank(s1) < getRank(s2)
