@@ -163,35 +163,18 @@ export class CineproScraper {
         console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode}`);
         const streams = [];
 
-        // 1. Try MultiEmbed
-        if (imdbId) {
-            try {
-                const multiEmbedStreams = await this.getMultiEmbed(imdbId, season, episode, fetcher);
-                if (multiEmbedStreams && multiEmbedStreams.length > 0) {
-                    for (const s of multiEmbedStreams) {
-                        const processed = await this.processStream(s, host);
-                        streams.push(...processed);
-                    }
+        // Only use AutoEmbed (MegaCDN) - MultiEmbed was returning incorrect links for movies it didn't have
+        try {
+            console.log('🎬 [Cinepro] Fetching from AutoEmbed (MegaCDN)...');
+            const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher, imdbId);
+            if (autoEmbedStreams && autoEmbedStreams.length > 0) {
+                for (const s of autoEmbedStreams) {
+                    const processed = await this.processStream(s, host);
+                    streams.push(...processed);
                 }
-            } catch (e) {
-                console.error(`❌ [Cinepro] MultiEmbed failed: ${e.message}`);
             }
-        }
-
-        // 2. Try AutoEmbed
-        if (streams.length === 0) {
-            console.log('⚠️ [Cinepro] MultiEmbed returned no streams, trying AutoEmbed...');
-            try {
-                const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher, imdbId);
-                if (autoEmbedStreams && autoEmbedStreams.length > 0) {
-                    for (const s of autoEmbedStreams) {
-                        const processed = await this.processStream(s, host);
-                        streams.push(...processed);
-                    }
-                }
-            } catch (e) {
-                console.error(`❌ [Cinepro] AutoEmbed failed: ${e.message}`);
-            }
+        } catch (e) {
+            console.error(`❌ [Cinepro] AutoEmbed failed: ${e.message}`);
         }
 
         return streams;
