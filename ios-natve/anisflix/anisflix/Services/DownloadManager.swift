@@ -217,7 +217,8 @@ class DownloadManager: NSObject, ObservableObject {
                     source.type == "hls" ||
                     source.provider == "vidmoly" || 
                     source.provider == "vidzy" ||
-                    source.provider == "vixsrc"
+                    source.provider == "vixsrc" ||
+                    source.provider == "luluvid"
         
         // Initialize as queued
         let item = DownloadItem(
@@ -723,7 +724,13 @@ class DownloadManager: NSObject, ObservableObject {
     
     private func startHLSDownload(for item: DownloadItem) {
         guard let url = URL(string: item.videoUrl) else { return }
-        let asset = AVURLAsset(url: url)
+        
+        var options: [String: Any]? = nil
+        if let headers = item.headers {
+            options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
+        }
+        
+        let asset = AVURLAsset(url: url, options: options)
         
         // Create an AVAssetDownloadTask
         // We use the item.id as the asset title for identification
