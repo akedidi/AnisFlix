@@ -261,8 +261,17 @@ class TMDBService {
         }
         
         var request = URLRequest(url: url)
-        // Add User-Agent to avoid Vercel "Security Checkpoint" block
+        // Add User-Agent and other headers to avoid Vercel "Security Checkpoint" block
+        // Simulating a full browser request
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        // Vercel sometimes blocked requests without Referer or with empty Referer
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.setValue("https://google.com", forHTTPHeaderField: "Origin")
+        request.setValue("navigate", forHTTPHeaderField: "Sec-Fetch-Mode")
+        request.setValue("none", forHTTPHeaderField: "Sec-Fetch-Site")
+        request.setValue("document", forHTTPHeaderField: "Sec-Fetch-Dest")
         
         let (data, _) = try await URLSession.shared.data(for: request)
         
