@@ -558,8 +558,8 @@ class StreamingService {
             //     title: title,
             //     year: nil,
             //     season: season,
-                episode: episode
-            )) ?? []
+            //     episode: episode
+            // )) ?? []
             
             // Fetch Movix Download sources (TMDB ID matching)
             movixDownloadSources = (try? await fetchMovixDownloadSources(
