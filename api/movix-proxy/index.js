@@ -1025,7 +1025,8 @@ export default async function handler(req, res) {
         const imdbId = tmdbInfo.imdb_id || tmdbInfo.data?.external_ids?.imdb_id;
 
         const host = req.headers.host || 'anisflix.vercel.app';
-        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId, host);
+        const runtime = tmdbInfo.runtime || 0; // Minutes
+        const streams = await cineproScraper.getStreams(tmdbId, season, episode, imdbId, host, null, runtime);
 
         console.log(`✅ [MOVIX PROXY CINEPRO] Found ${streams.length} streams.`);
         return res.status(200).json({ success: true, streams });

@@ -159,14 +159,14 @@ export class CineproScraper {
         return results;
     }
 
-    async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null, fetcher = null) {
-        console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode}`);
+    async getStreams(tmdbId, season = null, episode = null, imdbId = null, host = null, fetcher = null, runtime = 0) {
+        console.log(`🔍 [Cinepro] Getting streams for TMDB:${tmdbId} IMDB:${imdbId} S:${season} E:${episode} Runtime:${runtime}min`);
         const streams = [];
 
         // Only use AutoEmbed (MegaCDN) - MultiEmbed was returning incorrect links for movies it didn't have
         try {
             console.log('🎬 [Cinepro] Fetching from AutoEmbed (MegaCDN)...');
-            const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher, imdbId);
+            const autoEmbedStreams = await this.getAutoEmbed(tmdbId, season, episode, host, fetcher, imdbId, runtime);
             if (autoEmbedStreams && autoEmbedStreams.length > 0) {
                 for (const s of autoEmbedStreams) {
                     const processed = await this.processStream(s, host);
@@ -267,7 +267,7 @@ export class CineproScraper {
     }
 
     // --- AutoEmbed Logic (MegaCDN Only - Server 10) ---
-    async getAutoEmbed(tmdbId, season, episode, host, fetcher = null, imdbId = null) {
+    async getAutoEmbed(tmdbId, season, episode, host, fetcher = null, imdbId = null, tmdbRuntime = 0) {
         const type = season && episode ? 'tv' : 'movie';
 
         // Use IMDB ID for movies if available for better accuracy
@@ -319,6 +319,49 @@ export class CineproScraper {
                         }
 
                         console.log('[Cinepro] ✅ Stream validation PASSED - valid M3U8 playlist');
+
+                        // DURATION VALIDATION: Calculate stream duration and compare with TMDB runtime
+                        if (tmdbRuntime > 0) {
+                            try {
+                                // Get first variant URL from master playlist
+                                const variantMatch = masterPlaylist.match(/^(?!#)(.+\.m3u8.*)$/m) ||
+                                    masterPlaylist.match(/^(\d+\/index\.m3u8.*)$/m);
+
+                                if (variantMatch) {
+                                    let variantUrl = variantMatch[1].trim();
+                                    if (!variantUrl.startsWith('http')) {
+                                        const baseUrlParts = directUrl.split('/');
+                                        baseUrlParts.pop();
+                                        variantUrl = baseUrlParts.join('/') + '/' + variantUrl;
+                                    }
+
+                                    console.log(`[Cinepro] Fetching variant for duration check: ${variantUrl}`);
+                                    const variantResponse = await axios.get(variantUrl, { timeout: 8000 });
+                                    const variantContent = variantResponse.data;
+
+                                    // Calculate duration from EXTINF tags
+                                    const extinfMatches = variantContent.matchAll(/#EXTINF:([\d.]+)/g);
+                                    let totalDuration = 0;
+                                    for (const match of extinfMatches) {
+                                        totalDuration += parseFloat(match[1]);
+                                    }
+                                    const streamDurationMinutes = totalDuration / 60;
+
+                                    const durationDiff = Math.abs(streamDurationMinutes - tmdbRuntime);
+                                    console.log(`[Cinepro] Duration validation: Stream=${streamDurationMinutes.toFixed(1)}min, TMDB=${tmdbRuntime}min, Diff=${durationDiff.toFixed(1)}min`);
+
+                                    if (durationDiff > 10) {
+                                        console.log('[Cinepro] ⚠️ Duration mismatch > 10 minutes - WRONG MOVIE detected!');
+                                        return []; // Wrong movie - reject
+                                    }
+
+                                    console.log('[Cinepro] ✅ Duration validation PASSED');
+                                }
+                            } catch (durationErr) {
+                                console.warn(`[Cinepro] Duration validation skipped: ${durationErr.message}`);
+                                // Continue anyway if duration check fails
+                            }
+                        }
 
                         // Parse resolutions from master playlist
                         // Format: #EXT-X-STREAM-INF:...RESOLUTION=WIDTHxHEIGHT\nURL
