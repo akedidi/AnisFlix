@@ -60,6 +60,9 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
 
     console.log(`✅ [TMDB PROXY] Found "Seasons" episode group: ${seasonsGroup.name}`);
 
+    // IMPORTANT: Save original seasons BEFORE any modifications
+    const originalSeasons = [...(seriesData.seasons || [])];
+
     try {
         const groupDetails = await tmdbFetch(`/tv/episode_group/${seasonsGroup.id}`, { language });
 
@@ -97,7 +100,6 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
 
         // MERGE original seasons with episode group seasons instead of replacing
         // This fixes missing seasons when episode groups are incomplete
-        const originalSeasons = seriesData.seasons || [];
         const mergedSeasons = [];
         
         // Create a map of episode group seasons for quick lookup
