@@ -194,20 +194,15 @@ export default async function handler(req, res) {
         }
 
         // Endpoint 1c: Latest Movies (Centralized Logic - DVD/Bluray/Digital)
-        // Excludes movies released within the last 60 days (likely still in theaters only)
         if (type === 'movie' && req.query.filter === 'last') {
             const page = req.query.page || 1;
             const today = new Date();
-
-            // Only show movies released at least 60 days ago (time for digital/streaming release)
-            const sixtyDaysAgo = new Date(today);
-            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-            const lastDateLte = sixtyDaysAgo.toISOString().slice(0, 10);
+            const lastDateLte = today.toISOString().slice(0, 10);
 
             // Release Types: 4 (Digital), 5 (Physical/DVD/Blu-ray)
             const releaseTypes = "4|5";
 
-            console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Released before ${lastDateLte}, Lang: ${language})`);
+            console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language})`);
 
             const data = await tmdbFetch('/discover/movie', {
                 sort_by: 'primary_release_date.desc',
