@@ -95,6 +95,40 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
 
         newSeasons.sort((a, b) => a.season_number - b.season_number);
 
+        // MERGE original seasons with episode group seasons instead of replacing
+        // This fixes missing seasons when episode groups are incomplete
+        const originalSeasons = seriesData.seasons || [];
+        const mergedSeasons = [];
+        
+        // Create a map of episode group seasons for quick lookup
+        const groupSeasonsMap = new Map(newSeasons.map(s => [s.season_number, s]));
+        
+        // Keep track of which seasons we've added from the group
+        const addedGroupSeasons = new Set();
+        
+        // First, add all original seasons, replacing with group version if exists
+        originalSeasons.forEach(originalSeason => {
+            const groupSeason = groupSeasonsMap.get(originalSeason.season_number);
+            if (groupSeason) {
+                // Use the episode group version
+                mergedSeasons.push(groupSeason);
+                addedGroupSeasons.add(originalSeason.season_number);
+            } else {
+                // Keep the original season
+                mergedSeasons.push(originalSeason);
+            }
+        });
+        
+        // Then add any group seasons that weren't in the original list
+        newSeasons.forEach(groupSeason => {
+            if (!addedGroupSeasons.has(groupSeason.season_number)) {
+                mergedSeasons.push(groupSeason);
+            }
+        });
+        
+        // Sort again to ensure correct order
+        mergedSeasons.sort((a, b) => a.season_number - b.season_number);
+
         // Hydrate cache for virtual seasons
         groupDetails.groups.forEach(group => {
             const seasonNumber = group.order;
@@ -127,8 +161,8 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
             console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} (${language})`);
         });
 
-        seriesData.seasons = newSeasons;
-        seriesData.number_of_seasons = newSeasons.length;
+        seriesData.seasons = mergedSeasons;
+        seriesData.number_of_seasons = mergedSeasons.length;
 
     } catch (error) {
         console.error('❌ [TMDB PROXY] Failed to process episode group:', error.message);
