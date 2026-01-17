@@ -75,7 +75,7 @@ struct LatestEpisodesView: View {
                                         
                                         // Episode badge
                                         if let epInfo = media.episodeInfo {
-                                            Text("S\(epInfo.season)E\(epInfo.episode)")
+                                            Text("S\(epInfo.season)-E\(epInfo.episode)")
                                                 .font(.caption2)
                                                 .fontWeight(.bold)
                                                 .foregroundColor(.white)

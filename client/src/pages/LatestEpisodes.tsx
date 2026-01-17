@@ -88,7 +88,7 @@ export default function LatestEpisodes() {
                                     {/* Episode badge */}
                                     {episode.episodeInfo && (
                                         <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
-                                            S{episode.episodeInfo.season}E{episode.episodeInfo.episode}
+                                            S{episode.episodeInfo.season}-E{episode.episodeInfo.episode}
                                         </div>
                                     )}
                                 </div>

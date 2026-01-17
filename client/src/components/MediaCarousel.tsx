@@ -193,7 +193,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
               {/* Episode badge */}
               {item.episodeInfo && (
                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded z-10">
-                  S{item.episodeInfo.season}E{item.episodeInfo.episode}
+                  S{item.episodeInfo.season}-E{item.episodeInfo.episode}
                 </div>
               )}
             </div>
