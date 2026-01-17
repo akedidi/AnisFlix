@@ -719,6 +719,26 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         print("📢 [CastManager] Loading media to device: \(session.device.friendlyName ?? "Unknown")")
         
+        // CHROMECAST FIX: Proxy MegaCDN URLs to avoid port 2228 blocking
+        var finalUrl = url
+        if url.absoluteString.contains("megacdn.co") {
+            print("🔧 [CastManager] Detected MegaCDN URL, proxying for Chromecast...")
+            
+            var components = URLComponents(string: "https://anisflix.vercel.app/api/movix-proxy")!
+            components.queryItems = [
+                URLQueryItem(name: "path", value: "cinepro-proxy"),
+                URLQueryItem(name: "url", value: url.absoluteString),
+                URLQueryItem(name: "headers", value: "{}")
+            ]
+            
+            if let proxiedUrl = components.url {
+                finalUrl = proxiedUrl
+                print("✅ [CastManager] Proxied MegaCDN URL for Chromecast")
+            } else {
+                print("⚠️ [CastManager] Failed to construct proxied URL, using original")
+            }
+        }
+        
         let metadata = GCKMediaMetadata(metadataType: .movie)
         metadata.setString(title, forKey: kGCKMetadataKeyTitle)
         
@@ -737,10 +757,10 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         if isLive {
             contentType = "application/x-mpegURL"
             streamType = .live
-        } else if url.pathExtension == "m3u8" {
+        } else if finalUrl.pathExtension == "m3u8" || finalUrl.absoluteString.contains("index.m3u8") {
             contentType = "application/x-mpegURL"
             streamType = .buffered
-        } else if url.pathExtension == "mpd" {
+        } else if finalUrl.pathExtension == "mpd" {
             contentType = "application/dash+xml"
             streamType = .buffered
         } else {
@@ -837,7 +857,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         
         print("📢 [CastManager] Final customData keys: \(customData.keys)")
         
-        let mediaInfoBuilder = GCKMediaInformationBuilder(contentURL: url)
+        let mediaInfoBuilder = GCKMediaInformationBuilder(contentURL: finalUrl)
         mediaInfoBuilder.streamType = streamType
         mediaInfoBuilder.contentType = contentType
         mediaInfoBuilder.metadata = metadata
