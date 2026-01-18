@@ -200,15 +200,17 @@ struct AfterDarkResponse: Codable {
 struct AfterDarkSource: Codable {
     let url: String
     let quality: String?
-    let kind: String?
+    let kind: String?  // Some responses use 'kind'
+    let type: String?  // Some responses use 'type' instead of 'kind'
     let server: String?
     let name: String?
+    let label: String? // Some responses use 'label' instead of 'name'
     let proxied: Bool?
     let language: String?
     
     enum CodingKeys: String, CodingKey {
         case url = "file" // Map JSON 'file' to 'url'
-        case quality, kind, server, name, proxied, language
+        case quality, kind, type, server, name, label, proxied, language
     }
 }
 
@@ -332,16 +334,16 @@ class StreamingService {
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
             
-            // DISABLED: AfterDark sources
-            // if let year = tmdbInfo?.year {
-            //     afterDarkSources = (try? await fetchAfterDarkSources(
-            //         tmdbId: movieId,
-            //         type: "movie",
-            //         title: title,
-            //         year: year,
-            //         originalTitle: tmdbInfo?.originalTitle
-            //     )) ?? []
-            // }
+            // Fetch AfterDark sources (direct call - iOS has no CORS)
+            if let year = tmdbInfo?.year {
+                afterDarkSources = (try? await fetchAfterDarkSources(
+                    tmdbId: movieId,
+                    type: "movie",
+                    title: title,
+                    year: year,
+                    originalTitle: tmdbInfo?.originalTitle
+                )) ?? []
+            }
             
             // Fetch Movix Download sources (TMDB ID matching)
             movixDownloadSources = (try? await fetchMovixDownloadSources(
@@ -409,7 +411,7 @@ class StreamingService {
         // }
         
         // Add AfterDark sources
-        // DISABLED: allSources.append(contentsOf: afterDarkSources)
+        allSources.append(contentsOf: afterDarkSources)
         
         if let vixsrc = vixsrc {
             allSources.append(contentsOf: vixsrc)
@@ -568,15 +570,15 @@ class StreamingService {
                  print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count))")
             }
             
-            // DISABLED: AfterDark sources
-            // afterDarkSources = (try? await fetchAfterDarkSources(
-            //     tmdbId: seriesId,
-            //     type: "tv",
-            //     title: title,
-            //     year: nil,
-            //     season: season,
-            //     episode: episode
-            // )) ?? []
+            // Fetch AfterDark sources (direct call - iOS has no CORS)
+            afterDarkSources = (try? await fetchAfterDarkSources(
+                tmdbId: seriesId,
+                type: "tv",
+                title: title,
+                year: nil,
+                season: season,
+                episode: episode
+            )) ?? []
             
             // Fetch Movix Download sources (TMDB ID matching)
             movixDownloadSources = (try? await fetchMovixDownloadSources(
@@ -645,7 +647,7 @@ class StreamingService {
         // }
         
         // Add AfterDark sources
-        // DISABLED: allSources.append(contentsOf: afterDarkSources)
+        allSources.append(contentsOf: afterDarkSources)
         
         if let vixsrc = vixsrc {
             allSources.append(contentsOf: vixsrc)
@@ -1289,16 +1291,8 @@ class StreamingService {
             
             if let afterdarkSources = afterdarkResponse.sources {
                 for source in afterdarkSources {
-                    // Filter: kind=hls and proxied=false
-                    if source.proxied != false {
-                        print("⚠️ [AfterDark] Skipping proxied source: \(source.name ?? "unknown")")
-                        continue
-                    }
-                    
-                    if source.kind != "hls" {
-                        print("⚠️ [AfterDark] Skipping non-hls source: \(source.kind ?? "nil")")
-                        continue
-                    }
+                    // Accept ALL sources for now (no filtering)
+                    print("🌑 [AfterDark] Processing source: \(source.label ?? source.name ?? "unknown") - type: \(source.type ?? source.kind ?? "?") - url: \(source.url.prefix(50))...")
                     
                     // Map language based on API response
                     // "unknown", "multi", "VF", "french" => VF
@@ -1317,7 +1311,13 @@ class StreamingService {
                     }
                     
                     // Use quality from API (e.g. "HD", "FHD", "4K")
-                    let quality = source.quality ?? "HD"
+                    let quality = source.quality?.uppercased() ?? "HD"
+                    
+                    // AfterDark streams need specific headers to play
+                    let afterDarkHeaders = [
+                        "Referer": "https://afterdark.mom/",
+                        "Origin": "https://afterdark.mom"
+                    ]
                     
                     let streamSource = StreamingSource(
                         url: source.url,
@@ -1325,10 +1325,11 @@ class StreamingService {
                         type: "m3u8",
                         provider: "afterdark",
                         language: language,
-                        origin: "afterdark"
+                        origin: "afterdark",
+                        headers: afterDarkHeaders
                     )
                     sources.append(streamSource)
-                    print("✅ [AfterDark] Added source: \(quality) \(language)")
+                    print("✅ [AfterDark] Added source: \(quality) \(language) - \(source.url.prefix(50))...")
                 }
             }
             

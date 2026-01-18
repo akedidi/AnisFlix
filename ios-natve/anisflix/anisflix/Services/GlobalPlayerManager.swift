@@ -214,10 +214,11 @@ class GlobalPlayerManager: ObservableObject {
             // For now, focusing on local playback as per user request ("partie video").
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
-             // Detect if we need VLC (MKV/4KHDHub sources)
+             // Detect if we need VLC (MKV/4KHDHub/AfterDark sources - VLC handles headers better)
              print("🔍 [GlobalPlayerManager] Checking for VLC: provider='\(provider ?? "nil")', extension='\(url.pathExtension)'")
              let useVLC = provider?.lowercased() == "4khdhub" || 
                           provider?.lowercased() == "fourkhdhub" ||
+                          provider?.lowercased() == "afterdark" ||
                           url.pathExtension.lowercased() == "mkv"
              
              print("🎬 [GlobalPlayerManager] useVLC decision: \(useVLC)")
