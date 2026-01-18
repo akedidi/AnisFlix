@@ -5,6 +5,10 @@ target 'AnisFlix' do
 
   pod 'google-cast-sdk'
   pod 'MobileVLCKit', '~> 3.6'
+  
+  # FFmpegKit for Vidzy downloads with custom headers
+  # Using community fork (official retired Jan 2025)
+  pod 'ffmpeg-kit-ios-full', :podspec => 'https://raw.githubusercontent.com/luthviar/ffmpeg-kit-ios-full/main/ffmpeg-kit-ios-full.podspec'
 end
 
 post_install do |installer|

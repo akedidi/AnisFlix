@@ -85,6 +85,9 @@ class DownloadManager: NSObject, ObservableObject {
     private var assetDownloadSession: AVAssetDownloadURLSession!
     private var activeAssetDownloads: [String: AVAssetDownloadTask] = [:]
     
+    // FFmpeg-based downloads (for Vidzy with custom headers)
+    private var ffmpegDownloaders: [String: VidzyFFmpegDownloader] = [:]
+    
     // Separate error persistence to avoid breaking DownloadItem schema
     @Published var downloadErrors: [String: String] = [:]
     private let errorsKey = "saved_download_errors"
@@ -729,6 +732,14 @@ class DownloadManager: NSObject, ObservableObject {
         print("   - URL: \(url)")
         print("   - Provider: \(item.provider ?? "unknown")")
         
+        // Check if Vidzy - use FFmpeg instead of AVAssetDownloadTask
+        if url.host?.contains("vidzy") == true {
+            print("🎬 [DownloadManager] Detected Vidzy, using FFmpeg downloader")
+            startVidzyFFmpegDownload(for: item)
+            return
+        }
+        
+        
         var options: [String: Any]? = nil
         if let headers = item.headers {
             options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
@@ -748,6 +759,55 @@ class DownloadManager: NSObject, ObservableObject {
             print("❌ [DownloadManager] Failed to create AVAssetDownloadTask")
             updateState(for: item.id, state: .failed)
         }
+    }
+
+    private func startVidzyFFmpegDownload(for item: DownloadItem) {
+        let downloader = VidzyFFmpegDownloader()
+        ffmpegDownloaders[item.id] = downloader
+        
+        // Get output path
+        let outputPath = getDocumentsDirectory().appendingPathComponent("\(item.id).mp4").path
+        
+        updateState(for: item.id, state: .downloading)
+        
+        downloader.downloadVidzy(url: item.videoUrl, outputPath: outputPath,
+            progress: { [weak self] progress in
+                DispatchQueue.main.async {
+                    self?.updateProgress(for: item.id, progress: progress)
+                }
+            },
+            completion: { [weak self] result in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    
+                    switch result {
+                    case .success(let url):
+                        if let index = self.downloads.firstIndex(where: { $0.id == item.id }) {
+                            self.objectWillChange.send()
+                            self.downloads[index].state = .completed
+                            self.downloads[index].progress = 1.0
+                            self.downloads[index].localVideoUrl = url
+                            self.downloads[index].relativePath = url.relativePath
+                            self.saveDownloads()
+                            self.processQueue()
+                        }
+                        
+                    case .failure(let error):
+                        print("❌ [DownloadManager] Vidzy FFmpeg download failed: \(error)")
+                        if let index = self.downloads.firstIndex(where: { $0.id == item.id }) {
+                            self.objectWillChange.send()
+                            self.downloads[index].state = .failed
+                            self.downloadErrors[item.id] = error.localizedDescription
+                            self.saveDownloads()
+                        }
+                        self.processQueue()
+                    }
+                    
+                    // Cleanup
+                    self.ffmpegDownloaders.removeValue(forKey: item.id)
+                }
+            }
+        )
     }
 
     
