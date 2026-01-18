@@ -2391,6 +2391,12 @@ class StreamingService {
         // Prefer "vidmoly" or "vidzy" if available as they are reliable, else take first
         let sameLangSources = sources.filter { $0.language.lowercased() == previousLanguage.lowercased() }
         
+        
+        // Highest priority: AnimeAPI (for VO anime content - User Request)
+        if let animeapi = sameLangSources.first(where: { $0.provider.lowercased() == "animeapi" }) {
+             print("✅ [StreamingService] Found SAME LANGUAGE match (AnimeAPI): \(animeapi.provider)")
+             return animeapi
+        }
         if let vidmoly = sameLangSources.first(where: { $0.provider == "vidmoly" }) {
              print("✅ [StreamingService] Found SAME LANGUAGE match (Vidmoly): \(vidmoly.provider)")
              return vidmoly

@@ -1052,6 +1052,12 @@ const StreamingSources = memo(function StreamingSources({
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
+      // Rang -1: AnimeAPI (Highest priority for VO anime - User Request)
+      if (source.provider?.toLowerCase() === 'animeapi' ||
+        source.name.toLowerCase().includes('animeapi')) {
+        return -1;
+      }
+
       // Rang 0: Vidzy (Priorité absolue - User Request)
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
