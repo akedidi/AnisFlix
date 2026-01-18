@@ -264,11 +264,13 @@ export default async function handler(req, res) {
                 // Strategy: Use /discover/tv to filter strictly by network server-side
                 // and expand the date range to 1 month to ensure volume (200+ results).
 
-                // Allowed Networks (14 from Home page)
-                // Netflix (213), Amazon (1024), Apple TV+ (2552), Disney+ (2739), 
-                // HBO (49), HBO Max (3186), Max (6783), Peacock (3353), Paramount+ (4330)
-                // Canal+ (285), TF1 (290), M6 (712), Arte (662, 1628)
-                const allowedNetworkIds = "213|1024|2552|2739|49|3186|6783|3353|4330|285|290|712|662|1628";
+                // Allowed Networks (Expanded for better coverage)
+                // Streaming: Netflix (213), Amazon (1024), Apple TV+ (2552), Disney+ (2739), Hulu (453), Crunchyroll (1112)
+                // Premium: HBO (49), HBO Max (3186), Max (6783), Showtime (67), Starz (318), Peacock (3353), Paramount+ (4330)
+                // US Broadcast: NBC (6), ABC (2), CBS (16), Fox (19), FX (88), Warner Bros (3267)
+                // French: Canal+ (285), TF1 (290), M6 (712), M6+ (6694), Arte (662, 1628), ADN (2278)
+                // Anime: MBS (94), TBS (160), Crunchyroll (1112)
+                const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|6783|67|318|3353|4330|6|2|16|19|88|3267|285|290|712|6694|662|1628|2278|94|160";
 
                 const today = new Date();
                 const todayStr = today.toISOString().slice(0, 10);
