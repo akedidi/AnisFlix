@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.33",
-          "date": "2026-01-18",
-          "size": 30575225,
+          "version": "1.0.34",
+          "date": "2026-01-19",
+          "size": 30579624,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): disable Luluvid downloads (server 403) but keep Vidzy working "
+          "localizedDescription": "feat(afterdark): enable FFmpeg downloads with proper headers "
         }
       ]
     }

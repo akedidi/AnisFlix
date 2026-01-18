@@ -986,8 +986,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         // Vidzy Logic: Use ResourceLoader to sanitize playlists (remove VIDEO-RANGE, I-FRAMES)
-        if url.absoluteString.lowercased().contains("vidzy") {
-            print("🎬 [CustomVideoPlayer] Vidzy URL detected, enabling ResourceLoader")
+        // IMPORTANT: Check HOST only, not full URL (to avoid false positives with AfterDark proxy which has vidzy in query params)
+        let isVidzyHost = url.host?.lowercased().contains("vidzy") == true
+        if isVidzyHost {
+            print("🎬 [CustomVideoPlayer] Vidzy HOST detected, enabling ResourceLoader")
             useResourceLoader = true
             
             // Rewrite scheme to trigger delegate
