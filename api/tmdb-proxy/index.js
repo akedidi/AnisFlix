@@ -269,8 +269,8 @@ export default async function handler(req, res) {
                 // Premium: HBO (49), HBO Max (3186), Max (6783), Showtime (67), Starz (318), Peacock (3353), Paramount+ (4330)
                 // US Broadcast: NBC (6), ABC (2), CBS (16), Fox (19), FX (88), Warner Bros (3267)
                 // French: Canal+ (285), TF1 (290), M6 (712), M6+ (6694), Arte (662, 1628), ADN (2278)
-                // Anime: MBS (94), TBS (160), Crunchyroll (1112), Tokyo MX (333), Fuji TV (1), Nippon TV (1004), TV Asahi (5), TV Tokyo (9), AT-X (75), WOWOW (173), BS11 (1013), Sun TV (1035)
-                const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|6783|67|318|3353|4330|6|2|16|19|88|3267|285|290|712|6694|662|1628|2278|94|160|333|1|1004|5|9|75|173|1013|1035";
+                // Anime: MBS (94), TBS (160), Crunchyroll (1112)
+                const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|6783|67|318|3353|4330|6|2|16|19|88|3267|285|290|712|6694|662|1628|2278|94|160";
 
                 const today = new Date();
                 const todayStr = today.toISOString().slice(0, 10);
