@@ -240,4 +240,44 @@ export class AfterDarkScraper {
             }];
         }
     }
+
+    /**
+     * Process raw sources from AfterDark API into standardized format
+     */
+    processSources(rawSources) {
+        return rawSources
+            .filter(source => {
+                // Filter: kind must be hls AND proxied must be false
+                if (source.proxied !== false) return false;
+                if (source.kind !== 'hls') return false;
+                return true;
+            })
+            .map(source => {
+                // Map Language
+                let language = 'VF';
+                const lang = (source.language || '').toLowerCase();
+
+                if (lang === 'english' || lang === 'eng' || lang === 'en' || lang.includes('vo')) {
+                    language = 'VO';
+                } else if (lang === 'multi') {
+                    language = 'VF';
+                } else if (lang.includes('vostfr')) {
+                    language = 'VOSTFR';
+                }
+
+                return {
+                    name: `AfterDark ${language} ${source.quality || 'HD'}`,
+                    url: source.url,
+                    quality: source.quality || 'HD',
+                    type: 'm3u8',
+                    provider: 'afterdark',
+                    language: language,
+                    headers: {
+                        'Referer': 'https://proxy.afterdark.click/',
+                        'Origin': 'https://proxy.afterdark.click',
+                        'User-Agent': this.headers['User-Agent']
+                    }
+                };
+            });
+    }
 }
