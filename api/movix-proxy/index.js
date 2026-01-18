@@ -961,53 +961,8 @@ export default async function handler(req, res) {
       return;
     }
 
-    // GÉRER AFTERDARK ICI
-    if (decodedPath === 'afterdark') {
-      try {
-        const { tmdbId, type, season, episode } = queryParams;
-        let { title, year, originalTitle } = queryParams;
+    // DUPLICATE AFTERDARK HANDLER REMOVED
 
-        if (!tmdbId || !type) {
-          return res.status(400).json({ error: 'Missing parameters (tmdbId, type)' });
-        }
-
-        // Fetch TMDB info if title or year is missing
-        if (!title || (!year && type === 'movie')) {
-          console.log(`🚀 [MOVIX PROXY AFTERDARK] Fetching TMDB info for ${type} ${tmdbId}`);
-          try {
-            const tmdbInfo = await movieBoxScraper.getTmdbInfo(tmdbId, type);
-            console.log(`✅ [MOVIX PROXY AFTERDARK] TMDB Info received:`, JSON.stringify(tmdbInfo));
-            if (tmdbInfo.title && tmdbInfo.title !== 'Unknown') {
-              title = tmdbInfo.title;
-              year = tmdbInfo.year;
-              originalTitle = tmdbInfo.originalTitle;
-            }
-          } catch (tmdbError) {
-            console.error(`❌ [MOVIX PROXY AFTERDARK] TMDB Fetch Failed:`, tmdbError.message);
-          }
-        }
-
-        console.log(`🚀 [MOVIX PROXY AFTERDARK] Calling Scraper with:`, {
-          tmdbId, type, title, year, season, episode, originalTitle
-        });
-
-        const streams = await afterDarkScraper.getStreams(
-          tmdbId,
-          type,
-          title,
-          year,
-          season,
-          episode,
-          originalTitle
-        );
-
-        return res.status(200).json({ success: true, streams });
-
-      } catch (error) {
-        console.error('[MOVIX PROXY AFTERDARK ERROR]', error.message);
-        return res.status(500).json({ error: 'Erreur proxy AfterDark', details: error.message });
-      }
-    }
 
     // GÉRER CINEPRO ICI
     if (decodedPath === 'cinepro') {
