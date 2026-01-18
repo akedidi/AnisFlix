@@ -1978,7 +1978,7 @@ export default async function handler(req, res) {
           try {
             const execPath = await chromium.executablePath();
             browser = await puppeteer.launch({
-              args: chromium.args,
+              args: [...chromium.args, '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox'],
               defaultViewport: chromium.defaultViewport,
               executablePath: execPath || '/usr/bin/chromium',
               headless: chromium.headless,
@@ -1986,6 +1986,14 @@ export default async function handler(req, res) {
             });
 
             const page = await browser.newPage();
+
+            // STEALTH: Remove navigator.webdriver to allow Cloudflare bypass
+            await page.evaluateOnNewDocument(() => {
+              Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined,
+              });
+            });
+
             await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
             // Extra headers (Referer/Origin)
@@ -1994,7 +2002,8 @@ export default async function handler(req, res) {
             }
 
             // Go to URL and wait for Network Idle (Cloudflare challenge might take a moment)
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 25000 });
+            // Increased timeout to 30s
+            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
             // Get JSON content from body
             const innerText = await page.evaluate(() => document.body.innerText);
