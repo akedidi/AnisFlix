@@ -81,8 +81,51 @@ export class AfterDarkScraper {
                     // Fallthrough to proxies
                 }
             } else {
-                console.log("🌑 [AfterDark] No fetcher provided, skipping Puppeteer");
+                console.log(`🌑 [AfterDark] No fetcher provided, skipping Puppeteer (fetcher type: ${typeof fetcher})`);
             }
+
+            // Worker Params
+            const workerParams = new URLSearchParams();
+            workerParams.append('path', 'afterdark');
+            workerParams.append('tmdbId', tmdbId);
+            workerParams.append('type', type);
+            if (title) workerParams.append('title', title);
+            if (type === 'movie') {
+                if (year) workerParams.append('year', year);
+                if (originalTitle) workerParams.append('originalTitle', originalTitle);
+            } else {
+                if (season) workerParams.append('season', season);
+                if (episode) workerParams.append('episode', episode);
+            }
+
+            const proxies = [
+                {
+                    name: 'CorsProxy.io',
+                    url: `https://corsproxy.io/?${fullTargetUrl}`,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Origin': 'https://afterdark.mom',
+                        'Referer': 'https://afterdark.mom/'
+                    }
+                },
+                {
+                    name: 'Cloudflare Worker',
+                    url: `https://anisflix.kedidi-anis.workers.dev?${workerParams.toString()}`,
+                    headers: {
+                        'User-Agent': 'AnisFlix-Vercel-Proxy',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Upgrade-Insecure-Requests': '1'
+                    }
+                },
+                {
+                    name: 'AllOrigins',
+                    url: `https://api.allorigins.win/raw?url=${encodeURIComponent(fullTargetUrl)}`,
+                    headers: {}
+                }
+            ];
 
             for (const proxy of proxies) {
                 console.log(`🌑 [AfterDark] Trying proxy: ${proxy.name} -> ${proxy.url}`);
