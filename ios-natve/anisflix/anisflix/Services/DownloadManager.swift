@@ -818,6 +818,16 @@ class DownloadManager: NSObject, ObservableObject {
         }
     }
     
+    private func updateProgress(for id: String, progress: Double) {
+        if let index = downloads.firstIndex(where: { $0.id == id }) {
+            // Only update if progress changed significantly (avoid excessive updates)
+            if abs(downloads[index].progress - progress) > 0.01 {
+                downloads[index].progress = progress
+                saveDownloads()
+            }
+        }
+    }
+    
     private func saveDownloads() {
         if let data = try? JSONEncoder().encode(downloads) {
             UserDefaults.standard.set(data, forKey: downloadsKey)

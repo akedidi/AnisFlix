@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UIKit
 import ffmpegkit
 
 class VidzyFFmpegDownloader {
@@ -54,7 +55,7 @@ class VidzyFFmpegDownloader {
                 
                 print("🏁 [VidzyFFmpeg] Session completed")
                 print("   - Return code: \(returnCode?.getValue() ?? -999)")
-                print("   - State: \(state?.rawValue ?? "unknown")")
+                print("   - State: \(String(describing: state?.rawValue ?? 0))")
                 
                 if ReturnCode.isSuccess(returnCode) {
                     print("✅ [VidzyFFmpeg] Download successful")
@@ -99,7 +100,7 @@ class VidzyFFmpegDownloader {
                     progress(estimatedProgress)
                     
                     // Log every 10 seconds
-                    if time % 10000 < 1000 {
+                    if time.truncatingRemainder(dividingBy: 10000) < 1000 {
                         print("⏱️ [VidzyFFmpeg] Progress: \(time)ms, \(size) bytes")
                     }
                 }
