@@ -1214,7 +1214,7 @@ class StreamingService {
     }
     
     
-    // MARK: - AfterDark API
+    // MARK: - AfterDark API (Direct call - iOS has no CORS)
     func fetchAfterDarkSources(
         tmdbId: Int,
         type: String,
@@ -1224,97 +1224,106 @@ class StreamingService {
         season: Int? = nil,
         episode: Int? = nil
     ) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/movix-proxy?path=afterdark"
-        
-        if type == "movie" {
-            urlString += "&type=movie&tmdbId=\(tmdbId)"
-        } else {
-             urlString += "&type=tv&tmdbId=\(tmdbId)"
-             if let s = season { urlString += "&season=\(s)" }
-             if let e = episode { urlString += "&episode=\(e)" }
-        }
+        // Build AfterDark API URL directly (iOS doesn't have CORS restrictions)
+        let endpoint = type == "movie" ? "movies" : "shows"
+        var afterDarkUrl = "https://afterdark.mom/api/sources/\(endpoint)?tmdbId=\(tmdbId)"
         
         if let t = title {
             let encoded = t.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? t
-            urlString += "&title=\(encoded)"
-        }
-        if let y = year {
-             urlString += "&year=\(y)"
-        }
-        if let ot = originalTitle {
-             let encoded = ot.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ot
-             urlString += "&originalTitle=\(encoded)"
+            afterDarkUrl += "&title=\(encoded)"
         }
         
-        guard let url = URL(string: urlString) else {
+        if type == "movie" {
+            if let y = year {
+                afterDarkUrl += "&year=\(y)"
+            }
+            if let ot = originalTitle {
+                let encoded = ot.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ot
+                afterDarkUrl += "&originalTitle=\(encoded)"
+            }
+        } else {
+            if let s = season { afterDarkUrl += "&season=\(s)" }
+            if let e = episode { afterDarkUrl += "&episode=\(e)" }
+        }
+        
+        guard let url = URL(string: afterDarkUrl) else {
             throw URLError(.badURL)
         }
         
-        
-        print("🌐 [AfterDark] Fetching URL: \(url.absoluteString)")
+        print("🌐 [AfterDark] Direct fetch: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
-        request.timeoutInterval = 30 // Increased to 30s
+        request.timeoutInterval = 20
         
-        // Add headers to mimic browser request
+        // Headers to mimic browser request
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://afterdark.mom", forHTTPHeaderField: "Origin")
+        request.setValue("https://afterdark.mom/", forHTTPHeaderField: "Referer")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                 print("❌ [AfterDark] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                print("❌ [AfterDark] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
                 throw URLError(.badServerResponse)
             }
             
+            // AfterDark API returns { meta: {...}, sources: [...] }
+            // We need to decode this structure
+            struct AfterDarkDirectResponse: Codable {
+                let meta: AfterDarkMeta?
+                let sources: [AfterDarkSource]?
+            }
+            struct AfterDarkMeta: Codable {
+                let title: String?
+                let tmdbId: String?
+            }
+            
             let decoder = JSONDecoder()
-            let afterdarkResponse = try decoder.decode(AfterDarkResponse.self, from: data)
+            let afterdarkResponse = try decoder.decode(AfterDarkDirectResponse.self, from: data)
             
             print("✅ [AfterDark] Decoded response. Sources: \(afterdarkResponse.sources?.count ?? 0)")
             
             var sources: [StreamingSource] = []
             
             if let afterdarkSources = afterdarkResponse.sources {
-            for source in afterdarkSources {
-                // Filter requested by user: kind=hls and proxied=false
-                if source.proxied != false {
-                    print("⚠️ [AfterDark] Skipping proxied source: \(source.name ?? "unknown")")
-                    continue
-                }
-                
-                if source.kind != "hls" {
-                    print("⚠️ [AfterDark] Skipping non-hls source: \(source.kind ?? "nil")")
-                    continue
-                }
-
-                // Map 'kind' to type
-                let streamType = "m3u8" // Since we filter for hls, it's always m3u8
-                
-                // Map language
-                var language = "VF"
-                if let lang = source.language?.lowercased() {
-                    if lang == "english" || lang == "eng" || lang == "en" {
-                        language = "VO"
-                    } else if lang == "multi" {
-                        language = "VF"
-                    } else if lang.contains("vo") {
-                        language = "VO"
+                for source in afterdarkSources {
+                    // Filter: kind=hls and proxied=false
+                    if source.proxied != false {
+                        print("⚠️ [AfterDark] Skipping proxied source: \(source.name ?? "unknown")")
+                        continue
                     }
+                    
+                    if source.kind != "hls" {
+                        print("⚠️ [AfterDark] Skipping non-hls source: \(source.kind ?? "nil")")
+                        continue
+                    }
+                    
+                    // Map language
+                    var language = "VF"
+                    if let lang = source.language?.lowercased() {
+                        if lang == "english" || lang == "eng" || lang == "en" {
+                            language = "VO"
+                        } else if lang == "multi" {
+                            language = "VF"
+                        } else if lang.contains("vo") {
+                            language = "VO"
+                        }
+                    }
+                    
+                    let streamSource = StreamingSource(
+                        url: source.url,
+                        quality: source.quality ?? "HD",
+                        type: "m3u8",
+                        provider: "afterdark",
+                        language: language,
+                        origin: "afterdark"
+                    )
+                    sources.append(streamSource)
                 }
-                
-                let streamSource = StreamingSource(
-                    url: source.url,
-                    quality: source.quality ?? "HD",
-                    type: streamType,
-                    provider: "afterdark",
-                    language: language,
-                    origin: "afterdark"
-                )
-                sources.append(streamSource)
             }
-        }
-        
+            
             return sources
         } catch {
             print("❌ [AfterDark] Error fetching/decoding: \(error)")
