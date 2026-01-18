@@ -85,8 +85,8 @@ class DownloadManager: NSObject, ObservableObject {
     private var assetDownloadSession: AVAssetDownloadURLSession!
     private var activeAssetDownloads: [String: AVAssetDownloadTask] = [:]
     
-    // FFmpeg-based downloads (for Vidzy with custom headers)
-    private var ffmpegDownloaders: [String: VidzyFFmpegDownloader] = [:]
+    // FFmpeg-based downloads (for Vidzy, Luluvid with custom headers)
+    private var ffmpegDownloaders: [String: HLSFFmpegDownloader] = [:]
     
     // Separate error persistence to avoid breaking DownloadItem schema
     @Published var downloadErrors: [String: String] = [:]
@@ -732,10 +732,15 @@ class DownloadManager: NSObject, ObservableObject {
         print("   - URL: \(url)")
         print("   - Provider: \(item.provider ?? "unknown")")
         
-        // Check if Vidzy - use FFmpeg instead of AVAssetDownloadTask
-        if url.host?.contains("vidzy") == true {
-            print("🎬 [DownloadManager] Detected Vidzy, using FFmpeg downloader")
-            startVidzyFFmpegDownload(for: item)
+        // Check if Vidzy or Luluvid - use FFmpeg instead of AVAssetDownloadTask
+        // Note: Use provider check, not URL, because extracted URLs can be on different domains
+        let isVidzy = url.host?.contains("vidzy") == true || item.provider == "vidzy"
+        let isLuluvid = item.provider == "luluvid" || item.provider == "lulustream"
+        
+        if isVidzy || isLuluvid {
+            let provider = isVidzy ? "vidzy" : "luluvid"
+            print("🎬 [DownloadManager] Detected \(provider), using FFmpeg downloader")
+            startFFmpegDownload(for: item, provider: provider)
             return
         }
         
@@ -761,8 +766,8 @@ class DownloadManager: NSObject, ObservableObject {
         }
     }
 
-    private func startVidzyFFmpegDownload(for item: DownloadItem) {
-        let downloader = VidzyFFmpegDownloader()
+    private func startFFmpegDownload(for item: DownloadItem, provider: String) {
+        let downloader = HLSFFmpegDownloader()
         ffmpegDownloaders[item.id] = downloader
         
         // Get output path
@@ -770,7 +775,7 @@ class DownloadManager: NSObject, ObservableObject {
         
         updateState(for: item.id, state: .downloading)
         
-        downloader.downloadVidzy(url: item.videoUrl, outputPath: outputPath,
+        downloader.download(url: item.videoUrl, outputPath: outputPath, provider: provider,
             progress: { [weak self] progress in
                 DispatchQueue.main.async {
                     self?.updateProgress(for: item.id, progress: progress)

@@ -223,10 +223,9 @@ struct DownloadButton: View {
     }
     
     private func startExtractionAndDownload() {
-        // Block Luluvid downloads - iOS limitation with HLS headers
-        if source.provider == "luluvid" {
-            extractionError = "Le téléchargement n'est pas disponible pour les sources Luluvid. Utilisez la lecture en streaming."
-            return
+        if source.provider == "luluvid" || source.provider == "lulustream" {
+             extractionError = "Le téléchargement n'est pas disponible pour les sources Luluvid. Utilisez la lecture en streaming."
+             return
         }
         
         isExtracting = true
