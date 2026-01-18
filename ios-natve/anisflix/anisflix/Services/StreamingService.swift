@@ -1300,27 +1300,35 @@ class StreamingService {
                         continue
                     }
                     
-                    // Map language
+                    // Map language based on API response
+                    // "unknown", "multi", "VF", "french" => VF
+                    // "en", "english" => VO
+                    // "vostfr" => VOSTFR
                     var language = "VF"
                     if let lang = source.language?.lowercased() {
-                        if lang == "english" || lang == "eng" || lang == "en" {
+                        if lang == "en" || lang == "english" || lang == "eng" {
                             language = "VO"
-                        } else if lang == "multi" {
+                        } else if lang.contains("vostfr") {
+                            language = "VOSTFR"
+                        } else {
+                            // "unknown", "multi", "vf", "french", or anything else => VF
                             language = "VF"
-                        } else if lang.contains("vo") {
-                            language = "VO"
                         }
                     }
                     
+                    // Use quality from API (e.g. "HD", "FHD", "4K")
+                    let quality = source.quality ?? "HD"
+                    
                     let streamSource = StreamingSource(
                         url: source.url,
-                        quality: source.quality ?? "HD",
+                        quality: quality,
                         type: "m3u8",
                         provider: "afterdark",
                         language: language,
                         origin: "afterdark"
                     )
                     sources.append(streamSource)
+                    print("✅ [AfterDark] Added source: \(quality) \(language)")
                 }
             }
             
