@@ -278,7 +278,14 @@ export default async function handler(req, res) {
                 pastDate.setDate(pastDate.getDate() - 60); // Look back 60 days to fill the list (ensures >200 items)
                 const pastDateStr = pastDate.toISOString().slice(0, 10);
 
-                // Fetch directly from discover
+
+                // First, fetch shows airing today/this week (catches episodes airing TODAY)
+                const onTheAirData = await tmdbFetch('/tv/on_the_air', {
+                    language,
+                    page: 1 // Only first page to avoid too many requests
+                });
+
+                // Then fetch from discover for recent episodes (last 60 days)
                 const data = await tmdbFetch('/discover/tv', {
                     language,
                     page: clientPage,
@@ -289,7 +296,18 @@ export default async function handler(req, res) {
                     timezone: 'America/New_York'
                 });
 
-                const allCandidates = data.results || [];
+                // Combine both sources, prioritizing on_the_air for page 1
+                let allCandidates = [];
+                if (clientPage === 1 && onTheAirData?.results) {
+                    // For page 1: merge on_the_air with discover (on_the_air first)
+                    const onTheAirIds = new Set(onTheAirData.results.map(s => s.id));
+                    const discoverFiltered = data.results?.filter(s => !onTheAirIds.has(s.id)) || [];
+                    allCandidates = [...onTheAirData.results, ...discoverFiltered];
+                } else {
+                    // For other pages: just use discover
+                    allCandidates = data.results || [];
+                }
+
                 const maxTMDBPages = data.total_pages;
 
                 console.log(`📺 [TMDB] Fetched Discover Page ${clientPage}. Candidates: ${allCandidates.length}`);
