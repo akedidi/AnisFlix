@@ -100,7 +100,12 @@ class HLSFFmpegDownloader {
                         // Format: "Duration: HH:MM:SS.ms"
                         // This is complex parsing, skip for now
                     }
-                    print("📋 [FFmpeg Log]: \(message)")
+                if let message = log?.getMessage() {
+                    // Filter out verbose progress logs (frame=, speed=, etc.) to keep console clean
+                    if !message.contains("frame=") && !message.contains("speed=") {
+                         print("📋 [FFmpeg Log]: \(message)")
+                    }
+                }
                 }
             },
             withStatisticsCallback: { statistics in
