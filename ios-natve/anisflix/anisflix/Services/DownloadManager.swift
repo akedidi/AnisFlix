@@ -732,13 +732,14 @@ class DownloadManager: NSObject, ObservableObject {
         print("   - URL: \(url)")
         print("   - Provider: \(item.provider ?? "unknown")")
         
-        // Check if Vidzy or Luluvid - use FFmpeg instead of AVAssetDownloadTask
+        // Check if Vidzy, Luluvid, or AfterDark - use FFmpeg instead of AVAssetDownloadTask
         // Note: Use provider check, not URL, because extracted URLs can be on different domains
         let isVidzy = url.host?.contains("vidzy") == true || item.provider == "vidzy"
         let isLuluvid = item.provider == "luluvid" || item.provider == "lulustream"
+        let isAfterDark = item.provider == "afterdark" || url.host?.contains("afterdark") == true
         
-        if isVidzy || isLuluvid {
-            let provider = isVidzy ? "vidzy" : "luluvid"
+        if isVidzy || isLuluvid || isAfterDark {
+            let provider = isVidzy ? "vidzy" : (isLuluvid ? "luluvid" : "afterdark")
             print("🎬 [DownloadManager] Detected \(provider), using FFmpeg downloader")
             startFFmpegDownload(for: item, provider: provider)
             return

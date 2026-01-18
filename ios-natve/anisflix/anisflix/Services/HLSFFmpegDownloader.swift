@@ -50,6 +50,9 @@ class HLSFFmpegDownloader {
             let refererDomain = urlComponents?.host ?? "luluvid.com"
             let refererScheme = urlComponents?.scheme ?? "https"
             headers = "Referer: \(refererScheme)://\(refererDomain)/\\r\\nUser-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
+        case "afterdark":
+            // AfterDark uses proxy.afterdark.baby which requires Referer/Origin
+            headers = "Referer: https://afterdark.mom/\\r\\nOrigin: https://afterdark.mom\\r\\nUser-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
         default:
             headers = "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
         }
