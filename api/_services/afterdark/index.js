@@ -95,6 +95,15 @@ export class AfterDarkScraper {
 
             const proxies = [
                 {
+                    name: 'CorsProxy.io',
+                    url: `https://corsproxy.io/?${fullTargetUrl}`,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Origin': 'https://afterdark.mom',
+                        'Referer': 'https://afterdark.mom/'
+                    }
+                },
+                {
                     name: 'Cloudflare Worker',
                     url: `https://anisflix.kedidi-anis.workers.dev?${workerParams.toString()}`,
                     headers: {
@@ -104,15 +113,6 @@ export class AfterDarkScraper {
                         'Sec-Fetch-Mode': 'navigate',
                         'Sec-Fetch-Site': 'none',
                         'Upgrade-Insecure-Requests': '1'
-                    }
-                },
-                {
-                    name: 'CorsProxy.io',
-                    url: `https://corsproxy.io/?${fullTargetUrl}`,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Origin': 'https://afterdark.mom',
-                        'Referer': 'https://afterdark.mom/'
                     }
                 },
                 {
