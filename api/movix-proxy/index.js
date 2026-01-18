@@ -1974,7 +1974,7 @@ export default async function handler(req, res) {
         };
 
         // Pass puppeteerFetcher to scraper
-        const sources = await afterdarkScraper.getStreams(tmdbId, type, title, year, season, episode, originalTitle, afterdarkPuppeteerFetcher);
+        const sources = await afterDarkScraper.getStreams(tmdbId, type, title, year, season, episode, originalTitle, afterdarkPuppeteerFetcher);
 
         console.log(`🌙 [AfterDark] Found ${sources.length} sources via Scraper/Worker`);
 
