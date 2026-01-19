@@ -292,7 +292,7 @@ export default async function handler(req, res) {
                     'with_networks': allowedNetworkIds,
                     'air_date.lte': todayStr,
                     'air_date.gte': pastDateStr,
-                    'sort_by': 'first_air_date.desc', // Show most recent episodes first
+                    'sort_by': 'popularity.desc', // Use popularity to surface active/relevant shows first
                     timezone: 'America/New_York'
                 });
 
