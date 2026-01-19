@@ -265,12 +265,12 @@ export default async function handler(req, res) {
                 // and expand the date range to 1 month to ensure volume (200+ results).
 
                 // Allowed Networks (Expanded for better coverage)
-                // Streaming: Netflix (213), Amazon (1024), Apple TV+ (2552), Disney+ (2739), Hulu (453), Crunchyroll (1112)
-                // Premium: HBO (49), HBO Max (3186), Max (6783), Showtime (67), Starz (318), Peacock (3353), Paramount+ (4330)
-                // US Broadcast: NBC (6), ABC (2), CBS (16), Fox (19), FX (88), Warner Bros (3267)
-                // French: Canal+ (285), TF1 (290), M6 (712), M6+ (6694), Arte (662, 1628), ADN (2278)
+                // Streaming: Netflix (213), Amazon (1024), Apple TV+ (2552), Disney+ (2739), Hulu (453), Crunchyroll (1112), AMC+ (4661), Sundance Now (2363), TVA+ (4590)
+                // Premium: HBO (49), HBO Max (3186, 8304), Max (6783), Showtime (67), Starz (318), Peacock (3353), Paramount+ (4330)
+                // US/UK Broadcast: NBC (6), ABC (2), CBS (16), Fox (19), FX (88), Warner Bros (3267), BBC One (4), BBC Two (332), National Geographic (43), AMC (174)
+                // French/CA: Canal+ (285), TF1 (290), M6 (712), M6+ (6694), Arte (662, 1628), ADN (2278), TVA (302), CBC (23), Global TV (218)
                 // Anime: MBS (94), TBS (160), Crunchyroll (1112)
-                const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|6783|67|318|3353|4330|6|2|16|19|88|3267|285|290|712|6694|662|1628|2278|94|160";
+                const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|8304|6783|67|318|3353|4330|6|2|16|19|88|3267|4|332|285|290|712|6694|662|1628|2278|302|23|94|160|2363|4661|43|174|218|4590";
 
                 const today = new Date();
                 const todayStr = today.toISOString().slice(0, 10);
