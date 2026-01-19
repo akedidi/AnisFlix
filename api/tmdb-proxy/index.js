@@ -369,7 +369,13 @@ export default async function handler(req, res) {
                 const finalResults = enrichedResults
                     .filter(item => item !== null)
                     .filter(item => item.episodeInfo && (item.poster_path || item.posterPath)) // Strict check for metadata
-                    .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i);
+                    .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
+                    // Sort by episode date descending (newest first)
+                    .sort((a, b) => {
+                        const dateA = new Date(a.episodeInfo.date || '1970-01-01');
+                        const dateB = new Date(b.episodeInfo.date || '1970-01-01');
+                        return dateB - dateA;
+                    });
 
                 console.log(`✅ [TMDB PROXY] Returning ${finalResults.length} filtered series (Western Networks)`);
 
