@@ -12,6 +12,15 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
     private let session: URLSession
     private var activeTasks: [Int: URLSessionDataTask] = [:]
     
+    // Store the original base URL (directory containing master.m3u8) for Vidzy
+    // This is needed because AVPlayer corrupts relative paths through its URL resolution
+    private static var originalVidzyBaseURL: String?
+    
+    /// Call this to reset the stored base URL when starting a new video
+    static func resetVidzyBaseURL() {
+        originalVidzyBaseURL = nil
+    }
+    
     override init() {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
@@ -34,14 +43,128 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         guard let realUrl = components?.url else { return false }
         
         // Strip the virtual suffix (used only for AVPlayer detection) before making request
+        // IMPORTANT: The 'virtual' param contains:
+        // 1. A path segment to append (e.g., .m3u8/index-v1-a1.m3u8)
+        // 2. Duplicate query params after a '?' that we must ignore
         var cleanUrl = realUrl
-        if var cleanComponents = URLComponents(url: realUrl, resolvingAgainstBaseURL: false),
-           var items = cleanComponents.queryItems {
-            // Remove 'virtual' param
-            items.removeAll { $0.name == "virtual" }
-            cleanComponents.queryItems = items.isEmpty ? nil : items
-            if let url = cleanComponents.url {
-                 cleanUrl = url
+        let urlString = realUrl.absoluteString
+        
+        // Check if URL contains "&virtual=" or "?virtual="
+        if let virtualRange = urlString.range(of: "&virtual=") ?? urlString.range(of: "?virtual=") {
+            // Get the base URL (before virtual param)
+            let baseString = String(urlString[..<virtualRange.lowerBound])
+            
+            // Get the virtual value (after "virtual=")
+            let afterVirtual = String(urlString[virtualRange.upperBound...])
+            
+            // CRITICAL FIX: The virtual parameter can become chained as AVPlayer navigates:
+            // .m3u8 -> .m3u8/index-v1-a1.m3u8 -> .m3u8/index-v1-a1.m3u8/seg-1-v1-a1.ts
+            // We need to extract the LAST actual file (the one being requested now).
+            
+            // Find all media file paths in the chained value
+            // Look for the LAST occurrence of a known media file pattern
+            var virtualPath = ""
+            
+            // Split by common delimiters that appear in the chained path
+            let segments = afterVirtual.components(separatedBy: CharacterSet(charactersIn: "?/")).filter { !$0.isEmpty }
+            
+            // Find the last segment that looks like a media file
+            for segment in segments.reversed() {
+                if segment.hasSuffix(".ts") || segment.hasSuffix(".m3u8") || segment.hasSuffix(".mp4") || segment.hasSuffix(".aac") || segment.hasSuffix(".vtt") {
+                    virtualPath = segment
+                    break
+                }
+            }
+            
+            // If no media file found, try the old logic (first path before ?)
+            if virtualPath.isEmpty {
+                virtualPath = afterVirtual
+                if let queryStart = afterVirtual.range(of: "?") {
+                    virtualPath = String(afterVirtual[..<queryStart.lowerBound])
+                }
+                virtualPath = virtualPath.removingPercentEncoding ?? virtualPath
+                
+                // Strip leading ".m3u8/" artifact
+                if virtualPath.hasPrefix(".m3u8/") {
+                    virtualPath = String(virtualPath.dropFirst(".m3u8/".count))
+                }
+            }
+            
+            print("   - Extracted file from virtual: \(virtualPath)")
+            
+            // STRATEGY: Use stored base URL for Vidzy to avoid AVPlayer path corruption
+            // On first request (master.m3u8), store the base directory
+            // On subsequent requests, use stored base + extracted filename
+            
+            if isVidzy {
+                // Check if this is the first request (master.m3u8)
+                if virtualPath == ".m3u8" || virtualPath.isEmpty {
+                    // First request - store the base URL (directory containing master.m3u8)
+                    if var components = URLComponents(string: baseString) {
+                        // Remove the filename from path, keep directory
+                        let path = components.path
+                        if let lastSlash = path.lastIndex(of: "/") {
+                            components.path = String(path[...lastSlash])
+                        }
+                        // Store without query params (we'll add the correct ones each time)
+                        VideoResourceLoaderDelegate.originalVidzyBaseURL = "\(components.scheme ?? "https")://\(components.host ?? "")\(components.path)"
+                        print("   - Stored Vidzy base URL: \(VideoResourceLoaderDelegate.originalVidzyBaseURL ?? "nil")")
+                    }
+                    // Use baseString directly for this request (it's already correct for master.m3u8)
+                    if let url = URL(string: baseString) {
+                        cleanUrl = url
+                    }
+                } else if let storedBase = VideoResourceLoaderDelegate.originalVidzyBaseURL {
+                    // Subsequent request - use stored base + extracted filename
+                    // Extract query params from baseString to preserve the token
+                    var queryString = ""
+                    if let qRange = baseString.range(of: "?") {
+                        // Get only the first set of query params (before virtual)
+                        let afterQ = String(baseString[qRange.upperBound...])
+                        if let virtualIdx = afterQ.range(of: "&virtual=") {
+                            queryString = "?" + String(afterQ[..<virtualIdx.lowerBound])
+                        } else {
+                            queryString = "?" + afterQ
+                        }
+                    }
+                    
+                    let reconstructedUrl = storedBase + virtualPath + queryString
+                    print("   - Reconstructed URL: \(reconstructedUrl)")
+                    if let url = URL(string: reconstructedUrl) {
+                        cleanUrl = url
+                    }
+                } else {
+                    // Fallback: no stored base, use old logic
+                    if let url = URL(string: baseString) {
+                        cleanUrl = url
+                    }
+                }
+            } else {
+                // Non-Vidzy: use original logic
+                var baseComponents = URLComponents(string: baseString)
+                let isBaseM3u8 = baseComponents?.path.hasSuffix(".m3u8") == true
+                let isRedundantSuffix = (virtualPath == ".m3u8" || virtualPath == "/.m3u8") && isBaseM3u8
+                
+                if !virtualPath.isEmpty && !isRedundantSuffix && (virtualPath.hasPrefix(".") || virtualPath.hasPrefix("/") || virtualPath.contains(".m3u8") || virtualPath.contains(".ts")) {
+                    if baseComponents != nil {
+                        var currentPath = baseComponents!.path
+                        if currentPath.hasSuffix("/") && virtualPath.hasPrefix("/") {
+                            virtualPath = String(virtualPath.dropFirst())
+                        } else if !currentPath.hasSuffix("/") && !virtualPath.hasPrefix("/") && !virtualPath.hasPrefix(".") {
+                            currentPath += "/"
+                        }
+                        baseComponents!.path = currentPath + virtualPath
+                        
+                        if let newUrl = baseComponents!.url {
+                            cleanUrl = newUrl
+                            print("   - Virtual path appended: \(virtualPath)")
+                        }
+                    }
+                } else {
+                    if let url = URL(string: baseString) {
+                        cleanUrl = url
+                    }
+                }
             }
         }
         
@@ -52,8 +175,12 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         
         var request = URLRequest(url: cleanUrl)
         
+        // Check if it is a playlist (m3u8)
+        // Sending Range headers for m3u8 playlists often causes HTTP 400/416 errors
+        let isPlaylist = cleanUrl.pathExtension.lowercased() == "m3u8" || cleanUrl.absoluteString.contains(".m3u8")
+        
         let dataRequest = loadingRequest.dataRequest
-        if let dataRequest = dataRequest {
+        if let dataRequest = dataRequest, !isPlaylist { // Only send Range for non-playlist files (segments)
             if dataRequest.requestedLength > 0 {
                 let lower = dataRequest.requestedOffset
                 let upper = lower + Int64(dataRequest.requestedLength) - 1
@@ -64,11 +191,14 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         }
         
         // Ensure we send a browser-like User-Agent to avoid blocking
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        // Match DownloadManager: "Mozilla/5.0 (iPhone...)"
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.setValue("*/*", forHTTPHeaderField: "Accept")
         
-        // Add Referer header for Vidzy requests
+        // Add Referer header matching DownloadManager (which works)
         if isVidzy {
             request.setValue("https://vidzy.org/", forHTTPHeaderField: "Referer")
+            // request.setValue("https://vidzy.org", forHTTPHeaderField: "Origin") // Optional, mostly Referer matters
         }
         
         let task = session.dataTask(with: request) { [weak self] data, response, error in
@@ -83,6 +213,11 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
             if let response = response as? HTTPURLResponse, let data = data {
                 print("📥 [\(providerName)Loader] Received response: \(response.statusCode) for \(realUrl.lastPathComponent)")
                 print("   - Data size: \(data.count) bytes")
+                
+                // CRITICAL DEBUG: Print error body
+                if response.statusCode >= 400, let bodyString = String(data: data, encoding: .utf8) {
+                    print("❌ [\(providerName)Loader] Error Body: \(bodyString)")
+                }
                 
                 // Sanitize headers
                 var headers = response.allHeaderFields as? [String: String] ?? [:]
@@ -141,7 +276,8 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         // Vidzy Specific Logic
                         // Convert relative URLs to Absolute HTTPS, then rewrite ONLY .m3u8 to custom scheme
                         if realUrl.absoluteString.lowercased().contains("vidzy") {
-                            let baseUrl = realUrl.deletingLastPathComponent().absoluteString
+                            // Use stored base URL (set from master.m3u8 request) instead of corrupted realUrl
+                            let baseUrl = VideoResourceLoaderDelegate.originalVidzyBaseURL ?? cleanUrl.deletingLastPathComponent().absoluteString
                             var vidzyLines = [String]()
                             
                             playlistContent.enumerateLines { line, _ in
@@ -199,13 +335,17 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                 var uti = "public.data"
                 var finalMimeType = headers["Content-Type"] ?? headers["content-type"] ?? "application/octet-stream"
                 
-                // 1. Try to guess from URL extension first (most reliable for our rewritten URLs)
-                if realUrl.absoluteString.contains(".m3u8") || realUrl.pathExtension == "m3u8" {
-                    uti = "com.apple.m3u-playlist"
-                    finalMimeType = "application/vnd.apple.mpegurl"
-                } else if realUrl.absoluteString.contains(".ts") || realUrl.pathExtension == "ts" {
+                // 1. Try to guess from CLEANED URL extension first (most reliable)
+                // CRITICAL: Use cleanUrl, NOT realUrl! realUrl contains ".m3u8" in virtual param for ALL files
+                let cleanUrlString = cleanUrl.absoluteString
+                let cleanPathExt = cleanUrl.pathExtension.lowercased()
+                
+                if cleanPathExt == "ts" || cleanUrlString.hasSuffix(".ts") || (cleanUrlString.contains(".ts?") && !cleanUrlString.contains(".m3u8?")) {
                     uti = "public.mpeg-2-transport-stream"
                     finalMimeType = "video/mp2t"
+                } else if cleanPathExt == "m3u8" || cleanUrlString.contains(".m3u8") {
+                    uti = "com.apple.m3u-playlist"
+                    finalMimeType = "application/vnd.apple.mpegurl"
                 }
                 
                 // 2. If ambiguous, check server Content-Type
