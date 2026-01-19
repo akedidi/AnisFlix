@@ -241,10 +241,10 @@ export default async function handler(req, res) {
             console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language})`);
 
             const data = await tmdbFetch('/discover/movie', {
-                sort_by: 'primary_release_date.desc',
+                sort_by: 'release_date.desc',
                 include_adult: 'false',
                 include_video: 'false',
-                'primary_release_date.lte': lastDateLte,
+                'release_date.lte': lastDateLte,
                 with_release_type: releaseTypes,
                 'vote_count.gte': '5',
                 page: page,

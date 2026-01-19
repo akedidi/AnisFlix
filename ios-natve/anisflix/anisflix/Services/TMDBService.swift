@@ -157,8 +157,8 @@ class TMDBService {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let todayStr = dateFormatter.string(from: Date())
         
-        // MATCHING WEB LOGIC: sort_by 'release_date.desc' + filter future releases (lte today)
-        let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=release_date.desc&release_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
+        // MATCHING WEB LOGIC: sort_by 'release_date.desc' + filter future releases (lte today) + Digital/Physical types
+        let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=release_date.desc&release_date.lte=\(todayStr)&with_release_type=4|5&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
     }
@@ -170,7 +170,7 @@ class TMDBService {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         let todayStr = dateFormatter.string(from: Date())
         
-        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
+        let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=popularity.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }
     }
@@ -184,7 +184,7 @@ class TMDBService {
         
         // Special handling for Science Fiction (878) to match web logic
         if genreId == 878 {
-            let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=primary_release_date.desc&primary_release_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
+            let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=release_date.desc&release_date.lte=\(todayStr)&with_release_type=4|5&with_watch_monetization_types=flatrate&watch_region=FR"
             let response: TMDBResponse = try await fetch(from: endpoint)
             return response.results.map { $0.toMedia(mediaType: .movie) }
         }
@@ -213,7 +213,7 @@ class TMDBService {
         
         // Special handling for Sci-Fi & Fantasy (10765) to match web logic
         if genreId == 10765 {
-            let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
+            let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=popularity.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
             let response: TMDBResponse = try await fetch(from: endpoint)
             return response.results.map { $0.toMedia(mediaType: .series) }
         }

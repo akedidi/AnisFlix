@@ -90,9 +90,24 @@ struct LatestEpisodesView: View {
                                     // Title
                                     Text(media.title)
                                         .font(.caption)
-                                        .fontWeight(.medium)
+                                        .fontWeight(.bold) // Bolder series title
                                         .foregroundColor(theme.primaryText)
-                                        .lineLimit(2)
+                                        .lineLimit(1)
+                                    
+                                    // Episode Title
+                                    if let epInfo = media.episodeInfo {
+                                        Text(epInfo.title ?? "")
+                                            .font(.caption2)
+                                            .foregroundColor(theme.secondaryText)
+                                            .lineLimit(1)
+                                            
+                                        if let date = epInfo.date {
+                                             Text(date)
+                                                .font(.caption2)
+                                                .foregroundColor(theme.secondaryText)
+                                                .opacity(0.7)
+                                        }
+                                    }
                                     
                                     // Rating & Year
                                     if let rating = media.rating, rating > 0 {
