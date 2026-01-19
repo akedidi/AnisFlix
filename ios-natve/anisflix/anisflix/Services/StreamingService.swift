@@ -1226,7 +1226,7 @@ class StreamingService {
         season: Int? = nil,
         episode: Int? = nil
     ) async throws -> [StreamingSource] {
-        // Build AfterDark API URL directly (iOS doesn't have CORS restrictions)
+        // Build AfterDark API URL
         let endpoint = type == "movie" ? "movies" : "shows"
         var afterDarkUrl = "https://afterdark.mom/api/sources/\(endpoint)?tmdbId=\(tmdbId)"
         
@@ -1248,11 +1248,14 @@ class StreamingService {
             if let e = episode { afterDarkUrl += "&episode=\(e)" }
         }
         
-        guard let url = URL(string: afterDarkUrl) else {
+        // Wrap with CorsProxy.io (same as web client)
+        let corsProxyUrl = "https://corsproxy.io/?\(afterDarkUrl)"
+        
+        guard let url = URL(string: corsProxyUrl) else {
             throw URLError(.badURL)
         }
         
-        print("🌐 [AfterDark] Direct fetch: \(url.absoluteString)")
+        print("🌐 [AfterDark] Fetch via CorsProxy: \(url.absoluteString)")
         
         var request = URLRequest(url: url)
         request.timeoutInterval = 20
