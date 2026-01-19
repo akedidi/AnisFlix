@@ -284,7 +284,7 @@ export default function MovieDetail() {
   }));
 
   // Map Cpasmal sources
-  const allSources = [...sources, ...tmdbSources, ...universalSources, ...afterDarkMappedSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
+  const allSources = [...sources, ...tmdbSources, ...universalSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB

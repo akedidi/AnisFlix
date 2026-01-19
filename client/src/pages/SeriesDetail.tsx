@@ -288,6 +288,7 @@ export default function SeriesDetail() {
       language: 'VO',
       headers: source.headers
     })) || []),
+    /* AfterDark sources hidden on web
     ...(afterDarkSources?.sources?.map((source: any, index: number) => ({
       id: `afterdark-${index}`,
       name: source.server || 'AfterDark',
@@ -302,6 +303,7 @@ export default function SeriesDetail() {
       quality: source.quality || 'HD',
       language: 'VF'
     })) || []),
+    */
     ...(animeAPISources?.map((source: any, index: number) => ({
       id: `animeapi-${index}`,
       name: 'AnimeAPI',
