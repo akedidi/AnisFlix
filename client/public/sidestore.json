@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.34",
+          "version": "1.0.35",
           "date": "2026-01-19",
-          "size": 30579624,
+          "size": 30579283,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "feat(afterdark): enable FFmpeg downloads with proper headers "
+          "localizedDescription": "feat(afterdark): use corsproxy.io for iOS API calls "
         }
       ]
     }
