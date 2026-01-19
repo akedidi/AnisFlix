@@ -207,6 +207,7 @@ export default async function handler(req, res) {
 
         // Endpoint 1b: Latest Series (Centralized Logic for Vercel)
         if (type === 'series' && req.query.filter === 'last') {
+            const page = req.query.page || 1;
             // Major Networks IDs (Expanded list including Netflix, Amazon, Disney+, Hulu, HBO, Paramount+, Apple TV+, etc.)
             const majorNetworks = "213|1024|2552|2739|453|1112|49|3186|8304|6783|67|318|3353|4330|6|2|16|19|88|3267|4|332|285|290|712|6694|662|1628|2278|302|23|94|160|2363|4661|43|174|218|4590|7635|827|80|384|141|3877|156";
             const today = new Date();
