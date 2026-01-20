@@ -312,9 +312,14 @@ export default async function handler(req, res) {
 
                 console.log(`📺 [TMDB] Fetched Discover Page ${clientPage}. Candidates: ${allCandidates.length}`);
 
+                // CRITICAL: Deduplicate candidates BEFORE enrichment to avoid duplicate API calls
+                // Same series can appear multiple times if broadcast on different networks
+                const uniqueCandidates = allCandidates.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+                console.log(`📺 [TMDB] After deduplication: ${uniqueCandidates.length} unique series`);
+
                 // Fetch episode details (we still need to enrich with exact episode info and filter specific genres)
                 const enrichedResults = await Promise.all(
-                    allCandidates.map(async (show) => {
+                    uniqueCandidates.map(async (show) => {
                         try {
                             // Fetch full series details
                             const details = await tmdbFetch(`/tv/${show.id}`, { language });
