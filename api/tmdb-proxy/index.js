@@ -379,11 +379,30 @@ export default async function handler(req, res) {
                     .filter(item => item !== null)
                     .filter(item => item.episodeInfo && (item.poster_path || item.posterPath)) // Strict check for metadata
                     .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
-                    // Sort by episode date descending (newest first)
+                    // HYBRID SORT: Combine popularity with episode freshness for better relevance
                     .sort((a, b) => {
+                        const today = new Date();
                         const dateA = new Date(a.episodeInfo.date || '1970-01-01');
                         const dateB = new Date(b.episodeInfo.date || '1970-01-01');
-                        return dateB - dateA;
+
+                        // Calculate days since episode aired
+                        const daysOldA = Math.max(0, (today - dateA) / (1000 * 60 * 60 * 24));
+                        const daysOldB = Math.max(0, (today - dateB) / (1000 * 60 * 60 * 24));
+
+                        // Freshness multiplier: boost recent episodes
+                        // Last 3 days = 3x, Last week = 2x, Last month = 1.5x, Older = 1x
+                        const getFreshnessMultiplier = (daysOld) => {
+                            if (daysOld <= 3) return 3.0;
+                            if (daysOld <= 7) return 2.0;
+                            if (daysOld <= 30) return 1.5;
+                            return 1.0;
+                        };
+
+                        // Composite score: popularity * freshness boost
+                        const scoreA = (a.popularity || 0) * getFreshnessMultiplier(daysOldA);
+                        const scoreB = (b.popularity || 0) * getFreshnessMultiplier(daysOldB);
+
+                        return scoreB - scoreA; // Higher score first
                     });
 
                 console.log(`✅ [TMDB PROXY] Returning ${finalResults.length} filtered series (Western Networks)`);
