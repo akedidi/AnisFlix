@@ -280,6 +280,7 @@ export default async function handler(req, res) {
 
 
                 // First, fetch shows airing today/this week (catches episodes airing TODAY)
+                // We fetch this for ALL pages to exclude duplicates, but only use results on page 1
                 const onTheAirData = await tmdbFetch('/tv/on_the_air', {
                     language,
                     page: 1 // Only first page to avoid too many requests
@@ -296,16 +297,19 @@ export default async function handler(req, res) {
                     timezone: 'America/New_York'
                 });
 
+                // CRITICAL: Always exclude on_the_air IDs from discover to prevent cross-page duplicates
+                const onTheAirIds = new Set(onTheAirData?.results?.map(s => s.id) || []);
+
                 // Combine both sources, prioritizing on_the_air for page 1
                 let allCandidates = [];
                 if (clientPage === 1 && onTheAirData?.results) {
-                    // For page 1: merge on_the_air with discover (on_the_air first)
-                    const onTheAirIds = new Set(onTheAirData.results.map(s => s.id));
+                    // For page 1: merge on_the_air with discover (on_the_air first, discover filtered)
                     const discoverFiltered = data.results?.filter(s => !onTheAirIds.has(s.id)) || [];
                     allCandidates = [...onTheAirData.results, ...discoverFiltered];
                 } else {
-                    // For other pages: just use discover
-                    allCandidates = data.results || [];
+                    // For other pages: use discover but EXCLUDE any series from on_the_air (already shown on page 1)
+                    const discoverFiltered = data.results?.filter(s => !onTheAirIds.has(s.id)) || [];
+                    allCandidates = discoverFiltered;
                 }
 
                 const maxTMDBPages = data.total_pages;
