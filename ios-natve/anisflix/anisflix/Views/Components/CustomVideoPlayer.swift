@@ -960,27 +960,19 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         var finalUrl = url
         var useResourceLoader = false
         
-        // VidMoly Logic: Use ResourceLoader to handle custom headers and Content-Type
+        // VidMoly Logic: Use ResourceLoader to clean playlists for AVPlayer
+        // AVPlayer is stricter than browsers - needs I-FRAME lines removed
+        // ResourceLoader will intercept, clean playlist, but keep URLs as HTTPS
         if url.absoluteString.contains("api/vidmoly") || url.absoluteString.contains("vidmoly.net") {
-            print("🎬 [CustomVideoPlayer] VidMoly URL detected, enabling ResourceLoader")
+            print("🎬 [CustomVideoPlayer] VidMoly URL detected - using ResourceLoader for playlist cleanup")
             useResourceLoader = true
             
-            // Rewrite scheme to trigger delegate
+            // Use custom scheme to trigger ResourceLoader interception
             if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
                 components.scheme = "vidmoly-custom"
-                // Add a virtual query param that acts as a suffix for AVPlayer's extension detector (if it checks query)
-                // or just to ensure unique handling.
-                // NOTE: We append it to the query string.
-                if var items = components.queryItems {
-                    items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
-                    components.queryItems = items
-                } else {
-                     components.queryItems = [URLQueryItem(name: "virtual", value: ".m3u8")]
-                }
-                
                 if let customUrl = components.url {
                     finalUrl = customUrl
-                    print("   - Rewrote URL to: \(finalUrl)")
+                    print("   - Rewrote URL to: \(customUrl)")
                 }
             }
         }

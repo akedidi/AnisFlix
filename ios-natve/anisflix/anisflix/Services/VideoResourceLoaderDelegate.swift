@@ -244,34 +244,17 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         lines = lines.filter { !($0.contains("EXT-X-I-FRAME-STREAM-INF")) }
                         playlistContent = lines.joined(separator: "\n")
                         
-                        // 2. Rewrite URLs
-                        // Goal: Force ALL VidMoly URLs (both .m3u8 playlists AND .ts segments)
-                        // through the ResourceLoader to ensure proper headers are sent
-                        
-                        // First, ensure all relative paths are absolute HTTPS
-                        playlistContent = playlistContent.replacingOccurrences(
-                            of: "/api/vidmoly?",
-                            with: "https://anisflix.vercel.app/api/vidmoly?"
-                        )
+                        // 2. VidMoly: Clean up playlist for AVPlayer
+                        // Proxy already returns absolute HTTPS URLs - no modification needed
                         
                         // Remove HDR VIDEO-RANGE tags that might confuse the player or simulator
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=PQ", with: "")
                         playlistContent = playlistContent.replacingOccurrences(of: ",VIDEO-RANGE=SDR", with: "")
                         
-                        // Rewrite ONLY .m3u8 VidMoly URLs to custom scheme
-                        // Let .ts segments use HTTPS directly since proxy handles headers
-                        var finalLines = [String]()
-                        playlistContent.enumerateLines { line, _ in
-                            // Only rewrite if it's a playlist URL (contains .m3u8)
-                            if line.contains("anisflix.vercel.app/api/vidmoly") && line.contains(".m3u8") {
-                                let text = line.replacingOccurrences(of: "https://", with: "vidmoly-custom://")
-                                finalLines.append(text)
-                            } else {
-                                // Keep segment URLs as HTTPS - proxy already handles headers
-                                finalLines.append(line)
-                            }
-                        }
-                        playlistContent = finalLines.joined(separator: "\n")
+                        // DO NOT rewrite URLs in VidMoly playlists
+                        // The proxy already returns URLs as https://anisflix.vercel.app/api/vidmoly?url=...
+                        // which AVPlayer can load normally. ResourceLoader only needs to intercept
+                        // the initial master.m3u8 request (which uses vidmoly-custom:// scheme)
                         
                         // Vidzy Specific Logic
                         // Convert relative URLs to Absolute HTTPS, then rewrite ONLY .m3u8 to custom scheme
@@ -395,8 +378,13 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                     loadingRequest.response = sanitizedResponse
                     
                     if let dataRequest = loadingRequest.dataRequest {
-                        if statusCode == 200 && dataRequest.requestedLength < Int64(finalData.count) {
-                            // Slicing logic: Server returned full content (200), but player asked for a Range
+                        // For playlists, ALWAYS return full content regardless of range request
+                        // This prevents AVPlayer from making follow-up requests that might bypass ResourceLoader
+                        if isPlaylist {
+                            dataRequest.respond(with: finalData)
+                            print("   📄 [VidMolyLoader] Playlist: returning FULL content (\(finalData.count) bytes)")
+                        } else if statusCode == 200 && dataRequest.requestedLength < Int64(finalData.count) {
+                            // Slicing logic for segments: Server returned full content (200), but player asked for a Range
                             // We must slice the data to match the request
                             let offset = Int(dataRequest.requestedOffset)
                             let length = Int(dataRequest.requestedLength)
