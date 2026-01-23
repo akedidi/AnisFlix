@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.36",
-          "date": "2026-01-20",
-          "size": 30586590,
+          "version": "1.0.37",
+          "date": "2026-01-22",
+          "size": 30586563,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "chore: trigger vercel redeploy "
+          "localizedDescription": "feat: switch to date-first sorting for latest episodes - Primary sort: by episode air date (newest first) - Secondary sort: by popularity (for same-day episodes) - Replaces hybrid popularity×freshness scoring - Verified locally: Landman (Jan 18) appears before Stranger Things (Dec 31) "
         }
       ]
     }
