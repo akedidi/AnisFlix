@@ -15,6 +15,9 @@ struct PlayerContentView: View {
     @Binding var isFullscreen: Bool
     @ObservedObject var playerVM: PlayerViewModel
     
+    // Zoom toggle: false = aspect fit (default), true = aspect fill (zoom to safe area)
+    @State private var isZoomedToFill: Bool = false
+    
     // Callbacks
     var onDoubleTapBack: () -> Void
     var onDoubleTapForward: () -> Void
@@ -30,16 +33,16 @@ struct PlayerContentView: View {
                 CastPlaceholderView()
             } else if playerVM.useVLC, let vlcPlayer = playerVM.vlcPlayer {
                 // VLC Player for MKV/unsupported formats
-                VLCVideoViewWrapper(player: vlcPlayer)
+                VLCVideoViewWrapper(player: vlcPlayer, isZoomedToFill: isZoomedToFill)
                     .background(Color.black)
                     .ignoresSafeArea(.all, edges: .all)
             } else {
-                VideoPlayerView(player: playerVM.player, playerVM: playerVM)
+                VideoPlayerView(player: playerVM.player, playerVM: playerVM, isZoomedToFill: isZoomedToFill)
                     .background(Color.black)
                     .ignoresSafeArea(.all, edges: .all)
             }
             
-            // Gesture Overlay
+            // Gesture Overlay (Pinch + Tap)
             if !castManager.isConnected {
                 HStack(spacing: 0) {
                     // Left Side (Rewind)
@@ -64,6 +67,17 @@ struct PlayerContentView: View {
                             onSingleTap()
                         }
                 }
+                .gesture(
+                    MagnificationGesture()
+                        .onEnded { value in
+                            // Pinch out (zoom in) -> fill, Pinch in (zoom out) -> normal
+                            if value > 1.0 {
+                                isZoomedToFill = true
+                            } else {
+                                isZoomedToFill = false
+                            }
+                        }
+                )
             }
         }
     }
@@ -72,11 +86,14 @@ struct PlayerContentView: View {
 // MARK: - VLC Video View Wrapper (UIViewRepresentable)
 struct VLCVideoViewWrapper: UIViewRepresentable {
     let player: VLCMediaPlayer
+    var isZoomedToFill: Bool = false
     
     func makeUIView(context: Context) -> UIView {
         let view = VLCRenderView()
         view.backgroundColor = .black
         view.player = player
+        view.contentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
+        view.clipsToBounds = true
         
         // Force drawable assignment immediately if possible
         print("🎬 [VLCVideoViewWrapper] makeUIView - assigning player and drawable")
@@ -90,6 +107,12 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
         if player.drawable as? UIView !== uiView {
             print("🎬 [VLCVideoViewWrapper] updateUIView - Reassigning drawable (was mismatch)")
             player.drawable = uiView
+        }
+        
+        // Update content mode based on zoom state
+        let targetMode: UIView.ContentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
+        if uiView.contentMode != targetMode {
+            uiView.contentMode = targetMode
         }
         
         // Also update the player property on the view in case it changed

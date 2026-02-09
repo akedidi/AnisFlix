@@ -1819,6 +1819,7 @@ class SubtitleParser {
 struct VideoPlayerView: UIViewRepresentable {
     let player: AVPlayer
     @ObservedObject var playerVM: PlayerViewModel
+    var isZoomedToFill: Bool = false // Controls video gravity
     
     func makeCoordinator() -> Coordinator {
         Coordinator(playerVM: playerVM)
@@ -1828,6 +1829,7 @@ struct VideoPlayerView: UIViewRepresentable {
         print("🎥 VideoPlayerView.makeUIView called")
         let view = PlayerView()
         view.player = player
+        view.playerLayer.videoGravity = isZoomedToFill ? .resizeAspectFill : .resizeAspect
         
         print("🔧 Setting up PiP with layer...")
         // Setup PiP with the actual layer being displayed
@@ -1842,6 +1844,11 @@ struct VideoPlayerView: UIViewRepresentable {
     
     func updateUIView(_ uiView: PlayerView, context: Context) {
         uiView.player = player
+        // Update video gravity based on zoom state
+        let targetGravity: AVLayerVideoGravity = isZoomedToFill ? .resizeAspectFill : .resizeAspect
+        if uiView.playerLayer.videoGravity != targetGravity {
+            uiView.playerLayer.videoGravity = targetGravity
+        }
     }
     
     class Coordinator {
