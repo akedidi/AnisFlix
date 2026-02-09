@@ -607,6 +607,20 @@ struct MovieDetailView: View {
                     // 4KHDHub sources are MKV - route through GlobalPlayerManager (uses VLC)
                     print("🎬 [MovieDetailView] MKV source detected, routing to GlobalPlayerManager with VLC")
                     streamUrl = source.url
+                } else if source.provider.lowercased() == "moviebox" {
+                    // MovieBox: dual-mode playback
+                    // - Chromecast: use proxied URL (Chromecast can't handle custom headers)
+                    // - Local AVPlayer: prefer direct URL with headers for lower latency
+                    if CastManager.shared.isConnected {
+                        print("📺 [MovieDetailView] MovieBox Chromecast mode - using proxied URL")
+                        streamUrl = source.url
+                    } else if let directUrl = source.directUrl {
+                        print("📱 [MovieDetailView] MovieBox local mode - using direct URL with headers")
+                        streamUrl = directUrl
+                    } else {
+                        print("⚠️ [MovieDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")
+                        streamUrl = source.url
+                    }
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")

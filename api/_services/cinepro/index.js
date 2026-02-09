@@ -286,10 +286,64 @@ export class CineproScraper {
         try {
             console.log(`[Cinepro] Fetching MegaCDN (Server ${megaCdnServer})...`);
 
-            // Use cors.eu.org proxy
-            const proxyUrl = `https://cors.eu.org/${serverUrl}`;
-            const response = await axios.get(proxyUrl, { headers, timeout: 10000 });
-            const responseData = response.data;
+            let responseData = null;
+
+            // Priority 1: Use provided fetcher (Puppeteer) if available
+            // This is the Vercel-side solution to bypass Cloudflare Challenge
+            if (fetcher) {
+                console.log(`[Cinepro] Using custom fetcher (Puppeteer) for MegaCDN: ${serverUrl}`);
+                try {
+                    const response = await fetcher(serverUrl, {
+                        headers: {
+                            'Referer': 'https://player.vidsrc.co/',
+                            'Origin': 'https://player.vidsrc.co/',
+                            'User-Agent': this.userAgent
+                        }
+                    });
+
+                    // Parse response if it's a string (Puppeteer typically returns text or object)
+                    let data = response.data || response.body || response;
+                    if (typeof data === 'string') {
+                        try {
+                            // If it's a string, it might be the JSON response directly
+                            const parsed = JSON.parse(data);
+                            data = parsed;
+                        } catch (e) {
+                            console.warn(`⚠️ [Cinepro] Failed to parse Puppeteer response as JSON.`);
+                        }
+                    }
+
+                    if (data && data.data) {
+                        console.log(`✅ [Cinepro] Success with Puppeteer`);
+                        responseData = data;
+                    }
+                } catch (err) {
+                    console.error(`❌ [Cinepro] Puppeteer Failed: ${err.message}`);
+                }
+            }
+
+            // Priority 2: Use Cors.eu.org (only working proxy from 34 tested)
+            if (!responseData) {
+                const proxyUrl = `https://cors.eu.org/${serverUrl}`;
+                console.log(`[Cinepro] Fetching MegaCDN via Cors.eu.org: ${proxyUrl}`);
+                try {
+                    const response = await axios.get(proxyUrl, { headers, timeout: 8000 });
+                    if (response.data && response.data.data) {
+                        console.log(`✅ [Cinepro] Success with Cors.eu.org`);
+                        responseData = response.data;
+                    } else if (response.data && typeof response.data === 'string' && response.data.includes('"data"')) {
+                        try {
+                            const parsed = JSON.parse(response.data);
+                            if (parsed.data) {
+                                console.log(`✅ [Cinepro] Success with Cors.eu.org (parsed string)`);
+                                responseData = parsed;
+                            }
+                        } catch (e) { /* ignore */ }
+                    }
+                } catch (err) {
+                    console.warn(`⚠️ [Cinepro] Failed Cors.eu.org: ${err.message}`);
+                }
+            }
 
             if (responseData && responseData.data) {
                 const decrypted = decryptData(responseData.data);

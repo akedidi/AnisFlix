@@ -50,6 +50,7 @@ struct Subtitle: Identifiable, Codable, Equatable {
 struct StreamingSource: Identifiable, Codable {
     var id: String
     let url: String
+    var directUrl: String? // Direct URL for local playback with headers (MovieBox)
     let quality: String
     let language: String
     let provider: String // Video host: "vidmoly", "vidzy", "darki", "unknown"
@@ -115,8 +116,9 @@ struct StreamingSource: Identifiable, Codable {
     }
     
     // Init for preview/manual creation
-    init(id: String? = nil, url: String, quality: String, type: String, provider: String, language: String, origin: String? = nil, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
+    init(id: String? = nil, url: String, directUrl: String? = nil, quality: String, type: String, provider: String, language: String, origin: String? = nil, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
         self.url = url
+        self.directUrl = directUrl
         self.quality = quality
         self.type = type
         self.provider = provider
@@ -915,13 +917,13 @@ class StreamingService {
             if let movieBoxStreams = decoded.streams {
                 for src in movieBoxStreams {
                     let quality = src.quality ?? "HD"
-                    // FIX: Use proxied URL (`src.url`) instead of direct URL for Chromecast compatibility
-                    // The direct URL requires headers (Referer/Origin) which Chromecast does not support.
-                    // The proxied URL (`/api/movix-proxy?path=moviebox-stream...`) handles headers server-side.
+                    // Use proxied URL (`src.url`) as primary for Chromecast compatibility
+                    // Store direct URL for local AVPlayer playback with headers
                     let targetUrl = src.url
                     
                     let source = StreamingSource(
                         url: targetUrl,
+                        directUrl: src.directUrl,  // Direct URL for local playback
                         quality: quality,
                         type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
@@ -969,11 +971,12 @@ class StreamingService {
             if let movieBoxStreams = decoded.streams {
                 for src in movieBoxStreams {
                     let quality = src.quality ?? "HD"
-                    // FIX: Use proxied URL (`src.url`) instead of direct URL for Chromecast compatibility
+                    // Use proxied URL as primary, store direct URL for local playback
                     let targetUrl = src.url
                     
                     let source = StreamingSource(
                         url: targetUrl,
+                        directUrl: src.directUrl,  // Direct URL for local playback
                         quality: quality,
                         type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
