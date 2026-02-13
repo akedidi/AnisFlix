@@ -1,15 +1,20 @@
 PODS:
   - ffmpeg-kit-ios-full (6.0)
+  - GCDWebServer (3.5.4):
+    - GCDWebServer/Core (= 3.5.4)
+  - GCDWebServer/Core (3.5.4)
   - google-cast-sdk (4.8.4)
   - MobileVLCKit (3.7.1)
 
 DEPENDENCIES:
   - ffmpeg-kit-ios-full (from `https://raw.githubusercontent.com/luthviar/ffmpeg-kit-ios-full/main/ffmpeg-kit-ios-full.podspec`)
+  - GCDWebServer (~> 3.0)
   - google-cast-sdk
   - MobileVLCKit (~> 3.6)
 
 SPEC REPOS:
   trunk:
+    - GCDWebServer
     - google-cast-sdk
     - MobileVLCKit
 
@@ -19,9 +24,10 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   ffmpeg-kit-ios-full: 2da77324b0e9fb007195ab6661f64be4cf31dc12
+  GCDWebServer: 2c156a56c8226e2d5c0c3f208a3621ccffbe3ce4
   google-cast-sdk: 32f65af50d164e3c475e79ad123db3cc26fbcd37
   MobileVLCKit: 8692c27d106f409f97074d145860cfa1e7b59e5c
 
-PODFILE CHECKSUM: 8334e60dadae62e08be71a6f8671f473a5e1b64a
+PODFILE CHECKSUM: 1b520aca548b1efd6dcef227972f0fa4411c6832
 
 COCOAPODS: 1.16.2

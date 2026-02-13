@@ -820,6 +820,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     override init() {
         super.init()
         
+        // Start Local Proxy for AirPlay compatibility
+        // This handles Header Injection & Subtitles for AirPlay
+        LocalStreamingServer.shared.start()
+
+        
         // Configure player for background playback
         player.audiovisualBackgroundPlaybackPolicy = .continuesIfPossible
         player.preventsDisplaySleepDuringVideoPlayback = true
@@ -984,100 +989,51 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         var finalUrl = url
-        var useResourceLoader = false
         
-        // VidMoly Logic: Use ResourceLoader to clean playlists for AVPlayer
-        // AVPlayer is stricter than browsers - needs I-FRAME lines removed
-        // ResourceLoader will intercept, clean playlist, but keep URLs as HTTPS
-        if url.absoluteString.contains("api/vidmoly") || url.absoluteString.contains("vidmoly.net") {
-            print("🎬 [CustomVideoPlayer] VidMoly URL detected - using ResourceLoader for playlist cleanup")
-            useResourceLoader = true
-            
-            // Use custom scheme to trigger ResourceLoader interception
-            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                components.scheme = "vidmoly-custom"
-                if let customUrl = components.url {
-                    finalUrl = customUrl
-                    print("   - Rewrote URL to: \(customUrl)")
-                }
-            }
-        }
-        
-        // Vidzy Logic: Use ResourceLoader to sanitize playlists (remove VIDEO-RANGE, I-FRAMES)
-        // IMPORTANT: Check HOST only, not full URL (to avoid false positives with AfterDark proxy which has vidzy in query params)
-        let isVidzyHost = url.host?.lowercased().contains("vidzy") == true
-        if isVidzyHost {
-            print("🎬 [CustomVideoPlayer] Vidzy HOST detected, enabling ResourceLoader")
-            useResourceLoader = true
-            
-            // Rewrite scheme to trigger delegate
-            if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                components.scheme = "vidzy-custom"
+        // Use Local Proxy for AirPlay compatibility (Headers & Subtitles)
+        // This is required for Vidzy, LuluVid, and any stream needing custom headers or subtitles on AirPlay
+        if !useVLCPlayer {
+            // Check if we have a valid Local Server URL (LAN IP)
+            if let serverUrl = LocalStreamingServer.shared.serverUrl {
+                var components = URLComponents()
+                components.scheme = serverUrl.scheme
+                components.host = serverUrl.host
+                components.port = serverUrl.port
+                components.path = "/manifest" // Default to manifest proxy which handles HLS & MP4 wrapping
                 
-                if var items = components.queryItems {
-                    items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
-                    components.queryItems = items
-                } else {
-                     components.queryItems = [URLQueryItem(name: "virtual", value: ".m3u8")]
+                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+                
+                // Add Subtitles if present
+                if let sub = subtitleUrl {
+                    queryItems.append(URLQueryItem(name: "subs", value: sub.absoluteString))
                 }
                 
-                if let customUrl = components.url {
-                    finalUrl = customUrl
-                    print("   - Rewrote URL to: \(finalUrl)")
+                // Add Referer if present (critical for Vidzy/LuluVid)
+                if let referer = customHeaders?["Referer"] {
+                    queryItems.append(URLQueryItem(name: "referer", value: referer))
                 }
-            }
-        }
-        
-        // AirPlay Subtitle Logic: Force ResourceLoader if subtitle URL is present
-        // This injects the subtitle track into the HLS manifest via ResourceLoader
-        if let subUrl = subtitleUrl, !useResourceLoader, !useVLCPlayer {
-            print("🎬 [CustomVideoPlayer] External subtitle present - enabling ResourceLoader for AirPlay injection")
-            useResourceLoader = true
-            
-            // Check if it's HLS or Direct File (MP4)
-            // If it ends in .m3u8, it is HLS.
-            // If not, we treat it as a direct file and wrap it in Virtual HLS.
-            let isHLS = url.pathExtension.lowercased() == "m3u8" || url.absoluteString.contains(".m3u8")
-            
-            if isHLS {
-                // HLS: Use 'airplay-subs' to inject EXT-X-MEDIA into existing manifest
-                if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                    components.scheme = "airplay-subs"
-                    if let customUrl = components.url {
-                        finalUrl = customUrl
-                        print("   - Rewrote URL (AirPlay Subs - HLS) to: \(finalUrl)")
-                    }
+                
+                // Add Origin if present
+                if let origin = customHeaders?["Origin"] {
+                    queryItems.append(URLQueryItem(name: "origin", value: origin))
+                }
+                
+                components.queryItems = queryItems
+                
+                if let proxyUrl = components.url {
+                    print("🚀 [PlayerVM] Using Local Proxy for AirPlay compatibility")
+                    print("   - Original: \(url)")
+                    print("   - Proxy: \(proxyUrl)")
+                    finalUrl = proxyUrl
                 }
             } else {
-                // MP4/Direct: Use 'airplay-mp4-wrapper' to generate Virtual HLS Playlist
-                // We must append .m3u8 to the URL so AVPlayer treats it as HLS!
-                // The ResourceLoader will see "airplay-mp4-wrapper://.../video.mp4" (or similiar)
-                // Actually, if we append .m3u8 here, the ResourceLoader gets ".../video.mp4.m3u8"
-                // Our ResourceLoader logic expects "master.m3u8" or just ".m3u8" extension logic.
-                // Let's force it to look like a master playlist.
-                
-                if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-                    components.scheme = "airplay-mp4-wrapper"
-                    
-                    // Append /master.m3u8 to the path?
-                    // No, that changes the hierarchy.
-                    // Better: Just behave like Vidzy logic (virtual param)?
-                    // Or keep original path but ResourceLoader handles it.
-                    // Let's add .m3u8 to the end of the path if not present, so AVPlayer uses HLS parser.
-                    
-                    var path = components.path
-                    if !path.hasSuffix(".m3u8") {
-                        path += ".m3u8"
-                        components.path = path
-                    }
-                    
-                    if let customUrl = components.url {
-                        finalUrl = customUrl
-                        print("   - Rewrote URL (AirPlay Subs - MP4 Wrapper) to: \(finalUrl)")
-                    }
-                }
+                print("⚠️ [PlayerVM] Local Server not running or no LAN IP - AirPlay might fail for protected streams")
             }
         }
+        
+        // Legacy ResourceLoader logic (VidMoly, Vidzy, AirPlay) removed in favor of Local Proxy
+        var useResourceLoader = false
+
         
         print("🎬 Setting up player with URL: \(url)")
         if let title = currentTitle {

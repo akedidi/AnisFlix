@@ -9,6 +9,9 @@ target 'AnisFlix' do
   # FFmpegKit for Vidzy downloads with custom headers
   # Using community fork (official retired Jan 2025)
   pod 'ffmpeg-kit-ios-full', :podspec => 'https://raw.githubusercontent.com/luthviar/ffmpeg-kit-ios-full/main/ffmpeg-kit-ios-full.podspec'
+
+  # Local Web Server for AirPlay Proxy (Header Injection & Subtitles)
+  pod 'GCDWebServer', '~> 3.0'
 end
 
 post_install do |installer|

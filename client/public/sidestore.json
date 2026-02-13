@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.41",
+          "version": "1.0.42",
           "date": "2026-02-13",
-          "size": 30595025,
+          "size": 30670375,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "feat(ios): add Netflix-style pinch-to-fill video zoom toggle - AVPlayer uses videoGravity (.resizeAspect vs .resizeAspectFill) - VLC uses contentMode (.scaleAspectFit vs .scaleAspectFill) - Pinch-out expands video to fill safe area - Pinch-in returns to normal aspect ratio "
+          "localizedDescription": "feat: AirPlay Subtitle Support + Unsigned IPA Generation "
         }
       ]
     }
