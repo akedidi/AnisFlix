@@ -1074,17 +1074,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
         
-        // Add Referer header for Vidzy URLs to fix playback
-        let urlString = url.absoluteString.lowercased()
-        if urlString.contains("vidzy") {
-            headers["Referer"] = "https://vidzy.org/"
-            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
-        }
-        
-        // Merge custom headers if provided (e.g. for MovieBox)
-        if let customHeaders = customHeaders {
-            headers.merge(customHeaders) { (_, new) in new }
-            print("🎬 [CustomVideoPlayer] Added custom headers: \(customHeaders.keys)")
+        // Merge effective headers (including Vidzy Referer if applicable)
+        if !effectiveHeaders.isEmpty {
+            headers.merge(effectiveHeaders) { (_, new) in new }
+            print("🎬 [CustomVideoPlayer] Added effective headers: \(effectiveHeaders.keys)")
         }
         
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
