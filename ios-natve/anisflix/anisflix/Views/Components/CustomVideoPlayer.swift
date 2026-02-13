@@ -990,9 +990,19 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         var finalUrl = url
         
+        // Prepare headers (including auto-detection for Vidzy)
+        var effectiveHeaders = customHeaders ?? [:]
+        
+        // Add Referer header for Vidzy URLs to fix playback
+        let urlString = url.absoluteString.lowercased()
+        if urlString.contains("vidzy") {
+            effectiveHeaders["Referer"] = "https://vidzy.org/"
+            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header (proxy force)")
+        }
+        
         // Use Local Proxy for AirPlay compatibility (Headers & Subtitles)
         // ONLY use proxy if strictly necessary (Headers or Subtitles), otherwise use direct URL for stability
-        let hasCustomHeaders = (customHeaders != nil && !customHeaders!.isEmpty)
+        let hasCustomHeaders = !effectiveHeaders.isEmpty
         let hasSubtitles = (subtitleUrl != nil)
         
         if !useVLCPlayer && (hasCustomHeaders || hasSubtitles) {
@@ -1012,12 +1022,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 }
                 
                 // Add Referer if present (critical for Vidzy/LuluVid)
-                if let referer = customHeaders?["Referer"] {
+                if let referer = effectiveHeaders["Referer"] {
                     queryItems.append(URLQueryItem(name: "referer", value: referer))
                 }
                 
                 // Add Origin if present
-                if let origin = customHeaders?["Origin"] {
+                if let origin = effectiveHeaders["Origin"] {
                     queryItems.append(URLQueryItem(name: "origin", value: origin))
                 }
                 
