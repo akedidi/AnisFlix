@@ -124,6 +124,57 @@ class LocalStreamingServer {
             return resp
         }
         
+        // 2. Proxy Handler (For Segments & Keys)
+        webServer.addHandler(forMethod: "GET", path: "/proxy", request: GCDWebServerRequest.self) { request in
+            let query = request.query ?? [:]
+            guard let targetUrlString = query["url"] as? String,
+                  let targetUrl = URL(string: targetUrlString) else {
+                return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            // Extract Headers from Query
+            let referer = query["referer"] as? String
+            let origin = query["origin"] as? String
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+            let userAgent = query["user_agent"] as? String ?? defaultUA
+            
+            // Sync fetch (GCDWebServer handlers run on background threads)
+            let semaphore = DispatchSemaphore(value: 0)
+            var responseData: Data?
+            var responseResponse: URLResponse?
+            var responseError: Error?
+            
+            var urlRequest = URLRequest(url: targetUrl)
+            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+            if let referer = referer {
+                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
+            }
+            if let origin = origin {
+                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
+            }
+            
+            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                responseData = data
+                responseResponse = response
+                responseError = error
+                semaphore.signal()
+            }
+            task.resume()
+            semaphore.wait()
+            
+            if let error = responseError {
+                 print("❌ [LocalServer] Proxy error for \(targetUrl.lastPathComponent): \(error)")
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            if let data = responseData {
+                let contentType = responseResponse?.mimeType ?? "application/octet-stream"
+                return GCDWebServerDataResponse(data: data, contentType: contentType)
+            }
+            
+            return GCDWebServerDataResponse(statusCode: 404)
+        }
+        
         // 3. Subtitle Converter Handler (SRT -> WebVTT)
         webServer.addHandler(forMethod: "GET", path: "/subtitles", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
