@@ -1000,7 +1000,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             print("🎬 [CustomVideoPlayer] Added Vidzy Referer header (proxy force)")
         } else if urlString.contains("luluvid") {
              effectiveHeaders["Referer"] = "https://luluvid.com/"
-             effectiveHeaders["Origin"] = "https://luluvid.com"
+             // effectiveHeaders["Origin"] = "https://luluvid.com" // Removed: Might cause issues with redirects/CORS
              print("🎬 [CustomVideoPlayer] Added LuluVid headers (proxy force)")
         }
         

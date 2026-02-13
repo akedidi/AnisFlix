@@ -124,38 +124,25 @@ class LocalStreamingServer {
             return resp
         }
         
-        // 2. Proxy Handler (For Segments & Keys)
-        webServer.addHandler(forMethod: "GET", path: "/proxy", request: GCDWebServerRequest.self) { request in
+        // 3. Subtitle Converter Handler (SRT -> WebVTT)
+        webServer.addHandler(forMethod: "GET", path: "/subtitles", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            
             let query = request.query ?? [:]
             guard let targetUrlString = query["url"] as? String,
                   let targetUrl = URL(string: targetUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
             
-            // Extract Headers from Query
-            let referer = query["referer"] as? String
-            let origin = query["origin"] as? String
-            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-            let userAgent = query["user_agent"] as? String ?? defaultUA
+            print("📝 [LocalServer] Fetching & Converting Subtitles: \(targetUrl.lastPathComponent)")
             
-            // Sync fetch (GCDWebServer handlers run on background threads)
+            // Fetch original SRT/VTT
             let semaphore = DispatchSemaphore(value: 0)
             var responseData: Data?
-            var responseResponse: URLResponse?
             var responseError: Error?
             
-            var urlRequest = URLRequest(url: targetUrl)
-            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            if let referer = referer {
-                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
-            }
-            if let origin = origin {
-                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
-            }
-            
-            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            let task = URLSession.shared.dataTask(with: targetUrl) { data, response, error in
                 responseData = data
-                responseResponse = response
                 responseError = error
                 semaphore.signal()
             }
@@ -163,17 +150,48 @@ class LocalStreamingServer {
             semaphore.wait()
             
             if let error = responseError {
-                 print("❌ [LocalServer] Proxy error for \(targetUrl.lastPathComponent): \(error)")
+                print("❌ [LocalServer] Subtitle fetch error: \(error)")
                 return GCDWebServerDataResponse(statusCode: 502)
             }
             
-            if let data = responseData {
-                let contentType = responseResponse?.mimeType ?? "application/octet-stream"
-                return GCDWebServerDataResponse(data: data, contentType: contentType)
+            guard let data = responseData, let content = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .windowsCP1252) ?? String(data: data, encoding: .isoLatin1) else {
+                return GCDWebServerDataResponse(statusCode: 502)
             }
             
-            return GCDWebServerDataResponse(statusCode: 404)
+            // Convert to WebVTT
+            let vttContent = self.convertToWebVTT(content: content)
+            
+            let resp = GCDWebServerDataResponse(text: vttContent)
+            resp?.contentType = "text/vtt"
+            return resp
         }
+    }
+    
+    // MARK: - Subtitle Formatting
+    
+    private func convertToWebVTT(content: String) -> String {
+        // Check if already WebVTT
+        if content.contains("WEBVTT") {
+            return content
+        }
+        
+        var vtt = "WEBVTT\n\n"
+        
+        // Split into lines
+        let lines = content.components(separatedBy: .newlines)
+        
+        for line in lines {
+            // Check for timestamp line (00:00:00,000 --> 00:00:00,000)
+            if line.contains("-->") {
+                // Replace commas with dots
+                let fixedLine = line.replacingOccurrences(of: ",", with: ".")
+                vtt += fixedLine + "\n"
+            } else {
+                vtt += line + "\n"
+            }
+        }
+        
+        return vtt
     }
     
     // MARK: - Manifest Rewriting
@@ -186,7 +204,18 @@ class LocalStreamingServer {
         if content.contains("#EXT-X-STREAM-INF") {
              if let subUrl = subtitleUrl {
                  let groupId = "subs"
-                 let subTag = "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(subUrl.absoluteString)\""
+                 
+                 // Construct Local Subtitle URL
+                 var subComponents = URLComponents()
+                 subComponents.scheme = "http"
+                 subComponents.host = self.webServer.serverURL?.host
+                 subComponents.port = Int(self.webServer.port)
+                 subComponents.path = "/subtitles"
+                 subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
+                 
+                 let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
+                 
+                 let subTag = "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(localSubUrl)\""
                  
                  // Insert after #EXTM3U
                  if let idx = lines.firstIndex(where: { $0.hasPrefix("#EXTM3U") }) {
@@ -291,7 +320,18 @@ class LocalStreamingServer {
         var subtitlesAttribute = ""
         if let subUrl = subtitleUrl {
             let groupId = "subs"
-            playlist += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(subUrl.absoluteString)\"\n"
+            
+            // Construct Local Subtitle URL for Virtual Playlist too
+            var subComponents = URLComponents()
+            subComponents.scheme = "http"
+            subComponents.host = self.webServer.serverURL?.host
+            subComponents.port = Int(self.webServer.port)
+            subComponents.path = "/subtitles"
+            subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
+            
+            let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
+            
+            playlist += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(localSubUrl)\"\n"
             subtitlesAttribute = ",SUBTITLES=\"\(groupId)\""
         }
         

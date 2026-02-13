@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.48",
+          "version": "1.0.49",
           "date": "2026-02-13",
-          "size": 30674391,
+          "size": 30674758,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): v1.0.47 - force local proxy for Vidzy AirPlay "
+          "localizedDescription": "fix(ios): v1.0.48 - fix AirPlay for LuluVid & MovieBox "
         }
       ]
     }
