@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.47",
+          "version": "1.0.48",
           "date": "2026-02-13",
-          "size": 30670740,
+          "size": 30674391,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): force local proxy for Vidzy streams to fix AirPlay "
+          "localizedDescription": "fix(ios): v1.0.47 - force local proxy for Vidzy AirPlay "
         }
       ]
     }

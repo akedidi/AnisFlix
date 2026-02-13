@@ -998,6 +998,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if urlString.contains("vidzy") {
             effectiveHeaders["Referer"] = "https://vidzy.org/"
             print("🎬 [CustomVideoPlayer] Added Vidzy Referer header (proxy force)")
+        } else if urlString.contains("luluvid") {
+             effectiveHeaders["Referer"] = "https://luluvid.com/"
+             effectiveHeaders["Origin"] = "https://luluvid.com"
+             print("🎬 [CustomVideoPlayer] Added LuluVid headers (proxy force)")
         }
         
         // Use Local Proxy for AirPlay compatibility (Headers & Subtitles)
@@ -1029,6 +1033,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 // Add Origin if present
                 if let origin = effectiveHeaders["Origin"] {
                     queryItems.append(URLQueryItem(name: "origin", value: origin))
+                }
+                
+                // Add User-Agent if present (NEW - Critical for MovieBox)
+                if let ua = effectiveHeaders["User-Agent"] {
+                    queryItems.append(URLQueryItem(name: "user_agent", value: ua))
                 }
                 
                 components.queryItems = queryItems
