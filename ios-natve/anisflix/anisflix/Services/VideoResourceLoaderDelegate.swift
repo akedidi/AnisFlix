@@ -11,6 +11,7 @@ import AVFoundation
 class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
     private let session: URLSession
     private var activeTasks: [Int: URLSessionDataTask] = [:]
+    private let subtitleUrl: URL?
     
     // Store the original base URL (directory containing master.m3u8) for Vidzy
     // This is needed because AVPlayer corrupts relative paths through its URL resolution
@@ -21,10 +22,11 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         originalVidzyBaseURL = nil
     }
     
-    override init() {
+    init(subtitleUrl: URL? = nil) {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
         self.session = URLSession(configuration: config)
+        self.subtitleUrl = subtitleUrl
         super.init()
     }
     
@@ -34,7 +36,9 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         // Determine the provider type
         let isVidMoly = url.scheme == "vidmoly-custom"
         let isVidzy = url.scheme == "vidzy-custom"
-        let providerName = isVidMoly ? "VidMoly" : (isVidzy ? "Vidzy" : "Unknown")
+        let isAirPlaySubs = url.scheme == "airplay-subs"
+        let isAirPlayMp4Wrapper = url.scheme == "airplay-mp4-wrapper"
+        let providerName = isVidMoly ? "VidMoly" : (isVidzy ? "Vidzy" : (isAirPlaySubs || isAirPlayMp4Wrapper ? "AirPlaySubs" : "Unknown"))
         
         // Convert custom scheme back to https
         var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
@@ -42,11 +46,91 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         
         guard let realUrl = components?.url else { return false }
         
-        // Strip the virtual suffix (used only for AVPlayer detection) before making request
-        // IMPORTANT: The 'virtual' param contains:
-        // 1. A path segment to append (e.g., .m3u8/index-v1-a1.m3u8)
-        // 2. Duplicate query params after a '?' that we must ignore
-        var cleanUrl = realUrl
+        var cleanUrl = realUrl // Default to realUrl (HTTPS)
+        
+        // [NEW] Handle Virtual HLS Wrapper for Direct MP4 Files
+        if isAirPlayMp4Wrapper {
+            // Check if this is a playlist request (ends in .m3u8 or has query param)
+            let isWrapperRequest = url.pathExtension == "m3u8" || url.absoluteString.contains(".m3u8")
+            
+            if isWrapperRequest {
+                // If it's the Variant Playlist request (we name it variant.m3u8 in the Master)
+                if url.lastPathComponent == "variant.m3u8" {
+                     // 2. VARIANT PLAYLIST
+                     var target = "video.mp4"
+                     if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                        let items = components.queryItems,
+                        let targetItem = items.first(where: { $0.name == "target" })?.value {
+                         target = targetItem
+                     }
+                     
+                     print("📝 [ResourceLoader] Generating Virtual Variant Playlist for target: \(target)")
+                     
+                     let variantPlaylist = """
+                     #EXTM3U
+                     #EXT-X-VERSION:3
+                     #EXT-X-TARGETDURATION:10800
+                     #EXT-X-MEDIA-SEQUENCE:0
+                     #EXTINF:10800.0,
+                     \(target)
+                     #EXT-X-ENDLIST
+                     """
+                     
+                     if let data = variantPlaylist.data(using: .utf8) {
+                         let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
+                             "Content-Type": "application/vnd.apple.mpegurl",
+                             "Content-Length": "\(data.count)"
+                         ])
+                         loadingRequest.contentInformationRequest?.contentType = "com.apple.m3u-playlist"
+                         loadingRequest.contentInformationRequest?.isByteRangeAccessSupported = true
+                         loadingRequest.contentInformationRequest?.contentLength = Int64(data.count)
+                         loadingRequest.response = response
+                         loadingRequest.dataRequest?.respond(with: data)
+                         loadingRequest.finishLoading()
+                         return true
+                     }
+                } else {
+                    // 1. MASTER PLAYLIST (default for initial .m3u8 request)
+                    print("📝 [ResourceLoader] Generating Virtual Master Playlist")
+                    
+                    let groupId = "subs"
+                    let subName = "External Subtitles"
+                    let subUri = self.subtitleUrl?.absoluteString ?? ""
+                    
+                    let targetFile = realUrl.lastPathComponent.replacingOccurrences(of: ".m3u8", with: "")
+                    
+                    var masterPlaylist = "#EXTM3U\n#EXT-X-VERSION:3\n"
+                    
+                    // Inject Subtitles
+                    if let _ = self.subtitleUrl {
+                        masterPlaylist += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"\(subName)\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(subUri)\"\n"
+                    }
+                    
+                    // Point to Virtual Variant Playlist
+                    let subtitlesAttr = (self.subtitleUrl != nil) ? ",SUBTITLES=\"\(groupId)\"" : ""
+                    masterPlaylist += "#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080\(subtitlesAttr)\n"
+                    masterPlaylist += "variant.m3u8?target=\(targetFile)\n"
+                    
+                    if let data = masterPlaylist.data(using: .utf8) {
+                        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
+                            "Content-Type": "application/vnd.apple.mpegurl",
+                            "Content-Length": "\(data.count)"
+                        ])
+                        loadingRequest.contentInformationRequest?.contentType = "com.apple.m3u-playlist"
+                        loadingRequest.contentInformationRequest?.isByteRangeAccessSupported = true
+                        loadingRequest.contentInformationRequest?.contentLength = Int64(data.count)
+                        loadingRequest.response = response
+                        loadingRequest.dataRequest?.respond(with: data)
+                        loadingRequest.finishLoading()
+                        return true
+                    }
+                }
+            }
+            // If not a playlist request, fall through to standard loading
+        }
+        
+        // ... existing valid logic handles the rest
+
         let urlString = realUrl.absoluteString
         
         // Check if URL contains "&virtual=" or "?virtual="
@@ -301,10 +385,41 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                             playlistContent = vidzyLines.joined(separator: "\n")
                         }
                         
+                        // 3. Inject AirPlay Subtitles if URL is present and it is a Master Playlist
+                        if let subUrl = self.subtitleUrl, playlistContent.contains("#EXT-X-STREAM-INF") {
+                            print("📝 [ResourceLoader] Injecting AirPlay Subtitles: \(subUrl.lastPathComponent)")
+                            
+                            // Define the subtitle Group ID
+                            let groupId = "subs"
+                            let subName = "External Subtitles"
+                            
+                            // Create the Subtitle Media Tag
+                            // IMPORTANT: TYPE=SUBTITLES, GROUP-ID="subs", NAME="Custom", DEFAULT=YES, AUTOSELECT=YES, URI="..."
+                            let mediaTag = "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"\(subName)\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(subUrl.absoluteString)\""
+                            
+                            // Insert Media Tag after #EXTM3U
+                            if let m3uIndex = playlistContent.range(of: "#EXTM3U")?.upperBound {
+                                playlistContent.insert(contentsOf: "\n" + mediaTag, at: m3uIndex)
+                            } else {
+                                playlistContent = mediaTag + "\n" + playlistContent
+                            }
+                            
+                            // Add SUBTITLES="subs" to all EXT-X-STREAM-INF tags
+                            var modifiedLines = [String]()
+                            playlistContent.enumerateLines { line, _ in
+                                if line.contains("#EXT-X-STREAM-INF") && !line.contains("SUBTITLES=") {
+                                    modifiedLines.append("\(line),SUBTITLES=\"\(groupId)\"")
+                                } else {
+                                    modifiedLines.append(line)
+                                }
+                            }
+                            playlistContent = modifiedLines.joined(separator: "\n")
+                        }
+                        
                         if let modifiedData = playlistContent.data(using: .utf8) {
                             finalData = modifiedData
                             headers["Content-Length"] = "\(modifiedData.count)"
-                            print("   ✅ [ResourceLoader] Playlist processed: URLs rewritten & I-Frames removed")
+                            print("   ✅ [ResourceLoader] Playlist processed: URLs rewritten, I-Frames removed & Subtitles injected")
                         }
                     }
                 }

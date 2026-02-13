@@ -804,6 +804,19 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
     private var artworkTask: Task<Void, Never>?
     
+    // Setup parameters for reloading (AirPlay Subtitles)
+    struct SetupParams {
+        let url: URL
+        let title: String?
+        let posterUrl: String?
+        let localPosterPath: String?
+        let customHeaders: [String: String]?
+        let useVLC: Bool
+        let subtitleUrl: URL?
+    }
+    private var lastSetupParams: SetupParams?
+    private var externalSubtitleUrl: URL?
+    
     override init() {
         super.init()
         
@@ -891,7 +904,20 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
+        // Store params for reloading (e.g. when subtitles change)
+        lastSetupParams = SetupParams(
+            url: url,
+            title: title,
+            posterUrl: posterUrl,
+            localPosterPath: localPosterPath,
+            customHeaders: customHeaders,
+            useVLC: useVLCPlayer,
+            subtitleUrl: subtitleUrl
+        )
+        
+        self.externalSubtitleUrl = subtitleUrl
+        
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
         
@@ -905,7 +931,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         // Store the title if provided
         if let title = title {
-            print("📺 [PlayerVM] setup() called with title: '\(title)' (VLC: \(useVLCPlayer))")
+            print("📺 [PlayerVM] setup() called with title: '\(title)' (VLC: \(useVLCPlayer), Subtitle: \(subtitleUrl?.lastPathComponent ?? "none"))")
             currentTitle = title
             
             // Force clean update with new title using reset: true
@@ -933,8 +959,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             }
         }
         
-        // If same URL, just ensure playing and return
-        if url == currentUrl {
+        // If same URL AND same subtitle state, just ensure playing and return
+        if url == currentUrl && subtitleUrl == externalSubtitleUrl {
             if !isPlaying {
                 if useVLC, let vlc = vlcPlayer {
                     vlc.play()
@@ -1002,6 +1028,57 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             }
         }
         
+        // AirPlay Subtitle Logic: Force ResourceLoader if subtitle URL is present
+        // This injects the subtitle track into the HLS manifest via ResourceLoader
+        if let subUrl = subtitleUrl, !useResourceLoader, !useVLCPlayer {
+            print("🎬 [CustomVideoPlayer] External subtitle present - enabling ResourceLoader for AirPlay injection")
+            useResourceLoader = true
+            
+            // Check if it's HLS or Direct File (MP4)
+            // If it ends in .m3u8, it is HLS.
+            // If not, we treat it as a direct file and wrap it in Virtual HLS.
+            let isHLS = url.pathExtension.lowercased() == "m3u8" || url.absoluteString.contains(".m3u8")
+            
+            if isHLS {
+                // HLS: Use 'airplay-subs' to inject EXT-X-MEDIA into existing manifest
+                if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                    components.scheme = "airplay-subs"
+                    if let customUrl = components.url {
+                        finalUrl = customUrl
+                        print("   - Rewrote URL (AirPlay Subs - HLS) to: \(finalUrl)")
+                    }
+                }
+            } else {
+                // MP4/Direct: Use 'airplay-mp4-wrapper' to generate Virtual HLS Playlist
+                // We must append .m3u8 to the URL so AVPlayer treats it as HLS!
+                // The ResourceLoader will see "airplay-mp4-wrapper://.../video.mp4" (or similiar)
+                // Actually, if we append .m3u8 here, the ResourceLoader gets ".../video.mp4.m3u8"
+                // Our ResourceLoader logic expects "master.m3u8" or just ".m3u8" extension logic.
+                // Let's force it to look like a master playlist.
+                
+                if var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+                    components.scheme = "airplay-mp4-wrapper"
+                    
+                    // Append /master.m3u8 to the path?
+                    // No, that changes the hierarchy.
+                    // Better: Just behave like Vidzy logic (virtual param)?
+                    // Or keep original path but ResourceLoader handles it.
+                    // Let's add .m3u8 to the end of the path if not present, so AVPlayer uses HLS parser.
+                    
+                    var path = components.path
+                    if !path.hasSuffix(".m3u8") {
+                        path += ".m3u8"
+                        components.path = path
+                    }
+                    
+                    if let customUrl = components.url {
+                        finalUrl = customUrl
+                        print("   - Rewrote URL (AirPlay Subs - MP4 Wrapper) to: \(finalUrl)")
+                    }
+                }
+            }
+        }
+        
         print("🎬 Setting up player with URL: \(url)")
         if let title = currentTitle {
             print("📺 Content title: \(title)")
@@ -1040,7 +1117,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
         
         if useResourceLoader {
-            self.resourceLoaderDelegate = VideoResourceLoaderDelegate()
+            // Pass subtitleUrl to delegate for injection
+            self.resourceLoaderDelegate = VideoResourceLoaderDelegate(subtitleUrl: subtitleUrl)
             asset.resourceLoader.setDelegate(self.resourceLoaderDelegate, queue: .main)
         } else {
             self.resourceLoaderDelegate = nil
@@ -1598,6 +1676,46 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
 
     
     func loadSubtitles(url: URL) {
+        // 1. Reload player if needed to support AirPlay injection
+        // Check if we need to reload (only if not VLC, and URL is different)
+        if !useVLC && externalSubtitleUrl != url {
+            print("🔄 [PlayerVM] New subtitle loaded: \(url.lastPathComponent) - Reloading player for AirPlay support...")
+            
+            // Reload using stored params + new subtitle URL
+            if let params = lastSetupParams {
+                let savedTime = currentTime
+                
+                // Call setup within a task to ensure clean reload? No, main thread is fine.
+                // We just call setup directly. CustomVideoPlayer logic for setup handles replacement.
+                setup(
+                    url: params.url,
+                    title: params.title,
+                    posterUrl: params.posterUrl,
+                    localPosterPath: params.localPosterPath,
+                    customHeaders: params.customHeaders,
+                    useVLCPlayer: params.useVLC,
+                    subtitleUrl: url
+                )
+                
+                // Restore position after a short delay (once item is ready)
+                // We use observeValue for "status" .readyToPlay, but since setup() clears observers,
+                // we rely on the new item's observer.
+                // However, we need to pass the start time or seek immediately.
+                // Simple seek after replace works if AVPlayer handles it.
+                // Better: wait for status ready.
+                
+                // Let's store a pendingSeekTime in PlayerViewModel?
+                // Or just seek asynchronously.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if savedTime > 0 {
+                        print("⏩ [PlayerVM] Restoring playback position: \(savedTime)s")
+                        self.seek(to: savedTime)
+                    }
+                }
+            }
+        }
+        
+        // 2. Load for local overlay (Original Logic)
         Task {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
@@ -1606,16 +1724,20 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 if let content = String(data: data, encoding: .utf8) {
                     print("✅ Loaded subtitle (UTF-8) from \(url.lastPathComponent)")
                     self.subtitleParser = SubtitleParser(content: content)
+                    // Trigger initial update
+                    await MainActor.run { self.updateSubtitle() }
                 } 
                 // Fallback to Windows-1252 (Latin-1)
                 else if let content = String(data: data, encoding: .windowsCP1252) {
                     print("⚠️ Loaded subtitle (Windows-1252) from \(url.lastPathComponent)")
                     self.subtitleParser = SubtitleParser(content: content)
+                    await MainActor.run { self.updateSubtitle() }
                 }
                 // Fallback to ISO Latin 1
                 else if let content = String(data: data, encoding: .isoLatin1) {
                      print("⚠️ Loaded subtitle (ISO-Latin-1) from \(url.lastPathComponent)")
                      self.subtitleParser = SubtitleParser(content: content)
+                     await MainActor.run { self.updateSubtitle() }
                 } else {
                     print("❌ Failed to decode subtitle content (unknown encoding)")
                 }
