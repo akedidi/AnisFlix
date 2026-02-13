@@ -448,7 +448,7 @@ struct CustomVideoPlayer: View {
                     castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castStartTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
                 }
             } else {
-                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: selectedSubtitle?.url.flatMap { URL(string: $0) })
             }
             
             // Auto-resume from saved progress ONLY if not already playing
@@ -558,8 +558,20 @@ struct CustomVideoPlayer: View {
             } else {
                 if let sub = selectedSubtitle, let url = URL(string: sub.url) {
                     playerVM.loadSubtitles(url: url)
+                    
+                    // IF AIRPLAY ACTIVE: We MUST re-setup the player because the HLS manifest needs to be refreshed with the new subtitle URL
+                    if playerVM.player.isExternalPlaybackActive {
+                        print("📺 [CustomVideoPlayer] AirPlay active, re-setting up player to refresh HLS manifest with new subtitle")
+                        playerVM.setup(url: self.url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: url)
+                    }
                 } else {
                     playerVM.clearSubtitles()
+                    
+                    // IF AIRPLAY ACTIVE: Remove subtitle track from HLS manifest
+                    if playerVM.player.isExternalPlaybackActive {
+                        print("📺 [CustomVideoPlayer] AirPlay active, clearing subtitle in HLS manifest via re-setup")
+                        playerVM.setup(url: self.url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: nil)
+                    }
                 }
             }
         }
@@ -635,7 +647,7 @@ struct CustomVideoPlayer: View {
                 print("📺 URL changed while casting. Loading new media...")
                 castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
-                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: selectedSubtitle?.url.flatMap { URL(string: $0) })
             }
         }
         .onChange(of: castManager.isConnected) { connected in
