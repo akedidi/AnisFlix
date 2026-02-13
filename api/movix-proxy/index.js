@@ -587,6 +587,11 @@ class MovieBoxScraper {
 
     } catch (error) {
       console.error('❌ [MovieBox] Failed to get streams:', error.message);
+
+      if (error.response) {
+        // Log detailed error from MovieBox API (e.g. LIMIT_EXCEED)
+        console.error('❌ [MovieBox] Error Data:', JSON.stringify(error.response.data));
+      }
       return [];
     }
   }

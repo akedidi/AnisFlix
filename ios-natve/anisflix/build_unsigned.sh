@@ -87,7 +87,8 @@ xcodebuild \
   archive \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
-  CODE_SIGN_IDENTITY="" || error "L'archivage a échoué"
+  CODE_SIGN_IDENTITY="" \
+  SUPPORTED_PLATFORMS="iphoneos" || error "L'archivage a échoué"
 
 success "Archive créée: $ARCHIVE_PATH"
 

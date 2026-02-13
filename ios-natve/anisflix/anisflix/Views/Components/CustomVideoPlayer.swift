@@ -991,8 +991,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         var finalUrl = url
         
         // Use Local Proxy for AirPlay compatibility (Headers & Subtitles)
-        // This is required for Vidzy, LuluVid, and any stream needing custom headers or subtitles on AirPlay
-        if !useVLCPlayer {
+        // ONLY use proxy if strictly necessary (Headers or Subtitles), otherwise use direct URL for stability
+        let hasCustomHeaders = (customHeaders != nil && !customHeaders!.isEmpty)
+        let hasSubtitles = (subtitleUrl != nil)
+        
+        if !useVLCPlayer && (hasCustomHeaders || hasSubtitles) {
             // Check if we have a valid Local Server URL (LAN IP)
             if let serverUrl = LocalStreamingServer.shared.serverUrl {
                 var components = URLComponents()
@@ -1022,6 +1025,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 
                 if let proxyUrl = components.url {
                     print("🚀 [PlayerVM] Using Local Proxy for AirPlay compatibility")
+                    print("   - Reason: Headers: \(hasCustomHeaders), Subs: \(hasSubtitles)")
                     print("   - Original: \(url)")
                     print("   - Proxy: \(proxyUrl)")
                     finalUrl = proxyUrl
@@ -1029,7 +1033,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             } else {
                 print("⚠️ [PlayerVM] Local Server not running or no LAN IP - AirPlay might fail for protected streams")
             }
+        } else {
+             print("▶️ [PlayerVM] Using Direct URL (No special headers/subs needed)")
         }
+
         
         // Legacy ResourceLoader logic (VidMoly, Vidzy, AirPlay) removed in favor of Local Proxy
         var useResourceLoader = false

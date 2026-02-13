@@ -12,6 +12,7 @@ vite.config.ts.*
 # Fichiers de test et de développement
 scripts/test-*.cjs
 scripts/test-*.js
+debug-moviebox*.cjs
 
 # Fichiers temporaires
 global.css
