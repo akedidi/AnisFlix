@@ -138,6 +138,7 @@ class LocalStreamingServer {
                 let virtualMaster = self.generateVirtualMasterPlaylist(originalUrl: targetUrl, subtitleUrl: subUrl, headers: headers)
                 let resp = GCDWebServerDataResponse(text: virtualMaster)
                 resp?.contentType = "application/vnd.apple.mpegurl"
+                resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
                 return resp
             }
             
@@ -146,6 +147,7 @@ class LocalStreamingServer {
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
+            resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
             return resp
         }
         
@@ -206,14 +208,18 @@ class LocalStreamingServer {
             
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
-                return GCDWebServerDataResponse(data: data, contentType: contentType)
+                let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
+                resp.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
+                return resp
             }
             
             return GCDWebServerDataResponse(statusCode: 404)
         }
         
         // 3. Subtitle Converter Handler (SRT -> WebVTT)
-        webServer.addHandler(forMethod: "GET", path: "/subtitles", request: GCDWebServerRequest.self) { [weak self] request in
+        // Updated path to include .vtt extension for AirPlay compatibility
+        // We match ANY path starting with /subtitles
+        webServer.addHandler(forMethod: "GET", pathRegex: "/subtitles.*", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
             let query = request.query ?? [:]
@@ -238,6 +244,7 @@ class LocalStreamingServer {
                 let vtt = self.convertToWebVTT(content: content, offset: offset)
                 let resp = GCDWebServerDataResponse(text: vtt)
                 resp?.contentType = "text/vtt"
+                resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
                 return resp
             }
             
@@ -314,12 +321,12 @@ class LocalStreamingServer {
              if let subUrl = subtitleUrl {
                  let groupId = "subs"
                  
-                 // Construct Local Subtitle URL
+                 // Construct Local Subtitle URL with .vtt extension
                  var subComponents = URLComponents()
                  subComponents.scheme = "http"
                  subComponents.host = self.webServer.serverURL?.host
                  subComponents.port = Int(self.webServer.port)
-                 subComponents.path = "/subtitles"
+                 subComponents.path = "/subtitles.vtt" // Added .vtt
                  subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
                  
                  let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
@@ -443,12 +450,12 @@ class LocalStreamingServer {
         if let subUrl = subtitleUrl {
             let groupId = "subs"
             
-            // Construct Local Subtitle URL for Virtual Playlist too
+            // Construct Local Subtitle URL with .vtt extension
             var subComponents = URLComponents()
             subComponents.scheme = "http"
             subComponents.host = self.webServer.serverURL?.host
             subComponents.port = Int(self.webServer.port)
-            subComponents.path = "/subtitles"
+            subComponents.path = "/subtitles.vtt" // Added .vtt
             subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
             
             let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
@@ -499,12 +506,12 @@ class LocalStreamingServer {
         // Define Subtitles
         let groupId = "subs"
         
-        // Construct Local Subtitle URL
+        // Construct Local Subtitle URL with .vtt extension
         var subComponents = URLComponents()
         subComponents.scheme = "http"
         subComponents.host = self.webServer.serverURL?.host
         subComponents.port = Int(self.webServer.port)
-        subComponents.path = "/subtitles"
+        subComponents.path = "/subtitles.vtt" // Added .vtt
         subComponents.queryItems = [URLQueryItem(name: "url", value: subtitleUrl.absoluteString)]
         
         let localSubUrl = subComponents.url?.absoluteString ?? subtitleUrl.absoluteString
