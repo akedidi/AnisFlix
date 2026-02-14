@@ -331,18 +331,20 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             finalHeaders.merge(custom) { (_, new) in new }
         }
         
-        // Apply Provider-Specific Fixes (Vidzy, LuluVid, etc.)
+        // Apply Provider-Specific Fixes (Vidzy, LuluVid, Vidsrc, Vixsrc)
         let urlString = url.absoluteString.lowercased()
         if urlString.contains("vidzy") {
             finalHeaders["Referer"] = "https://vidzy.org/"
         } else if urlString.contains("luluvid") {
             finalHeaders["Referer"] = "https://luluvid.com/"
-        } else if urlString.contains("vidsrc") || urlString.contains("vixsrc") { // Added vidsrc/vixsrc fix
-            // If Referer is missing for vidsrc, add default one (generic guess, but better than nothing if missing)
-            // Ideally caller provides it, but if not, we try to help.
+        } else if urlString.contains("vidsrc") {
             if finalHeaders["Referer"] == nil {
                  finalHeaders["Referer"] = "https://vidsrc.to/"
             }
+        } else if urlString.contains("vixsrc") {
+            // VixSrc requires specific Referer/Origin
+            finalHeaders["Referer"] = "https://vixsrc.to/"
+            finalHeaders["Origin"] = "https://vixsrc.to"
         }
         
         // 2. Handle AirPlay Subtitle Logic
@@ -362,15 +364,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                  URLQueryItem(name: "subs", value: subUrl.absoluteString)
              ]
              
-             // Pass headers to proxy (using the COMPUTED finalHeaders)
-             if let referer = finalHeaders["Referer"] {
-                 queryItems.append(URLQueryItem(name: "referer", value: referer))
-             }
-             if let origin = finalHeaders["Origin"] {
-                 queryItems.append(URLQueryItem(name: "origin", value: origin))
-             }
-             if let ua = finalHeaders["User-Agent"] {
-                 queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+             // Serialize Headers to JSON for robust propagation
+             if let jsonData = try? JSONSerialization.data(withJSONObject: finalHeaders, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8) {
+                 queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+             } else {
+                 print("⚠️ [PlayerVM] Failed to serialize headers to JSON")
              }
              
              // Pass Subtitle Offset if non-zero

@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.59",
+          "version": "1.0.62",
           "date": "2026-02-14",
-          "size": 30662251,
+          "size": 30662189,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "chore: bump version to 1.0.52 per user request - Updated version in Info.plist and project settings. - Generated new unsigned IPA. - Updated deployment metadata. "
+          "localizedDescription": "feat: AirPlay Subtitle Synchronization and v1.0.59 build "
         }
       ]
     }

@@ -66,10 +66,28 @@ class LocalStreamingServer {
             let subtitleUrl = subtitleUrlString != nil ? URL(string: subtitleUrlString!) : nil
             
             // Extract Headers from Query
-            let referer = query["referer"] as? String
-            let origin = query["origin"] as? String
+            var headers: [String: String] = [:]
+            
+            // 1. Try JSON Headers first
+            if let jsonString = query["headers"] as? String,
+               let jsonData = jsonString.data(using: .utf8),
+               let decoded = try? JSONSerialization.jsonObject(with: jsonData) as? [String: String] {
+                headers = decoded
+            }
+            
+            // 2. Fallback / Merge Legacy Params (if not present in JSON)
+            if let referer = query["referer"] as? String, headers["Referer"] == nil {
+                headers["Referer"] = referer
+            }
+            if let origin = query["origin"] as? String, headers["Origin"] == nil {
+                headers["Origin"] = origin
+            }
             let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-            let userAgent = query["user_agent"] as? String ?? defaultUA
+            if let ua = query["user_agent"] as? String {
+                 headers["User-Agent"] = ua
+            } else if headers["User-Agent"] == nil {
+                 headers["User-Agent"] = defaultUA
+            }
             
             // Check if it is HLS or MP4/Direct File
             let isM3U8 = targetUrl.pathExtension.lowercased() == "m3u8" || targetUrl.absoluteString.contains(".m3u8")
@@ -77,7 +95,7 @@ class LocalStreamingServer {
             if !isM3U8 {
                 // Generate Virtual HLS for MP4
                 print("📦 [LocalServer] Generating Virtual HLS for MP4: \(targetUrl.lastPathComponent)")
-                let playlist = self.generateVirtualPlaylist(targetUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let playlist = self.generateVirtualPlaylist(targetUrl: targetUrl, subtitleUrl: subtitleUrl, headers: headers)
                 let resp = GCDWebServerDataResponse(text: playlist)
                 resp?.contentType = "application/vnd.apple.mpegurl"
                 return resp
@@ -91,12 +109,8 @@ class LocalStreamingServer {
             print("📥 [LocalServer] Fetching manifest: \(targetUrl.lastPathComponent)")
             
             var urlRequest = URLRequest(url: targetUrl)
-            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            if let referer = referer {
-                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
-            }
-            if let origin = origin {
-                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
+            for (key, value) in headers {
+                urlRequest.setValue(value, forHTTPHeaderField: key)
             }
             
             let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
@@ -121,14 +135,14 @@ class LocalStreamingServer {
             // in a Master Playlist for AirPlay to recognize the subtitle track.
             if let subUrl = subtitleUrl, !content.contains("#EXT-X-STREAM-INF") {
                 print("📦 [LocalServer] Detected Media Playlist with Subtitles -> Generating Virtual Master Playlist")
-                let virtualMaster = self.generateVirtualMasterPlaylist(originalUrl: targetUrl, subtitleUrl: subUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let virtualMaster = self.generateVirtualMasterPlaylist(originalUrl: targetUrl, subtitleUrl: subUrl, headers: headers)
                 let resp = GCDWebServerDataResponse(text: virtualMaster)
                 resp?.contentType = "application/vnd.apple.mpegurl"
                 return resp
             }
             
             // Rewrite Manifest
-            let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent)
+            let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, headers: headers)
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
@@ -144,10 +158,26 @@ class LocalStreamingServer {
             }
             
             // Extract Headers from Query
-            let referer = query["referer"] as? String
-            let origin = query["origin"] as? String
+            var headers: [String: String] = [:]
+            if let jsonString = query["headers"] as? String,
+               let jsonData = jsonString.data(using: .utf8),
+               let decoded = try? JSONSerialization.jsonObject(with: jsonData) as? [String: String] {
+                headers = decoded
+            }
+            
+            // Fallback
+            if let referer = query["referer"] as? String, headers["Referer"] == nil {
+                headers["Referer"] = referer
+            }
+            if let origin = query["origin"] as? String, headers["Origin"] == nil {
+                headers["Origin"] = origin
+            }
             let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-            let userAgent = query["user_agent"] as? String ?? defaultUA
+            if let ua = query["user_agent"] as? String {
+                 headers["User-Agent"] = ua
+            } else if headers["User-Agent"] == nil {
+                 headers["User-Agent"] = defaultUA
+            }
             
             // Sync fetch (GCDWebServer handlers run on background threads)
             let semaphore = DispatchSemaphore(value: 0)
@@ -156,12 +186,8 @@ class LocalStreamingServer {
             var responseError: Error?
             
             var urlRequest = URLRequest(url: targetUrl)
-            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            if let referer = referer {
-                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
-            }
-            if let origin = origin {
-                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
+            for (key, value) in headers {
+                urlRequest.setValue(value, forHTTPHeaderField: key)
             }
             
             let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
@@ -201,34 +227,21 @@ class LocalStreamingServer {
             
             print("📝 [LocalServer] Fetching & Converting Subtitles: \(targetUrl.lastPathComponent) (Offset: \(offset)s)")
             
-            // Fetch original SRT/VTT
-            let semaphore = DispatchSemaphore(value: 0)
-            var responseData: Data?
-            var responseError: Error?
+            // Fetch content
+            // Assuming subtitles don't need complex headers but if they do, we can add them here too.
+            // For now, simple fetch.
+            // Ideally we should pass headers here too if VixSrc subtitles are protected.
             
-            let task = URLSession.shared.dataTask(with: targetUrl) { data, response, error in
-                responseData = data
-                responseError = error
-                semaphore.signal()
-            }
-            task.resume()
-            semaphore.wait()
-            
-            if let error = responseError {
-                print("❌ [LocalServer] Subtitle fetch error: \(error)")
-                return GCDWebServerDataResponse(statusCode: 502)
+            if let data = try? Data(contentsOf: targetUrl),
+               let content = String(data: data, encoding: .utf8) {
+                
+                let vtt = self.convertToWebVTT(content: content, offset: offset)
+                let resp = GCDWebServerDataResponse(text: vtt)
+                resp?.contentType = "text/vtt"
+                return resp
             }
             
-            guard let data = responseData, let content = String(data: data, encoding: .utf8) ?? String(data: data, encoding: .windowsCP1252) ?? String(data: data, encoding: .isoLatin1) else {
-                return GCDWebServerDataResponse(statusCode: 502)
-            }
-            
-            // Convert to WebVTT with Offset
-            let vttContent = self.convertToWebVTT(content: content, offset: offset)
-            
-            let resp = GCDWebServerDataResponse(text: vttContent)
-            resp?.contentType = "text/vtt"
-            return resp
+            return GCDWebServerDataResponse(statusCode: 404)
         }
     }
     
@@ -267,7 +280,7 @@ class LocalStreamingServer {
     
     private func shiftTimestamp(_ timestamp: String, offset: Double) -> String {
         // Format: HH:mm:ss,MMM or HH:mm:ss.MMM
-        var cleanTs = timestamp.replacingOccurrences(of: ",", with: ".")
+        let cleanTs = timestamp.replacingOccurrences(of: ",", with: ".")
         
         let components = cleanTs.components(separatedBy: ":")
         guard components.count == 3 else { return cleanTs }
@@ -292,7 +305,7 @@ class LocalStreamingServer {
     
     // MARK: - Manifest Rewriting
     
-    private func rewriteManifest(content: String, originalUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteManifest(content: String, originalUrl: URL, subtitleUrl: URL?, headers: [String: String]) -> String {
         var lines = content.components(separatedBy: .newlines)
         var newLines = [String]()
         
@@ -348,13 +361,13 @@ class LocalStreamingServer {
                 // Check for URI attributes in tags
                 // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..."
                 if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") {
-                    newLines.append(rewriteLine(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent))
+                    newLines.append(rewriteLine(line, baseUrl: baseUrl, headers: headers))
                 } else {
                     newLines.append(line)
                 }
             } else if !line.isEmpty {
                 // This is a URL (Segment or Playlist)
-                let rewritten = rewriteUrl(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let rewritten = rewriteUrl(line, baseUrl: baseUrl, headers: headers)
                 newLines.append(rewritten)
             } else {
                 newLines.append(line)
@@ -364,7 +377,7 @@ class LocalStreamingServer {
         return newLines.joined(separator: "\n")
     }
     
-    private func rewriteLine(_ line: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteLine(_ line: String, baseUrl: URL, headers: [String: String]) -> String {
         // Simple regex or string manipulation to find URI="..."
         guard let range = line.range(of: "URI=\"") else { return line }
         
@@ -376,12 +389,12 @@ class LocalStreamingServer {
         let uri = String(remainder[..<endQuote])
         let suffix = remainder[remainder.index(after: endQuote)...]
         
-        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent)
+        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, headers: headers)
         
         return String(prefix) + rewrittenUri + "\"" + String(suffix)
     }
     
-    private func rewriteUrl(_ original: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteUrl(_ original: String, baseUrl: URL, headers: [String: String]) -> String {
         // Resolve relative URL
         guard let resolved = URL(string: original, relativeTo: baseUrl) else { return original }
         
@@ -396,15 +409,17 @@ class LocalStreamingServer {
         components.path = endpoint
         
         var queryItems = [URLQueryItem(name: "url", value: resolved.absoluteString)]
-        if let referer = referer {
-             queryItems.append(URLQueryItem(name: "referer", value: referer))
+        
+        // Serialize Headers into query param 'headers' for next request
+        if !headers.isEmpty {
+            if let jsonData = try? JSONSerialization.data(withJSONObject: headers, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+            }
         }
-        if let origin = origin {
-             queryItems.append(URLQueryItem(name: "origin", value: origin))
-        }
-        // Only append UA if it differs from default to save URL length, but safest is to always append if custom
-        // For simplicity and correctness, let's append if provided
-        if let ua = userAgent {
+        
+        // Fallback for visual debugging (optional) or if serialization fails
+        if let ua = headers["User-Agent"] {
              queryItems.append(URLQueryItem(name: "user_agent", value: ua))
         }
         
@@ -413,10 +428,10 @@ class LocalStreamingServer {
         return components.url?.absoluteString ?? original
     }
     
-    private func generateVirtualPlaylist(targetUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func generateVirtualPlaylist(targetUrl: URL, subtitleUrl: URL?, headers: [String: String]) -> String {
         // Construct Proxy URL for the segment
         // We use /proxy endpoint to serve the MP4 content with headers
-        let segmentProxyUrl = rewriteUrl(targetUrl.absoluteString, baseUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent)
+        let segmentProxyUrl = rewriteUrl(targetUrl.absoluteString, baseUrl: targetUrl, headers: headers)
         
         var playlist = "#EXTM3U\n"
         playlist += "#EXT-X-VERSION:3\n"
@@ -449,10 +464,39 @@ class LocalStreamingServer {
         return playlist
     }
     
-    private func generateVirtualMasterPlaylist(originalUrl: URL, subtitleUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func generateVirtualMasterPlaylist(originalUrl: URL, subtitleUrl: URL, headers: [String: String]) -> String {
+        // This wraps a Media Playlist (the originalUrl) into a Master Playlist
+        // The originalUrl here is the fetched manifest URL
+        
+        // IMPORTANT: We MUST NOT include 'subs' param here, otherwise we loop infinitely!
+        var variantUrlComponents = URLComponents()
+        variantUrlComponents.scheme = "http"
+        variantUrlComponents.host = self.webServer.serverURL?.host
+        variantUrlComponents.port = Int(self.webServer.port)
+        variantUrlComponents.path = "/manifest"
+        
+        var queryItems = [URLQueryItem(name: "url", value: originalUrl.absoluteString)]
+        
+        // Serialize Headers into query param 'headers' for next request
+        if !headers.isEmpty {
+            if let jsonData = try? JSONSerialization.data(withJSONObject: headers, options: []),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+            }
+        }
+        
+        // Fallback for visual debugging (optional) or if serialization fails
+        if let ua = headers["User-Agent"] {
+             queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+        }
+        
+        variantUrlComponents.queryItems = queryItems
+        let playlistProxyUrl = variantUrlComponents.url?.absoluteString ?? originalUrl.absoluteString
+        
         var playlist = "#EXTM3U\n"
         playlist += "#EXT-X-VERSION:3\n"
         
+        // Define Subtitles
         let groupId = "subs"
         
         // Construct Local Subtitle URL
@@ -467,25 +511,8 @@ class LocalStreamingServer {
         
         playlist += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(localSubUrl)\"\n"
         
-        // Construct URL for the Media Playlist (routed through /manifest but WITHOUT subs)
-        // We use rewriteUrl logic but forcing it to point to /manifest
-        // IMPORTANT: We MUST NOT include 'subs' param here, otherwise we loop infinitely!
-        var variantUrlComponents = URLComponents()
-        variantUrlComponents.scheme = "http"
-        variantUrlComponents.host = self.webServer.serverURL?.host
-        variantUrlComponents.port = Int(self.webServer.port)
-        variantUrlComponents.path = "/manifest"
-        
-        var queryItems = [URLQueryItem(name: "url", value: originalUrl.absoluteString)]
-        if let referer = referer { queryItems.append(URLQueryItem(name: "referer", value: referer)) }
-        if let origin = origin { queryItems.append(URLQueryItem(name: "origin", value: origin)) }
-        if let userAgent = userAgent { queryItems.append(URLQueryItem(name: "user_agent", value: userAgent)) }
-        
-        variantUrlComponents.queryItems = queryItems
-        let variantUrl = variantUrlComponents.url?.absoluteString ?? originalUrl.absoluteString
-        
-        playlist += "#EXT-X-STREAM-INF:BANDWIDTH=2000000,SUBTITLES=\"\(groupId)\"\n"
-        playlist += "\(variantUrl)\n"
+        playlist += "#EXT-X-STREAM-INF:BANDWIDTH=5000000,SUBTITLES=\"\(groupId)\"\n"
+        playlist += "\(playlistProxyUrl)\n"
         
         return playlist
     }
