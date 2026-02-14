@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.52",
+          "version": "1.0.59",
           "date": "2026-02-14",
-          "size": 30655795,
+          "size": 30662251,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix: resolve player compiler timeout and subtitle bugs, bump to v1.0.51 - Refactor CustomVideoPlayer to reduce complexity and fix Swift compiler timeout. - Remove redundant reload logic in PlayerViewModel that caused local playback resets. - Bump version to 1.0.51. - Update sidestore.json and public IPA. "
+          "localizedDescription": "chore: bump version to 1.0.52 per user request - Updated version in Info.plist and project settings. - Generated new unsigned IPA. - Updated deployment metadata. "
         }
       ]
     }

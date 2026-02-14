@@ -321,7 +321,31 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         self.externalSubtitleUrl = subtitleUrl
         self.useVLC = useVLCPlayer
         
-        // Handle AirPlay Subtitle Logic
+        // 1. Prepare Headers (Resolution Logic moved UP)
+        var finalHeaders: [String: String] = [
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ]
+        
+        // Merge provided custom headers
+        if let custom = customHeaders {
+            finalHeaders.merge(custom) { (_, new) in new }
+        }
+        
+        // Apply Provider-Specific Fixes (Vidzy, LuluVid, etc.)
+        let urlString = url.absoluteString.lowercased()
+        if urlString.contains("vidzy") {
+            finalHeaders["Referer"] = "https://vidzy.org/"
+        } else if urlString.contains("luluvid") {
+            finalHeaders["Referer"] = "https://luluvid.com/"
+        } else if urlString.contains("vidsrc") || urlString.contains("vixsrc") { // Added vidsrc/vixsrc fix
+            // If Referer is missing for vidsrc, add default one (generic guess, but better than nothing if missing)
+            // Ideally caller provides it, but if not, we try to help.
+            if finalHeaders["Referer"] == nil {
+                 finalHeaders["Referer"] = "https://vidsrc.to/"
+            }
+        }
+        
+        // 2. Handle AirPlay Subtitle Logic
         // If we have subtitles AND we want to support AirPlay (which we always do for native player),
         // we should prefer the Local Proxy URL which wraps the stream in a Master Playlist.
         var finalUrl = url
@@ -338,17 +362,20 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                  URLQueryItem(name: "subs", value: subUrl.absoluteString)
              ]
              
-             // Pass headers to proxy if valid
-             if let headers = customHeaders {
-                 if let referer = headers["Referer"] {
-                     queryItems.append(URLQueryItem(name: "referer", value: referer))
-                 }
-                 if let origin = headers["Origin"] {
-                     queryItems.append(URLQueryItem(name: "origin", value: origin))
-                 }
-                 if let ua = headers["User-Agent"] {
-                     queryItems.append(URLQueryItem(name: "user_agent", value: ua))
-                 }
+             // Pass headers to proxy (using the COMPUTED finalHeaders)
+             if let referer = finalHeaders["Referer"] {
+                 queryItems.append(URLQueryItem(name: "referer", value: referer))
+             }
+             if let origin = finalHeaders["Origin"] {
+                 queryItems.append(URLQueryItem(name: "origin", value: origin))
+             }
+             if let ua = finalHeaders["User-Agent"] {
+                 queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+             }
+             
+             // Pass Subtitle Offset if non-zero
+             if subtitleOffset != 0 {
+                 queryItems.append(URLQueryItem(name: "offset", value: String(subtitleOffset)))
              }
              
              components?.queryItems = queryItems
@@ -378,9 +405,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         if useVLCPlayer {
-            setupVLCPlayer(url: finalUrl, customHeaders: customHeaders)
+            setupVLCPlayer(url: finalUrl, customHeaders: finalHeaders)
         } else {
-             // AVPlayer Setup Logic (INLINED)
+             // AVPlayer Setup Logic
              print("🎬 Setting up AVPlayer with URL: \(finalUrl)")
              
              // Audio Session
@@ -391,23 +418,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                  print("❌ Failed to activate audio session: \(error)")
              }
              
-             // Headers
-             var headers: [String: String] = [
-                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-             ]
-             if let custom = customHeaders {
-                 headers.merge(custom) { (_, new) in new }
-             }
-             
-             // Vidzy/LuluVid fixes
-             let urlString = url.absoluteString.lowercased()
-             if urlString.contains("vidzy") { headers["Referer"] = "https://vidzy.org/" }
-             else if urlString.contains("luluvid") { headers["Referer"] = "https://luluvid.com/" }
-             
-             let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+             // Use the PREPARED finalHeaders
+             let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": finalHeaders])
              let item = AVPlayerItem(asset: asset)
              
              // Observers
+
              if let oldItem = observedItem {
                  oldItem.removeObserver(self, forKeyPath: "duration")
                  oldItem.removeObserver(self, forKeyPath: "status")
@@ -1853,6 +1869,37 @@ extension CustomVideoPlayer {
                         castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
                     }
                 }
+            }
+        }
+        // Handle AirPlay Offset Update (Reload Player)
+        else if playerVM.player.isExternalPlaybackActive {
+            print("📺 [CustomVideoPlayer] AirPlay active, reloading player with new offset: \(newOffset)s")
+            
+            // Cancel previous debounce
+            castReloadDebounceTask?.cancel()
+            castReloadDebounceTask = Task {
+                 try? await Task.sleep(nanoseconds: 1_000_000_000) // 1.0 second debounce for AirPlay
+                 if !Task.isCancelled {
+                     await MainActor.run {
+                         print("📺 [CustomVideoPlayer] Executing AirPlay reload for offset...")
+                         // Re-setup player to regenerate Proxy URL with new offset
+                         // Capture current time to resume
+                         let currentTime = playerVM.currentTime
+                         
+                         playerVM.setup(
+                             url: self.url,
+                             title: title,
+                             posterUrl: posterUrl,
+                             localPosterPath: localPosterPath,
+                             subtitleUrl: selectedSubtitle.flatMap { URL(string: $0.url) }
+                         )
+                         
+                         // Seek back to position
+                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                             playerVM.seek(to: currentTime)
+                         }
+                     }
+                 }
             }
         }
     }

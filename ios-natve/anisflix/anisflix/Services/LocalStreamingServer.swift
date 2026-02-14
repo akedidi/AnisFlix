@@ -196,7 +196,10 @@ class LocalStreamingServer {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
             
-            print("📝 [LocalServer] Fetching & Converting Subtitles: \(targetUrl.lastPathComponent)")
+            let offsetString = query["offset"] as? String
+            let offset = Double(offsetString ?? "0") ?? 0
+            
+            print("📝 [LocalServer] Fetching & Converting Subtitles: \(targetUrl.lastPathComponent) (Offset: \(offset)s)")
             
             // Fetch original SRT/VTT
             let semaphore = DispatchSemaphore(value: 0)
@@ -220,8 +223,8 @@ class LocalStreamingServer {
                 return GCDWebServerDataResponse(statusCode: 502)
             }
             
-            // Convert to WebVTT
-            let vttContent = self.convertToWebVTT(content: content)
+            // Convert to WebVTT with Offset
+            let vttContent = self.convertToWebVTT(content: content, offset: offset)
             
             let resp = GCDWebServerDataResponse(text: vttContent)
             resp?.contentType = "text/vtt"
@@ -231,29 +234,60 @@ class LocalStreamingServer {
     
     // MARK: - Subtitle Formatting
     
-    private func convertToWebVTT(content: String) -> String {
-        // Check if already WebVTT
-        if content.contains("WEBVTT") {
-            return content
-        }
-        
+    private func convertToWebVTT(content: String, offset: Double) -> String {
+        // Simple VTT conversion with optional time shift
         var vtt = "WEBVTT\n\n"
         
         // Split into lines
+        // Handle varying newline formats
         let lines = content.components(separatedBy: .newlines)
         
         for line in lines {
             // Check for timestamp line (00:00:00,000 --> 00:00:00,000)
+            // SRT format: 00:00:20,000 --> 00:00:24,400
+            // WebVTT format: 00:00:20.000 --> 00:00:24.400
             if line.contains("-->") {
-                // Replace commas with dots
-                let fixedLine = line.replacingOccurrences(of: ",", with: ".")
-                vtt += fixedLine + "\n"
+                // Parse and Shift Timestamps
+                let parts = line.components(separatedBy: "-->")
+                if parts.count == 2 {
+                    let start = shiftTimestamp(parts[0].trimmingCharacters(in: .whitespaces), offset: offset)
+                    let end = shiftTimestamp(parts[1].trimmingCharacters(in: .whitespaces), offset: offset)
+                    vtt += "\(start) --> \(end)\n"
+                } else {
+                    // Fallback if parsing fails (shouldn't happen for valid SRT)
+                    vtt += line.replacingOccurrences(of: ",", with: ".") + "\n"
+                }
             } else {
                 vtt += line + "\n"
             }
         }
         
         return vtt
+    }
+    
+    private func shiftTimestamp(_ timestamp: String, offset: Double) -> String {
+        // Format: HH:mm:ss,MMM or HH:mm:ss.MMM
+        var cleanTs = timestamp.replacingOccurrences(of: ",", with: ".")
+        
+        let components = cleanTs.components(separatedBy: ":")
+        guard components.count == 3 else { return cleanTs }
+        
+        let h = Double(components[0]) ?? 0
+        let m = Double(components[1]) ?? 0
+        let s = Double(components[2]) ?? 0
+        
+        var totalSeconds = (h * 3600) + (m * 60) + s
+        totalSeconds += offset
+        
+        // Ensure non-negative
+        if totalSeconds < 0 { totalSeconds = 0 }
+        
+        // Convert back to string
+        let newH = Int(totalSeconds / 3600)
+        let newM = Int((totalSeconds.truncatingRemainder(dividingBy: 3600)) / 60)
+        let newS = totalSeconds.truncatingRemainder(dividingBy: 60)
+        
+        return String(format: "%02d:%02d:%06.3f", newH, newM, newS)
     }
     
     // MARK: - Manifest Rewriting
@@ -286,10 +320,21 @@ class LocalStreamingServer {
                      lines.insert(subTag, at: 0)
                  }
                  
-                 // Add SUBTITLES attribute to STREAM-INF
+                 // Add or Update SUBTITLES attribute to STREAM-INF
                  for (i, line) in lines.enumerated() {
-                     if line.hasPrefix("#EXT-X-STREAM-INF") && !line.contains("SUBTITLES=") {
-                         lines[i] = line + ",SUBTITLES=\"\(groupId)\""
+                     if line.hasPrefix("#EXT-X-STREAM-INF") {
+                         if line.contains("SUBTITLES=") {
+                             // Replace existing SUBTITLES="..." with SUBTITLES="subs"
+                             // Uses Regex to be safe
+                             if let regex = try? NSRegularExpression(pattern: "SUBTITLES=\"[^\"]*\"", options: []) {
+                                 let range = NSRange(location: 0, length: line.utf16.count)
+                                 let newLine = regex.stringByReplacingMatches(in: line, options: [], range: range, withTemplate: "SUBTITLES=\"\(groupId)\"")
+                                 lines[i] = newLine
+                             }
+                         } else {
+                             // Append if missing
+                             lines[i] = line + ",SUBTITLES=\"\(groupId)\""
+                         }
                      }
                  }
              }
