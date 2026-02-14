@@ -921,259 +921,170 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
-        // Store params for reloading (e.g. when subtitles change)
-        lastSetupParams = SetupParams(
-            url: url,
-            title: title,
-            posterUrl: posterUrl,
-            localPosterPath: localPosterPath,
-            customHeaders: customHeaders,
-            useVLC: useVLCPlayer,
-            subtitleUrl: subtitleUrl
-        )
+    func setup(url: URL, title: String, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
+        print("🎬 [PlayerVM] Setup called: \(url.absoluteString)")
+        print("🎬 [PlayerVM] Subtitle URL: \(subtitleUrl?.absoluteString ?? "None")")
         
-        self.externalSubtitleUrl = subtitleUrl
-        
-        // Notify others to stop
-        NotificationCenter.default.post(name: .stopPlayback, object: self)
-        
-        // Cleanup previous VLC player if switching modes
-        if useVLC && !useVLCPlayer {
-            cleanupVLC()
+        // Prevent re-setup if URL is same (unless forcing refresh or changing player type)
+        if currentUrl == url && self.useVLC == useVLCPlayer && externalSubtitleUrl == subtitleUrl {
+            print("🎬 [PlayerVM] Skipping setup - already playing this URL with same config.")
+            return
         }
         
-        // Set VLC mode
+        // Store params for restoration
+        lastSetupParams = SetupParams(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: customHeaders, useVLC: useVLCPlayer, subtitleUrl: subtitleUrl)
+        
+        self.currentUrl = url
+        self.currentTitle = title
+        self.externalSubtitleUrl = subtitleUrl
         self.useVLC = useVLCPlayer
         
-        // Store the title if provided
-        if let title = title {
-            print("📺 [PlayerVM] setup() called with title: '\(title)' (VLC: \(useVLCPlayer), Subtitle: \(subtitleUrl?.lastPathComponent ?? "none"))")
-            currentTitle = title
-            
-            // Force clean update with new title using reset: true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                print("📺 [PlayerVM] Forcing Clean NowPlaying update for: '\(title)'")
-                self.updateNowPlayingInfo(title: title, reset: true)
-            }
-        } else {
-             print("⚠️ [PlayerVM] setup() called WITHOUT title!")
+        // Handle AirPlay Subtitle Logic
+        // If we have subtitles AND we want to support AirPlay (which we always do for native player),
+        // we should prefer the Local Proxy URL which wraps the stream in a Master Playlist.
+        var finalUrl = url
+        
+        if !useVLCPlayer, let subUrl = subtitleUrl, let serverUrl = LocalStreamingServer.shared.serverUrl {
+             print("📡 [PlayerVM] Subtitles detected for AirPlay -> Using Local Proxy")
+             
+             // Construct Proxy URL: /manifest?url=...&subs=...
+             var components = URLComponents(url: serverUrl, resolvingAgainstBaseURL: false)
+             components?.path = "/manifest"
+             
+             var queryItems = [
+                 URLQueryItem(name: "url", value: url.absoluteString),
+                 URLQueryItem(name: "subs", value: subUrl.absoluteString)
+             ]
+             
+             // Pass headers to proxy if valid
+             if let headers = customHeaders {
+                 if let referer = headers["Referer"] {
+                     queryItems.append(URLQueryItem(name: "referer", value: referer))
+                 }
+                 if let origin = headers["Origin"] {
+                     queryItems.append(URLQueryItem(name: "origin", value: origin))
+                 }
+                 if let ua = headers["User-Agent"] {
+                     queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                 }
+             }
+             
+             components?.queryItems = queryItems
+             if let proxyUrl = components?.url {
+                 print("🔗 [PlayerVM] Proxy URL: \(proxyUrl.absoluteString)")
+                 finalUrl = proxyUrl
+             }
         }
         
-        // Artwork Loading with Priority
-        // Cancel previous artwork download
+        // Reset state
+        isPlaying = false
+        isBuffering = true
+        progress = 0
+        currentTime = 0
+        duration = 1
+        
+        // Download artwork for Control Center
         artworkTask?.cancel()
         currentArtwork = nil
         
-        // Priority 1: Load from local file (offline-compatible)
         if let localPath = localPosterPath {
             loadArtworkFromLocalFile(at: localPath)
-        }
-        // Priority 2: Download from URL (online only)
-        else if let posterUrl = posterUrl {
+        } else if let posterUrl = posterUrl {
             artworkTask = Task {
                 await downloadArtwork(from: posterUrl)
             }
         }
         
-        // If same URL AND same subtitle state, just ensure playing and return
-        if url == currentUrl && subtitleUrl == externalSubtitleUrl {
-            if !isPlaying {
-                if useVLC, let vlc = vlcPlayer {
-                    vlc.play()
-                } else {
-                    player.play()
-                }
-                isPlaying = true
-            }
-            return
-        }
-        
-        currentUrl = url
-        
-        // ═══════════════════════════════════════════════════════════════════
-        // VLC PLAYER BRANCH (for MKV and other formats not supported by AVPlayer)
-        // ═══════════════════════════════════════════════════════════════════
         if useVLCPlayer {
-            print("🎬 [PlayerVM] Using VLC player for: \(url)")
-            setupVLCPlayer(url: url, customHeaders: customHeaders)
-            return
-        }
-        
-        var finalUrl = url
-        
-        // Prepare headers (including auto-detection for Vidzy)
-        var effectiveHeaders = customHeaders ?? [:]
-        
-        // Add Referer header for Vidzy URLs to fix playback
-        let urlString = url.absoluteString.lowercased()
-        if urlString.contains("vidzy") {
-            effectiveHeaders["Referer"] = "https://vidzy.org/"
-            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header (proxy force)")
-        } else if urlString.contains("luluvid") {
-             effectiveHeaders["Referer"] = "https://luluvid.com/"
-             // effectiveHeaders["Origin"] = "https://luluvid.com" // Removed: Might cause issues with redirects/CORS
-             print("🎬 [CustomVideoPlayer] Added LuluVid headers (proxy force)")
-        }
-        
-        // Use Local Proxy for AirPlay compatibility (Headers & Subtitles)
-        // ONLY use proxy if strictly necessary (Headers or Subtitles), otherwise use direct URL for stability
-        let hasCustomHeaders = !effectiveHeaders.isEmpty
-        let hasSubtitles = (subtitleUrl != nil)
-        
-        if !useVLCPlayer && (hasCustomHeaders || hasSubtitles) {
-            // Check if we have a valid Local Server URL (LAN IP)
-            if let serverUrl = LocalStreamingServer.shared.serverUrl {
-                var components = URLComponents()
-                components.scheme = serverUrl.scheme
-                components.host = serverUrl.host
-                components.port = serverUrl.port
-                components.path = "/manifest" // Default to manifest proxy which handles HLS & MP4 wrapping
-                
-                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
-                
-                // Add Subtitles if present
-                if let sub = subtitleUrl {
-                    queryItems.append(URLQueryItem(name: "subs", value: sub.absoluteString))
-                }
-                
-                // Add Referer if present (critical for Vidzy/LuluVid)
-                if let referer = effectiveHeaders["Referer"] {
-                    queryItems.append(URLQueryItem(name: "referer", value: referer))
-                }
-                
-                // Add Origin if present
-                if let origin = effectiveHeaders["Origin"] {
-                    queryItems.append(URLQueryItem(name: "origin", value: origin))
-                }
-                
-                // Add User-Agent if present (NEW - Critical for MovieBox)
-                if let ua = effectiveHeaders["User-Agent"] {
-                    queryItems.append(URLQueryItem(name: "user_agent", value: ua))
-                }
-                
-                components.queryItems = queryItems
-                
-                if let proxyUrl = components.url {
-                    print("🚀 [PlayerVM] Using Local Proxy for AirPlay compatibility")
-                    print("   - Reason: Headers: \(hasCustomHeaders), Subs: \(hasSubtitles)")
-                    print("   - Original: \(url)")
-                    print("   - Proxy: \(proxyUrl)")
-                    finalUrl = proxyUrl
-                }
-            } else {
-                print("⚠️ [PlayerVM] Local Server not running or no LAN IP - AirPlay might fail for protected streams")
-            }
+            setupVLCPlayer(url: finalUrl, customHeaders: customHeaders)
         } else {
-             print("▶️ [PlayerVM] Using Direct URL (No special headers/subs needed)")
+             // AVPlayer Setup Logic (INLINED)
+             print("🎬 Setting up AVPlayer with URL: \(finalUrl)")
+             
+             // Audio Session
+             do {
+                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+                 try AVAudioSession.sharedInstance().setActive(true)
+             } catch {
+                 print("❌ Failed to activate audio session: \(error)")
+             }
+             
+             // Headers
+             var headers: [String: String] = [
+                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+             ]
+             if let custom = customHeaders {
+                 headers.merge(custom) { (_, new) in new }
+             }
+             
+             // Vidzy/LuluVid fixes
+             let urlString = url.absoluteString.lowercased()
+             if urlString.contains("vidzy") { headers["Referer"] = "https://vidzy.org/" }
+             else if urlString.contains("luluvid") { headers["Referer"] = "https://luluvid.com/" }
+             
+             let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+             let item = AVPlayerItem(asset: asset)
+             
+             // Observers
+             if let oldItem = observedItem {
+                 oldItem.removeObserver(self, forKeyPath: "duration")
+                 oldItem.removeObserver(self, forKeyPath: "status")
+                 oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+                 oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+                 oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
+             }
+             
+             observedItem = item
+             // Use explicit options to fix build error
+             let options: NSKeyValueObservingOptions = [.new, .initial]
+             item.addObserver(self, forKeyPath: "duration", options: options, context: nil)
+             item.addObserver(self, forKeyPath: "status", options: options, context: nil)
+             item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: options, context: nil)
+             item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: options, context: nil)
+             item.addObserver(self, forKeyPath: "playbackBufferFull", options: options, context: nil)
+             
+             // Time Observer
+             if let observer = timeObserver {
+                 player.removeTimeObserver(observer)
+             }
+             
+             timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
+                 guard let self = self, !self.isSeeking else { return }
+                 self.currentTime = time.seconds
+                 self.updateSubtitle()
+                 
+                 // Sync state
+                 if !self.useVLC {
+                     let isActuallyPlaying = self.player.rate > 0 && self.player.error == nil
+                     // Prioritize actual player state if playing
+                     if isActuallyPlaying {
+                          self.isPlaying = true
+                     }
+                 }
+                 
+                 if Int(time.seconds) % 5 == 0 {
+                     self.updateNowPlayingInfo()
+                 }
+             }
+             
+             setupRemoteCommands()
+             
+             player.replaceCurrentItem(with: item)
+             player.play()
+             isPlaying = true
+             updateNowPlayingInfo(title: title)
+             isBuffering = true
         }
-
         
-        // Legacy ResourceLoader logic (VidMoly, Vidzy, AirPlay) removed in favor of Local Proxy
-        var useResourceLoader = false
-
-        
-        print("🎬 Setting up player with URL: \(url)")
-        if let title = currentTitle {
-            print("📺 Content title: \(title)")
-        }
-        if posterUrl != nil {
-            print("🖼️ Poster URL provided, downloading artwork...")
-        }
-        
-        // RE-ACTIVATE AUDIO SESSION (Crucial for Lock Screen)
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth])
-            try AVAudioSession.sharedInstance().setActive(true)
-            print("✅ Audio session re-activated in setup")
-        } catch {
-            print("❌ Failed to re-activate audio session: \(error)")
-        }
-        
-        // Always use AVURLAsset with browser-like User-Agent
-        var headers: [String: String] = [
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        ]
-        
-        // Merge effective headers (including Vidzy Referer if applicable)
-        if !effectiveHeaders.isEmpty {
-            headers.merge(effectiveHeaders) { (_, new) in new }
-            print("🎬 [CustomVideoPlayer] Added effective headers: \(effectiveHeaders.keys)")
-        }
-        
-        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
-        
-        if useResourceLoader {
-            // Pass subtitleUrl to delegate for injection
-            self.resourceLoaderDelegate = VideoResourceLoaderDelegate(subtitleUrl: subtitleUrl)
-            asset.resourceLoader.setDelegate(self.resourceLoaderDelegate, queue: .main)
+        // Load subtitles
+        if let subUrl = subtitleUrl {
+            loadSubtitles(url: subUrl)
         } else {
-            self.resourceLoaderDelegate = nil
+            clearSubtitles()
         }
         
-        let item = AVPlayerItem(asset: asset)
-        
-        // Add observers for debugging - REMOVED due to build issues
-        // We rely on the fact that ResourceLoader is now working
-        
-        // Initialize remote commands
-        setupRemoteCommands()
-        
-        player.replaceCurrentItem(with: item)
-        player.play()
-        isPlaying = true
-        
-        // Update Now Playing Info with proper title
-        updateNowPlayingInfo(title: currentTitle ?? url.lastPathComponent)
-        
-        // Initialize buffering state
-        isBuffering = true
-        
-        // Clear previous observers if any
-        if let oldItem = observedItem {
-            oldItem.removeObserver(self, forKeyPath: "duration")
-            oldItem.removeObserver(self, forKeyPath: "status")
-            oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
-            oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
-            oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
-        }
-        
-        // Observe item properties
-        observedItem = item
-        item.addObserver(self, forKeyPath: "duration", options: [.new, .initial], context: nil)
-        item.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
-        item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.new, .initial], context: nil)
-        item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: [.new, .initial], context: nil)
-        item.addObserver(self, forKeyPath: "playbackBufferFull", options: [.new, .initial], context: nil)
-        
-        // Observe time
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
-            guard let self = self, !self.isSeeking else { return }
-            self.currentTime = time.seconds
-            self.updateSubtitle()
-            
-            // Sync isPlaying state with actual player rate
-            // This fixes the issue where UI shows "Play" button while video is playing
-            if !self.useVLC {
-                let isActuallyPlaying = self.player.rate > 0 && self.player.error == nil
-                if self.isPlaying != isActuallyPlaying {
-                    // Only update if mismatch (and not buffering/seeking logic overriding it)
-                    // We check rate to be sure.
-                    // Note: buffering might pause player (rate 0) but we still consider it "playing" intents.
-                    // But if rate > 0, we MUST be isPlaying = true.
-                    if isActuallyPlaying {
-                         self.isPlaying = true
-                    }
-                }
-            }
-            
-            // Sync Now Playing Info periodically (every 5 seconds) for lock screen progress
-            if Int(time.seconds) % 5 == 0 {
-                self.updateNowPlayingInfo()
-            }
-        }
-        
-        // setupPiP will be called separately with the layer
+        // Notify others to stop
+        NotificationCenter.default.post(name: .stopPlayback, object: self)
     }
     
     func setupRemoteCommands() {
@@ -1676,7 +1587,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 // We just call setup directly. CustomVideoPlayer logic for setup handles replacement.
                 setup(
                     url: params.url,
-                    title: params.title,
+                    title: params.title ?? "",
                     posterUrl: params.posterUrl,
                     localPosterPath: params.localPosterPath,
                     customHeaders: params.customHeaders,

@@ -116,6 +116,17 @@ class LocalStreamingServer {
                 return GCDWebServerDataResponse(statusCode: 502)
             }
             
+            // Check for Media Playlist + Subtitles (Virtual Master Playlist)
+            // If it's a Media Playlist (no STREAM-INF) and we have subtitles, we MUST wrap it
+            // in a Master Playlist for AirPlay to recognize the subtitle track.
+            if let subUrl = subtitleUrl, !content.contains("#EXT-X-STREAM-INF") {
+                print("📦 [LocalServer] Detected Media Playlist with Subtitles -> Generating Virtual Master Playlist")
+                let virtualMaster = self.generateVirtualMasterPlaylist(originalUrl: targetUrl, subtitleUrl: subUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let resp = GCDWebServerDataResponse(text: virtualMaster)
+                resp?.contentType = "application/vnd.apple.mpegurl"
+                return resp
+            }
+            
             // Rewrite Manifest
             let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent)
             
@@ -389,6 +400,47 @@ class LocalStreamingServer {
         // Add Stream Info pointing to the MP4 (via proxy)
         playlist += "#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=5000000\(subtitlesAttribute)\n"
         playlist += "\(segmentProxyUrl)\n"
+        
+        return playlist
+    }
+    
+    private func generateVirtualMasterPlaylist(originalUrl: URL, subtitleUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+        var playlist = "#EXTM3U\n"
+        playlist += "#EXT-X-VERSION:3\n"
+        
+        let groupId = "subs"
+        
+        // Construct Local Subtitle URL
+        var subComponents = URLComponents()
+        subComponents.scheme = "http"
+        subComponents.host = self.webServer.serverURL?.host
+        subComponents.port = Int(self.webServer.port)
+        subComponents.path = "/subtitles"
+        subComponents.queryItems = [URLQueryItem(name: "url", value: subtitleUrl.absoluteString)]
+        
+        let localSubUrl = subComponents.url?.absoluteString ?? subtitleUrl.absoluteString
+        
+        playlist += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"\(groupId)\",NAME=\"External Subtitles\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"en\",URI=\"\(localSubUrl)\"\n"
+        
+        // Construct URL for the Media Playlist (routed through /manifest but WITHOUT subs)
+        // We use rewriteUrl logic but forcing it to point to /manifest
+        // IMPORTANT: We MUST NOT include 'subs' param here, otherwise we loop infinitely!
+        var variantUrlComponents = URLComponents()
+        variantUrlComponents.scheme = "http"
+        variantUrlComponents.host = self.webServer.serverURL?.host
+        variantUrlComponents.port = Int(self.webServer.port)
+        variantUrlComponents.path = "/manifest"
+        
+        var queryItems = [URLQueryItem(name: "url", value: originalUrl.absoluteString)]
+        if let referer = referer { queryItems.append(URLQueryItem(name: "referer", value: referer)) }
+        if let origin = origin { queryItems.append(URLQueryItem(name: "origin", value: origin)) }
+        if let userAgent = userAgent { queryItems.append(URLQueryItem(name: "user_agent", value: userAgent)) }
+        
+        variantUrlComponents.queryItems = queryItems
+        let variantUrl = variantUrlComponents.url?.absoluteString ?? originalUrl.absoluteString
+        
+        playlist += "#EXT-X-STREAM-INF:BANDWIDTH=2000000,SUBTITLES=\"\(groupId)\"\n"
+        playlist += "\(variantUrl)\n"
         
         return playlist
     }
