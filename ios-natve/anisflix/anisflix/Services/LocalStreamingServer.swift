@@ -278,13 +278,106 @@ class LocalStreamingServer {
             resp?.contentType = "application/vnd.apple.mpegurl"
             return resp
         }
+        
+        // 5. Streaming Proxy Handler (For MP4 files - chunk-by-chunk forwarding)
+        // This avoids loading the entire file into memory, enabling AirPlay for large MP4 files.
+        webServer.addHandler(forMethod: "GET", path: "/stream-proxy", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            
+            let query = request.query ?? [:]
+            guard let targetUrlString = query["url"] as? String,
+                  let targetUrl = URL(string: targetUrlString) else {
+                return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            // Extract Headers from Query
+            var headers: [String: String] = [:]
+            if let jsonString = query["headers"] as? String,
+               let jsonData = jsonString.data(using: .utf8),
+               let decoded = try? JSONSerialization.jsonObject(with: jsonData) as? [String: String] {
+                headers = decoded
+            }
+            if let referer = query["referer"] as? String, headers["Referer"] == nil {
+                headers["Referer"] = referer
+            }
+            if let origin = query["origin"] as? String, headers["Origin"] == nil {
+                headers["Origin"] = origin
+            }
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+            if let ua = query["user_agent"] as? String {
+                 headers["User-Agent"] = ua
+            } else if headers["User-Agent"] == nil {
+                 headers["User-Agent"] = defaultUA
+            }
+            
+            print("📡 [LocalServer] Stream-Proxy: \(targetUrl.lastPathComponent) (Streaming)")
+            
+            // First, do a HEAD request to get Content-Length and Content-Type
+            let delegate = StreamingProxyDelegate()
+            let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+            
+            var urlRequest = URLRequest(url: targetUrl)
+            for (key, value) in headers {
+                urlRequest.setValue(value, forHTTPHeaderField: key)
+            }
+            
+            // Start the data task
+            let task = session.dataTask(with: urlRequest)
+            delegate.task = task
+            task.resume()
+            
+            // Wait for the initial response (headers)
+            delegate.responseSemaphore.wait()
+            
+            guard let httpResponse = delegate.httpResponse else {
+                print("❌ [LocalServer] Stream-Proxy: No response from upstream")
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            let statusCode = httpResponse.statusCode
+            if statusCode >= 400 {
+                print("❌ [LocalServer] Stream-Proxy: Upstream returned \(statusCode)")
+                return GCDWebServerDataResponse(statusCode: statusCode)
+            }
+            
+            let contentType = httpResponse.mimeType ?? "application/octet-stream"
+            
+            // Create streaming response
+            let streamResponse = GCDWebServerStreamedResponse(contentType: contentType, asyncStreamBlock: { completionBlock in
+                // Wait for data from the URLSession delegate
+                delegate.dataSemaphore.wait()
+                
+                delegate.bufferLock.lock()
+                if let chunk = delegate.dataBuffer.first {
+                    delegate.dataBuffer.removeFirst()
+                    delegate.bufferLock.unlock()
+                    completionBlock(chunk, nil)
+                } else if delegate.isComplete {
+                    delegate.bufferLock.unlock()
+                    // Signal end of stream with empty data
+                    completionBlock(Data(), nil)
+                } else {
+                    delegate.bufferLock.unlock()
+                    completionBlock(Data(), nil)
+                }
+            })
+            
+            // Forward Content-Length if known
+            if let contentLength = httpResponse.expectedContentLength as? Int, contentLength > 0 {
+                streamResponse.contentLength = UInt(contentLength)
+            }
+            
+            return streamResponse
+        }
     }
     
     // MARK: - Subtitle Formatting
     
     private func convertToWebVTT(content: String, offset: Double) -> String {
-        // Simple VTT conversion with optional time shift
-        var vtt = "WEBVTT\n\n"
+        // VTT conversion with HLS-required X-TIMESTAMP-MAP header
+        // This header is MANDATORY for WebVTT segments in HLS playlists.
+        // Without it, AirPlay receivers silently ignore the subtitle track.
+        var vtt = "WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000\n\n"
         
         // Split into lines
         // Handle varying newline formats
@@ -549,5 +642,41 @@ class LocalStreamingServer {
         playlist += "\(playlistProxyUrl)\n"
         
         return playlist
+    }
+}
+
+// MARK: - Streaming Proxy Delegate
+// Handles URLSession data reception for chunk-by-chunk streaming proxy
+private class StreamingProxyDelegate: NSObject, URLSessionDataDelegate {
+    var httpResponse: HTTPURLResponse?
+    var dataBuffer: [Data] = []
+    var isComplete = false
+    var task: URLSessionDataTask?
+    
+    let responseSemaphore = DispatchSemaphore(value: 0)
+    let dataSemaphore = DispatchSemaphore(value: 0)
+    let bufferLock = NSLock()
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        httpResponse = response as? HTTPURLResponse
+        responseSemaphore.signal()
+        completionHandler(.allow)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        bufferLock.lock()
+        dataBuffer.append(data)
+        bufferLock.unlock()
+        dataSemaphore.signal()
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            print("❌ [StreamProxy] Upstream error: \(error.localizedDescription)")
+        }
+        bufferLock.lock()
+        isComplete = true
+        bufferLock.unlock()
+        dataSemaphore.signal()
     }
 }

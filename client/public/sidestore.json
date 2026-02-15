@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.65",
+          "version": "1.0.68",
           "date": "2026-02-15",
-          "size": 30663278,
+          "size": 30667891,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix: AirPlay Subtitle Fixes (CORS Headers + .vtt Extension - v1.0.63 build) "
+          "localizedDescription": "feat: HLS subtitle playlist wrapper for AirPlay (v1.0.65) "
         }
       ]
     }

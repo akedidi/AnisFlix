@@ -348,12 +348,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         // 2. Handle AirPlay Subtitle Logic
-        // If we have subtitles AND we want to support AirPlay (which we always do for native player),
-        // we should prefer the Local Proxy URL which wraps the stream in a Master Playlist.
+        // Only route HLS (.m3u8) streams through the local proxy.
+        // MP4 files should play directly via AVPlayer with header injection.
+        // The proxy's virtual HLS wrapper for MP4 produces invalid manifests.
         var finalUrl = url
+        let isHLS = url.pathExtension.lowercased() == "m3u8" || url.absoluteString.lowercased().contains(".m3u8")
         
-        if !useVLCPlayer, let subUrl = subtitleUrl, let serverUrl = LocalStreamingServer.shared.serverUrl {
-             print("📡 [PlayerVM] Subtitles detected for AirPlay -> Using Local Proxy")
+        if !useVLCPlayer, isHLS, let subUrl = subtitleUrl, let serverUrl = LocalStreamingServer.shared.serverUrl {
+             print("📡 [PlayerVM] HLS + Subtitles detected -> Using Local Proxy for AirPlay")
              
              // Construct Proxy URL: /manifest?url=...&subs=...
              var components = URLComponents(url: serverUrl, resolvingAgainstBaseURL: false)
@@ -380,6 +382,27 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
              components?.queryItems = queryItems
              if let proxyUrl = components?.url {
                  print("🔗 [PlayerVM] Proxy URL: \(proxyUrl.absoluteString)")
+                 finalUrl = proxyUrl
+             }
+        } else if !useVLCPlayer, !isHLS, let serverUrl = LocalStreamingServer.shared.serverUrl {
+             // MP4 files: Use streaming proxy for header forwarding (AirPlay compatibility)
+             // Subtitles for MP4 are displayed via app overlay only
+             print("📡 [PlayerVM] MP4 detected -> Using Streaming Proxy for headers")
+             
+             var components = URLComponents(url: serverUrl, resolvingAgainstBaseURL: false)
+             components?.path = "/stream-proxy"
+             
+             var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+             
+             // Serialize Headers
+             if let jsonData = try? JSONSerialization.data(withJSONObject: finalHeaders, options: []),
+                let jsonString = String(data: jsonData, encoding: .utf8) {
+                 queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+             }
+             
+             components?.queryItems = queryItems
+             if let proxyUrl = components?.url {
+                 print("🔗 [PlayerVM] Stream-Proxy URL: \(proxyUrl.absoluteString)")
                  finalUrl = proxyUrl
              }
         }
