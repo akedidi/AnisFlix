@@ -42,3 +42,4 @@ api/*.log
 # User Interface State (Local Xcode user settings)
 *.userinterfacestate
 *.xcuserstate
+ios-natve/anisflix/AnisFlix.xcarchive/

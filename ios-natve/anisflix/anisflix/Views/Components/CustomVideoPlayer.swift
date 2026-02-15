@@ -72,7 +72,347 @@ struct CustomVideoPlayer: View {
             
 
             
-            playerInterface
+            ZStack {
+            // Full black background - especially important in fullscreen
+            Color.black
+                .ignoresSafeArea(.all, edges: .all)
+            
+            // Video Player
+            PlayerContentView(
+                castManager: castManager,
+                showControls: $showControls,
+                isFullscreen: $isFullscreen,
+                playerVM: playerVM,
+                onDoubleTapBack: {
+                    print("⏪ Double tab left: Rewind 10s")
+                    withAnimation {
+                        showSeekBackwardAnimation = true
+                    }
+                    
+                    let newTime = max(0, playerVM.currentTime - 10)
+                    playerVM.seek(to: newTime)
+                    
+                    Task {
+                        try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
+                        await MainActor.run {
+                            withAnimation { showSeekBackwardAnimation = false }
+                        }
+                    }
+                },
+                onDoubleTapForward: {
+                    print("⏩ Double tab right: Forward 10s")
+                    withAnimation {
+                        showSeekForwardAnimation = true
+                    }
+                    
+                    let newTime = min(playerVM.duration, playerVM.currentTime + 10)
+                    playerVM.seek(to: newTime)
+                    
+                    Task {
+                        try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
+                        await MainActor.run {
+                            withAnimation { showSeekForwardAnimation = false }
+                        }
+                    }
+                },
+                onSingleTap: {
+                    withAnimation {
+                        showControls.toggle()
+                    }
+                }
+            )
+            
+             // Seek Animations Overlays
+            if showSeekBackwardAnimation {
+                HStack {
+                    VStack {
+                        Image(systemName: "gobackward.10")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                        Text("-10s")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                    Spacer()
+                }
+                .transition(.opacity)
+            }
+            
+            if showSeekForwardAnimation {
+                HStack {
+                    Spacer()
+                    VStack {
+                        Image(systemName: "goforward.10")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                        Text("+10s")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(30)
+                    .background(Circle().fill(Color.black.opacity(0.6)))
+                }
+                .transition(.opacity)
+            }
+            
+            // Loading Overlay for Next Episode
+            if globalManager.isLoadingNextEpisode {
+                ZStack {
+                    Color.black.opacity(0.8)
+                        .ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(1.5)
+                        Text("Chargement de l'épisode suivant...")
+                            .foregroundColor(.white)
+                            .font(.headline)
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(100)
+            }
+            
+            // Subtitles Overlay
+            if !castManager.isConnected, let sub = selectedSubtitle, let text = playerVM.currentSubtitleText {
+                VStack {
+                    Spacer()
+                    Text(parseHtmlTags(text))
+                        .font(.system(size: 16 * subtitleFontSize / 100))
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                        .padding(8)
+                        .background(Color.black.opacity(0.6))
+                        .cornerRadius(8)
+                        .padding(.bottom, isFullscreen ? 0 : 60)
+                }
+                .transition(.opacity)
+            }
+            
+            // Next Episode Overlay (Netflix Style)
+            if globalManager.showNextEpisodePrompt {
+                NextEpisodeOverlay(
+                    nextEpisodeTitle: globalManager.nextEpisodeTitle,
+                    timeLeft: globalManager.nextEpisodeCountdown,
+                    onCancel: {
+                        globalManager.cancelNextEpisode()
+                    },
+                    onPlayNow: {
+                        globalManager.playNextEpisode()
+                    }
+                )
+                .zIndex(100)
+            }
+            
+            // Controls Overlay - Only when NOT casting
+            if showControls && !castManager.isConnected {
+                VStack(spacing: 0) {
+                    // Top Bar
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .center) {
+                            // Minimize Button - Only show when NOT in fullscreen
+                            /* Removed as per user request
+                            if !isFullscreen {
+                                Button {
+                                    GlobalPlayerManager.shared.toggleMinimise()
+                                } label: {
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 22, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(Circle().fill(Color.black.opacity(0.4)))
+                                }
+                            }
+                            */
+                            
+                            // Title - Always in the same row as AirPlay
+                            if isFullscreen {
+                                Text(title)
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                    .multilineTextAlignment(.leading)
+                            } else {
+                                // Not fullscreen: tappable for navigation
+                                Button {
+                                    // Navigate to detail page and minimize player
+                                    if let mediaId = mediaId {
+                                        GlobalPlayerManager.shared.toggleMinimise()
+                                        // Post notification to navigate to detail
+                                        NotificationCenter.default.post(
+                                            name: .navigateToDetail,
+                                            object: nil,
+                                            userInfo: [
+                                                "mediaId": mediaId,
+                                                "isMovie": (season == nil && episode == nil)
+                                            ]
+                                        )
+                                    }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Text(title)
+                                            .foregroundColor(.white)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                            .multilineTextAlignment(.leading)
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // AirPlay Button (Top Right)
+                            AirPlayView()
+                                .frame(width: 44, height: 44)
+                        }
+                    }
+                    .padding()
+                    .background(
+                        LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
+                    )
+                    
+                    Spacer()
+                    
+                    // Center Controls (Rewind | Play/Pause | Forward)
+                    if playerVM.isBuffering {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(1.5)
+                    } else {
+                        HStack(spacing: 50) {
+                            // -10s Button
+                            Button {
+                                let newTime = max(0, playerVM.currentTime - 10)
+                                if castManager.isConnected {
+                                    castManager.seek(to: newTime)
+                                } else {
+                                    playerVM.seek(to: newTime)
+                                }
+                            } label: {
+                                Image(systemName: "gobackward.10")
+                                    .font(.system(size: 35))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            // Play/Pause Button
+                            Button {
+                                if castManager.isConnected {
+                                    if castManager.mediaStatus?.playerState == .paused || castManager.mediaStatus?.playerState == .idle {
+                                        castManager.play()
+                                    } else {
+                                        castManager.pause()
+                                    }
+                                } else {
+                                    playerVM.togglePlayPause()
+                                }
+                            } label: {
+                                Image(systemName: (castManager.isConnected ? (castManager.mediaStatus?.playerState == .playing || castManager.mediaStatus?.playerState == .buffering) : playerVM.isPlaying) ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            // +10s Button
+                            Button {
+                                let newTime = min(playerVM.duration, playerVM.currentTime + 10)
+                                if castManager.isConnected {
+                                    castManager.seek(to: newTime)
+                                } else {
+                                    playerVM.seek(to: newTime)
+                                }
+                            } label: {
+                                Image(systemName: "goforward.10")
+                                    .font(.system(size: 35))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    // Bottom Bar
+                    VStack(spacing: 12) {
+                        // Progress Bar
+                        // Custom Progress Bar with Tap-to-Seek
+                        CustomProgressBar(
+                            value: $playerVM.currentTime,
+                            total: playerVM.duration
+                        ) { editing in
+                            playerVM.isSeeking = editing
+                            if !editing {
+                                if castManager.isConnected {
+                                    castManager.seek(to: playerVM.currentTime)
+                                } else {
+                                    playerVM.seek(to: playerVM.currentTime)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                        
+                        HStack {
+                            Text(formatTime(playerVM.currentTime))
+                                .font(.caption)
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            // Subtitles Button
+                            if !subtitles.isEmpty {
+                                Button {
+                                    showSubtitlesMenu = true
+                                } label: {
+                                    Image(systemName: "captions.bubble")
+                                        .foregroundColor(selectedSubtitle != nil ? AppTheme.primaryRed : .white)
+                                        .padding(8)
+                                }
+                            }
+                            
+                            // Chromecast Button (Bottom Right) - Hidden for Vixsrc sources (incompatible with Cast)
+                            if globalManager.currentProvider?.lowercased() != "vixsrc" {
+                                CastButton()
+                                    .frame(width: 44, height: 44)
+                            }
+                            
+                            // PiP Button
+                            Button {
+                                playerVM.togglePiP()
+                            } label: {
+                                Image(systemName: "pip.enter")
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                            }
+                            
+                            // Fullscreen Button
+                            if showFullscreenButton {
+                                Button {
+                                    playerVM.isSwitchingModes = true
+                                    withAnimation {
+                                        isFullscreen.toggle()
+                                    }
+                                } label: {
+                                    Image(systemName: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                }
+                            }
+                            
+                            Text(formatTime(playerVM.duration))
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                            .padding()
+                            .background(
+                                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                            )
+                        }
+                    }
+                }
+            }
         }
         .gesture(
             DragGesture(minimumDistance: 50)
@@ -84,24 +424,290 @@ struct CustomVideoPlayer: View {
                 }
         )
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
-        .onAppear(perform: handleOnAppear)
-        .onDisappear(perform: handleOnDisappear)
-        .onChange(of: isFullscreen, perform: handleFullscreenChange)
+        .onAppear {
+            // Check if we are already playing this URL (fullscreen transition)
+            let isAlreadyPlaying = playerVM.currentUrl == url
+            
+            if castManager.isConnected {
+                // If connected, check if we need to switch media on Cast
+                if castManager.currentMediaUrl != url {
+                    print("📺 Switching Cast media to: \(title)")
+                    
+                    // Determine start time: use saved progress if available, otherwise player's current time
+                    var castStartTime = playerVM.currentTime
+                    if let mid = mediaId {
+                        let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
+                        if progress > 0 && progress < 0.95 {
+                            if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
+                                print("⏩ Cast will resume from saved progress: \(Int(savedTime))s")
+                                castStartTime = savedTime
+                            }
+                        }
+                    }
+                    
+                    castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castStartTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                }
+            } else {
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+            }
+            
+            // Auto-resume from saved progress ONLY if not already playing
+            if !isAlreadyPlaying, let mid = mediaId {
+                let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
+                if progress > 0 && progress < 0.95 { // Don't resume if almost finished
+                    if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
+                        print("⏩ Auto-resuming from \(Int(savedTime))s (progress: \(Int(progress * 100))%)")
+                        
+                        // Seek after a short delay to ensure player is ready
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            playerVM.seek(to: savedTime)
+                        }
+                    }
+                }
+            }
+            // Orientation is now handled by onChange(of: isFullscreen), not here
+            // This prevents view reconstruction from resetting orientation
+        }
+        .onDisappear {
+            print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
+            
+            // Force reset Home Indicator
+            HomeIndicatorState.shared.shouldHide = false
+            
+            // Stop scrobble when leaving player
+            if let mid = mediaId {
+               let currentProgress = playerVM.duration > 0 ? (playerVM.currentTime / playerVM.duration) * 100 : 0
+                Task {
+                    try? await TraktManager.shared.scrobble(
+                        tmdbId: mid,
+                        type: (season != nil && episode != nil) ? .episode : .movie,
+                        progress: currentProgress,
+                        action: .stop,
+                        season: season,
+                        episode: episode
+                    )
+                }
+            }
+
+            // Only cleanup if:
+            // 1. Not in fullscreen mode
+            // 2. This view still owns the player (currentUrl matches)
+            // This prevents cleanup from stopping playback when switching channels via .id()
+            if !isFullscreen && playerVM.currentUrl == url {
+                print("📺 [CustomVideoPlayer] Not in fullscreen and URL matches, cleaning up")
+                playerVM.cleanup()
+                ScreenRotator.rotate(to: .portrait)
+            } else {
+                print("📺 [CustomVideoPlayer] Skipping cleanup - fullscreen=\(isFullscreen), urlMatch=\(playerVM.currentUrl == url)")
+            }
+        }
+        .onChange(of: isFullscreen) { fullscreen in
+            print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
+            
+            // Manage Custom TabBar Visibility
+            if fullscreen {
+                TabBarManager.shared.hide()
+            } else {
+                TabBarManager.shared.show()
+            }
+            
+            // Set switching flag to prevent orientation notification from reverting our change
+            playerVM.isSwitchingModes = true
+            print("📺 [CustomVideoPlayer] Set isSwitchingModes = true")
+            
+            withAnimation {
+                showControls = true
+            }
+            
+            // Force Home Indicator Update
+            print("🏠 [CustomVideoPlayer] Setting HomeIndicatorState.shouldHide = \(fullscreen)")
+            HomeIndicatorState.shared.shouldHide = fullscreen
+            
+            // Add a small delay to let SwiftUI settle before forcing rotation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("📺 [CustomVideoPlayer] After 0.1s delay, calling ScreenRotator.rotate(to: \(fullscreen ? "landscape" : "portrait"))")
+                if fullscreen {
+                    ScreenRotator.rotate(to: .landscape)
+                } else {
+                    ScreenRotator.rotate(to: .portrait)
+                }
+            }
+            
+            // Keep the flag active for longer to allow system orientation to fully settle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                print("📺 [CustomVideoPlayer] After 2.0s delay, setting isSwitchingModes = false")
+                playerVM.isSwitchingModes = false
+            }
+        }
         .sheet(isPresented: $showSubtitlesMenu) {
             SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset, subtitleFontSize: $subtitleFontSize)
                 .presentationDetents([.medium])
         }
-        .onChange(of: selectedSubtitle?.id, perform: handleSubtitleSelectionChange)
-        .onChange(of: subtitleOffset, perform: handleSubtitleOffsetChange)
-        .onChange(of: subtitleFontSize, perform: handleSubtitleFontSizeChange)
-        .onChange(of: playerVM.currentTime, perform: handleCurrentTimeChange)
-        .onChange(of: isPresented, perform: handleIsPresentedChange)
-        .onChange(of: title, perform: handleTitleChange)
-        .onChange(of: posterUrl, perform: handlePosterUrlChange)
-        .onChange(of: url, perform: handleUrlChange)
-        .onChange(of: castManager.isConnected, perform: handleCastConnectionChange)
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect(), perform: handleTimerTick)
-        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification), perform: handleOrientationChange)
+        .onChange(of: selectedSubtitle?.id) { _ in
+            if castManager.isConnected {
+                // Reload media to apply subtitle selection (and offset if any)
+                // Note: setActiveTrack doesn't support offset change easily if we use proxy.
+                // We might need to reload if offset changed too.
+                // For now, let's assume setActiveTrack is enough if offset didn't change,
+                // BUT our proxy URL includes offset. So if we just switch track, it might use old offset?
+                // Actually, tracks are loaded with a specific URL. If we change offset, we need new URLs.
+                // So changing subtitle might need reload if we want to ensure offset is applied?
+                // But here we just change selection.
+                // Let's just reload to be safe and consistent.
+                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+            } else {
+                if let sub = selectedSubtitle, let url = URL(string: sub.url) {
+                    playerVM.loadSubtitles(url: url)
+                } else {
+                    playerVM.clearSubtitles()
+                }
+            }
+        }
+        .onChange(of: subtitleOffset) { newOffset in
+            print("⏱️ Subtitle offset changed: \(newOffset)s")
+            playerVM.subtitleOffset = newOffset
+            
+            if castManager.isConnected {
+                // Debounce the reload to avoid spamming the Chromecast while adjusting
+                // Cancel previous request
+                // Cancel previous request
+                
+                // We use a Task for debounce in SwiftUI view since we can't easily use performSelector on struct
+                // But actually, let's use a State holding a Task
+                castReloadDebounceTask?.cancel()
+                castReloadDebounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
+                    if !Task.isCancelled {
+                        await MainActor.run {
+                            print("📺 Reloading Cast media with new subtitle offset (debounced)...")
+                            castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
+                        }
+                    }
+                }
+            }
+        }
+        .onChange(of: subtitleFontSize) { newSize in
+            print("🔤 Subtitle font size changed: \(Int(newSize))%")
+            
+            if castManager.isConnected {
+                // Send font size update to Chromecast
+                castManager.sendSubtitleFontSize(newSize)
+            }
+        }
+        .onChange(of: playerVM.currentTime) { time in
+            // Save progress periodically (e.g., every 5 seconds is handled by the throttle or check)
+            // But here we can just call save.
+            if let mid = mediaId, Int(time) % 5 == 0 {
+                WatchProgressManager.shared.saveProgress(
+                    mediaId: mid,
+                    season: season,
+                    episode: episode,
+                    currentTime: time,
+                    duration: playerVM.duration
+                )
+            }
+        }
+        .onChange(of: isPresented) { presented in
+            if !presented, let mid = mediaId {
+                WatchProgressManager.shared.saveProgress(
+                    mediaId: mid,
+                    season: season,
+                    episode: episode,
+                    currentTime: playerVM.currentTime,
+                    duration: playerVM.duration
+                )
+            }
+        }
+        .onChange(of: title) { newTitle in
+            playerVM.updateMetadata(title: newTitle, posterUrl: posterUrl)
+        }
+        .onChange(of: posterUrl) { newPosterUrl in
+            playerVM.updateMetadata(title: title, posterUrl: newPosterUrl)
+        }
+        .onChange(of: url) { newUrl in
+            // CRITIQUE : Empêcher la Vue d'écraser le titre avec une valeur périmée si le Manager a déjà fait le setup
+            if playerVM.currentUrl == newUrl {
+                print("📺 [CustomVideoPlayer] Skipping setup from View update: PlayerVM already has this URL. (Prevents stale title overwrite)")
+                return
+            }
+            
+            if castManager.isConnected {
+                print("📺 URL changed while casting. Loading new media...")
+                castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+            } else {
+                playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+            }
+        }
+        .onChange(of: castManager.isConnected) { connected in
+            if connected {
+                print("📺 Cast connected! Switching to Cast mode.")
+                
+                // Exit fullscreen if active
+                if isFullscreen {
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = false
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
+                }
+                
+                playerVM.player.pause()
+                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+            } else {
+                print("📱 Cast disconnected! Switching back to local player.")
+                playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+                playerVM.seek(to: playerVM.currentTime) // Ideally we should get time from Cast
+            }
+        }
+        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
+            if castManager.isConnected {
+                let time = castManager.getApproximateStreamPosition()
+                if !playerVM.isSeeking {
+                    playerVM.currentTime = time
+                }
+                
+                if let duration = castManager.mediaStatus?.mediaInformation?.streamDuration, duration > 0 {
+                    playerVM.duration = duration
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            let orientation = UIDevice.current.orientation
+            print("📱 [CustomVideoPlayer] orientationDidChangeNotification received. Device orientation: \(orientation.rawValue), isLandscape=\(orientation.isLandscape), isPortrait=\(orientation.isPortrait), isSwitchingModes=\(playerVM.isSwitchingModes), isFullscreen=\(isFullscreen)")
+            
+            guard !playerVM.isSwitchingModes else {
+                print("📱 [CustomVideoPlayer] isSwitchingModes=true, IGNORING orientation change")
+                return
+            }
+            
+            if orientation.isLandscape {
+                if !isFullscreen {
+                    print("📱 [CustomVideoPlayer] Device is landscape and not fullscreen -> setting isFullscreen=true")
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = true
+                    }
+                    // Reset switching flag after animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
+                }
+            } else if orientation.isPortrait {
+                if isFullscreen {
+                    print("📱 [CustomVideoPlayer] Device is portrait and fullscreen -> setting isFullscreen=false")
+                    playerVM.isSwitchingModes = true
+                    withAnimation {
+                        isFullscreen = false
+                    }
+                    // Reset switching flag after animation
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        playerVM.isSwitchingModes = false
+                    }
+                }
+            }
+        }
 
     }
     
@@ -303,208 +909,293 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
     }
     
-    func setup(url: URL, title: String, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
-        print("🎬 [PlayerVM] Setup called: \(url.absoluteString)")
-        print("🎬 [PlayerVM] Subtitle URL: \(subtitleUrl?.absoluteString ?? "None")")
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
+        // Store params for reloading (e.g. when subtitles change)
+        lastSetupParams = SetupParams(
+            url: url,
+            title: title,
+            posterUrl: posterUrl,
+            localPosterPath: localPosterPath,
+            customHeaders: customHeaders,
+            useVLC: useVLCPlayer,
+            subtitleUrl: subtitleUrl
+        )
         
-        // Prevent re-setup if URL is same (unless forcing refresh or changing player type)
-        if currentUrl == url && self.useVLC == useVLCPlayer && externalSubtitleUrl == subtitleUrl {
-            print("🎬 [PlayerVM] Skipping setup - already playing this URL with same config.")
-            return
+        self.externalSubtitleUrl = subtitleUrl
+        
+        // Notify others to stop
+        NotificationCenter.default.post(name: .stopPlayback, object: self)
+        
+        // Cleanup previous VLC player if switching modes
+        if useVLC && !useVLCPlayer {
+            cleanupVLC()
         }
         
-        // Store params for restoration
-        lastSetupParams = SetupParams(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: customHeaders, useVLC: useVLCPlayer, subtitleUrl: subtitleUrl)
-        
-        self.currentUrl = url
-        self.currentTitle = title
-        self.externalSubtitleUrl = subtitleUrl
+        // Set VLC mode
         self.useVLC = useVLCPlayer
         
-        // 1. Prepare Headers (Resolution Logic moved UP)
-        var finalHeaders: [String: String] = [
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        ]
-        
-        // Merge provided custom headers
-        if let custom = customHeaders {
-            finalHeaders.merge(custom) { (_, new) in new }
-        }
-        
-        // Apply Provider-Specific Fixes (Vidzy, LuluVid, Vidsrc, Vixsrc)
-        let urlString = url.absoluteString.lowercased()
-        if urlString.contains("vidzy") {
-            finalHeaders["Referer"] = "https://vidzy.org/"
-        } else if urlString.contains("luluvid") {
-            finalHeaders["Referer"] = "https://luluvid.com/"
-        } else if urlString.contains("vidsrc") {
-            if finalHeaders["Referer"] == nil {
-                 finalHeaders["Referer"] = "https://vidsrc.to/"
+        // Store the title if provided
+        if let title = title {
+            print("📺 [PlayerVM] setup() called with title: '\(title)' (VLC: \(useVLCPlayer), Subtitle: \(subtitleUrl?.lastPathComponent ?? "none"))")
+            currentTitle = title
+            
+            // Force clean update with new title using reset: true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                print("📺 [PlayerVM] Forcing Clean NowPlaying update for: '\(title)'")
+                self.updateNowPlayingInfo(title: title, reset: true)
             }
-        } else if urlString.contains("vixsrc") {
-            // VixSrc requires specific Referer/Origin
-            finalHeaders["Referer"] = "https://vixsrc.to/"
-            finalHeaders["Origin"] = "https://vixsrc.to"
+        } else {
+             print("⚠️ [PlayerVM] setup() called WITHOUT title!")
         }
         
-        // 2. Handle AirPlay Subtitle Logic
-        // Only route HLS (.m3u8) streams through the local proxy.
-        // MP4 files should play directly via AVPlayer with header injection.
-        // The proxy's virtual HLS wrapper for MP4 produces invalid manifests.
-        var finalUrl = url
-        let isHLS = url.pathExtension.lowercased() == "m3u8" || url.absoluteString.lowercased().contains(".m3u8")
-        
-        if !useVLCPlayer, isHLS, let subUrl = subtitleUrl, let serverUrl = LocalStreamingServer.shared.serverUrl {
-             print("📡 [PlayerVM] HLS + Subtitles detected -> Using Local Proxy for AirPlay")
-             
-             // Construct Proxy URL: /manifest?url=...&subs=...
-             var components = URLComponents(url: serverUrl, resolvingAgainstBaseURL: false)
-             components?.path = "/manifest"
-             
-             var queryItems = [
-                 URLQueryItem(name: "url", value: url.absoluteString),
-                 URLQueryItem(name: "subs", value: subUrl.absoluteString)
-             ]
-             
-             // Serialize Headers to JSON for robust propagation
-             if let jsonData = try? JSONSerialization.data(withJSONObject: finalHeaders, options: []),
-                let jsonString = String(data: jsonData, encoding: .utf8) {
-                 queryItems.append(URLQueryItem(name: "headers", value: jsonString))
-             } else {
-                 print("⚠️ [PlayerVM] Failed to serialize headers to JSON")
-             }
-             
-             // Pass Subtitle Offset if non-zero
-             if subtitleOffset != 0 {
-                 queryItems.append(URLQueryItem(name: "offset", value: String(subtitleOffset)))
-             }
-             
-             components?.queryItems = queryItems
-             if let proxyUrl = components?.url {
-                 print("🔗 [PlayerVM] Proxy URL: \(proxyUrl.absoluteString)")
-                 finalUrl = proxyUrl
-             }
-        } else if !useVLCPlayer, !isHLS, let serverUrl = LocalStreamingServer.shared.serverUrl {
-             // MP4 files: Use streaming proxy for header forwarding (AirPlay compatibility)
-             // Subtitles for MP4 are displayed via app overlay only
-             print("📡 [PlayerVM] MP4 detected -> Using Streaming Proxy for headers")
-             
-             var components = URLComponents(url: serverUrl, resolvingAgainstBaseURL: false)
-             components?.path = "/stream-proxy"
-             
-             var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
-             
-             // Serialize Headers
-             if let jsonData = try? JSONSerialization.data(withJSONObject: finalHeaders, options: []),
-                let jsonString = String(data: jsonData, encoding: .utf8) {
-                 queryItems.append(URLQueryItem(name: "headers", value: jsonString))
-             }
-             
-             components?.queryItems = queryItems
-             if let proxyUrl = components?.url {
-                 print("🔗 [PlayerVM] Stream-Proxy URL: \(proxyUrl.absoluteString)")
-                 finalUrl = proxyUrl
-             }
-        }
-        
-        // Reset state
-        isPlaying = false
-        isBuffering = true
-        progress = 0
-        currentTime = 0
-        duration = 1
-        
-        // Download artwork for Control Center
+        // Artwork Loading with Priority
+        // Cancel previous artwork download
         artworkTask?.cancel()
         currentArtwork = nil
         
+        // Priority 1: Load from local file (offline-compatible)
         if let localPath = localPosterPath {
             loadArtworkFromLocalFile(at: localPath)
-        } else if let posterUrl = posterUrl {
+        }
+        // Priority 2: Download from URL (online only)
+        else if let posterUrl = posterUrl {
             artworkTask = Task {
                 await downloadArtwork(from: posterUrl)
             }
         }
         
+        // If same URL AND same subtitle state, just ensure playing and return
+        if url == currentUrl && subtitleUrl == externalSubtitleUrl {
+            if !isPlaying {
+                if useVLC, let vlc = vlcPlayer {
+                    vlc.play()
+                } else {
+                    player.play()
+                }
+                isPlaying = true
+            }
+            return
+        }
+        
+        currentUrl = url
+        
+        // ═══════════════════════════════════════════════════════════════════
+        // VLC PLAYER BRANCH (for MKV and other formats not supported by AVPlayer)
+        // ═══════════════════════════════════════════════════════════════════
         if useVLCPlayer {
-            setupVLCPlayer(url: finalUrl, customHeaders: finalHeaders)
+            print("🎬 [PlayerVM] Using VLC player for: \(url)")
+            setupVLCPlayer(url: url, customHeaders: customHeaders)
+            return
+        }
+        
+        var finalUrl = url
+        
+        // Prepare headers (including auto-detection for Vidzy)
+        var effectiveHeaders = customHeaders ?? [:]
+        
+        
+        // Add Referer header for Vidzy URLs to fix playback (Direct & Proxy)
+        let urlString = url.absoluteString.lowercased()
+        if urlString.contains("vidzy") {
+            effectiveHeaders["Referer"] = "https://vidzy.org/"
+            print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
+        } else if urlString.contains("luluvid") {
+             effectiveHeaders["Referer"] = "https://luluvid.com/"
+             print("🎬 [CustomVideoPlayer] Added LuluVid Referer header")
+        }
+        
+        // SMART PROXY LOGIC:
+        // 1. MP4 (MovieBox) with Headers -> Proxy (AVPlayer User-Agent override)
+        // 2. AirPlay Active -> ALWAYS Proxy if Headers/Subs needed (TV needs them via proxy)
+        // 3. Local + Headers/Subs -> Direct URL (AVURLAsset handles headers/subs)
+        // 4. Plain MP4 (Vixsrc) -> Direct URL
+        
+        let isHLS = url.pathExtension.lowercased() == "m3u8" || url.absoluteString.lowercased().contains(".m3u8")
+        let isAirPlayActive = player.isExternalPlaybackActive
+        let hasCustomHeaders = !effectiveHeaders.isEmpty
+        let hasSubtitles = (subtitleUrl != nil)
+        
+        // Condition:
+        // - AirPlay AND (Headers OR Subs) -> Proxy (TV needs it)
+        // - Local AND (Headers OR Subs) ->
+        //    - If HLS: Direct (AVURLAsset works)
+        //    - If MP4: Proxy (AVPlayer User-Agent override need proxy)
+        
+        var needsProxy = false
+        
+        if isAirPlayActive {
+            // AirPlay: Must use proxy if we have headers or subtitles
+            needsProxy = hasCustomHeaders || hasSubtitles
         } else {
-             // AVPlayer Setup Logic
-             print("🎬 Setting up AVPlayer with URL: \(finalUrl)")
-             
-             // Audio Session
-             do {
-                 try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
-                 try AVAudioSession.sharedInstance().setActive(true)
-             } catch {
-                 print("❌ Failed to activate audio session: \(error)")
-             }
-             
-             // Use the PREPARED finalHeaders
-             let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": finalHeaders])
-             let item = AVPlayerItem(asset: asset)
-             
-             // Observers
+            // Local Playback
+            if isHLS {
+                // HLS: AVURLAsset handles headers -> Direct
+                needsProxy = false
+            } else {
+                 // MP4/Direct: AVPlayer handles headers mostly, but if we need to force UA or complex headers -> Proxy might be safer
+                 // But Vixsrc fails with Proxy (-11848).
+                 // MovieBox likely needs Proxy for UA.
+                 // Let's rely on hasCustomHeaders for MP4 proxying, assuming Vixsrc has none.
+                 needsProxy = hasCustomHeaders || hasSubtitles
+            }
+        }
+        
+        // Vixsrc fix: Vixsrc is MP4 but might have empty headers. It should NOT use proxy.
+        // MovieBox has custom headers. It SHOULD use proxy (if UA override needed).
+        
+        if !useVLCPlayer && needsProxy {
+            // Check if we have a valid Local Server URL (LAN IP)
+            if let serverUrl = LocalStreamingServer.shared.serverUrl {
+                var components = URLComponents()
+                components.scheme = serverUrl.scheme
+                components.host = serverUrl.host
+                components.port = serverUrl.port
+                components.path = "/manifest" // Default to manifest proxy which handles HLS & MP4 wrapping
+                
+                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+                
+                // Add Subtitles if present
+                if let sub = subtitleUrl {
+                    queryItems.append(URLQueryItem(name: "subs", value: sub.absoluteString))
+                }
+                
+                // Add Referer if present (critical for Vidzy/LuluVid)
+                if let referer = effectiveHeaders["Referer"] {
+                    queryItems.append(URLQueryItem(name: "referer", value: referer))
+                }
+                
+                // Add Origin if present
+                if let origin = effectiveHeaders["Origin"] {
+                    queryItems.append(URLQueryItem(name: "origin", value: origin))
+                }
+                
+                // Add User-Agent if present (NEW - Critical for MovieBox)
+                if let ua = effectiveHeaders["User-Agent"] {
+                    queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                }
+                
+                components.queryItems = queryItems
+                
+                if let proxyUrl = components.url {
+                    print("🚀 [PlayerVM] Using Local Proxy for AirPlay compatibility")
+                    print("   - Reason: Headers: \(hasCustomHeaders), Subs: \(hasSubtitles)")
+                    print("   - Original: \(url)")
+                    print("   - Proxy: \(proxyUrl)")
+                    finalUrl = proxyUrl
+                }
+            } else {
+                print("⚠️ [PlayerVM] Local Server not running or no LAN IP - AirPlay might fail for protected streams")
+            }
+        } else {
+             print("▶️ [PlayerVM] Using Direct URL (No special headers/subs needed)")
+        }
 
-             if let oldItem = observedItem {
-                 oldItem.removeObserver(self, forKeyPath: "duration")
-                 oldItem.removeObserver(self, forKeyPath: "status")
-                 oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
-                 oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
-                 oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
-             }
-             
-             observedItem = item
-             // Use explicit options to fix build error
-             let options: NSKeyValueObservingOptions = [.new, .initial]
-             item.addObserver(self, forKeyPath: "duration", options: options, context: nil)
-             item.addObserver(self, forKeyPath: "status", options: options, context: nil)
-             item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: options, context: nil)
-             item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: options, context: nil)
-             item.addObserver(self, forKeyPath: "playbackBufferFull", options: options, context: nil)
-             
-             // Time Observer
-             if let observer = timeObserver {
-                 player.removeTimeObserver(observer)
-             }
-             
-             timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
-                 guard let self = self, !self.isSeeking else { return }
-                 self.currentTime = time.seconds
-                 self.updateSubtitle()
-                 
-                 // Sync state
-                 if !self.useVLC {
-                     let isActuallyPlaying = self.player.rate > 0 && self.player.error == nil
-                     // Prioritize actual player state if playing
-                     if isActuallyPlaying {
-                          self.isPlaying = true
-                     }
-                 }
-                 
-                 if Int(time.seconds) % 5 == 0 {
-                     self.updateNowPlayingInfo()
-                 }
-             }
-             
-             setupRemoteCommands()
-             
-             player.replaceCurrentItem(with: item)
-             player.play()
-             isPlaying = true
-             updateNowPlayingInfo(title: title)
-             isBuffering = true
+        
+        // Legacy ResourceLoader logic (VidMoly, Vidzy, AirPlay) removed in favor of Local Proxy
+        var useResourceLoader = false
+
+        
+        print("🎬 Setting up player with URL: \(url)")
+        if let title = currentTitle {
+            print("📺 Content title: \(title)")
+        }
+        if posterUrl != nil {
+            print("🖼️ Poster URL provided, downloading artwork...")
         }
         
-        // Load subtitles
-        if let subUrl = subtitleUrl {
-            loadSubtitles(url: subUrl)
+        // RE-ACTIVATE AUDIO SESSION (Crucial for Lock Screen)
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay, .allowBluetooth])
+            try AVAudioSession.sharedInstance().setActive(true)
+            print("✅ Audio session re-activated in setup")
+        } catch {
+            print("❌ Failed to re-activate audio session: \(error)")
+        }
+        
+        // Always use AVURLAsset with browser-like User-Agent
+        var headers: [String: String] = [
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ]
+        
+        // Merge effective headers (including Vidzy Referer if applicable)
+        if !effectiveHeaders.isEmpty {
+            headers.merge(effectiveHeaders) { (_, new) in new }
+            print("🎬 [CustomVideoPlayer] Added effective headers: \(effectiveHeaders.keys)")
+        }
+        
+        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+        
+        if useResourceLoader {
+            // Pass subtitleUrl to delegate for injection
+            self.resourceLoaderDelegate = VideoResourceLoaderDelegate(subtitleUrl: subtitleUrl)
+            asset.resourceLoader.setDelegate(self.resourceLoaderDelegate, queue: .main)
         } else {
-            clearSubtitles()
+            self.resourceLoaderDelegate = nil
         }
         
-        // Notify others to stop
-        NotificationCenter.default.post(name: .stopPlayback, object: self)
+        let item = AVPlayerItem(asset: asset)
+        
+        // Add observers for debugging - REMOVED due to build issues
+        // We rely on the fact that ResourceLoader is now working
+        
+        // Initialize remote commands
+        setupRemoteCommands()
+        
+        player.replaceCurrentItem(with: item)
+        player.play()
+        isPlaying = true
+        
+        // Update Now Playing Info with proper title
+        updateNowPlayingInfo(title: currentTitle ?? url.lastPathComponent)
+        
+        // Initialize buffering state
+        isBuffering = true
+        
+        // Clear previous observers if any
+        if let oldItem = observedItem {
+            oldItem.removeObserver(self, forKeyPath: "duration")
+            oldItem.removeObserver(self, forKeyPath: "status")
+            oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+            oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+            oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
+        }
+        
+        // Observe item properties
+        observedItem = item
+        item.addObserver(self, forKeyPath: "duration", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "status", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: [.new, .initial], context: nil)
+        item.addObserver(self, forKeyPath: "playbackBufferFull", options: [.new, .initial], context: nil)
+        
+        // Observe time
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
+            guard let self = self, !self.isSeeking else { return }
+            self.currentTime = time.seconds
+            self.updateSubtitle()
+            
+            // Sync isPlaying state with actual player rate
+            // This fixes the issue where UI shows "Play" button while video is playing
+            if !self.useVLC {
+                let isActuallyPlaying = self.player.rate > 0 && self.player.error == nil
+                if self.isPlaying != isActuallyPlaying {
+                    // Only update if mismatch (and not buffering/seeking logic overriding it)
+                    // We check rate to be sure.
+                    // Note: buffering might pause player (rate 0) but we still consider it "playing" intents.
+                    // But if rate > 0, we MUST be isPlaying = true.
+                    if isActuallyPlaying {
+                         self.isPlaying = true
+                    }
+                }
+            }
+            
+            // Sync Now Playing Info periodically (every 5 seconds) for lock screen progress
+            if Int(time.seconds) % 5 == 0 {
+                self.updateNowPlayingInfo()
+            }
+        }
+        
+        // setupPiP will be called separately with the layer
     }
     
     func setupRemoteCommands() {
@@ -996,11 +1687,42 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     func loadSubtitles(url: URL) {
         // 1. Reload player if needed to support AirPlay injection
         // Check if we need to reload (only if not VLC, and URL is different)
-        // 1. Reload player logic REMOVED.
-        // We previously reloaded here to inject subtitles for AirPlay, but this caused playback resets/seek-to-end issues during local playback.
-        // Instead, CustomVideoPlayer now explicitly handles the "reload for AirPlay" scenario in handleSubtitleSelectionChange.
-        // This ensures local playback just loads the subtitle text without interrupting the video.
-        print("✅ [PlayerVM] Loading subtitle for local display: \(url.lastPathComponent)")
+        if !useVLC && externalSubtitleUrl != url {
+            print("🔄 [PlayerVM] New subtitle loaded: \(url.lastPathComponent) - Reloading player for AirPlay support...")
+            
+            // Reload using stored params + new subtitle URL
+            if let params = lastSetupParams {
+                let savedTime = currentTime
+                
+                // Call setup within a task to ensure clean reload? No, main thread is fine.
+                // We just call setup directly. CustomVideoPlayer logic for setup handles replacement.
+                setup(
+                    url: params.url,
+                    title: params.title,
+                    posterUrl: params.posterUrl,
+                    localPosterPath: params.localPosterPath,
+                    customHeaders: params.customHeaders,
+                    useVLCPlayer: params.useVLC,
+                    subtitleUrl: url
+                )
+                
+                // Restore position after a short delay (once item is ready)
+                // We use observeValue for "status" .readyToPlay, but since setup() clears observers,
+                // we rely on the new item's observer.
+                // However, we need to pass the start time or seek immediately.
+                // Simple seek after replace works if AVPlayer handles it.
+                // Better: wait for status ready.
+                
+                // Let's store a pendingSeekTime in PlayerViewModel?
+                // Or just seek asynchronously.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if savedTime > 0 {
+                        print("⏩ [PlayerVM] Restoring playback position: \(savedTime)s")
+                        self.seek(to: savedTime)
+                    }
+                }
+            }
+        }
         
         // 2. Load for local overlay (Original Logic)
         Task {
@@ -1376,678 +2098,4 @@ struct CustomProgressBar: View {
         }
         .frame(height: 20)
     }
-}
-extension CustomVideoPlayer {
-    
-    private var seekBackwardOverlay: some View {
-        HStack {
-            VStack {
-                Image(systemName: "gobackward.10")
-                    .font(.system(size: 50))
-                    .foregroundColor(.white)
-                Text("-10s")
-                    .font(.headline)
-                    .foregroundColor(.white)
-            }
-            .padding(30)
-            .background(Circle().fill(Color.black.opacity(0.6)))
-            Spacer()
-        }
-        .transition(.opacity)
-    }
-    
-    private var seekForwardOverlay: some View {
-        HStack {
-            Spacer()
-            VStack {
-                Image(systemName: "goforward.10")
-                    .font(.system(size: 50))
-                    .foregroundColor(.white)
-                Text("+10s")
-                    .font(.headline)
-                    .foregroundColor(.white)
-            }
-            .padding(30)
-            .background(Circle().fill(Color.black.opacity(0.6)))
-        }
-        .transition(.opacity)
-    }
-    
-    private var loadingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.8)
-                .ignoresSafeArea()
-            VStack(spacing: 16) {
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.5)
-                Text("Chargement de l'épisode suivant...")
-                    .foregroundColor(.white)
-                    .font(.headline)
-            }
-        }
-        .transition(.opacity)
-        .zIndex(100)
-    }
-    
-    private func subtitlesOverlay(text: String) -> some View {
-        VStack {
-            Spacer()
-            Text(parseHtmlTags(text))
-                .font(.system(size: 16 * subtitleFontSize / 100))
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .padding(8)
-                .background(Color.black.opacity(0.6))
-                .cornerRadius(8)
-                .padding(.bottom, isFullscreen ? 0 : 60)
-        }
-        .transition(.opacity)
-    }
-    
-    private var nextEpisodeOverlay: some View {
-        NextEpisodeOverlay(
-            nextEpisodeTitle: globalManager.nextEpisodeTitle,
-            timeLeft: globalManager.nextEpisodeCountdown,
-            onCancel: {
-                globalManager.cancelNextEpisode()
-            },
-            onPlayNow: {
-                globalManager.playNextEpisode()
-            }
-        )
-        .zIndex(100)
-    }
-    
-    private var controlsOverlay: some View {
-        VStack(spacing: 0) {
-            // Top Bar
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center) {
-                    // Title - Always in the same row as AirPlay
-                    if isFullscreen {
-                        Text(title)
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            .lineLimit(1)
-                            .multilineTextAlignment(.leading)
-                    } else {
-                        // Not fullscreen: tappable for navigation
-                        Button {
-                            // Navigate to detail page and minimize player
-                            if let mediaId = mediaId {
-                                GlobalPlayerManager.shared.toggleMinimise()
-                                // Post notification to navigate to detail
-                                NotificationCenter.default.post(
-                                    name: .navigateToDetail,
-                                    object: nil,
-                                    userInfo: [
-                                        "mediaId": mediaId,
-                                        "isMovie": (season == nil && episode == nil)
-                                    ]
-                                )
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(title)
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                    .multilineTextAlignment(.leading)
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // AirPlay Button (Top Right)
-                    AirPlayView()
-                        .frame(width: 44, height: 44)
-                }
-            }
-            .padding()
-            .background(
-                LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
-            )
-            
-            Spacer()
-            
-            // Center Controls (Rewind | Play/Pause | Forward)
-            if playerVM.isBuffering {
-                ProgressView()
-                    .tint(.white)
-                    .scaleEffect(1.5)
-            } else {
-                HStack(spacing: 50) {
-                    // -10s Button
-                    Button {
-                        let newTime = max(0, playerVM.currentTime - 10)
-                        if castManager.isConnected {
-                            castManager.seek(to: newTime)
-                        } else {
-                            playerVM.seek(to: newTime)
-                        }
-                    } label: {
-                        Image(systemName: "gobackward.10")
-                            .font(.system(size: 35))
-                            .foregroundColor(.white)
-                    }
-                    
-                    // Play/Pause Button
-                    Button {
-                        if castManager.isConnected {
-                            if castManager.mediaStatus?.playerState == .paused || castManager.mediaStatus?.playerState == .idle {
-                                castManager.play()
-                            } else {
-                                castManager.pause()
-                            }
-                        } else {
-                            playerVM.togglePlayPause()
-                        }
-                    } label: {
-                        Image(systemName: (castManager.isConnected ? (castManager.mediaStatus?.playerState == .playing || castManager.mediaStatus?.playerState == .buffering) : playerVM.isPlaying) ? "pause.fill" : "play.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(.white)
-                    }
-                    
-                    // +10s Button
-                    Button {
-                        let newTime = min(playerVM.duration, playerVM.currentTime + 10)
-                        if castManager.isConnected {
-                            castManager.seek(to: newTime)
-                        } else {
-                            playerVM.seek(to: newTime)
-                        }
-                    } label: {
-                        Image(systemName: "goforward.10")
-                            .font(.system(size: 35))
-                            .foregroundColor(.white)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            // Bottom Bar
-            VStack(spacing: 12) {
-                // Progress Bar
-                // Custom Progress Bar with Tap-to-Seek
-                CustomProgressBar(
-                    value: $playerVM.currentTime,
-                    total: playerVM.duration
-                ) { editing in
-                    playerVM.isSeeking = editing
-                    if !editing {
-                        if castManager.isConnected {
-                            castManager.seek(to: playerVM.currentTime)
-                        } else {
-                            playerVM.seek(to: playerVM.currentTime)
-                        }
-                    }
-                }
-                .padding(.horizontal, 4)
-                
-                HStack {
-                    Text(formatTime(playerVM.currentTime))
-                        .font(.caption)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    // Subtitles Button
-                    if !subtitles.isEmpty {
-                        Button {
-                            showSubtitlesMenu = true
-                        } label: {
-                            Image(systemName: "captions.bubble")
-                                .foregroundColor(selectedSubtitle != nil ? AppTheme.primaryRed : .white)
-                                .padding(8)
-                        }
-                    }
-                    
-                    // Chromecast Button (Bottom Right) - Hidden for Vixsrc sources (incompatible with Cast)
-                    if globalManager.currentProvider?.lowercased() != "vixsrc" {
-                        CastButton()
-                            .frame(width: 44, height: 44)
-                    }
-                    
-                    // PiP Button
-                    Button {
-                        playerVM.togglePiP()
-                    } label: {
-                        Image(systemName: "pip.enter")
-                                                            .foregroundColor(.white)
-                                    .padding(8)
-                            }
-                            
-                            // Fullscreen Button
-                            if showFullscreenButton {
-                                Button {
-                                    playerVM.isSwitchingModes = true
-                                    withAnimation {
-                                        isFullscreen.toggle()
-                                    }
-                                } label: {
-                                    Image(systemName: isFullscreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                }
-                            }
-                            
-                            Text(formatTime(playerVM.duration))
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
-                            .padding()
-                            .background(
-                                LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                            )
-                        }
-                    }
-    }
-    
-    // Extracted Player Interface to fix Compiler Timeout
-    private var playerInterface: some View {
-        ZStack {
-            backgroundLayer
-            videoLayer
-            overlaysLayer
-        }
-    }
-    
-    // Decomposed views to help compiler type inference
-    
-    private var backgroundLayer: some View {
-        // Full black background - especially important in fullscreen
-        Color.black
-            .ignoresSafeArea(.all, edges: .all)
-    }
-    
-    private var videoLayer: some View {
-        // Video Player
-        PlayerContentView(
-            castManager: castManager,
-            showControls: $showControls,
-            isFullscreen: $isFullscreen,
-            playerVM: playerVM,
-            onDoubleTapBack: {
-                print("⏪ Double tab left: Rewind 10s")
-                withAnimation {
-                    showSeekBackwardAnimation = true
-                }
-                
-                let newTime = max(0, playerVM.currentTime - 10)
-                playerVM.seek(to: newTime)
-                
-                Task {
-                    try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
-                    await MainActor.run {
-                        withAnimation { showSeekBackwardAnimation = false }
-                    }
-                }
-            },
-            onDoubleTapForward: {
-                print("⏩ Double tab right: Forward 10s")
-                withAnimation {
-                    showSeekForwardAnimation = true
-                }
-                
-                let newTime = min(playerVM.duration, playerVM.currentTime + 10)
-                playerVM.seek(to: newTime)
-                
-                Task {
-                    try? await Task.sleep(nanoseconds: 600_000_000) // 0.6s
-                    await MainActor.run {
-                        withAnimation { showSeekForwardAnimation = false }
-                    }
-                }
-            },
-            onSingleTap: {
-                withAnimation {
-                    showControls.toggle()
-                }
-            }
-        )
-    }
-    
-    private var overlaysLayer: some View {
-        ZStack {
-            // Seek Animations Overlays
-            if showSeekBackwardAnimation {
-                seekBackwardOverlay
-            }
-            
-            if showSeekForwardAnimation {
-                seekForwardOverlay
-            }
-            
-            // Loading Overlay for Next Episode
-            if globalManager.isLoadingNextEpisode {
-                loadingOverlay
-            }
-            
-            // Subtitles Overlay
-            if !castManager.isConnected, let sub = selectedSubtitle, let text = playerVM.currentSubtitleText {
-                subtitlesOverlay(text: text)
-            }
-            
-            // Next Episode Overlay (Netflix Style)
-            if globalManager.showNextEpisodePrompt {
-                nextEpisodeOverlay
-            }
-            
-            // Controls Overlay - Only when NOT casting
-            if showControls && !castManager.isConnected {
-                controlsOverlay
-            }
-        }
-    }
-    
-    // MARK: - Helper Methods for Modifiers
-    private func handleOnAppear() {
-        // Check if we are already playing this URL (fullscreen transition)
-        let isAlreadyPlaying = playerVM.currentUrl == url
-        
-        if castManager.isConnected {
-            // If connected, check if we need to switch media on Cast
-            if castManager.currentMediaUrl != url {
-                print("📺 Switching Cast media to: \(title)")
-                
-                // Determine start time: use saved progress if available, otherwise player's current time
-                var castStartTime = playerVM.currentTime
-                if let mid = mediaId {
-                    let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
-                    if progress > 0 && progress < 0.95 {
-                        if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
-                            print("⏩ Cast will resume from saved progress: \(Int(savedTime))s")
-                            castStartTime = savedTime
-                        }
-                    }
-                }
-                
-                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castStartTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
-            }
-        } else {
-            playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: selectedSubtitle.flatMap { URL(string: $0.url) })
-        }
-        
-        // Auto-resume from saved progress ONLY if not already playing
-        if !isAlreadyPlaying, let mid = mediaId {
-            let progress = WatchProgressManager.shared.getProgress(mediaId: mid, season: season, episode: episode)
-            if progress > 0 && progress < 0.95 { // Don't resume if almost finished
-                if let savedTime = WatchProgressManager.shared.getSavedTime(mediaId: mid, season: season, episode: episode) {
-                    print("⏩ Auto-resuming from \(Int(savedTime))s (progress: \(Int(progress * 100))%)")
-                    
-                    // Seek after a short delay to ensure player is ready
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        playerVM.seek(to: savedTime)
-                    }
-                }
-            }
-        }
-    }
-    
-    private func handleOnDisappear() {
-        print("📺 [CustomVideoPlayer] onDisappear called - isFullscreen=\(isFullscreen)")
-        
-        // Force reset Home Indicator
-        HomeIndicatorState.shared.shouldHide = false
-        
-        // Stop scrobble when leaving player
-        if let mid = mediaId {
-           let currentProgress = playerVM.duration > 0 ? (playerVM.currentTime / playerVM.duration) * 100 : 0
-            Task {
-                try? await TraktManager.shared.scrobble(
-                    tmdbId: mid,
-                    type: (season != nil && episode != nil) ? .episode : .movie,
-                    progress: currentProgress,
-                    action: .stop,
-                    season: season,
-                    episode: episode
-                )
-            }
-        }
-
-        if !isFullscreen && playerVM.currentUrl == url {
-            print("📺 [CustomVideoPlayer] Not in fullscreen and URL matches, cleaning up")
-            playerVM.cleanup()
-            ScreenRotator.rotate(to: .portrait)
-        } else {
-            print("📺 [CustomVideoPlayer] Skipping cleanup - fullscreen=\(isFullscreen), urlMatch=\(playerVM.currentUrl == url)")
-        }
-    }
-    
-    private func handleFullscreenChange(_ fullscreen: Bool) {
-        print("📺 [CustomVideoPlayer] onChange(of: isFullscreen) triggered. fullscreen=\(fullscreen), isSwitchingModes=\(playerVM.isSwitchingModes)")
-        
-        if fullscreen {
-            TabBarManager.shared.hide()
-        } else {
-            TabBarManager.shared.show()
-        }
-        
-        playerVM.isSwitchingModes = true
-        print("📺 [CustomVideoPlayer] Set isSwitchingModes = true")
-        
-        withAnimation {
-            showControls = true
-        }
-        
-        print("🏠 [CustomVideoPlayer] Setting HomeIndicatorState.shouldHide = \(fullscreen)")
-        HomeIndicatorState.shared.shouldHide = fullscreen
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            print("📺 [CustomVideoPlayer] After 0.1s delay, calling ScreenRotator.rotate(to: \(fullscreen ? "landscape" : "portrait"))")
-            if fullscreen {
-                ScreenRotator.rotate(to: .landscape)
-            } else {
-                ScreenRotator.rotate(to: .portrait)
-            }
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            print("📺 [CustomVideoPlayer] After 2.0s delay, setting isSwitchingModes = false")
-            playerVM.isSwitchingModes = false
-        }
-    }
-    
-    private func handleSubtitleSelectionChange(_ id: UUID?) {
-        if castManager.isConnected {
-            castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
-        } else {
-            if let sub = selectedSubtitle, let url = URL(string: sub.url) {
-                playerVM.loadSubtitles(url: url)
-                
-                if playerVM.player.isExternalPlaybackActive {
-                    print("📺 [CustomVideoPlayer] AirPlay active, re-setting up player to refresh HLS manifest with new subtitle")
-                    playerVM.setup(url: self.url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: url)
-                }
-            } else {
-                playerVM.clearSubtitles()
-                
-                if playerVM.player.isExternalPlaybackActive {
-                    print("📺 [CustomVideoPlayer] AirPlay active, clearing subtitle in HLS manifest via re-setup")
-                    playerVM.setup(url: self.url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: nil)
-                }
-            }
-        }
-    }
-    
-    private func handleSubtitleOffsetChange(_ newOffset: Double) {
-        print("⏱️ Subtitle offset changed: \(newOffset)s")
-        playerVM.subtitleOffset = newOffset
-        
-        if castManager.isConnected {
-            castReloadDebounceTask?.cancel()
-            castReloadDebounceTask = Task {
-                try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        print("📺 Reloading Cast media with new subtitle offset (debounced)...")
-                        castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
-                    }
-                }
-            }
-        }
-        // Handle AirPlay Offset Update (Reload Player)
-        else if playerVM.player.isExternalPlaybackActive {
-            print("📺 [CustomVideoPlayer] AirPlay active, reloading player with new offset: \(newOffset)s")
-            
-            // Cancel previous debounce
-            castReloadDebounceTask?.cancel()
-            castReloadDebounceTask = Task {
-                 try? await Task.sleep(nanoseconds: 1_000_000_000) // 1.0 second debounce for AirPlay
-                 if !Task.isCancelled {
-                     await MainActor.run {
-                         print("📺 [CustomVideoPlayer] Executing AirPlay reload for offset...")
-                         // Re-setup player to regenerate Proxy URL with new offset
-                         // Capture current time to resume
-                         let currentTime = playerVM.currentTime
-                         
-                         playerVM.setup(
-                             url: self.url,
-                             title: title,
-                             posterUrl: posterUrl,
-                             localPosterPath: localPosterPath,
-                             subtitleUrl: selectedSubtitle.flatMap { URL(string: $0.url) }
-                         )
-                         
-                         // Seek back to position
-                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                             playerVM.seek(to: currentTime)
-                         }
-                     }
-                 }
-            }
-        }
-    }
-    
-    private func handleSubtitleFontSizeChange(_ newSize: Double) {
-         print("🔤 Subtitle font size changed: \(Int(newSize))%")
-         
-         if castManager.isConnected {
-             castManager.sendSubtitleFontSize(newSize)
-         }
-     }
-     
-     private func handleCurrentTimeChange(_ time: Double) {
-         if let mid = mediaId, Int(time) % 5 == 0 {
-             WatchProgressManager.shared.saveProgress(
-                 mediaId: mid,
-                 season: season,
-                 episode: episode,
-                 currentTime: time,
-                 duration: playerVM.duration
-             )
-         }
-     }
-     
-     private func handleIsPresentedChange(_ presented: Bool) {
-         if !presented, let mid = mediaId {
-             WatchProgressManager.shared.saveProgress(
-                 mediaId: mid,
-                 season: season,
-                 episode: episode,
-                 currentTime: playerVM.currentTime,
-                 duration: playerVM.duration
-             )
-         }
-     }
-     
-     private func handleTitleChange(_ newTitle: String) {
-         playerVM.updateMetadata(title: newTitle, posterUrl: posterUrl)
-     }
-     
-     private func handlePosterUrlChange(_ newPosterUrl: String?) {
-         playerVM.updateMetadata(title: title, posterUrl: newPosterUrl)
-     }
-     
-     private func handleUrlChange(_ newUrl: URL) {
-         // CRITIQUE : Empêcher la Vue d'écraser le titre avec une valeur périmée si le Manager a déjà fait le setup
-         if playerVM.currentUrl == newUrl {
-             print("📺 [CustomVideoPlayer] Skipping setup from View update: PlayerVM already has this URL.")
-             return
-         }
-         
-         if castManager.isConnected {
-             print("📺 URL changed while casting. Loading new media...")
-             castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
-         } else {
-             playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, subtitleUrl: selectedSubtitle.flatMap { URL(string: $0.url) })
-         }
-     }
-     
-     private func handleCastConnectionChange(_ connected: Bool) {
-         if connected {
-             print("📺 Cast connected! Switching to Cast mode.")
-             
-             if isFullscreen {
-                 playerVM.isSwitchingModes = true
-                 withAnimation {
-                     isFullscreen = false
-                 }
-                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                     playerVM.isSwitchingModes = false
-                 }
-             }
-             
-             playerVM.player.pause()
-             castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
-         } else {
-             print("📱 Cast disconnected! Switching back to local player.")
-             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
-             playerVM.seek(to: playerVM.currentTime)
-         }
-     }
-     
-     private func handleTimerTick(_ date: Date) {
-         if castManager.isConnected {
-             let time = castManager.getApproximateStreamPosition()
-             if !playerVM.isSeeking {
-                 playerVM.currentTime = time
-             }
-             
-             if let duration = castManager.mediaStatus?.mediaInformation?.streamDuration, duration > 0 {
-                 playerVM.duration = duration
-             }
-         }
-     }
-     
-     private func handleOrientationChange(_ notification: Notification) {
-         let orientation = UIDevice.current.orientation
-         print("📱 [CustomVideoPlayer] orientationDidChangeNotification received. Device orientation: \(orientation.rawValue)")
-         
-         guard !playerVM.isSwitchingModes else {
-             print("📱 [CustomVideoPlayer] isSwitchingModes=true, IGNORING orientation change")
-             return
-         }
-         
-         if orientation.isLandscape {
-             if !isFullscreen {
-                 print("📱 [CustomVideoPlayer] Device is landscape and not fullscreen -> setting isFullscreen=true")
-                 playerVM.isSwitchingModes = true
-                 withAnimation {
-                     isFullscreen = true
-                 }
-                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                     playerVM.isSwitchingModes = false
-                 }
-             }
-         } else if orientation.isPortrait {
-             if isFullscreen {
-                 print("📱 [CustomVideoPlayer] Device is portrait and fullscreen -> setting isFullscreen=false")
-                 playerVM.isSwitchingModes = true
-                 withAnimation {
-                     isFullscreen = false
-                 }
-                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                     playerVM.isSwitchingModes = false
-                 }
-             }
-         }
-     }
 }

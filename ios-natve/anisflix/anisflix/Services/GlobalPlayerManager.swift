@@ -238,24 +238,10 @@ class GlobalPlayerManager: ObservableObject {
                   self.showVLCSheet = true
                   return // Don't show standard player
              } else {
+                 print("ℹ️ [GlobalPlayerManager] Using standard AVPlayer")
              }
              
-             // 5. Select Default Subtitle for Local/AirPlay Setup
-             var defaultSubtitleUrl: URL? = nil
-             if !subtitles.isEmpty {
-                 // Try to match current language preference if possible
-                 let pref = self.currentLanguage?.lowercased() ?? "vf"
-                 if let match = subtitles.first(where: { $0.code.lowercased().contains(pref) || $0.label.lowercased().contains(pref) }) {
-                     print("📝 [GlobalPlayerManager] Auto-selected default subtitle: \(match.label)")
-                     defaultSubtitleUrl = URL(string: match.url)
-                 } else {
-                     // Fallback to first one
-                     print("📝 [GlobalPlayerManager] Fallback to first subtitle: \(subtitles[0].label)")
-                     defaultSubtitleUrl = URL(string: subtitles[0].url)
-                 }
-             }
-             
-             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers, useVLCPlayer: false, subtitleUrl: defaultSubtitleUrl)
+             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers, useVLCPlayer: false)
              
              // Seek to saved position after a short delay
              if startTime > 0 {
