@@ -307,7 +307,6 @@ class LocalStreamingServer {
                     newLines.append(line)
                 }
             } else if !line.isEmpty {
-            } else if !line.isEmpty {
                 // This is a URL (Segment or Playlist)
                 let rewritten = rewriteUrl(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
                 newLines.append(rewritten)

@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.54",
+          "version": "1.0.55",
           "date": "2026-02-15",
-          "size": 30674175,
+          "size": 30673759,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): v1.0.54 - Fix AirPlay Regression (Luluvid Segments + Vidzy)"
+          "localizedDescription": "fix(ios): v1.0.55 - Fix Critical Rewriting Bug (Restores Segments)"
         }
       ]
     }
