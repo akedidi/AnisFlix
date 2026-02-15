@@ -131,14 +131,11 @@ class LocalStreamingServer {
             }
             
             // Check for Media Playlist + Subtitles (Virtual Master Playlist)
-            // If it's a Media Playlist (no STREAM-INF) and we have subtitles, we MUST wrap it
-            // in a Master Playlist for AirPlay to recognize the subtitle track.
             if let subUrl = subtitleUrl, !content.contains("#EXT-X-STREAM-INF") {
                 print("📦 [LocalServer] Detected Media Playlist with Subtitles -> Generating Virtual Master Playlist")
                 let virtualMaster = self.generateVirtualMasterPlaylist(originalUrl: targetUrl, subtitleUrl: subUrl, headers: headers)
                 let resp = GCDWebServerDataResponse(text: virtualMaster)
                 resp?.contentType = "application/vnd.apple.mpegurl"
-                resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
                 return resp
             }
             
@@ -147,7 +144,6 @@ class LocalStreamingServer {
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
-            resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
             return resp
         }
         
@@ -208,18 +204,14 @@ class LocalStreamingServer {
             
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
-                let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
-                resp.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
-                return resp
+                return GCDWebServerDataResponse(data: data, contentType: contentType)
             }
             
             return GCDWebServerDataResponse(statusCode: 404)
         }
         
         // 3. Subtitle Converter Handler (SRT -> WebVTT)
-        // Updated path to include .vtt extension for AirPlay compatibility
-        // We match ANY path starting with /subtitles
-        webServer.addHandler(forMethod: "GET", pathRegex: "/subtitles.*", request: GCDWebServerRequest.self) { [weak self] request in
+        webServer.addHandler(forMethod: "GET", path: "/subtitles", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
             let query = request.query ?? [:]
@@ -233,22 +225,58 @@ class LocalStreamingServer {
             
             print("📝 [LocalServer] Fetching & Converting Subtitles: \(targetUrl.lastPathComponent) (Offset: \(offset)s)")
             
-            // Fetch content
-            // Assuming subtitles don't need complex headers but if they do, we can add them here too.
-            // For now, simple fetch.
-            // Ideally we should pass headers here too if VixSrc subtitles are protected.
-            
             if let data = try? Data(contentsOf: targetUrl),
                let content = String(data: data, encoding: .utf8) {
                 
                 let vtt = self.convertToWebVTT(content: content, offset: offset)
                 let resp = GCDWebServerDataResponse(text: vtt)
                 resp?.contentType = "text/vtt"
-                resp?.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
                 return resp
             }
             
             return GCDWebServerDataResponse(statusCode: 404)
+        }
+        
+        // 4. Subtitle Playlist Handler (HLS wrapper for VTT)
+        // AirPlay requires subtitles delivered as an HLS playlist, not raw VTT
+        webServer.addHandler(forMethod: "GET", path: "/subtitle-playlist", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            
+            let query = request.query ?? [:]
+            guard let subtitleUrlString = query["url"] as? String else {
+                return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            let offsetString = query["offset"] as? String ?? "0"
+            
+            // Build the actual VTT URL pointing to our /subtitles endpoint
+            var vttComponents = URLComponents()
+            vttComponents.scheme = "http"
+            vttComponents.host = self.webServer.serverURL?.host
+            vttComponents.port = Int(self.webServer.port)
+            vttComponents.path = "/subtitles"
+            vttComponents.queryItems = [
+                URLQueryItem(name: "url", value: subtitleUrlString),
+                URLQueryItem(name: "offset", value: offsetString)
+            ]
+            
+            let vttUrl = vttComponents.url?.absoluteString ?? subtitleUrlString
+            
+            // Generate HLS subtitle playlist
+            var playlist = "#EXTM3U\n"
+            playlist += "#EXT-X-TARGETDURATION:99999\n"
+            playlist += "#EXT-X-VERSION:3\n"
+            playlist += "#EXT-X-MEDIA-SEQUENCE:0\n"
+            playlist += "#EXT-X-PLAYLIST-TYPE:VOD\n"
+            playlist += "#EXTINF:99999,\n"
+            playlist += "\(vttUrl)\n"
+            playlist += "#EXT-X-ENDLIST\n"
+            
+            print("📝 [LocalServer] Serving Subtitle Playlist -> \(vttUrl)")
+            
+            let resp = GCDWebServerDataResponse(text: playlist)
+            resp?.contentType = "application/vnd.apple.mpegurl"
+            return resp
         }
     }
     
@@ -321,12 +349,12 @@ class LocalStreamingServer {
              if let subUrl = subtitleUrl {
                  let groupId = "subs"
                  
-                 // Construct Local Subtitle URL with .vtt extension
+                 // Construct Local Subtitle Playlist URL (HLS wrapper)
                  var subComponents = URLComponents()
                  subComponents.scheme = "http"
                  subComponents.host = self.webServer.serverURL?.host
                  subComponents.port = Int(self.webServer.port)
-                 subComponents.path = "/subtitles.vtt" // Added .vtt
+                 subComponents.path = "/subtitle-playlist"
                  subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
                  
                  let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
@@ -345,7 +373,6 @@ class LocalStreamingServer {
                      if line.hasPrefix("#EXT-X-STREAM-INF") {
                          if line.contains("SUBTITLES=") {
                              // Replace existing SUBTITLES="..." with SUBTITLES="subs"
-                             // Uses Regex to be safe
                              if let regex = try? NSRegularExpression(pattern: "SUBTITLES=\"[^\"]*\"", options: []) {
                                  let range = NSRange(location: 0, length: line.utf16.count)
                                  let newLine = regex.stringByReplacingMatches(in: line, options: [], range: range, withTemplate: "SUBTITLES=\"\(groupId)\"")
@@ -450,12 +477,12 @@ class LocalStreamingServer {
         if let subUrl = subtitleUrl {
             let groupId = "subs"
             
-            // Construct Local Subtitle URL with .vtt extension
+            // Construct Local Subtitle Playlist URL (HLS wrapper)
             var subComponents = URLComponents()
             subComponents.scheme = "http"
             subComponents.host = self.webServer.serverURL?.host
             subComponents.port = Int(self.webServer.port)
-            subComponents.path = "/subtitles.vtt" // Added .vtt
+            subComponents.path = "/subtitle-playlist"
             subComponents.queryItems = [URLQueryItem(name: "url", value: subUrl.absoluteString)]
             
             let localSubUrl = subComponents.url?.absoluteString ?? subUrl.absoluteString
@@ -506,12 +533,12 @@ class LocalStreamingServer {
         // Define Subtitles
         let groupId = "subs"
         
-        // Construct Local Subtitle URL with .vtt extension
+        // Construct Local Subtitle Playlist URL (HLS wrapper)
         var subComponents = URLComponents()
         subComponents.scheme = "http"
         subComponents.host = self.webServer.serverURL?.host
         subComponents.port = Int(self.webServer.port)
-        subComponents.path = "/subtitles.vtt" // Added .vtt
+        subComponents.path = "/subtitle-playlist"
         subComponents.queryItems = [URLQueryItem(name: "url", value: subtitleUrl.absoluteString)]
         
         let localSubUrl = subComponents.url?.absoluteString ?? subtitleUrl.absoluteString
