@@ -1024,7 +1024,16 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         var needsProxy = false
         
-        if isAirPlayActive {
+        // CRITICAL FIX: Force proxy for Vidzy/Luluvid ALWAYS (even if AirPlay not yet active)
+        // Reason: When starting AirPlay directly, isExternalPlaybackActive is false initially,
+        // but we need the proxy ready for when AirPlay activates mid-playback
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid")
+        
+        if isVidzyOrLuluvid {
+            // Always use proxy for Vidzy/Luluvid (they need headers for AirPlay)
+            needsProxy = true
+            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid (AirPlay compatibility)")
+        } else if isAirPlayActive {
             // AirPlay: Must use proxy if we have headers or subtitles
             needsProxy = hasCustomHeaders || hasSubtitles
         } else {
