@@ -77,7 +77,8 @@ class LocalStreamingServer {
             if !isM3U8 {
                 // Generate Virtual HLS for MP4
                 print("📦 [LocalServer] Generating Virtual HLS for MP4: \(targetUrl.lastPathComponent)")
-                let playlist = self.generateVirtualPlaylist(targetUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let cookie = query["cookie"] as? String
+                let playlist = self.generateVirtualPlaylist(targetUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
                 let resp = GCDWebServerDataResponse(text: playlist)
                 resp?.contentType = "application/vnd.apple.mpegurl"
                 return resp
@@ -119,8 +120,11 @@ class LocalStreamingServer {
                 return GCDWebServerDataResponse(statusCode: 502)
             }
             
+            // Extract Cookie
+            let cookie = query["cookie"] as? String
+            
             // Rewrite Manifest
-            let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent)
+            let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
@@ -250,7 +254,7 @@ class LocalStreamingServer {
     
     // MARK: - Manifest Rewriting
     
-    private func rewriteManifest(content: String, originalUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteManifest(content: String, originalUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
         var lines = content.components(separatedBy: .newlines)
         var newLines = [String]()
         
@@ -295,13 +299,14 @@ class LocalStreamingServer {
                 // Check for URI attributes in tags
                 // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..."
                 if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") {
-                    newLines.append(rewriteLine(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent))
+                    newLines.append(rewriteLine(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie))
                 } else {
                     newLines.append(line)
                 }
             } else if !line.isEmpty {
+            } else if !line.isEmpty {
                 // This is a URL (Segment or Playlist)
-                let rewritten = rewriteUrl(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent)
+                let rewritten = rewriteUrl(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
                 newLines.append(rewritten)
             } else {
                 newLines.append(line)
@@ -311,7 +316,7 @@ class LocalStreamingServer {
         return newLines.joined(separator: "\n")
     }
     
-    private func rewriteLine(_ line: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteLine(_ line: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
         // Simple regex or string manipulation to find URI="..."
         guard let range = line.range(of: "URI=\"") else { return line }
         
@@ -323,12 +328,12 @@ class LocalStreamingServer {
         let uri = String(remainder[..<endQuote])
         let suffix = remainder[remainder.index(after: endQuote)...]
         
-        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent)
+        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
         
         return String(prefix) + rewrittenUri + "\"" + String(suffix)
     }
     
-    private func rewriteUrl(_ original: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func rewriteUrl(_ original: String, baseUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
         // Resolve relative URL
         guard let resolved = URL(string: original, relativeTo: baseUrl) else { return original }
         
@@ -355,15 +360,20 @@ class LocalStreamingServer {
              queryItems.append(URLQueryItem(name: "user_agent", value: ua))
         }
         
+        // Critical: Forward Cookie to segments
+        if let cookie = cookie {
+             queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+        }
+        
         components.queryItems = queryItems
         
         return components.url?.absoluteString ?? original
     }
     
-    private func generateVirtualPlaylist(targetUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?) -> String {
+    private func generateVirtualPlaylist(targetUrl: URL, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
         // Construct Proxy URL for the segment
         // We use /proxy endpoint to serve the MP4 content with headers
-        let segmentProxyUrl = rewriteUrl(targetUrl.absoluteString, baseUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent)
+        let segmentProxyUrl = rewriteUrl(targetUrl.absoluteString, baseUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
         
         var playlist = "#EXTM3U\n"
         playlist += "#EXT-X-VERSION:3\n"
