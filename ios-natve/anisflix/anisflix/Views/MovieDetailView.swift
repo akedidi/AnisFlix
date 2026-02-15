@@ -597,6 +597,11 @@ struct MovieDetailView: View {
                 } else if source.provider == "vidzy" {
                     print("🔍 [MovieDetailView] Extracting Vidzy...")
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
+                    
+                    var newHeaders = finalHeaders ?? [:]
+                    newHeaders["Referer"] = "https://google.com"
+                    newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    finalHeaders = newHeaders
                 } else if source.provider == "luluvid" {
                     print("🔍 [MovieDetailView] Extracting Luluvid...")
                     let (url, cookie) = try await StreamingService.shared.extractLuluvid(url: source.url)

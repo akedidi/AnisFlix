@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.57",
+          "version": "1.0.58",
           "date": "2026-02-15",
-          "size": 30680130,
+          "size": 30679925,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): v1.0.57 - Fix Luluvid AirPlay (Cookie Propagation)"
+          "localizedDescription": "fix(ios): v1.0.58 - Fix Vidzy AirPlay (User-Agent Harmonization)"
         }
       ]
     }

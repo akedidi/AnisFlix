@@ -529,6 +529,11 @@ struct SeriesDetailView: View {
                     print("🔍 [SeriesDetailView] Extracting Vidzy...")
                     let extracted = try await StreamingService.shared.extractVidzy(url: source.url)
                     finalURL = URL(string: extracted)
+                    
+                    var newHeaders = finalHeaders ?? [:]
+                    newHeaders["Referer"] = "https://google.com"
+                    newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    finalHeaders = newHeaders
                 } else if source.provider == "vidmoly" {
                     print("🔍 [SeriesDetailView] Extracting VidMoly...")
                     let extracted = try await StreamingService.shared.extractVidMoly(url: source.url)

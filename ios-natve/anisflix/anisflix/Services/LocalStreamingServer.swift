@@ -68,7 +68,7 @@ class LocalStreamingServer {
             // Extract Headers from Query
             let referer = query["referer"] as? String
             let origin = query["origin"] as? String
-            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
             let userAgent = query["user_agent"] as? String ?? defaultUA
             
             // Check if it is HLS or MP4/Direct File
@@ -142,7 +142,7 @@ class LocalStreamingServer {
             // Extract Headers from Query
             let referer = query["referer"] as? String
             let origin = query["origin"] as? String
-            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
             let userAgent = query["user_agent"] as? String ?? defaultUA
             
             // Sync fetch (GCDWebServer handlers run on background threads)
