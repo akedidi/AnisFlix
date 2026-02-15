@@ -2,6 +2,7 @@
 set -e
 
 PROJECT_PATH="ios-natve/anisflix/anisflix.xcodeproj"
+WORKSPACE_PATH="ios-natve/anisflix/anisflix.xcworkspace"
 SCHEME="AnisFlix"
 CONFIGURATION="Release"
 ARCHIVE_PATH="build/anisflix.xcarchive"
@@ -9,11 +10,11 @@ EXPORT_PATH="build/export"
 IPA_NAME="anisflix_unsigned.ipa"
 
 echo "🧹 Cleaning previous build..."
-xcodebuild clean -project "$PROJECT_PATH" -scheme "$SCHEME" -configuration "$CONFIGURATION"
+xcodebuild clean -workspace "$WORKSPACE_PATH" -scheme "$SCHEME" -configuration "$CONFIGURATION"
 
 echo "📦 Archiving..."
 xcodebuild archive \
-  -project "$PROJECT_PATH" \
+  -workspace "$WORKSPACE_PATH" \
   -scheme "$SCHEME" \
   -configuration "$CONFIGURATION" \
   -archivePath "$ARCHIVE_PATH" \

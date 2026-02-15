@@ -13,7 +13,7 @@
         {
           "version": "1.0.51",
           "date": "2026-02-15",
-          "size": 30673679,
+          "size": 30673567,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
           "localizedDescription": "fix(ios): v1.0.51 - Fix Local Playback (-12646) & Vixsrc (-11848) & Smart Proxy for AirPlay"
