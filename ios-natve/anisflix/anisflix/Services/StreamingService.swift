@@ -1472,7 +1472,7 @@ class StreamingService {
         throw URLError(.cannotParseResponse)
     }
     
-    func extractLuluvid(url: String) async throws -> String {
+    func extractLuluvid(url: String) async throws -> (String, String?) {
         guard let luluvidUrl = URL(string: url) else {
             throw URLError(.badURL)
         }
@@ -1489,6 +1489,18 @@ class StreamingService {
               let html = String(data: data, encoding: .utf8) else {
             print("❌ [Luluvid iOS] Failed to fetch page. Status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
             throw URLError(.badServerResponse)
+        }
+        
+        // Extract Cookies from Response
+        var cookieString: String? = nil
+        if let fields = httpResponse.allHeaderFields as? [String: String],
+           let url = response.url {
+            let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
+            if !cookies.isEmpty {
+                 let cookieDict = cookies.reduce(into: [String: String]()) { $0[$1.name] = $1.value }
+                 cookieString = cookieDict.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
+                 print("🍪 [Luluvid iOS] Extracted cookies: \(cookieString ?? "none")")
+            }
         }
         
         // Regex Extraction logic (NSRegularExpression for reliability)
@@ -1513,7 +1525,7 @@ class StreamingService {
         
         if let extracted = m3u8Url {
             print("✅ [Luluvid iOS] Extracted M3U8: \(extracted)")
-            return extracted
+            return (extracted, cookieString)
         }
         
         print("❌ [Luluvid iOS] No M3U8 found in HTML")
@@ -2496,8 +2508,19 @@ class StreamingService {
         } else if provider == "luluvid" {
             print("⛏️ [StreamingService] Extracting Luluvid via internal method...")
             do {
-                let directUrl = try await extractLuluvid(url: source.url)
+                let (directUrl, cookie) = try await extractLuluvid(url: source.url)
                 print("✅ [StreamingService] Luluvid extraction successful: \(directUrl)")
+                
+                var headers = [
+                    "Referer": "https://luluvid.com/",
+                    "Origin": "https://luluvid.com",
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                ]
+                
+                if let c = cookie {
+                    headers["Cookie"] = c
+                }
+                
                 return StreamingSource(
                     id: source.id,
                     url: directUrl,
@@ -2507,11 +2530,7 @@ class StreamingService {
                     language: source.language,
                     origin: source.origin,
                     tracks: source.tracks,
-                    headers: [
-                        "Referer": "https://luluvid.com/", // Important headers for playback
-                        "Origin": "https://luluvid.com",
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-                    ]
+                    headers: headers
                 )
             } catch {
                  print("⚠️ [StreamingService] Luluvid extraction failed: \(error). Using original.")

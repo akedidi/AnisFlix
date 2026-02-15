@@ -589,6 +589,7 @@ struct MovieDetailView: View {
                 }
                 
                 var streamUrl: String
+                var finalHeaders = source.headers
                 
                 if source.provider == "vidmoly" {
                     print("🔍 [MovieDetailView] Extracting VidMoly...")
@@ -598,7 +599,17 @@ struct MovieDetailView: View {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
                 } else if source.provider == "luluvid" {
                     print("🔍 [MovieDetailView] Extracting Luluvid...")
-                    streamUrl = try await StreamingService.shared.extractLuluvid(url: source.url)
+                    let (url, cookie) = try await StreamingService.shared.extractLuluvid(url: source.url)
+                    streamUrl = url
+                    
+                    var newHeaders = finalHeaders ?? [:]
+                    newHeaders["Referer"] = "https://luluvid.com/"
+                    newHeaders["Origin"] = "https://luluvid.com"
+                    newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    if let c = cookie {
+                        newHeaders["Cookie"] = c
+                    }
+                    finalHeaders = newHeaders
                 } else if source.provider == "primewire" || source.provider == "2embed" || source.provider == "vixsrc" || source.provider == "afterdark" {
                     // UniversalVO and Vixsrc sources are already proxied, use directly
                     print("ℹ️ [MovieDetailView] Using direct URL for provider: \(source.provider)")
@@ -650,7 +661,7 @@ struct MovieDetailView: View {
                             season: nil,
                             episode: nil,
                             isLive: false,
-                            headers: source.headers,
+                            headers: finalHeaders,
                             provider: source.provider,
                             language: source.language
                         )
