@@ -1001,7 +1001,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
         } else if urlString.contains("luluvid") {
              effectiveHeaders["Referer"] = "https://luluvid.com/"
-             print("🎬 [CustomVideoPlayer] Added LuluVid Referer header")
+             effectiveHeaders["Origin"] = "https://luluvid.com"
+             print("🎬 [CustomVideoPlayer] Added LuluVid Referer & Origin")
         }
         
         // SMART PROXY LOGIC:
@@ -1069,9 +1070,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                     queryItems.append(URLQueryItem(name: "origin", value: origin))
                 }
                 
-                // Add User-Agent if present (NEW - Critical for MovieBox)
                 if let ua = effectiveHeaders["User-Agent"] {
                     queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                }
+                
+                // Add Cookie if present (Critical for some providers)
+                if let cookie = effectiveHeaders["Cookie"] {
+                    queryItems.append(URLQueryItem(name: "cookie", value: cookie))
                 }
                 
                 components.queryItems = queryItems
