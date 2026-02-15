@@ -159,6 +159,9 @@ class LocalStreamingServer {
             if let origin = origin {
                 urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
             }
+            if let cookie = query["cookie"] as? String {
+                urlRequest.setValue(cookie, forHTTPHeaderField: "Cookie")
+            }
             
             let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 responseData = data

@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.53",
+          "version": "1.0.54",
           "date": "2026-02-15",
-          "size": 30673041,
+          "size": 30674175,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): v1.0.53 - Fix Luluvid AirPlay (Missing Cookie in Segments)"
+          "localizedDescription": "fix(ios): v1.0.54 - Fix AirPlay Regression (Luluvid Segments + Vidzy)"
         }
       ]
     }
