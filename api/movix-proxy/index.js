@@ -811,6 +811,59 @@ export default async function handler(req, res) {
       }
     }
 
+    // GÉRER MOVIX LINKS API (Films et Séries)
+    if (decodedPath === 'link') {
+      const { type, id, season, episode } = queryParams;
+
+      if (!type || !id) {
+        return res.status(400).json({ error: 'Paramètres "type" et "id" requis' });
+      }
+
+      try {
+        let apiUrl;
+
+        if (type === 'movie') {
+          // API pour films: https://api.movix.blog/api/links/movie/{id}
+          apiUrl = `https://api.movix.blog/api/links/movie/${id}`;
+        } else if (type === 'tv') {
+          // API pour séries: https://api.movix.blog/api/links/tv/{id}?season={season}&episode={episode}
+          if (!season || !episode) {
+            return res.status(400).json({ error: 'Paramètres "season" et "episode" requis pour les séries' });
+          }
+          apiUrl = `https://api.movix.blog/api/links/tv/${id}?season=${season}&episode=${episode}`;
+        } else {
+          return res.status(400).json({ error: 'Type invalide. Utilisez "movie" ou "tv"' });
+        }
+
+        console.log(`🔗 [MOVIX LINKS] Calling API: ${apiUrl}`);
+
+        const response = await axios({
+          method: 'GET',
+          url: apiUrl,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+            'Referer': 'https://movix.blog/',
+            'Origin': 'https://movix.blog'
+          },
+          timeout: 15000
+        });
+
+        console.log(`✅ [MOVIX LINKS] Response received`);
+
+        // Return the data from Movix API
+        return res.status(200).json(response.data);
+
+      } catch (error) {
+        console.error('❌ [MOVIX LINKS] Error:', error.message);
+        return res.status(502).json({
+          error: 'Erreur API Movix Links',
+          details: error.message
+        });
+      }
+    }
+
+
     // --- HELPER: Resolve Absolute/Group Episode Number for TV ---
     // Frontend sends what it sees (e.g. Season 2, Episode 47).
     // But providers (VixSrc/UniversalVO) expect standard TMDB "S2 E23" format.

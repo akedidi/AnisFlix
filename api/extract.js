@@ -1,6 +1,8 @@
 import { DarkiboxExtractor } from './_services/universalvo/extractors/DarkiboxExtractor.js';
 import { VidmolyExtractor } from './_services/universalvo/extractors/VidmolyExtractor.js';
 import { extract_voe } from './_services/universalvo/extractors/voe.js';
+import { FSVidExtractor } from './_services/universalvo/extractors/FSVidExtractor.js';
+import { BysebuhoExtractor } from './_services/universalvo/extractors/BysebuhoExtractor.js';
 
 export default async function handler(req, res) {
     // CORS headers
@@ -89,6 +91,16 @@ export default async function handler(req, res) {
 
             case 'voe':
                 result = await extract_voe(url);
+                break;
+
+            case 'fsvid':
+                const fsvidExtractor = new FSVidExtractor();
+                result = await fsvidExtractor.extract(url);
+                break;
+
+            case 'bysebuho':
+                const bysebuhoExtractor = new BysebuhoExtractor();
+                result = await bysebuhoExtractor.extract(url);
                 break;
 
             default:
