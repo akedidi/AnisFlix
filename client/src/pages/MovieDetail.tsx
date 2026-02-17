@@ -310,8 +310,50 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; provider?: string }) => {
     setIsLoadingSource(true);
+
+    // Check for provider-based sources that need extraction (FSVid, Bysebuho)
+    if (source.provider && ['fsvid', 'bysebuho'].includes(source.provider.toLowerCase())) {
+      console.log(`🎬 Extraction ${source.provider} pour:`, source.url);
+
+      try {
+        const response = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: source.provider.toLowerCase(),
+            url: source.url
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`🎬 ${source.provider} extraction failed:`, errorData);
+          alert(`Erreur lors de l'extraction ${source.provider}`);
+          setIsLoadingSource(false);
+          return;
+        }
+
+        const { m3u8Url } = await response.json();
+        console.log(`🎬 ${source.provider} extraction réussie:`, m3u8Url);
+
+        setSelectedSource({
+          url: m3u8Url,
+          type: "m3u8",
+          name: source.name,
+          provider: source.provider
+        });
+        setIsLoadingSource(false);
+        return;
+      } catch (error) {
+        console.error(`Erreur lors de l'extraction ${source.provider}:`, error);
+        alert(`Erreur ${source.provider}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        setIsLoadingSource(false);
+        return;
+      }
+    }
+
     try {
       // Si l'URL est déjà fournie (MovixDownload, Darki, AnimeAPI ou autres sources directes), on l'utilise directement
       // SAUF pour Vidzy (isFStream) qui nécessite une extraction m3u8, et Luluvid qui nécessite le proxy backend
