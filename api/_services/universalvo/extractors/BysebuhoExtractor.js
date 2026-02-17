@@ -20,12 +20,59 @@ export class BysebuhoExtractor {
         try {
             console.log(`🚀 [Bysebuho] Extracting: ${url}`);
 
-            // Launch browser with chromium binary for Vercel
+            // 1. Try static extraction first (faster & lighter for Vercel)
+            try {
+                console.log(`⚡ [Bysebuho] Trying static extraction first...`);
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Referer': 'https://bysebuho.com/'
+                    }
+                });
+
+                if (response.ok) {
+                    const html = await response.text();
+                    // Regex to find m3u8 in scripts
+                    // Look for patterns like source: "...", file: "...", or direct .m3u8 urls
+                    const m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+                        html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+                        html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+                    if (m3u8Match) {
+                        const m3u8Url = m3u8Match[1];
+                        console.log(`✅ [Bysebuho] Static extraction successful: ${m3u8Url}`);
+                        return {
+                            success: true,
+                            m3u8Url: m3u8Url,
+                            type: 'hls',
+                            headers: {
+                                'Referer': 'https://bysebuho.com/',
+                                'Origin': 'https://bysebuho.com',
+                                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                            }
+                        };
+                    }
+                }
+            } catch (staticError) {
+                console.warn(`⚠️ [Bysebuho] Static extraction failed, falling back to Puppeteer: ${staticError.message}`);
+            }
+
+            // 2. Fallback to Puppeteer with optimized Vercel args
+            console.log(`🔄 [Bysebuho] Falling back to Puppeteer...`);
+
             browser = await puppeteer.launch({
-                args: chromium.args,
+                args: [
+                    ...chromium.args,
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ],
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
                 headless: chromium.headless,
+                ignoreHTTPSErrors: true
             });
 
             const page = await browser.newPage();
@@ -47,12 +94,12 @@ export class BysebuhoExtractor {
             console.log(`📡 [Bysebuho] Navigating to embed...`);
             await page.goto(url, {
                 waitUntil: 'networkidle2',
-                timeout: 30000
+                timeout: 15000 // Reduced timeout for Vercel
             });
 
             // Wait for player to initialize
             console.log(`⏳ [Bysebuho] Waiting for player...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Try to find M3U8 URL in page scripts or variables
             const m3u8FromPage = await page.evaluate(() => {
@@ -84,7 +131,7 @@ export class BysebuhoExtractor {
             // Return the first valid M3U8 URL found
             if (m3u8Urls.length > 0) {
                 const m3u8Url = m3u8Urls[0];
-                console.log(`✅ [Bysebuho] Extraction successful: ${m3u8Url.substring(0, 80)}...`);
+                console.log(`✅ [Bysebuho] Extraction successful (Puppeteer): ${m3u8Url.substring(0, 80)}...`);
 
                 return {
                     success: true,

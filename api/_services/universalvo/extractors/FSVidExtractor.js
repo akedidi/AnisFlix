@@ -21,12 +21,57 @@ export class FSVidExtractor {
         try {
             console.log(`🚀 [FSVid] Extracting: ${url}`);
 
-            // Launch browser with chromium binary for Vercel
+            // 1. Try static extraction first
+            try {
+                console.log(`⚡ [FSVid] Trying static extraction first...`);
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Referer': 'https://french-stream.one/'
+                    }
+                });
+
+                if (response.ok) {
+                    const html = await response.text();
+                    const m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+                        html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+                        html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+                    if (m3u8Match) {
+                        const m3u8Url = m3u8Match[1];
+                        console.log(`✅ [FSVid] Static extraction successful: ${m3u8Url}`);
+                        return {
+                            success: true,
+                            m3u8Url: m3u8Url,
+                            type: 'hls',
+                            headers: {
+                                'Referer': 'https://fsvid.lol/',
+                                'Origin': 'https://fsvid.lol',
+                                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                            }
+                        };
+                    }
+                }
+            } catch (staticError) {
+                console.warn(`⚠️ [FSVid] Static extraction failed, falling back to Puppeteer: ${staticError.message}`);
+            }
+
+            // 2. Fallback to Puppeteer with optimized Vercel args
+            console.log(`🔄 [FSVid] Falling back to Puppeteer...`);
+
             browser = await puppeteer.launch({
-                args: chromium.args,
+                args: [
+                    ...chromium.args,
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ],
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
                 headless: chromium.headless,
+                ignoreHTTPSErrors: true
             });
 
             const page = await browser.newPage();
@@ -54,12 +99,12 @@ export class FSVidExtractor {
             console.log(`📡 [FSVid] Navigating to embed...`);
             await page.goto(url, {
                 waitUntil: 'networkidle2',
-                timeout: 30000
+                timeout: 15000 // Reduced timeout
             });
 
             // Wait a bit for player to initialize
             console.log(`⏳ [FSVid] Waiting for player...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             // Try to find M3U8 URL in page scripts or variables
             const m3u8FromPage = await page.evaluate(() => {
@@ -96,7 +141,7 @@ export class FSVidExtractor {
             // Return the first valid M3U8 URL found
             if (m3u8Urls.length > 0) {
                 const m3u8Url = m3u8Urls[0];
-                console.log(`✅ [FSVid] Extraction successful: ${m3u8Url.substring(0, 80)}...`);
+                console.log(`✅ [FSVid] Extraction successful (Puppeteer): ${m3u8Url.substring(0, 80)}...`);
 
                 return {
                     success: true,
