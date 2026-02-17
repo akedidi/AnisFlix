@@ -354,6 +354,48 @@ export default function SeriesDetail() {
     isLuluvid?: boolean;
   }) => {
     if (!series || !selectedEpisode) return;
+
+    // Check for provider-based sources that need extraction (FSVid, Bysebuho)
+    if ((source as any).provider && ['fsvid', 'bysebuho'].includes(((source as any).provider as string).toLowerCase())) {
+      console.log(`🎬 Extraction ${(source as any).provider} pour:`, source.url);
+      setIsLoadingSource(true);
+
+      try {
+        const response = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: ((source as any).provider as string).toLowerCase(),
+            url: source.url
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`🎬 ${(source as any).provider} extraction failed:`, errorData);
+          alert(`Erreur lors de l'extraction ${(source as any).provider}`);
+          setIsLoadingSource(false);
+          return;
+        }
+
+        const { m3u8Url } = await response.json();
+        console.log(`🎬 ${(source as any).provider} extraction réussie:`, m3u8Url);
+
+        setSelectedSource({
+          url: m3u8Url,
+          type: "m3u8",
+          name: source.name,
+          provider: (source as any).provider
+        });
+        setIsLoadingSource(false);
+        return;
+      } catch (error) {
+        console.error(`Erreur lors de l'extraction ${(source as any).provider}:`, error);
+        alert(`Erreur ${(source as any).provider}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        setIsLoadingSource(false);
+        return;
+      }
+    }
     // Si l'URL est déjà fournie (MovixDownload, Darki ou autres sources directes), on l'utilise directement
     // EXCEPTION: VidMoly, Vidzy (isFStream) et Luluvid doivent passer par l'extraction
 
