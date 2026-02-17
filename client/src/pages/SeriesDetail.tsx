@@ -23,7 +23,7 @@ import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
 
 import { getImageUrl, tmdb } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { getSeriesStream, extractVidzyM3u8, extractLuluvidM3u8 } from "@/lib/movix";
+import { getSeriesStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -371,9 +371,41 @@ export default function SeriesDetail() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error(`🎬 ${(source as any).provider} extraction failed:`, errorData);
-          alert(`Erreur lors de l'extraction ${(source as any).provider}`);
+          console.warn(`⚠️ Extraction ${(source as any).provider} échouée (API), tentative extraction client...`);
+
+          try {
+            let m3u8 = null;
+            const provider = ((source as any).provider as string).toLowerCase();
+
+            if (provider === 'bysebuho') {
+              m3u8 = await extractBysebuhoM3u8(source.url);
+            } else if (provider === 'fsvid') {
+              m3u8 = await extractFSVidM3u8(source.url);
+            }
+
+            if (m3u8) {
+              console.log(`✅ Extraction client ${provider} réussie:`, m3u8);
+              setSelectedSource({
+                url: m3u8,
+                type: "m3u8",
+                name: source.name,
+                provider: provider
+              });
+              setIsLoadingSource(false);
+              return;
+            }
+          } catch (clientError) {
+            console.error(`⚠️ Extraction client ${(source as any).provider} échouée:`, clientError);
+          }
+
+          console.warn(`⚠️ Fallback final sur iframe pour ${(source as any).provider}`);
+          // Fallback to iframe
+          setSelectedSource({
+            url: source.url,
+            type: 'embed',
+            name: source.name,
+            provider: (source as any).provider
+          });
           setIsLoadingSource(false);
           return;
         }
@@ -390,8 +422,41 @@ export default function SeriesDetail() {
         setIsLoadingSource(false);
         return;
       } catch (error) {
-        console.error(`Erreur lors de l'extraction ${(source as any).provider}:`, error);
-        alert(`Erreur ${(source as any).provider}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        console.warn(`⚠️ Erreur extraction ${(source as any).provider} (Network/Catch), tentative extraction client...`, error);
+
+        try {
+          let m3u8 = null;
+          const provider = ((source as any).provider as string).toLowerCase();
+
+          if (provider === 'bysebuho') {
+            m3u8 = await extractBysebuhoM3u8(source.url);
+          } else if (provider === 'fsvid') {
+            m3u8 = await extractFSVidM3u8(source.url);
+          }
+
+          if (m3u8) {
+            console.log(`✅ Extraction client ${provider} réussie:`, m3u8);
+            setSelectedSource({
+              url: m3u8,
+              type: "m3u8",
+              name: source.name,
+              provider: provider
+            });
+            setIsLoadingSource(false);
+            return;
+          }
+        } catch (clientError) {
+          console.error(`⚠️ Extraction client ${(source as any).provider} échouée:`, clientError);
+        }
+
+        console.warn(`⚠️ Fallback final sur iframe pour ${(source as any).provider}`);
+        // Fallback to iframe
+        setSelectedSource({
+          url: source.url,
+          type: 'embed',
+          name: source.name,
+          provider: (source as any).provider
+        });
         setIsLoadingSource(false);
         return;
       }

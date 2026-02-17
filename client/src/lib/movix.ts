@@ -216,3 +216,90 @@ export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | n
     return null;
   }
 }
+
+
+/**
+ * Extrait le lien m3u8 depuis une URL Bysebuho en utilisant le proxy et parsing client
+ */
+export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string | null> {
+  try {
+    console.log('🔍 Bysebuho extraction client pour:', bysebuhoUrl);
+
+    // Utiliser le proxy générique
+    const proxyUrl = `/api/movix-proxy?path=proxy&url=${encodeURIComponent(bysebuhoUrl)}`;
+    const response = await fetch(proxyUrl);
+
+    if (!response.ok) {
+      throw new Error(`Proxy Bysebuho failed: ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    // 1. Chercher direct m3u8
+    let m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+      html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+      html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+    if (m3u8Match && m3u8Match[1]) {
+      console.log('✅ Bysebuho M3U8 trouvé (source):', m3u8Match[1]);
+      return m3u8Match[1];
+    }
+
+    // 2. Chercher dans les scripts (souvent obfusqué ou dans un JSON)
+    const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
+    if (globalMatch) {
+      console.log('✅ Bysebuho M3U8 trouvé (global regex):', globalMatch[0]);
+      return globalMatch[0];
+    }
+
+    console.warn('⚠️ Aucun M3U8 trouvé dans le HTML Bysebuho (Client)');
+    return null;
+
+  } catch (error) {
+    console.error('Erreur extraction Bysebuho Client:', error);
+    return null;
+  }
+}
+
+/**
+ * Extrait le lien m3u8 depuis une URL FSVid en utilisant le proxy et parsing client
+ */
+export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null> {
+  try {
+    console.log('🔍 FSVid extraction client pour:', fsvidUrl);
+
+    // Utiliser le proxy générique
+    const proxyUrl = `/api/movix-proxy?path=proxy&url=${encodeURIComponent(fsvidUrl)}`;
+    const response = await fetch(proxyUrl);
+
+    if (!response.ok) {
+      throw new Error(`Proxy FSVid failed: ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    // 1. Chercher direct m3u8
+    let m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+      html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+      html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+    if (m3u8Match && m3u8Match[1]) {
+      console.log('✅ FSVid M3U8 trouvé (source):', m3u8Match[1]);
+      return m3u8Match[1];
+    }
+
+    // 2. Chercher packed function ou autres patterns
+    const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
+    if (globalMatch) {
+      console.log('✅ FSVid M3U8 trouvé (global regex):', globalMatch[0]);
+      return globalMatch[0];
+    }
+
+    console.warn('⚠️ Aucun M3U8 trouvé dans le HTML FSVid (Client)');
+    return null;
+
+  } catch (error) {
+    console.error('Erreur extraction FSVid Client:', error);
+    return null;
+  }
+}

@@ -800,14 +800,38 @@ export default async function handler(req, res) {
           if (response.headers[h]) res.setHeader(h, response.headers[h]);
         });
 
-        res.setHeader('Access-Control-Allow-Origin', '*');
-
         // Pipe the stream
         response.data.pipe(res);
         return;
+
       } catch (error) {
-        console.error('❌ [ZENIME PROXY] Error:', error.message);
-        return res.status(502).json({ error: 'Erreur proxy Zenime', details: error.message });
+        console.error(`❌ [ZENIME PROXY] Error: ${error.message}`);
+        return res.status(502).json({ error: 'Failed to fetch Zenime stream', details: error.message });
+      }
+    }
+
+    // GÉRER PROXY GÉNÉRIQUE (Pour extraction client)
+    if (decodedPath === 'proxy') {
+      const { url } = queryParams;
+      if (!url) return res.status(400).json({ error: 'Missing url' });
+
+      try {
+        const decodedUrl = decodeURIComponent(url);
+        console.log(`🌐 [GENERIC PROXY] Fetching: ${decodedUrl}`);
+
+        const response = await axios.get(decodedUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Referer': new URL(decodedUrl).origin
+          },
+          timeout: 10000
+        });
+
+        // Return data as text/html usually, or JSON depending on source
+        return res.send(response.data);
+      } catch (error) {
+        console.error(`❌ [GENERIC PROXY] Error: ${error.message}`);
+        return res.status(500).json({ error: error.message });
       }
     }
 

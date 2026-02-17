@@ -20,7 +20,7 @@ import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { getMovieStream, extractVidzyM3u8, extractLuluvidM3u8 } from "@/lib/movix";
+import { getMovieStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8 } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -328,9 +328,41 @@ export default function MovieDetail() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error(`🎬 ${source.provider} extraction failed:`, errorData);
-          alert(`Erreur lors de l'extraction ${source.provider}`);
+          console.warn(`⚠️ Extraction ${(source as any).provider} échouée (API), tentative extraction client...`);
+
+          try {
+            let m3u8 = null;
+            const provider = (source.provider || '').toLowerCase();
+
+            if (provider === 'bysebuho') {
+              m3u8 = await extractBysebuhoM3u8(source.url);
+            } else if (provider === 'fsvid') {
+              m3u8 = await extractFSVidM3u8(source.url);
+            }
+
+            if (m3u8) {
+              console.log(`✅ Extraction client ${provider} réussie:`, m3u8);
+              setSelectedSource({
+                url: m3u8,
+                type: "m3u8",
+                name: source.name,
+                provider: provider
+              });
+              setIsLoadingSource(false);
+              return;
+            }
+          } catch (clientError) {
+            console.error(`⚠️ Extraction client ${source.provider} échouée:`, clientError);
+          }
+
+          console.warn(`⚠️ Fallback final sur iframe pour ${source.provider}`);
+          // Fallback to iframe
+          setSelectedSource({
+            url: source.url,
+            type: 'embed',
+            name: source.name,
+            provider: source.provider
+          });
           setIsLoadingSource(false);
           return;
         }
@@ -347,8 +379,40 @@ export default function MovieDetail() {
         setIsLoadingSource(false);
         return;
       } catch (error) {
-        console.error(`Erreur lors de l'extraction ${source.provider}:`, error);
-        alert(`Erreur ${source.provider}: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+        console.warn(`⚠️ Erreur extraction${source.provider} (Network/Catch), tentative extraction client...`, error);
+
+        try {
+          let m3u8 = null;
+          const provider = (source.provider || '').toLowerCase();
+
+          if (provider === 'bysebuho') {
+            m3u8 = await extractBysebuhoM3u8(source.url);
+          } else if (provider === 'fsvid') {
+            m3u8 = await extractFSVidM3u8(source.url);
+          }
+
+          if (m3u8) {
+            console.log(`✅ Extraction client ${provider} réussie:`, m3u8);
+            setSelectedSource({
+              url: m3u8,
+              type: "m3u8",
+              name: source.name,
+              provider: provider
+            });
+            setIsLoadingSource(false);
+            return;
+          }
+        } catch (clientError) {
+          console.error(`⚠️ Extraction client ${source.provider} échouée:`, clientError);
+        }
+
+        console.warn(`⚠️ Fallback final sur iframe pour ${source.provider}`);
+        setSelectedSource({
+          url: source.url,
+          type: "embed",
+          name: source.name,
+          provider: source.provider
+        });
         setIsLoadingSource(false);
         return;
       }
