@@ -1124,10 +1124,22 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : Vidzy > MovieBox > MegaCDN > Luluvid > Reste
+  // Trie final des sources : Bysebuho > Premium (FSVid) > AnimeAPI > Vidzy > MovieBox > MegaCDN > Luluvid > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
+      // Rang -3: Bysebuho - HIGHEST PRIORITY (User Request)
+      if (source.provider?.toLowerCase() === 'bysebuho' ||
+        source.name.toLowerCase().includes('bysebuho')) {
+        return -3;
+      }
+
+      // Rang -2: Premium (FSVid) - SECOND HIGHEST PRIORITY for VF/VOSTFR
+      if (source.player?.toLowerCase() === 'premium' ||
+        source.name.toLowerCase().includes('fsvid')) {
+        return -2;
+      }
+
       // Rang -1: AnimeAPI (Highest priority for VO anime - User Request)
       if (source.provider?.toLowerCase() === 'animeapi' ||
         source.name.toLowerCase().includes('animeapi')) {
@@ -1324,12 +1336,32 @@ const StreamingSources = memo(function StreamingSources({
     try {
       if (source.isFStream) {
         console.log('✅ Source FStream détectée');
-        // Pour Vidzy via FStream, on utilise le scraper existant
+
+        // Cas spécial : FSVid Premium (player: "premium")
+        if (source.player?.toLowerCase() === 'premium') {
+          console.log('🎬 Source FSVid Premium détectée, utilisation de l\'extracteur FSVid');
+          onSourceClick({
+            url: source.url,
+            type: 'embed' as const,
+            name: source.name,
+            provider: 'fsvid'
+          });
+        } else {
+          // Pour Vidzy via FStream, on utilise le scraper existant
+          onSourceClick({
+            url: source.url,
+            type: 'm3u8' as const,
+            name: source.name,
+            isFStream: true
+          });
+        }
+      } else if (source.provider?.toLowerCase() === 'bysebuho') {
+        console.log('✅ Source Bysebuho détectée, utilisation de l\'extracteur Bysebuho');
         onSourceClick({
           url: source.url,
-          type: 'm3u8' as const,
+          type: 'embed' as const,
           name: source.name,
-          isFStream: true
+          provider: 'bysebuho'
         });
       } else if (source.isMovixDownload) {
         console.log('✅ Source MovixDownload détectée');
