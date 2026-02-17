@@ -13,7 +13,7 @@ interface MovixLinkData {
 interface MovixLinksResponse {
     success: boolean;
     type: 'movie' | 'tv';
-    data: MovixLinkData[];
+    data: MovixLinkData | MovixLinkData[]; // Can be object (movies) or array (TV shows)
 }
 
 /**
@@ -55,20 +55,31 @@ export function useMovixLinks(
 
             console.log(`✅ [MOVIX LINKS] Response:`, data);
 
-            if (!data.success || !data.data || data.data.length === 0) {
+            if (!data.success || !data.data) {
                 return { links: [], hasLinks: false };
             }
 
-            // Extract Bysebuho links from the first data item
-            const firstItem = data.data[0];
-            const bysebuhoLinks = firstItem.links || [];
+            // Handle both formats: array for TV shows, object for movies
+            let bysebuhoLinks: string[] = [];
+
+            if (Array.isArray(data.data)) {
+                // TV shows format: data is array
+                if (data.data.length === 0) {
+                    return { links: [], hasLinks: false };
+                }
+                const firstItem = data.data[0];
+                bysebuhoLinks = firstItem.links || [];
+            } else {
+                // Movies format: data is object
+                bysebuhoLinks = data.data.links || [];
+            }
 
             console.log(`🎯 [MOVIX LINKS] Found ${bysebuhoLinks.length} Bysebuho links`);
 
             return {
                 links: bysebuhoLinks,
                 hasLinks: bysebuhoLinks.length > 0,
-                data: firstItem
+                data: Array.isArray(data.data) ? data.data[0] : data.data
             };
         },
         enabled,
