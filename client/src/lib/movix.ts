@@ -274,7 +274,8 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
       const serverRes = await api.post('/api/extract', { type: 'fsvid', url: fsvidUrl });
       if (serverRes.data && serverRes.data.success && serverRes.data.m3u8Url) {
         console.log('✅ FSVid extraction serveur réussie:', serverRes.data.m3u8Url);
-        return serverRes.data.m3u8Url;
+        // Wrapper avec corsproxy pour contourner la protection Referer/CORS de FSVid à la lecture
+        return `https://corsproxy.io/?${encodeURIComponent(serverRes.data.m3u8Url)}`;
       }
     } catch (serverError) {
       console.warn('⚠️ Échec extraction serveur FSVid, tentative client...');
