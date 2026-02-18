@@ -36,19 +36,26 @@ export default async function handler(req, res) {
       throw new Error(`Proxy fetch failed: ${response.status} ${response.statusText}`);
     }
 
-    const contentType = response.headers.get('content-type') || 'application/vnd.apple.mpegurl';
-    res.setHeader('Content-Type', contentType);
+    const contentType = response.headers.get('content-type');
+    res.setHeader('Content-Type', contentType || 'application/octet-stream');
 
-    const content = await response.text();
+    // Define M3U8 types
+    const isM3U8 = contentType && (
+      contentType.includes('application/vnd.apple.mpegurl') ||
+      contentType.includes('application/x-mpegURL') ||
+      contentType.includes('text/plain') && url.includes('.m3u8') // sometimes servers return wrong type
+    );
 
-    // Rewrite M3U8 to handle relative paths and Referer protection for sub-requests (index.m3u8, segments, keys)
-    if (url.includes('.m3u8') || contentType.includes('mpegurl') || contentType.includes('hls')) {
+    if (isM3U8) {
+      const content = await response.text();
+
       const baseUrl = new URL(url);
       const currentReferer = referer || 'https://fsvid.lol/';
 
       // Simple M3U8 Rewrite
       const rewritten = content.split('\n').map(line => {
         const trimmed = line.trim();
+        // Skip empty lines or comments (but check for KEY URI)
         if (!trimmed) return line;
 
         if (trimmed.startsWith('#')) {
@@ -71,13 +78,12 @@ export default async function handler(req, res) {
       return res.status(200).send(rewritten);
     }
 
-    // Check if it's binary data (segments, images) -> Buffer handling might be better but .text() + proper encoding works for many things if careful
-    // For simple TS segments, piping response is better. But here we already read text. 
-    // If we want to support segments efficiently, we should stream. 
-    // But for "Hybrid mode" intended primarily for M3U8, this is OK.
-    // If this handles TS segments too (via rewrite), we might need buffer support.
+    // Binary Content (Segments, Images, etc.)
+    // Use arrayBuffer and convert to Buffer to preserve binary data
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    return res.status(200).send(content);
+    return res.status(200).send(buffer);
 
   } catch (error) {
     console.error('Proxy Error:', error);
