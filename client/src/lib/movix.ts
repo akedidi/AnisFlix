@@ -288,7 +288,29 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
       return m3u8Match[1];
     }
 
-    // 2. Chercher packed function ou autres patterns
+    // 2. Chercher packed function
+    if (isPacked(html)) {
+      console.log('📦 Code packed détecté, tentative de désemballage...');
+      const unpacked = unpack(html);
+      if (unpacked) {
+        console.log('✅ Code désemballé avec succès !');
+        // Chercher m3u8 dans le code désemballé
+        const unpackedMatch = unpacked.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+          unpacked.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+          unpacked.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+        if (unpackedMatch && unpackedMatch[1]) {
+          console.log('✅ FSVid M3U8 trouvé (unpacked):', unpackedMatch[1]);
+          return unpackedMatch[1];
+        } else {
+          console.log('⚠️ Code désemballé mais pas de M3U8 trouvé dedans:', unpacked.substring(0, 100));
+        }
+      } else {
+        console.error('❌ Échec du désemballage');
+      }
+    }
+
+    // 3. Chercher global regex (fallback)
     const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
     if (globalMatch) {
       console.log('✅ FSVid M3U8 trouvé (global regex):', globalMatch[0]);
