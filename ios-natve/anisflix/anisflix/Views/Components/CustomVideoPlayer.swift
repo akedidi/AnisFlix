@@ -1247,6 +1247,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     
     /// Constructs a Local Proxy URL if needed (for headers, subs, or specific providers)
     func makeProxyUrl(for url: URL, headers: [String: String]?, subtitleUrl: URL?) -> URL {
+        print("🔍 [ProxyDebug] makeProxyUrl called for: \(url)")
+        print("🔍 [ProxyDebug] Server URL: \(LocalStreamingServer.shared.serverUrl?.absoluteString ?? "NIL")")
+        
         var effectiveHeaders = headers ?? [:]
         
         let urlString = url.absoluteString.lowercased()
@@ -1272,10 +1275,17 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid")
         
+        print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
+        
         if isProviderRequiringProxy || hasCustomHeaders || hasSubtitles {
              if let serverUrl = LocalStreamingServer.shared.serverUrl {
                 var components = URLComponents()
                 components.scheme = serverUrl.scheme
+                
+                // CRITICAL: Use correct IP address accessible from LAN
+                // GCDWebServer might return localhost or 127.0.0.1 if not bound properly,
+                // but we configured BindToLocalhost: false.
+                // However, ensure we use the IP that Chromecast can see.
                 components.host = serverUrl.host
                 components.port = serverUrl.port
                 components.path = "/manifest"
@@ -1289,6 +1299,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 if let referer = effectiveHeaders["Referer"] {
                     queryItems.append(URLQueryItem(name: "referer", value: referer))
                 }
+                // ... (rest of headers)
                 if let origin = effectiveHeaders["Origin"] {
                     queryItems.append(URLQueryItem(name: "origin", value: origin))
                 }
