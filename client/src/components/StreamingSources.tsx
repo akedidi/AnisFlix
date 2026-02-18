@@ -805,7 +805,7 @@ const StreamingSources = memo(function StreamingSources({
         vfKeys.forEach(key => {
           if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
             const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
-              player.player.toLowerCase() === 'premium'
+              player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
             );
 
             premiumPlayers.forEach((player: any) => {
@@ -827,7 +827,7 @@ const StreamingSources = memo(function StreamingSources({
       } else if (selectedLanguage === 'VOSTFR') {
         const vostfrPlayers = episodeData.languages.VOSTFR || [];
         const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
-          player.player.toLowerCase() === 'premium'
+          player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
         );
 
         vostfrPremiumPlayers.forEach((player: any) => {
@@ -852,7 +852,7 @@ const StreamingSources = memo(function StreamingSources({
         voKeys.forEach(key => {
           if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
             const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
-              player.player.toLowerCase() === 'premium'
+              player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
             );
 
             premiumPlayers.forEach((player: any) => {
