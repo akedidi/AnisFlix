@@ -723,7 +723,10 @@ struct CustomVideoPlayer: View {
             print("📺 URL changed while casting. Loading new media...")
             
             // Construct proxy URL for new media (headers will be injected by makeProxyUrl if Fsvid/Vidzy)
-            let activeSubUrl = selectedSubtitle?.url.flatMap { URL(string: $0) }
+            var activeSubUrl: URL?
+            if let subUrlString = selectedSubtitle?.url {
+                activeSubUrl = URL(string: subUrlString)
+            }
             let castUrl = playerVM.makeProxyUrl(for: newUrl, headers: nil, subtitleUrl: activeSubUrl)
             
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
@@ -735,9 +738,9 @@ struct CustomVideoPlayer: View {
     private func handleCastConnectionChange(_ connected: Bool) {
         if connected {
             // Pause local player when casting starts
-            if isPlaying {
+            if playerVM.isPlaying {
                 playerVM.player.pause()
-                isPlaying = false 
+                playerVM.isPlaying = false 
             }
             
             // Resume/Load on Cast
@@ -761,7 +764,7 @@ struct CustomVideoPlayer: View {
             }
             // Auto-play locally if we were casting
             playerVM.player.play()
-            isPlaying = true
+            playerVM.isPlaying = true
         }
     }
 }
