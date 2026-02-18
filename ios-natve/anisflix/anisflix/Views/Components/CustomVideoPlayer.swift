@@ -1003,6 +1003,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
              effectiveHeaders["Referer"] = "https://luluvid.com/"
              effectiveHeaders["Origin"] = "https://luluvid.com"
              print("🎬 [CustomVideoPlayer] Added LuluVid Referer & Origin")
+        } else if urlString.contains("fsvid") {
+             effectiveHeaders["Referer"] = "https://fsvid.lol/"
+             effectiveHeaders["Origin"] = "https://fsvid.lol"
+             print("🎬 [CustomVideoPlayer] Added FSVid Referer & Origin")
         }
         
         // SMART PROXY LOGIC:
@@ -1024,15 +1028,16 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         var needsProxy = false
         
-        // CRITICAL FIX: Force proxy for Vidzy/Luluvid ALWAYS (even if AirPlay not yet active)
+        // CRITICAL FIX: Force proxy for Vidzy/Luluvid/FSVid ALWAYS (even if AirPlay not yet active)
         // Reason: When starting AirPlay directly, isExternalPlaybackActive is false initially,
-        // but we need the proxy ready for when AirPlay activates mid-playback
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid")
+        // but we need the proxy ready for when AirPlay activates mid-playback.
+        // Also: FSVid headers are NOT propagated by AVURLAsset to HLS segments, so we MUST use proxy.
+        let isVidzyOrLuluvidOrFSVid = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid")
         
-        if isVidzyOrLuluvid {
-            // Always use proxy for Vidzy/Luluvid (they need headers for AirPlay)
+        if isVidzyOrLuluvidOrFSVid {
+            // Always use proxy for Vidzy/Luluvid/FSVid (they need headers for AirPlay & Segments)
             needsProxy = true
-            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid (AirPlay compatibility)")
+            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid/FSVid (Headers/AirPlay compatibility)")
         } else if isAirPlayActive {
             // AirPlay: Must use proxy if we have headers or subtitles
             needsProxy = hasCustomHeaders || hasSubtitles
