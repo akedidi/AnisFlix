@@ -554,64 +554,7 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
-  // Ajouter d'abord les sources Premium (FSVid) depuis FStream si disponible
-  if (fStreamData && fStreamData.players) {
-    let premiumCounter = 1;
-
-    if (selectedLanguage === 'VF') {
-      // Pour VF, chercher les clés VFQ et VFF pour les players premium
-      const vfKeys = Object.keys(fStreamData.players).filter(key =>
-        key.startsWith('VF') || key === 'VF' || key === 'VFQ'
-      );
-
-      console.log('VF keys for premium (including VFQ):', vfKeys);
-
-      vfKeys.forEach(key => {
-        if (fStreamData.players![key]) {
-          // Filtrer seulement les players premium
-          const premiumPlayers = fStreamData.players![key].filter((player: any) =>
-            player.player.toLowerCase() === 'premium'
-          );
-
-          premiumPlayers.forEach((player: any) => {
-            allSources.push({
-              id: `fstream-premium-${key.toLowerCase()}-${premiumCounter}`,
-              name: `FSVid${premiumCounter} (${key}) - ${player.quality}`,
-              provider: 'fstream',
-              url: player.url,
-              type: 'embed' as const,
-              player: 'premium',
-              isFStream: true,
-              sourceKey: key
-            });
-            premiumCounter++;
-          });
-        }
-      });
-    } else if (selectedLanguage === 'VOSTFR') {
-      // Pour VOSTFR, utiliser la clé VOSTFR
-      const vostfrPlayers = fStreamData.players.VOSTFR || [];
-      console.log('VOSTFR premium players:', vostfrPlayers);
-
-      const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
-        player.player.toLowerCase() === 'premium'
-      );
-
-      vostfrPremiumPlayers.forEach((player: any) => {
-        allSources.push({
-          id: `fstream-premium-vostfr-${premiumCounter}`,
-          name: `FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
-          provider: 'fstream',
-          url: player.url,
-          type: 'embed' as const,
-          player: 'premium',
-          isFStream: true,
-          sourceKey: 'VOSTFR'
-        });
-        premiumCounter++;
-      });
-    }
-  }
+  // Sources Premium (FSVid) déplacées après Vidzy pour dépriorisation
 
   // Ajouter seulement Vidzy depuis FStream si disponible
   if (fStreamData && fStreamData.players) {
@@ -701,6 +644,65 @@ const StreamingSources = memo(function StreamingSources({
             vidzyCounter++;
           });
         }
+      });
+    }
+  }
+
+  // Ajouter les sources Premium (FSVid) depuis FStream si disponible (Dépriorisé après Vidzy)
+  if (fStreamData && fStreamData.players) {
+    let premiumCounter = 1;
+
+    if (selectedLanguage === 'VF') {
+      // Pour VF, chercher les clés VFQ et VFF pour les players premium
+      const vfKeys = Object.keys(fStreamData.players).filter(key =>
+        key.startsWith('VF') || key === 'VF' || key === 'VFQ'
+      );
+
+      console.log('VF keys for premium (including VFQ):', vfKeys);
+
+      vfKeys.forEach(key => {
+        if (fStreamData.players![key]) {
+          // Filtrer seulement les players premium
+          const premiumPlayers = fStreamData.players![key].filter((player: any) =>
+            player.player.toLowerCase() === 'premium'
+          );
+
+          premiumPlayers.forEach((player: any) => {
+            allSources.push({
+              id: `fstream-premium-${key.toLowerCase()}-${premiumCounter}`,
+              name: `FSVid${premiumCounter} (${key}) - ${player.quality}`,
+              provider: 'fstream',
+              url: player.url,
+              type: 'embed' as const,
+              player: 'premium',
+              isFStream: true,
+              sourceKey: key
+            });
+            premiumCounter++;
+          });
+        }
+      });
+    } else if (selectedLanguage === 'VOSTFR') {
+      // Pour VOSTFR, utiliser la clé VOSTFR
+      const vostfrPlayers = fStreamData.players.VOSTFR || [];
+      console.log('VOSTFR premium players:', vostfrPlayers);
+
+      const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
+        player.player.toLowerCase() === 'premium'
+      );
+
+      vostfrPremiumPlayers.forEach((player: any) => {
+        allSources.push({
+          id: `fstream-premium-vostfr-${premiumCounter}`,
+          name: `FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
+          provider: 'fstream',
+          url: player.url,
+          type: 'embed' as const,
+          player: 'premium',
+          isFStream: true,
+          sourceKey: 'VOSTFR'
+        });
+        premiumCounter++;
       });
     }
   }

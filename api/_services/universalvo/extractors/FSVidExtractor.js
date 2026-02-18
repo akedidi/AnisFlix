@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch'; // Use native fetch in Node 20
 import { isPacked, unpack } from './utils/packer.js';
 
 /**

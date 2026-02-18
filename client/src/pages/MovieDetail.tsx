@@ -284,7 +284,9 @@ export default function MovieDetail() {
   }));
 
   // Map Cpasmal sources
-  const allSources = [...sources, ...tmdbSources, ...universalSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
+  // Map Cpasmal sources
+  // Prioritize TMDB sources (Vidzy, VidMoly) over Movix FStream (FSVid)
+  const allSources = [...tmdbSources, ...sources, ...universalSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB
