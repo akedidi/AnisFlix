@@ -261,26 +261,9 @@ export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string |
       return out;
     };
 
-    // 4. Essai payload2 en premier (bysevideo.net - pas de restriction ASN)
+    // 4. payload1 (sprintcdn) - token généré par Vercel → ASN Vercel (14618) → proxy Vercel valide ✅
     let m3u8Url: string | null = null;
     try {
-      const edge1 = b64url(pb.decrypt_keys.edge_1);
-      const edge2 = b64url(pb.decrypt_keys.edge_2);
-      const key2 = concatKeys(edge1, edge2);
-      const iv2 = b64url(pb.iv2);
-      const payload2 = b64url(pb.payload2);
-      const sources2 = await aesDecrypt(key2, iv2, payload2);
-      const hls2 = (sources2.sources || []).filter((s: any) => s.url?.includes('.m3u8'));
-      if (hls2.length > 0) {
-        m3u8Url = (hls2.find((s: any) => s.quality === 'h') || hls2[0]).url;
-        console.log('✅ Bysebuho payload2 (bysevideo.net):', m3u8Url);
-      }
-    } catch (e) {
-      console.warn('⚠️ payload2 failed, trying payload1:', e);
-    }
-
-    // 5. Fallback: payload1 (sprintcdn)
-    if (!m3u8Url) {
       const kp1 = b64url(pb.key_parts[0]);
       const kp2 = b64url(pb.key_parts[1]);
       const key1 = concatKeys(kp1, kp2);
@@ -288,9 +271,26 @@ export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string |
       const payload1 = b64url(pb.payload);
       const sources1 = await aesDecrypt(key1, iv1, payload1);
       const hls1 = (sources1.sources || []).filter((s: any) => s.url?.includes('.m3u8'));
-      if (hls1.length === 0) throw new Error('Aucune source HLS trouvée');
-      m3u8Url = (hls1.find((s: any) => s.quality === 'h') || hls1[0]).url;
-      console.log('✅ Bysebuho payload1 (sprintcdn):', m3u8Url);
+      if (hls1.length > 0) {
+        m3u8Url = (hls1.find((s: any) => s.quality === 'h') || hls1[0]).url;
+        console.log('✅ Bysebuho payload1 (sprintcdn):', m3u8Url);
+      }
+    } catch (e) {
+      console.warn('⚠️ payload1 failed:', e);
+    }
+
+    // 5. Fallback: payload2 (bysevideo.net)
+    if (!m3u8Url) {
+      const edge1 = b64url(pb.decrypt_keys.edge_1);
+      const edge2 = b64url(pb.decrypt_keys.edge_2);
+      const key2 = concatKeys(edge1, edge2);
+      const iv2 = b64url(pb.iv2);
+      const payload2 = b64url(pb.payload2);
+      const sources2 = await aesDecrypt(key2, iv2, payload2);
+      const hls2 = (sources2.sources || []).filter((s: any) => s.url?.includes('.m3u8'));
+      if (hls2.length === 0) throw new Error('Aucune source HLS trouvée');
+      m3u8Url = (hls2.find((s: any) => s.quality === 'h') || hls2[0]).url;
+      console.log('✅ Bysebuho payload2 (bysevideo.net):', m3u8Url);
     }
 
     // 6. Proxifier via /api/proxy (même ASN Vercel que le token → ✅)
