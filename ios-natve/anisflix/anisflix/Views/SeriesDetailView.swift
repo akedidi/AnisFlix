@@ -573,6 +573,18 @@ struct SeriesDetailView: View {
                         print("⚠️ [SeriesDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")
                         finalURL = URL(string: source.url)
                     }
+                } else if source.provider.lowercased() == "fsvid" {
+                    // FSVid: extract M3U8 from embed URL via /api/extract
+                    print("🔍 [SeriesDetailView] Extracting FSVid M3U8 from embed URL...")
+                    let language = source.language ?? "VF"
+                    if let extracted = await FSVidService.shared.extractSingleM3U8(embedUrl: source.url, language: language) {
+                        finalURL = URL(string: extracted.url)
+                        finalHeaders = extracted.headers
+                        print("✅ [SeriesDetailView] FSVid M3U8 extracted: \(extracted.url.prefix(60))")
+                    } else {
+                        print("❌ [SeriesDetailView] FSVid extraction failed for: \(source.url)")
+                        throw NSError(domain: "FSVid", code: -1, userInfo: [NSLocalizedDescriptionKey: "Impossible d'extraire le lien FSVid"])
+                    }
                 } else {
                     // Fallback for other providers
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")

@@ -75,6 +75,11 @@ class FSVidService {
     
     // MARK: - Private Implementation
     
+    /// Extract M3U8 from a single known FSVid embed URL (used by detail views when source is already known)
+    func extractSingleM3U8(embedUrl: String, language: String) async -> StreamingSource? {
+        return await extractM3U8(embedUrl: embedUrl, language: language)
+    }
+    
     private func fetchAndExtract(path: String, episode: Int?) async -> [StreamingSource] {
         // Step 1: Fetch FStream API
         guard let fstreamData = await fetchFStreamAPI(path: path) else {
@@ -92,11 +97,11 @@ class FSVidService {
                 for (_, ep) in episodes {
                     if ep.number == episode {
                         if let vfPlayers = ep.languages?.VF {
-                            let fsvidPlayers = vfPlayers.filter { $0.player.lowercased() == "premium" }
+                            let fsvidPlayers = vfPlayers.filter { ["premium", "fsvid"].contains($0.player.lowercased()) }
                             embedUrls += fsvidPlayers.map { ($0.url, "VF") }
                         }
                         if let vostfrPlayers = ep.languages?.VOSTFR {
-                            let fsvidPlayers = vostfrPlayers.filter { $0.player.lowercased() == "premium" }
+                            let fsvidPlayers = vostfrPlayers.filter { ["premium", "fsvid"].contains($0.player.lowercased()) }
                             embedUrls += fsvidPlayers.map { ($0.url, "VOSTFR") }
                         }
                         break

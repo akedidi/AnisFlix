@@ -624,7 +624,7 @@ struct MovieDetailView: View {
                     // 4KHDHub sources are MKV - route through GlobalPlayerManager (uses VLC)
                     print("🎬 [MovieDetailView] MKV source detected, routing to GlobalPlayerManager with VLC")
                     streamUrl = source.url
-                } else if source.provider.lowercased() == "moviebox" {
+                    } else if source.provider.lowercased() == "moviebox" {
                     // MovieBox: dual-mode playback
                     // - Chromecast: use proxied URL (Chromecast can't handle custom headers)
                     // - Local AVPlayer: prefer direct URL with headers for lower latency
@@ -637,6 +637,18 @@ struct MovieDetailView: View {
                     } else {
                         print("⚠️ [MovieDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")
                         streamUrl = source.url
+                    }
+                } else if source.provider.lowercased() == "fsvid" {
+                    // FSVid: extract M3U8 from embed URL via /api/extract
+                    print("🔍 [MovieDetailView] Extracting FSVid M3U8 from embed URL...")
+                    let language = source.language
+                    if let extracted = await FSVidService.shared.extractSingleM3U8(embedUrl: source.url, language: language) {
+                        streamUrl = extracted.url
+                        finalHeaders = extracted.headers
+                        print("✅ [MovieDetailView] FSVid M3U8 extracted: \(extracted.url.prefix(60))")
+                    } else {
+                        print("❌ [MovieDetailView] FSVid extraction failed for: \(source.url)")
+                        throw NSError(domain: "FSVid", code: -1, userInfo: [NSLocalizedDescriptionKey: "Impossible d'extraire le lien FSVid"])
                     }
                 } else {
                     // Fallback for other providers
