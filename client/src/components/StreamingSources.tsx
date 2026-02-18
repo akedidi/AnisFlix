@@ -791,6 +791,90 @@ const StreamingSources = memo(function StreamingSources({
     }
   }
 
+  // Ajouter les sources FSVid (premium) pour les épisodes de séries
+  if (type === 'tv' && fStreamData && fStreamData.episodes && episode) {
+    const episodeData = fStreamData.episodes[episode.toString()];
+    if (episodeData && episodeData.languages) {
+      let episodeFsvidCounter = 1;
+
+      if (selectedLanguage === 'VF') {
+        const vfKeys = Object.keys(episodeData.languages).filter(key =>
+          key.startsWith('VF') || key === 'VF' || key === 'Default'
+        );
+
+        vfKeys.forEach(key => {
+          if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
+            const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
+              player.player.toLowerCase() === 'premium'
+            );
+
+            premiumPlayers.forEach((player: any) => {
+              allSources.push({
+                id: `fstream-episode-premium-${key.toLowerCase()}-${episodeFsvidCounter}`,
+                name: `FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+                provider: 'fstream',
+                url: player.url,
+                type: 'embed' as const,
+                player: 'premium',
+                isFStream: true,
+                sourceKey: key,
+                isEpisode: true
+              });
+              episodeFsvidCounter++;
+            });
+          }
+        });
+      } else if (selectedLanguage === 'VOSTFR') {
+        const vostfrPlayers = episodeData.languages.VOSTFR || [];
+        const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
+          player.player.toLowerCase() === 'premium'
+        );
+
+        vostfrPremiumPlayers.forEach((player: any) => {
+          allSources.push({
+            id: `fstream-episode-premium-vostfr-${episodeFsvidCounter}`,
+            name: `FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
+            provider: 'fstream',
+            url: player.url,
+            type: 'embed' as const,
+            player: 'premium',
+            isFStream: true,
+            sourceKey: 'VOSTFR',
+            isEpisode: true
+          });
+          episodeFsvidCounter++;
+        });
+      } else if (selectedLanguage === 'VO') {
+        const voKeys = Object.keys(episodeData.languages).filter(key =>
+          key === 'VO' || key === 'ENG' || key === 'English'
+        );
+
+        voKeys.forEach(key => {
+          if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
+            const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
+              player.player.toLowerCase() === 'premium'
+            );
+
+            premiumPlayers.forEach((player: any) => {
+              allSources.push({
+                id: `fstream-episode-premium-vo-${episodeFsvidCounter}`,
+                name: `FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
+                provider: 'fstream',
+                url: player.url,
+                type: 'embed' as const,
+                player: 'premium',
+                isFStream: true,
+                sourceKey: key,
+                isEpisode: true
+              });
+              episodeFsvidCounter++;
+            });
+          }
+        });
+      }
+    }
+  }
+
   // Ajouter les sources VidMoly si disponibles
   console.log('🔍 StreamingSources - VidMoly data:', vidmolyData);
   console.log('🔍 StreamingSources - hasVidMolyLinks:', hasVidMolyLinks);
