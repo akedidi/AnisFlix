@@ -219,41 +219,65 @@ export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | n
 
 
 /**
- * Extrait le lien m3u8 depuis une URL Bysebuho en utilisant le proxy et parsing client
+ * Extrait le lien m3u8 depuis une URL Bysebuho via AES-256-GCM côté client.
+ * L'extraction se fait directement depuis le browser pour que le token CDN
+ * soit lié à l'IP/ASN de l'utilisateur (et non du serveur Vercel).
  */
 export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string | null> {
   try {
-    console.log('🔍 Bysebuho extraction client pour:', bysebuhoUrl);
+    console.log('🔍 Bysebuho extraction (AES-256-GCM client-side) pour:', bysebuhoUrl);
 
-    // Utiliser le proxy générique
-    const proxyUrl = `/api/movix-proxy?path=proxy&url=${encodeURIComponent(bysebuhoUrl)}`;
-    const response = await fetch(proxyUrl);
+    // 1. Extraire le code vidéo depuis l'URL
+    const codeMatch = bysebuhoUrl.match(/\/e\/([a-z0-9]+)/i);
+    if (!codeMatch) throw new Error('Code vidéo introuvable dans URL: ' + bysebuhoUrl);
+    const code = codeMatch[1];
 
-    if (!response.ok) {
-      throw new Error(`Proxy Bysebuho failed: ${response.status}`);
-    }
+    // 2. Fetch l'API directement depuis le browser (token lié à l'IP du user)
+    const apiResp = await fetch(`https://bysebuho.com/api/videos/${code}`, {
+      headers: {
+        'Referer': `https://bysebuho.com/e/${code}`,
+        'Origin': 'https://bysebuho.com',
+      }
+    });
+    if (!apiResp.ok) throw new Error(`API Bysebuho: ${apiResp.status}`);
+    const videoInfo = await apiResp.json();
+    const pb = videoInfo.playback;
+    if (!pb) throw new Error('Pas de données playback dans la réponse API');
 
-    const html = await response.text();
+    // 3. Déchiffrer AES-256-GCM avec Web Crypto API
+    const b64url = (s: string) => {
+      const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '=');
+      return Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+    };
 
-    // 1. Chercher direct m3u8
-    let m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
-      html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
-      html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+    const kp1 = b64url(pb.key_parts[0]);
+    const kp2 = b64url(pb.key_parts[1]);
+    const keyBytes = new Uint8Array(kp1.length + kp2.length);
+    keyBytes.set(kp1, 0);
+    keyBytes.set(kp2, kp1.length); // 32 bytes = AES-256
+    const ivBytes = b64url(pb.iv);
+    const payloadBytes = b64url(pb.payload);
 
-    if (m3u8Match && m3u8Match[1]) {
-      console.log('✅ Bysebuho M3U8 trouvé (source):', m3u8Match[1]);
-      return m3u8Match[1];
-    }
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']
+    );
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: ivBytes },
+      cryptoKey,
+      payloadBytes
+    );
+    const sources = JSON.parse(new TextDecoder().decode(decrypted));
 
-    // 2. Chercher dans les scripts (souvent obfusqué ou dans un JSON)
-    const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
-    if (globalMatch) {
-      console.log('✅ Bysebuho M3U8 trouvé (global regex):', globalMatch[0]);
-      return globalMatch[0];
-    }
+    // 4. Trouver le meilleur lien M3U8
+    const hlsSources = (sources.sources || []).filter((s: any) =>
+      s.mime_type === 'application/vnd.apple.mpegurl' || s.url?.includes('.m3u8')
+    );
+    if (hlsSources.length === 0) throw new Error('Aucune source HLS dans les données déchiffrées');
 
-    console.warn('⚠️ Aucun M3U8 trouvé dans le HTML Bysebuho (Client)');
-    return null;
+    const best = hlsSources.find((s: any) => s.quality === 'h') || hlsSources[0];
+    console.log('✅ Bysebuho M3U8 extrait (client-side):', best.url);
+    return best.url;
 
   } catch (error) {
     console.error('Erreur extraction Bysebuho Client:', error);
@@ -271,12 +295,18 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
     // 1. TENTATIVE SERVEUR (Static Extraction) - Priorité
     try {
       console.log('📡 Appel API Serveur /api/extract...');
-      const serverRes = await api.post('/api/extract', { type: 'fsvid', url: fsvidUrl });
-      if (serverRes.data && serverRes.data.success && serverRes.data.m3u8Url) {
-        console.log('✅ FSVid extraction serveur réussie:', serverRes.data.m3u8Url);
-        // Wrapper via notre propre Proxy (Mode Hybride: Manifest via Proxy, Segments Directs)
-        const proxyUrl = `/api/proxy?url=${encodeURIComponent(serverRes.data.m3u8Url)}&referer=${encodeURIComponent('https://fsvid.lol/')}`;
-        return proxyUrl;
+      const serverRes = await fetch('/api/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'fsvid', url: fsvidUrl })
+      });
+      if (serverRes.ok) {
+        const serverData = await serverRes.json();
+        if (serverData && serverData.success && serverData.m3u8Url) {
+          console.log('✅ FSVid extraction serveur réussie:', serverData.m3u8Url);
+          const proxyUrl = `/api/proxy?url=${encodeURIComponent(serverData.m3u8Url)}&referer=${encodeURIComponent('https://fsvid.lol/')}`;
+          return proxyUrl;
+        }
       }
     } catch (serverError) {
       console.warn('⚠️ Échec extraction serveur FSVid, tentative client...');
