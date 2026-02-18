@@ -336,6 +336,18 @@ struct CompletedDownloadRow: View {
                             .font(.caption2)
                             .foregroundColor(theme.secondaryText)
                     }
+                    
+                    // Provider badge
+                    if let provider = item.provider, !provider.isEmpty {
+                        Text(provider.capitalized)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(theme.secondaryText.opacity(0.15))
+                            .foregroundColor(theme.secondaryText)
+                            .cornerRadius(4)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -445,9 +457,20 @@ struct ActiveDownloadRow: View {
                             .foregroundColor(.red)
                             .lineLimit(1)
                     } else {
-                         Text(statusText + (item.downloadSpeed != nil ? " • \(item.downloadSpeed!)" : ""))
-                            .font(.caption)
-                            .foregroundColor(item.state == .failed ? .red : theme.secondaryText)
+                        HStack(spacing: 6) {
+                            Text(statusText + (item.downloadSpeed != nil ? " • \(item.downloadSpeed!)" : ""))
+                                .font(.caption)
+                                .foregroundColor(item.state == .failed ? .red : theme.secondaryText)
+                            
+                            if let provider = item.provider, !provider.isEmpty {
+                                Text("·")
+                                    .font(.caption)
+                                    .foregroundColor(theme.secondaryText.opacity(0.5))
+                                Text(provider.capitalized)
+                                    .font(.caption)
+                                    .foregroundColor(theme.secondaryText.opacity(0.7))
+                            }
+                        }
                     }
                     
                     Spacer()
