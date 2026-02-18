@@ -2009,79 +2009,6 @@ struct VideoPlayerView: UIViewRepresentable {
         }
     }
     
-    class Coordinator {
-        let playerVM: PlayerViewModel
-        var pipConfigured = false
-        
-        init(playerVM: PlayerViewModel) {
-            self.playerVM = playerVM
-        }
-        
-        func setupPiP(with layer: AVPlayerLayer) {
-            print("📍 Coordinator.setupPiP called, pipConfigured: \(pipConfigured)")
-            guard !pipConfigured else {
-                print("⚠️ PiP already configured, skipping")
-                return
-            }
-            print("🚀 Calling playerVM.setupPiPWithLayer...")
-            playerVM.setupPiPWithLayer(layer)
-            pipConfigured = true
-            print("✅ Coordinator.setupPiP completed")
-        }
-    }
-}
-
-class PlayerView: UIView {
-    var player: AVPlayer? {
-        get { return playerLayer.player }
-        set { playerLayer.player = newValue }
-    }
-    
-    var playerLayer: AVPlayerLayer {
-        return layer as! AVPlayerLayer
-    }
-    
-    override class var layerClass: AnyClass {
-        return AVPlayerLayer.self
-    }
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        playerLayer.videoGravity = .resizeAspect
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    // Allow becoming first responder to handle remote commands
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-    
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window != nil {
-            print("🔑 PlayerView didMoveToWindow: Taking First Responder")
-            becomeFirstResponder()
-        }
-    }
-}
-
-struct AirPlayView: UIViewRepresentable {
-    func makeUIView(context: Context) -> AVRoutePickerView {
-        let view = AVRoutePickerView()
-        view.activeTintColor = .red
-        view.tintColor = .white
-        view.prioritizesVideoDevices = true
-        return view
-    }
-    
-    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
-}
-
-// CastButton moved to Views/Components/CastButton.swift
-
     // MARK: - Proxy Helper
     
     /// Returns a proxied URL for Casting if needed (e.g. for headers)
@@ -2156,7 +2083,80 @@ struct AirPlayView: UIViewRepresentable {
         
         return url
     }
+
+    class Coordinator {
+        let playerVM: PlayerViewModel
+        var pipConfigured = false
+        
+        init(playerVM: PlayerViewModel) {
+            self.playerVM = playerVM
+        }
+        
+        func setupPiP(with layer: AVPlayerLayer) {
+            print("📍 Coordinator.setupPiP called, pipConfigured: \(pipConfigured)")
+            guard !pipConfigured else {
+                print("⚠️ PiP already configured, skipping")
+                return
+            }
+            print("🚀 Calling playerVM.setupPiPWithLayer...")
+            playerVM.setupPiPWithLayer(layer)
+            pipConfigured = true
+            print("✅ Coordinator.setupPiP completed")
+        }
+    }
 }
+
+class PlayerView: UIView {
+    var player: AVPlayer? {
+        get { return playerLayer.player }
+        set { playerLayer.player = newValue }
+    }
+    
+    var playerLayer: AVPlayerLayer {
+        return layer as! AVPlayerLayer
+    }
+    
+    override class var layerClass: AnyClass {
+        return AVPlayerLayer.self
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        playerLayer.videoGravity = .resizeAspect
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // Allow becoming first responder to handle remote commands
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+    
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            print("🔑 PlayerView didMoveToWindow: Taking First Responder")
+            becomeFirstResponder()
+        }
+    }
+}
+
+struct AirPlayView: UIViewRepresentable {
+    func makeUIView(context: Context) -> AVRoutePickerView {
+        let view = AVRoutePickerView()
+        view.activeTintColor = .red
+        view.tintColor = .white
+        view.prioritizesVideoDevices = true
+        return view
+    }
+    
+    func updateUIView(_ uiView: AVRoutePickerView, context: Context) {}
+}
+
+// CastButton moved to Views/Components/CastButton.swift
+
 
 struct CustomProgressBar: View {
     @Binding var value: Double
