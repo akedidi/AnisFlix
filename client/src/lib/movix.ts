@@ -219,30 +219,27 @@ export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | n
 
 
 /**
- * Extrait le lien m3u8 depuis une URL Bysebuho via AES-256-GCM côté client.
- * L'extraction se fait directement depuis le browser pour que le token CDN
- * soit lié à l'IP/ASN de l'utilisateur (et non du serveur Vercel).
+ * Extrait le lien m3u8 depuis une URL Bysebuho via AES-256-GCM.
+ * 
+ * Flux:
+ * 1. Appel /api/proxy?action=bysebuho-extract (fetch côté Vercel → token lié à l'ASN Vercel)
+ * 2. Déchiffrement AES-256-GCM côté client (Web Crypto API)
+ * 3. M3U8 proxifié via /api/proxy (même ASN Vercel → token valide ✅)
  */
 export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string | null> {
   try {
-    console.log('🔍 Bysebuho extraction (AES-256-GCM client-side) pour:', bysebuhoUrl);
+    console.log('🔍 Bysebuho extraction (AES-256-GCM) pour:', bysebuhoUrl);
 
     // 1. Extraire le code vidéo depuis l'URL
     const codeMatch = bysebuhoUrl.match(/\/e\/([a-z0-9]+)/i);
     if (!codeMatch) throw new Error('Code vidéo introuvable dans URL: ' + bysebuhoUrl);
     const code = codeMatch[1];
 
-    // 2. Fetch l'API directement depuis le browser (token lié à l'IP du user)
-    const apiResp = await fetch(`https://bysebuho.com/api/videos/${code}`, {
-      headers: {
-        'Referer': `https://bysebuho.com/e/${code}`,
-        'Origin': 'https://bysebuho.com',
-      }
-    });
-    if (!apiResp.ok) throw new Error(`API Bysebuho: ${apiResp.status}`);
-    const videoInfo = await apiResp.json();
-    const pb = videoInfo.playback;
-    if (!pb) throw new Error('Pas de données playback dans la réponse API');
+    // 2. Fetch via notre proxy Vercel (token lié à l'ASN Vercel)
+    const apiResp = await fetch(`/api/proxy?action=bysebuho-extract&code=${code}`);
+    if (!apiResp.ok) throw new Error(`Proxy bysebuho-extract: ${apiResp.status}`);
+    const { playback: pb } = await apiResp.json();
+    if (!pb) throw new Error('Pas de données playback');
 
     // 3. Déchiffrer AES-256-GCM avec Web Crypto API
     const b64url = (s: string) => {
@@ -273,14 +270,18 @@ export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string |
     const hlsSources = (sources.sources || []).filter((s: any) =>
       s.mime_type === 'application/vnd.apple.mpegurl' || s.url?.includes('.m3u8')
     );
-    if (hlsSources.length === 0) throw new Error('Aucune source HLS dans les données déchiffrées');
+    if (hlsSources.length === 0) throw new Error('Aucune source HLS trouvée');
 
     const best = hlsSources.find((s: any) => s.quality === 'h') || hlsSources[0];
-    console.log('✅ Bysebuho M3U8 extrait (client-side):', best.url);
-    return best.url;
+    const m3u8Url = best.url;
+
+    // 5. Proxifier via /api/proxy (même ASN Vercel que le token → ✅)
+    const proxied = `/api/proxy?url=${encodeURIComponent(m3u8Url)}&referer=${encodeURIComponent('https://bysebuho.com/')}`;
+    console.log('✅ Bysebuho M3U8 proxifié:', proxied);
+    return proxied;
 
   } catch (error) {
-    console.error('Erreur extraction Bysebuho Client:', error);
+    console.error('Erreur extraction Bysebuho:', error);
     return null;
   }
 }

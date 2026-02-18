@@ -11,7 +11,29 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const { url, referer, origin } = req.query;
+  const { url, referer, origin, action, code } = req.query;
+
+  // === Action: bysebuho-extract ===
+  // Fetches Bysebuho API server-side so the CDN token is bound to Vercel's ASN.
+  // The client decrypts the payload and plays M3U8 via /api/proxy (same ASN).
+  if (action === 'bysebuho-extract') {
+    if (!code) return res.status(400).json({ error: 'code parameter required' });
+    try {
+      const apiResp = await fetch(`https://bysebuho.com/api/videos/${code}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': `https://bysebuho.com/e/${code}`,
+          'Origin': 'https://bysebuho.com',
+          'Accept': 'application/json',
+        }
+      });
+      if (!apiResp.ok) return res.status(apiResp.status).json({ error: `Bysebuho API: ${apiResp.status}` });
+      const data = await apiResp.json();
+      return res.status(200).json({ success: true, playback: data.playback, title: data.title });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
 
   if (!url) {
     return res.status(400).json({ error: 'URL parameter is required' });
