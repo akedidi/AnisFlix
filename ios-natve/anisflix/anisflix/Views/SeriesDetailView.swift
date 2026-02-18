@@ -878,6 +878,7 @@ struct SeriesDetailView: View {
                             ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage).sorted { s1, s2 in
                                 func getRank(_ source: StreamingSource) -> Int {
                                     let provider = source.provider.lowercased()
+                                    if provider == "fsvid" { return -1 } // FSVid: highest priority (VF/VOSTFR)
                                     if provider == "vidzy" { return 0 }
                                     if provider == "moviebox" { return 1 }
                                     if provider == "vixsrc" { return 2 }
