@@ -280,61 +280,7 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
       console.warn('⚠️ Échec extraction serveur FSVid, tentative client...');
     }
 
-    // 2. FALLBACK CLIENT (si le serveur échoue)
-    // Utiliser corsproxy.io pour une extraction purement client
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fsvidUrl)}`;
-    const response = await fetch(proxyUrl);
-
-    if (!response.ok) {
-      throw new Error(`Proxy FSVid failed: ${response.status}`);
-    }
-
-    const html = await response.text();
-
-    // 1. Chercher direct m3u8
-    let m3u8Match = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
-      html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
-      html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
-
-    if (m3u8Match && m3u8Match[1]) {
-      console.log('✅ FSVid M3U8 trouvé (source):', m3u8Match[1]);
-      return m3u8Match[1];
-    }
-
-    // 2. Chercher packed function
-    if (isPacked(html)) {
-      console.log('📦 Code packed détecté, tentative de désemballage...');
-      const unpacked = unpack(html);
-      if (unpacked) {
-        console.log('✅ Code désemballé avec succès !');
-        // Chercher m3u8 dans le code désemballé
-        const unpackedMatch = unpacked.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
-          unpacked.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
-          unpacked.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
-
-        if (unpackedMatch && unpackedMatch[1]) {
-          console.log('✅ FSVid M3U8 trouvé (unpacked):', unpackedMatch[1]);
-          return unpackedMatch[1];
-        } else {
-          console.log('⚠️ Code désemballé mais pas de M3U8 trouvé dedans:', unpacked.substring(0, 100));
-        }
-      } else {
-        console.error('❌ Échec du désemballage');
-      }
-    }
-
-    // 3. Chercher global regex (fallback)
-    const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
-    if (globalMatch) {
-      console.log('✅ FSVid M3U8 trouvé (global regex):', globalMatch[0]);
-      return globalMatch[0];
-    }
-
-    console.warn('⚠️ Aucun M3U8 trouvé dans le HTML FSVid (Client)');
-    return null;
-
-  } catch (error) {
-    console.error('Erreur extraction FSVid Client:', error);
+    // 2. Si échec serveur, on retourne null car le user ne veut pas de proxy client
+    console.warn('⚠️ Échec extraction serveur FSVid et fallback client désactivé.');
     return null;
   }
-}
