@@ -4,8 +4,8 @@ import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
 import { CineproScraper } from "../_services/cinepro/index.js";
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium'; // For Cloudflare bypass on Vercel
+// import puppeteer from 'puppeteer-core';
+// import chromium from '@sparticuz/chromium'; // Disabled for Vercel Serverless Size Limits
 
 // ===== SERVER-SIDE CACHE SYSTEM =====
 // Cache persists across requests on warm function instances
@@ -1935,45 +1935,10 @@ export default async function handler(req, res) {
         const host = req.headers.host; // Pass host for correct proxy URL generation
 
         // Helper: Puppeteer Fetcher for Cloudflare protected APIs (like AutoEmbed)
+        // Helper: Puppeteer Fetcher for Cloudflare protected APIs (Disabled)
         const puppeteerFetcher = async (url, options = {}) => {
-          log(`🎭 [Puppeteer] Fetching: ${url}`);
-          let browser = null;
-          try {
-            // Configure chromium path for Vercel vs Local
-            // On Vercel, chromium.executablePath() returns the path. 
-            // Locally it might be null/error if library not designed for it.
-
-            const execPath = await chromium.executablePath();
-            log(`🎭 [Puppeteer] Executable Path: ${execPath || 'Local default'}`);
-            // Force Deploy Update: 2026-01-13T01:30:00Z
-
-            browser = await puppeteer.launch({
-              args: chromium.args,
-              defaultViewport: chromium.defaultViewport,
-              executablePath: execPath || '/usr/bin/chromium', // Fallback
-              headless: chromium.headless,
-              ignoreHTTPSErrors: true
-            });
-
-            const page = await browser.newPage();
-            await page.setUserAgent(options.headers?.['User-Agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-            await page.setExtraHTTPHeaders(options.headers || {});
-
-            // Wait for network idle or dom content loaded
-            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-
-            // Extract inner text (which is the JSON response, perhaps auto-rendered by browser)
-            const bodyText = await page.evaluate(() => document.body.innerText);
-            log(`🎭 [Puppeteer] Success. Body length: ${bodyText.length}`);
-            return { data: bodyText };
-
-          } catch (e) {
-            log(`🎭 [Puppeteer] Error: ${e.message}`);
-            if (browser) await browser.close();
-            throw e;
-          } finally {
-            if (browser) await browser.close();
-          }
+          console.log(`🎭 [Puppeteer] DISABLED on Vercel (Size Limit): ${url}`);
+          throw new Error("Puppeteer execution disabled on serverless function");
         };
 
         const streams = await cineproScraper.getStreams(tmdbId, season, episode, finalImdbId, host, puppeteerFetcher);
@@ -2009,50 +1974,10 @@ export default async function handler(req, res) {
         }
 
         // Use Puppeteer to bypass Cloudflare Challenge directly from Vercel
+        // Puppeteer Disabled
         const afterdarkPuppeteerFetcher = async (url, options = {}) => {
-          console.log(`🎭 [Puppeteer/AD] Fetching: ${url}`);
-          let browser = null;
-          try {
-            const execPath = await chromium.executablePath();
-            browser = await puppeteer.launch({
-              args: [...chromium.args, '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox'],
-              defaultViewport: chromium.defaultViewport,
-              executablePath: execPath || '/usr/bin/chromium',
-              headless: chromium.headless,
-              ignoreHTTPSErrors: true
-            });
-
-            const page = await browser.newPage();
-
-            // STEALTH: Remove navigator.webdriver to allow Cloudflare bypass
-            await page.evaluateOnNewDocument(() => {
-              Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined,
-              });
-            });
-
-            await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-            // Extra headers (Referer/Origin)
-            if (options.headers) {
-              await page.setExtraHTTPHeaders(options.headers);
-            }
-
-            // Go to URL and wait for Network Idle (Cloudflare challenge might take a moment)
-            // Increased timeout to 30s
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-            // Get JSON content from body
-            const innerText = await page.evaluate(() => document.body.innerText);
-
-            await browser.close();
-            return { data: innerText };
-
-          } catch (e) {
-            console.error(`🎭 [Puppeteer/AD] Error: ${e.message}`);
-            if (browser) await browser.close();
-            throw e; // Scraper will fallback to Worker/Proxy
-          }
+          console.log(`🎭 [Puppeteer/AD] DISABLED: ${url}`);
+          throw new Error("Puppeteer execution disabled");
         };
 
         // Pass puppeteerFetcher to scraper

@@ -1,5 +1,5 @@
-import chromium from '@sparticuz/chromium';
-import puppeteer from 'puppeteer-core';
+// import chromium from '@sparticuz/chromium';
+// import puppeteer from 'puppeteer-core';
 import { DarkiboxExtractor } from './_services/universalvo/extractors/DarkiboxExtractor.js';
 import { VidmolyExtractor } from './_services/universalvo/extractors/VidmolyExtractor.js';
 import { extract_voe } from './_services/universalvo/extractors/voe.js';
@@ -108,24 +108,7 @@ export default async function handler(req, res) {
                 break;
 
             case 'diagnose':
-                const executablePath = await chromium.executablePath();
-                const browser = await puppeteer.launch({
-                    args: [
-                        ...chromium.args,
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-accelerated-2d-canvas',
-                        '--disable-gpu'
-                    ],
-                    defaultViewport: chromium.defaultViewport,
-                    executablePath: executablePath,
-                    headless: chromium.headless,
-                    ignoreHTTPSErrors: true
-                });
-                const version = await browser.version();
-                await browser.close();
-                result = { status: 'OK', version, executablePath, env: process.env };
+                result = { status: 'DISABLED', message: "Puppeteer disabled on serverless" };
                 break;
 
             default:
