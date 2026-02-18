@@ -372,8 +372,8 @@ export default function MovieDetail() {
 
         let finalUrl = m3u8Url;
         if ((source.provider || '').toLowerCase() === 'fsvid') {
-          // Wrapper proxy pour contourner Referer 403
-          finalUrl = `https://corsproxy.io/?${encodeURIComponent(m3u8Url)}`;
+          // Wrapper via notre propre Proxy (Mode Hybride)
+          finalUrl = `/api/proxy?url=${encodeURIComponent(m3u8Url)}&referer=${encodeURIComponent('https://fsvid.lol/')}`;
         }
 
         setSelectedSource({
