@@ -413,8 +413,14 @@ export default function SeriesDetail() {
         const { m3u8Url } = await response.json();
         console.log(`🎬 ${(source as any).provider} extraction réussie:`, m3u8Url);
 
+        let finalUrl = m3u8Url;
+        if (((source as any).provider || '').toLowerCase() === 'fsvid') {
+          // Wrapper proxy pour contourner Referer 403
+          finalUrl = `https://corsproxy.io/?${encodeURIComponent(m3u8Url)}`;
+        }
+
         setSelectedSource({
-          url: m3u8Url,
+          url: finalUrl,
           type: "m3u8",
           name: source.name,
           provider: (source as any).provider
