@@ -266,8 +266,21 @@ export async function extractBysebuhoM3u8(bysebuhoUrl: string): Promise<string |
  */
 export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null> {
   try {
-    console.log('🔍 FSVid extraction client pour:', fsvidUrl);
+    console.log('🔍 FSVid extraction demandé pour:', fsvidUrl);
 
+    // 1. TENTATIVE SERVEUR (Static Extraction) - Priorité
+    try {
+      console.log('📡 Appel API Serveur /api/extract...');
+      const serverRes = await api.post('/api/extract', { type: 'fsvid', url: fsvidUrl });
+      if (serverRes.data && serverRes.data.success && serverRes.data.m3u8Url) {
+        console.log('✅ FSVid extraction serveur réussie:', serverRes.data.m3u8Url);
+        return serverRes.data.m3u8Url;
+      }
+    } catch (serverError) {
+      console.warn('⚠️ Échec extraction serveur FSVid, tentative client...');
+    }
+
+    // 2. FALLBACK CLIENT (si le serveur échoue)
     // Utiliser corsproxy.io pour une extraction purement client
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fsvidUrl)}`;
     const response = await fetch(proxyUrl);
