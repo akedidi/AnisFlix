@@ -283,4 +283,9 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
     // 2. Si échec serveur, on retourne null car le user ne veut pas de proxy client
     console.warn('⚠️ Échec extraction serveur FSVid et fallback client désactivé.');
     return null;
+  } catch (error) {
+    console.error('Erreur extraction FSVid:', error);
+    return null;
+  }
+}
   }
