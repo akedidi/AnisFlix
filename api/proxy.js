@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       });
       if (!apiResp.ok) return res.status(apiResp.status).json({ error: `Bysebuho API: ${apiResp.status}` });
       const data = await apiResp.json();
+      // Return full playback data - client will try payload2 (bysevideo.net) first, then payload1 (sprintcdn)
       return res.status(200).json({ success: true, playback: data.playback, title: data.title });
     } catch (err) {
       return res.status(500).json({ error: err.message });
