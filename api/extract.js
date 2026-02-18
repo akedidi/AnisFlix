@@ -14,11 +14,13 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
-    if (req.method !== 'POST') {
+    if (req.method === 'GET' && req.query.type === 'diagnose') {
+        req.body = { type: 'diagnose', url: 'test' }; // Mock body for GET
+    } else if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { type, url } = req.body;
+    const { type, url } = req.body || {};
 
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -101,6 +103,27 @@ export default async function handler(req, res) {
             case 'bysebuho':
                 const bysebuhoExtractor = new BysebuhoExtractor();
                 result = await bysebuhoExtractor.extract(url);
+                break;
+
+            case 'diagnose':
+                const executablePath = await chromium.executablePath();
+                const browser = await puppeteer.launch({
+                    args: [
+                        ...chromium.args,
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-accelerated-2d-canvas',
+                        '--disable-gpu'
+                    ],
+                    defaultViewport: chromium.defaultViewport,
+                    executablePath: executablePath,
+                    headless: chromium.headless,
+                    ignoreHTTPSErrors: true
+                });
+                const version = await browser.version();
+                await browser.close();
+                result = { status: 'OK', version, executablePath, env: process.env };
                 break;
 
             default:
