@@ -81,6 +81,7 @@ class LocalStreamingServer {
                 let playlist = self.generateVirtualPlaylist(targetUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
                 let resp = GCDWebServerDataResponse(text: playlist)
                 resp?.contentType = "application/vnd.apple.mpegurl"
+                if let r = resp { self.addCorsHeaders(r) }
                 return resp
             }
             
@@ -128,6 +129,7 @@ class LocalStreamingServer {
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
+            if let r = resp { self.addCorsHeaders(r) }
             return resp
         }
         
@@ -179,7 +181,9 @@ class LocalStreamingServer {
             
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
-                return GCDWebServerDataResponse(data: data, contentType: contentType)
+                let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
+                if let r = resp { self.addCorsHeaders(r) }
+                return resp
             }
             
             return GCDWebServerDataResponse(statusCode: 404)
@@ -224,6 +228,7 @@ class LocalStreamingServer {
             
             let resp = GCDWebServerDataResponse(text: vttContent)
             resp?.contentType = "text/vtt"
+            if let r = resp { self.addCorsHeaders(r) }
             return resp
         }
     }
@@ -406,5 +411,11 @@ class LocalStreamingServer {
         playlist += "\(segmentProxyUrl)\n"
         
         return playlist
+    }
+    
+    private func addCorsHeaders(_ response: GCDWebServerResponse) {
+        response.setValue("*", forAdditionalHeader: "Access-Control-Allow-Origin")
+        response.setValue("GET, HEAD, OPTIONS", forAdditionalHeader: "Access-Control-Allow-Methods")
+        response.setValue("Range, Content-Type, Origin, Accept", forAdditionalHeader: "Access-Control-Allow-Headers")
     }
 }
