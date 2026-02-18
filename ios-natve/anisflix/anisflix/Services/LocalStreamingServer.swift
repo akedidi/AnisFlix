@@ -182,7 +182,7 @@ class LocalStreamingServer {
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
                 let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
-                if let r = resp { self.addCorsHeaders(r) }
+                self.addCorsHeaders(resp)
                 return resp
             }
             
