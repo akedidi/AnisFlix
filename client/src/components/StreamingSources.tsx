@@ -1126,34 +1126,34 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : Bysebuho > Premium (FSVid) > AnimeAPI > Vidzy > MovieBox > MegaCDN > Luluvid > Reste
+  // Trie final des sources : Bysebuho > AnimeAPI > Vidzy > FSVid > MovieBox > MegaCDN > Luluvid > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
-      // Rang -3: Bysebuho - HIGHEST PRIORITY (User Request)
+      // Rang -2: Bysebuho - HIGHEST PRIORITY
       if (source.provider?.toLowerCase() === 'bysebuho' ||
         source.name.toLowerCase().includes('bysebuho')) {
-        return -3;
-      }
-
-      // Rang -2: Premium (FSVid) - SECOND HIGHEST PRIORITY for VF/VOSTFR
-      if (source.player?.toLowerCase() === 'premium' ||
-        source.name.toLowerCase().includes('fsvid')) {
         return -2;
       }
 
-      // Rang -1: AnimeAPI (Highest priority for VO anime - User Request)
+      // Rang -1: AnimeAPI (Highest priority for VO anime)
       if (source.provider?.toLowerCase() === 'animeapi' ||
         source.name.toLowerCase().includes('animeapi')) {
         return -1;
       }
 
-      // Rang 0: Vidzy (Priorité absolue - User Request)
+      // Rang 0: Vidzy (Priorité haute)
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
         return 0;
+      }
+
+      // Rang 1: FSVid (après Vidzy)
+      if (source.player?.toLowerCase() === 'premium' ||
+        source.name.toLowerCase().includes('fsvid')) {
+        return 1;
       }
 
       // Rang 1: MovieBox

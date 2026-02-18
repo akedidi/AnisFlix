@@ -29,7 +29,7 @@ export function useMovixLinks(
     season?: number,
     episode?: number
 ) {
-    const enabled = type === 'movie' || (type === 'tv' && !!season && !!episode);
+    const enabled = false; // Disabled: movix-proxy?path=link call removed
 
     return useQuery({
         queryKey: ['movix-links', type, id, season, episode],
