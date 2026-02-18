@@ -554,7 +554,9 @@ struct CustomVideoPlayer: View {
                 // So changing subtitle might need reload if we want to ensure offset is applied?
                 // But here we just change selection.
                 // Let's just reload to be safe and consistent.
-                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                // Let's just reload to be safe and consistent.
+                let castUrl = playerVM.getProxiedUrlForCast() ?? url
+                castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 if let sub = selectedSubtitle, let url = URL(string: sub.url) {
                     playerVM.loadSubtitles(url: url)
@@ -579,8 +581,9 @@ struct CustomVideoPlayer: View {
                     try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
                     if !Task.isCancelled {
                         await MainActor.run {
-                            print("📺 Reloading Cast media with new subtitle offset (debounced)...")
-                            castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
+                        print("📺 Reloading Cast media with new subtitle offset (debounced)...")
+                            let castUrl = playerVM.getProxiedUrlForCast() ?? url
+                            castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castManager.getApproximateStreamPosition(), isLive: isLive, subtitleOffset: newOffset, mediaId: mediaId, season: season, episode: episode)
                         }
                     }
                 }
@@ -633,7 +636,12 @@ struct CustomVideoPlayer: View {
             
             if castManager.isConnected {
                 print("📺 URL changed while casting. Loading new media...")
-                castManager.loadMedia(url: newUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                
+                // Construct proxy URL for new media (headers will be injected by makeProxyUrl if Fsvid/Vidzy)
+                let activeSubUrl = selectedSubtitle?.url.flatMap { URL(string: $0) }
+                let castUrl = playerVM.makeProxyUrl(for: newUrl, headers: nil, subtitleUrl: activeSubUrl)
+                
+                castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             }
@@ -654,7 +662,12 @@ struct CustomVideoPlayer: View {
                 }
                 
                 playerVM.player.pause()
-                castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
+                
+                // Use proxied URL to ensure headers are passed to Chromecast (essential for FSVid/Vidzy)
+                let castUrl = playerVM.getProxiedUrlForCast() ?? url
+                print("🚀 [CustomVideoPlayer] Loading media on Cast. Proxied: \(castUrl != url)")
+                
+                castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
             } else {
                 print("📱 Cast disconnected! Switching back to local player.")
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
@@ -2068,6 +2081,82 @@ struct AirPlayView: UIViewRepresentable {
 }
 
 // CastButton moved to Views/Components/CastButton.swift
+
+    // MARK: - Proxy Helper
+    
+    /// Returns a proxied URL for Casting if needed (e.g. for headers)
+    func getProxiedUrlForCast() -> URL? {
+        guard let params = lastSetupParams else { return nil }
+        // Ensure we pass subtitle URL correctly for proxy construction
+        return makeProxyUrl(for: params.url, headers: params.customHeaders, subtitleUrl: params.subtitleUrl)
+    }
+    
+    /// Constructs a Local Proxy URL if needed (for headers, subs, or specific providers)
+    func makeProxyUrl(for url: URL, headers: [String: String]?, subtitleUrl: URL?) -> URL {
+        var effectiveHeaders = headers ?? [:]
+        
+        let urlString = url.absoluteString.lowercased()
+        
+        // Add Referer for known providers
+        if urlString.contains("vidzy") {
+            effectiveHeaders["Referer"] = "https://vidzy.org/"
+        } else if urlString.contains("luluvid") {
+             effectiveHeaders["Referer"] = "https://luluvid.com/"
+             effectiveHeaders["Origin"] = "https://luluvid.com"
+        } else if urlString.contains("fsvid") {
+             effectiveHeaders["Referer"] = "https://fsvid.lol/"
+             effectiveHeaders["Origin"] = "https://fsvid.lol"
+        }
+        
+        let hasCustomHeaders = !effectiveHeaders.isEmpty
+        let hasSubtitles = (subtitleUrl != nil)
+        
+        // Proxy Condition:
+        // - Specific Provider (Vidzy/Luluvid/FSVid) -> ALWAYS Proxy (for AirPlay/Cast compatibility)
+        // - OR Headers present -> Always Proxy for Cast/AirPlay (to be safe)
+        // - OR Subtitles present -> Always Proxy for Cast/AirPlay (to be safe)
+        
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid")
+        
+        if isProviderRequiringProxy || hasCustomHeaders || hasSubtitles {
+             if let serverUrl = LocalStreamingServer.shared.serverUrl {
+                var components = URLComponents()
+                components.scheme = serverUrl.scheme
+                components.host = serverUrl.host
+                components.port = serverUrl.port
+                components.path = "/manifest"
+                
+                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+                
+                if let sub = subtitleUrl {
+                    queryItems.append(URLQueryItem(name: "subs", value: sub.absoluteString))
+                }
+                
+                if let referer = effectiveHeaders["Referer"] {
+                    queryItems.append(URLQueryItem(name: "referer", value: referer))
+                }
+                if let origin = effectiveHeaders["Origin"] {
+                    queryItems.append(URLQueryItem(name: "origin", value: origin))
+                }
+                if let ua = effectiveHeaders["User-Agent"] {
+                    queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                }
+                if let cookie = effectiveHeaders["Cookie"] {
+                    queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+                }
+                
+                components.queryItems = queryItems
+                
+                if let proxyUrl = components.url {
+                    print("🚀 [PlayerVM] Generated Proxy URL for Cast: \(proxyUrl)")
+                    return proxyUrl
+                }
+             }
+        }
+        
+        return url
+    }
+}
 
 struct CustomProgressBar: View {
     @Binding var value: Double
