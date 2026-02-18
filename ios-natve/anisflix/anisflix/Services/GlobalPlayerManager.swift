@@ -79,8 +79,15 @@ class GlobalPlayerManager: ObservableObject {
                         print("📺 [GlobalPlayerManager] Cast connected (fresh), transferring playback at \(Int(currentPosition))s")
                         
                         // Load media to Cast with current position
-                        // For downloaded videos, use serverUrl; otherwise use the media URL
-                        let castUrl = self.currentServerUrl ?? url
+                        // For downloaded videos, use serverUrl (already local); otherwise use proxied streaming URL via VM
+                        let castUrl: URL
+                        if let serverUrl = self.currentServerUrl {
+                            castUrl = serverUrl
+                        } else {
+                            // Try to get proxied URL from VM (handles FSVid/Vidzy headers), fallback to original
+                            castUrl = self.playerVM.getProxiedUrlForCast() ?? url
+                            print("🚀 [GlobalPlayerManager] Generated Cast URL. Proxied: \(castUrl != url)")
+                        }
                         self.castManager.loadMedia(
                             url: castUrl,
                             title: self.currentTitle,
