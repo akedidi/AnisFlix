@@ -369,19 +369,58 @@ struct CompletedDownloadRow: View {
     }
     
     private func getFileSize(for item: DownloadItem) -> String? {
-        guard let localUrl = item.localVideoUrl else { return nil }
-        do {
-            let resources = try localUrl.resourceValues(forKeys: [.fileSizeKey])
-            if let fileSize = resources.fileSize {
-                let formatter = ByteCountFormatter()
-                formatter.allowedUnits = [.useMB, .useGB]
-                formatter.countStyle = .file
-                return formatter.string(fromByteCount: Int64(fileSize))
-            }
-        } catch {
+        // Try localVideoUrl first, fallback to relativePath
+        let url: URL?
+        if let localUrl = item.localVideoUrl {
+            url = localUrl
+        } else if let relPath = item.relativePath {
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            url = docs.appendingPathComponent(relPath)
+        } else {
             return nil
         }
-        return nil
+        
+        guard let fileUrl = url else { return nil }
+        
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useGB]
+        formatter.countStyle = .file
+        
+        // Check if it's a directory (HLS .movpkg) or a file (MP4)
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: fileUrl.path, isDirectory: &isDir) else { return nil }
+        
+        if isDir.boolValue {
+            // Recursively sum all files in the directory
+            let totalBytes = directorySize(url: fileUrl)
+            guard totalBytes > 0 else { return nil }
+            return formatter.string(fromByteCount: totalBytes)
+        } else {
+            // Regular file
+            do {
+                let resources = try fileUrl.resourceValues(forKeys: [.fileSizeKey])
+                if let fileSize = resources.fileSize, fileSize > 0 {
+                    return formatter.string(fromByteCount: Int64(fileSize))
+                }
+            } catch {}
+            return nil
+        }
+    }
+    
+    private func directorySize(url: URL) -> Int64 {
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else { return 0 }
+        
+        var total: Int64 = 0
+        for case let fileUrl as URL in enumerator {
+            if let size = try? fileUrl.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                total += Int64(size)
+            }
+        }
+        return total
     }
 }
 
