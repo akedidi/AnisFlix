@@ -268,8 +268,8 @@ export async function extractFSVidM3u8(fsvidUrl: string): Promise<string | null>
   try {
     console.log('🔍 FSVid extraction client pour:', fsvidUrl);
 
-    // Utiliser le proxy générique
-    const proxyUrl = `/api/movix-proxy?path=proxy&url=${encodeURIComponent(fsvidUrl)}`;
+    // Utiliser corsproxy.io pour une extraction purement client
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fsvidUrl)}`;
     const response = await fetch(proxyUrl);
 
     if (!response.ok) {
