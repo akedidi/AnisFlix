@@ -17,12 +17,13 @@ export function unpack(packedCode) {
         if (evalStart === -1) return null;
 
         // Isolate the function call part
-        const regex = /}\s*\(\s*'([^']*)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'([^']*)'\.split\('\|'\)/;
+        // Relaxed regex to handle escaped quotes in payload and keywords
+        const regex = /}\s*\(\s*'((?:[^'\\]|\\.)*)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'((?:[^'\\]|\\.)*)'\.split\('\|'\)/;
         const match = packedCode.match(regex);
 
         if (!match) {
             // Try double quotes version
-            const regex2 = /}\s*\(\s*"([^"]*)"\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*"([^"]*)"\.split\('\|'\)/;
+            const regex2 = /}\s*\(\s*"((?:[^"\\]|\\.)*)"\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*"((?:[^"\\]|\\.)*)"\.split\('\|'\)/;
             const match2 = packedCode.match(regex2);
             if (match2) return _unpack(match2[1], parseInt(match2[2]), parseInt(match2[3]), match2[4].split('|'));
             return null;
