@@ -16,28 +16,28 @@ import Foundation
 
 // MARK: - FStream API Response Models
 
-private struct FStreamAPIResponse: Codable {
+private struct FSVidFStreamResponse: Codable {
     let success: Bool?
-    let players: [String: [FStreamPlayer]]?
-    let episodes: [String: FStreamEpisode]?
+    let players: [String: [FSVidPlayer]]?
+    let episodes: [String: FSVidEpisode]?
 }
 
-private struct FStreamPlayer: Codable {
+private struct FSVidPlayer: Codable {
     let url: String
     let type: String
     let quality: String
     let player: String
 }
 
-private struct FStreamEpisode: Codable {
+private struct FSVidEpisode: Codable {
     let number: Int?
     let title: String?
-    let languages: FStreamEpisodeLanguages?
+    let languages: FSVidEpisodeLangs?
 }
 
-private struct FStreamEpisodeLanguages: Codable {
-    let VF: [FStreamPlayer]?
-    let VOSTFR: [FStreamPlayer]?
+private struct FSVidEpisodeLangs: Codable {
+    let VF: [FSVidPlayer]?
+    let VOSTFR: [FSVidPlayer]?
 }
 
 // MARK: - Extract API Response
@@ -148,7 +148,7 @@ class FSVidService {
         return sources
     }
     
-    private func fetchFStreamAPI(path: String) async -> FStreamAPIResponse? {
+    private func fetchFStreamAPI(path: String) async -> FSVidFStreamResponse? {
         let urlString = "\(baseUrl)/api/movix-proxy?path=\(path)"
         guard let url = URL(string: urlString) else { return nil }
         
@@ -164,7 +164,7 @@ class FSVidService {
                 return nil
             }
             
-            return try JSONDecoder().decode(FStreamAPIResponse.self, from: data)
+            return try JSONDecoder().decode(FSVidFStreamResponse.self, from: data)
         } catch {
             print("❌ [FSVid] FStream API error: \(error.localizedDescription)")
             return nil
