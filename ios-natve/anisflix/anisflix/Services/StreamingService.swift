@@ -321,6 +321,8 @@ class StreamingService {
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
         async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: movieId)
+        // FSVid: fetch concurrently (VF/VOSTFR priority)
+        async let fsvidSources = FSVidService.shared.fetchMovieSources(tmdbId: movieId)
 
         
         // Anime Placeholder
@@ -368,6 +370,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
+        let fsvidMovieResults = await fsvidSources
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -384,7 +387,13 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
+        // FSVid FIRST - highest priority for VF/VOSTFR (direct playback, no proxy needed on iOS)
+        if !fsvidMovieResults.isEmpty {
+            print("🎯 [StreamingService] FSVid sources (VF/VOSTFR priority): \(fsvidMovieResults.count)")
+            allSources.append(contentsOf: fsvidMovieResults)
+        }
+        
+        // Add Cinepro/MegaCDN sources (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
         }
@@ -438,8 +447,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
+        // Filter for allowed providers (fsvid added)
+        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -536,6 +545,8 @@ class StreamingService {
         async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
         async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: seriesId, season: season, episode: episode)
+        // FSVid: fetch concurrently (VF/VOSTFR priority)
+        async let fsvidSources = FSVidService.shared.fetchSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -600,6 +611,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
+        let fsvidResults = await fsvidSources
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -617,7 +629,13 @@ class StreamingService {
         
         var allSources: [StreamingSource] = []
         
-        // Add Cinepro/MegaCDN sources FIRST (highest priority for VO)
+        // FSVid FIRST - highest priority for VF/VOSTFR (direct playback, no proxy needed on iOS)
+        if !fsvidResults.isEmpty {
+            print("🎯 [StreamingService] FSVid series sources (VF/VOSTFR priority): \(fsvidResults.count)")
+            allSources.append(contentsOf: fsvidResults)
+        }
+        
+        // Add Cinepro/MegaCDN sources (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
         }
@@ -669,8 +687,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers
-        return allSources.filter { $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
+        // Filter for allowed providers (fsvid added)
+        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
