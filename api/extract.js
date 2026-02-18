@@ -1,3 +1,5 @@
+import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer-core';
 import { DarkiboxExtractor } from './_services/universalvo/extractors/DarkiboxExtractor.js';
 import { VidmolyExtractor } from './_services/universalvo/extractors/VidmolyExtractor.js';
 import { extract_voe } from './_services/universalvo/extractors/voe.js';
