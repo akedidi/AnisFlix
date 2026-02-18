@@ -1,9 +1,9 @@
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import fetch from 'node-fetch';
+import { isPacked, unpack } from './utils/packer.js';
 
 /**
- * FSVid Extractor using Puppeteer
- * Bypasses anti-hotlinking protection by using proper Referer header
+ * FSVid Extractor using Static Analysis (No Puppeteer)
+ * Bypasses anti-hotlinking protection by using proper Referer header and manual unpacking
  */
 export class FSVidExtractor {
     constructor() {
@@ -16,87 +16,65 @@ export class FSVidExtractor {
      * @returns {Promise<{success: boolean, m3u8Url: string, type: string, headers: object}>}
      */
     async extract(url) {
-        let browser;
-
         try {
-            console.log(`🚀 [FSVid] Extracting: ${url}`);
+            console.log(`🚀 [FSVid] Extracting (Static): ${url}`);
 
-            browser = await puppeteer.launch({
-                args: chromium.args,
-                defaultViewport: chromium.defaultViewport,
-                executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
-            });
-
-            const page = await browser.newPage();
-
-            // Array to capture M3U8 URLs from network requests
-            const m3u8Urls = [];
-
-            // Intercept network requests
-            await page.setRequestInterception(true);
-            page.on('request', (request) => {
-                const requestUrl = request.url();
-                if (requestUrl.includes('.m3u8')) {
-                    console.log(`🎯 [FSVid] Found M3U8 request: ${requestUrl}`);
-                    m3u8Urls.push(requestUrl);
-                }
-                request.continue();
-            });
-
-            // Set proper referer to bypass anti-hotlinking
-            await page.setExtraHTTPHeaders({
+            const headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Referer': 'https://french-stream.one/',
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            });
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            };
 
-            console.log(`📡 [FSVid] Navigating to embed...`);
-            await page.goto(url, {
-                waitUntil: 'networkidle2',
-                timeout: 30000
-            });
+            const response = await fetch(url, { headers });
 
-            // Wait a bit for player to initialize
-            console.log(`⏳ [FSVid] Waiting for player...`);
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Try to find M3U8 URL in page scripts or variables
-            const m3u8FromPage = await page.evaluate(() => {
-                // Check common player variable names
-                const sources = [
-                    window.jwplayer && window.jwplayer().getPlaylistItem()?.file,
-                    window.player && window.player.src,
-                    window.videoUrl,
-                    window.hlsUrl,
-                ];
-
-                // Also check for Clappr player
-                if (window.playerInstance) {
-                    sources.push(window.playerInstance.options?.source);
-                }
-
-                // Look in all script tags for m3u8 URLs
-                const scripts = Array.from(document.querySelectorAll('script'));
-                for (const script of scripts) {
-                    const match = script.textContent.match(/(https:\/\/[^"']+\.m3u8[^"']*)/);
-                    if (match) {
-                        sources.push(match[1]);
-                    }
-                }
-
-                return sources.filter(Boolean)[0];
-            });
-
-            if (m3u8FromPage) {
-                console.log(`✅ [FSVid] Found M3U8 in page: ${m3u8FromPage}`);
-                m3u8Urls.push(m3u8FromPage);
+            if (!response.ok) {
+                throw new Error(`FSVid fetch failed: ${response.status}`);
             }
 
-            // Return the first valid M3U8 URL found
-            if (m3u8Urls.length > 0) {
-                const m3u8Url = m3u8Urls[0];
-                console.log(`✅ [FSVid] Extraction successful (Puppeteer): ${m3u8Url.substring(0, 80)}...`);
+            const html = await response.text();
+            let m3u8Url = null;
 
+            // 1. Check for direct M3U8 links in HTML
+            const directMatch = html.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+                html.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+                html.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+            if (directMatch && directMatch[1]) {
+                m3u8Url = directMatch[1];
+                console.log(`✅ [FSVid] Found M3U8 directly: ${m3u8Url.substring(0, 50)}...`);
+            }
+
+            // 2. Check for packed code
+            if (!m3u8Url && isPacked(html)) {
+                console.log(`📦 [FSVid] Packed code detected, unpacking...`);
+                const unpacked = unpack(html);
+                if (unpacked) {
+                    const unpackedMatch = unpacked.match(/(https:\/\/[^"']+\.m3u8[^"']*)/) ||
+                        unpacked.match(/file:\s*["']([^"']+\.m3u8[^"']*)["']/) ||
+                        unpacked.match(/source:\s*["']([^"']+\.m3u8[^"']*)["']/);
+
+                    if (unpackedMatch && unpackedMatch[1]) {
+                        m3u8Url = unpackedMatch[1];
+                        console.log(`✅ [FSVid] Found M3U8 in unpacked code: ${m3u8Url.substring(0, 50)}...`);
+                    } else {
+                        console.log(`⚠️ [FSVid] Unpacked code did not contain M3U8`);
+                    }
+                } else {
+                    console.log(`❌ [FSVid] Failed to unpack code`);
+                }
+            }
+
+            // 3. Fallback: Check for generic URL pattern
+            if (!m3u8Url) {
+                const globalMatch = html.match(/https:\/\/[a-zA-Z0-9\-_./]+\.m3u8[a-zA-Z0-9\-_./?=]*/);
+                if (globalMatch) {
+                    m3u8Url = globalMatch[0];
+                    console.log(`✅ [FSVid] Found M3U8 via global regex: ${m3u8Url.substring(0, 50)}...`);
+                }
+            }
+
+            if (m3u8Url) {
                 return {
                     success: true,
                     m3u8Url: m3u8Url,
@@ -109,15 +87,11 @@ export class FSVidExtractor {
                 };
             }
 
-            throw new Error('No M3U8 URL found in FSVid embed');
+            throw new Error('No M3U8 URL found in FSVid embed (Static)');
 
         } catch (error) {
             console.error(`❌ [FSVid] Error:`, error.message);
             throw error;
-        } finally {
-            if (browser) {
-                await browser.close();
-            }
         }
     }
 }
