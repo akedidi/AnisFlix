@@ -757,7 +757,7 @@ class CastManager: NSObject, ObservableObject, GCKSessionManagerListener, GCKRem
         if isLive {
             contentType = "application/x-mpegURL"
             streamType = .live
-        } else if finalUrl.pathExtension == "m3u8" || finalUrl.absoluteString.contains("index.m3u8") {
+        } else if finalUrl.pathExtension == "m3u8" || finalUrl.absoluteString.contains(".m3u8") || finalUrl.lastPathComponent == "manifest" || finalUrl.query?.contains("m3u8") == true {
             contentType = "application/x-mpegURL"
             streamType = .buffered
         } else if finalUrl.pathExtension == "mpd" {
