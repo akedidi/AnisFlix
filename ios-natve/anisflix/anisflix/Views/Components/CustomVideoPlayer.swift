@@ -1263,6 +1263,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         } else if urlString.contains("fsvid") {
              effectiveHeaders["Referer"] = "https://fsvid.lol/"
              effectiveHeaders["Origin"] = "https://fsvid.lol"
+        } else if urlString.contains("moovbob") {
+             effectiveHeaders["Referer"] = "https://moovbob.fr/"
+             effectiveHeaders["Origin"] = "https://moovbob.fr"
         }
         
         let hasCustomHeaders = !effectiveHeaders.isEmpty
@@ -1273,7 +1276,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // - OR Headers present -> Always Proxy for Cast/AirPlay (to be safe)
         // - OR Subtitles present -> Always Proxy for Cast/AirPlay (to be safe)
         
-        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid")
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob")
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
         
