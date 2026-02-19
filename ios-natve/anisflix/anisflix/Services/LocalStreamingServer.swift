@@ -56,6 +56,8 @@ class LocalStreamingServer {
         webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
+            print("📥 [LocalServer] Incoming /manifest request: \(request.query ?? [:])")
+            
             let query = request.query ?? [:]
             guard let targetUrlString = query["url"] as? String,
                   let targetUrl = URL(string: targetUrlString) else {
@@ -125,7 +127,10 @@ class LocalStreamingServer {
             let cookie = query["cookie"] as? String
             
             // Rewrite Manifest
+            // Rewritten Manifest Logging
             let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+            
+            print("📝 [LocalServer] Rewritten Manifest Preview:\n" + rewrittenContent.split(separator: "\n").prefix(5).joined(separator: "\n") + "\n... (truncated)")
             
             let resp = GCDWebServerDataResponse(text: rewrittenContent)
             resp?.contentType = "application/vnd.apple.mpegurl" // Force HLS mime type
@@ -181,6 +186,7 @@ class LocalStreamingServer {
             
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
+                print("✅ [LocalServer] Proxy success for \(targetUrl.lastPathComponent) (\(data.count) bytes, \(contentType))")
                 let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
                 self.addCorsHeaders(resp)
                 return resp
