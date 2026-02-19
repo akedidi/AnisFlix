@@ -311,8 +311,8 @@ class LocalStreamingServer {
         for line in lines {
             if line.hasPrefix("#") {
                 // Check for URI attributes in tags
-                // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..."
-                if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") {
+                // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..." or #EXT-X-I-FRAME-STREAM-INF:URI="..."
+                if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") || line.hasPrefix("#EXT-X-I-FRAME-STREAM-INF") {
                     newLines.append(rewriteLine(line, baseUrl: baseUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie))
                 } else {
                     newLines.append(line)
