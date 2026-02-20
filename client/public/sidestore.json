@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.60",
-          "date": "2026-02-18",
-          "size": 30695738,
+          "version": "1.0.61",
+          "date": "2026-02-20",
+          "size": 30707589,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(ios): remove redundant manual FSVid extraction in Views (caused regression) - Reverted MovieDetailView and SeriesDetailView back to original direct playback logic (FSVidService already provides M3U8). - Reverted forced local proxy in CustomVideoPlayer. - Kept FSVidService filter fix (main fix for series). "
+          "localizedDescription": "feat(ios): add Moovbob proxy support with Referer header User report indicated Moovbob uses strict-origin-when-cross-origin. Added to CustomVideoPlayer proxy list to inject . Added test script which confirmed access. "
         }
       ]
     }

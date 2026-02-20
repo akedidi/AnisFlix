@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.0-2/css/all.min.css" integrity="" crossorigin="anonymous"/>
+<link rel="stylesheet" href="/style_rcp-e600e6.css?t=1744906951"/>
+
+<style>
+    body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    }
+    .hidden {
+        display:none;
+    }
+    
+    #asdf {
+        width: 0px;
+        height: 0px;
+    }
+    
+    #iframe_title {
+        position: absolute;
+        top: calc(50% + 45px);
+        font-size: 1.1em;
+        text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        width: calc(100% - 30px);
+        text-align: center;
+        padding: 0px 15px;
+    }
+</style>
+</head>
+<body data-i="88383"  >
+    
+    
+        <!--<div id="pop_asdf" style="position:absolute; width:100%; height:100%; z-index:2147483650; pointer-events: none;"></div>-->
+        
+    <!--<div id="loading_overlay"></div>-->
+    <div id="the_frame" style="background-image: none;">
+                <div id="pl_but_background" style="background-image: url('//image.tmdb.org/t/p/w780/m2qf3YZQBFQKloCaG7VR2sHJTsq.jpg');">
+            <div id="iframe_title">
+                Adieu Bonaparte (1985)            </div>
+            <i id="pl_but" class="fas fa-play"></i>
+        </div>
+            </div>
+    
+    <div id="hidden" style="display:hidden;"></div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js" integrity="sha256-1A78rJEdiWTzco6qdn3igTBv9VupN3Q1ozZNTR4WE/Y=" crossorigin="anonymous"></script>
+    <script src="/base64.js?t="></script>
+    
+    <script src="/sbx.js?t=1751380596"></script>
+
+    
+    <script>
+    
+    /*
+    $(document).ready(function(){
+        
+        
+        if($.cookie('pop_asdf')){
+            $("#pop_asdf").addClass("hidden");
+        }
+        
+        $("#pop_asdf").click(function(){
+            if(!$.cookie('pop_asdf')){
+                if($.cookie('pop_asdf_tmp') >= 3){
+                    var date = new Date();
+                    date.setTime(date.getTime() + (10800 * 1000));
+                    $.cookie('pop_asdf', 1, { expires: date });
+                    $("#pop_asdf").addClass("hidden");
+                }else{
+                    var cookie_value = 1;
+                    if($.cookie('pop_asdf_tmp'))
+                        cookie_value = $.cookie('pop_asdf_tmp');
+                        
+                    cookie_value++;
+                    
+                    $.cookie('pop_asdf_tmp', cookie_value);
+                    $(this).addClass("hidden");
+                    setTimeout(function(){
+                        $("#pop_asdf").removeClass("hidden");
+                    }, 59000);
+                }
+            }
+        });
+    });
+    */
+    
+        
+    $("#pl_but_background , #pl_but").click(function(){
+        loadIframe();
+    });
+    
+        
+    function loadIframe(data = 1){
+        if(data == 1){
+            $("#the_frame").removeAttr("style");
+            $("#the_frame").html("");
+            $('<iframe>', {
+               id: 'player_iframe',
+               src: '/prorcp/ZjE5OTkyZjcwN2YzZmU3MmY0MTllYWYxMGM2MjY5Yjg6YmxSTlpVMHphalpVY0hJcmRUaG9TM2s1VUU4d1NsWXpWbkZ4ZGtWYVJ6QmFTSE15V1RaM1NVdE5WRXAzYjB0SlpFTmxMMmwxYlZCeWJHUnZTVk5LVWxFeFRXVnlNSEI1YVRSNVNFZFBialJXT1RCSVRGUTNUREpFU3pCbmFsZGFhMU4xYVZGMlZYUXpTazVOVnpKcmRrSkdlRmg1UW1VMGRtOXhOalpwTnpFeFJEZzBUMEZCVDFOdE9XNUNOV05XVm14NWFEUnFhbTFrV0ZOYWJVNVZWelZLVW5KVVFubFJPRWwyTUROT2VVMUxRekF4VDJwa1FXSlRWSFExU0RreU5tWk1abFZaV0ZWSVpYWTNNVTg1VUZaWE1FbEhNVEl4TURONFlXbFZTVU14UmpSVGFVaGFNSE5RVDB4bVdESm9hSE5pUTNCNU5XZERPRXd2VjFkMlpqUnBPVGhSVkRkaVJYZEZRMHBWWTJSU1RXNXphVk5ZTmtKb016SjJSVkp6ZWtod2NIZ3dhVzVUVWtjNU5saDFXR2w2U1RCbFUyRlVZa1JHUzBoek1IWjJkRTVVZEVSRlVVaGxPRWhwYnpSU1drMWhkbEpvVUVVNVNtVndjelF3ZVdvdlozRXZVSEJLWms4MU9FWTFiU3RQTUc1Qkx6VkRhblJtV0hWeU5Xc3JlazlhZFN0MFJqTjJjMmhKVTFKMU1DOUJibk5PUkROUmRsTm9ZVXRsV1ZseVpUaEtjVXBXUVhveFYwbFdORmxsZEhKemNpdFZOV3BSYVVZMWVIUnBhM1EzVjBSbmN5dHZUSEYxTWxwVGVVZHVjbEJ6UzNCWlRYRTNlRVpUTTB4QmR6aGxWbWxyWTFoRlptbG9iSE5sSzFoRGNubGhWR2xvTW14WVQyOXZURzFoY21KTmRrbHJhMGhWZDNrdmVVbHdiR3hpU0ZsTlJERTVTVlFyUTFrM2NHSkZRMGx0V0dSdFFYSkRlVzQxZFcxS1FtOW5aRlZSVUZWa2IxWlNVVmRsZGs0NFJ6UklUR1ZyTUdkaWFVNVFSVGRrWVRobU16aHhOSEZsUWtVd2RYaFFjMnBaTlZaWVpXNXNSRTFMTVVoaVRqa3djMXBXYml0V1kxb3JjV00yWXpkT1ZWSnZha1JQVTJKUVREUnlTRGx0Y2t0TlYwaHJkM0p4V1dSbmF6aHpVVWxxUmtaU01FNXpWbE0xWkZJeFRXaHBaM05KTVVwVGIzaFdjRFkyTjBKVk1rRXJWbE15V0hac2JWTnphelZaTUROMmVqaE9ibEo2TTI1TlZTdGhLMmcwU0hWekswWmxSRk0wYlUxNGVrdFpLM2QyVVZOSUwxRlhaeTlHTUhBdmFtMVlNRlF6VEhKV1l6UjNMMEZSVFZCQlp5OHZkVVpLUWsxd2RVdDVlRlJMT1VJNVZXNU1VUzh6ZUVaYWNXMURUbGhFUnpKWmFISTFaWFJOU3pobFpURmFNMDFvVm1jdlFUUXdaa1F6U0dSRU9XNXFXRlpGZVZaemFsY3hia1V6VDFCd2NERmFNekJwYkZwelMxWlhTVmRpTUhwVVExTmthVWxLTXpGNVZFdEpNbTVRWTFwUVR5OUJUMkZGYUhGWlJXSlNhVGRTTWxGd2RVSjRNM1ZEUzA5Vk1FNXVaWGxqYjFWemR5dHRiR2gwVUhsak4wOTVaazVDWkhVeE5ERnhRVVkxY2xocGVGQTVjRGRCTkZOcFpXNDVWbE0yVmtneVREQnRaVEpRWVRCdlltY3pNSE0wVENzM2VFdEtNVUV3U1ZZeGFGRmllV2MxTjNKeFVUQmxVVk5pZG1GNlpqSldZbTlIY2tnMFRXcDJZVXBGTjJWaGNYVjFlSE5aZWpneWJISTJZVlI2ZVZoNGJuWjFlbmxJYmpGNlQxSlhZbGxQYWxWRVZWZ3pVR1l3ZDBzMU5UWkRkMGR0Tm1NMEswNVlNbTVZVnl0TE5HdFVOek5MTkRkdmFHVjVTVTV1U1dKa2MzTXpZVzVTY3l0eVdtSjFTM2x2VjFCRGFrTlVRbkptTW5CVVYwTkxlVGRKWjJKR1dtOUVlRUk1WlVjMWJ6bHRLMnhqWW1OcFduVXdOa2d2VDBKWWFrb3JXR1ZHU1RsbFp6QkxTR0ZWWWtKQ2MySjVORmRqYW05cWQwMHpTV05WVURaaVVXOXVabTB4Y0ZSc1NFRTlQUT09',
+               frameborder: 0,
+               scrolling: 'no',
+               allowfullscreen: 'yes',
+               allow: "autoplay",
+               style: 'height: 100%; width: 100%;'
+            }).appendTo('#the_frame');
+            $("#player_iframe").on("load", function () {
+                $("#the_frame").attr("style","background-image: none;");
+            });
+        }
+    }
+    
+    // pm redirector
+    window.addEventListener('message', message => {
+        if (message.source == window) {
+            return; // Skip message in this event listener
+        }
+        
+        var the_iframe = document.getElementById('player_iframe');
+        
+        if(message.source == window.parent){
+            the_iframe.contentWindow.postMessage(message.data,'*');
+        }else{
+            window.parent.postMessage(message.data , '*');
+        }
+        
+        
+        
+    });
+        
+        
+        
+    </script>
+    
+    
+    
+    
+    
+    
+   
+</body>
+</html>

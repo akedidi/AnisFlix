@@ -1,0 +1,13 @@
+Fetching https://21y6i1o5efcn.czl3onum44xnniuppe.rest/kKZJBvm9gCwiv3/VvMrO
+Error: TypeError: fetch failed
+    at node:internal/deps/undici/undici:13510:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///Users/aniskedidi/Documents/perso/AnisFlix/scripts/debug_url2.js:6:26 {
+  [cause]: Error: getaddrinfo ENOTFOUND 21y6i1o5efcn.czl3onum44xnniuppe.rest
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26) {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: '21y6i1o5efcn.czl3onum44xnniuppe.rest'
+  }
+}

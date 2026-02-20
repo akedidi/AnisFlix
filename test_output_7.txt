@@ -1,0 +1,14 @@
+[VSEmbed] Starting extraction for: https://vsembed.ru/embed/movie?tmdb=198471
+[VSEmbed] Fetching: https://vsembed.ru/embed/movie?tmdb=198471 (Ref: https://vsembed.ru/)
+[VSEmbed] Payload found (len: 101), Key: abcdefghijklmnopqrstuvwxyz01234567896eu8l0d71wsytcavkofm9gr4q3zihnbx25pj
+[VSEmbed] Generated URL1: https://25r.w63eql6qoxqbco97xb7hlnkubni1.cfd/kCOl1xHYMcCHbVvl3kjX/VvMrO
+[VSEmbed] Generated URL2: https://21y6i1o5efcn.czl3onum44xnniuppe.rest/kKZJBvm9gCwiv3/VvMrO
+[VSEmbed] Decrypted/Selected URL: https://25r.w63eql6qoxqbco97xb7hlnkubni1.cfd/kCOl1xHYMcCHbVvl3kjX/VvMrO
+[VSEmbed] Processing URL: https://25r.w63eql6qoxqbco97xb7hlnkubni1.cfd/kCOl1xHYMcCHbVvl3kjX/VvMrO
+[VSEmbed] Fetching: https://25r.w63eql6qoxqbco97xb7hlnkubni1.cfd/kCOl1xHYMcCHbVvl3kjX/VvMrO (Ref: https://vsembed.ru/embed/movie?tmdb=198471)
+[VSEmbed] Extraction failed: Could not find M3U8 template in page
+Test Failed: Error: Could not find M3U8 template in page
+    at VSEmbedExtractor.processCloudnestra (file:///Users/aniskedidi/Documents/perso/AnisFlix/api/_services/universalvo/extractors/VSEmbedExtractor.js:98:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async VSEmbedExtractor.extract (file:///Users/aniskedidi/Documents/perso/AnisFlix/api/_services/universalvo/extractors/VSEmbedExtractor.js:34:20)
+    at async file:///Users/aniskedidi/Documents/perso/AnisFlix/scripts/test_vsembed_extractor.js:8:24

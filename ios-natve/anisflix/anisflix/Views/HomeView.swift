@@ -52,6 +52,7 @@ struct HomeView: View {
     @State private var m6Series: [Media] = []
     
     @State private var isLoading = true
+    @State private var isContinueWatchingLoading = true
 
     @State private var continueWatching: [Media] = [] // Continue Watching data
     @State private var progressByMediaId: [Int: Double] = [:] // Progress for Continue Watching
@@ -82,7 +83,23 @@ struct HomeView: View {
                     // Ideally we add some padding if needed, but safeAreaInset handles header.
                     
                     // Continue Watching Section (conditionnelle)
-                    if !continueWatching.isEmpty {
+                    if isContinueWatchingLoading {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(theme.t("home.continueWatching"))
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(theme.primaryText)
+                                .padding(.horizontal, 16)
+                            
+                            HStack {
+                                Spacer()
+                                ProgressView()
+                                    .tint(AppTheme.primaryRed)
+                                    .padding()
+                                Spacer()
+                            }
+                        }
+                    } else if !continueWatching.isEmpty {
                         MediaRow(
                             title: theme.t("home.continueWatching"),
                             items: Array(continueWatching.prefix(20)),
@@ -700,8 +717,12 @@ struct HomeView: View {
             m6Series = results.33
             latestEpisodes = results.34
             
-            // Load Continue Watching from WatchProgressManager
-            await loadContinueWatching()
+            // Load Continue Watching from WatchProgressManager (detached)
+            Task {
+                isContinueWatchingLoading = true
+                await loadContinueWatching()
+                isContinueWatchingLoading = false
+            }
             
             if showLoadingUI {
                 isLoading = false
@@ -716,98 +737,108 @@ struct HomeView: View {
         }
     }
     
+    @MainActor
     private func loadContinueWatching() async {
         print("🔍 Loading Continue Watching data...")
         let progressItems = WatchProgressManager.shared.getAllProgress()
         print("📊 Got \(progressItems.count) progress items")
         
-        var orderedMedia: [Media] = []
-        var progDict: [Int: Double] = [:]
         var processedMediaIds: Set<Int> = []
+        var uniqueItems: [WatchProgress] = []
         
         for item in progressItems {
-            // STRICT DEDUPLICATION:
-            // Check if we've already visited this media ID (regardless of whether we decided to show it or not).
-            // This ensures we only evaluate the MOST RECENT progress item for any given media.
-            // If the latest item is "finished" and we decide to hide it, we MUST NOT fall back to an older item for the same media.
             if processedMediaIds.contains(item.mediaId) {
-                // print("⚠️ Skipping older duplicate media ID: \(item.mediaId)")
                 continue
             }
-            
-            // Mark this ID as processed immediately
             processedMediaIds.insert(item.mediaId)
-            
-            // For movies: hide if complete (>= 95% watched)
-            // For series: if >= 95%, check if there's a next episode
-            if item.season == nil && item.episode == nil {
-                // Movie - skip if complete
-                guard item.progress < 0.95 else { continue }
-            } else {
-                // Series episode
-                if item.progress >= 0.95 {
-                    // Check if there's a next episode
-                    let hasNext = await checkHasNextEpisode(seriesId: item.mediaId, season: item.season ?? 1, episode: item.episode ?? 1)
-                    if !hasNext {
-                        print("⏭️ Skipping completed series episode with no next episode: S\(item.season ?? 0)E\(item.episode ?? 0)")
-                        continue
+            uniqueItems.append(item)
+        }
+        
+        // Fetch concurrently
+        let fetchedDict = await withTaskGroup(of: (WatchProgress, Media?).self) { group in
+            for item in uniqueItems {
+                group.addTask {
+                    // Check completion logic
+                    if item.season == nil && item.episode == nil {
+                        // Movie
+                        guard item.progress < 0.95 else { return (item, nil) }
+                    } else {
+                        // Series episode
+                        if item.progress >= 0.95 {
+                            let hasNext = await self.checkHasNextEpisode(seriesId: item.mediaId, season: item.season ?? 1, episode: item.episode ?? 1)
+                            if !hasNext {
+                                print("⏭️ Skipping completed series episode with no next episode: S\(item.season ?? 0)E\(item.episode ?? 0)")
+                                return (item, nil)
+                            }
+                        }
                     }
-                    print("✅ Keeping completed episode with next available: S\(item.season ?? 0)E\(item.episode ?? 0)")
+                    
+                    do {
+                        var media: Media?
+                        if item.season == nil && item.episode == nil {
+                            let detail = try await TMDBService.shared.fetchMovieDetails(movieId: item.mediaId)
+                            media = Media(
+                                id: detail.id,
+                                title: detail.title,
+                                overview: detail.overview,
+                                posterPath: detail.posterPath,
+                                backdropPath: detail.backdropPath,
+                                rating: detail.voteAverage,
+                                year: String(detail.releaseDate?.prefix(4) ?? ""),
+                                mediaType: .movie,
+                                voteCount: detail.voteCount,
+                                originalLanguage: nil,
+                                releaseDate: nil,
+                                episodeInfo: nil
+                            )
+                        } else {
+                            let detail = try await TMDBService.shared.fetchSeriesDetails(seriesId: item.mediaId)
+                            media = Media(
+                                id: detail.id,
+                                title: detail.name,
+                                overview: detail.overview,
+                                posterPath: detail.posterPath,
+                                backdropPath: detail.backdropPath,
+                                rating: detail.voteAverage,
+                                year: String(detail.firstAirDate?.prefix(4) ?? ""),
+                                mediaType: .series,
+                                voteCount: 0,
+                                originalLanguage: nil,
+                                releaseDate: nil,
+                                episodeInfo: nil
+                            )
+                        }
+                        return (item, media)
+                    } catch {
+                        print("❌ Error fetching media \(item.mediaId): \(error)")
+                        return (item, nil)
+                    }
                 }
             }
             
-            do {
-                var media: Media?
-                
-                // Determine if movie or series based on key format
-                if item.season == nil && item.episode == nil {
-                    // It's a movie
-                    let detail = try await TMDBService.shared.fetchMovieDetails(movieId: item.mediaId)
-                    media = Media(
-                        id: detail.id,
-                        title: detail.title,
-                        overview: detail.overview,
-                        posterPath: detail.posterPath,
-                        backdropPath: detail.backdropPath,
-                        rating: detail.voteAverage,
-                        year: String(detail.releaseDate?.prefix(4) ?? ""),
-                        mediaType: .movie,
-                        voteCount: detail.voteCount,
-                        originalLanguage: nil,
-                        releaseDate: nil,
-                        episodeInfo: nil
-                    )
-                } else {
-                    // It's a series
-                    let detail = try await TMDBService.shared.fetchSeriesDetails(seriesId: item.mediaId)
-                    media = Media(
-                        id: detail.id,
-                        title: detail.name,
-                        overview: detail.overview,
-                        posterPath: detail.posterPath,
-                        backdropPath: detail.backdropPath,
-                        rating: detail.voteAverage,
-                        year: String(detail.firstAirDate?.prefix(4) ?? ""),
-                        mediaType: .series,
-                        voteCount: 0,
-                        originalLanguage: nil,
-                        releaseDate: nil,
-                        episodeInfo: nil
-                    )
-                }
-                
+            var results: [Int: Media] = [:]
+            for await (item, media) in group {
                 if let media = media {
-                    orderedMedia.append(media)
-                    progDict[media.id] = item.progress
+                    results[item.mediaId] = media
                 }
-            } catch {
-                print("❌ Error fetching media \(item.mediaId): \(error)")
+            }
+            return results
+        }
+        
+        var orderedMedia: [Media] = []
+        var progDict: [Int: Double] = [:]
+        
+        // Preserve original recency order
+        for item in uniqueItems {
+            if let media = fetchedDict[item.mediaId] {
+                orderedMedia.append(media)
+                progDict[media.id] = item.progress
             }
         }
         
         print("✅ Loaded \(orderedMedia.count) unique Continue Watching items")
-        continueWatching = orderedMedia
-        progressByMediaId = progDict
+        self.continueWatching = orderedMedia
+        self.progressByMediaId = progDict
     }
     
     // Check if there's a next episode after the given season/episode

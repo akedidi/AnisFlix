@@ -5,6 +5,7 @@ import { VidmolyExtractor } from './_services/universalvo/extractors/VidmolyExtr
 import { extract_voe } from './_services/universalvo/extractors/voe.js';
 import { FSVidExtractor } from './_services/universalvo/extractors/FSVidExtractor.js';
 import { BysebuhoExtractor } from './_services/universalvo/extractors/BysebuhoExtractor.js';
+import { VSEmbedExtractor } from './_services/universalvo/extractors/VSEmbedExtractor.js';
 
 export default async function handler(req, res) {
     // CORS headers
@@ -105,6 +106,11 @@ export default async function handler(req, res) {
             case 'bysebuho':
                 const bysebuhoExtractor = new BysebuhoExtractor();
                 result = await bysebuhoExtractor.extract(url);
+                break;
+
+            case 'vsembed':
+                const vsEmbedExtractor = new VSEmbedExtractor();
+                result = await vsEmbedExtractor.extract(url);
                 break;
 
             case 'diagnose':
