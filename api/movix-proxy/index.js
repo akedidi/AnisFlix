@@ -4,6 +4,7 @@ import { handleUniversalVO } from "../_services/universalvo/index.js";
 import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
 import { CineproScraper } from "../_services/cinepro/index.js";
+import { VidlinkScraper } from "../_services/vidlink/index.js";
 // import puppeteer from 'puppeteer-core';
 // import chromium from '@sparticuz/chromium'; // Disabled for Vercel Serverless Size Limits
 
@@ -627,6 +628,7 @@ const luluvidExtractor = new LuluvidExtractor();
 const fourKHDHubScraper = new FourKHDHubScraper();
 const afterDarkScraper = new AfterDarkScraper();
 const cineproScraper = new CineproScraper();
+const vidlinkScraper = new VidlinkScraper();
 
 
 export default async function handler(req, res) {
@@ -1958,6 +1960,42 @@ export default async function handler(req, res) {
           details: error.message,
           debugLogs: logs
         });
+      }
+    }
+
+    // GÉRER VIDLINK ICI
+    if (decodedPath === 'vidlink') {
+      console.log('🎬 [Movix Proxy] Routing to Vidlink handler');
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+        if (!tmdbId) return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
+
+        const rawStreams = await vidlinkScraper.getStreams(
+          tmdbId,
+          type || 'movie',
+          season ? parseInt(season) : null,
+          episode ? parseInt(episode) : null
+        );
+
+        // Light proxy: route each M3U8 playlist URL through /api/proxy with Vidlink headers.
+        // Video segments are served directly by the CDN - client sends Referer via hls.js xhrSetup.
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host;
+        const baseUrl = `${protocol}://${host}`;
+        const referer = encodeURIComponent('https://vidlink.pro/');
+        const origin = encodeURIComponent('https://vidlink.pro');
+
+        const streams = rawStreams.map(stream => ({
+          ...stream,
+          // Proxy the M3U8 playlist so the server can add Origin/Referer headers
+          url: `${baseUrl}/api/proxy?url=${encodeURIComponent(stream.url)}&referer=${referer}&origin=${origin}`
+        }));
+
+        console.log(`✅ [Vidlink] Found ${streams.length} streams.`);
+        return res.status(200).json({ success: true, streams });
+      } catch (error) {
+        console.error('❌ [Vidlink Error]', error.message);
+        return res.status(500).json({ error: 'Erreur Vidlink Scraper', details: error.message });
       }
     }
 
