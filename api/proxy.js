@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const { url, referer, origin, action, code } = req.query;
+  const { url, referer, origin, action, code, proxySegments } = req.query;
 
   // === Action: bysebuho-extract ===
   // Fetches Bysebuho API server-side so the CDN token is bound to Vercel's ASN.
@@ -95,7 +95,15 @@ export default async function handler(req, res) {
 
         // It is a URL (Playlist or Segment)
         const absolute = new URL(trimmed, baseUrl).href;
-        return `/api/proxy?url=${encodeURIComponent(absolute)}&referer=${encodeURIComponent(currentReferer)}`;
+
+        // If proxySegments is false, do not proxy non-M3U8 URLs (the segments)
+        // so the client hits the CDN directly, saving Vercel bandwidth.
+        if (proxySegments === 'false' && !trimmed.includes('.m3u8')) {
+          return absolute;
+        }
+
+        const proxySegmentParam = proxySegments === 'false' ? '&proxySegments=false' : '';
+        return `/api/proxy?url=${encodeURIComponent(absolute)}&referer=${encodeURIComponent(currentReferer)}${proxySegmentParam}`;
       }).join('\n');
 
       return res.status(200).send(rewritten);
