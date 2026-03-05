@@ -12,14 +12,14 @@ export default function BottomNav() {
   const { t } = useLanguage();
   const { isOffline } = useOffline();
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Utiliser la hauteur réelle du viewport (compatible iOS)
   const viewportHeight = useViewportHeight();
-  
+
   // État pour bloquer la position après le changement initial
   const [isPositionLocked, setIsPositionLocked] = useState(false);
   const [lockedBottom, setLockedBottom] = useState(0);
-  
+
   const navRef = useRef<HTMLElement>(null);
 
   // Log de la hauteur du viewport pour debug (désactivé en production)
@@ -34,7 +34,7 @@ export default function BottomNav() {
     // Vérifier si on est sur iOS natif (Capacitor)
     const isCapacitor = typeof window !== 'undefined' && (window as any).Capacitor !== undefined;
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
+
     if (isCapacitor && isIOS && navRef.current && !isPositionLocked) {
       // Si la hauteur a changé (probablement de 778 à 812), corriger la position
       if (viewportHeight >= 800) { // Seuil pour détecter le changement
@@ -42,7 +42,7 @@ export default function BottomNav() {
         setLockedBottom(correctedBottom);
         setIsPositionLocked(true);
         console.log('🔒 [BOTTOMNAV] Position corrigée à:', correctedBottom, 'px (iOS natif - descend de 34px)');
-        
+
         // Appliquer le style de position fixe avec correction
         navRef.current.style.position = 'fixed';
         navRef.current.style.bottom = `${correctedBottom}px`;
@@ -60,7 +60,7 @@ export default function BottomNav() {
     { icon: Home, label: t("nav.home"), path: "/", offline: true },
     { icon: Film, label: t("nav.movies"), path: "/movies", offline: false },
     { icon: Tv, label: t("nav.series"), path: "/series", offline: false },
-    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels", offline: true },
+    // { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels", offline: true },
     { icon: Heart, label: t("nav.favorites"), path: "/favorites", offline: true },
     { icon: Settings, label: t("nav.settings"), path: "/settings", offline: true },
   ];
@@ -137,7 +137,7 @@ export default function BottomNav() {
           const activeRoot = getActiveRoot(normalizedLocation || '/');
           const isActive = normalizedPath === activeRoot;
           const isOfflineAvailable = item.offline;
-          
+
           return (
             <Link
               key={item.path}
@@ -146,14 +146,13 @@ export default function BottomNav() {
               style={{ pointerEvents: 'auto' }} // S'assurer que les liens sont cliquables
             >
               <button
-                className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${
-                  isActive
+                className={`flex flex-col items-center justify-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-0 flex-1 relative ${isActive
                     ? "text-primary"
                     : isOffline && !isOfflineAvailable
-                    ? "text-muted-foreground/50"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                style={{ 
+                      ? "text-muted-foreground/50"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                style={{
                   maxWidth: 'calc(100vw / 6)',
                   pointerEvents: 'auto', // S'assurer que les boutons sont cliquables
                   cursor: 'pointer' // Ajouter le curseur pointer
@@ -190,7 +189,7 @@ export default function BottomNav() {
     // Créer ou récupérer l'élément de navigation directement dans le DOM
     const ensureNavElement = () => {
       let navElement = document.querySelector('.mobile-bottom-nav') as HTMLElement;
-      
+
       if (!navElement) {
         // Créer l'élément directement dans le body si le Portal ne l'a pas encore créé
         navElement = document.createElement('nav');
@@ -198,16 +197,16 @@ export default function BottomNav() {
         document.body.appendChild(navElement);
         console.log('[BottomNav] Created nav element directly in DOM');
       }
-      
+
       return navElement;
     };
 
     // Forcer le positionnement après le montage
     const forcePositioning = () => {
       const navElement = ensureNavElement();
-      
+
       if (!navElement) return;
-      
+
       // S'assurer que le parent (body) n'a pas de transform ou overflow qui pourrait casser le fixed
       const body = document.body;
       if (body) {
@@ -215,7 +214,7 @@ export default function BottomNav() {
         body.style.setProperty('transform', 'none', 'important');
         body.style.setProperty('overflow-x', 'hidden', 'important');
       }
-      
+
       // S'assurer que html n'a pas de transform
       const html = document.documentElement;
       if (html) {
@@ -231,7 +230,7 @@ export default function BottomNav() {
         navElement.style.setProperty('display', 'none', 'important');
         return; // Ne pas positionner sur desktop
       }
-      
+
       // Forcer le positionnement fixe en bas de l'écran
       navElement.style.setProperty('position', 'fixed', 'important');
       navElement.style.setProperty('bottom', '0px', 'important');
@@ -248,20 +247,20 @@ export default function BottomNav() {
       navElement.style.setProperty('padding', '0', 'important');
       navElement.style.setProperty('box-sizing', 'border-box', 'important');
       navElement.style.setProperty('pointer-events', 'auto', 'important'); // S'assurer que les interactions sont possibles
-      
+
       // Vérifier la position réelle après application
       const rect = navElement.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const expectedBottom = 0;
       const actualBottom = viewportHeight - rect.bottom;
-      
+
       if (Math.abs(actualBottom - expectedBottom) > 1) {
         console.warn(`[BottomNav] Position mismatch! Expected bottom: ${expectedBottom}px, Actual: ${actualBottom}px, rect.bottom: ${rect.bottom}, viewportHeight: ${viewportHeight}`);
         // Forcer encore plus
         navElement.style.setProperty('bottom', '0px', 'important');
         navElement.style.setProperty('top', 'auto', 'important');
       }
-      
+
       console.log('[BottomNav] Forced positioning applied, isMobile:', isMobile(), 'bottom:', rect.bottom, 'viewportHeight:', viewportHeight, 'actualBottom:', actualBottom);
     };
 
@@ -282,10 +281,10 @@ export default function BottomNav() {
 
     window.addEventListener('resize', forcePositioning);
     window.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     // Forcer le positionnement périodiquement pour éviter les problèmes
     const intervalId = setInterval(forcePositioning, 300);
-    
+
     return () => {
       window.removeEventListener('resize', forcePositioning);
       window.removeEventListener('scroll', handleScroll);

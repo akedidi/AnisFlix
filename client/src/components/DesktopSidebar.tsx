@@ -11,7 +11,7 @@ export default function DesktopSidebar() {
     { icon: Home, label: t("nav.home"), path: "/" },
     { icon: Film, label: t("nav.movies"), path: "/movies" },
     { icon: Tv, label: t("nav.series"), path: "/series" },
-    { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
+    // { icon: Radio, label: t("nav.tvChannels"), path: "/tv-channels" },
     { icon: Heart, label: t("nav.favorites"), path: "/favorites" },
     { icon: Settings, label: t("nav.settings"), path: "/settings" },
   ];
@@ -30,7 +30,7 @@ export default function DesktopSidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.path;
-          
+
           return (
             <Link key={item.path} href={item.path}>
               <Button
