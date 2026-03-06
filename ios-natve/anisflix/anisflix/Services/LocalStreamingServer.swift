@@ -162,6 +162,7 @@ class LocalStreamingServer {
             var responseError: Error?
             
             var urlRequest = URLRequest(url: targetUrl)
+            print("🚀 [LocalServer] Executing proxy request to: \(targetUrl.absoluteString)")
             urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
             if let referer = referer {
                 urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
@@ -189,7 +190,16 @@ class LocalStreamingServer {
             
             if let data = responseData {
                 let contentType = responseResponse?.mimeType ?? "application/octet-stream"
-                print("✅ [LocalServer] Proxy success for \(targetUrl.lastPathComponent) (\(data.count) bytes, \(contentType))")
+                let statusCode = (responseResponse as? HTTPURLResponse)?.statusCode ?? 200
+                print("✅ [LocalServer] Proxy success for \(targetUrl.lastPathComponent) (Status: \(statusCode), \(data.count) bytes, \(contentType))")
+                
+                // If the response is small and HTML, it might be an error page (e.g. 403 Forbidden)
+                if contentType.contains("text/html") && data.count < 1000 {
+                    if let stringContent = String(data: data, encoding: .utf8) {
+                        print("⚠️ [LocalServer] Suspicions HTML response for segment: \(stringContent)")
+                    }
+                }
+                
                 let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
                 self.addCorsHeaders(resp)
                 return resp

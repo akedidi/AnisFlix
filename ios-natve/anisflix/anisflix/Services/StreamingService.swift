@@ -1399,8 +1399,11 @@ class StreamingService {
                     let allowedChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
                     let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? source.url
                     let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
+                    let windowsUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+                    let encodedUA = windowsUA.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
+                    
                     // Route through LocalProxyServer to inject custom headers natively
-                    urlToPlay = "http://localhost:8080/manifest?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)"
+                    urlToPlay = "http://localhost:8080/manifest?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)&user_agent=\(encodedUA)"
                     directUrl = source.url
                 } else {
                     urlToPlay = source.url
