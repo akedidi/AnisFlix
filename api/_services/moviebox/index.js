@@ -118,15 +118,22 @@ function mobRequest(method, url, body = null, customHeaders = {}) {
     const options = { method, headers };
     if (body) options.body = body;
 
+    const shortUrl = url.length > 80 ? url.substring(0, 80) + '...' : url;
+    console.log(`📦 [MOB] ${method} ${shortUrl}`);
+
     return fetch(url, options)
         .then(res => {
             return res.text().then(text => {
-                if (!res.ok) return null;
+                console.log(`📦 [MOB] ${method} ${shortUrl} => ${res.status} (${text.length} bytes)`);
+                if (!res.ok) {
+                    console.error(`❌ [MOB] Non-OK response: ${text.substring(0, 300)}`);
+                    return null;
+                }
                 try { return JSON.parse(text); } catch (e) { return text; }
             });
         })
         .catch(err => {
-            console.error(`❌ [MOB] Fetch error: ${err.message}`);
+            console.error(`❌ [MOB] Fetch error for ${shortUrl}: ${err.message}`);
             return null;
         });
 }
@@ -134,16 +141,31 @@ function mobRequest(method, url, body = null, customHeaders = {}) {
 // TMDB Helper
 function fetchTmdbDetails(tmdbId, mediaType) {
     const url = `${TMDB_BASE_URL}/${mediaType}/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=external_ids`;
+    console.log(`📦 [MOB] Fetching TMDB details: ${mediaType}/${tmdbId}`);
     return fetch(url)
-        .then(res => res.json())
-        .then(data => ({
-            title: mediaType === 'movie' ? (data.title || data.original_title) : (data.name || data.original_name),
-            year: (data.release_date || data.first_air_date || '').substring(0, 4),
-            imdbId: data.external_ids?.imdb_id,
-            originalTitle: data.original_title || data.original_name,
-            originalName: data.original_name
-        }))
-        .catch(e => null);
+        .then(res => {
+            if (!res.ok) {
+                console.error(`❌ [MOB] TMDB returned ${res.status}`);
+                return null;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data) return null;
+            const details = {
+                title: mediaType === 'movie' ? (data.title || data.original_title) : (data.name || data.original_name),
+                year: (data.release_date || data.first_air_date || '').substring(0, 4),
+                imdbId: data.external_ids?.imdb_id,
+                originalTitle: data.original_title || data.original_name,
+                originalName: data.original_name
+            };
+            console.log(`📦 [MOB] TMDB: "${details.title}" (${details.year})`);
+            return details;
+        })
+        .catch(e => {
+            console.error(`❌ [MOB] TMDB fetch error: ${e.message}`);
+            return null;
+        });
 }
 
 function normalizeTitle(s) {
@@ -159,6 +181,7 @@ function normalizeTitle(s) {
 }
 
 function searchMovieBox(query) {
+    console.log(`📦 [MOB] Searching MovieBox for: "${query}"`);
     const url = `${API_BASE}/wefeed-mobile-bff/subject-api/search/v2`;
     const body = `{"page": 1, "perPage": 10, "keyword": "${query}"}`;
     return mobRequest('POST', url, body).then(res => {
@@ -167,8 +190,10 @@ function searchMovieBox(query) {
             res.data.results.forEach(group => {
                 if (group.subjects) allSubjects = allSubjects.concat(group.subjects);
             });
+            console.log(`📦 [MOB] Found ${allSubjects.length} subjects`);
             return allSubjects;
         }
+        console.log(`📦 [MOB] Search returned no results (res: ${JSON.stringify(res)?.substring(0, 200)})`);
         return [];
     });
 }
