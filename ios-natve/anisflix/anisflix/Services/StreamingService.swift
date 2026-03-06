@@ -1395,19 +1395,21 @@ class StreamingService {
                 let directUrl: String?
                 
                 if source.url.contains(".m3u8") {
-                    // Use a more restrictive character set for the nested URL to ensure '?' and '&' are encoded
+                    // Use iOS native AVPlayer with Vercel API proxy instead of local proxy
                     let allowedChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
                     let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? source.url
                     let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
                     let windowsUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
                     let encodedUA = windowsUA.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
                     
-                    // Route through LocalProxyServer to inject custom headers natively
-                    urlToPlay = "http://localhost:8080/manifest?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)&user_agent=\(encodedUA)"
-                    directUrl = source.url
+                    // Route through Vercel Proxy and provide headers native to AVFoundation
+                    urlToPlay = "https://anisflix.vercel.app/api/proxy?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)&proxySegments=false"
+                    // Set directUrl to urlToPlay so PlayerViewModel knows it needs custom headers applied to the AVURLAsset
+                    directUrl = urlToPlay
                 } else {
                     urlToPlay = source.url
-                    directUrl = nil
+                    directUrl = urlToPlay
+
                 }
                 
                 let headers = [

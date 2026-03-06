@@ -1052,8 +1052,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Reason: When starting AirPlay directly, isExternalPlaybackActive is false initially,
         // but we need the proxy ready for when AirPlay activates mid-playback
         let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid")
+        let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         
-        if isVidzyOrLuluvid {
+        if isVercelProxy {
+            // Vercel proxy handles CORS and headers externally. NEVER use local proxy.
+            needsProxy = false
+            print("🎯 [PlayerVM] Bypassing Local Proxy (using Vercel API proxy instead)")
+        } else if isVidzyOrLuluvid {
             // Always use proxy for Vidzy/Luluvid (they need headers for AirPlay)
             needsProxy = true
             print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid (AirPlay compatibility)")
@@ -1067,9 +1072,6 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 needsProxy = false
             } else {
                  // MP4/Direct: AVPlayer handles headers mostly, but if we need to force UA or complex headers -> Proxy might be safer
-                 // But Vixsrc fails with Proxy (-11848).
-                 // MovieBox likely needs Proxy for UA.
-                 // Let's rely on hasCustomHeaders for MP4 proxying, assuming Vixsrc has none.
                  needsProxy = hasCustomHeaders || hasSubtitles
             }
         }
