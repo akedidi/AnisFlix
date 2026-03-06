@@ -199,14 +199,26 @@ class LocalStreamingServer {
             }
             
             if let data = responseData {
-                let contentType = responseResponse?.mimeType ?? "application/octet-stream"
+                var contentType = responseResponse?.mimeType ?? "application/octet-stream"
                 let statusCode = (responseResponse as? HTTPURLResponse)?.statusCode ?? 200
-                print("✅ [LocalServer] Proxy success for \(targetUrl.lastPathComponent) (Status: \(statusCode), \(data.count) bytes, \(contentType))")
                 
-                // If the response is small and HTML, it might be an error page (e.g. 403 Forbidden)
-                if contentType.contains("text/html") && data.count < 1000 {
+                // The upstream server sometimes returns incorrect MIME types (e.g., image/jpg for video segments).
+                // We need to force the correct MIME type based on the file extension.
+                let ext = targetUrl.pathExtension.lowercased()
+                let segmentName = targetUrl.lastPathComponent
+                if contentType == "image/jpg" || contentType == "image/jpeg" || contentType == "text/html" {
+                    if ext == "ts" || ext == "jpg" || ext == "png" || ext == "webp" || ext == "ico" || ext == "woff" || ext == "woff2" || segmentName.contains("seg-") {
+                        // These are actually video segment container files disguised with wrong extension/mime
+                        contentType = "video/mp2t"
+                    }
+                }
+                
+                print("✅ [LocalServer] Proxy success for \(segmentName) (Status: \(statusCode), \(data.count) bytes, effective: \(contentType))")
+                
+                // If the response is small and HTML, it might be an error page (e.g. 403 Forbidden, 404)
+                if contentType.contains("text/html") && data.count < 2000 {
                     if let stringContent = String(data: data, encoding: .utf8) {
-                        print("⚠️ [LocalServer] Suspicions HTML response for segment: \(stringContent)")
+                        print("⚠️ [LocalServer] Suspicious HTML response for segment: \(stringContent)")
                     }
                 }
                 
