@@ -51,14 +51,22 @@ class LocalStreamingServer {
     
     // MARK: - Routing
     
+    // Helper to safely parse query without '+' being converted to space
+    private func extractQuery(from request: GCDWebServerRequest) -> [String: String] {
+        let items = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        return items.reduce(into: [String: String]()) { result, item in
+            result[item.name] = item.value ?? ""
+        }
+    }
+    
     private func setupRoutes() {
         // 1. Manifest Handler (Rewrites M3U8)
         webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
-            print("📥 [LocalServer] Incoming /manifest request: \(request.query ?? [:])")
+            let query = self.extractQuery(from: request)
+            print("📥 [LocalServer] Incoming /manifest request: \(query)")
             
-            let query = request.query ?? [:]
             guard let targetUrlString = query["url"] as? String,
                   let targetUrl = URL(string: targetUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
@@ -102,7 +110,7 @@ class LocalStreamingServer {
             if let origin = origin {
                 urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
             }
-            if let cookie = request.query?["cookie"] as? String {
+            if let cookie = query["cookie"] {
                 urlRequest.setValue(cookie, forHTTPHeaderField: "Cookie")
             }
             
@@ -142,9 +150,11 @@ class LocalStreamingServer {
         }
         
         // 2. Proxy Handler (For Segments & Keys)
-        webServer.addHandler(forMethod: "GET", path: "/proxy", request: GCDWebServerRequest.self) { request in
-            let query = request.query ?? [:]
-            guard let targetUrlString = query["url"] as? String,
+        webServer.addHandler(forMethod: "GET", path: "/proxy", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            let query = self.extractQuery(from: request)
+            
+            guard let targetUrlString = query["url"],
                   let targetUrl = URL(string: targetUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
@@ -212,8 +222,8 @@ class LocalStreamingServer {
         webServer.addHandler(forMethod: "GET", path: "/subtitles", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
-            let query = request.query ?? [:]
-            guard let targetUrlString = query["url"] as? String,
+            let query = self.extractQuery(from: request)
+            guard let targetUrlString = query["url"],
                   let targetUrl = URL(string: targetUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
