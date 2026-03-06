@@ -1995,22 +1995,53 @@ export default async function handler(req, res) {
     if (decodedPath === 'mob') {
       console.log('📦 [Movix Proxy] Routing to MOB (MovieBox v2) handler');
       try {
-        const { tmdbId, type, season, episode } = queryParams;
+        const { tmdbId, type, season, episode, debug } = queryParams;
         if (!tmdbId) return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
 
         const mediaType = type || 'movie';
         const seasonNum = season ? parseInt(season) : 1;
         const episodeNum = episode ? parseInt(episode) : 1;
+        const isDebug = debug === '1';
 
         console.log(`📦 [MOB] Fetching streams: tmdbId=${tmdbId}, type=${mediaType}, S${seasonNum}E${episodeNum}`);
+
+        // Debug: test raw connectivity to MovieBox API
+        if (isDebug) {
+          const debugInfo = { steps: [] };
+          try {
+            // Step 1: Test TMDB
+            const tmdbRes = await fetch(`https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=d131017ccc6e5462a81c9304d21476de`);
+            const tmdbData = await tmdbRes.json();
+            debugInfo.steps.push({ step: 'TMDB', status: tmdbRes.status, title: tmdbData.title || tmdbData.name });
+
+            // Step 2: Test MovieBox search directly (without signing)
+            const rawRes = await fetch('https://api.inmoviebox.com/wefeed-mobile-bff/subject-api/search/v2', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'User-Agent': 'com.community.mbox.in/50020042' },
+              body: JSON.stringify({ page: 1, perPage: 5, keyword: tmdbData.title || tmdbData.name })
+            });
+            const rawText = await rawRes.text();
+            debugInfo.steps.push({ step: 'MovieBox_RAW', status: rawRes.status, bodyPreview: rawText.substring(0, 300) });
+
+            // Step 3: Test with full signing
+            const streams = await getMovieBoxStreams(tmdbId, mediaType, seasonNum, episodeNum);
+            debugInfo.steps.push({ step: 'getMovieBoxStreams', count: streams.length });
+            debugInfo.cryptoJsLoaded = typeof CryptoJS !== 'undefined';
+
+            return res.status(200).json({ success: true, streams, debug: debugInfo });
+          } catch (debugErr) {
+            debugInfo.error = debugErr.message;
+            return res.status(200).json({ success: false, debug: debugInfo });
+          }
+        }
 
         const streams = await getMovieBoxStreams(tmdbId, mediaType, seasonNum, episodeNum);
 
         console.log(`✅ [MOB] Found ${streams.length} streams`);
         return res.status(200).json({ success: true, streams });
       } catch (error) {
-        console.error('❌ [MOB Error]', error.message);
-        return res.status(500).json({ error: 'Erreur MOB Scraper', details: error.message });
+        console.error('❌ [MOB Error]', error.message, error.stack);
+        return res.status(500).json({ error: 'Erreur MOB Scraper', details: error.message, stack: error.stack });
       }
     }
 
