@@ -234,11 +234,33 @@ class VidlinkService {
                         }
                     }
                 } else if !line.hasPrefix("#") {
-                    let absoluteURL: String
+                    var absoluteURL: String
                     if line.hasPrefix("http") {
                         absoluteURL = line
+                    } else if line.hasPrefix("/") {
+                        // Absolute path on same host - use URL(string:relativeTo:) to correctly parse query strings
+                        if let resolved = URL(string: line, relativeTo: url) {
+                            absoluteURL = resolved.absoluteString
+                        } else {
+                            absoluteURL = line
+                        }
+                        
+                        // Inherit query from parent URL if the entry doesn't have its own query
+                        if !absoluteURL.contains("?"), let parentQuery = url.query {
+                            absoluteURL += "?\(parentQuery)"
+                        }
                     } else {
-                        absoluteURL = URL(string: line, relativeTo: url)?.absoluteString ?? line
+                        // Relative path: Use URL(string:relativeTo:) to properly parse query strings on 'line'
+                        if let resolved = URL(string: line, relativeTo: url.deletingLastPathComponent()) {
+                            absoluteURL = resolved.absoluteString
+                        } else {
+                            absoluteURL = line
+                        }
+                        
+                        // Re-attach query parameters if the new URL doesn't have any but the parent does
+                        if !absoluteURL.contains("?"), let parentQuery = url.query {
+                            absoluteURL += "?\(parentQuery)"
+                        }
                     }
                     
                     let q = getQualityFromResolution(currentRes)

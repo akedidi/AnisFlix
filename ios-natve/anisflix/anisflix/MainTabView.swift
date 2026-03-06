@@ -42,7 +42,6 @@ struct MainTabView: View {
     // Navigation paths for each tab to enable pop-to-root
     @State private var homePath = NavigationPath()
     @State private var explorePath = NavigationPath()
-    @State private var tvPath = NavigationPath()
     @State private var downloadsPath = NavigationPath()
     @State private var morePath = NavigationPath()
     
@@ -64,9 +63,8 @@ struct MainTabView: View {
             switch tabIndex {
             case 0: homePath = NavigationPath()
             case 1: explorePath = NavigationPath()
-            case 2: tvPath = NavigationPath()
-            case 3: downloadsPath = NavigationPath()
-            case 4: morePath = NavigationPath()
+            case 2: downloadsPath = NavigationPath()
+            case 3: morePath = NavigationPath()
             default: break
             }
         }
@@ -154,10 +152,11 @@ struct MainTabView: View {
                 }
                 .tag(1)
                  .toolbar(.hidden, for: .tabBar)
+
                 
-                // Onglet 3: TV Channels
-                NavigationStack(path: $tvPath) {
-                    TVChannelsView()
+                // Onglet 3: Téléchargements
+                NavigationStack(path: $downloadsPath) {
+                    DownloadsView()
                         .navigationDestination(for: NavigationRoute.self) { route in
                             switch route {
                             case .movieDetail(let movieId):
@@ -194,46 +193,7 @@ struct MainTabView: View {
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
                 
-                // Onglet 4: Téléchargements
-                NavigationStack(path: $downloadsPath) {
-                    DownloadsView()
-                        .navigationDestination(for: NavigationRoute.self) { route in
-                            switch route {
-                            case .movieDetail(let movieId):
-                                MovieDetailView(movieId: movieId)
-                            case .seriesDetail(let seriesId):
-                                SeriesDetailView(seriesId: seriesId)
-                            case .providerList(let providerId, let providerName):
-                                ProviderMediaListView(providerId: providerId, providerName: providerName)
-                            case .downloadedMediaPlayer(let itemId):
-                                if let item = DownloadManager.shared.downloads.first(where: { $0.id == itemId }) {
-                                    DownloadedMediaDetailView(item: item)
-                                } else {
-                                    Text("Download not found")
-                                }
-                            case .latestMovies:
-                                LatestMoviesView()
-                            case .latestSeries:
-                                LatestSeriesView()
-                            case .latestEpisodes:
-                                LatestEpisodesView()
-                            case .popularMovies:
-                                PopularMoviesView()
-                            case .popularSeries:
-                                PopularSeriesView()
-                            case .mediaList(let type, let category, let genreId):
-                                MediaListView(mediaType: type, category: category, genreId: genreId)
-                            case .genreList(let genreId, let genreName, let mediaType):
-                                GenreMediaListView(genreId: genreId, genreName: genreName, mediaType: mediaType)
-                            case .providerCategoryList(let providerId, let providerName, let category, let genreId, let mediaType):
-                                ProviderCategoryListView(providerId: providerId, providerName: providerName, category: category, genreId: genreId, mediaType: mediaType)
-                            }
-                        }
-                }
-                .tag(3)
-                 .toolbar(.hidden, for: .tabBar)
-                
-                // Onglet 5: Plus (Menu)
+                // Onglet 4: Plus (Menu)
                 NavigationStack(path: $morePath) {
                     MoreView()
                         .navigationDestination(for: NavigationRoute.self) { route in
@@ -269,7 +229,7 @@ struct MainTabView: View {
                             }
                         }
                 }
-                .tag(4)
+                .tag(3)
                  .toolbar(.hidden, for: .tabBar)
             }
              .ignoresSafeArea() // Allow content to extend behind the floating bar

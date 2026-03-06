@@ -1051,7 +1051,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // CRITICAL FIX: Force proxy for Vidzy/Luluvid ALWAYS (even if AirPlay not yet active)
         // Reason: When starting AirPlay directly, isExternalPlaybackActive is false initially,
         // but we need the proxy ready for when AirPlay activates mid-playback
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid")
+        let isVidlink = urlString.contains("vodvidl.site") ||
+                        urlString.contains("vidlink") ||
+                        (effectiveHeaders["Origin"]?.contains("vidlink") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         
         if isVercelProxy {
@@ -1059,9 +1062,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             needsProxy = false
             print("🎯 [PlayerVM] Bypassing Local Proxy (using Vercel API proxy instead)")
         } else if isVidzyOrLuluvid {
-            // Always use proxy for Vidzy/Luluvid (they need headers for AirPlay)
+            // Always use proxy for Vidzy/Luluvid/Vidlink (they need headers for AirPlay or segment fetching)
             needsProxy = true
-            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid (AirPlay compatibility)")
+            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid/Vidlink (Headers required for segments/AirPlay)")
         } else if isAirPlayActive {
             // AirPlay: Must use proxy if we have headers or subtitles
             needsProxy = hasCustomHeaders || hasSubtitles
@@ -1088,7 +1091,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 components.port = serverUrl.port
                 components.path = "/manifest" // Default to manifest proxy which handles HLS & MP4 wrapping
                 
-                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+                var queryItems = [URLQueryItem]()
+                
+                // Base64 encode the URL to completely shield it from AVPlayer query interpretation bugs
+                if let urlData = url.absoluteString.data(using: .utf8) {
+                    queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+                } else {
+                    queryItems.append(URLQueryItem(name: "url", value: url.absoluteString))
+                }
                 
                 // Add Subtitles if present
                 if let sub = subtitleUrl {
@@ -1120,7 +1130,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                     print("🚀 [PlayerVM] Using Local Proxy for AirPlay compatibility")
                     print("   - Reason: Headers: \(hasCustomHeaders), Subs: \(hasSubtitles)")
                     print("   - Original: \(url)")
-                    print("   - Proxy: \(proxyUrl)")
+                    print("   - Proxy: \(proxyUrl.absoluteString)")
                     finalUrl = proxyUrl
                 }
             } else {
@@ -1152,15 +1162,16 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             print("❌ Failed to re-activate audio session: \(error)")
         }
         
-        // Always use AVURLAsset with browser-like User-Agent
         var headers: [String: String] = [
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         ]
         
         // Merge effective headers (including Vidzy Referer if applicable)
         if !effectiveHeaders.isEmpty {
-            headers.merge(effectiveHeaders) { (_, new) in new }
-            print("🎬 [CustomVideoPlayer] Added effective headers: \(effectiveHeaders.keys)")
+            for (key, value) in effectiveHeaders {
+                headers[key] = value
+            }
+            print("🎬 [CustomVideoPlayer] Added effective headers: \(headers.keys)")
         }
         
         let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])

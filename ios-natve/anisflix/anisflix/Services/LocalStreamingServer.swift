@@ -59,16 +59,39 @@ class LocalStreamingServer {
         }
     }
     
+    /// Applies headers to a URLRequest using the proxy-level headers.
+    /// NOTE: The `?headers={"referer":"videostr.net"}` query param in Vidlink URLs is for the CDN proxy's 
+    /// INTERNAL routing, NOT for our HTTP requests. We must always use `vidlink.pro` as Referer.
+    private func applyHeaders(to request: inout URLRequest, targetUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) {
+        let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        request.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
+        
+        if let referer = referer {
+            request.setValue(referer, forHTTPHeaderField: "Referer")
+        }
+        if let origin = origin {
+            request.setValue(origin, forHTTPHeaderField: "Origin")
+        }
+        if let cookie = cookie {
+            request.setValue(cookie, forHTTPHeaderField: "Cookie")
+        }
+    }
+    
     private func setupRoutes() {
         // 1. Manifest Handler (Rewrites M3U8)
         webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
             let query = self.extractQuery(from: request)
-            print("📥 [LocalServer] Incoming /manifest request: \(query)")
+            print("📥 [LocalServer] Incoming /manifest request keys: \(query.keys)")
             
-            guard let targetUrlString = query["url"] as? String,
-                  let targetUrl = URL(string: targetUrlString) else {
+            var targetUrlString = query["url"]
+            if let url64 = query["url64"], let data = Data(base64Encoded: url64), let str = String(data: data, encoding: .utf8) {
+                targetUrlString = str
+            }
+            
+            guard let validUrlString = targetUrlString,
+                  let targetUrl = URL(string: validUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
             
@@ -103,16 +126,7 @@ class LocalStreamingServer {
             print("📥 [LocalServer] Fetching manifest: \(targetUrl.lastPathComponent)")
             
             var urlRequest = URLRequest(url: targetUrl)
-            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            if let referer = referer {
-                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
-            }
-            if let origin = origin {
-                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
-            }
-            if let cookie = query["cookie"] {
-                urlRequest.setValue(cookie, forHTTPHeaderField: "Cookie")
-            }
+            self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: query["cookie"])
             
             let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
@@ -134,11 +148,18 @@ class LocalStreamingServer {
             // Extract Cookie
             let cookie = query["cookie"] as? String
             
+            // Validate: if upstream returned HTML instead of M3U8, it's a Cloudflare/error page
+            if !content.contains("#EXTM3U") && !content.contains("#EXT-X-") {
+                print("❌ [LocalServer] Upstream returned non-M3U8 content (likely Cloudflare challenge):")
+                print("   First 200 chars: \(content.prefix(200))")
+                let errorResp = GCDWebServerDataResponse(statusCode: 502)
+                return errorResp
+            }
+            
             // Extract Query Items from original URL to persist them (e.g. headers, host for Vidlink)
             let originalQueryItems = URLComponents(url: targetUrl, resolvingAgainstBaseURL: false)?.queryItems
             
             // Rewrite Manifest
-            // Rewritten Manifest Logging
             let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, queryItemsToPersist: originalQueryItems, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
             
             print("📝 [LocalServer] Rewritten Manifest Preview:\n" + rewrittenContent.split(separator: "\n").prefix(5).joined(separator: "\n") + "\n... (truncated)")
@@ -154,8 +175,13 @@ class LocalStreamingServer {
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             let query = self.extractQuery(from: request)
             
-            guard let targetUrlString = query["url"],
-                  let targetUrl = URL(string: targetUrlString) else {
+            var targetUrlString = query["url"]
+            if let url64 = query["url64"], let data = Data(base64Encoded: url64), let str = String(data: data, encoding: .utf8) {
+                targetUrlString = str
+            }
+            
+            guard let validUrlString = targetUrlString,
+                  let targetUrl = URL(string: validUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
             }
             
@@ -173,16 +199,7 @@ class LocalStreamingServer {
             
             var urlRequest = URLRequest(url: targetUrl)
             print("🚀 [LocalServer] Executing proxy request to: \(targetUrl.absoluteString)")
-            urlRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-            if let referer = referer {
-                urlRequest.setValue(referer, forHTTPHeaderField: "Referer")
-            }
-            if let origin = origin {
-                urlRequest.setValue(origin, forHTTPHeaderField: "Origin")
-            }
-            if let cookie = query["cookie"] as? String {
-                urlRequest.setValue(cookie, forHTTPHeaderField: "Cookie")
-            }
+            self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: query["cookie"])
             
             let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
@@ -425,20 +442,23 @@ class LocalStreamingServer {
         components.port = Int(self.webServer.port)
         components.path = endpoint
         
-        var queryItems = [URLQueryItem(name: "url", value: resolved.absoluteString)]
+        var queryItems = [URLQueryItem]()
+        
+        if let urlData = resolved.absoluteString.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+        } else {
+            queryItems.append(URLQueryItem(name: "url", value: resolved.absoluteString))
+        }
+        
         if let referer = referer {
              queryItems.append(URLQueryItem(name: "referer", value: referer))
         }
         if let origin = origin {
              queryItems.append(URLQueryItem(name: "origin", value: origin))
         }
-        // Only append UA if it differs from default to save URL length, but safest is to always append if custom
-        // For simplicity and correctness, let's append if provided
         if let ua = userAgent, !ua.isEmpty {
             queryItems.append(URLQueryItem(name: "user_agent", value: ua))
         }
-        
-        // Critical: Forward Cookie to segments
         if let c = cookie {
             queryItems.append(URLQueryItem(name: "cookie", value: c))
         }

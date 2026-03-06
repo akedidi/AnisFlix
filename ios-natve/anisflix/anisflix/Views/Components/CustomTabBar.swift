@@ -41,23 +41,14 @@ struct CustomTabBar: View {
                 onDoubleTap: onTabDoubleTap
             )
             
-            TabBarButton(
-                icon: "tv",
-                selectedIcon: "tv.fill",
-                title: theme.t("nav.tvChannels"),
-                tabIndex: 2,
-                selectedTab: $selectedTab,
-                theme: theme,
-                onTap: onTabTap,
-                onDoubleTap: onTabDoubleTap
-            )
+
             
-            // 4. Téléchargements
+            // 3. Téléchargements
             TabBarButton(
                 icon: "arrow.down.circle",
                 selectedIcon: "arrow.down.circle.fill",
                 title: "Téléch.",
-                tabIndex: 3,
+                tabIndex: 2,
                 selectedTab: $selectedTab,
                 theme: theme,
                 badge: activeDownloadsCount,
@@ -65,12 +56,12 @@ struct CustomTabBar: View {
                 onDoubleTap: onTabDoubleTap
             )
             
-            // 5. Plus (Menu)
+            // 4. Plus (Menu)
             TabBarButton(
                 icon: "ellipsis.circle",
                 selectedIcon: "ellipsis.circle.fill",
                 title: "Plus",
-                tabIndex: 4,
+                tabIndex: 3,
                 selectedTab: $selectedTab,
                 theme: theme,
                 onTap: onTabTap,

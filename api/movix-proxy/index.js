@@ -5,6 +5,7 @@ import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
 import { AfterDarkScraper } from "../_services/afterdark/index.js";
 import { CineproScraper } from "../_services/cinepro/index.js";
 import { VidlinkScraper } from "../_services/vidlink/index.js";
+import { getMovieBoxStreams } from "../_services/moviebox/index.js";
 // import puppeteer from 'puppeteer-core';
 // import chromium from '@sparticuz/chromium'; // Disabled for Vercel Serverless Size Limits
 
@@ -1987,6 +1988,29 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error('❌ [Vidlink Error]', error.message);
         return res.status(500).json({ error: 'Erreur Vidlink Scraper', details: error.message });
+      }
+    }
+
+    // GÉRER MOB (MovieBox v2) ICI
+    if (decodedPath === 'mob') {
+      console.log('📦 [Movix Proxy] Routing to MOB (MovieBox v2) handler');
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+        if (!tmdbId) return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
+
+        const mediaType = type || 'movie';
+        const seasonNum = season ? parseInt(season) : 1;
+        const episodeNum = episode ? parseInt(episode) : 1;
+
+        console.log(`📦 [MOB] Fetching streams: tmdbId=${tmdbId}, type=${mediaType}, S${seasonNum}E${episodeNum}`);
+
+        const streams = await getMovieBoxStreams(tmdbId, mediaType, seasonNum, episodeNum);
+
+        console.log(`✅ [MOB] Found ${streams.length} streams`);
+        return res.status(200).json({ success: true, streams });
+      } catch (error) {
+        console.error('❌ [MOB Error]', error.message);
+        return res.status(500).json({ error: 'Erreur MOB Scraper', details: error.message });
       }
     }
 

@@ -1391,30 +1391,14 @@ class StreamingService {
             
             for source in extractedSources {
                 // Determine if proxying is needed (M3U8 playlists need proxying for CORS, segments don't)
-                let urlToPlay: String
-                let directUrl: String?
-                
-                if source.url.contains(".m3u8") {
-                    // Use iOS native AVPlayer with Vercel API proxy instead of local proxy
-                    let allowedChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
-                    let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? source.url
-                    let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
-                    let windowsUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-                    let encodedUA = windowsUA.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
-                    
-                    // Route through Vercel Proxy and provide headers native to AVFoundation
-                    urlToPlay = "https://anisflix.vercel.app/api/proxy?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)&proxySegments=false"
-                    // Set directUrl to urlToPlay so PlayerViewModel knows it needs custom headers applied to the AVURLAsset
-                    directUrl = urlToPlay
-                } else {
-                    urlToPlay = source.url
-                    directUrl = urlToPlay
-
-                }
+                let urlToPlay: String = source.url
+                // By providing a directUrl, CustomVideoPlayer will natively inject the HTTP headers 
+                let directUrl: String? = source.url
                 
                 let headers = [
                     "Referer": "https://vidlink.pro/",
-                    "Origin": "https://vidlink.pro"
+                    "Origin": "https://vidlink.pro",
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
                 ]
                 
                 let streamSource = StreamingSource(
