@@ -203,14 +203,25 @@ class LocalStreamingServer {
                 let statusCode = (responseResponse as? HTTPURLResponse)?.statusCode ?? 200
                 
                 // The upstream server sometimes returns incorrect MIME types (e.g., image/jpg for video segments).
-                // We need to force the correct MIME type based on the file extension.
-                let ext = targetUrl.pathExtension.lowercased()
+                // Vidlink obscurs filenames with base64, so we decode it to check the real extension.
                 let segmentName = targetUrl.lastPathComponent
-                if contentType == "image/jpg" || contentType == "image/jpeg" || contentType == "text/html" {
-                    if ext == "ts" || ext == "jpg" || ext == "png" || ext == "webp" || ext == "ico" || ext == "woff" || ext == "woff2" || segmentName.contains("seg-") {
-                        // These are actually video segment container files disguised with wrong extension/mime
-                        contentType = "video/mp2t"
-                    }
+                var decodedSegmentName = segmentName
+                if let decodedData = Data(base64Encoded: segmentName), let decodedString = String(data: decodedData, encoding: .utf8) {
+                    decodedSegmentName = decodedString
+                }
+                
+                let ext = targetUrl.pathExtension.lowercased()
+                let decodedExt = (decodedSegmentName as NSString).pathExtension.lowercased()
+                let checkExt = ext.isEmpty ? decodedExt : ext
+                
+                let fakeExtensions = ["ts", "jpg", "jpeg", "png", "webp", "ico", "woff", "woff2", "html", "js", "css", "txt"]
+                let isVideoSegment = fakeExtensions.contains(checkExt) || 
+                                     segmentName.contains("seg-") || 
+                                     decodedSegmentName.contains("seg-") || 
+                                     data.count > 10000 // Segments are usually large (>10KB), keys are ~16 bytes
+                
+                if isVideoSegment && (contentType.contains("image/") || contentType.contains("text/") || contentType.contains("application/")) {
+                    contentType = "video/mp2t"
                 }
                 
                 print("✅ [LocalServer] Proxy success for \(segmentName) (Status: \(statusCode), \(data.count) bytes, effective: \(contentType))")
