@@ -221,15 +221,7 @@ const getProxyUrl = (originalUrl: string, type: 'hls_direct' | 'hls_segments' | 
 
     // Détecter le domaine et utiliser le proxy approprié
     if (cleanUrl.includes('viamotionhsi.netplus.ch')) {
-      // Extraire le chemin pour viamotionhsi
-      const pathMatch = cleanUrl.match(/viamotionhsi\.netplus\.ch\/live\/eds\/(.+)/);
-      if (pathMatch) {
-        const path = pathMatch[1];
-        const finalUrl = `${baseUrl}/api/channels?type=proxy&domain=viamotionhsi&path=${encodeURIComponent(path)}`;
-        console.log(`[PROXY URL] Viamotionhsi path: ${path}`);
-        console.log(`[PROXY URL] URL finale: ${finalUrl}`);
-        return finalUrl;
-      }
+      return cleanUrl;
     } else if (cleanUrl.includes('simulcast-p.ftven.fr')) {
       // Extraire le chemin pour simulcast-ftven
       const pathMatch = cleanUrl.match(/simulcast-p\.ftven\.fr\/(.+)/);

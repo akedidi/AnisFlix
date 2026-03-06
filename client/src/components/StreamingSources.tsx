@@ -12,7 +12,6 @@ import { useMovieBox } from '@/hooks/useMovieBox';
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
 import { useCinepro } from '@/hooks/useCinepro';
-import { useVidlink } from '@/hooks/useVidlink';
 import { useTmdbProxyLinks } from '@/hooks/useTmdbProxy';
 import { useMovixLinks } from '@/hooks/useMovixLinks';
 import { useVideoDownload } from '@/hooks/useVideoDownload';
@@ -122,10 +121,9 @@ const StreamingSources = memo(function StreamingSources({
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
   // DISABLED: AfterDark sources
   // const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
-  const afterDarkData: { success: boolean; streams: any[] } | null = null;
+  const afterDarkData: any = null;
   const isLoadingAfterDark = false;
   const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
-  const { data: vidlinkData, isLoading: isLoadingVidlink } = useVidlink(type, id, season, episode);
   const { data: tmdbProxyData, isLoading: isLoadingTmdbProxy, hasLinks: hasTmdbProxyLinks } = useTmdbProxyLinks(type, id, season, episode);
   const { data: movixLinksData, isLoading: isLoadingMovixLinks } = useMovixLinks(type, id, season, episode);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -362,10 +360,6 @@ const StreamingSources = memo(function StreamingSources({
       }
       // Vérifier Cinepro (VO uniquement)
       if (cineproData && cineproData.success && cineproData.streams && cineproData.streams.length > 0) {
-        return true;
-      }
-      // Vérifier Vidlink (VO uniquement)
-      if (vidlinkData && vidlinkData.success && vidlinkData.streams && vidlinkData.streams.length > 0) {
         return true;
       }
     }
@@ -1132,31 +1126,6 @@ const StreamingSources = memo(function StreamingSources({
   }
 
 
-
-  // Ajouter les sources Vidlink (VO uniquement) - PREMIER AU TOP
-  if (selectedLanguage === 'VO' && vidlinkData && vidlinkData.success && vidlinkData.streams) {
-    console.log('🌐 [Vidlink] Sources trouvées:', vidlinkData.streams);
-    const qualityOrder = ['4K', '1440p', '1080p', '720p', '480p', '360p', '240p', 'Auto', 'Unknown'];
-    const sortedVidlink = [...vidlinkData.streams].sort((a: any, b: any) => {
-      const qA = qualityOrder.indexOf(a.quality || 'Auto');
-      const qB = qualityOrder.indexOf(b.quality || 'Auto');
-      return (qA === -1 ? 999 : qA) - (qB === -1 ? 999 : qB);
-    });
-    // unshift in reverse so that best quality ends up first
-    sortedVidlink.reverse().forEach((stream: any, index: number) => {
-      allSources.unshift({
-        id: `vidlink-${index}`,
-        name: `Vidlink ${stream.quality || 'Auto'} (VO)`,
-        provider: 'vidlink',
-        url: stream.url,
-        type: 'm3u8' as const,
-        player: 'vidlink',
-        sourceKey: 'VO',
-        quality: stream.quality,
-        language: 'VO'
-      });
-    });
-  }
 
   // Ajouter les sources Cinepro MegaCDN (VO uniquement) - PRIORITIZED AT TOP
   // Use unshift to add at the beginning of the array so MegaCDN appears first

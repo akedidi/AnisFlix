@@ -323,6 +323,8 @@ class StreamingService {
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: movieId)
         // FSVid: fetch concurrently (VF/VOSTFR priority)
         async let fsvidSources = FSVidService.shared.fetchMovieSources(tmdbId: movieId)
+        // Vidlink Native iOS Source (VO)
+        async let vidlinkSources = fetchVidlinkSources(tmdbId: movieId, type: "movie")
 
         
         // Anime Placeholder
@@ -371,6 +373,7 @@ class StreamingService {
         let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
         let fsvidMovieResults = await fsvidSources
+        let vidlinkMovieResults = await (try? vidlinkSources) ?? []
         
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -396,6 +399,11 @@ class StreamingService {
         // Add Cinepro/MegaCDN sources (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
+        }
+        
+        // Add Vidlink Native sources (high priority for VO)
+        if !vidlinkMovieResults.isEmpty {
+            allSources.append(contentsOf: vidlinkMovieResults)
         }
         
         // Add Wiflix sources (Luluvid)
@@ -447,8 +455,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (fsvid added)
-        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
+        // Filter for allowed providers (vidlink added)
+        return allSources.filter { $0.provider == "vidlink" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -547,6 +555,8 @@ class StreamingService {
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: seriesId, season: season, episode: episode)
         // FSVid: fetch concurrently (VF/VOSTFR priority)
         async let fsvidSources = FSVidService.shared.fetchSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+        // Vidlink Native iOS Source (VO)
+        async let vidlinkSources = fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -612,6 +622,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let fsvidResults = await fsvidSources
+        let vidlinkResults = await (try? vidlinkSources) ?? []
         
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
@@ -638,6 +649,11 @@ class StreamingService {
         // Add Cinepro/MegaCDN sources (highest priority for VO)
         if let cinepro = cinepro {
             allSources.append(contentsOf: cinepro)
+        }
+        
+        // Add Vidlink Native sources (high priority for VO)
+        if !vidlinkResults.isEmpty {
+            allSources.append(contentsOf: vidlinkResults)
         }
 
         // Add Wiflix sources (Luluvid)
@@ -1366,6 +1382,53 @@ class StreamingService {
     
         
         
+    // MARK: - Vidlink Integration
+    
+    private func fetchVidlinkSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        do {
+            let extractedSources = try await VidlinkService.shared.getStreams(tmdbId: String(tmdbId), mediaType: type, season: season, episode: episode)
+            var streamingSources: [StreamingSource] = []
+            
+            for source in extractedSources {
+                // Determine if proxying is needed (M3U8 playlists need proxying for CORS, segments don't)
+                let urlToPlay: String
+                let directUrl: String?
+                
+                if source.url.contains(".m3u8") {
+                    let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? source.url
+                    let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                    // Route through LocalProxyServer to inject custom headers natively
+                    urlToPlay = "http://localhost:8080/manifest?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)"
+                    directUrl = source.url
+                } else {
+                    urlToPlay = source.url
+                    directUrl = nil
+                }
+                
+                let headers = [
+                    "Referer": "https://vidlink.pro/",
+                    "Origin": "https://vidlink.pro"
+                ]
+                
+                let streamSource = StreamingSource(
+                    url: urlToPlay,
+                    directUrl: directUrl,
+                    quality: source.quality ?? "Auto",
+                    type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                    provider: "vidlink",
+                    language: "VO", // Vidlink is mainly VO
+                    origin: "vidlink",
+                    headers: headers
+                )
+                streamingSources.append(streamSource)
+            }
+            return streamingSources
+        } catch {
+            print("❌ [StreamingService] Vidlink fetching failed: \(error)")
+            return []
+        }
+    }
+    
     // MARK: - Extractors
     
     func extractVidMoly(url: String) async throws -> String {
