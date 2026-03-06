@@ -317,6 +317,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
+        async let mobSources = fetchMobSources(tmdbId: movieId)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
         async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
@@ -370,7 +371,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
+        let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
         let fsvidMovieResults = await fsvidSources
         let vidlinkMovieResults = await (try? vidlinkSources) ?? []
@@ -381,6 +382,7 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
+        print("   - MOB: \(mMob?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - Wiflix: \(wiflix?.count ?? 0)")
@@ -416,9 +418,14 @@ class StreamingService {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add MovieBox sources (High quality VO)
+        // Add MovieBox sources
         if let mBox = mBox {
             allSources.append(contentsOf: mBox)
+        }
+        
+        // Add MOB sources (v2)
+        if let mMob = mMob {
+            allSources.append(contentsOf: mMob)
         }
         
         // Add Movix/Darkibox Download sources
@@ -549,6 +556,7 @@ class StreamingService {
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+        async let mobSources = fetchMobSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
         async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
@@ -620,7 +628,8 @@ class StreamingService {
         
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
+        // DISABLED: UniversalVO API is broken - removed from tuple
+        let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let fsvidResults = await fsvidSources
         let vidlinkResults = await (try? vidlinkSources) ?? []
         
@@ -630,6 +639,7 @@ class StreamingService {
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
+        print("   - MOB: \(mMob?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
@@ -669,9 +679,14 @@ class StreamingService {
             allSources.append(contentsOf: tmdb)
         }
         
-        // Add MovieBox sources (High quality VO)
+        // Add MovieBox sources
         if let mBox = mBox {
             allSources.append(contentsOf: mBox)
+        }
+        
+        // Add MOB sources (v2)
+        if let mMob = mMob {
+            allSources.append(contentsOf: mMob)
         }
         
         // Add Movix/Darkibox Download sources
@@ -929,10 +944,10 @@ class StreamingService {
     }
 
     func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=movie"
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        print("🌐 [MovieBox] Fetching Movie via Proxy: \(urlString)")
+        print("🌐 [MovieBox] Fetching Movie URL: \(urlString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -940,7 +955,44 @@ class StreamingService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("❌ [MovieBox] Proxy HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            return []
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            if let movieBoxStreams = decoded.streams {
+                for src in movieBoxStreams {
+                    let quality = src.quality ?? "HD"
+                    let source = StreamingSource(
+                        url: src.url,
+                        directUrl: src.directUrl,
+                        quality: quality,
+                        type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
+                        provider: "moviebox",
+                        language: "VO",
+                        origin: "moviebox",
+                        headers: src.headers
+                    )
+                    sources.append(source)
+                }
+            }
+            return sources
+        } catch {
+            print("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+    
+    func fetchMobSources(tmdbId: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=movie"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        print("🌐 [MOB] Fetching Movie URL: \(urlString)")
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             return []
         }
         
@@ -948,24 +1000,57 @@ class StreamingService {
             let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
             return decoded.streams ?? []
         } catch {
-            print("❌ [MovieBox] Proxy Decoding Error: \(error)")
+            print("❌ [MOB] Decoding Error: \(error)")
             return []
         }
     }
     
     func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        print("🌐 [MovieBox] Fetching Series URL: \(urlString)")
+        
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            if let movieBoxStreams = decoded.streams {
+                for src in movieBoxStreams {
+                    let quality = src.quality ?? "HD"
+                    let source = StreamingSource(
+                        url: src.url,
+                        directUrl: src.directUrl,
+                        quality: quality,
+                        type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
+                        provider: "moviebox",
+                        language: "VO",
+                        origin: "moviebox",
+                        headers: src.headers
+                    )
+                    sources.append(source)
+                }
+            }
+            return sources
+        } catch {
+            print("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+    
+    func fetchMobSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
         let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        print("🌐 [MovieBox] Fetching Series via Proxy: \(urlString)")
+        print("🌐 [MOB] Fetching Series URL: \(urlString)")
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
+        let (data, response) = try await URLSession.shared.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("❌ [MovieBox] Proxy HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
             return []
         }
         
@@ -973,7 +1058,7 @@ class StreamingService {
             let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
             return decoded.streams ?? []
         } catch {
-            print("❌ [MovieBox] Proxy Decoding Error: \(error)")
+            print("❌ [MOB] Decoding Error: \(error)")
             return []
         }
     }
