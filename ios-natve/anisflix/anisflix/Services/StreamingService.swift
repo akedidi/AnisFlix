@@ -1395,8 +1395,10 @@ class StreamingService {
                 let directUrl: String?
                 
                 if source.url.contains(".m3u8") {
-                    let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? source.url
-                    let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+                    // Use a more restrictive character set for the nested URL to ensure '?' and '&' are encoded
+                    let allowedChars = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+                    let encodedUrl = source.url.addingPercentEncoding(withAllowedCharacters: allowedChars) ?? source.url
+                    let encodedReferer = "https://vidlink.pro/".addingPercentEncoding(withAllowedCharacters: allowedChars) ?? ""
                     // Route through LocalProxyServer to inject custom headers natively
                     urlToPlay = "http://localhost:8080/manifest?url=\(encodedUrl)&referer=\(encodedReferer)&origin=\(encodedReferer)"
                     directUrl = source.url
