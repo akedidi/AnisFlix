@@ -1979,20 +1979,8 @@ export default async function handler(req, res) {
 
 
 
-        // Light proxy: route each M3U8 playlist URL through /api/proxy with proxySegments=false.
-        // The M3U8 file goes through Vercel (to bypass CORS), but the video segments inside
-        // it are rewritten as absolute CDN URLs, so the client bypasses Vercel for the heavy video traffic.
-        const protocol = req.headers['x-forwarded-proto'] || 'https';
-        const host = req.headers.host;
-        const baseUrl = `${protocol}://${host}`;
-        const referer = encodeURIComponent('https://vidlink.pro/');
-        const origin = encodeURIComponent('https://vidlink.pro');
-
-        const streams = rawStreams.map(stream => ({
-          ...stream,
-          // Proxy the M3U8 playlist so the server can add Origin/Referer headers
-          url: `${baseUrl}/api/proxy?url=${encodeURIComponent(stream.url)}&referer=${referer}&origin=${origin}&proxySegments=false`
-        }));
+        // Direct return (no Vercel proxy loop)
+        const streams = rawStreams;
 
         console.log(`✅ [Vidlink] Found ${streams.length} streams.`);
         return res.status(200).json({ success: true, streams });
