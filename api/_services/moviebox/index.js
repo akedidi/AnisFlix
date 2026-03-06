@@ -299,13 +299,22 @@ function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', med
                             const quality = maxQ ? `${maxQ}p` : formatQualityLabel(candidates[0]);
                             const formatType = getFormatType(stream.url);
 
+                            // Language mapping: Original Audio -> VO, French dub -> FR
+                            let mappedLanguage = item.lang;
+                            const l = item.lang.toLowerCase();
+                            if (l.includes('french') || l.includes('français')) {
+                                mappedLanguage = 'FR';
+                            } else if (l.includes('original')) {
+                                mappedLanguage = 'VO';
+                            }
+
                             streams.push({
-                                name: `MovieBox (${item.lang}) ${quality} [${formatType}]`,
+                                name: `MovieBox (${mappedLanguage}) ${quality} [${formatType}]`,
                                 title: formatTitle(mediaTitle, season, episode, mediaType),
-                                url: stream.url,
+                                decoded_url: stream.url,
                                 quality,
                                 format: formatType,
-                                language: item.lang,
+                                language: mappedLanguage,
                                 headers: {
                                     "Referer": API_BASE,
                                     "User-Agent": HEADERS['User-Agent'],

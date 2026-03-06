@@ -907,7 +907,13 @@ class StreamingService {
         return sources
     }
     
-    // MARK: - MovieBox API
+    // MARK: - MovieBox Proxy API
+    
+    struct MobProxyResponse: Codable {
+        let success: Bool?
+        let count: Int?
+        let streams: [StreamingSource]?
+    }
     
     struct MovieBoxResponse: Codable {
         let streams: [MovieBoxStream]?
@@ -923,10 +929,10 @@ class StreamingService {
     }
 
     func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
+        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=movie"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        print("🌐 [MovieBox] Fetching Movie URL: \(urlString)")
+        print("🌐 [MovieBox] Fetching Movie via Proxy: \(urlString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -934,53 +940,24 @@ class StreamingService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("❌ [MovieBox] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-            if let errorData = String(data: data, encoding: .utf8) {
-                print("❌ [MovieBox] Error Response: \(errorData)")
-            }
-            throw URLError(.badServerResponse)
+            print("❌ [MovieBox] Proxy HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            return []
         }
         
-        // Log removed as per user request
-
-        
         do {
-            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
-            var sources: [StreamingSource] = []
-            
-            if let movieBoxStreams = decoded.streams {
-                for src in movieBoxStreams {
-                    let quality = src.quality ?? "HD"
-                    // Use proxied URL (`src.url`) as primary for Chromecast compatibility
-                    // Store direct URL for local AVPlayer playback with headers
-                    let targetUrl = src.url
-                    
-                    let source = StreamingSource(
-                        url: targetUrl,
-                        directUrl: src.directUrl,  // Direct URL for local playback
-                        quality: quality,
-                        type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
-                        provider: "moviebox",
-                        language: "VO",
-                        origin: "moviebox",
-                        headers: src.headers
-                    )
-                    sources.append(source)
-                }
-            }
-            print("✅ [MovieBox] Found \(sources.count) sources")
-            return sources
+            let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
+            return decoded.streams ?? []
         } catch {
-            print("❌ [MovieBox] Decoding Error: \(error)")
+            print("❌ [MovieBox] Proxy Decoding Error: \(error)")
             return []
         }
     }
     
     func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
+        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        print("🌐 [MovieBox] Fetching Series URL: \(urlString)")
+        print("🌐 [MovieBox] Fetching Series via Proxy: \(urlString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -988,43 +965,15 @@ class StreamingService {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("❌ [MovieBox] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-            if let errorData = String(data: data, encoding: .utf8) {
-                print("❌ [MovieBox] Error Response: \(errorData)")
-            }
-            throw URLError(.badServerResponse)
+            print("❌ [MovieBox] Proxy HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            return []
         }
         
-        // Log removed as per user request
-
-        
         do {
-            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
-            var sources: [StreamingSource] = []
-            
-            if let movieBoxStreams = decoded.streams {
-                for src in movieBoxStreams {
-                    let quality = src.quality ?? "HD"
-                    // Use proxied URL as primary, store direct URL for local playback
-                    let targetUrl = src.url
-                    
-                    let source = StreamingSource(
-                        url: targetUrl,
-                        directUrl: src.directUrl,  // Direct URL for local playback
-                        quality: quality,
-                        type: src.type ?? (targetUrl.contains(".m3u8") ? "hls" : "mp4"),
-                        provider: "moviebox",
-                        language: "VO",
-                        origin: "moviebox",
-                        headers: src.headers
-                    )
-                    sources.append(source)
-                }
-            }
-            print("✅ [MovieBox] Found \(sources.count) sources")
-            return sources
+            let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
+            return decoded.streams ?? []
         } catch {
-            print("❌ [MovieBox] Decoding Error: \(error)")
+            print("❌ [MovieBox] Proxy Decoding Error: \(error)")
             return []
         }
     }
