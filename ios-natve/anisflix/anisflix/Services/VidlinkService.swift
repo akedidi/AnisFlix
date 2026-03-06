@@ -23,6 +23,14 @@ class VidlinkService {
     
     private let qualityOrder: [String: Int] = ["4K": 5, "1440p": 4, "1080p": 3, "720p": 2, "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3]
     
+    // MARK: - Models
+    
+    struct ExtractedSource {
+        let name: String
+        let url: String
+        let quality: String?
+    }
+    
     // MARK: - API Response Structures
     
     private struct EncryptResponse: Codable {
