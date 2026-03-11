@@ -358,6 +358,8 @@ struct MovieDetailView: View {
                                                     if provider == "moviebox" { return 1 }
                                                     if provider == "vixsrc" { return 2 }
                                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
+                                                    if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
+                                                    if provider == "mob" { return 6 }
                                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                                     if provider.contains("luluvid") { return 99 }
                                                     return 5 // Default rank (e.g. VidMoly)
@@ -754,6 +756,9 @@ struct MovieDetailView: View {
             } else {
                 return "\(quality) (\(source.language))"
             }
+        } else if source.provider.lowercased() == "mob" {
+            let quality = formatQualityDisplay(source.quality)
+            return "MOB - \(quality)"
         } else {
             // For specified providers like Vidmoly, always show HD
             if source.provider.lowercased() == "vidmoly" {

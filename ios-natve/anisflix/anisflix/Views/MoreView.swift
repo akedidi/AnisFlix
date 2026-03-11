@@ -14,16 +14,6 @@ struct MoreView: View {
         NavigationStack {
             List {
                 Section {
-                    NavigationLink(destination: FavoritesView()) {
-                        Label {
-                            Text(theme.t("nav.favorites"))
-                                .foregroundColor(theme.primaryText)
-                        } icon: {
-                            Image(systemName: "heart.fill")
-                                .foregroundColor(AppTheme.primaryRed)
-                        }
-                    }
-                    
                     NavigationLink(destination: SettingsView()) {
                         Label {
                             Text(theme.t("nav.settings"))

@@ -43,6 +43,7 @@ struct MainTabView: View {
     @State private var homePath = NavigationPath()
     @State private var explorePath = NavigationPath()
     @State private var downloadsPath = NavigationPath()
+    @State private var favoritesPath = NavigationPath()
     @State private var morePath = NavigationPath()
     
 
@@ -64,7 +65,7 @@ struct MainTabView: View {
             case 0: homePath = NavigationPath()
             case 1: explorePath = NavigationPath()
             case 2: downloadsPath = NavigationPath()
-            case 3: morePath = NavigationPath()
+            case 3: favoritesPath = NavigationPath()
             default: break
             }
         }
@@ -193,9 +194,9 @@ struct MainTabView: View {
                 .tag(2)
                  .toolbar(.hidden, for: .tabBar)
                 
-                // Onglet 4: Plus (Menu)
-                NavigationStack(path: $morePath) {
-                    MoreView()
+                // Onglet 4: Favoris
+                NavigationStack(path: $favoritesPath) {
+                    FavoritesView()
                         .navigationDestination(for: NavigationRoute.self) { route in
                             switch route {
                             case .movieDetail(let movieId):
@@ -231,6 +232,14 @@ struct MainTabView: View {
                 }
                 .tag(3)
                  .toolbar(.hidden, for: .tabBar)
+                
+                .tag(3)
+                 .toolbar(.hidden, for: .tabBar)
+                
+                // Onglet 5: Paramètres
+                SettingsView()
+                    .tag(4)
+                     .toolbar(.hidden, for: .tabBar)
             }
              .ignoresSafeArea() // Allow content to extend behind the floating bar
             
@@ -326,7 +335,8 @@ struct MainTabView: View {
                     posterUrl: playerManager.vlcPosterUrl,
                     mediaId: playerManager.mediaId,
                     season: playerManager.season,
-                    episode: playerManager.episode
+                    episode: playerManager.episode,
+                    headers: playerManager.vlcHeaders
                 )
                 .edgesIgnoringSafeArea(.all)
             }

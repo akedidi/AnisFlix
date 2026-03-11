@@ -462,8 +462,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (vidlink added)
-        return allSources.filter { $0.provider == "vidlink" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
+        // Filter for allowed providers (vidlink added, mob added)
+        return allSources.filter { $0.provider == "vidlink" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -718,8 +718,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (fsvid added)
-        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" }
+        // Filter for allowed providers (fsvid added, mob added)
+        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
@@ -986,22 +986,13 @@ class StreamingService {
     }
     
     func fetchMobSources(tmdbId: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=movie"
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        print("🌐 [MOB] Fetching Movie URL: \(urlString)")
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            return []
-        }
-        
         do {
-            let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
-            return decoded.streams ?? []
+            let sources = try await MobService.shared.fetchSources(tmdbId: tmdbId, type: "movie")
+            print("🚀 [StreamingService] fetchMobSources returned \(sources.count) sources for ID \(tmdbId)")
+            return sources
         } catch {
-            print("❌ [MOB] Decoding Error: \(error)")
-            return []
+            print("❌ [StreamingService] fetchMobSources threw error: \(error)")
+            throw error
         }
     }
     
@@ -1044,23 +1035,7 @@ class StreamingService {
     }
     
     func fetchMobSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
-        let urlString = "\(baseUrl)/api/movix-proxy?path=mob&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        print("🌐 [MOB] Fetching Series URL: \(urlString)")
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            return []
-        }
-        
-        do {
-            let decoded = try JSONDecoder().decode(MobProxyResponse.self, from: data)
-            return decoded.streams ?? []
-        } catch {
-            print("❌ [MOB] Decoding Error: \(error)")
-            return []
-        }
+        return try await MobService.shared.fetchSources(tmdbId: tmdbId, type: "tv", season: season, episode: episode)
     }
 
     

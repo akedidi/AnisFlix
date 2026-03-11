@@ -14,6 +14,12 @@ class LocalStreamingServer {
     private let webServer = GCDWebServer()
     private var isRunning = false
     
+    // Manifest Cache (URL -> Rewritten Content) for VOD streams to prevent token expiration during Chromecast
+    private var manifestCache: [String: String] = [:]
+    
+    // DASH proxy session storage (session ID → session info)
+    var dashSessions: [String: DashSession] = [:]
+    
     private init() {
         setupRoutes()
     }
@@ -78,6 +84,104 @@ class LocalStreamingServer {
     }
     
     private func setupRoutes() {
+        // 0. Stream Handler (For large MP4 streaming via HTTP byte ranges)
+        webServer.addHandler(forMethod: "GET", path: "/stream", request: GCDWebServerRequest.self) { [weak self] request, completion in
+            guard let self = self else {
+                completion(GCDWebServerDataResponse(statusCode: 500))
+                return
+            }
+            let query = self.extractQuery(from: request)
+            
+            var targetUrlString = query["url"]
+            if let url64 = query["url64"], let data = Data(base64Encoded: url64), let str = String(data: data, encoding: .utf8) {
+                targetUrlString = str
+            }
+            
+            guard let validUrlString = targetUrlString,
+                  let targetUrl = URL(string: validUrlString) else {
+                completion(GCDWebServerDataResponse(statusCode: 400))
+                return
+            }
+            
+            // Extract Headers from Query
+            let referer = query["referer"] as? String
+            let origin = query["origin"] as? String
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            let userAgent = query["user_agent"] as? String ?? defaultUA
+            let cookie = query["cookie"] as? String
+            
+            var urlRequest = URLRequest(url: targetUrl)
+            self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+            
+            // VERY IMPORTANT: Forward Range header exactly as requested by AVPlayer
+            if let rangeHeader = request.headers["Range"] {
+                urlRequest.setValue(rangeHeader, forHTTPHeaderField: "Range")
+                print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (Range: \(rangeHeader))")
+            } else {
+                print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (No Range req)")
+            }
+            
+            // Setup URLSession with streaming delegate
+            let config = URLSessionConfiguration.default
+            let delegate = StreamingSessionDelegate()
+            let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+            let task = session.dataTask(with: urlRequest)
+            
+            delegate.onResponse = { response in
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    completion(GCDWebServerDataResponse(statusCode: 502))
+                    return
+                }
+                
+                let statusCode = httpResponse.statusCode
+                let contentType = httpResponse.mimeType ?? "video/mp4"
+                
+                // AVPlayer is extremely picky about Content-Length vs Expected Content Length vs Extracted Range
+                let contentLengthStr = httpResponse.allHeaderFields["Content-Length"] as? String
+                let contentLength = UInt(contentLengthStr ?? "0") ?? UInt(httpResponse.expectedContentLength > 0 ? httpResponse.expectedContentLength : 0)
+                
+                let streamResponse = GCDWebServerStreamedResponse(
+                    contentType: contentType,
+                    asyncStreamBlock: { asyncCompletion in
+                        delegate.readNextChunk { data, error in
+                            if let error = error {
+                                print("❌ [LocalServer] Stream chunk error: \(error)")
+                                asyncCompletion(nil, error)
+                            } else if let data = data, !data.isEmpty {
+                                asyncCompletion(data, nil)
+                            } else {
+                                asyncCompletion(Data(), nil) // EOF
+                            }
+                        }
+                    }
+                )
+                
+                // Mirror all essential headers for AVPlayer (CRITICAL FOR MP4)
+                if let contentRange = httpResponse.allHeaderFields["Content-Range"] as? String {
+                    streamResponse.setValue(contentRange, forAdditionalHeader: "Content-Range")
+                    streamResponse.statusCode = 206 // Partial Content
+                } else if statusCode == 200 {
+                    streamResponse.statusCode = 200
+                } else {
+                    streamResponse.statusCode = statusCode
+                }
+                
+                if let acceptRanges = httpResponse.allHeaderFields["Accept-Ranges"] as? String {
+                    streamResponse.setValue(acceptRanges, forAdditionalHeader: "Accept-Ranges")
+                } else {
+                    streamResponse.setValue("bytes", forAdditionalHeader: "Accept-Ranges")
+                }
+                
+                // Set explicit Content-Length so GCDWebServer doesn't use chunked transfer encoding (which breaks MP4 AVPlayer seek)
+                streamResponse.contentLength = contentLength
+                
+                self.addCorsHeaders(streamResponse)
+                completion(streamResponse)
+            }
+            
+            task.resume()
+        }
+        
         // 1. Manifest Handler (Rewrites M3U8)
         webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
@@ -93,6 +197,15 @@ class LocalStreamingServer {
             guard let validUrlString = targetUrlString,
                   let targetUrl = URL(string: validUrlString) else {
                 return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            // Check Cache
+            if let cachedManifest = self.manifestCache[validUrlString] {
+                print("♻️ [LocalServer] Serving cached manifest for: \(targetUrl.lastPathComponent)")
+                let resp = GCDWebServerDataResponse(text: cachedManifest)
+                resp?.contentType = "application/vnd.apple.mpegurl"
+                if let r = resp { self.addCorsHeaders(r) }
+                return resp
             }
             
             let subtitleUrlString = query["subs"] as? String
@@ -161,6 +274,13 @@ class LocalStreamingServer {
             
             // Rewrite Manifest
             let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, queryItemsToPersist: originalQueryItems, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+            
+            // Cache VOD schemas and Master playlists. Live stream variant playlists continuously update so they are not cached.
+            let isVODOrMaster = content.contains("#EXT-X-ENDLIST") || content.contains("#EXT-X-STREAM-INF")
+            if isVODOrMaster {
+                self.manifestCache[validUrlString] = rewrittenContent
+                print("💾 [LocalServer] Cached manifest for: \(targetUrl.lastPathComponent)")
+            }
             
             print("📝 [LocalServer] Rewritten Manifest Preview:\n" + rewrittenContent.split(separator: "\n").prefix(5).joined(separator: "\n") + "\n... (truncated)")
             
@@ -300,6 +420,241 @@ class LocalStreamingServer {
             if let r = resp { self.addCorsHeaders(r) }
             return resp
         }
+        
+        // 4. DASH Proxy Handler (Rewrites MPD manifests so segments go through /stream with cookies)
+        // Solves: VLC's DASH demuxer doesn't propagate http-cookies to segment sub-requests
+        webServer.addHandler(forMethod: "GET", path: "/dash-proxy", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            
+            let query = self.extractQuery(from: request)
+            
+            var targetUrlString = query["url"]
+            if let url64 = query["url64"], let data = Data(base64Encoded: url64), let str = String(data: data, encoding: .utf8) {
+                targetUrlString = str
+            }
+            
+            guard let validUrlString = targetUrlString,
+                  let targetUrl = URL(string: validUrlString) else {
+                return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            let cookie = query["cookie"]
+            let referer = query["referer"]
+            let userAgent = query["user_agent"]
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+            
+            print("📦 [LocalServer] DASH Proxy: Fetching MPD from \(targetUrl.lastPathComponent)")
+            
+            // Fetch the original MPD manifest with auth headers
+            let semaphore = DispatchSemaphore(value: 0)
+            var responseData: Data?
+            var responseError: Error?
+            
+            var urlRequest = URLRequest(url: targetUrl)
+            urlRequest.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
+            if let r = referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
+            if let c = cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
+            
+            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                responseData = data
+                responseError = error
+                semaphore.signal()
+            }
+            task.resume()
+            semaphore.wait()
+            
+            if let error = responseError {
+                print("❌ [LocalServer] DASH Proxy MPD fetch error: \(error)")
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            guard let data = responseData, var mpdContent = String(data: data, encoding: .utf8) else {
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            // Rewrite segment URLs in the MPD to go through /stream
+            // DASH uses SegmentTemplate with initialization="init-stream$RepresentationID$.m4s" 
+            // and media="chunk-stream$RepresentationID$-$Number%05d$.m4s"
+            // We need to rewrite these relative URLs to absolute /stream URLs
+            
+            let baseUrl = targetUrl.deletingLastPathComponent().absoluteString
+            let serverHost = self.webServer.serverURL?.host ?? "127.0.0.1"
+            let serverPort = Int(self.webServer.port)
+            
+            // Build query params for /stream
+            var streamParams = [String]()
+            // We'll use a placeholder BASE_URL that we'll prepend to each segment path
+            if let c = cookie { streamParams.append("cookie=\(c.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? c)") }
+            if let r = referer { streamParams.append("referer=\(r.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? r)") }
+            if let ua = userAgent { streamParams.append("user_agent=\(ua.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ua)") }
+            let extraParams = streamParams.joined(separator: "&")
+            
+            // Insert a <BaseURL> pointing to our /stream proxy
+            // This makes all relative URLs in the MPD resolve through our proxy
+            // We encode the base URL in url64 format inside a special BaseURL
+            
+            // Instead of BaseURL (which doesn't work with query params), we rewrite the SegmentTemplate attributes
+            // Replace initialization="X" with initialization="http://localhost:8080/stream?url64=BASE64(baseUrl+X)&cookie=..."
+            // Replace media="X" with media="http://localhost:8080/stream?url64=BASE64(baseUrl+X)&cookie=..."
+            
+            // Helper to build proxied URL for a segment path pattern
+            func proxySegmentUrl(_ segmentPath: String) -> String {
+                // The segment path may contain DASH template vars like $RepresentationID$ and $Number%05d$
+                // We need to preserve these, so we encode the base URL + path pattern
+                let fullPath = baseUrl + segmentPath
+                if let encoded = fullPath.data(using: .utf8)?.base64EncodedString() {
+                    return "http://\(serverHost):\(serverPort)/stream?url64=\(encoded)\(extraParams.isEmpty ? "" : "&\(extraParams)")"
+                }
+                return segmentPath
+            }
+            
+            // Rewrite initialization="..." attributes
+            if let regex = try? NSRegularExpression(pattern: #"initialization="([^"]+)""#, options: []) {
+                let range = NSRange(mpdContent.startIndex..., in: mpdContent)
+                let matches = regex.matches(in: mpdContent, options: [], range: range)
+                // Process in reverse to preserve ranges
+                for match in matches.reversed() {
+                    if let pathRange = Range(match.range(at: 1), in: mpdContent) {
+                        let originalPath = String(mpdContent[pathRange])
+                        // For templates with $vars$, we can't pre-encode them
+                        // Instead, we'll use a different approach: add a BaseURL
+                    }
+                }
+            }
+            
+            // SIMPLER APPROACH: Add a <BaseURL> element that points to our /stream proxy
+            // But BaseURL doesn't support query params in standard DASH...
+            // BEST APPROACH: Serve segments via a new /dash-segment endpoint that resolves the template
+            
+            // ACTUALLY THE SIMPLEST: Just add <BaseURL> with the original base + use /proxy endpoint
+            // that forwards Cookie. BUT /proxy loads entire file into RAM...
+            
+            // REAL SOLUTION: Instead of rewriting the MPD, serve segments via a dedicated path
+            // that automatically adds the cookie. Add a catch-all route under /dash-seg/
+            
+            // For now, let's try the BaseURL approach (simplest, and segments are small ~200KB):
+            // We DON'T need /stream for small segments. /proxy works fine for 200KB chunks.
+            
+            // Actually wait - the SIMPLEST approach that definitely works:
+            // Just inject <BaseURL> with the original CDN base URL
+            // And pass cookie via VLC http-cookies (which DOES work for the MPD URL itself)
+            // The issue is that BaseURL makes segment URLs absolute, but VLC still won't pass cookies
+            
+            // OK, definitive approach: Add a pattern-based route /dash-seg/* 
+            // that proxies any segment request with the stored cookie
+            
+            // For THIS MPD, we know the structure. Let's just do it properly:
+            // Replace the SegmentTemplate initialization/media to point to /proxy with url64
+            
+            // The DASH template variables ($RepresentationID$, $Number%05d$) must stay in the URL
+            // because VLC resolves them at playback time. We can't pre-encode these.
+            // So we need a route like /dash-seg/<path> that proxies to baseUrl/<path> with cookie.
+            
+            print("📦 [LocalServer] DASH Proxy: Injecting BaseURL into MPD")
+            
+            // Create a local base URL that maps to the CDN + cookie
+            // Store the mapping for the dash-seg handler
+            let mappingId = UUID().uuidString.prefix(8)
+            let encodedBase = baseUrl.data(using: .utf8)?.base64EncodedString() ?? ""
+            let dashSegBase = "http://\(serverHost):\(serverPort)/proxy?url64_prefix=\(encodedBase)&\(extraParams)&seg="
+            
+            // Actually, the cleanest way: rewrite the MPD to use absolute URLs through /proxy
+            // For DASH templates, we need to keep the template variables.
+            // VLC will resolve $RepresentationID$ etc. BEFORE making the HTTP request.
+            // So we can put them in the URL as-is — they'll be resolved first, then the HTTP call happens.
+            
+            // Approach: wrap each segment template path through our proxy
+            // initialization="init-stream$RepresentationID$.m4s" 
+            // → initialization="http://host:port/proxy?url=BASE_URL/init-stream$RepresentationID$.m4s&cookie=..."
+            // VLC resolves the $vars$ first, then makes the HTTP call to our proxy. Our proxy fetches with Cookie.
+            
+            // But URL encoding of $vars$ might break... Let's just use BaseURL instead.
+            // <BaseURL>http://host:port/proxy?url=BASE_URL_ENCODED/</BaseURL>
+            // No, that doesn't work because BaseURL is prepended to relative segment paths,
+            // resulting in something like "http://host:port/proxy?url=BASE/init-stream0.m4s"
+            // which our /proxy handler wouldn't parse correctly.
+            
+            // CLEANEST SOLUTION: A catch-all /dash/* route
+            // <BaseURL>http://host:port/dash/SESSION_ID/</BaseURL>
+            // Then /dash/SESSION_ID/init-stream0.m4s → proxy to CDN_BASE/init-stream0.m4s with cookie
+            
+            // Store session info
+            self.dashSessions[String(mappingId)] = DashSession(baseUrl: baseUrl, cookie: cookie, referer: referer, userAgent: userAgent)
+            
+            // Inject BaseURL into MPD (after <Period ...> tag)
+            let localBaseUrl = "http://\(serverHost):\(serverPort)/dash/\(mappingId)/"
+            
+            if let periodRange = mpdContent.range(of: "<Period", options: .caseInsensitive) {
+                // Find the closing > of the <Period ...> tag
+                if let closeRange = mpdContent.range(of: ">", options: [], range: periodRange.upperBound..<mpdContent.endIndex) {
+                    let insertPoint = mpdContent.index(after: closeRange.lowerBound)
+                    mpdContent.insert(contentsOf: "\n\t\t<BaseURL>\(localBaseUrl)</BaseURL>", at: insertPoint)
+                }
+            }
+            
+            print("📦 [LocalServer] DASH Proxy: Rewritten MPD with BaseURL → \(localBaseUrl)")
+            print("📦 [LocalServer] DASH Proxy: Session \(mappingId) → \(baseUrl)")
+            
+            let resp = GCDWebServerDataResponse(text: mpdContent)
+            resp?.contentType = "application/dash+xml"
+            if let r = resp { self.addCorsHeaders(r) }
+            return resp
+        }
+        
+        // 5. DASH Segment Proxy (catch-all for /dash/SESSION_ID/segment.m4s)
+        webServer.addHandler(forMethod: "GET", pathRegex: "/dash/.*", request: GCDWebServerRequest.self) { [weak self] request in
+            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+            
+            let path = request.path // e.g. /dash/ABC123/init-stream0.m4s
+            let components = path.split(separator: "/") // ["dash", "ABC123", "init-stream0.m4s"]
+            
+            guard components.count >= 3,
+                  let session = self.dashSessions[String(components[1])] else {
+                print("❌ [LocalServer] DASH Segment: Invalid session for path \(path)")
+                return GCDWebServerDataResponse(statusCode: 404)
+            }
+            
+            // Reconstruct segment path (everything after /dash/SESSION_ID/)
+            let segmentPath = components[2...].joined(separator: "/")
+            let segmentUrl = session.baseUrl + segmentPath
+            
+            guard let targetUrl = URL(string: segmentUrl) else {
+                return GCDWebServerDataResponse(statusCode: 400)
+            }
+            
+            // Fetch segment with cookie
+            let semaphore = DispatchSemaphore(value: 0)
+            var responseData: Data?
+            var responseError: Error?
+            
+            var urlRequest = URLRequest(url: targetUrl)
+            let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+            urlRequest.setValue(session.userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
+            if let r = session.referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
+            if let c = session.cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
+            
+            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                responseData = data
+                responseError = error
+                semaphore.signal()
+            }
+            task.resume()
+            semaphore.wait()
+            
+            if let error = responseError {
+                print("❌ [LocalServer] DASH Segment error: \(error)")
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            if let data = responseData {
+                let contentType = "video/mp4" // m4s segments
+                let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
+                self.addCorsHeaders(resp)
+                return resp
+            }
+            
+            return GCDWebServerDataResponse(statusCode: 404)
+        }
     }
     
     // MARK: - Subtitle Formatting
@@ -433,7 +788,9 @@ class LocalStreamingServer {
         }
         
         // Construct Proxy URL
-        let isPlaylist = resolved.pathExtension == "m3u8"
+        let isPlaylist = resolved.pathExtension.lowercased() == "m3u8" || resolved.absoluteString.lowercased().contains(".m3u8")
+        // Use /proxy for segments (buffers into RAM, better for Chromecast), /stream for big MP4 files
+        // Manifest rewriting is only used for HLS, where everything except the playlist is small segments or keys
         let endpoint = isPlaylist ? "/manifest" : "/proxy"
         
         var components = URLComponents()
@@ -509,4 +866,63 @@ class LocalStreamingServer {
         response.setValue("GET, HEAD, OPTIONS", forAdditionalHeader: "Access-Control-Allow-Methods")
         response.setValue("Range, Content-Type, Origin, Accept", forAdditionalHeader: "Access-Control-Allow-Headers")
     }
+}
+
+// Helper class for URLSession streaming
+class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
+    var onResponse: ((URLResponse) -> Void)?
+    var buffer: Data = Data()
+    var readCallback: ((Data?, Error?) -> Void)?
+    var isFinished = false
+    var error: Error?
+    let queue = DispatchQueue(label: "com.anisflix.streaming")
+    
+    func readNextChunk(completion: @escaping (Data?, Error?) -> Void) {
+        queue.async {
+            if self.buffer.count > 0 {
+                let bytesToRead = min(self.buffer.count, 64 * 1024)
+                let chunk = self.buffer.prefix(bytesToRead)
+                self.buffer.removeFirst(bytesToRead)
+                completion(chunk, nil)
+            } else if self.isFinished {
+                completion(self.error != nil ? nil : Data(), self.error)
+            } else {
+                self.readCallback = completion
+            }
+        }
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+        onResponse?(response)
+        completionHandler(.allow)
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        queue.async {
+            self.buffer.append(data)
+            if let callback = self.readCallback {
+                self.readCallback = nil
+                self.readNextChunk(completion: callback)
+            }
+        }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        queue.async {
+            self.isFinished = true
+            self.error = error
+            if let callback = self.readCallback {
+                self.readCallback = nil
+                self.readNextChunk(completion: callback)
+            }
+        }
+    }
+}
+
+// DASH Proxy Session Info
+struct DashSession {
+    let baseUrl: String
+    let cookie: String?
+    let referer: String?
+    let userAgent: String?
 }

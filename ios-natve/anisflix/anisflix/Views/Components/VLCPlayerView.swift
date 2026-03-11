@@ -55,7 +55,7 @@ class VLCPlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         mediaPlayer.delegate = self
     }
     
-    func setup(url: URL) {
+    func setup(url: URL, headers: [String: String]? = nil) {
         // Stop currently playing media
         if mediaPlayer.isPlaying {
             mediaPlayer.stop()
@@ -69,11 +69,31 @@ class VLCPlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         print("🎬 [VLCPlayerVM] Setup Shared Instance: \(url)")
         
         let media = VLCMedia(url: url)
-        media.addOptions([
+        
+        var options: [String: Any] = [
             "network-caching": 5000, // Boost buffer
-            "avcodec-hw": "any", // Hardware Decoding
-            "http-user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
-        ])
+            "avcodec-hw": "any" // Hardware Decoding
+        ]
+        
+        // Add Custom Headers
+        let defaultUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+        let userAgent = headers?["User-Agent"] ?? headers?["user-agent"] ?? defaultUserAgent
+        options["http-user-agent"] = userAgent
+        
+        if let referer = headers?["Referer"] ?? headers?["referer"] {
+            options["http-referrer"] = referer
+        }
+        
+        // Cookie support (critical for CloudFront-signed MOB DASH streams)
+        if let cookie = headers?["Cookie"] ?? headers?["cookie"] {
+            // VLC expects cookies in "key=value; key2=value2" format via http-cookies
+            options["http-cookies"] = cookie
+            print("🍪 [VLCPlayerVM] Injecting Cookie: \(cookie.prefix(60))...")
+        }
+        
+        print("🎬 [VLCPlayerVM] VLC options: UA=\(userAgent.prefix(30))..., Referer=\(options["http-referrer"] ?? "none")")
+        
+        media.addOptions(options)
         
         mediaPlayer.media = media
         isBuffering = true
@@ -258,13 +278,15 @@ struct VLCPlayerView: View {
     let mediaId: Int?
     let season: Int?
     let episode: Int?
+    let headers: [String: String]?
     
-    init(url: URL, title: String? = nil, posterUrl: URL? = nil, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil) {
+    init(url: URL, title: String? = nil, posterUrl: URL? = nil, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, headers: [String: String]? = nil) {
         self.url = url
         self.title = title
         self.mediaId = mediaId
         self.season = season
         self.episode = episode
+        self.headers = headers
     }
     
     @State private var showControls = true
@@ -519,7 +541,7 @@ struct VLCPlayerView: View {
              }
         }
         .onAppear {
-            viewModel.setup(url: url)
+            viewModel.setup(url: url, headers: headers)
             viewModel.mediaId = mediaId
             viewModel.season = season
             viewModel.episode = episode

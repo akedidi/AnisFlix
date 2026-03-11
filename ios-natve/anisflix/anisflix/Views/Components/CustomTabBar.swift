@@ -56,12 +56,24 @@ struct CustomTabBar: View {
                 onDoubleTap: onTabDoubleTap
             )
             
-            // 4. Plus (Menu)
+            // 4. Favoris
             TabBarButton(
-                icon: "ellipsis.circle",
-                selectedIcon: "ellipsis.circle.fill",
-                title: "Plus",
+                icon: "heart",
+                selectedIcon: "heart.fill",
+                title: theme.t("nav.favorites"),
                 tabIndex: 3,
+                selectedTab: $selectedTab,
+                theme: theme,
+                onTap: onTabTap,
+                onDoubleTap: onTabDoubleTap
+            )
+            
+            // 5. Paramètres
+            TabBarButton(
+                icon: "gearshape",
+                selectedIcon: "gearshape.fill",
+                title: "Param.",
+                tabIndex: 4,
                 selectedTab: $selectedTab,
                 theme: theme,
                 onTap: onTabTap,

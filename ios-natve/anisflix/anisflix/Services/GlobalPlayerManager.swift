@@ -39,6 +39,7 @@ class GlobalPlayerManager: ObservableObject {
     @Published var vlcURL: URL?
     @Published var vlcTitle: String?
     @Published var vlcPosterUrl: URL?
+    @Published var vlcHeaders: [String: String]?
     @Published var isVLCMinimized = false // For VLC mini-player
     
     // Server URL for Cast (used for downloaded videos where local file can't be cast)
@@ -213,25 +214,73 @@ class GlobalPlayerManager: ObservableObject {
         
         if castManager.isConnected {
             // For Cast, use serverUrl if provided (downloaded videos), otherwise use url (streaming)
-            let castUrl = serverUrl ?? url
-            // Note: CastManager currently doesn't support custom headers. 
-            // If MovieBox needs headers on Cast, we might need to update CastManager too.
-            // But usually Cast loads from URL directly. If URL is signed/proxy, it might work.
-            // If headers are needed for authentication, Cast might fail. 
-            // For now, focusing on local playback as per user request ("partie video").
+            var castUrl = serverUrl ?? url
+            
+            // Chromecast doesn't support custom headers (Referer, Origin, Cookie). 
+            // For providers like Vidlink, Vidzy, Luluvid or any URL with headers, we MUST wrap it in the Local Proxy.
+            let urlString = url.absoluteString.lowercased()
+            let isVidlink = urlString.contains("vodvidl.site") ||
+                            urlString.contains("vidlink") ||
+                            (headers?["Origin"]?.contains("vidlink") == true)
+            let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink
+            let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
+            let hasHeaders = (headers != nil && !headers!.isEmpty)
+            
+            if !isVercelProxy && (isVidzyOrLuluvid || hasHeaders) && serverUrl == nil {
+                if let serverAppUrl = LocalStreamingServer.shared.serverUrl {
+                    var components = URLComponents()
+                    components.scheme = serverAppUrl.scheme
+                    components.host = serverAppUrl.host
+                    components.port = serverAppUrl.port
+                    
+                    // Route HLS via /manifest, others via /stream
+                    let isPlaylist = url.pathExtension.lowercased() == "m3u8" || urlString.contains(".m3u8")
+                    components.path = isPlaylist ? "/manifest" : "/stream"
+                    
+                    var queryItems = [URLQueryItem]()
+                    if let urlData = url.absoluteString.data(using: .utf8) {
+                        queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+                    }
+                    if let referer = headers?["Referer"] ?? headers?["referer"] {
+                        queryItems.append(URLQueryItem(name: "referer", value: referer))
+                    }
+                    if let origin = headers?["Origin"] ?? headers?["origin"] {
+                        queryItems.append(URLQueryItem(name: "origin", value: origin))
+                    }
+                    if let ua = headers?["User-Agent"] ?? headers?["user-agent"] {
+                        queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                    }
+                    if let cookie = headers?["Cookie"] ?? headers?["cookie"] {
+                        queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+                    }
+                    components.queryItems = queryItems
+                    
+                    if let proxyUrl = components.url {
+                        print("🚀 [GlobalPlayerManager] Wrapping URL in Local Proxy for Chromecast")
+                        print("   - Original: \(url)")
+                        print("   - Proxy: \(proxyUrl)")
+                        castUrl = proxyUrl
+                    }
+                }
+            }
+            
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
-             // Detect if we need VLC (MKV/4KHDHub sources)
-             print("🔍 [GlobalPlayerManager] Checking for VLC: provider='\(provider ?? "nil")', extension='\(url.pathExtension)'")
+             // Detect if we need VLC (MKV/4KHDHub/DASH/H.265 sources)
+             let urlLower = url.absoluteString.lowercased()
              let useVLC = provider?.lowercased() == "4khdhub" || 
                           provider?.lowercased() == "fourkhdhub" ||
-                          url.pathExtension.lowercased() == "mkv"
+                          url.pathExtension.lowercased() == "mkv" ||
+                          url.pathExtension.lowercased() == "mpd" ||
+                          urlLower.contains(".mpd") ||
+                          urlLower.contains("/h265/") ||
+                          urlLower.contains("/hevc/")
              
              print("🎬 [GlobalPlayerManager] useVLC decision: \(useVLC)")
              
              if useVLC {
-                  // Use standalone VLCPlayerView for MKV files (proven to work)
-                  print("✅ [GlobalPlayerManager] MKV/4KHDHub source detected, using standalone VLCPlayerView")
+                  // Use standalone VLCPlayerView for MKV/DASH/H.265 files
+                  print("✅ [GlobalPlayerManager] VLC source detected, using standalone VLCPlayerView")
                   
                   // Stop AVPlayer if running
                   if playerVM.isPlaying {
@@ -239,9 +288,52 @@ class GlobalPlayerManager: ObservableObject {
                       playerVM.isPlaying = false
                   }
                   
+                  // For DASH (.mpd) streams with cookies (e.g. MOB VF with CloudFront signCookie),
+                  // route through local /dash-proxy. VLC's DASH demuxer doesn't propagate http-cookies
+                  // to segment sub-requests, so we need the proxy to inject Cookie headers.
+                  let isDash = url.pathExtension.lowercased() == "mpd" || urlLower.contains(".mpd")
+                  let hasCookie = headers?["Cookie"] != nil || headers?["cookie"] != nil
+                  
+                  if isDash && hasCookie, let serverUrl = LocalStreamingServer.shared.serverUrl {
+                      print("🎬 [GlobalPlayerManager] DASH+Cookie detected → routing through /dash-proxy")
+                      
+                      var components = URLComponents()
+                      components.scheme = serverUrl.scheme
+                      components.host = serverUrl.host
+                      components.port = serverUrl.port
+                      components.path = "/dash-proxy"
+                      
+                      var queryItems = [URLQueryItem]()
+                      if let urlData = url.absoluteString.data(using: .utf8) {
+                          queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+                      }
+                      if let cookie = headers?["Cookie"] ?? headers?["cookie"] {
+                          queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+                      }
+                      if let referer = headers?["Referer"] ?? headers?["referer"] {
+                          queryItems.append(URLQueryItem(name: "referer", value: referer))
+                      }
+                      if let ua = headers?["User-Agent"] ?? headers?["user-agent"] {
+                          queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                      }
+                      components.queryItems = queryItems
+                      
+                      if let proxyUrl = components.url {
+                          print("🎬 [GlobalPlayerManager] VLC will play proxied MPD: \(proxyUrl)")
+                          self.vlcURL = proxyUrl
+                          self.vlcTitle = title
+                          self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
+                          self.vlcHeaders = nil // No headers needed for localhost
+                          self.showVLCSheet = true
+                          return
+                      }
+                  }
+                  
+                  // Direct VLC playback (MKV, H.265, DASH without cookies)
                   self.vlcURL = url
                   self.vlcTitle = title
                   self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
+                  self.vlcHeaders = headers
                   self.showVLCSheet = true
                   return // Don't show standard player
              } else {

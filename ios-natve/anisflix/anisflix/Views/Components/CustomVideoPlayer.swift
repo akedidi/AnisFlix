@@ -1057,30 +1057,26 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         
+        // Is it an MP4/MKV or an HLS playlist?
+        let isPlaylist = url.pathExtension.lowercased() == "m3u8" || urlString.contains(".m3u8")
+        
         if isVercelProxy {
             // Vercel proxy handles CORS and headers externally. NEVER use local proxy.
             needsProxy = false
             print("🎯 [PlayerVM] Bypassing Local Proxy (using Vercel API proxy instead)")
-        } else if isVidzyOrLuluvid {
-            // Always use proxy for Vidzy/Luluvid/Vidlink (they need headers for AirPlay or segment fetching)
+        } else if isVidzyOrLuluvid || hasCustomHeaders {
+            // ALWAYS use proxy if there are custom headers or it's Vidzy/Luluvid/Vidlink.
+            // Why? Because if the user taps the AirPlay button mid-playback, AVPlayer sends 
+            // the current URL to Apple TV. Apple TV does NOT inherit headers from AVURLAssetHTTPHeaderFieldsKey.
+            // By wrapping it in the local proxy, Apple TV can play it.
+            // The local proxy forwards byte-range requests for MP4 via /stream perfectly.
             needsProxy = true
-            print("🎯 [PlayerVM] Forcing proxy for Vidzy/Luluvid/Vidlink (Headers required for segments/AirPlay)")
-        } else if isAirPlayActive {
-            // AirPlay: Must use proxy if we have headers or subtitles
-            needsProxy = hasCustomHeaders || hasSubtitles
+            print("🎯 [PlayerVM] Forcing proxy (Headers/Subs required, preparing for AirPlay)")
         } else {
-            // Local Playback
-            if isHLS {
-                // HLS: AVURLAsset handles headers -> Direct
-                needsProxy = false
-            } else {
-                 // MP4/Direct: AVPlayer handles headers mostly, but if we need to force UA or complex headers -> Proxy might be safer
-                 needsProxy = hasCustomHeaders || hasSubtitles
-            }
+            // No special headers needed, direct playback is fine.
+            needsProxy = false
+            print("▶️ [PlayerVM] Using Direct URL")
         }
-        
-        // Vixsrc fix: Vixsrc is MP4 but might have empty headers. It should NOT use proxy.
-        // MovieBox has custom headers. It SHOULD use proxy (if UA override needed).
         
         if !useVLCPlayer && needsProxy {
             // Check if we have a valid Local Server URL (LAN IP)
@@ -1089,7 +1085,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 components.scheme = serverUrl.scheme
                 components.host = serverUrl.host
                 components.port = serverUrl.port
-                components.path = "/manifest" // Default to manifest proxy which handles HLS & MP4 wrapping
+                
+                // Use /manifest for HLS, /stream for everything else (MP4, MKV)
+                components.path = isPlaylist ? "/manifest" : "/stream"
                 
                 var queryItems = [URLQueryItem]()
                 
@@ -1289,24 +1287,31 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // - OR Headers present -> Always Proxy for Cast/AirPlay (to be safe)
         // - OR Subtitles present -> Always Proxy for Cast/AirPlay (to be safe)
         
-        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob")
+        let isVidlink = urlString.contains("vodvidl.site") || urlString.contains("vidlink")
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
+        
+        // MovieBox and Mob are Hakunaymatata and MUST bypass the cast proxy to avoid memory starvation
+        let isMobForCast = urlString.contains("hakunaymatata.com")
         
         if isProviderRequiringProxy || hasCustomHeaders || hasSubtitles {
              if let serverUrl = LocalStreamingServer.shared.serverUrl {
                 var components = URLComponents()
                 components.scheme = serverUrl.scheme
-                
-                // CRITICAL: Use correct IP address accessible from LAN
-                // GCDWebServer might return localhost or 127.0.0.1 if not bound properly,
-                // but we configured BindToLocalhost: false.
-                // However, ensure we use the IP that Chromecast can see.
                 components.host = serverUrl.host
                 components.port = serverUrl.port
+                
+                // Cast usually relies on /manifest. Mob shouldn't be cast anyway natively without custom logic,
+                // but default to /manifest for Cast URLs.
                 components.path = "/manifest"
                 
-                var queryItems = [URLQueryItem(name: "url", value: url.absoluteString)]
+                var queryItems = [URLQueryItem]()
+                if let urlData = url.absoluteString.data(using: .utf8) {
+                    queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+                } else {
+                    queryItems.append(URLQueryItem(name: "url", value: url.absoluteString))
+                }
                 
                 if let sub = subtitleUrl {
                     queryItems.append(URLQueryItem(name: "subs", value: sub.absoluteString))

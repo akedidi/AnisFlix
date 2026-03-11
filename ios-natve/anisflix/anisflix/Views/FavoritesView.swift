@@ -46,24 +46,16 @@ struct FavoritesView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
                         if selectedSegment == 0 {
-                            if movies.isEmpty {
-                                emptyStateView(message: "Aucun film favori")
-                            } else {
-                                ForEach(movies) { media in
-                                    MediaGridCard(media: media, onTap: {
-                                        // Navigation is handled by NavigationLink in MediaGridCard
-                                    })
-                                }
+                            ForEach(movies) { media in
+                                MediaGridCard(media: media, onTap: {
+                                    // Navigation is handled by NavigationLink in MediaGridCard
+                                })
                             }
                         } else {
-                            if series.isEmpty {
-                                emptyStateView(message: "Aucune série favorite")
-                            } else {
-                                ForEach(series) { media in
-                                    MediaGridCard(media: media, onTap: {
-                                        // Navigation is handled by NavigationLink in MediaGridCard
-                                    })
-                                }
+                            ForEach(series) { media in
+                                MediaGridCard(media: media, onTap: {
+                                    // Navigation is handled by NavigationLink in MediaGridCard
+                                })
                             }
                         }
                     }
@@ -71,27 +63,19 @@ struct FavoritesView: View {
                     .padding(.bottom, 150) // Space for tab bar + Cast Banner
                 }
             }
+            
+            // Full screen empty state overlay
+            if (selectedSegment == 0 && movies.isEmpty) || (selectedSegment == 1 && series.isEmpty) {
+                Text(selectedSegment == 0 ? "Aucun film favori" : "Aucune série favorite")
+                    .font(.headline)
+                    .foregroundColor(theme.secondaryText)
+                    .lineLimit(1)
+                    .padding(.horizontal)
+            }
         }
-        .navigationTitle(theme.t("nav.favorites"))
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             favoritesManager.loadFavorites()
         }
-    }
-    
-    private func emptyStateView(message: String) -> some View {
-        VStack(spacing: 12) {
-            Spacer()
-                .frame(height: 100)
-            Image(systemName: "heart.slash")
-                .font(.system(size: 50))
-                .foregroundColor(theme.secondaryText)
-            Text(message)
-                .font(.headline)
-                .foregroundColor(theme.secondaryText)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
     }
 }
 
