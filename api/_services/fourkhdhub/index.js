@@ -34,36 +34,24 @@ export class FourKHDHubScraper {
         const targetUrl = `https://webstreamr.hayd.uk/stream/${types}/${streamId}.json?language=eng`;
         log(`🎯 [WebStreamr] Target: ${targetUrl}`);
 
-        // FlixNest Proxy URL
-        const timestamp = Date.now();
-        // user provided example: _ts=1768080400001
-        const proxyUrl = `https://flixnest.app/nest/proxy?url=${encodeURIComponent(targetUrl)}&_ts=${timestamp}`;
-
-        log(`🚀 [WebStreamr] Calling Proxy: ${proxyUrl}`);
-
         try {
+            log(`🚀 [WebStreamr] Calling CodeTabs Proxy directly`);
+
+            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
             const response = await axios.get(proxyUrl, {
                 headers: {
                     'accept': 'application/json',
-                    'accept-encoding': 'gzip, deflate, br, zstd',
-                    'accept-language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
-                    'cache-control': 'no-cache',
-                    'cookie': 'perf_dv6Tr4n=1',
-                    'pragma': 'no-cache',
-                    'priority': 'u=1, i',
-                    'referer': 'https://flixnest.app/nest/',
-                    'sec-ch-ua': '"Google Chrome";v="143", "Chromium";v="143", "Not A(Brand";v="24"',
-                    'sec-ch-ua-mobile': '?0',
-                    'sec-ch-ua-platform': '"macOS"',
-                    'sec-fetch-dest': 'empty',
-                    'sec-fetch-mode': 'cors',
-                    'sec-fetch-site': 'same-origin',
-                    'user-agent': this.userAgent,
-                    // ':authority', ':method', ':path', ':scheme' are pseudo-headers managed by http client
-                }
+                    'user-agent': this.userAgent
+                },
+                timeout: 10000
             });
 
+            if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+                throw new Error('CodeTabs proxy returned HTML (Cloudflare block)');
+            }
+
             const data = response.data;
+
             if (!data || !data.streams) {
                 log("⚠️ [WebStreamr] No streams found in response");
                 return [];

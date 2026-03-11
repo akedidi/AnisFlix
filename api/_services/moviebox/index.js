@@ -94,46 +94,55 @@ function generateXTrSignature(method, accept, contentType, url, body, useAltKey 
     return `${timestamp}|2|${signatureB64}`;
 }
 
-function mobRequest(method, url, body = null, customHeaders = {}) {
+const PROXY_URL = "https://anisflix.kedidi-anis.workers.dev";
+
+function mobRequest(method, url, body = null) {
     const timestamp = Date.now();
     const xClientToken = generateXClientToken(timestamp);
+    const xTrSignature = generateXTrSignature(method, 'application/json', 'application/json', url, body, false, timestamp);
 
-    let headerContentType = customHeaders['Content-Type'] || 'application/json';
-    let sigContentType = headerContentType;
-    const accept = customHeaders['Accept'] || 'application/json';
-
-    const xTrSignature = generateXTrSignature(method, accept, sigContentType, url, body, false, timestamp);
-
-    const headers = {
-        'Accept': accept,
-        'Content-Type': headerContentType,
+    const targetHeaders = {
+        ...HEADERS,
         'x-client-token': xClientToken,
         'x-tr-signature': xTrSignature,
-        'User-Agent': HEADERS['User-Agent'],
-        'x-client-info': HEADERS['x-client-info'],
-        'x-client-status': HEADERS['x-client-status'],
-        ...customHeaders
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
     };
 
-    const options = { method, headers };
-    if (body) options.body = body;
+    const shortUrl = url.replace(API_BASE, '');
 
-    const shortUrl = url.length > 80 ? url.substring(0, 80) + '...' : url;
-    console.log(`📦 [MOB] ${method} ${shortUrl}`);
+    // Use Cloudflare Worker as proxy to bypass geo-blocking
+    const proxyTarget = `${PROXY_URL}/?path=mob&url=${encodeURIComponent(url)}&method=${method}`;
 
-    return fetch(url, options)
+    console.log(`📦 [MOB] Requesting via Proxy: [${method}] ${shortUrl}`);
+
+    return fetch(proxyTarget, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            headers: targetHeaders,
+            body: body
+        })
+    })
         .then(res => {
-            return res.text().then(text => {
-                console.log(`📦 [MOB] ${method} ${shortUrl} => ${res.status} (${text.length} bytes)`);
-                if (!res.ok) {
-                    console.error(`❌ [MOB] Non-OK response: ${text.substring(0, 300)}`);
-                    return null;
-                }
-                try { return JSON.parse(text); } catch (e) { return text; }
-            });
+            if (!res.ok) {
+                console.error(`❌ [MOB] Proxy Error: ${res.status}`);
+                return null;
+            }
+            return res.text();
+        })
+        .then(text => {
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                return text;
+            }
         })
         .catch(err => {
-            console.error(`❌ [MOB] Fetch error for ${shortUrl}: ${err.message}`);
+            console.error(`❌ [MOB] Proxy Fetch error for ${shortUrl}: ${err.message}`);
             return null;
         });
 }
