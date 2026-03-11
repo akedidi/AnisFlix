@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.61",
-          "date": "2026-02-20",
-          "size": 30707589,
+          "version": "1.0.62",
+          "date": "2026-03-11",
+          "size": 30710558,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "feat(ios): add Moovbob proxy support with Referer header User report indicated Moovbob uses strict-origin-when-cross-origin. Added to CustomVideoPlayer proxy list to inject . Added test script which confirmed access. "
+          "localizedDescription": "fix(api): bypass flixnest proxy for 4khdhub using codetabs proxy directly, fix moviebox durations "
         }
       ]
     }
