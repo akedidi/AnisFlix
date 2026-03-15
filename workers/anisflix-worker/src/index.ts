@@ -44,6 +44,10 @@ export default {
             return handleAfterDarkRequest(request);
         }
 
+        if (path === 'mob') {
+            return handleMobRequest(request);
+        }
+
         return new Response('AnisFlix Worker Active. Specify ?path=...', {
             status: 200,
             headers: CORS_HEADERS
@@ -129,6 +133,89 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
         });
 
         return newResponse;
+
+    } catch (e: any) {
+        return new Response(JSON.stringify({ error: e.message }), {
+            status: 500,
+            headers: {
+                "Content-Type": "application/json",
+                ...CORS_HEADERS
+            }
+        });
+    }
+}
+
+/**
+ * Handle generic proxying for MovieBox (Mob) API
+ * Supports POST/GET with custom headers and body
+ */
+async function handleMobRequest(request: Request): Promise<Response> {
+    const urlParams = new URL(request.url).searchParams;
+    const targetUrl = urlParams.get('url');
+    const targetMethod = urlParams.get('method') || 'POST';
+
+    if (!targetUrl) {
+        return new Response(JSON.stringify({ error: 'Missing target url' }), { status: 400 });
+    }
+
+    let requestBody: any = null;
+    let targetHeaders: any = {};
+
+    try {
+        if (request.method === 'POST') {
+            const payload: any = await request.json();
+            requestBody = payload.body;
+            targetHeaders = payload.headers || {};
+        }
+    } catch (e) {
+        console.warn("[Worker] Failed to parse payload for Mob request");
+    }
+
+    // Prepare clean headers with IP spoofing
+    const finalHeaders: any = {
+        ...targetHeaders,
+        "X-Forwarded-For": "1.1.1.1",
+        "X-Real-IP": "1.1.1.1",
+        "CF-Connecting-IP": "1.1.1.1"
+    };
+
+    // Ensure Host header is correct if provided or let it be set by fetch
+    delete finalHeaders['Host'];
+    delete finalHeaders['host'];
+
+    try {
+        console.log(`[Worker] Mob Request: ${targetMethod} ${targetUrl}`);
+
+        let response = await fetch(targetUrl, {
+            method: targetMethod,
+            headers: finalHeaders,
+            body: requestBody ? (typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)) : null
+        });
+
+        // If Cloudflare IP is blocked (403), try via CorsProxy as fallback
+        if (response.status === 403) {
+            console.log(`[Worker] Direct fetch blocked (403), trying CorsProxy fallback...`);
+            const proxyRelayUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+
+            response = await fetch(proxyRelayUrl, {
+                method: targetMethod,
+                headers: finalHeaders, // Keep the spoofed headers
+                body: requestBody ? (typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)) : null
+            });
+        }
+
+        const data = await response.arrayBuffer();
+
+        return new Response(data, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: {
+                ...CORS_HEADERS,
+                "Content-Type": response.headers.get("Content-Type") || "application/json",
+                "X-Proxy-Status": response.status.toString(),
+                "Cache-Control": "no-cache"
+            }
+        });
 
     } catch (e: any) {
         return new Response(JSON.stringify({ error: e.message }), {

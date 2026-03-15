@@ -1025,3 +1025,28 @@ video::-webkit-media-text-track-display {
 .subtitle-size-150 video::cue {
   font-size: 150%;
 }
+/* Fullscreen styles for video player */
+:fullscreen, 
+:window-maximised,
+::-webkit-full-screen,
+::-moz-full-screen,
+:-ms-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: black !important;
+  object-fit: contain !important;
+}
+
+/* Specific fix for the container in fullscreen */
+div:fullscreen,
+div::-webkit-full-screen,
+div::-moz-full-screen {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}

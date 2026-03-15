@@ -638,7 +638,7 @@ export default function VidMolyPlayer({
   return (
     <div className="w-full bg-card rounded-lg overflow-hidden shadow-xl">
       {/* Video Container */}
-      <div className={`relative subtitle-size-${subtitleFontSize}`} ref={containerRef}>
+      <div className={`relative h-full subtitle-size-${subtitleFontSize}`} ref={containerRef}>
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
             <div className="text-white text-center">
@@ -650,7 +650,7 @@ export default function VidMolyPlayer({
 
         <video
           ref={videoRef}
-          className="w-full aspect-video bg-black object-contain"
+          className="w-full h-full bg-black object-contain"
           poster={posterPath ? `https://image.tmdb.org/t/p/w1280${posterPath}` : undefined}
           controls={false}
           playsInline
