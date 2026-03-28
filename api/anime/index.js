@@ -1,5 +1,6 @@
 // src/anime-lib/extractors/search.extractor.js
 import axios from "axios";
+import https from "https";
 import * as cheerio from "cheerio";
 
 // src/anime-lib/configs/header.config.js
@@ -168,13 +169,32 @@ async function extractSearchResults(params = {}) {
       }
     });
     const queryParams = new URLSearchParams(filteredParams).toString();
-    const resp = await axios.get(`https://${v1_base_url}/search?${queryParams}`, {
-      headers: {
-        ...DEFAULT_HEADERS,
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br"
+    const HOSTS = ["hianime.to", "aniwatch.to", "hianime.bz", "hianime.pe", "hianime.nz", "hianime.cx", "hianime.tv", "hianime.mn"];
+    let resp = null;
+    
+    for (const host of HOSTS) {
+      try {
+        const tempResp = await axios.get(`https://${host}/search?${queryParams}`, {
+          headers: {
+            ...DEFAULT_HEADERS,
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br"
+          },
+          httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+          timeout: 8000
+        });
+        const bodyStr = String(tempResp.data).substring(0, 4000).toLowerCase();
+        if (!bodyStr.includes("just a moment") && !bodyStr.includes("challenge-platform") && !bodyStr.includes("cf-browser-verification") && !bodyStr.includes("block.opendns.com")) {
+          resp = tempResp;
+          v1_base_url = host;
+          break;
+        }
+      } catch (e) {
+        console.error(`[Anime Search] Skipping host ${host}: ${e.message}`);
       }
-    });
+    }
+    
+    if (!resp) throw new Error("All anime search hosts were blocked or failed");
     const $ = cheerio.load(resp.data);
     const elements = "#main-content .film_list-wrap .flw-item";
     const totalPage = Number(
@@ -207,8 +227,8 @@ async function extractSearchResults(params = {}) {
     });
     return [parseInt(totalPage, 10), result.length > 0 ? result : []];
   } catch (e) {
-    console.error(e);
-    return e;
+    console.error(`[Anime Search] Critical error: ${e.message}`);
+    return [1, []];
   }
 }
 var search_extractor_default = extractSearchResults;
