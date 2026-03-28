@@ -170,9 +170,9 @@ async function extractSearchResults(params = {}) {
     const queryParams = new URLSearchParams(filteredParams).toString();
     const resp = await axios.get(`https://${v1_base_url}/search?${queryParams}`, {
       headers: {
+        ...DEFAULT_HEADERS,
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "User-Agent": DEFAULT_HEADERS
+        "Accept-Encoding": "gzip, deflate, br"
       }
     });
     const $ = cheerio.load(resp.data);
