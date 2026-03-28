@@ -35,6 +35,12 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
   const [showRightArrow, setShowRightArrow] = useState(true);
   const [, setLocation] = useLocation();
 
+  // Drag-to-scroll state
+  const isDragging = useRef(false);
+  const hasDragged = useRef(false);
+  const startX = useRef(0);
+  const scrollLeftStart = useRef(0);
+
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
       const container = scrollRef.current;
@@ -69,6 +75,44 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
       setShowLeftArrow(scrollLeft > 0);
       setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  // Drag-to-scroll handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    isDragging.current = true;
+    hasDragged.current = false;
+    startX.current = e.pageX - scrollRef.current.offsetLeft;
+    scrollLeftStart.current = scrollRef.current.scrollLeft;
+    scrollRef.current.style.cursor = 'grabbing';
+    scrollRef.current.style.userSelect = 'none';
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX.current) * 1.5; // multiplier for faster scroll feel
+    if (Math.abs(walk) > 5) {
+      hasDragged.current = true;
+    }
+    scrollRef.current.scrollLeft = scrollLeftStart.current - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    if (!scrollRef.current) return;
+    isDragging.current = false;
+    scrollRef.current.style.cursor = 'grab';
+    scrollRef.current.style.removeProperty('user-select');
+  };
+
+  // Prevent click navigation when user was dragging
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (hasDragged.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      hasDragged.current = false;
     }
   };
 
@@ -177,12 +221,17 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
             </Button>
           </div>
         )}
-        {/* Carousel content */}
+        {/* Carousel content — supports drag-to-scroll */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          onClickCapture={handleClickCapture}
           className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide w-full"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', cursor: 'grab' }}
         >
           {items.map((item) => (
             <div key={item.id} className="w-40 md:w-48 flex-shrink-0 relative">
@@ -203,3 +252,4 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
     </div>
   );
 }
+
