@@ -78,6 +78,22 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
     }
   };
 
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const canScrollRight = container.scrollLeft < maxScroll - 1;
+    const canScrollLeft = container.scrollLeft > 1;
+
+    if ((e.deltaY > 0 && canScrollRight) || (e.deltaY < 0 && canScrollLeft)) {
+      e.preventDefault();
+      container.scrollLeft += e.deltaY;
+    }
+  };
+
   // Drag-to-scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollRef.current) return;
@@ -225,6 +241,7 @@ export default function MediaCarousel({ title, items, onItemClick, seeAllLink, s
         <div
           ref={scrollRef}
           onScroll={handleScroll}
+          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
