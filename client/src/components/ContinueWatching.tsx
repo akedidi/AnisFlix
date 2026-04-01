@@ -83,6 +83,9 @@ export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProp
     const container = scrollRef.current;
     if (!container) return;
 
+    // Keep normal page vertical scrolling unless user explicitly asks horizontal scroll (Shift + wheel)
+    if (!e.shiftKey) return;
+
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
 
     const maxScroll = container.scrollWidth - container.clientWidth;
