@@ -79,21 +79,6 @@ export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProp
     }
   };
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-    const maxScroll = container.scrollWidth - container.clientWidth;
-    const canScrollRight = container.scrollLeft < maxScroll - 1;
-    const canScrollLeft = container.scrollLeft > 1;
-
-    if ((e.deltaY > 0 && canScrollRight) || (e.deltaY < 0 && canScrollLeft)) {
-      e.preventDefault();
-      container.scrollLeft += e.deltaY;
-    }
-  };
 
   const handleRemove = (mediaId: number, mediaType: string) => {
     removeWatchProgress(mediaId, mediaType);
@@ -185,7 +170,6 @@ export default function ContinueWatching({ maxItems = 10 }: ContinueWatchingProp
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          onWheel={handleWheel}
           className="flex gap-4 pb-4 overflow-x-scroll scrollbar-hide w-full"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
