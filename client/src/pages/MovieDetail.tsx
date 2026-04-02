@@ -114,9 +114,9 @@ export default function MovieDetail() {
     allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
   });
 
-  // Fetch AnimeAPI sources for Animation genre (Movies)
+  // Fetch AnimeKai sources for Animation genre (Movies)
   const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
-    queryKey: ['anime-api-sources-movie', movieId],
+    queryKey: ['animekai-sources-movie', movieId],
     queryFn: async () => {
       // Check if this is an animation (genre ID: 16)
       const isAnimation = movie?.genres?.some((g: any) => g.id === 16);
@@ -133,11 +133,11 @@ export default function MovieDetail() {
         const tmdbData = await tmdbResponse.json();
         const englishTitle = tmdbData.title || movie.original_title;
 
-        console.log(`🎌 [AnimeAPI Movie] Fetching: ${englishTitle}`);
+        console.log(`🟣 [AnimeKai Movie] Fetching: ${englishTitle}`);
 
         // For movies, we try season 1 episode 1 or just title search
         const params = new URLSearchParams({
-          path: 'anime-api',
+          path: 'animekai',
           title: englishTitle,
           season: '1',
           episode: '1',
@@ -151,10 +151,10 @@ export default function MovieDetail() {
           return [];
         }
 
-        console.log(`🎌 [AnimeAPI Movie] Found ${data.results.length} sources`);
+        console.log(`🟣 [AnimeKai Movie] Found ${data.results.length} sources`);
         return data.results;
       } catch (error) {
-        console.error('[AnimeAPI Movie] Error:', error);
+        console.error('[AnimeKai Movie] Error:', error);
         return [];
       }
     },
@@ -265,11 +265,11 @@ export default function MovieDetail() {
     language: 'VF'
   }));
 
-  // Map AnimeAPI sources
+  // Map AnimeKai sources
   const mappedAnimeAPISources = (animeAPISources || []).map((source: any, index: number) => ({
-    id: `animeapi-${index}`,
-    name: 'AnimeAPI',
-    provider: 'AnimeAPI',
+    id: `animekai-${index}`,
+    name: 'AnimeKai',
+    provider: 'AnimeKai',
     // Use our internal anime m3u8-proxy (spoofs headers for netmagcdn)
     url: `/api/anime?action=m3u8-proxy&url=${encodeURIComponent(source.url)}`,
     type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,

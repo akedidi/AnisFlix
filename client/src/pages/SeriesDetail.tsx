@@ -169,10 +169,10 @@ export default function SeriesDetail() {
 
 
 
-  // Fetch AnimeAPI sources for Animation genre
+  // Fetch AnimeKai sources for Animation genre
   // Use relativeEpisode in queryKey to trigger refetch when it changes
   const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
-    queryKey: ['anime-api-sources', seriesId, selectedSeasonNumber, relativeEpisode],
+    queryKey: ['animekai-sources', seriesId, selectedSeasonNumber, relativeEpisode],
     queryFn: async () => {
       // Check if this is an animation (genre ID: 16)
       const isAnimation = series?.genres?.some((g: any) => g.id === 16);
@@ -189,10 +189,10 @@ export default function SeriesDetail() {
         const tmdbData = await tmdbResponse.json();
         const englishTitle = tmdbData.name || series.original_name;
 
-        console.log(`🎌 [AnimeAPI] Fetching: ${englishTitle} S${selectedSeasonNumber}E${selectedEpisode}`);
+        console.log(`🟣 [AnimeKai] Fetching: ${englishTitle} S${selectedSeasonNumber}E${selectedEpisode}`);
 
         const params = new URLSearchParams({
-          path: 'anime-api',
+          path: 'animekai',
           title: englishTitle,
           season: selectedSeasonNumber.toString(),
           episode: relativeEpisode.toString(), // Send relative episode number (e.g. 1 instead of 422)
@@ -206,11 +206,11 @@ export default function SeriesDetail() {
           return [];
         }
 
-        console.log(`🎌 [AnimeAPI] Found ${data.results.length} sources`);
-        console.log(`🎌 [AnimeAPI] First source tracks:`, data.results[0]?.tracks);
+        console.log(`🟣 [AnimeKai] Found ${data.results.length} sources`);
+        console.log(`🟣 [AnimeKai] First source tracks:`, data.results[0]?.tracks);
         return data.results;
       } catch (error) {
-        console.error('[AnimeAPI] Error:', error);
+        console.error('[AnimeKai] Error:', error);
         return [];
       }
     },
@@ -305,9 +305,9 @@ export default function SeriesDetail() {
     })) || []),
     */
     ...(animeAPISources?.map((source: any, index: number) => ({
-      id: `animeapi-${index}`,
-      name: 'AnimeAPI',
-      provider: 'AnimeAPI',
+      id: `animekai-${index}`,
+      name: 'AnimeKai',
+      provider: 'AnimeKai',
       // Use our internal anime m3u8-proxy (spoofs headers for netmagcdn)
       url: `/api/anime?action=m3u8-proxy&url=${encodeURIComponent(source.url)}`,
       type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,

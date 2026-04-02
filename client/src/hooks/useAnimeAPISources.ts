@@ -33,7 +33,7 @@ export function useAnimeAPISources({
     episodeNumber,
 }: UseAnimeAPISourcesOptions) {
     return useQuery({
-        queryKey: ['anime-api-sources', mediaId, mediaType, seasonNumber, episodeNumber],
+        queryKey: ['animekai-sources', mediaId, mediaType, seasonNumber, episodeNumber],
         queryFn: async () => {
             // Check if this is an animation (genre ID: 16)
             const isAnimation = genres?.some(g => g.id === 16);
@@ -43,12 +43,13 @@ export function useAnimeAPISources({
                 return [];
             }
 
-            console.log(`[AnimeAPI] Fetching sources for: ${title} (Season ${seasonNumber || 1}, Episode ${episodeNumber || 1})`);
+            console.log(`[AnimeKai] Fetching sources for: ${title} (Season ${seasonNumber || 1}, Episode ${episodeNumber || 1})`);
 
             const baseUrl = apiClient.getPublicBaseUrl();
             const params = new URLSearchParams({
-                path: 'anime-api',
+                path: 'animekai',
                 title,
+                tmdbId: mediaId.toString(),
                 ...(seasonNumber && { season: seasonNumber.toString() }),
                 ...(episodeNumber && { episode: episodeNumber.toString() }),
             });
@@ -65,7 +66,7 @@ export function useAnimeAPISources({
 
                 return data.results as AnimeAPISource[];
             } catch (error) {
-                console.error('[AnimeAPI] Error fetching sources:', error);
+                console.error('[AnimeKai] Error fetching sources:', error);
                 return [];
             }
         },
