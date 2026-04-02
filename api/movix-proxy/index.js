@@ -1906,7 +1906,8 @@ export default async function handler(req, res) {
     if (decodedPath === 'animekai') {
       console.log('🟣 ========== ANIMEKAI START ==========');
       try {
-        const { tmdbId, season, episode } = queryParams;
+        const { tmdbId, season, episode, debug } = queryParams;
+        const debugEnabled = String(debug || '') === '1' || String(debug || '').toLowerCase() === 'true';
 
         if (!tmdbId) {
           return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
@@ -1914,6 +1915,48 @@ export default async function handler(req, res) {
 
         const seasonNumber = season ? parseInt(season) : 1;
         const episodeNumber = episode ? parseInt(episode) : 1;
+
+        let probes = null;
+        if (debugEnabled) {
+          const probe = async (name, url, { method = 'GET' } = {}) => {
+            const startedAt = Date.now();
+            try {
+              const r = await axios.request({
+                url,
+                method,
+                timeout: 8000,
+                validateStatus: () => true,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  Accept: '*/*',
+                }
+              });
+              return {
+                name,
+                ok: r.status >= 200 && r.status < 400,
+                status: r.status,
+                ms: Date.now() - startedAt,
+              };
+            } catch (e) {
+              return {
+                name,
+                ok: false,
+                status: null,
+                ms: Date.now() - startedAt,
+                error: e?.code || e?.message || String(e),
+              };
+            }
+          };
+
+          probes = await Promise.all([
+            probe('enc-dec:enc-kai', 'https://enc-dec.app/api/enc-kai?text=test'),
+            probe('enc-dec:db-find', 'https://enc-dec.app/db/kai/find?anilist_id=1'),
+            probe('animekai:home', 'https://animekai.to/'),
+            probe('animekai:ajax-root', 'https://animekai.to/ajax'),
+            probe('cinemeta:meta', 'https://v3-cinemeta.strem.io/meta/series/tt0944947.json'),
+            probe('anilist:graphql', 'https://graphql.anilist.co/', { method: 'POST' }),
+          ]);
+        }
 
         const streams = await getAnimeKaiStreams({
           id: String(tmdbId),
@@ -1923,7 +1966,11 @@ export default async function handler(req, res) {
         });
 
         if (!streams || streams.length === 0) {
-          return res.status(200).json({ success: true, results: [] });
+          return res.status(200).json({
+            success: true,
+            results: [],
+            ...(debugEnabled ? { debug: { runtime: process.version, probes } } : {})
+          });
         }
 
         return res.status(200).json({
@@ -1940,11 +1987,17 @@ export default async function handler(req, res) {
               kind: 'captions',
               default: !!t.default
             }))
-          }))
+          })),
+          ...(debugEnabled ? { debug: { runtime: process.version, probes } } : {})
         });
       } catch (error) {
         console.error('🟣 [AnimeKai] ERROR:', error?.message || error);
-        return res.status(200).json({ success: true, results: [] });
+        const debugEnabled = String(queryParams?.debug || '') === '1' || String(queryParams?.debug || '').toLowerCase() === 'true';
+        return res.status(200).json({
+          success: true,
+          results: [],
+          ...(debugEnabled ? { debug: { runtime: process.version, error: error?.message || String(error) } } : {})
+        });
       }
     }
 
