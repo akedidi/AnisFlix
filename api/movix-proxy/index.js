@@ -639,6 +639,9 @@ export default async function handler(req, res) {
     res.setHeader(key, value);
   });
 
+  // Helps confirm which revision is deployed on Vercel
+  res.setHeader('X-Anisflix-Api-Rev', 'ea5f84f7');
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
