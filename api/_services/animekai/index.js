@@ -15,29 +15,66 @@ const DB_API = "https://enc-dec.app/db/kai";
 const KAI_AJAX = "https://animekai.to/ajax";
 const ARM_BASE = "https://arm.haglund.dev/api/v2";
 
+function extraHeadersForUrl(url) {
+  try {
+    const u = new URL(url);
+    const host = u.hostname;
+    if (host.endsWith("animekai.to")) {
+      return {
+        Referer: "https://animekai.to/",
+        Origin: "https://animekai.to",
+        "Accept-Language": "en-US,en;q=0.9",
+      };
+    }
+    if (host.endsWith("enc-dec.app")) {
+      return {
+        Referer: "https://enc-dec.app/",
+        Origin: "https://enc-dec.app",
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
 async function fetchJson(url, { method = "GET", headers = {}, body, timeoutMs = 15000 } = {}) {
-  const res = await axios.request({
-    url,
-    method,
-    headers: { ...HEADERS, ...headers },
-    data: body,
-    timeout: timeoutMs,
-    validateStatus: (s) => s >= 200 && s < 300,
-  });
-  return res.data;
+  try {
+    const res = await axios.request({
+      url,
+      method,
+      headers: { ...HEADERS, ...extraHeadersForUrl(url), ...headers },
+      data: body,
+      timeout: timeoutMs,
+      validateStatus: (s) => s >= 200 && s < 300,
+    });
+    return res.data;
+  } catch (e) {
+    const status = e?.response?.status;
+    const finalUrl = e?.config?.url || url;
+    const prefix = `[animekai] HTTP ${status || "ERR"} for ${finalUrl}`;
+    throw new Error(`${prefix}: ${e?.message || "request failed"}`);
+  }
 }
 
 async function fetchText(url, { method = "GET", headers = {}, body, timeoutMs = 15000 } = {}) {
-  const res = await axios.request({
-    url,
-    method,
-    headers: { ...HEADERS, ...headers },
-    data: body,
-    timeout: timeoutMs,
-    responseType: "text",
-    validateStatus: (s) => s >= 200 && s < 300,
-  });
-  return res.data;
+  try {
+    const res = await axios.request({
+      url,
+      method,
+      headers: { ...HEADERS, ...extraHeadersForUrl(url), ...headers },
+      data: body,
+      timeout: timeoutMs,
+      responseType: "text",
+      validateStatus: (s) => s >= 200 && s < 300,
+    });
+    return res.data;
+  } catch (e) {
+    const status = e?.response?.status;
+    const finalUrl = e?.config?.url || url;
+    const prefix = `[animekai] HTTP ${status || "ERR"} for ${finalUrl}`;
+    throw new Error(`${prefix}: ${e?.message || "request failed"}`);
+  }
 }
 
 async function getCinemetaInfo(imdbId, mediaType, season, episode) {
