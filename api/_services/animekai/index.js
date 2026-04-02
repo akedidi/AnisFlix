@@ -1,3 +1,5 @@
+import axios from "axios";
+
 const TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const ANILIST_URL = "https://graphql.anilist.co";
@@ -13,32 +15,36 @@ const DB_API = "https://enc-dec.app/db/kai";
 const KAI_AJAX = "https://animekai.to/ajax";
 const ARM_BASE = "https://arm.haglund.dev/api/v2";
 
-function withTimeout(ms) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  return { controller, clear: () => clearTimeout(id) };
+async function fetchJson(url, { method = "GET", headers = {}, body, timeoutMs = 15000 } = {}) {
+  const res = await axios.request({
+    url,
+    method,
+    headers: { ...HEADERS, ...headers },
+    data: body,
+    timeout: timeoutMs,
+    validateStatus: (s) => s >= 200 && s < 300,
+  });
+  return res.data;
 }
 
-async function fetchRequest(url, options = {}) {
-  const merged = { method: "GET", headers: HEADERS, ...options };
-  const timeout = options.timeoutMs ?? 15000;
-  const { controller, clear } = withTimeout(timeout);
-  try {
-    const res = await fetch(url, { ...merged, signal: controller.signal });
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    }
-    return res;
-  } finally {
-    clear();
-  }
+async function fetchText(url, { method = "GET", headers = {}, body, timeoutMs = 15000 } = {}) {
+  const res = await axios.request({
+    url,
+    method,
+    headers: { ...HEADERS, ...headers },
+    data: body,
+    timeout: timeoutMs,
+    responseType: "text",
+    validateStatus: (s) => s >= 200 && s < 300,
+  });
+  return res.data;
 }
 
 async function getCinemetaInfo(imdbId, mediaType, season, episode) {
   try {
     const cinemetaType = mediaType === "movie" ? "movie" : "series";
     const url = `https://v3-cinemeta.strem.io/meta/${cinemetaType}/${imdbId}.json`;
-    const data = await (await fetchRequest(url, { timeoutMs: 20000 })).json();
+    const data = await fetchJson(url, { timeoutMs: 20000 });
     const meta = data?.meta;
     if (!meta) return { date: null, title: null, dayIndex: 1 };
 
@@ -73,19 +79,19 @@ async function getCinemetaInfo(imdbId, mediaType, season, episode) {
 async function getTmdbExternalIds(tmdbId, mediaType) {
   const endpoint = mediaType === "tv" ? "tv" : "movie";
   const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}/external_ids?api_key=${TMDB_API_KEY}`;
-  return (await (await fetchRequest(url)).json()) || {};
+  return (await fetchJson(url, { timeoutMs: 15000 })) || {};
 }
 
 async function getTmdbBase(tmdbId, mediaType) {
   const endpoint = mediaType === "tv" ? "tv" : "movie";
   const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}`;
-  return (await (await fetchRequest(url)).json()) || {};
+  return (await fetchJson(url, { timeoutMs: 15000 })) || {};
 }
 
 async function getImdbFromArm(tmdbId) {
   try {
     const url = `${ARM_BASE}/themoviedb?id=${tmdbId}`;
-    const data = await (await fetchRequest(url, { timeoutMs: 15000 })).json();
+    const data = await fetchJson(url, { timeoutMs: 15000 });
     return Array.isArray(data) && data[0]?.imdb ? data[0].imdb : null;
   } catch {
     return null;
@@ -142,13 +148,12 @@ async function resolveByDate(releaseDateStr, showTitle, season, episodeTitle, da
   const query =
     "query($search:String){Page(perPage:20){media(search:$search,type:ANIME){id format title{romaji english}startDate{year month day}endDate{year month day}episodes streamingEpisodes{title}}}}";
 
-  const res = await fetchRequest(ANILIST_URL, {
+  const json = await fetchJson(ANILIST_URL, {
     method: "POST",
-    headers: { ...HEADERS, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables: { search: showTitle } }),
     timeoutMs: 20000,
   });
-  const json = await res.json();
   const candidates = json?.data?.Page?.media || [];
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
@@ -205,52 +210,48 @@ async function resolveByDate(releaseDateStr, showTitle, season, episodeTitle, da
 }
 
 async function encryptKai(text) {
-  const res = await fetchRequest(`${API}/enc-kai?text=${encodeURIComponent(text)}`, { timeoutMs: 15000 });
-  const json = await res.json();
+  const json = await fetchJson(`${API}/enc-kai?text=${encodeURIComponent(text)}`, { timeoutMs: 15000 });
   return json?.result || null;
 }
 
 async function decryptKai(text) {
-  const res = await fetchRequest(`${API}/dec-kai`, {
+  const json = await fetchJson(`${API}/dec-kai`, {
     method: "POST",
-    headers: { ...HEADERS, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
     timeoutMs: 20000,
   });
-  const json = await res.json();
   return json?.result || null;
 }
 
 async function parseHtmlViaApi(html) {
-  const res = await fetchRequest(`${API}/parse-html`, {
+  const json = await fetchJson(`${API}/parse-html`, {
     method: "POST",
-    headers: { ...HEADERS, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: html }),
     timeoutMs: 20000,
   });
-  const json = await res.json();
   return json?.result || null;
 }
 
 async function decryptMegaMedia(embedUrl) {
   const mediaUrl = String(embedUrl).replace("/e/", "/media/");
-  const mediaResp = await (await fetchRequest(mediaUrl, { timeoutMs: 20000 })).json();
+  const mediaResp = await fetchJson(mediaUrl, { timeoutMs: 20000 });
   const encrypted = mediaResp?.result;
   if (!encrypted) return null;
-  const res = await fetchRequest(`${API}/dec-mega`, {
+  const json = await fetchJson(`${API}/dec-mega`, {
     method: "POST",
-    headers: { ...HEADERS, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: encrypted, agent: HEADERS["User-Agent"] }),
     timeoutMs: 20000,
   });
-  const json = await res.json();
   return json?.result || null;
 }
 
 async function findInDatabase(alId) {
   try {
     const url = `${DB_API}/find?anilist_id=${encodeURIComponent(String(alId))}`;
-    const results = await (await fetchRequest(url, { timeoutMs: 15000 })).json();
+    const results = await fetchJson(url, { timeoutMs: 15000 });
     return Array.isArray(results) && results.length > 0 ? results[0] : null;
   } catch {
     return null;
@@ -323,10 +324,10 @@ function qualityFromResolutionOrBandwidth(stream) {
 
 async function resolveM3U8(url) {
   try {
-    const content = await (await fetchRequest(url, {
-      headers: { ...HEADERS, Accept: "application/vnd.apple.mpegurl,application/x-mpegURL,*/*" },
+    const content = await fetchText(url, {
+      headers: { Accept: "application/vnd.apple.mpegurl,application/x-mpegURL,*/*" },
       timeoutMs: 20000,
-    })).text();
+    });
 
     if (content.includes("#EXT-X-STREAM-INF")) {
       const variants = parseM3U8Master(content, url);
@@ -398,9 +399,10 @@ async function runStreamFetch(token) {
   const encToken = await encryptKai(token);
   if (!encToken) return { streams: [], subtitles: [] };
 
-  const serversResp = await (await fetchRequest(`${KAI_AJAX}/links/list?token=${encodeURIComponent(token)}&_=${encodeURIComponent(encToken)}`, {
-    timeoutMs: 20000,
-  })).json();
+  const serversResp = await fetchJson(
+    `${KAI_AJAX}/links/list?token=${encodeURIComponent(token)}&_=${encodeURIComponent(encToken)}`,
+    { timeoutMs: 20000 }
+  );
 
   const servers = await parseHtmlViaApi(serversResp?.result);
   if (!servers || typeof servers !== "object") return { streams: [], subtitles: [] };
@@ -422,10 +424,10 @@ async function runStreamFetch(token) {
           const encLid = await encryptKai(lid);
           if (!encLid) return { streams: [], subtitles: [] };
 
-          const embedResp = await (await fetchRequest(
+          const embedResp = await fetchJson(
             `${KAI_AJAX}/links/view?id=${encodeURIComponent(lid)}&_=${encodeURIComponent(encLid)}`,
             { timeoutMs: 20000 }
-          )).json();
+          );
 
           const decrypted = await decryptKai(embedResp?.result);
           if (!decrypted?.url) return { streams: [], subtitles: [] };
