@@ -1996,10 +1996,59 @@ export default async function handler(req, res) {
       } catch (error) {
         console.error('🟣 [AnimeKai] ERROR:', error?.message || error);
         const debugEnabled = String(queryParams?.debug || '') === '1' || String(queryParams?.debug || '').toLowerCase() === 'true';
+
+        let probes = null;
+        if (debugEnabled) {
+          const probe = async (name, url, { method = 'GET' } = {}) => {
+            const startedAt = Date.now();
+            try {
+              const r = await axios.request({
+                url,
+                method,
+                timeout: 8000,
+                validateStatus: () => true,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  Accept: '*/*',
+                }
+              });
+              return {
+                name,
+                ok: r.status >= 200 && r.status < 400,
+                status: r.status,
+                ms: Date.now() - startedAt,
+              };
+            } catch (e) {
+              return {
+                name,
+                ok: false,
+                status: null,
+                ms: Date.now() - startedAt,
+                error: e?.code || e?.message || String(e),
+              };
+            }
+          };
+
+          probes = await Promise.all([
+            probe('enc-dec:enc-kai', 'https://enc-dec.app/api/enc-kai?text=test'),
+            probe('enc-dec:db-find', 'https://enc-dec.app/db/kai/find?anilist_id=1'),
+            probe('animekai:home', 'https://animekai.to/'),
+            probe('animekai:ajax-root', 'https://animekai.to/ajax'),
+            probe('animekai:links-list', 'https://animekai.to/ajax/links/list?token=test&_=' + Date.now()),
+            probe('cinemeta:meta', 'https://v3-cinemeta.strem.io/meta/series/tt0944947.json'),
+            probe('anilist:graphql', 'https://graphql.anilist.co/', { method: 'POST' }),
+          ]);
+        }
+
+        const msg = error?.message || String(error);
+        const status = error?.response?.status || null;
+        const url = error?.config?.url || null;
         return res.status(200).json({
           success: true,
           results: [],
-          ...(debugEnabled ? { debug: { runtime: process.version, error: error?.message || String(error) } } : {})
+          ...(debugEnabled
+            ? { debug: { runtime: process.version, error: msg, status, url, probes } }
+            : {})
         });
       }
     }
