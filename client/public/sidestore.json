@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.62",
-          "date": "2026-03-11",
-          "size": 30710558,
+          "version": "1.0.64",
+          "date": "2026-04-12",
+          "size": 30815416,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(api): bypass flixnest proxy for 4khdhub using codetabs proxy directly, fix moviebox durations "
+          "localizedDescription": "feat(ios): AnimeKai, streaming fixes (Vidlink filter, TLS proxy, providers allow-list), YFlix/Cast updates Made-with: Cursor "
         }
       ]
     }
