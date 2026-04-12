@@ -26,7 +26,8 @@ xcodebuild archive \
 echo "📦 Exporting IPA..."
 rm -rf "$EXPORT_PATH"
 mkdir -p "$EXPORT_PATH/Payload"
-cp -r "$ARCHIVE_PATH/Products/Applications/anisflix.app" "$EXPORT_PATH/Payload/"
+# Must match Xcode product (PBX: AnisFlix.app / productName anisflix)
+cp -r "$ARCHIVE_PATH/Products/Applications/AnisFlix.app" "$EXPORT_PATH/Payload/"
 
 cd "$EXPORT_PATH"
 zip -r "$IPA_NAME" Payload
