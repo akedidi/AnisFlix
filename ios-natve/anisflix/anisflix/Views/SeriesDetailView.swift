@@ -721,11 +721,15 @@ struct SeriesDetailView: View {
         isLoadingEpisodeSources = false
         
         // Auto-select language: VF > VOSTFR > VO
+        // Vidlink tags sources as VO only; if we default to VF/VOSTFR (e.g. VidMoly), Vidlink disappears from the list until user opens VO.
+        let hasVidlink = episodeSources.contains { $0.provider.lowercased() == "vidlink" }
         let hasVF = episodeSources.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
         let hasVOSTFR = episodeSources.contains { $0.language.lowercased().contains("vostfr") }
         let hasVO = episodeSources.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
         
-        if hasVF {
+        if hasVidlink {
+            theme.preferredSourceLanguage = "VO"
+        } else if hasVF {
             theme.preferredSourceLanguage = "VF"
         } else if hasVOSTFR {
             theme.preferredSourceLanguage = "VOSTFR"
@@ -787,6 +791,9 @@ struct SeriesDetailView: View {
         } else if source.provider.lowercased() == "mob" {
             let quality = formatQualityDisplay(source.quality)
             return "MOB - \(quality)"
+        } else if source.provider.lowercased() == "animekai" {
+            let quality = formatQualityDisplay(source.quality)
+            return "AnimeKai \(providerIndex) - \(quality) — \(source.language)"
         } else {
             // For specified providers like Vidmoly, always show HD
             if source.provider.lowercased() == "vidmoly" {
@@ -888,6 +895,7 @@ struct SeriesDetailView: View {
                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
                                     if provider == "yflix" { return -1 } // YFlix: high priority
+                                    if provider == "animekai" { return 0 } // AnimeKai: high priority for anime
                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                     if provider.contains("luluvid") { return 99 }
                                     return 5

@@ -222,9 +222,13 @@ class GlobalPlayerManager: ObservableObject {
             let isVidlink = urlString.contains("vodvidl.site") ||
                             urlString.contains("vidlink") ||
                             (headers?["Origin"]?.contains("vidlink") == true)
-            let isYFlix = urlString.contains("rapidshare") ||
-                          (headers?["Origin"]?.contains("yflix") == true)
-            let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix
+            let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
+                          (headers?["Origin"]?.contains("yflix") == true) ||
+                          (headers?["Origin"]?.contains("rapidshare") == true)
+            let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
+                             (headers?["Origin"]?.contains("animekai") == true) ||
+                             (headers?["Origin"]?.contains("megaup") == true)
+            let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
             let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
             let hasHeaders = (headers != nil && !headers!.isEmpty)
             

@@ -307,6 +307,17 @@ class StreamingService {
     
     private let baseUrl = "https://anisflix.vercel.app"
     
+    /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter (e.g. vidlink on series, cinepro, darki from TMDB decode).
+    private static let allowedStreamingProviders: Set<String> = [
+        "vidlink", "yflix", "fsvid", "vidmoly", "vidzy", "vixsrc", "primewire", "2embed",
+        "afterdark", "movix", "darkibox", "darki", "animeapi", "animekai", "moviebox",
+        "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob"
+    ]
+    
+    private func filterToAllowedProviders(_ sources: [StreamingSource]) -> [StreamingSource] {
+        sources.filter { Self.allowedStreamingProviders.contains($0.provider) }
+    }
+    
     // MARK: - Fetch Sources
     
     func fetchSources(movieId: Int) async throws -> [StreamingSource] {
@@ -363,9 +374,11 @@ class StreamingService {
             
             // Check for Animation Genre (16)
             if tmdbInfo?.genreIds.contains(16) == true {
-                print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI...")
+                print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI + AnimeKai...")
                 animeTask = Task {
-                    return try await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)
+                    let animeApiResults = (try? await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)) ?? []
+                    let animeKaiResults = (try? await fetchAnimeKaiSources(tmdbId: movieId, type: "movie")) ?? []
+                    return animeApiResults + animeKaiResults
                 }
             }
         } else {
@@ -375,11 +388,16 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
+        let animeKaiMovieCount = animeSources.filter { $0.provider == "animekai" }.count
         let fsvidMovieResults = await fsvidSources
         let vidlinkMovieResults = await (try? vidlinkSources) ?? []
         let yflixMovieResults = await (try? yflixSources) ?? []
 
         print("📊 [StreamingService] Sources fetched:")
+        print("   - Vidlink: \(vidlinkMovieResults.count)")
+        print("   - YFlix: \(yflixMovieResults.count)")
+        print("   - AnimeKai: \(animeKaiMovieCount)")
+        print("   - Anime (API+Kai combinés): \(animeSources.count)")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
@@ -470,8 +488,7 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (vidlink added, mob added, yflix added)
-        return allSources.filter { $0.provider == "vidlink" || $0.provider == "yflix" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
+        return filterToAllowedProviders(allSources)
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -588,8 +605,9 @@ class StreamingService {
 
         var afterDarkSources: [StreamingSource] = []
         var movixDownloadSources: [StreamingSource] = []
-        // Add Anime sources
+        // Add Anime sources (Movix VidMoly + AnimeAPI + AnimeKai when genre animation)
         var animeSources: [StreamingSource] = []
+        var animeKaiOnlyCount = 0
         
         if let info = finalTmdbInfo {
             let title = info.title
@@ -598,17 +616,21 @@ class StreamingService {
             // Start Anime fetch concurrently if logic matches
             // Check for Animation Genre (16)
             if info.genreIds.contains(16) {
-                 print("🎌 [StreamingService] Animation genre detected. Fetching BOTH anime sources...")
+                 print("🎌 [StreamingService] Animation genre detected. Fetching ALL anime sources...")
                  
                  // Fetch VidMoly sources from Movix anime scraping
                  let movixAnimeSources = (try? await fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode, tmdbInfo: info)) ?? []
                  
                  // Fetch HLS sources from AnimeAPI (GogoAnime)
                  let animeApiSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
+
+                 // Fetch AnimeKai Native sources (VO sub/softsub)
+                 let animeKaiSources = (try? await fetchAnimeKaiSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
+                 animeKaiOnlyCount = animeKaiSources.count
                  
-                 // Merge both
-                 animeSources = movixAnimeSources + animeApiSources
-                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count))")
+                 // Merge all
+                 animeSources = movixAnimeSources + animeApiSources + animeKaiSources
+                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count), AnimeKai: \(animeKaiSources.count))")
             }
             
             // Fetch AfterDark sources (direct call - iOS has no CORS)
@@ -645,6 +667,8 @@ class StreamingService {
         let yflixResults = await (try? yflixSources) ?? []
 
         print("📊 [StreamingService] Series Sources fetched:")
+        print("   - Vidlink: \(vidlinkResults.count)")
+        print("   - YFlix: \(yflixResults.count)")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
@@ -657,7 +681,8 @@ class StreamingService {
         print("   - Movix Download: \(movixDownloadSources.count)")
         print("   - Wiflix: \(wiflix?.count ?? 0)")
         print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
-        print("   - Movix Anime: \(animeSources.count)")
+        print("   - AnimeKai: \(animeKaiOnlyCount)")
+        print("   - Anime (Movix+API+Kai combinés): \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
         
@@ -734,8 +759,7 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (fsvid added, mob added, yflix added)
-        return allSources.filter { $0.provider == "yflix" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
+        return filterToAllowedProviders(allSources)
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
@@ -866,6 +890,9 @@ class StreamingService {
 
         case "yflix":
             return try await fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "animekai":
+            return try await fetchAnimeKaiSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         default:
             print("⚠️ [StreamingService] Check: Unknown provider '\(targetProvider)', falling back to full fetch")
@@ -1456,9 +1483,19 @@ class StreamingService {
             var streamingSources: [StreamingSource] = []
 
             for source in extractedSources {
+                let referer: String
+                let origin: String
+                if let host = URL(string: source.url)?.host,
+                   (host.contains("rapidshare") || host.contains("prime37node")) {
+                    referer = "https://rapidshare.cc/"
+                    origin = "https://rapidshare.cc"
+                } else {
+                    referer = "https://yflix.to/"
+                    origin = "https://yflix.to"
+                }
                 let headers = [
-                    "Referer": "https://yflix.to/",
-                    "Origin": "https://yflix.to",
+                    "Referer": referer,
+                    "Origin": origin,
                     "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
                 ]
 
@@ -1477,6 +1514,55 @@ class StreamingService {
             return streamingSources
         } catch {
             print("❌ [StreamingService] YFlix fetching failed: \(error)")
+            return []
+        }
+    }
+
+    // MARK: - AnimeKai Integration
+
+    private func fetchAnimeKaiSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        do {
+            let extractedSources = await AnimeKaiService.shared.getStreams(tmdbId: tmdbId, mediaType: type, season: season, episode: episode)
+            var streamingSources: [StreamingSource] = []
+
+            for source in extractedSources {
+                let referer: String
+                let origin: String
+                if let host = URL(string: source.url)?.host,
+                   (host.contains("megaup") || host.contains("megacdn")) {
+                    referer = "https://megaup.nl/"
+                    origin = "https://megaup.nl"
+                } else {
+                    referer = "https://animekai.to/"
+                    origin = "https://animekai.to"
+                }
+                let headers = [
+                    "Referer": referer,
+                    "Origin": origin,
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                ]
+
+                let tracks = source.subtitles.map { sub in
+                    Subtitle(url: sub.url, label: sub.language, code: sub.language.lowercased().prefix(2).description, flag: "")
+                }
+
+                let subLabel = source.serverType == "sub" ? "Hard Sub" : "Soft Sub"
+                let streamSource = StreamingSource(
+                    url: source.url,
+                    directUrl: source.url,
+                    quality: source.quality,
+                    type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                    provider: "animekai",
+                    language: "VO - \(subLabel)",
+                    origin: "animekai",
+                    tracks: tracks.isEmpty ? nil : tracks,
+                    headers: headers
+                )
+                streamingSources.append(streamSource)
+            }
+            return streamingSources
+        } catch {
+            print("❌ [StreamingService] AnimeKai fetching failed: \(error)")
             return []
         }
     }

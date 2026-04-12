@@ -52,7 +52,7 @@ class YFlixService {
     
     private struct DBInfo: Codable {
         let title_en: String?
-        let year: Int?
+        let year: String?
         let flix_id: String?
     }
     
@@ -106,7 +106,7 @@ class YFlixService {
         }
         
         let info = dbResult.info
-        print("✅ [YFlixService] DB match: \"\(info.title_en ?? "?")\" (\(info.year ?? 0)) flix_id=\(info.flix_id ?? "?")")
+        print("✅ [YFlixService] DB match: \"\(info.title_en ?? "?")\" (\(info.year ?? "?")) flix_id=\(info.flix_id ?? "?")")
         
         // Step 2: Find episode ID
         guard let eid = findEpisodeId(dbResult: dbResult, mediaType: mediaType, season: season, episode: episode) else {
@@ -150,8 +150,15 @@ class YFlixService {
         
         do {
             let data = try await fetchData(from: url, headers: encDecHeaders())
-            let entries = try JSONDecoder().decode([DBEntry].self, from: data)
-            return entries.first
+            do {
+                let entries = try JSONDecoder().decode([DBEntry].self, from: data)
+                return entries.first
+            } catch {
+                let raw = String(data: data, encoding: .utf8) ?? "N/A"
+                print("❌ [YFlixService] DB decode failed: \(error.localizedDescription)")
+                print("❌ [YFlixService] Raw response (first 500 chars): \(String(raw.prefix(500)))")
+                return nil
+            }
         } catch {
             print("❌ [YFlixService] DB lookup failed: \(error.localizedDescription)")
             return nil
@@ -555,7 +562,7 @@ class YFlixService {
     
     private func fetchData(from url: URL, headers: [String: String]) async throws -> Data {
         var request = URLRequest(url: url)
-        request.timeoutInterval = 20
+        request.timeoutInterval = 30
         request.allHTTPHeaderFields = headers
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpRes = response as? HTTPURLResponse, (200..<400).contains(httpRes.statusCode) else {
@@ -568,7 +575,7 @@ class YFlixService {
     private func postJSON(to url: URL, body: [String: String], headers: [String: String]) async throws -> Data {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 20
+        request.timeoutInterval = 30
         var hdrs = headers
         hdrs["Content-Type"] = "application/json"
         request.allHTTPHeaderFields = hdrs
@@ -595,7 +602,8 @@ class YFlixService {
         if mediaType == "tv", let s = season, let e = episode {
             title += " S\(s)E\(e)"
         } else if let year = info.year {
-            title += " (\(year))"
+            let displayYear = year.prefix(4)
+            title += " (\(displayYear))"
         }
         return title
     }

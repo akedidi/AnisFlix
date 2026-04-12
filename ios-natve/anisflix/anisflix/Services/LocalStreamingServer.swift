@@ -20,6 +20,26 @@ class LocalStreamingServer {
     // DASH proxy session storage (session ID → session info)
     var dashSessions: [String: DashSession] = [:]
     
+    // TLS-bypassing URLSession for CDNs with invalid/untrusted certificates (e.g. megaup.cc)
+    private let tlsBypassDelegate = TLSBypassDelegate()
+    private lazy var insecureSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
+    }()
+    
+    private static let tlsUntrustedDomains = ["megaup.cc", "megacdn"]
+    
+    private func needsTLSBypass(url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return Self.tlsUntrustedDomains.contains(where: { host.contains($0) })
+    }
+    
+    /// Returns the appropriate URLSession: insecure for domains with bad certs, standard otherwise.
+    private func session(for url: URL) -> URLSession {
+        return needsTLSBypass(url: url) ? insecureSession : URLSession.shared
+    }
+    
     private init() {
         setupRoutes()
     }
@@ -121,9 +141,10 @@ class LocalStreamingServer {
                 print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (No Range req)")
             }
             
-            // Setup URLSession with streaming delegate
+            // Setup URLSession with streaming delegate (TLS bypass for untrusted CDNs)
             let config = URLSessionConfiguration.default
             let delegate = StreamingSessionDelegate()
+            delegate.bypassTLS = self.needsTLSBypass(url: targetUrl)
             let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
             let task = session.dataTask(with: urlRequest)
             
@@ -241,7 +262,8 @@ class LocalStreamingServer {
             var urlRequest = URLRequest(url: targetUrl)
             self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: query["cookie"])
             
-            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            let fetchSession = self.session(for: targetUrl)
+            let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
                 responseError = error
                 semaphore.signal()
@@ -321,7 +343,8 @@ class LocalStreamingServer {
             print("🚀 [LocalServer] Executing proxy request to: \(targetUrl.absoluteString)")
             self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: query["cookie"])
             
-            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            let fetchSession = self.session(for: targetUrl)
+            let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
                 responseResponse = response
                 responseError = error
@@ -455,7 +478,8 @@ class LocalStreamingServer {
             if let r = referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
             if let c = cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
             
-            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            let fetchSession = self.session(for: targetUrl)
+            let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
                 responseError = error
                 semaphore.signal()
@@ -609,14 +633,14 @@ class LocalStreamingServer {
             let components = path.split(separator: "/") // ["dash", "ABC123", "init-stream0.m4s"]
             
             guard components.count >= 3,
-                  let session = self.dashSessions[String(components[1])] else {
+                  let dashSession = self.dashSessions[String(components[1])] else {
                 print("❌ [LocalServer] DASH Segment: Invalid session for path \(path)")
                 return GCDWebServerDataResponse(statusCode: 404)
             }
             
             // Reconstruct segment path (everything after /dash/SESSION_ID/)
             let segmentPath = components[2...].joined(separator: "/")
-            let segmentUrl = session.baseUrl + segmentPath
+            let segmentUrl = dashSession.baseUrl + segmentPath
             
             guard let targetUrl = URL(string: segmentUrl) else {
                 return GCDWebServerDataResponse(statusCode: 400)
@@ -629,11 +653,12 @@ class LocalStreamingServer {
             
             var urlRequest = URLRequest(url: targetUrl)
             let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
-            urlRequest.setValue(session.userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
-            if let r = session.referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
-            if let c = session.cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
+            urlRequest.setValue(dashSession.userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
+            if let r = dashSession.referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
+            if let c = dashSession.cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
             
-            let task = URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            let fetchSession = self.session(for: targetUrl)
+            let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
                 responseError = error
                 semaphore.signal()
@@ -868,6 +893,19 @@ class LocalStreamingServer {
     }
 }
 
+// Standalone delegate that accepts untrusted TLS certificates (used by insecureSession)
+class TLSBypassDelegate: NSObject, URLSessionDelegate {
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+}
+
 // Helper class for URLSession streaming
 class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
     var onResponse: ((URLResponse) -> Void)?
@@ -876,6 +914,18 @@ class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
     var isFinished = false
     var error: Error?
     let queue = DispatchQueue(label: "com.anisflix.streaming")
+    var bypassTLS = false
+    
+    func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,
+                    completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if bypassTLS,
+           challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
     
     func readNextChunk(completion: @escaping (Data?, Error?) -> Void) {
         queue.async {

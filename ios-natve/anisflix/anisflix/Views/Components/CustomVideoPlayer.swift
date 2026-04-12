@@ -1054,9 +1054,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isVidlink = urlString.contains("vodvidl.site") ||
                         urlString.contains("vidlink") ||
                         (effectiveHeaders["Origin"]?.contains("vidlink") == true)
-        let isYFlix = urlString.contains("rapidshare") ||
-                      (effectiveHeaders["Origin"]?.contains("yflix") == true)
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix
+        let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
+                      (effectiveHeaders["Origin"]?.contains("yflix") == true) ||
+                      (effectiveHeaders["Origin"]?.contains("rapidshare") == true)
+        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
+                         (effectiveHeaders["Origin"]?.contains("animekai") == true) ||
+                         (effectiveHeaders["Origin"]?.contains("megaup") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         
         // Is it an MP4/MKV or an HLS playlist?
@@ -1290,8 +1294,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // - OR Subtitles present -> Always Proxy for Cast/AirPlay (to be safe)
         
         let isVidlink = urlString.contains("vodvidl.site") || urlString.contains("vidlink")
-        let isYFlix = urlString.contains("rapidshare")
-        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix
+        let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node")
+        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn")
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix || isAnimeKai
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
         
