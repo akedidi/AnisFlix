@@ -220,7 +220,9 @@ async function runStreamFetch(eid) {
               allStreams.push({ ...s, serverType, serverKey });
             }
             allSubtitles.push(...fmt.subtitles);
-          } catch {}
+          } catch (err) {
+            console.error(`[YFlix] server ${serverType}/${serverKey} error:`, err?.message || err);
+          }
         })()
       );
     }
@@ -276,7 +278,15 @@ export async function getYFlixStreams({ tmdbId, mediaType, season, episode }) {
   }
   console.log(`[YFlix] eid=${eid}`);
 
-  const { streams, subtitles } = await runStreamFetch(eid);
+  let streams, subtitles;
+  try {
+    const result = await runStreamFetch(eid);
+    streams = result.streams;
+    subtitles = result.subtitles;
+  } catch (err) {
+    console.error(`[YFlix] runStreamFetch error:`, err?.message || err);
+    return [];
+  }
   console.log(`[YFlix] ${streams.length} stream(s), ${subtitles.length} subtitle(s)`);
 
   return streams.map((s) => ({

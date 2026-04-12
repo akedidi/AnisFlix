@@ -2058,7 +2058,8 @@ export default async function handler(req, res) {
     if (decodedPath === 'yflix') {
       console.log('🟢 ========== YFLIX START ==========');
       try {
-        const { tmdbId, type, season, episode } = queryParams;
+        const { tmdbId, type, season, episode, debug } = queryParams;
+        const debugEnabled = String(debug || '') === '1';
 
         if (!tmdbId) {
           return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
@@ -2076,7 +2077,29 @@ export default async function handler(req, res) {
         });
 
         if (!streams || streams.length === 0) {
-          return res.status(200).json({ success: true, results: [] });
+          let probes = null;
+          if (debugEnabled) {
+            const probe = async (name, url) => {
+              const t0 = Date.now();
+              try {
+                const r = await axios.get(url, { timeout: 8000, validateStatus: () => true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+                return { name, ok: r.status >= 200 && r.status < 400, status: r.status, ms: Date.now() - t0 };
+              } catch (e) {
+                return { name, ok: false, status: null, ms: Date.now() - t0, error: e?.code || e?.message };
+              }
+            };
+            probes = await Promise.all([
+              probe('enc-dec:db', 'https://enc-dec.app/db/flix/find?tmdb_id=1396&type=tv'),
+              probe('enc-dec:enc', 'https://enc-dec.app/api/enc-movies-flix?text=test'),
+              probe('yflix:home', 'https://yflix.to/'),
+              probe('yflix:ajax', 'https://yflix.to/ajax'),
+            ]);
+          }
+          return res.status(200).json({
+            success: true,
+            results: [],
+            ...(debugEnabled ? { debug: { runtime: process.version, probes } } : {}),
+          });
         }
 
         return res.status(200).json({
@@ -2097,7 +2120,11 @@ export default async function handler(req, res) {
         });
       } catch (error) {
         console.error('🟢 [YFlix] ERROR:', error?.message || error);
-        return res.status(200).json({ success: true, results: [] });
+        return res.status(200).json({
+          success: true,
+          results: [],
+          ...(debugEnabled ? { debug: { error: error?.message || String(error) } } : {}),
+        });
       }
     }
 
