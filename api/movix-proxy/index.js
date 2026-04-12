@@ -2088,11 +2088,14 @@ export default async function handler(req, res) {
                 return { name, ok: false, status: null, ms: Date.now() - t0, error: e?.code || e?.message };
               }
             };
+            const encTest = await axios.get('https://enc-dec.app/api/enc-movies-flix?text=testeid', { timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.data?.result).catch(() => null);
             probes = await Promise.all([
               probe('enc-dec:db', 'https://enc-dec.app/db/flix/find?tmdb_id=1396&type=tv'),
               probe('enc-dec:enc', 'https://enc-dec.app/api/enc-movies-flix?text=test'),
               probe('yflix:home', 'https://yflix.to/'),
-              probe('yflix:ajax', 'https://yflix.to/ajax'),
+              probe('yflix:ajax-root', 'https://yflix.to/ajax'),
+              probe('yflix:links-list', `https://yflix.to/ajax/links/list?eid=testeid&_=${encTest || 'x'}`),
+              probe('yflix:links-view', `https://yflix.to/ajax/links/view?id=test&_=${encTest || 'x'}`),
             ]);
           }
           return res.status(200).json({
