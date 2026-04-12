@@ -71,8 +71,17 @@ function parseHtml(html) {
 
 async function decryptRapidMedia(embedUrl) {
   const mediaUrl = embedUrl.replace("/e/", "/media/").replace("/e2/", "/media/");
-  const mediaResp = await getJson(mediaUrl, { timeout: 20000 });
-  const encrypted = mediaResp?.result;
+  const origin = new URL(embedUrl).origin;
+  const mediaResp = await axios.get(mediaUrl, {
+    headers: {
+      ...HEADERS,
+      Referer: embedUrl,
+      Origin: origin,
+    },
+    timeout: 20000,
+    validateStatus: (s) => s >= 200 && s < 300,
+  });
+  const encrypted = mediaResp.data?.result;
   if (!encrypted) return null;
   const dec = await postJson(
     `${API}/dec-rapid`,

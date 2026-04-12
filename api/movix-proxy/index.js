@@ -641,7 +641,7 @@ export default async function handler(req, res) {
   });
 
   // Helps confirm which revision is deployed on Vercel
-  res.setHeader('X-Anisflix-Api-Rev', 'yflix-rapid-fix-v1');
+  res.setHeader('X-Anisflix-Api-Rev', 'yflix-rapid-fix-v2');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
