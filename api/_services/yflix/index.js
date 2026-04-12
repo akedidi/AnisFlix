@@ -17,6 +17,8 @@ function extraHeaders(url) {
       return { Referer: "https://yflix.to/", Origin: "https://yflix.to" };
     if (host.endsWith("enc-dec.app"))
       return { Referer: "https://enc-dec.app/", Origin: "https://enc-dec.app" };
+    if (host.endsWith("rapidshare.cc") || host.endsWith("rapidshare.work") || host.includes("rapidshare"))
+      return { Referer: "https://yflix.to/", Origin: "https://yflix.to" };
   } catch {}
   return {};
 }
