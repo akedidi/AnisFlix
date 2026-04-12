@@ -240,22 +240,22 @@ async function runStreamFetch(eid) {
   return { streams: deduped, subtitles: allSubtitles };
 }
 
-export async function getYFlixStreams({ tmdbId, mediaType, season, episode }) {
-  console.log(
-    `[YFlix] getStreams tmdbId=${tmdbId} type=${mediaType} S=${season || ""} E=${episode || ""}`
-  );
+export async function getYFlixStreams({ tmdbId, mediaType, season, episode, debug = false }) {
+  const trace = [];
+  const log = (msg) => { console.log(msg); trace.push(msg); };
+  const logErr = (msg) => { console.error(msg); trace.push(msg); };
+
+  log(`[YFlix] getStreams tmdbId=${tmdbId} type=${mediaType} S=${season || ""} E=${episode || ""}`);
 
   const dbResult = await findInDatabase(tmdbId, mediaType);
   if (!dbResult) {
-    console.log("[YFlix] no match in database");
-    return [];
+    log("[YFlix] no match in database");
+    return debug ? { streams: [], trace } : [];
   }
 
   const info = dbResult.info;
   const episodes = dbResult.episodes;
-  console.log(
-    `[YFlix] DB match: "${info.title_en}" (${info.year}) flix_id=${info.flix_id}`
-  );
+  log(`[YFlix] DB match: "${info.title_en}" (${info.year}) flix_id=${info.flix_id}`);
 
   let eid = null;
   if (mediaType === "movie") {
@@ -273,23 +273,95 @@ export async function getYFlixStreams({ tmdbId, mediaType, season, episode }) {
   }
 
   if (!eid) {
-    console.log("[YFlix] no episode ID found");
-    return [];
+    log("[YFlix] no episode ID found");
+    return debug ? { streams: [], trace } : [];
   }
-  console.log(`[YFlix] eid=${eid}`);
+  log(`[YFlix] eid=${eid}`);
 
   let streams, subtitles;
   try {
-    const result = await runStreamFetch(eid);
-    streams = result.streams;
-    subtitles = result.subtitles;
-  } catch (err) {
-    console.error(`[YFlix] runStreamFetch error:`, err?.message || err);
-    return [];
-  }
-  console.log(`[YFlix] ${streams.length} stream(s), ${subtitles.length} subtitle(s)`);
+    const encEid = await encrypt(eid);
+    log(`[YFlix] encrypted eid OK (${(encEid||'').substring(0,20)}...)`);
 
-  return streams.map((s) => ({
+    const linksUrl = `${YFLIX_AJAX}/links/list?eid=${eid}&_=${encEid}`;
+    log(`[YFlix] fetching ${linksUrl}`);
+
+    let serversResp;
+    try {
+      serversResp = await getJson(linksUrl, { timeout: 20000 });
+      log(`[YFlix] links/list response: ${JSON.stringify(serversResp).substring(0, 200)}`);
+    } catch (err) {
+      logErr(`[YFlix] links/list FAILED: ${err?.response?.status || ''} ${err?.message || err}`);
+      return debug ? { streams: [], trace } : [];
+    }
+
+    const servers = await parseHtml(serversResp?.result);
+    log(`[YFlix] parsed servers: ${JSON.stringify(servers).substring(0, 300)}`);
+
+    if (!servers || typeof servers !== "object" || Object.keys(servers).length === 0) {
+      log("[YFlix] no servers found after parsing");
+      return debug ? { streams: [], trace } : [];
+    }
+
+    const allStreams = [];
+    const allSubtitles = [];
+    const promises = [];
+
+    for (const serverType of Object.keys(servers)) {
+      for (const serverKey of Object.keys(servers[serverType] || {})) {
+        const lid = servers[serverType][serverKey]?.lid;
+        if (!lid) continue;
+        log(`[YFlix] processing server ${serverType}/${serverKey} lid=${lid}`);
+
+        promises.push(
+          (async () => {
+            try {
+              const encLid = await encrypt(lid);
+              const viewUrl = `${YFLIX_AJAX}/links/view?id=${lid}&_=${encLid}`;
+              const embedResp = await getJson(viewUrl, { timeout: 20000 });
+              log(`[YFlix] links/view ${serverType}/${serverKey}: ${JSON.stringify(embedResp).substring(0, 150)}`);
+
+              const decrypted = await decrypt(embedResp?.result);
+              log(`[YFlix] decrypted ${serverType}/${serverKey}: ${JSON.stringify(decrypted).substring(0, 150)}`);
+
+              if (!decrypted?.url?.includes("rapidshare")) {
+                log(`[YFlix] ${serverType}/${serverKey}: not rapidshare, skipping`);
+                return;
+              }
+
+              const rapidData = await decryptRapidMedia(decrypted.url);
+              log(`[YFlix] rapid data ${serverType}/${serverKey}: ${JSON.stringify(rapidData).substring(0, 200)}`);
+
+              const fmt = formatRapidResult(rapidData);
+              const enhanced = await enhanceWithQualities(fmt.streams);
+              for (const s of enhanced) {
+                allStreams.push({ ...s, serverType, serverKey });
+              }
+              allSubtitles.push(...fmt.subtitles);
+            } catch (err) {
+              logErr(`[YFlix] server ${serverType}/${serverKey} error: ${err?.response?.status || ''} ${err?.message || err}`);
+            }
+          })()
+        );
+      }
+    }
+
+    await Promise.all(promises);
+
+    const seen = new Set();
+    streams = allStreams.filter((s) => {
+      if (!s?.url || seen.has(s.url)) return false;
+      seen.add(s.url);
+      return true;
+    });
+    subtitles = allSubtitles;
+  } catch (err) {
+    logErr(`[YFlix] runStreamFetch error: ${err?.message || err}`);
+    return debug ? { streams: [], trace } : [];
+  }
+  log(`[YFlix] ${streams.length} stream(s), ${subtitles.length} subtitle(s)`);
+
+  const mapped = streams.map((s) => ({
     provider: "yflix",
     name: `YFlix ${s.serverType || "Server"} - ${s.quality || "Unknown"}`,
     title: `${info.title_en}${info.year ? ` (${info.year})` : ""}${mediaType === "tv" ? ` S${season}E${episode}` : ""}`,
@@ -298,4 +370,6 @@ export async function getYFlixStreams({ tmdbId, mediaType, season, episode }) {
     type: s.type || "hls",
     subtitles,
   }));
+
+  return debug ? { streams: mapped, trace } : mapped;
 }

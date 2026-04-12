@@ -641,7 +641,7 @@ export default async function handler(req, res) {
   });
 
   // Helps confirm which revision is deployed on Vercel
-  res.setHeader('X-Anisflix-Api-Rev', '15dd7567');
+  res.setHeader('X-Anisflix-Api-Rev', 'yflix-trace-v1');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -2069,39 +2069,22 @@ export default async function handler(req, res) {
         const seasonNumber = season ? parseInt(season) : 1;
         const episodeNumber = episode ? parseInt(episode) : 1;
 
-        const streams = await getYFlixStreams({
+        const rawResult = await getYFlixStreams({
           tmdbId: String(tmdbId),
           mediaType,
           season: seasonNumber,
           episode: episodeNumber,
+          debug: debugEnabled,
         });
 
+        const streams = debugEnabled ? (rawResult?.streams || []) : (rawResult || []);
+        const trace = debugEnabled ? (rawResult?.trace || []) : [];
+
         if (!streams || streams.length === 0) {
-          let probes = null;
-          if (debugEnabled) {
-            const probe = async (name, url) => {
-              const t0 = Date.now();
-              try {
-                const r = await axios.get(url, { timeout: 8000, validateStatus: () => true, headers: { 'User-Agent': 'Mozilla/5.0' } });
-                return { name, ok: r.status >= 200 && r.status < 400, status: r.status, ms: Date.now() - t0 };
-              } catch (e) {
-                return { name, ok: false, status: null, ms: Date.now() - t0, error: e?.code || e?.message };
-              }
-            };
-            const encTest = await axios.get('https://enc-dec.app/api/enc-movies-flix?text=testeid', { timeout: 8000, headers: { 'User-Agent': 'Mozilla/5.0' } }).then(r => r.data?.result).catch(() => null);
-            probes = await Promise.all([
-              probe('enc-dec:db', 'https://enc-dec.app/db/flix/find?tmdb_id=1396&type=tv'),
-              probe('enc-dec:enc', 'https://enc-dec.app/api/enc-movies-flix?text=test'),
-              probe('yflix:home', 'https://yflix.to/'),
-              probe('yflix:ajax-root', 'https://yflix.to/ajax'),
-              probe('yflix:links-list', `https://yflix.to/ajax/links/list?eid=testeid&_=${encTest || 'x'}`),
-              probe('yflix:links-view', `https://yflix.to/ajax/links/view?id=test&_=${encTest || 'x'}`),
-            ]);
-          }
           return res.status(200).json({
             success: true,
             results: [],
-            ...(debugEnabled ? { debug: { runtime: process.version, probes } } : {}),
+            ...(debugEnabled ? { debug: { runtime: process.version, trace } } : {}),
           });
         }
 
@@ -2120,6 +2103,7 @@ export default async function handler(req, res) {
               default: !!t.default,
             })),
           })),
+          ...(debugEnabled ? { debug: { runtime: process.version, trace } } : {}),
         });
       } catch (error) {
         console.error('🟢 [YFlix] ERROR:', error?.message || error);
