@@ -69,26 +69,81 @@ function parseHtml(html) {
   return postJson(`${API}/parse-html`, { text: html }).then((j) => j.result);
 }
 
-async function decryptRapidMedia(embedUrl) {
+async function decryptRapidMedia(embedUrl, log) {
   const mediaUrl = embedUrl.replace("/e/", "/media/").replace("/e2/", "/media/");
   const origin = new URL(embedUrl).origin;
-  const mediaResp = await axios.get(mediaUrl, {
-    headers: {
-      ...HEADERS,
-      Referer: embedUrl,
-      Origin: origin,
-    },
-    timeout: 20000,
-    validateStatus: (s) => s >= 200 && s < 300,
-  });
-  const encrypted = mediaResp.data?.result;
-  if (!encrypted) return null;
-  const dec = await postJson(
-    `${API}/dec-rapid`,
-    { text: encrypted, agent: HEADERS["User-Agent"] },
-    { timeout: 20000 }
-  );
-  return dec?.result || null;
+
+  // Try /media/ endpoint first
+  try {
+    const mediaResp = await axios.get(mediaUrl, {
+      headers: {
+        ...HEADERS,
+        Referer: embedUrl,
+        Origin: origin,
+      },
+      timeout: 20000,
+      validateStatus: (s) => s >= 200 && s < 300,
+    });
+    const encrypted = mediaResp.data?.result;
+    if (encrypted) {
+      const dec = await postJson(
+        `${API}/dec-rapid`,
+        { text: encrypted, agent: HEADERS["User-Agent"] },
+        { timeout: 20000 }
+      );
+      return dec?.result || null;
+    }
+  } catch (mediaErr) {
+    if (log) log(`[YFlix] /media/ failed (${mediaErr?.response?.status || mediaErr?.code}), trying /e/ embed fallback`);
+  }
+
+  // Fallback: fetch embed page, extract encrypted data from JS
+  try {
+    const embedResp = await axios.get(embedUrl, {
+      headers: {
+        ...HEADERS,
+        Referer: "https://yflix.to/",
+        Origin: origin,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
+      timeout: 20000,
+      responseType: "text",
+      validateStatus: () => true,
+    });
+
+    if (log) log(`[YFlix] /e/ page status=${embedResp.status} len=${String(embedResp.data || '').length}`);
+
+    if (embedResp.status === 200 && embedResp.data) {
+      const html = embedResp.data;
+      // Look for the encrypted data in the embed page script
+      const dataMatch = html.match(/file["']?\s*:\s*["']([^"']+)["']/i)
+        || html.match(/source["']?\s*:\s*["']([^"']+)["']/i)
+        || html.match(/src["']?\s*=\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i);
+      if (dataMatch) {
+        if (log) log(`[YFlix] found direct URL in embed: ${dataMatch[1].substring(0, 100)}`);
+        return { sources: [{ file: dataMatch[1] }], tracks: [] };
+      }
+
+      // Try dec-rapid on any encrypted blob found
+      const encMatch = html.match(/atob\(["']([A-Za-z0-9+/=]+)["']\)/)
+        || html.match(/result["']?\s*:\s*["']([A-Za-z0-9_\-+/=]{20,})["']/);
+      if (encMatch) {
+        if (log) log(`[YFlix] found encrypted blob in embed (${encMatch[1].substring(0, 30)}...)`);
+        const dec = await postJson(
+          `${API}/dec-rapid`,
+          { text: encMatch[1], agent: HEADERS["User-Agent"] },
+          { timeout: 20000 }
+        );
+        return dec?.result || null;
+      }
+
+      if (log) log(`[YFlix] embed page snippet: ${html.substring(0, 500)}`);
+    }
+  } catch (embedErr) {
+    if (log) log(`[YFlix] /e/ embed fallback failed: ${embedErr?.response?.status || embedErr?.message}`);
+  }
+
+  return null;
 }
 
 async function findInDatabase(tmdbId, mediaType) {
@@ -340,7 +395,7 @@ export async function getYFlixStreams({ tmdbId, mediaType, season, episode, debu
                 return;
               }
 
-              const rapidData = await decryptRapidMedia(decrypted.url);
+              const rapidData = await decryptRapidMedia(decrypted.url, log);
               log(`[YFlix] rapid data ${serverType}/${serverKey}: ${JSON.stringify(rapidData).substring(0, 200)}`);
 
               const fmt = formatRapidResult(rapidData);
