@@ -326,6 +326,8 @@ class StreamingService {
         async let fsvidSources = FSVidService.shared.fetchMovieSources(tmdbId: movieId)
         // Vidlink Native iOS Source (VO)
         async let vidlinkSources = fetchVidlinkSources(tmdbId: movieId, type: "movie")
+        // YFlix Native iOS Source (VO)
+        async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
 
         
         // Anime Placeholder
@@ -375,7 +377,8 @@ class StreamingService {
         let animeSources = await (try? animeTask?.value) ?? []
         let fsvidMovieResults = await fsvidSources
         let vidlinkMovieResults = await (try? vidlinkSources) ?? []
-        
+        let yflixMovieResults = await (try? yflixSources) ?? []
+
         print("📊 [StreamingService] Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
@@ -407,7 +410,12 @@ class StreamingService {
         if !vidlinkMovieResults.isEmpty {
             allSources.append(contentsOf: vidlinkMovieResults)
         }
-        
+
+        // Add YFlix Native sources (VO)
+        if !yflixMovieResults.isEmpty {
+            allSources.append(contentsOf: yflixMovieResults)
+        }
+
         // Add Wiflix sources (Luluvid)
         if let wiflix = wiflix {
             allSources.append(contentsOf: wiflix)
@@ -462,8 +470,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (vidlink added, mob added)
-        return allSources.filter { $0.provider == "vidlink" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
+        // Filter for allowed providers (vidlink added, mob added, yflix added)
+        return allSources.filter { $0.provider == "vidlink" || $0.provider == "yflix" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
     }
     
     private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
@@ -565,6 +573,8 @@ class StreamingService {
         async let fsvidSources = FSVidService.shared.fetchSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         // Vidlink Native iOS Source (VO)
         async let vidlinkSources = fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        // YFlix Native iOS Source (VO)
+        async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
 
@@ -632,7 +642,8 @@ class StreamingService {
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let fsvidResults = await fsvidSources
         let vidlinkResults = await (try? vidlinkSources) ?? []
-        
+        let yflixResults = await (try? yflixSources) ?? []
+
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
@@ -664,6 +675,11 @@ class StreamingService {
         // Add Vidlink Native sources (high priority for VO)
         if !vidlinkResults.isEmpty {
             allSources.append(contentsOf: vidlinkResults)
+        }
+
+        // Add YFlix Native sources (VO)
+        if !yflixResults.isEmpty {
+            allSources.append(contentsOf: yflixResults)
         }
 
         // Add Wiflix sources (Luluvid)
@@ -718,8 +734,8 @@ class StreamingService {
             allSources.append(contentsOf: tmdbProxy)
         }
         
-        // Filter for allowed providers (fsvid added, mob added)
-        return allSources.filter { $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
+        // Filter for allowed providers (fsvid added, mob added, yflix added)
+        return allSources.filter { $0.provider == "yflix" || $0.provider == "fsvid" || $0.provider == "vidmoly" || $0.provider == "vidzy" || $0.provider == "vixsrc" || $0.provider == "primewire" || $0.provider == "2embed" || $0.provider == "afterdark" || $0.provider == "movix" || $0.provider == "darkibox" || $0.provider == "animeapi" || $0.provider == "moviebox" || $0.provider == "4khdhub" || $0.provider == "megacdn" || $0.provider == "premilkyway" || $0.provider == "luluvid" || $0.provider == "mob" }
     }
     
     private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
@@ -847,6 +863,9 @@ class StreamingService {
              // But if currentProvider was stored as "vidmoly", it likely came from TMDB scraper in initial implementation.
              // We'll try TMDB for these constants.
              return try await fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
+
+        case "yflix":
+            return try await fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         default:
             print("⚠️ [StreamingService] Check: Unknown provider '\(targetProvider)', falling back to full fetch")
@@ -1428,7 +1447,40 @@ class StreamingService {
             return []
         }
     }
-    
+
+    // MARK: - YFlix Integration
+
+    private func fetchYFlixSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        do {
+            let extractedSources = await YFlixService.shared.getStreams(tmdbId: String(tmdbId), mediaType: type, season: season, episode: episode)
+            var streamingSources: [StreamingSource] = []
+
+            for source in extractedSources {
+                let headers = [
+                    "Referer": "https://yflix.to/",
+                    "Origin": "https://yflix.to",
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                ]
+
+                let streamSource = StreamingSource(
+                    url: source.url,
+                    directUrl: source.url,
+                    quality: source.quality,
+                    type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                    provider: "yflix",
+                    language: "VO",
+                    origin: "yflix",
+                    headers: headers
+                )
+                streamingSources.append(streamSource)
+            }
+            return streamingSources
+        } catch {
+            print("❌ [StreamingService] YFlix fetching failed: \(error)")
+            return []
+        }
+    }
+
     // MARK: - Extractors
     
     func extractVidMoly(url: String) async throws -> String {

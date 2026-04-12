@@ -1054,7 +1054,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isVidlink = urlString.contains("vodvidl.site") ||
                         urlString.contains("vidlink") ||
                         (effectiveHeaders["Origin"]?.contains("vidlink") == true)
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink
+        let isYFlix = urlString.contains("rapidshare") ||
+                      (effectiveHeaders["Origin"]?.contains("yflix") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         
         // Is it an MP4/MKV or an HLS playlist?
@@ -1288,7 +1290,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // - OR Subtitles present -> Always Proxy for Cast/AirPlay (to be safe)
         
         let isVidlink = urlString.contains("vodvidl.site") || urlString.contains("vidlink")
-        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink
+        let isYFlix = urlString.contains("rapidshare")
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
         

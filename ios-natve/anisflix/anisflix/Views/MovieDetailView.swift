@@ -359,6 +359,7 @@ struct MovieDetailView: View {
                                                     if provider == "vixsrc" { return 2 }
                                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
+                                                    if provider == "yflix" { return -1 } // YFlix: high priority
                                                     if provider == "mob" { return 6 }
                                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                                     if provider.contains("luluvid") { return 99 }
