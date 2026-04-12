@@ -20,6 +20,7 @@ import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 import { useMovixAnime, extractVidMolyFromAnime } from "@/hooks/useMovixAnime";
 import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
+import { useYFlix } from "@/hooks/useYFlix";
 
 import { getImageUrl, tmdb } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -168,6 +169,14 @@ export default function SeriesDetail() {
   );
 
 
+
+  // Fetch YFlix sources (VO - series)
+  const { data: yflixSources } = useYFlix({
+    mediaId: seriesId,
+    mediaType: 'tv',
+    seasonNumber: selectedSeasonNumber,
+    episodeNumber: relativeEpisode || undefined,
+  });
 
   // Fetch AnimeKai sources for Animation genre
   // Use relativeEpisode in queryKey to trigger refetch when it changes
@@ -323,7 +332,22 @@ export default function SeriesDetail() {
     ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, relativeEpisode || 0, seriesId).map((source: any) => ({
       ...source,
       id: `movix-anime-${source.id}`
-    })))
+    }))),
+    ...(yflixSources?.map((source: any, index: number) => ({
+      id: `yflix-${index}`,
+      name: 'YFlix',
+      provider: 'YFlix',
+      url: source.url,
+      type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+      isFStream: false,
+      isMovixDownload: false,
+      isVidMoly: false,
+      isDarki: false,
+      isYFlix: true,
+      quality: source.quality || 'HD',
+      language: 'VO',
+      tracks: source.tracks,
+    })) || []),
   ];
 
   // Debug episodeSources

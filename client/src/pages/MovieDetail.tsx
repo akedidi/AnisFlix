@@ -17,6 +17,7 @@ import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useM
 import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
+import { useYFlix } from "@/hooks/useYFlix";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
@@ -112,6 +113,12 @@ export default function MovieDetail() {
     matchingResultMovixId: matchingResult?.id,
     shouldFetch: shouldFetchFilmsDownload,
     allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
+  });
+
+  // Fetch YFlix sources (VO - movies)
+  const { data: yflixSources } = useYFlix({
+    mediaId: movieId,
+    mediaType: 'movie',
   });
 
   // Fetch AnimeKai sources for Animation genre (Movies)
@@ -283,10 +290,25 @@ export default function MovieDetail() {
     tracks: source.tracks // Pass subtitles to player
   }));
 
-  // Map Cpasmal sources
-  // Map Cpasmal sources
+  // Map YFlix sources
+  const mappedYFlixSources = (yflixSources || []).map((source: any, index: number) => ({
+    id: `yflix-${index}`,
+    name: 'YFlix',
+    provider: 'YFlix',
+    url: source.url,
+    type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
+    isFStream: false,
+    isMovixDownload: false,
+    isVidMoly: false,
+    isDarki: false,
+    isYFlix: true,
+    quality: source.quality || 'HD',
+    language: 'VO',
+    tracks: source.tracks,
+  }));
+
   // Prioritize TMDB sources (Vidzy, VidMoly) over Movix FStream (FSVid)
-  const allSources = [...tmdbSources, ...sources, ...universalSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
+  const allSources = [...tmdbSources, ...sources, ...universalSources, ...mappedAnimeAPISources, ...mappedYFlixSources].filter(source => !source.isDarki);
 
 
   // Debug logs pour les sources TMDB

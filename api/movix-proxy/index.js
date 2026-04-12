@@ -7,6 +7,7 @@ import { CineproScraper } from "../_services/cinepro/index.js";
 import { VidlinkScraper } from "../_services/vidlink/index.js";
 import { getMovieBoxStreams } from "../_services/moviebox/index.js";
 import { getAnimeKaiStreams } from "../_services/animekai/index.js";
+import { getYFlixStreams } from "../_services/yflix/index.js";
 // import puppeteer from 'puppeteer-core';
 // import chromium from '@sparticuz/chromium'; // Disabled for Vercel Serverless Size Limits
 
@@ -2050,6 +2051,53 @@ export default async function handler(req, res) {
             ? { debug: { runtime: process.version, error: msg, status, url, probes } }
             : {})
         });
+      }
+    }
+
+    // GÉRER YFLIX ICI
+    if (decodedPath === 'yflix') {
+      console.log('🟢 ========== YFLIX START ==========');
+      try {
+        const { tmdbId, type, season, episode } = queryParams;
+
+        if (!tmdbId) {
+          return res.status(400).json({ error: 'Paramètre tmdbId manquant' });
+        }
+
+        const mediaType = type || 'movie';
+        const seasonNumber = season ? parseInt(season) : 1;
+        const episodeNumber = episode ? parseInt(episode) : 1;
+
+        const streams = await getYFlixStreams({
+          tmdbId: String(tmdbId),
+          mediaType,
+          season: seasonNumber,
+          episode: episodeNumber,
+        });
+
+        if (!streams || streams.length === 0) {
+          return res.status(200).json({ success: true, results: [] });
+        }
+
+        return res.status(200).json({
+          success: true,
+          results: streams.map((s) => ({
+            provider: 'YFlix',
+            language: 'VO',
+            quality: s.quality || 'HD',
+            url: s.url,
+            type: String(s.url || '').includes('.m3u8') ? 'hls' : 'mp4',
+            tracks: (s.subtitles || []).map((t) => ({
+              file: t.url,
+              label: t.language,
+              kind: 'captions',
+              default: !!t.default,
+            })),
+          })),
+        });
+      } catch (error) {
+        console.error('🟢 [YFlix] ERROR:', error?.message || error);
+        return res.status(200).json({ success: true, results: [] });
       }
     }
 
