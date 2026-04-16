@@ -40,7 +40,7 @@ export default function MovixDownloadTest() {
 
   const testMovieAPI = async () => {
     try {
-      const response = await fetch(`https://api.movix.site/api/films/download/${movieId}`);
+      const response = await fetch(`https://api.movix.llc/api/films/download/${movieId}`);
       const data = await response.json();
       
       console.log('Movie API Response:', {
@@ -58,7 +58,7 @@ export default function MovixDownloadTest() {
 
   const testSeriesAPI = async () => {
     try {
-      const response = await fetch(`https://api.movix.site/api/series/download/${seriesId}/season/${season}/episode/${episode}`);
+      const response = await fetch(`https://api.movix.llc/api/series/download/${seriesId}/season/${season}/episode/${episode}`);
       const data = await response.json();
       
       console.log('Series API Response:', {

@@ -108,8 +108,8 @@ const MOVIX_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': 'application/json, text/plain, */*',
   'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-  'Referer': 'https://movix.blog/',
-  'Origin': 'https://movix.blog',
+  'Referer': 'https://movix.llc/',
+  'Origin': 'https://movix.llc',
 };
 
 class VixSrcScraper {
@@ -855,14 +855,14 @@ export default async function handler(req, res) {
         let apiUrl;
 
         if (type === 'movie') {
-          // API pour films: https://api.movix.blog/api/links/movie/{id}
-          apiUrl = `https://api.movix.blog/api/links/movie/${id}`;
+          // API pour films: https://api.movix.llc/api/links/movie/{id}
+          apiUrl = `https://api.movix.llc/api/links/movie/${id}`;
         } else if (type === 'tv') {
-          // API pour séries: https://api.movix.blog/api/links/tv/{id}?season={season}&episode={episode}
+          // API pour séries: https://api.movix.llc/api/links/tv/{id}?season={season}&episode={episode}
           if (!season || !episode) {
             return res.status(400).json({ error: 'Paramètres "season" et "episode" requis pour les séries' });
           }
-          apiUrl = `https://api.movix.blog/api/links/tv/${id}?season=${season}&episode=${episode}`;
+          apiUrl = `https://api.movix.llc/api/links/tv/${id}?season=${season}&episode=${episode}`;
         } else {
           return res.status(400).json({ error: 'Type invalide. Utilisez "movie" ou "tv"' });
         }
@@ -875,8 +875,8 @@ export default async function handler(req, res) {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
-            'Referer': 'https://movix.blog/',
-            'Origin': 'https://movix.blog'
+            'Referer': 'https://movix.llc/',
+            'Origin': 'https://movix.llc'
           },
           timeout: 15000
         });
@@ -2424,7 +2424,7 @@ export default async function handler(req, res) {
 
     // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
     let movixUrl;
-    const baseMovixUrl = 'https://api.movix.blog';
+    const baseMovixUrl = 'https://api.movix.llc';
 
     if (decodedPath === 'search' && queryParams.title) {
       // Optimisation : Utiliser anime/search par défaut pour les recherches avec titre
