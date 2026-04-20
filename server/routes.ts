@@ -304,9 +304,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Gérer le cas spécial pour anime/search qui n'a pas besoin de /api/
       let movixUrl;
       if (isAnimeRequest) {
-        movixUrl = `https://api.movix.llc/${decodedPath}`;
+        movixUrl = `https://api.movix.cash/${decodedPath}`;
       } else {
-        movixUrl = `https://api.movix.llc/api/${decodedPath}`;
+        movixUrl = `https://api.movix.cash/api/${decodedPath}`;
       }
 
       const url = new URL(movixUrl);
@@ -330,8 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Accept': 'application/json, text/plain, */*',
           'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-          'Referer': 'https://movix.llc/',
-          'Origin': 'https://movix.llc',
+          'Referer': 'https://movix.cash/',
+          'Origin': 'https://movix.cash',
         },
         timeout: 15000,
         validateStatus: (status) => status < 500, // Accepter les 4xx mais pas les 5xx
