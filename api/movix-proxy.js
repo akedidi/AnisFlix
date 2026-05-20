@@ -1,13 +1,13 @@
 import axios from 'axios';
 import { URL } from 'url';
-import { handleUniversalVO } from "../_services/universalvo/index.js";
-import { FourKHDHubScraper } from "../_services/fourkhdhub/index.js";
-import { AfterDarkScraper } from "../_services/afterdark/index.js";
-import { CineproScraper } from "../_services/cinepro/index.js";
-import { VidlinkScraper } from "../_services/vidlink/index.js";
-import { getMovieBoxStreams } from "../_services/moviebox/index.js";
-import { getAnimeKaiStreams } from "../_services/animekai/index.js";
-import { getYFlixStreams } from "../_services/yflix/index.js";
+import { handleUniversalVO } from "./_services/universalvo/index.js";
+import { FourKHDHubScraper } from "./_services/fourkhdhub/index.js";
+import { AfterDarkScraper } from "./_services/afterdark/index.js";
+import { CineproScraper } from "./_services/cinepro/index.js";
+import { VidlinkScraper } from "./_services/vidlink/index.js";
+import { getMovieBoxStreams } from "./_services/moviebox/index.js";
+import { getAnimeKaiStreams } from "./_services/animekai/index.js";
+import { getYFlixStreams } from "./_services/yflix/index.js";
 // import puppeteer from 'puppeteer-core';
 // import chromium from '@sparticuz/chromium'; // Disabled for Vercel Serverless Size Limits
 

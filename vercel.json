@@ -4,7 +4,7 @@
       "memory": 1024,
       "maxDuration": 60
     },
-    "api/movix-proxy/index.js": {
+    "api/movix-proxy.js": {
       "memory": 1024,
       "maxDuration": 60
     }
