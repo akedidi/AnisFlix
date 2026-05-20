@@ -1,5 +1,5 @@
 
-import handler from '../api/movix-proxy.js';
+import handler from '../api/movix-proxy/index.js';
 
 const mockRes = () => {
     const res = {};
