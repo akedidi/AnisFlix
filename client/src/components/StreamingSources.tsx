@@ -379,43 +379,38 @@ const StreamingSources = memo(function StreamingSources({
     return false;
   };
 
-  // Ajuster la langue sélectionnée si la langue actuelle n'est pas disponible
+  // Réinitialiser à VF à chaque nouveau film / épisode
+  useEffect(() => {
+    setSelectedLanguage('VF');
+  }, [type, id, season, episode]);
+
+  // Catégorie par défaut au chargement : VF > VOSTFR > VO selon disponibilité
   useEffect(() => {
     const hasVF = hasSourcesForLanguage('VF');
     const hasVOSTFR = hasSourcesForLanguage('VOSTFR');
     const hasVO = hasSourcesForLanguage('VO');
 
-    // Si VF sélectionné mais pas dispo, basculer vers la première dispo
-    if (selectedLanguage === 'VF' && !hasVF) {
-      if (hasVOSTFR) {
-        console.log('🔄 Changement automatique vers VOSTFR car VF non disponible');
-        setSelectedLanguage('VOSTFR');
-      } else if (hasVO) {
-        console.log('🔄 Changement automatique vers VO car VF et VOSTFR non disponibles');
-        setSelectedLanguage('VO');
-      }
+    const preferred: 'VF' | 'VOSTFR' | 'VO' | null =
+      hasVF ? 'VF' : hasVOSTFR ? 'VOSTFR' : hasVO ? 'VO' : null;
+
+    if (preferred && selectedLanguage !== preferred) {
+      setSelectedLanguage(preferred);
     }
-    // Si VOSTFR sélectionné mais pas dispo, basculer
-    else if (selectedLanguage === 'VOSTFR' && !hasVOSTFR) {
-      if (hasVF) {
-        console.log('🔄 Changement automatique vers VF car VOSTFR non disponible');
-        setSelectedLanguage('VF');
-      } else if (hasVO) {
-        console.log('🔄 Changement automatique vers VO car VOSTFR non disponible');
-        setSelectedLanguage('VO');
-      }
-    }
-    // Si VO sélectionné mais pas dispo, basculer
-    else if (selectedLanguage === 'VO' && !hasVO) {
-      if (hasVF) {
-        console.log('🔄 Changement automatique vers VF car VO non disponible');
-        setSelectedLanguage('VF');
-      } else if (hasVOSTFR) {
-        console.log('🔄 Changement automatique vers VOSTFR car VO non disponible');
-        setSelectedLanguage('VOSTFR');
-      }
-    }
-  }, [selectedLanguage, hasSourcesForLanguage]);
+  }, [
+    type,
+    id,
+    season,
+    episode,
+    sources,
+    movixDownloadData,
+    vidmolyData,
+    animeVidMolyData,
+    fStreamData,
+    vixsrcData,
+    movieBoxData,
+    cineproData,
+    selectedLanguage,
+  ]);
 
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];

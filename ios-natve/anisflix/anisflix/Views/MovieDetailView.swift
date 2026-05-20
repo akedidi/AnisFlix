@@ -306,16 +306,7 @@ struct MovieDetailView: View {
                                     // Language Tabs
                                     HStack(spacing: 20) {
                                         ForEach(["VF", "VOSTFR", "VO"], id: \.self) { lang in
-                                            let hasSources = sources.contains { source in
-                                                if lang == "VF" {
-                                                    return source.language.lowercased().contains("french") || source.language.lowercased().contains("vf")
-                                                } else if lang == "VOSTFR" {
-                                                    return source.language.lowercased().contains("vostfr")
-                                                } else {
-                                                    // Allow all providers for VO
-                                                    return source.language.lowercased().contains("vo") || source.language.lowercased().contains("eng") || source.language.lowercased().contains("english")
-                                                }
-                                            }
+                                            let hasSources = !filterSources(sources, language: lang).isEmpty
                                             
                                             Button(action: {
                                                 if lang == "VF" {
@@ -544,22 +535,7 @@ struct MovieDetailView: View {
             await MainActor.run {
                 self.sources = sourcesResult
                 
-                // Auto-select language: VF > VOSTFR > VO
-                // Vidlink is VO-only; defaulting to VF/VOSTFR would hide it until the user switches tab.
-                let hasVidlink = sourcesResult.contains { $0.provider.lowercased() == "vidlink" }
-                let hasVF = sourcesResult.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
-                let hasVOSTFR = sourcesResult.contains { $0.language.lowercased().contains("vostfr") }
-                let hasVO = sourcesResult.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
-                
-                if hasVidlink {
-                    theme.preferredSourceLanguage = "VO"
-                } else if hasVF {
-                    theme.preferredSourceLanguage = "VF"
-                } else if hasVOSTFR {
-                    theme.preferredSourceLanguage = "VOSTFR"
-                } else if hasVO {
-                    theme.preferredSourceLanguage = "VO"
-                }
+                autoSelectPreferredSourceLanguage(from: sourcesResult)
                 
                 print("✅ Sources loaded: \(sourcesResult.count)")
                 self.isLoadingSources = false
@@ -712,6 +688,16 @@ struct MovieDetailView: View {
         )
     }
     
+    private func autoSelectPreferredSourceLanguage(from sources: [StreamingSource]) {
+        if !filterSources(sources, language: "VF").isEmpty {
+            theme.preferredSourceLanguage = "VF"
+        } else if !filterSources(sources, language: "VOSTFR").isEmpty {
+            theme.preferredSourceLanguage = "VOSTFR"
+        } else if !filterSources(sources, language: "VO").isEmpty {
+            theme.preferredSourceLanguage = "VO"
+        }
+    }
+
     // Helper to filter sources by language
     private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
         return sources.filter { source in

@@ -720,24 +720,19 @@ struct SeriesDetailView: View {
         
         isLoadingEpisodeSources = false
         
-        // Auto-select language: VF > VOSTFR > VO
-        // Vidlink tags sources as VO only; if we default to VF/VOSTFR (e.g. VidMoly), Vidlink disappears from the list until user opens VO.
-        let hasVidlink = episodeSources.contains { $0.provider.lowercased() == "vidlink" }
-        let hasVF = episodeSources.contains { $0.language.lowercased().contains("french") || $0.language.lowercased().contains("vf") }
-        let hasVOSTFR = episodeSources.contains { $0.language.lowercased().contains("vostfr") }
-        let hasVO = episodeSources.contains { $0.language.lowercased().contains("vo") || $0.language.lowercased().contains("eng") || $0.language.lowercased().contains("english") }
-        
-        if hasVidlink {
-            theme.preferredSourceLanguage = "VO"
-        } else if hasVF {
+        autoSelectPreferredSourceLanguage(from: episodeSources)
+    }
+    
+    private func autoSelectPreferredSourceLanguage(from sources: [StreamingSource]) {
+        if !filterSources(sources, language: "VF").isEmpty {
             theme.preferredSourceLanguage = "VF"
-        } else if hasVOSTFR {
+        } else if !filterSources(sources, language: "VOSTFR").isEmpty {
             theme.preferredSourceLanguage = "VOSTFR"
-        } else if hasVO {
+        } else if !filterSources(sources, language: "VO").isEmpty {
             theme.preferredSourceLanguage = "VO"
         }
     }
-    
+
     // Helper to filter sources by language
     private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
         return sources.filter { source in
