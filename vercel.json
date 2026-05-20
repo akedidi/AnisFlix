@@ -1,10 +1,13 @@
 {
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist/public",
+  "framework": "vite",
   "functions": {
-    "api/extract.js": {
+    "api/*.js": {
       "memory": 1024,
       "maxDuration": 60
     },
-    "api/movix-proxy.js": {
+    "api/**/index.js": {
       "memory": 1024,
       "maxDuration": 60
     }
@@ -15,7 +18,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
