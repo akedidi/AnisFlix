@@ -10,10 +10,6 @@
     "api/**/index.js": {
       "memory": 1024,
       "maxDuration": 60
-    },
-    "api/movix-proxy/index.js": {
-      "memory": 1024,
-      "maxDuration": 60
     }
   },
   "rewrites": [
