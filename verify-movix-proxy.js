@@ -1,4 +1,4 @@
-import handler from './api/movix-proxy.js';
+import handler from './api/movix-proxy/index.js';
 
 async function runTest() {
     console.log('--- Testing Movix Proxy Import ---');
