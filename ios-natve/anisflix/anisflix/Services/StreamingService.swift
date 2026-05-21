@@ -1761,6 +1761,31 @@ class StreamingService {
         ]
     }
     
+    /// Referer must match the embed page host (lulustream vs luluvid); CDN often checks full embed URL.
+    static func luluvidPlaybackHeaders(embedUrl: String, cookie: String? = nil) -> [String: String] {
+        let referer: String
+        let origin: String
+        if embedUrl.hasPrefix("http"), let u = URL(string: embedUrl), let host = u.host {
+            referer = embedUrl
+            origin = "\(u.scheme ?? "https")://\(host)"
+        } else if embedUrl.lowercased().contains("lulustream") {
+            referer = "https://lulustream.com/"
+            origin = "https://lulustream.com"
+        } else {
+            referer = "https://luluvid.com/"
+            origin = "https://luluvid.com"
+        }
+        var headers: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ]
+        if let cookie, !cookie.isEmpty {
+            headers["Cookie"] = cookie
+        }
+        return headers
+    }
+    
     func extractVidzy(url: String) async throws -> String {
         let apiUrl = URL(string: "\(baseUrl)/api/extract")!
         var request = URLRequest(url: apiUrl)
@@ -1820,9 +1845,11 @@ class StreamingService {
         
         print("🚀 [Luluvid iOS] Extracting locally: \(url)")
         
+        let refererBase = Self.luluvidRefererBase(for: luluvidUrl)
+        
         var request = URLRequest(url: luluvidUrl)
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-        request.setValue("https://luluvid.com/", forHTTPHeaderField: "Referer")
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.setValue(refererBase, forHTTPHeaderField: "Referer")
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -1844,33 +1871,77 @@ class StreamingService {
             }
         }
         
-        // Regex Extraction logic (NSRegularExpression for reliability)
-        // Pattern 1: sources: [{file:"https://..."}]
-        let pattern1 = #"sources:\s*\[\s*\{\s*file:\s*["']([^"']+)["']"#
-        // Pattern 2: file: "https://..."
-        let pattern2 = #"file:\s*["']([^"']+)["']"#
-        
-        var m3u8Url: String? = nil
-        
-        let range = NSRange(html.startIndex..<html.endIndex, in: html)
-        
-        if let regex1 = try? NSRegularExpression(pattern: pattern1),
-           let match = regex1.firstMatch(in: html, options: [], range: range),
-           let captureRange = Range(match.range(at: 1), in: html) {
-            m3u8Url = String(html[captureRange])
-        } else if let regex2 = try? NSRegularExpression(pattern: pattern2),
-                  let match = regex2.firstMatch(in: html, options: [], range: range),
-                  let captureRange = Range(match.range(at: 1), in: html) {
-            m3u8Url = String(html[captureRange])
+        var searchText = html
+        if JsPackerUnpacker.isPacked(html) {
+            print("📦 [Luluvid iOS] Packed JS detected, unpacking...")
+            let unpacked = JsPackerUnpacker.unpackAll(in: html)
+            if unpacked.count > html.count + 100 {
+                searchText = unpacked
+                print("✅ [Luluvid iOS] Unpack OK (\(unpacked.count) chars)")
+            } else {
+                print("⚠️ [Luluvid iOS] Unpack produced no extra content, trying API fallback")
+            }
         }
         
-        if let extracted = m3u8Url {
+        if let extracted = Self.extractM3U8FromLuluvidText(searchText) {
             print("✅ [Luluvid iOS] Extracted M3U8: \(extracted)")
             return (extracted, cookieString)
         }
         
+        // Fallback: Vercel extract API (same unpack logic server-side)
+        if let apiUrl = try? await extractLuluvidViaAPI(embedUrl: url) {
+            print("✅ [Luluvid iOS] Extracted via API fallback: \(apiUrl)")
+            return (apiUrl, cookieString)
+        }
+        
         print("❌ [Luluvid iOS] No M3U8 found in HTML")
         throw URLError(.cannotParseResponse)
+    }
+    
+    private static func luluvidRefererBase(for url: URL) -> String {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("lulustream") {
+            return "https://lulustream.com/"
+        }
+        return "https://luluvid.com/"
+    }
+    
+    private func extractLuluvidViaAPI(embedUrl: String) async throws -> String? {
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["type": "luluvid", "url": embedUrl])
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+        
+        struct ExtractResponse: Codable {
+            let success: Bool?
+            let m3u8Url: String?
+        }
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        guard result.success == true, let m3u8 = result.m3u8Url, m3u8.contains(".m3u8") else { return nil }
+        return m3u8
+    }
+    
+    private static func extractM3U8FromLuluvidText(_ text: String) -> String? {
+        let patterns = [
+            #"sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.m3u8[^"']*)["']"#,
+            #"file:\s*["']([^"']+\.m3u8[^"']*)["']"#,
+            #"(https?://[^\s"'<>]+\.m3u8[^\s"'<>]*)"#
+        ]
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: text, options: [], range: range),
+                  let captureRange = Range(match.range(at: 1), in: text) else { continue }
+            let candidate = String(text[captureRange])
+            if candidate.contains(".m3u8") {
+                return candidate
+            }
+        }
+        return nil
     }
     
     // MARK: - Proxy Helpers
@@ -2872,15 +2943,7 @@ class StreamingService {
                 let (directUrl, cookie) = try await extractLuluvid(url: source.url)
                 print("✅ [StreamingService] Luluvid extraction successful: \(directUrl)")
                 
-                var headers = [
-                    "Referer": "https://luluvid.com/",
-                    "Origin": "https://luluvid.com",
-                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-                ]
-                
-                if let c = cookie {
-                    headers["Cookie"] = c
-                }
+                let headers = Self.luluvidPlaybackHeaders(embedUrl: source.url, cookie: cookie)
                 
                 return StreamingSource(
                     id: source.id,

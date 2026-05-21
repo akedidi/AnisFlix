@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.66",
+          "version": "1.0.67",
           "date": "2026-05-21",
-          "size": 30909343,
+          "size": 30915690,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix(vercel): expose movix via thin api/movix.js + rewrite Vercel did not register the 102KB api/movix-proxy/index.js function (404). Move handler to lib/handlers/ and use a small api/movix.js entry matched by api/*.js; rewrite /api/movix-proxy to /api/movix for existing clients. Co-authored-by: Cursor <cursoragent@cursor.com> "
+          "localizedDescription": "1.0.67 — Luluvid packed JS unpack + lulustream Referer for playback; iOS streaming/download fixes."
         }
       ]
     }

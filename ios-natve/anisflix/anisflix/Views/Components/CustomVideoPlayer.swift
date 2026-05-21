@@ -1023,9 +1023,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if urlString.contains("vidzy") {
             effectiveHeaders["Referer"] = "https://vidzy.org/"
             print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
-        } else if urlString.contains("luluvid") {
-             effectiveHeaders["Referer"] = "https://luluvid.com/"
-             effectiveHeaders["Origin"] = "https://luluvid.com"
+        } else if effectiveHeaders["Referer"] == nil,
+                  urlString.contains("luluvid") || urlString.contains("lulustream") {
+             effectiveHeaders["Referer"] = urlString.contains("lulustream")
+                ? "https://lulustream.com/"
+                : "https://luluvid.com/"
+             effectiveHeaders["Origin"] = urlString.contains("lulustream")
+                ? "https://lulustream.com"
+                : "https://luluvid.com"
              print("🎬 [CustomVideoPlayer] Added LuluVid Referer & Origin")
         }
         
@@ -1066,7 +1071,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isAnimePaheSource = urlString.contains("owocdn") || urlString.contains("vault-") ||
             (effectiveHeaders["Referer"]?.contains("kwik") == true) ||
             (effectiveHeaders["Origin"]?.contains("kwik") == true)
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix
+        let isLuluProvider = effectiveHeaders["Referer"]?.contains("luluvid") == true
+            || effectiveHeaders["Referer"]?.contains("lulustream") == true
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid")
+            || urlString.contains("lulustream") || isLuluProvider || isVidlink || isYFlix
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy") ||
                             urlString.contains("anisflix.vercel.app/api/vidmoly") ||
                             urlString.contains("anisflix.vercel.app/api/movix") ||
@@ -1308,9 +1316,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Add Referer for known providers
         if urlString.contains("vidzy") {
             effectiveHeaders["Referer"] = "https://vidzy.org/"
-        } else if urlString.contains("luluvid") {
-             effectiveHeaders["Referer"] = "https://luluvid.com/"
-             effectiveHeaders["Origin"] = "https://luluvid.com"
+        } else if effectiveHeaders["Referer"] == nil,
+                  urlString.contains("luluvid") || urlString.contains("lulustream") {
+             effectiveHeaders["Referer"] = urlString.contains("lulustream")
+                ? "https://lulustream.com/"
+                : "https://luluvid.com/"
+             effectiveHeaders["Origin"] = urlString.contains("lulustream")
+                ? "https://lulustream.com"
+                : "https://luluvid.com"
         } else if urlString.contains("fsvid") {
              effectiveHeaders["Referer"] = "https://fsvid.lol/"
              effectiveHeaders["Origin"] = "https://fsvid.lol"
@@ -1330,7 +1343,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isVidlink = urlString.contains("vodvidl.site") || urlString.contains("vidlink")
         let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node")
         let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn")
-        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid") || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix || isAnimeKai
+        let isLuluHeaders = effectiveHeaders["Referer"]?.contains("lulu") == true
+        let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid")
+            || urlString.contains("lulustream") || isLuluHeaders
+            || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix || isAnimeKai
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
         

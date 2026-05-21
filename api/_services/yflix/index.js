@@ -12,15 +12,65 @@ const YFLIX_AJAX = "https://yflix.to/ajax";
 
 function extraHeaders(url) {
   try {
-    const host = new URL(url).hostname;
+    const host = new URL(url).hostname.toLowerCase();
     if (host.endsWith("yflix.to"))
       return { Referer: "https://yflix.to/", Origin: "https://yflix.to" };
     if (host.endsWith("enc-dec.app"))
       return { Referer: "https://enc-dec.app/", Origin: "https://enc-dec.app" };
-    if (host.endsWith("rapidshare.cc") || host.endsWith("rapidshare.work") || host.includes("rapidshare"))
+    // YFlix video CDNs (rapidshare, phantom grids, etc.) expect yflix referer
+    if (!host.endsWith("yflix.to") && !host.endsWith("enc-dec.app"))
       return { Referer: "https://yflix.to/", Origin: "https://yflix.to" };
   } catch {}
   return {};
+}
+
+function normalizeStreamUrl(url) {
+  if (!url) return url;
+  try {
+    return new URL(url).href;
+  } catch {
+    return String(url).replace(/,/g, "%2C");
+  }
+}
+
+function isBlockedCdn(url) {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    return (
+      /phantom-\d+-grid\.site/.test(h) ||
+      (h.includes("phantom-") && h.includes("-grid.site"))
+    );
+  } catch {
+    return true;
+  }
+}
+
+function streamHostScore(url) {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    if (isBlockedCdn(url)) return -100;
+    if (h.includes("rapidshare.cc")) return 50;
+    if (h.includes("rapidshare")) return 30;
+    return 0;
+  } catch {
+    return -10;
+  }
+}
+
+async function isStreamReachable(url) {
+  const normalized = normalizeStreamUrl(url);
+  if (isBlockedCdn(normalized)) return false;
+  try {
+    await axios.get(normalized, {
+      headers: { ...HEADERS, ...extraHeaders(normalized), Range: "bytes=0-0" },
+      timeout: 10000,
+      validateStatus: (s) => s >= 200 && s < 400,
+      maxRedirects: 5,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function getJson(url, { timeout = 15000 } = {}) {
@@ -211,10 +261,12 @@ function formatRapidResult(rapidResult) {
 
   for (const src of rapidResult.sources || []) {
     if (src?.file) {
+      const url = normalizeStreamUrl(src.file);
+      if (isBlockedCdn(url)) continue;
       streams.push({
-        url: src.file,
-        quality: src.file.includes(".m3u8") ? "Adaptive" : "unknown",
-        type: src.file.includes(".m3u8") ? "hls" : "file",
+        url,
+        quality: url.includes(".m3u8") ? "Adaptive" : "unknown",
+        type: url.includes(".m3u8") ? "hls" : "file",
       });
     }
   }
@@ -264,7 +316,13 @@ async function runStreamFetch(eid) {
   const promises = [];
 
   for (const serverType of Object.keys(servers)) {
-    for (const serverKey of Object.keys(servers[serverType] || {})) {
+    const serverKeys = Object.keys(servers[serverType] || {}).sort((a, b) => {
+      const ia = parseInt(a, 10);
+      const ib = parseInt(b, 10);
+      if (!Number.isNaN(ia) && !Number.isNaN(ib)) return ib - ia;
+      return b.localeCompare(a);
+    });
+    for (const serverKey of serverKeys) {
       const lid = servers[serverType][serverKey]?.lid;
       if (!lid) continue;
 
@@ -427,9 +485,19 @@ export async function getYFlixStreams({ tmdbId, mediaType, season, episode, debu
   }
   log(`[YFlix] ${streams.length} stream(s), ${subtitles.length} subtitle(s)`);
 
-  const mapped = streams.map((s) => ({
+  const filtered = streams.filter((s) => s?.url && !isBlockedCdn(s.url));
+  const reachable = [];
+  for (const s of filtered) {
+    if (await isStreamReachable(s.url)) reachable.push(s);
+  }
+  const finalStreams = (reachable.length > 0 ? reachable : filtered).sort(
+    (a, b) => streamHostScore(b.url) - streamHostScore(a.url)
+  );
+  log(`[YFlix] ${finalStreams.length} stream(s) after CDN filter`);
+
+  const mapped = finalStreams.map((s) => ({
     provider: "yflix",
-    name: `YFlix ${s.serverType || "Server"} - ${s.quality || "Unknown"}`,
+    name: `YFlix ${s.serverKey || s.serverType || "Server"} - ${s.quality || "Unknown"}`,
     title: `${info.title_en}${info.year ? ` (${info.year})` : ""}${mediaType === "tv" ? ` S${season}E${episode}` : ""}`,
     url: s.url,
     quality: s.quality || "Unknown",

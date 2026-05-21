@@ -210,6 +210,11 @@ class LocalStreamingServer {
         return host.contains("vmwesa") || host.contains("vmeas") || host.contains("netmagcdn")
     }
     
+    private func isLuluvidCDN(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("tnmr") || host.contains("htvpd") || host.contains("lulucdn")
+    }
+    
     private func applyHeaders(to request: inout URLRequest, targetUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) {
         let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
         
@@ -224,6 +229,18 @@ class LocalStreamingServer {
             request.setValue(Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
             request.setValue("https://vidmoly.net/", forHTTPHeaderField: "Referer")
             request.setValue("https://vidmoly.net", forHTTPHeaderField: "Origin")
+        } else if isLuluvidCDN(targetUrl) {
+            request.setValue(Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
+            if let referer = referer, !referer.isEmpty {
+                request.setValue(referer, forHTTPHeaderField: "Referer")
+            } else {
+                request.setValue("https://lulustream.com/", forHTTPHeaderField: "Referer")
+            }
+            if let origin = origin, !origin.isEmpty {
+                request.setValue(origin, forHTTPHeaderField: "Origin")
+            } else {
+                request.setValue("https://lulustream.com", forHTTPHeaderField: "Origin")
+            }
         } else {
             request.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
             if let referer = referer {
