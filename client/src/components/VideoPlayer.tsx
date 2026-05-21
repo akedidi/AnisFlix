@@ -880,7 +880,14 @@ export default function VideoPlayer({
             }
           }}
           preload="auto"
-          crossOrigin={type === 'm3u8' ? "anonymous" : undefined}
+          crossOrigin={
+            type === 'm3u8' ||
+              src.includes('kedidi-anis.workers.dev') ||
+              src.includes('moviebox-stream') ||
+              src.includes('hakunaymatata.com')
+              ? 'anonymous'
+              : undefined
+          }
           referrerPolicy="no-referrer"
           data-testid="video-player-main"
           {...(isNativePlatform() && {

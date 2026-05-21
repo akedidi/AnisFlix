@@ -48,6 +48,10 @@ export default {
             return handleMobRequest(request);
         }
 
+        if (path === 'moviebox-cdn') {
+            return handleMovieBoxCdnRequest(request);
+        }
+
         return new Response('AnisFlix Worker Active. Specify ?path=...', {
             status: 200,
             headers: CORS_HEADERS
@@ -224,6 +228,80 @@ async function handleMobRequest(request: Request): Promise<Response> {
                 "Content-Type": "application/json",
                 ...CORS_HEADERS
             }
+        });
+    }
+}
+
+function isAllowedMovieBoxCdnUrl(targetUrl: string): boolean {
+    try {
+        const host = new URL(targetUrl).hostname.toLowerCase();
+        return host.endsWith('hakunaymatata.com');
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Stream MovieBox CDN MP4 with Referer/Range (Vercel IPs are blocked by the CDN).
+ */
+async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
+    const params = new URL(request.url).searchParams;
+    const targetUrl = params.get('url');
+    const referer = params.get('referer') || 'https://fmoviesunblocked.net/';
+
+    if (!targetUrl || !isAllowedMovieBoxCdnUrl(targetUrl)) {
+        return new Response(JSON.stringify({ error: 'Invalid or missing CDN url' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        });
+    }
+
+    let origin = 'https://fmoviesunblocked.net';
+    try {
+        origin = new URL(referer).origin;
+    } catch {
+        // keep default
+    }
+
+    const upstreamHeaders: Record<string, string> = {
+        'User-Agent': 'okhttp/4.12.0',
+        'Referer': referer,
+        'Origin': origin,
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'X-Forwarded-For': '1.1.1.1',
+        'X-Real-IP': '1.1.1.1',
+        'CF-Connecting-IP': '1.1.1.1',
+    };
+
+    const range = request.headers.get('Range');
+    if (range) {
+        upstreamHeaders['Range'] = range;
+    }
+
+    try {
+        const response = await fetch(targetUrl, {
+            method: 'GET',
+            headers: upstreamHeaders,
+        });
+
+        const outHeaders = new Headers(CORS_HEADERS);
+        const forward = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control', 'etag', 'last-modified'];
+        for (const h of forward) {
+            const v = response.headers.get(h);
+            if (v) outHeaders.set(h, v);
+        }
+        outHeaders.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: outHeaders,
+        });
+    } catch (e: any) {
+        return new Response(JSON.stringify({ error: e.message }), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
         });
     }
 }
