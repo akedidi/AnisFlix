@@ -19,7 +19,14 @@ class YFlixService {
     
     private let qualityOrder: [String: Int] = [
         "4K": 5, "1440p": 4, "1080p": 3, "720p": 2,
-        "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3
+        "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Adaptive": -2, "Unknown": -3
+    ]
+    
+    /// CDN host patterns that often expire quickly (e.g. phantom-*-grid.site).
+    private let blockedCDNHostPatterns = [
+        "phantom-64-grid.site",
+        "phantom-32-grid.site",
+        "phantom-48-grid.site"
     ]
     
     // MARK: - Models
@@ -123,16 +130,44 @@ class YFlixService {
         
         var allSources: [ExtractedSource] = []
         for stream in streams {
+            let normalized = normalizeStreamURL(stream.url)
+            if isBlockedCDNHost(normalized) {
+                print("⏭️ [YFlixService] Skipping dead CDN: \(normalized)")
+                continue
+            }
             allSources.append(ExtractedSource(
-                name: "YFlix - \(stream.quality)",
-                url: stream.url,
+                name: "YFlix \(stream.serverKey) - \(stream.quality)",
+                url: normalized,
                 quality: stream.quality,
                 type: stream.type,
                 subtitles: subtitles
             ))
         }
         
-        allSources.sort { s1, s2 in
+        // Prefer reachable rapidshare.cc CDNs over stale phantom grids
+        var reachable: [ExtractedSource] = []
+        await withTaskGroup(of: (ExtractedSource, Bool).self) { group in
+            for source in allSources {
+                group.addTask {
+                    let ok = await self.isStreamReachable(urlString: source.url)
+                    return (source, ok)
+                }
+            }
+            for await (source, ok) in group {
+                if ok {
+                    reachable.append(source)
+                } else {
+                    print("⏭️ [YFlixService] Unreachable stream: \(source.url.prefix(80))...")
+                }
+            }
+        }
+        
+        let candidates = reachable.isEmpty ? allSources : reachable
+        
+        allSources = candidates.sorted { s1, s2 in
+            let h1 = streamHostScore(s1.url)
+            let h2 = streamHostScore(s2.url)
+            if h1 != h2 { return h1 > h2 }
             let q1 = qualityOrder[s1.quality] ?? -3
             let q2 = qualityOrder[s2.quality] ?? -3
             return q1 > q2
@@ -220,8 +255,13 @@ class YFlixService {
         
         await withTaskGroup(of: (streams: [RawStream], subtitles: [Subtitle]).self) { group in
             for (serverType, serverMap) in servers {
-                for (serverKey, serverInfo) in serverMap {
-                    guard let lid = serverInfo["lid"] else { continue }
+                // Server 2 is often rapidshare.cc CDN; server 1 may return expired phantom-* hosts
+                let sortedKeys = serverMap.keys.sorted { a, b in
+                    if let ia = Int(a), let ib = Int(b) { return ia > ib }
+                    return a > b
+                }
+                for serverKey in sortedKeys {
+                    guard let serverInfo = serverMap[serverKey], let lid = serverInfo["lid"] else { continue }
                     
                     group.addTask { [self] in
                         return await self.processServer(
@@ -239,11 +279,13 @@ class YFlixService {
             }
         }
         
-        // Deduplicate
+        // Deduplicate + drop known-dead CDN hosts early
         var seen = Set<String>()
         let deduped = allStreams.filter { stream in
-            if seen.contains(stream.url) { return false }
-            seen.insert(stream.url)
+            let url = normalizeStreamURL(stream.url)
+            if isBlockedCDNHost(url) { return false }
+            if seen.contains(url) { return false }
+            seen.insert(url)
             return true
         }
         
@@ -467,10 +509,11 @@ class YFlixService {
     }
     
     private func parseM3U8Master(playlistUrl: String) async -> [M3U8Variant] {
-        guard let url = URL(string: playlistUrl) else { return [] }
+        let normalized = normalizeStreamURL(playlistUrl)
+        guard let url = URL(string: normalized) else { return [] }
         
         do {
-            let data = try await fetchData(from: url, headers: headers)
+            let data = try await fetchData(from: url, headers: cdnHeaders(for: normalized))
             guard let content = String(data: data, encoding: .utf8),
                   content.contains("#EXT-X-STREAM-INF") else { return [] }
             
@@ -593,6 +636,63 @@ class YFlixService {
         hdrs["Referer"] = "https://enc-dec.app/"
         hdrs["Origin"] = "https://enc-dec.app"
         return hdrs
+    }
+    
+    private func normalizeStreamURL(_ raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: trimmed), let host = url.host, !host.isEmpty {
+            return url.absoluteString
+        }
+        // Unescaped commas in HLS paths (e.g. list,Token.m3u8) break URL(string:)
+        return trimmed.replacingOccurrences(of: ",", with: "%2C")
+    }
+    
+    private func isBlockedCDNHost(_ urlString: String) -> Bool {
+        guard let host = URL(string: urlString)?.host?.lowercased() else { return true }
+        return blockedCDNHostPatterns.contains(where: { host.contains($0) })
+            || host.contains("phantom-") && host.contains("-grid.site")
+    }
+    
+    private func streamHostScore(_ urlString: String) -> Int {
+        guard let host = URL(string: urlString)?.host?.lowercased() else { return -10 }
+        if isBlockedCDNHost(urlString) { return -100 }
+        if host.contains("rapidshare.cc") { return 50 }
+        if host.contains("rapidshare") { return 30 }
+        if host.contains("prime37node") { return 20 }
+        return 0
+    }
+    
+    private func cdnHeaders(for urlString: String) -> [String: String] {
+        var hdrs = headers
+        hdrs["Referer"] = "https://yflix.to/"
+        hdrs["Origin"] = "https://yflix.to"
+        if let host = URL(string: urlString)?.host?.lowercased(),
+           host.contains("rapidshare") {
+            hdrs["Referer"] = "https://rapidshare.cc/"
+            hdrs["Origin"] = "https://rapidshare.cc"
+        }
+        return hdrs
+    }
+    
+    private func isStreamReachable(urlString: String) async -> Bool {
+        let normalized = normalizeStreamURL(urlString)
+        guard let url = URL(string: normalized), !isBlockedCDNHost(normalized) else { return false }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        request.setValue("bytes=0-0", forHTTPHeaderField: "Range")
+        for (k, v) in cdnHeaders(for: normalized) {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return false }
+            return (200...206).contains(http.statusCode)
+        } catch {
+            return false
+        }
     }
     
     // MARK: - Title Helper

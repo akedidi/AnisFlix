@@ -310,7 +310,7 @@ class StreamingService {
     /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter (e.g. vidlink on series, cinepro, darki from TMDB decode).
     private static let allowedStreamingProviders: Set<String> = [
         "vidlink", "yflix", "fsvid", "vidmoly", "vidzy", "vixsrc", "primewire", "2embed",
-        "afterdark", "movix", "darkibox", "darki", "animeapi", "animekai", "moviebox",
+        "afterdark", "movix", "darkibox", "darki", "animeapi", "animekai", "animepahe", "moviebox",
         "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob"
     ]
     
@@ -374,11 +374,12 @@ class StreamingService {
             
             // Check for Animation Genre (16)
             if tmdbInfo?.genreIds.contains(16) == true {
-                print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI + AnimeKai...")
+                print("🎌 [StreamingService] Animation genre detected for Movie. Fetching AnimeAPI + AnimeKai + AnimePahe...")
                 animeTask = Task {
                     let animeApiResults = (try? await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)) ?? []
                     let animeKaiResults = (try? await fetchAnimeKaiSources(tmdbId: movieId, type: "movie")) ?? []
-                    return animeApiResults + animeKaiResults
+                    let animePaheResults = (try? await fetchAnimePaheSources(tmdbId: movieId, type: "movie")) ?? []
+                    return animeApiResults + animeKaiResults + animePaheResults
                 }
             }
         } else {
@@ -389,6 +390,7 @@ class StreamingService {
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
         let animeKaiMovieCount = animeSources.filter { $0.provider == "animekai" }.count
+        let animePaheMovieCount = animeSources.filter { $0.provider == "animepahe" }.count
         let fsvidMovieResults = await fsvidSources
         let vidlinkMovieResults = await (try? vidlinkSources) ?? []
         let yflixMovieResults = await (try? yflixSources) ?? []
@@ -397,7 +399,8 @@ class StreamingService {
         print("   - Vidlink: \(vidlinkMovieResults.count)")
         print("   - YFlix: \(yflixMovieResults.count)")
         print("   - AnimeKai: \(animeKaiMovieCount)")
-        print("   - Anime (API+Kai combinés): \(animeSources.count)")
+        print("   - AnimePahe: \(animePaheMovieCount)")
+        print("   - Anime (API+Kai+Pahe combinés): \(animeSources.count)")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
         print("   - Vixsrc: \(vixsrc?.count ?? 0)")
@@ -627,10 +630,12 @@ class StreamingService {
                  // Fetch AnimeKai Native sources (VO sub/softsub)
                  let animeKaiSources = (try? await fetchAnimeKaiSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
                  animeKaiOnlyCount = animeKaiSources.count
+
+                 let animePaheSources = (try? await fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
                  
                  // Merge all
-                 animeSources = movixAnimeSources + animeApiSources + animeKaiSources
-                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count), AnimeKai: \(animeKaiSources.count))")
+                 animeSources = movixAnimeSources + animeApiSources + animeKaiSources + animePaheSources
+                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count), AnimeKai: \(animeKaiSources.count), AnimePahe: \(animePaheSources.count))")
             }
             
             // Fetch AfterDark sources (direct call - iOS has no CORS)
@@ -682,7 +687,8 @@ class StreamingService {
         print("   - Wiflix: \(wiflix?.count ?? 0)")
         print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
         print("   - AnimeKai: \(animeKaiOnlyCount)")
-        print("   - Anime (Movix+API+Kai combinés): \(animeSources.count)")
+        print("   - AnimePahe: \(animeSources.filter { $0.provider == "animepahe" }.count)")
+        print("   - Anime (Movix+API+Kai+Pahe combinés): \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
         
@@ -893,6 +899,9 @@ class StreamingService {
 
         case "animekai":
             return try await fetchAnimeKaiSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "animepahe":
+            return try await fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         default:
             print("⚠️ [StreamingService] Check: Unknown provider '\(targetProvider)', falling back to full fetch")
@@ -1483,9 +1492,10 @@ class StreamingService {
             var streamingSources: [StreamingSource] = []
 
             for source in extractedSources {
+                let streamURL = source.url.replacingOccurrences(of: ",", with: "%2C")
                 let referer: String
                 let origin: String
-                if let host = URL(string: source.url)?.host,
+                if let host = URL(string: streamURL)?.host,
                    (host.contains("rapidshare") || host.contains("prime37node")) {
                     referer = "https://rapidshare.cc/"
                     origin = "https://rapidshare.cc"
@@ -1500,8 +1510,8 @@ class StreamingService {
                 ]
 
                 let streamSource = StreamingSource(
-                    url: source.url,
-                    directUrl: source.url,
+                    url: streamURL,
+                    directUrl: streamURL,
                     quality: source.quality,
                     type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
                     provider: "yflix",
@@ -1518,6 +1528,43 @@ class StreamingService {
         }
     }
 
+    // MARK: - AnimePahe Integration
+
+    private func fetchAnimePaheSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        let extractedSources = await AnimePaheService.shared.getStreams(
+            tmdbId: tmdbId,
+            mediaType: type,
+            season: season,
+            episode: episode
+        )
+        var streamingSources: [StreamingSource] = []
+
+        for source in extractedSources {
+            var headers = source.headers
+            if headers["User-Agent"] == nil {
+                headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            }
+
+            let subLabel = source.serverType
+            let streamSource = StreamingSource(
+                url: source.url,
+                directUrl: source.url,
+                quality: source.quality,
+                type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                provider: "animepahe",
+                language: "VO - \(subLabel)",
+                origin: "animepahe",
+                tracks: nil,
+                headers: headers
+            )
+            streamingSources.append(streamSource)
+        }
+        if !streamingSources.isEmpty {
+            print("✅ [StreamingService] AnimePahe: \(streamingSources.count) source(s) for TMDB:\(tmdbId) S\(season ?? 1)E\(episode ?? 1)")
+        }
+        return streamingSources
+    }
+
     // MARK: - AnimeKai Integration
 
     private func fetchAnimeKaiSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
@@ -1528,10 +1575,13 @@ class StreamingService {
             for source in extractedSources {
                 let referer: String
                 let origin: String
-                if let host = URL(string: source.url)?.host,
+                if let embed = source.embedUrl, let embedURL = URL(string: embed) {
+                    referer = embed
+                    origin = "\(embedURL.scheme ?? "https")://\(embedURL.host ?? "megaup.cc")"
+                } else if let host = URL(string: source.url)?.host,
                    (host.contains("megaup") || host.contains("megacdn")) {
-                    referer = "https://megaup.nl/"
-                    origin = "https://megaup.nl"
+                    referer = "https://megaup.cc/"
+                    origin = "https://megaup.cc"
                 } else {
                     referer = "https://animekai.to/"
                     origin = "https://animekai.to"
@@ -1637,6 +1687,78 @@ class StreamingService {
         // Always proxy through our backend to ensure headers (User-Agent, Referer) are correct for AVPlayer
         // The API returns the raw direct link (e.g. vmwesa.online), which fails without proper headers.
         return getVidMolyProxyUrl(url: cleanedUrl, referer: normalizedUrl)
+    }
+
+    /// Extracts stream URL from a Darkibox/Darki embed page and returns a playable URL (proxied for HLS).
+    func extractDarkibox(url: String) async throws -> String {
+        let embedUrl = url
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = ["type": "darkibox", "url": embedUrl]
+        request.httpBody = try JSONEncoder().encode(body)
+
+        print("🌑 [StreamingService] Extracting Darkibox: \(embedUrl)")
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            print("❌ [StreamingService] Darkibox extract HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw URLError(.badServerResponse)
+        }
+
+        struct ExtractResponse: Codable {
+            let success: Bool?
+            let m3u8Url: String?
+            let error: String?
+        }
+
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        guard let streamUrl = result.m3u8Url, !streamUrl.isEmpty else {
+            print("❌ [StreamingService] Darkibox extraction failed: \(result.error ?? "no stream URL")")
+            throw URLError(.cannotParseResponse)
+        }
+
+        print("✅ [StreamingService] Darkibox extracted: \(streamUrl.prefix(80))...")
+        return getDarkiboxPlaybackUrl(streamUrl: streamUrl, embedReferer: embedUrl)
+    }
+
+    /// Wraps Darkibox CDN URLs for AVPlayer (HLS via movix proxy/hls, MP4 direct with headers).
+    func getDarkiboxPlaybackUrl(streamUrl: String, embedReferer: String) -> String {
+        let referer = embedReferer.contains("darkibox.com") ? embedReferer : "https://darkibox.com/"
+        let proxyHeaders: [String: String] = [
+            "Referer": referer,
+            "Origin": "https://darkibox.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ]
+
+        if streamUrl.contains(".m3u8") {
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+            let encodedLink = streamUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? streamUrl
+            if let headersData = try? JSONSerialization.data(withJSONObject: proxyHeaders),
+               let headersStr = String(data: headersData, encoding: .utf8),
+               let encodedHeaders = headersStr.addingPercentEncoding(withAllowedCharacters: allowed) {
+                return "\(baseUrl)/api/movix?path=proxy/hls&link=\(encodedLink)&headers=\(encodedHeaders)"
+            }
+            return "\(baseUrl)/api/movix?path=proxy/hls&link=\(encodedLink)"
+        }
+
+        return streamUrl
+    }
+
+    static func isDarkiboxProvider(_ provider: String) -> Bool {
+        let p = provider.lowercased()
+        return p == "darki" || p == "darkibox"
+    }
+
+    static func darkiboxPlaybackHeaders(embedUrl: String? = nil) -> [String: String] {
+        let referer = (embedUrl?.contains("darkibox.com") == true) ? embedUrl! : "https://darkibox.com/"
+        return [
+            "Referer": referer,
+            "Origin": "https://darkibox.com",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ]
     }
     
     func extractVidzy(url: String) async throws -> String {
@@ -2724,6 +2846,26 @@ class StreamingService {
                  print("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")
             }
 
+        } else if StreamingService.isDarkiboxProvider(provider) {
+            print("⛏️ [StreamingService] Extracting Darkibox via API...")
+            do {
+                let directUrl = try await extractDarkibox(url: source.url)
+                print("✅ [StreamingService] Darkibox extraction successful")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    directUrl: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") || directUrl.contains("proxy/hls") ? "m3u8" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: StreamingService.darkiboxPlaybackHeaders(embedUrl: source.url)
+                )
+            } catch {
+                print("⚠️ [StreamingService] Darkibox extraction failed: \(error). Using original.")
+            }
         } else if provider == "luluvid" {
             print("⛏️ [StreamingService] Extracting Luluvid via internal method...")
             do {

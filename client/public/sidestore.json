@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.64",
-          "date": "2026-04-12",
-          "size": 30815416,
+          "version": "1.0.66",
+          "date": "2026-05-21",
+          "size": 30909343,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "feat(ios): AnimeKai, streaming fixes (Vidlink filter, TLS proxy, providers allow-list), YFlix/Cast updates Made-with: Cursor "
+          "localizedDescription": "fix(vercel): expose movix via thin api/movix.js + rewrite Vercel did not register the 102KB api/movix-proxy/index.js function (404). Move handler to lib/handlers/ and use a small api/movix.js entry matched by api/*.js; rewrite /api/movix-proxy to /api/movix for existing clients. Co-authored-by: Cursor <cursoragent@cursor.com> "
         }
       ]
     }

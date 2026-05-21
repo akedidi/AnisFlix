@@ -538,6 +538,11 @@ struct SeriesDetailView: View {
                     print("🔍 [SeriesDetailView] Extracting VidMoly...")
                     let extracted = try await StreamingService.shared.extractVidMoly(url: source.url)
                     finalURL = URL(string: extracted)
+                } else if StreamingService.isDarkiboxProvider(source.provider) {
+                    print("🔍 [SeriesDetailView] Extracting Darkibox...")
+                    let extracted = try await StreamingService.shared.extractDarkibox(url: source.url)
+                    finalURL = URL(string: extracted)
+                    finalHeaders = StreamingService.darkiboxPlaybackHeaders(embedUrl: source.url)
                 } else if source.provider == "luluvid" {
                     print("🔍 [SeriesDetailView] Extracting Luluvid...")
                     let (url, cookie) = try await StreamingService.shared.extractLuluvid(url: source.url)
@@ -789,6 +794,9 @@ struct SeriesDetailView: View {
         } else if source.provider.lowercased() == "animekai" {
             let quality = formatQualityDisplay(source.quality)
             return "AnimeKai \(providerIndex) - \(quality) — \(source.language)"
+        } else if source.provider.lowercased() == "animepahe" {
+            let quality = formatQualityDisplay(source.quality)
+            return "AnimePahe - \(quality) — \(source.language)"
         } else {
             // For specified providers like Vidmoly, always show HD
             if source.provider.lowercased() == "vidmoly" {
@@ -890,7 +898,7 @@ struct SeriesDetailView: View {
                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
                                     if provider == "yflix" { return -1 } // YFlix: high priority
-                                    if provider == "animekai" { return 0 } // AnimeKai: high priority for anime
+                                    if provider == "animekai" || provider == "animepahe" { return 0 } // AnimeKai/Pahe: high priority for anime
                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                     if provider.contains("luluvid") { return 99 }
                                     return 5

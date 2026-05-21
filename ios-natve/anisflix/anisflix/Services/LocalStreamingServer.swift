@@ -28,16 +28,48 @@ class LocalStreamingServer {
         return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
     }()
     
-    private static let tlsUntrustedDomains = ["megaup.cc", "megacdn"]
+    private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp"]
     
     private func needsTLSBypass(url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
-        return Self.tlsUntrustedDomains.contains(where: { host.contains($0) })
+        return Self.tlsUntrustedPatterns.contains(where: { host.contains($0) })
     }
     
     /// Returns the appropriate URLSession: insecure for domains with bad certs, standard otherwise.
     private func session(for url: URL) -> URLSession {
         return needsTLSBypass(url: url) ? insecureSession : URLSession.shared
+    }
+    
+    private func httpHeader(_ response: HTTPURLResponse, _ field: String) -> String? {
+        response.value(forHTTPHeaderField: field)
+    }
+    
+    /// Parses `bytes=0-1` style Range request headers.
+    private func parseRangeRequest(_ range: String) -> (start: Int64, end: Int64)? {
+        let trimmed = range.trimmingCharacters(in: .whitespaces)
+        guard trimmed.lowercased().hasPrefix("bytes=") else { return nil }
+        let spec = String(trimmed.dropFirst(6))
+        let parts = spec.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, let start = Int64(parts[0]) else { return nil }
+        if parts[1].isEmpty { return (start, Int64.max) }
+        guard let end = Int64(parts[1]) else { return nil }
+        return (start, end)
+    }
+    
+    /// Parses `bytes 0-1/12345` Content-Range response headers.
+    private func parseContentRange(_ value: String) -> (start: Int64, end: Int64, total: Int64)? {
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+        guard trimmed.lowercased().hasPrefix("bytes ") else { return nil }
+        let rest = trimmed.dropFirst(6)
+        let segments = rest.split(separator: "/", maxSplits: 1)
+        guard segments.count == 2 else { return nil }
+        let bounds = segments[0].split(separator: "-")
+        guard bounds.count == 2,
+              let start = Int64(bounds[0]),
+              let end = Int64(bounds[1]) else { return nil }
+        let totalPart = String(segments[1])
+        let total: Int64 = totalPart == "*" ? -1 : (Int64(totalPart) ?? -1)
+        return (start, end, total)
     }
     
     private init() {
@@ -75,6 +107,84 @@ class LocalStreamingServer {
         return webServer.serverURL
     }
     
+    /// Builds a `/manifest` URL so FFmpeg (or AVPlayer) can pull HLS through this server with correct upstream headers.
+    func manifestURLForDownload(targetURL: String, headers: [String: String]?) -> URL? {
+        guard isRunning else { return nil }
+        
+        // Prefer loopback for on-device FFmpeg; fall back to LAN IP from GCDWebServer.
+        let host = "127.0.0.1"
+        let port = Int(webServer.port)
+        
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = host
+        components.port = port > 0 ? port : 8080
+        components.path = "/manifest"
+        
+        var queryItems: [URLQueryItem] = []
+        if let urlData = targetURL.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+        } else {
+            queryItems.append(URLQueryItem(name: "url", value: targetURL))
+        }
+        if let referer = headers?["Referer"] {
+            queryItems.append(URLQueryItem(name: "referer", value: referer))
+        }
+        if let origin = headers?["Origin"] {
+            queryItems.append(URLQueryItem(name: "origin", value: origin))
+        }
+        if let ua = headers?["User-Agent"] {
+            queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+        }
+        if let cookie = headers?["Cookie"] {
+            queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+        }
+        queryItems.append(URLQueryItem(name: "loopback", value: "1"))
+        components.queryItems = queryItems
+        
+        guard let url = components.url else { return nil }
+        print("📡 [LocalServer] Download manifest proxy: \(url.absoluteString.prefix(120))...")
+        return url
+    }
+    
+    /// Builds a `/stream` URL for FFmpeg to download a single MP4 through this server (byte-range friendly).
+    func streamURLForDownload(targetURL: String, headers: [String: String]?) -> URL? {
+        guard isRunning else { return nil }
+        
+        let host = "127.0.0.1"
+        let port = Int(webServer.port)
+        
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = host
+        components.port = port > 0 ? port : 8080
+        components.path = "/stream"
+        
+        var queryItems: [URLQueryItem] = []
+        if let urlData = targetURL.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+        } else {
+            queryItems.append(URLQueryItem(name: "url", value: targetURL))
+        }
+        if let referer = headers?["Referer"] {
+            queryItems.append(URLQueryItem(name: "referer", value: referer))
+        }
+        if let origin = headers?["Origin"] {
+            queryItems.append(URLQueryItem(name: "origin", value: origin))
+        }
+        if let ua = headers?["User-Agent"] {
+            queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+        }
+        if let cookie = headers?["Cookie"] {
+            queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+        }
+        components.queryItems = queryItems
+        
+        guard let url = components.url else { return nil }
+        print("📡 [LocalServer] Download stream proxy: \(url.absoluteString.prefix(120))...")
+        return url
+    }
+    
     // MARK: - Routing
     
     // Helper to safely parse query without '+' being converted to space
@@ -88,16 +198,42 @@ class LocalStreamingServer {
     /// Applies headers to a URLRequest using the proxy-level headers.
     /// NOTE: The `?headers={"referer":"videostr.net"}` query param in Vidlink URLs is for the CDN proxy's 
     /// INTERNAL routing, NOT for our HTTP requests. We must always use `vidlink.pro` as Referer.
+    private static let chromeDesktopUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    
+    private func isVercelVidMolyProxy(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("vercel.app") && url.path.contains("vidmoly")
+    }
+    
+    private func isVidMolyCDN(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("vmwesa") || host.contains("vmeas") || host.contains("netmagcdn")
+    }
+    
     private func applyHeaders(to request: inout URLRequest, targetUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) {
         let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        request.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
         
-        if let referer = referer {
-            request.setValue(referer, forHTTPHeaderField: "Referer")
+        // Vercel /api/vidmoly applies Referer/Origin to CDN itself — extra headers can break the chain
+        if isVercelVidMolyProxy(targetUrl) {
+            request.setValue(userAgent ?? Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
+            request.setValue("application/vnd.apple.mpegurl,application/x-mpegURL,*/*", forHTTPHeaderField: "Accept")
+            return
         }
-        if let origin = origin {
-            request.setValue(origin, forHTTPHeaderField: "Origin")
+        
+        if isVidMolyCDN(targetUrl) {
+            request.setValue(Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
+            request.setValue("https://vidmoly.net/", forHTTPHeaderField: "Referer")
+            request.setValue("https://vidmoly.net", forHTTPHeaderField: "Origin")
+        } else {
+            request.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
+            if let referer = referer {
+                request.setValue(referer, forHTTPHeaderField: "Referer")
+            }
+            if let origin = origin {
+                request.setValue(origin, forHTTPHeaderField: "Origin")
+            }
         }
+        
         if let cookie = cookie {
             request.setValue(cookie, forHTTPHeaderField: "Cookie")
         }
@@ -156,10 +292,44 @@ class LocalStreamingServer {
                 
                 let statusCode = httpResponse.statusCode
                 let contentType = httpResponse.mimeType ?? "video/mp4"
+                let clientRange = request.headers["Range"]
                 
-                // AVPlayer is extremely picky about Content-Length vs Expected Content Length vs Extracted Range
-                let contentLengthStr = httpResponse.allHeaderFields["Content-Length"] as? String
-                let contentLength = UInt(contentLengthStr ?? "0") ?? UInt(httpResponse.expectedContentLength > 0 ? httpResponse.expectedContentLength : 0)
+                // AVPlayer requires consistent Content-Range, Content-Length and body size for 206 responses.
+                var contentRangeHeader = self.httpHeader(httpResponse, "Content-Range")
+                var responseStatusCode = statusCode
+                var bodyLength: UInt = 0
+                
+                if statusCode == 206 {
+                    responseStatusCode = 206
+                    if contentRangeHeader == nil,
+                       let clientRange,
+                       let parsed = self.parseRangeRequest(clientRange),
+                       let clStr = self.httpHeader(httpResponse, "Content-Length"),
+                       let segmentLength = Int64(clStr) {
+                        let end = parsed.end == Int64.max ? parsed.start + segmentLength - 1 : parsed.end
+                        contentRangeHeader = "bytes \(parsed.start)-\(end)/*"
+                    }
+                    if let contentRangeHeader, let parsed = self.parseContentRange(contentRangeHeader) {
+                        bodyLength = UInt(parsed.end - parsed.start + 1)
+                    }
+                    if bodyLength == 0,
+                       let clStr = self.httpHeader(httpResponse, "Content-Length"),
+                       let cl = UInt(clStr) {
+                        bodyLength = cl
+                    }
+                } else if statusCode == 200 {
+                    responseStatusCode = 200
+                    if let clStr = self.httpHeader(httpResponse, "Content-Length"), let cl = UInt(clStr) {
+                        bodyLength = cl
+                    } else if httpResponse.expectedContentLength > 0 {
+                        bodyLength = UInt(httpResponse.expectedContentLength)
+                    }
+                } else {
+                    responseStatusCode = statusCode
+                    if let clStr = self.httpHeader(httpResponse, "Content-Length"), let cl = UInt(clStr) {
+                        bodyLength = cl
+                    }
+                }
                 
                 let streamResponse = GCDWebServerStreamedResponse(
                     contentType: contentType,
@@ -177,24 +347,23 @@ class LocalStreamingServer {
                     }
                 )
                 
-                // Mirror all essential headers for AVPlayer (CRITICAL FOR MP4)
-                if let contentRange = httpResponse.allHeaderFields["Content-Range"] as? String {
-                    streamResponse.setValue(contentRange, forAdditionalHeader: "Content-Range")
-                    streamResponse.statusCode = 206 // Partial Content
-                } else if statusCode == 200 {
-                    streamResponse.statusCode = 200
-                } else {
-                    streamResponse.statusCode = statusCode
+                // Mirror headers for AVPlayer (CRITICAL FOR MP4 byte-range)
+                streamResponse.statusCode = responseStatusCode
+                if let contentRangeHeader {
+                    streamResponse.setValue(contentRangeHeader, forAdditionalHeader: "Content-Range")
                 }
                 
-                if let acceptRanges = httpResponse.allHeaderFields["Accept-Ranges"] as? String {
+                if let acceptRanges = self.httpHeader(httpResponse, "Accept-Ranges") {
                     streamResponse.setValue(acceptRanges, forAdditionalHeader: "Accept-Ranges")
                 } else {
                     streamResponse.setValue("bytes", forAdditionalHeader: "Accept-Ranges")
                 }
                 
-                // Set explicit Content-Length so GCDWebServer doesn't use chunked transfer encoding (which breaks MP4 AVPlayer seek)
-                streamResponse.contentLength = contentLength
+                // Explicit Content-Length avoids chunked encoding (breaks MP4 seek in AVPlayer)
+                streamResponse.contentLength = bodyLength
+                if responseStatusCode == 206 {
+                    print("🌊 [LocalServer] 206 bodyLength=\(bodyLength) Content-Range=\(contentRangeHeader ?? "nil")")
+                }
                 
                 self.addCorsHeaders(streamResponse)
                 completion(streamResponse)
@@ -203,7 +372,7 @@ class LocalStreamingServer {
             task.resume()
         }
         
-        // 1. Manifest Handler (Rewrites M3U8)
+        // 1. Manifest Handler (Rewrites M3U8) — sync handler (returns GCDWebServerResponse?)
         webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
@@ -260,19 +429,35 @@ class LocalStreamingServer {
             print("📥 [LocalServer] Fetching manifest: \(targetUrl.lastPathComponent)")
             
             var urlRequest = URLRequest(url: targetUrl)
-            self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: query["cookie"])
+            var effectiveReferer = referer
+            var effectiveOrigin = origin
+            if (effectiveReferer?.contains("megaup.nl") == true) {
+                effectiveReferer = effectiveReferer?.replacingOccurrences(of: "megaup.nl", with: "megaup.cc")
+            }
+            if (effectiveOrigin?.contains("megaup.nl") == true) {
+                effectiveOrigin = effectiveOrigin?.replacingOccurrences(of: "megaup.nl", with: "megaup.cc")
+            }
+            self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: effectiveReferer, origin: effectiveOrigin, userAgent: userAgent, cookie: query["cookie"])
+            urlRequest.setValue("application/vnd.apple.mpegurl,application/x-mpegURL,*/*", forHTTPHeaderField: "Accept")
             
             let fetchSession = self.session(for: targetUrl)
+            var upstreamStatus = 0
             let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
                 responseData = data
                 responseError = error
+                upstreamStatus = (response as? HTTPURLResponse)?.statusCode ?? 0
                 semaphore.signal()
             }
             task.resume()
             semaphore.wait()
             
             if let error = responseError {
-                print("❌ [LocalServer] Upstream error: \(error)")
+                print("❌ [LocalServer] Upstream error (\(targetUrl.host ?? "?")): \(error)")
+                return GCDWebServerDataResponse(statusCode: 502)
+            }
+            
+            if upstreamStatus < 200 || upstreamStatus >= 400 {
+                print("❌ [LocalServer] Upstream HTTP \(upstreamStatus) for \(targetUrl.host ?? "?")")
                 return GCDWebServerDataResponse(statusCode: 502)
             }
             
@@ -287,15 +472,30 @@ class LocalStreamingServer {
             if !content.contains("#EXTM3U") && !content.contains("#EXT-X-") {
                 print("❌ [LocalServer] Upstream returned non-M3U8 content (likely Cloudflare challenge):")
                 print("   First 200 chars: \(content.prefix(200))")
-                let errorResp = GCDWebServerDataResponse(statusCode: 502)
-                return errorResp
+                return GCDWebServerDataResponse(statusCode: 502)
             }
             
             // Extract Query Items from original URL to persist them (e.g. headers, host for Vidlink)
             let originalQueryItems = URLComponents(url: targetUrl, resolvingAgainstBaseURL: false)?.queryItems
             
+            let hostHeader = request.headers["Host"] ?? ""
+            let requestHost = hostHeader.split(separator: ":").first.map(String.init) ?? hostHeader
+            let preferLoopback = query["loopback"] == "1"
+                || requestHost == "127.0.0.1"
+                || requestHost == "localhost"
+            
             // Rewrite Manifest
-            let rewrittenContent = self.rewriteManifest(content: content, originalUrl: targetUrl, queryItemsToPersist: originalQueryItems, subtitleUrl: subtitleUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+            let rewrittenContent = self.rewriteManifest(
+                content: content,
+                originalUrl: targetUrl,
+                queryItemsToPersist: originalQueryItems,
+                subtitleUrl: subtitleUrl,
+                referer: referer,
+                origin: origin,
+                userAgent: userAgent,
+                cookie: cookie,
+                preferLoopbackHost: preferLoopback
+            )
             
             // Cache VOD schemas and Master playlists. Live stream variant playlists continuously update so they are not cached.
             let isVODOrMaster = content.contains("#EXT-X-ENDLIST") || content.contains("#EXT-X-STREAM-INF")
@@ -711,7 +911,7 @@ class LocalStreamingServer {
     
     // MARK: - Manifest Rewriting
     
-    private func rewriteManifest(content: String, originalUrl: URL, queryItemsToPersist: [URLQueryItem]?, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
+    private func rewriteManifest(content: String, originalUrl: URL, queryItemsToPersist: [URLQueryItem]?, subtitleUrl: URL?, referer: String?, origin: String?, userAgent: String?, cookie: String?, preferLoopbackHost: Bool = false) -> String {
         var lines = content.components(separatedBy: .newlines)
         var newLines = [String]()
         
@@ -756,13 +956,13 @@ class LocalStreamingServer {
                 // Check for URI attributes in tags
                 // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..." or #EXT-X-I-FRAME-STREAM-INF:URI="..."
                 if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") || line.hasPrefix("#EXT-X-I-FRAME-STREAM-INF") {
-                    newLines.append(rewriteLine(line, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie))
+                    newLines.append(rewriteLine(line, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie, preferLoopbackHost: preferLoopbackHost))
                 } else {
                     newLines.append(line)
                 }
             } else if !line.isEmpty {
                 // This is a URL (Segment or Playlist)
-                let rewritten = rewriteUrl(line, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+                let rewritten = rewriteUrl(line, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie, preferLoopbackHost: preferLoopbackHost)
                 newLines.append(rewritten)
             } else {
                 newLines.append(line)
@@ -772,7 +972,7 @@ class LocalStreamingServer {
         return newLines.joined(separator: "\n")
     }
     
-    private func rewriteLine(_ line: String, baseUrl: URL, queryItemsToPersist: [URLQueryItem]?, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
+    private func rewriteLine(_ line: String, baseUrl: URL, queryItemsToPersist: [URLQueryItem]?, referer: String?, origin: String?, userAgent: String?, cookie: String?, preferLoopbackHost: Bool = false) -> String {
         // Simple regex or string manipulation to find URI="..."
         guard let range = line.range(of: "URI=\"") else { return line }
         
@@ -784,12 +984,12 @@ class LocalStreamingServer {
         let uri = String(remainder[..<endQuote])
         let suffix = remainder[remainder.index(after: endQuote)...]
         
-        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
+        let rewrittenUri = rewriteUrl(uri, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie, preferLoopbackHost: preferLoopbackHost)
         
         return String(prefix) + rewrittenUri + "\"" + String(suffix)
     }
     
-    private func rewriteUrl(_ original: String, baseUrl: URL, queryItemsToPersist: [URLQueryItem]?, referer: String?, origin: String?, userAgent: String?, cookie: String?) -> String {
+    private func rewriteUrl(_ original: String, baseUrl: URL, queryItemsToPersist: [URLQueryItem]?, referer: String?, origin: String?, userAgent: String?, cookie: String?, preferLoopbackHost: Bool = false) -> String {
         // Resolve relative URL
         guard var resolved = URL(string: original, relativeTo: baseUrl) else { return original }
         
@@ -820,7 +1020,8 @@ class LocalStreamingServer {
         
         var components = URLComponents()
         components.scheme = "http"
-        components.host = self.webServer.serverURL?.host // Use actual IP
+        // FFmpeg downloads use 127.0.0.1; LAN IP breaks HTTP connection reuse in ffmpeg
+        components.host = preferLoopbackHost ? "127.0.0.1" : (self.webServer.serverURL?.host ?? "127.0.0.1")
         components.port = Int(self.webServer.port)
         components.path = endpoint
         

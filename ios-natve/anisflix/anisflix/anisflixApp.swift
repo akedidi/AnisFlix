@@ -27,6 +27,9 @@ struct anisflixApp: App {
         
         // Initialize Google Cast
         CastManager.shared.initialize()
+        
+        // Local proxy required for downloads (VidMoly/Vidlink/…) and AirPlay — not only when opening the player
+        LocalStreamingServer.shared.start()
     }
     
     var body: some Scene {

@@ -351,7 +351,7 @@ struct MovieDetailView: View {
                                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
                                                     if provider == "yflix" { return -1 } // YFlix: high priority
-                                                    if provider == "animekai" { return 0 } // AnimeKai: high priority for anime
+                                                    if provider == "animekai" || provider == "animepahe" { return 0 } // AnimeKai/Pahe: high priority for anime
                                                     if provider == "mob" { return 6 }
                                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                                     if provider.contains("luluvid") { return 99 }
@@ -587,6 +587,10 @@ struct MovieDetailView: View {
                     newHeaders["Referer"] = "https://google.com"
                     newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
                     finalHeaders = newHeaders
+                } else if StreamingService.isDarkiboxProvider(source.provider) {
+                    print("🔍 [MovieDetailView] Extracting Darkibox...")
+                    streamUrl = try await StreamingService.shared.extractDarkibox(url: source.url)
+                    finalHeaders = StreamingService.darkiboxPlaybackHeaders(embedUrl: source.url)
                 } else if source.provider == "luluvid" {
                     print("🔍 [MovieDetailView] Extracting Luluvid...")
                     let (url, cookie) = try await StreamingService.shared.extractLuluvid(url: source.url)
@@ -754,6 +758,9 @@ struct MovieDetailView: View {
         } else if source.provider.lowercased() == "animekai" {
             let quality = formatQualityDisplay(source.quality)
             return "AnimeKai \(providerIndex) - \(quality) — \(source.language)"
+        } else if source.provider.lowercased() == "animepahe" {
+            let quality = formatQualityDisplay(source.quality)
+            return "AnimePahe - \(quality) — \(source.language)"
         } else {
             // For specified providers like Vidmoly, always show HD
             if source.provider.lowercased() == "vidmoly" {

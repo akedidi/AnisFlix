@@ -213,14 +213,27 @@ class DownloadManager: NSObject, ObservableObject {
     
     func startDownload(source: StreamingSource, media: Media, season: Int? = nil, episode: Int? = nil, extractedUrl: String? = nil) {
         let id = UUID().uuidString
-        let finalUrl = extractedUrl ?? source.url
+        // Prefer direct CDN URL (MovieBox, etc.) over Vercel movix-proxy playback URL
+        let rawUrl = extractedUrl ?? source.directUrl ?? source.url
+        let resolved = Self.resolveStreamForDownload(
+            url: rawUrl,
+            headers: source.headers,
+            provider: source.provider
+        )
         
-        // Detect HLS
-        var isHLS = finalUrl.contains(".m3u8") || 
+        // HLS / FFmpeg providers (MovieBox MP4 is direct file — still uses FFmpeg via /stream)
+        let providerLower = source.provider.lowercased()
+        var isHLS = resolved.url.contains(".m3u8") ||
                     source.type == "hls" ||
-                    source.provider == "vidmoly" || 
-                    source.provider == "vidzy" ||
-                    source.provider == "vixsrc"
+                    source.type == "m3u8" ||
+                    source.type == "dash" ||
+                    providerLower == "vidmoly" ||
+                    providerLower == "vidzy" ||
+                    providerLower == "vidlink" ||
+                    providerLower == "yflix" ||
+                    providerLower == "vixsrc" ||
+                    providerLower == "moviebox" ||
+                    providerLower == "animepahe"
         // Note: Luluvid downloads are blocked at UI level due to iOS HLS header limitation
         
         // Initialize as queued
@@ -232,7 +245,7 @@ class DownloadManager: NSObject, ObservableObject {
             backdropPath: media.backdropPath,
             overview: media.overview,
             rating: media.rating,
-            videoUrl: finalUrl,
+            videoUrl: resolved.url,
             quality: source.quality,
             language: source.language,
             sourceId: source.id,
@@ -241,7 +254,7 @@ class DownloadManager: NSObject, ObservableObject {
             state: .queued, // Start as queued
             progress: 0.0,
             isHLS: isHLS,
-            headers: source.headers,
+            headers: resolved.headers,
             provider: source.provider
         )
         
@@ -489,6 +502,8 @@ class DownloadManager: NSObject, ObservableObject {
              if let task = activeAssetDownloads[id] {
                 activeAssetDownloads.removeValue(forKey: id)
             }
+            ffmpegDownloaders[id]?.cancel()
+            ffmpegDownloaders.removeValue(forKey: id)
         } else {
              if let task = downloadTasks[id] {
                 downloadTasks.removeValue(forKey: id)
@@ -638,6 +653,8 @@ class DownloadManager: NSObject, ObservableObject {
                 task.cancel()
                 activeAssetDownloads.removeValue(forKey: id)
             }
+            ffmpegDownloaders[id]?.cancel()
+            ffmpegDownloaders.removeValue(forKey: id)
             // Delete HLS asset
             if let localUrl = item.localVideoUrl {
                  try? FileManager.default.removeItem(at: localUrl)
@@ -726,28 +743,40 @@ class DownloadManager: NSObject, ObservableObject {
     }
     
     private func startHLSDownload(for item: DownloadItem) {
-        guard let url = URL(string: item.videoUrl) else { return }
+        let resolved = Self.resolveStreamForDownload(
+            url: item.videoUrl,
+            headers: item.headers,
+            provider: item.provider
+        )
+        guard let url = URL(string: resolved.url) else { return }
+        
+        // YFlix/AnimeKai CDN hostnames (rrr.*) often don't resolve — fail early with a clear message
+        if let host = url.host?.lowercased(), host.hasPrefix("rrr.") {
+            print("❌ [DownloadManager] Unreachable CDN host: \(host)")
+            updateState(for: item.id, state: .failed)
+            setError("Le lien CDN a expiré. Relancez la lecture puis réessayez le téléchargement.", for: item.id)
+            processQueue()
+            return
+        }
         
         print("📥 [DownloadManager] Starting HLS download for: \(item.title)")
         print("   - URL: \(url)")
         print("   - Provider: \(item.provider ?? "unknown")")
         
-        // Check if Vidzy, Luluvid, or AfterDark - use FFmpeg instead of AVAssetDownloadTask
-        // Note: Use provider check, not URL, because extracted URLs can be on different domains
-        let isVidzy = url.host?.contains("vidzy") == true || item.provider == "vidzy"
-        let isLuluvid = item.provider == "luluvid" || item.provider == "lulustream"
-        let isAfterDark = item.provider == "afterdark" || url.host?.contains("afterdark") == true
-        
-        if isVidzy || isLuluvid || isAfterDark {
-            let provider = isVidzy ? "vidzy" : (isLuluvid ? "luluvid" : "afterdark")
-            print("🎬 [DownloadManager] Detected \(provider), using FFmpeg downloader")
-            startFFmpegDownload(for: item, provider: provider)
+        if Self.shouldUseFFmpegDownload(provider: item.provider, url: url, headers: resolved.headers) {
+            let provider = item.provider ?? "hls"
+            print("🎬 [DownloadManager] Detected \(provider), using FFmpeg downloader (custom headers)")
+            startFFmpegDownload(
+                for: item,
+                provider: provider,
+                streamUrl: resolved.url,
+                headers: resolved.headers
+            )
             return
         }
         
-        
         var options: [String: Any]? = nil
-        if let headers = item.headers {
+        if let headers = resolved.headers {
             options = ["AVURLAssetHTTPHeaderFieldsKey": headers]
             print("   - Headers: \(headers.keys)")
         }
@@ -767,7 +796,118 @@ class DownloadManager: NSObject, ObservableObject {
         }
     }
 
-    private func startFFmpegDownload(for item: DownloadItem, provider: String) {
+    // MARK: - HLS URL / header resolution (playback uses proxy; downloads need direct CDN + Referer)
+    
+    private struct ResolvedDownloadStream {
+        let url: String
+        let headers: [String: String]?
+    }
+    
+    private static func resolveStreamForDownload(
+        url: String,
+        headers: [String: String]?,
+        provider: String?
+    ) -> ResolvedDownloadStream {
+        var resolvedUrl = url
+        var hdrs = headers ?? [:]
+        let providerLower = provider?.lowercased() ?? ""
+        
+        // VidMoly: keep Vercel /api/vidmoly URL for downloads (same as playback).
+        // Unwrapping to vmwesa CDN causes 403 from LocalServer; Vercel proxy adds correct headers server-side.
+        if resolvedUrl.contains("/api/vidmoly") {
+            hdrs["Referer"] = "https://vidmoly.net/"
+            hdrs["Origin"] = "https://vidmoly.net"
+        } else if providerLower == "vidmoly" || resolvedUrl.contains("vmwesa") {
+            hdrs["Referer"] = "https://vidmoly.net/"
+            hdrs["Origin"] = "https://vidmoly.net"
+        }
+        
+        // Vidlink: keep full CDN URL (?headers=&host= required); LocalServer rewrites segments
+        if providerLower == "vidlink" || resolvedUrl.contains("vodvidl.site") {
+            if hdrs["Referer"] == nil {
+                hdrs["Referer"] = "https://vidlink.pro/"
+                hdrs["Origin"] = "https://vidlink.pro"
+            }
+        }
+        
+        // MovieBox: API returns proxied movix URL — unwrap to hakunaymatata direct link
+        if resolvedUrl.contains("/api/movix-proxy"),
+           resolvedUrl.contains("moviebox-stream"),
+           let components = URLComponents(string: resolvedUrl),
+           let upstream = components.queryItems?.first(where: { $0.name == "url" })?.value {
+            var decoded = upstream
+            var loops = 0
+            while decoded.contains("%"), loops < 10, let next = decoded.removingPercentEncoding {
+                decoded = next
+                loops += 1
+            }
+            resolvedUrl = decoded
+        }
+        
+        if providerLower == "moviebox" {
+            if hdrs["Referer"] == nil {
+                hdrs["Referer"] = "https://fmoviesunblocked.net/"
+                hdrs["Origin"] = "https://fmoviesunblocked.net"
+            }
+            if hdrs["User-Agent"] == nil {
+                hdrs["User-Agent"] = "okhttp/4.12.0"
+            }
+        }
+        
+        if hdrs["User-Agent"] == nil {
+            hdrs["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        }
+        
+        return ResolvedDownloadStream(url: resolvedUrl, headers: hdrs.isEmpty ? nil : hdrs)
+    }
+    
+    private static func shouldUseFFmpegDownload(
+        provider: String?,
+        url: URL,
+        headers: [String: String]?
+    ) -> Bool {
+        let p = provider?.lowercased() ?? ""
+        let host = url.host?.lowercased() ?? ""
+        let path = url.absoluteString.lowercased()
+        
+        let ffmpegProviders = [
+            "vidzy", "luluvid", "lulustream", "afterdark", "animepahe",
+            "vidmoly", "vidlink", "yflix", "moviebox", "fsvid", "vixsrc", "animekai"
+        ]
+        if ffmpegProviders.contains(p) { return true }
+        
+        if host.contains("owocdn") || host.contains("vault-") || host.contains("vmwesa") ||
+            host.contains("vodvidl") || host.contains("rapidshare") || host.contains("prime37node") ||
+            host.contains("vidzy") || host.contains("hakunaymatata") || host.contains("megaup") ||
+            host.contains("megacdn") || path.contains("/api/vidmoly") {
+            return true
+        }
+        
+        if headers?["Referer"] != nil || headers?["Origin"] != nil {
+            return true
+        }
+        
+        return false
+    }
+    
+    /// Providers that need LocalStreamingServer (same path as playback) — direct CDN + FFmpeg gets 403.
+    private static func shouldUseLocalProxyForDownload(provider: String?) -> Bool {
+        let p = provider?.lowercased() ?? ""
+        return ["vidmoly", "vidlink", "yflix", "vidzy", "luluvid", "lulustream", "afterdark",
+                "animepahe", "animekai", "moviebox", "fsvid"].contains(p)
+    }
+    
+    private static func isDirectMP4(_ url: String) -> Bool {
+        let lower = url.lowercased()
+        return lower.contains(".mp4") && !lower.contains(".m3u8") && !lower.contains(".mpd")
+    }
+    
+    private func startFFmpegDownload(
+        for item: DownloadItem,
+        provider: String,
+        streamUrl: String? = nil,
+        headers: [String: String]? = nil
+    ) {
         let downloader = HLSFFmpegDownloader()
         ffmpegDownloaders[item.id] = downloader
         
@@ -776,7 +916,42 @@ class DownloadManager: NSObject, ObservableObject {
         
         updateState(for: item.id, state: .downloading)
         
-        downloader.download(url: item.videoUrl, outputPath: outputPath, provider: provider,
+        let resolved = streamUrl.map { url in
+            Self.resolveStreamForDownload(url: url, headers: headers ?? item.headers, provider: provider)
+        } ?? Self.resolveStreamForDownload(url: item.videoUrl, headers: item.headers, provider: provider)
+        
+        var ffmpegUrl = resolved.url
+        var ffmpegHeaders = resolved.headers
+        
+        LocalStreamingServer.shared.start()
+        
+        if Self.shouldUseLocalProxyForDownload(provider: provider) {
+            let providerLower = provider.lowercased()
+            let useStreamProxy = providerLower == "moviebox" && Self.isDirectMP4(resolved.url)
+            
+            if useStreamProxy,
+               let proxyUrl = LocalStreamingServer.shared.streamURLForDownload(
+                   targetURL: resolved.url,
+                   headers: resolved.headers
+               ) {
+                ffmpegUrl = proxyUrl.absoluteString
+                ffmpegHeaders = nil
+                print("📡 [DownloadManager] FFmpeg via LocalServer /stream (MovieBox MP4)")
+            } else if let proxyUrl = LocalStreamingServer.shared.manifestURLForDownload(
+                targetURL: resolved.url,
+                headers: resolved.headers
+            ) {
+                ffmpegUrl = proxyUrl.absoluteString
+                ffmpegHeaders = nil
+                print("📡 [DownloadManager] FFmpeg via LocalServer manifest proxy")
+            }
+        }
+        
+        downloader.download(
+            url: ffmpegUrl,
+            outputPath: outputPath,
+            provider: provider,
+            customHeaders: ffmpegHeaders,
             progress: { [weak self] progress in
                 DispatchQueue.main.async {
                     self?.updateProgress(for: item.id, progress: progress)
@@ -826,9 +1001,13 @@ class DownloadManager: NSObject, ObservableObject {
     
     private func updateProgress(for id: String, progress: Double) {
         if let index = downloads.firstIndex(where: { $0.id == id }) {
-            // Only update if progress changed significantly (avoid excessive updates)
-            if abs(downloads[index].progress - progress) > 0.01 {
-                downloads[index].progress = progress
+            let clamped = min(max(progress, 0), 1)
+            let current = downloads[index].progress
+            // Monotonic during download; always accept 100%
+            guard clamped >= 1.0 || clamped > current + 0.005 else { return }
+            if abs(current - clamped) > 0.005 || clamped >= 1.0 {
+                objectWillChange.send()
+                downloads[index].progress = clamped
                 saveDownloads()
             }
         }

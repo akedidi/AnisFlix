@@ -35,6 +35,8 @@ class AnimeKaiService {
         let type: String
         let serverType: String
         let subtitles: [Subtitle]
+        /// RapidShare/MegaUp embed page — required as Referer for CDN m3u8/segments.
+        let embedUrl: String?
     }
 
     struct Subtitle {
@@ -96,6 +98,13 @@ class AnimeKaiService {
         let `default`: Bool?
     }
 
+    private let tlsBypassDelegate = TLSBypassDelegate()
+    private lazy var insecureSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
+    }()
+
     private struct SyncResult {
         let alId: Int
         let episode: Int
@@ -150,7 +159,8 @@ class AnimeKaiService {
                 quality: stream.quality,
                 type: stream.url.contains(".m3u8") ? "hls" : "mp4",
                 serverType: st,
-                subtitles: subtitles
+                subtitles: subtitles,
+                embedUrl: stream.embedUrl
             ))
         }
 
@@ -415,6 +425,7 @@ class AnimeKaiService {
         let type: String
         let serverType: String
         let serverName: String
+        let embedUrl: String?
     }
 
     private func runStreamFetch(token: String) async -> (streams: [RawStream], subtitles: [Subtitle]) {
@@ -462,10 +473,10 @@ class AnimeKaiService {
         var enhanced: [RawStream] = []
         for stream in allStreams {
             if stream.url.contains(".m3u8") {
-                let variants = await parseM3U8Master(playlistUrl: stream.url)
+                let variants = await parseM3U8Master(playlistUrl: stream.url, embedUrl: stream.embedUrl)
                 if !variants.isEmpty {
                     for v in variants {
-                        enhanced.append(RawStream(url: v.url, quality: v.quality, type: "hls", serverType: stream.serverType, serverName: stream.serverName))
+                        enhanced.append(RawStream(url: v.url, quality: v.quality, type: "hls", serverType: stream.serverType, serverName: stream.serverName, embedUrl: stream.embedUrl))
                     }
                 } else {
                     enhanced.append(stream)
@@ -482,7 +493,27 @@ class AnimeKaiService {
             return true
         }
 
-        return (deduped, allSubtitles)
+        // MegaUp CDNs use short-lived subdomains (e.g. rrr.shop21cprv.site) — drop dead URLs before playback.
+        var validated: [RawStream] = []
+        await withTaskGroup(of: (RawStream, Bool).self) { group in
+            for stream in deduped {
+                group.addTask { [self] in
+                    let ok = await self.isStreamReachable(url: stream.url, embedUrl: stream.embedUrl)
+                    return (stream, ok)
+                }
+            }
+            for await (stream, ok) in group where ok {
+                validated.append(stream)
+            }
+        }
+        validated.sort { (qualityOrder[$0.quality] ?? -1) > (qualityOrder[$1.quality] ?? -1) }
+        if validated.isEmpty {
+            print("❌ [AnimeKaiService] All \(deduped.count) stream URL(s) unreachable (expired MegaUp CDN?)")
+        } else if validated.count < deduped.count {
+            print("⚠️ [AnimeKaiService] Filtered \(deduped.count - validated.count) dead CDN URL(s), kept \(validated.count)")
+        }
+
+        return (validated, allSubtitles)
     }
 
     private func processServer(serverType: String, serverName: String, lid: String) async -> (streams: [RawStream], subtitles: [Subtitle]) {
@@ -507,7 +538,8 @@ class AnimeKaiService {
                 quality: extractQualityFromUrl(file),
                 type: file.contains(".m3u8") ? "hls" : "mp4",
                 serverType: serverType,
-                serverName: serverName
+                serverName: serverName,
+                embedUrl: embedUrl
             ))
         }
 
@@ -583,7 +615,7 @@ class AnimeKaiService {
         guard let url = URL(string: mediaUrl) else { return nil }
 
         do {
-            let data = try await fetchData(from: url, headers: headers)
+            let data = try await fetchData(from: url, headers: megaCDNHeaders(embedUrl: embedUrl))
             let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
             guard let encrypted = json?["result"] as? String else { return nil }
 
@@ -625,11 +657,11 @@ class AnimeKaiService {
         let quality: String
     }
 
-    private func parseM3U8Master(playlistUrl: String) async -> [M3U8Variant] {
+    private func parseM3U8Master(playlistUrl: String, embedUrl: String?) async -> [M3U8Variant] {
         guard let url = URL(string: playlistUrl) else { return [] }
 
         do {
-            var hdrs = headers
+            var hdrs = megaCDNHeaders(embedUrl: embedUrl, streamUrl: playlistUrl)
             hdrs["Accept"] = "application/vnd.apple.mpegurl,application/x-mpegURL,*/*"
             let data = try await fetchData(from: url, headers: hdrs)
             guard let content = String(data: data, encoding: .utf8),
@@ -708,11 +740,62 @@ class AnimeKaiService {
 
     // MARK: - Networking
 
+    private func isMegaCDNHost(_ host: String) -> Bool {
+        let h = host.lowercased()
+        return h.contains("megaup") || h.contains("megacdn") || h.contains("shop21") || h.contains("prjp")
+    }
+
+    private func needsTLSBypass(url: URL) -> Bool {
+        isMegaCDNHost(url.host?.lowercased() ?? "")
+    }
+
+    /// HEAD/GET check with embed Referer — avoids offering DNS-dead MegaUp subdomains to the player.
+    private func isStreamReachable(url: String, embedUrl: String?) async -> Bool {
+        guard let target = URL(string: url) else { return false }
+        var request = URLRequest(url: target)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 12
+        var hdrs = megaCDNHeaders(embedUrl: embedUrl, streamUrl: url)
+        if url.contains(".m3u8") {
+            hdrs["Accept"] = "application/vnd.apple.mpegurl,application/x-mpegURL,*/*"
+        }
+        hdrs.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        do {
+            let session = needsTLSBypass(url: target) ? insecureSession : URLSession.shared
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse, (200..<400).contains(http.statusCode) else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                print("⚠️ [AnimeKaiService] HTTP \(code) for \(target.host ?? "?")")
+                return false
+            }
+            if url.contains(".m3u8"), let text = String(data: data, encoding: .utf8) {
+                return text.contains("#EXTM3U") || text.contains("#EXT-X-")
+            }
+            return true
+        } catch {
+            print("⚠️ [AnimeKaiService] Unreachable \(target.host ?? url): \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func megaCDNHeaders(embedUrl: String?, streamUrl: String? = nil) -> [String: String] {
+        var hdrs = headers
+        if let embedUrl, let embed = URL(string: embedUrl) {
+            hdrs["Referer"] = embedUrl
+            hdrs["Origin"] = "\(embed.scheme ?? "https")://\(embed.host ?? "megaup.cc")"
+        } else if let streamUrl, let host = URL(string: streamUrl)?.host, isMegaCDNHost(host) {
+            hdrs["Referer"] = "https://megaup.cc/"
+            hdrs["Origin"] = "https://megaup.cc"
+        }
+        return hdrs
+    }
+
     private func fetchData(from url: URL, headers: [String: String]) async throws -> Data {
         var request = URLRequest(url: url)
         request.timeoutInterval = 20
         request.allHTTPHeaderFields = headers
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let session = needsTLSBypass(url: url) ? insecureSession : URLSession.shared
+        let (data, response) = try await session.data(for: request)
         guard let httpRes = response as? HTTPURLResponse, (200..<400).contains(httpRes.statusCode) else {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             throw NSError(domain: "AnimeKaiService", code: code, userInfo: [NSLocalizedDescriptionKey: "HTTP \(code)"])

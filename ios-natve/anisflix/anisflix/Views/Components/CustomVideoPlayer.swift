@@ -1057,11 +1057,23 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
                       (effectiveHeaders["Origin"]?.contains("yflix") == true) ||
                       (effectiveHeaders["Origin"]?.contains("rapidshare") == true)
-        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
+        let isMegaCDN = urlString.contains("megaup") || urlString.contains("megacdn") ||
+                        urlString.contains("shop21") || urlString.contains("prjp") ||
+                        (effectiveHeaders["Referer"]?.contains("megaup") == true)
+        let isAnimeKaiSource = isMegaCDN ||
                          (effectiveHeaders["Origin"]?.contains("animekai") == true) ||
                          (effectiveHeaders["Origin"]?.contains("megaup") == true)
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
-        let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
+        let isAnimePaheSource = urlString.contains("owocdn") || urlString.contains("vault-") ||
+            (effectiveHeaders["Referer"]?.contains("kwik") == true) ||
+            (effectiveHeaders["Origin"]?.contains("kwik") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix
+        let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy") ||
+                            urlString.contains("anisflix.vercel.app/api/vidmoly") ||
+                            urlString.contains("anisflix.vercel.app/api/movix") ||
+                            urlString.contains("/api/vidmoly") ||
+                            urlString.contains("/api/movix")
+        let isMovieBoxCDN = urlString.contains("hakunaymatata.com")
+        let isCasting = CastManager.shared.isConnected
         
         // Is it an MP4/MKV or an HLS playlist?
         let isPlaylist = url.pathExtension.lowercased() == "m3u8" || urlString.contains(".m3u8")
@@ -1070,7 +1082,15 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             // Vercel proxy handles CORS and headers externally. NEVER use local proxy.
             needsProxy = false
             print("🎯 [PlayerVM] Bypassing Local Proxy (using Vercel API proxy instead)")
-        } else if isVidzyOrLuluvid || hasCustomHeaders {
+        } else if isMovieBoxCDN && !isCasting && !isAirPlayActive {
+            // MovieBox CDN supports byte-range + AVURLAsset can attach Referer/UA directly.
+            needsProxy = false
+            print("🎯 [PlayerVM] MovieBox CDN: direct playback with AVURLAsset headers")
+        } else if (isAnimeKaiSource || isAnimePaheSource) && isPlaylist && !isCasting && !isAirPlayActive {
+            // MegaUp / Kwik→owocdn HLS: AVURLAsset sends Referer/Origin directly.
+            needsProxy = false
+            print("🎯 [PlayerVM] AnimeKai/AnimePahe HLS: direct playback with AVURLAsset headers")
+        } else if isVidzyOrLuluvid || (hasCustomHeaders && !isAnimePaheSource) {
             // ALWAYS use proxy if there are custom headers or it's Vidzy/Luluvid/Vidlink.
             // Why? Because if the user taps the AirPlay button mid-playback, AVPlayer sends 
             // the current URL to Apple TV. Apple TV does NOT inherit headers from AVURLAssetHTTPHeaderFieldsKey.
@@ -1145,10 +1165,24 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
 
         
-        // Legacy ResourceLoader logic (VidMoly, Vidzy, AirPlay) removed in favor of Local Proxy
+        // VidMoly: Vercel /api/vidmoly has no .m3u8 in the path — ResourceLoader fixes Content-Type and HLS detection.
         var useResourceLoader = false
+        let finalUrlString = finalUrl.absoluteString.lowercased()
+        if finalUrlString.contains("api/vidmoly") || finalUrlString.contains("vidmoly.net") || finalUrlString.contains("vidmoly.to") {
+            print("🎬 [PlayerVM] VidMoly URL detected, enabling ResourceLoader")
+            useResourceLoader = true
+            if var components = URLComponents(url: finalUrl, resolvingAgainstBaseURL: false) {
+                components.scheme = "vidmoly-custom"
+                var items = components.queryItems ?? []
+                items.append(URLQueryItem(name: "virtual", value: ".m3u8"))
+                components.queryItems = items
+                if let customUrl = components.url {
+                    finalUrl = customUrl
+                    print("   - VidMoly custom scheme: \(finalUrl.absoluteString.prefix(120))...")
+                }
+            }
+        }
 
-        
         print("🎬 Setting up player with URL: \(url)")
         if let title = currentTitle {
             print("📺 Content title: \(title)")

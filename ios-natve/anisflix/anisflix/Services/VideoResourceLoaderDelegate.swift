@@ -223,8 +223,14 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                         cleanUrl = url
                     }
                 }
+            } else if isVidMoly {
+                // VidMoly: Vercel route is /api/vidmoly (not /api/vidmoly.m3u8). Target URL lives in ?url= query param.
+                if let url = URL(string: baseString) {
+                    cleanUrl = url
+                    print("   - VidMoly: using base URL (no virtual path append)")
+                }
             } else {
-                // Non-Vidzy: use original logic
+                // Non-Vidzy / non-VidMoly: use original logic
                 var baseComponents = URLComponents(string: baseString)
                 let isBaseM3u8 = baseComponents?.path.hasSuffix(".m3u8") == true
                 let isRedundantSuffix = (virtualPath == ".m3u8" || virtualPath == "/.m3u8") && isBaseM3u8
@@ -301,6 +307,12 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                 // CRITICAL DEBUG: Print error body
                 if response.statusCode >= 400, let bodyString = String(data: data, encoding: .utf8) {
                     print("❌ [\(providerName)Loader] Error Body: \(bodyString)")
+                    loadingRequest.finishLoading(with: NSError(
+                        domain: "ResourceLoader",
+                        code: response.statusCode,
+                        userInfo: [NSLocalizedDescriptionKey: "HTTP \(response.statusCode): \(bodyString.prefix(120))"]
+                    ))
+                    return
                 }
                 
                 // Sanitize headers
@@ -321,7 +333,9 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
                 
                 let responseContentType = headers["Content-Type"] ?? headers["content-type"] ?? ""
 
-                if responseContentType.contains("mpegurl") || responseContentType.contains("m3u8") || realUrl.absoluteString.contains(".m3u8") {
+                let looksLikePlaylist = responseContentType.contains("mpegurl") || responseContentType.contains("m3u8")
+                    || (String(data: data, encoding: .utf8)?.contains("#EXTM3U") == true)
+                if looksLikePlaylist {
                     if var playlistContent = String(data: data, encoding: .utf8) {
                         // 1. Remove EXT-X-I-FRAME-STREAM-INF lines to prevent parsing errors
                         var lines = playlistContent.components(separatedBy: .newlines)
