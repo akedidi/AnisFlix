@@ -2,8 +2,8 @@ import axios from 'axios';
 
 async function checkConnectivity() {
     const urls = [
-        'https://api.movix.bet/api/search?title=test',
-        'https://api.movix.bet/anime/search/test'
+        'https://api.movix.cloud/api/search?title=test',
+        'https://api.movix.cloud/anime/search/test'
     ];
 
     console.log('--- Checking Movix Connectivity ---');
@@ -14,8 +14,8 @@ async function checkConnectivity() {
             const response = await axios.get(url, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Referer': 'https://movix.bet/',
-                    'Origin': 'https://movix.bet'
+                    'Referer': 'https://movix.cloud/',
+                    'Origin': 'https://movix.cloud'
                 },
                 timeout: 10000,
                 validateStatus: null // accept all

@@ -21,7 +21,7 @@ export default function MovixDownloadChecker() {
 
   const testMovie = async (id: number): Promise<MovieTest> => {
     try {
-      const response = await fetch(`https://api.movix.bet/api/films/download/${id}`);
+      const response = await fetch(`https://api.movix.cloud/api/films/download/${id}`);
       const data = await response.json();
       
       if (data.error) {
