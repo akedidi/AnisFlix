@@ -3,7 +3,7 @@ import { apiCache, cacheTTL } from './apiCache';
 
 /**
  * Client proxy pour l'API Movix
- * Remplace les appels directs vers api.movix.tax pour éviter les erreurs CORS/403
+ * Remplace les appels directs vers api.movix.bet pour éviter les erreurs CORS/403
  */
 
 export class MovixProxyClient {

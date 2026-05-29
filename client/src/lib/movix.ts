@@ -1,4 +1,4 @@
-const MOVIX_BASE_URL = "https://api.movix.tax/api";
+const MOVIX_BASE_URL = "https://api.movix.bet/api";
 
 export type StreamProvider = "fstream" | "wiflix";
 
