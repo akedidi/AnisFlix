@@ -114,6 +114,16 @@ function parseM3U8(content, baseUrl) {
     return streams;
 }
 
+function collapsePlaylistVariants(parsed, masterUrl) {
+    const distinct = new Set(
+        parsed.map((s) => s.quality).filter((q) => q && q !== 'Auto' && q !== 'Unknown')
+    );
+    if (distinct.size <= 1) {
+        return [{ name: 'Vidlink - Auto', title: parsed[0]?.title, url: masterUrl, quality: 'Auto' }];
+    }
+    return parsed;
+}
+
 async function fetchAndParseM3U8(playlistUrl, title) {
     try {
         const response = await makeRequest(playlistUrl, { headers: VIDLINK_HEADERS });
@@ -200,7 +210,15 @@ export class VidlinkScraper {
                 const parsedArrays = await Promise.all(
                     playlistStreams.map(ps => fetchAndParseM3U8(ps.url, streamTitle))
                 );
-                const all = [...directStreams, ...parsedArrays.flat()];
+                const collapsed = playlistStreams.map((ps, i) =>
+                    collapsePlaylistVariants(parsedArrays[i] || [], ps.url)
+                );
+                const seen = new Set();
+                const all = [...directStreams, ...collapsed.flat()].filter((s) => {
+                    if (seen.has(s.url)) return false;
+                    seen.add(s.url);
+                    return true;
+                });
                 all.sort((a, b) => (QUALITY_ORDER[b.quality] || -3) - (QUALITY_ORDER[a.quality] || -3));
                 console.log(`[Vidlink] Returning ${all.length} streams`);
                 return all;

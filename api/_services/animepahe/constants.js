@@ -1,5 +1,5 @@
 export const MAIN_URL = 'https://animepahe.pw';
-export const PROXY_URL = 'https://animepaheproxy.phisheranimepahe.workers.dev/?url=';
+export const PROXY_URL = 'https://anisflix.kedidi-anis.workers.dev/?path=animepahe&url=';
 export const TMDB_API_KEY = '439c478a771f35c05022f9feabcca01c';
 
 export const HEADERS = {

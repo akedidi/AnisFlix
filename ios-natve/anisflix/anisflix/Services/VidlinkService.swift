@@ -93,9 +93,11 @@ class VidlinkService {
         if !playlistStreams.isEmpty {
             for ps in playlistStreams {
                 let parsed = await fetchAndParseM3U8(playlistUrl: ps.0, title: streamTitle)
-                allSources.append(contentsOf: parsed)
+                allSources.append(contentsOf: collapsePlaylistVariants(parsed, masterUrl: ps.0))
             }
         }
+
+        allSources = dedupeVidlinkSources(allSources)
         
         // Sort
         allSources.sort { s1, s2 in
@@ -182,6 +184,31 @@ class VidlinkService {
         return "240p"
     }
     
+    /// Master HLS without RESOLUTION tags → many "Auto" rows; keep a single master entry instead.
+    private func collapsePlaylistVariants(_ parsed: [ExtractedSource], masterUrl: String) -> [ExtractedSource] {
+        let distinctQualities = Set(parsed.compactMap { source -> String? in
+            let q = source.quality ?? "Auto"
+            if q == "Auto" || q == "Unknown" { return nil }
+            return q
+        })
+        if distinctQualities.count <= 1 {
+            print("📺 [VidlinkService] Single-resolution playlist → 1 entry (was \(parsed.count))")
+            return [ExtractedSource(name: "Vidlink - Auto", url: masterUrl, quality: "Auto")]
+        }
+        return parsed
+    }
+
+    private func dedupeVidlinkSources(_ sources: [ExtractedSource]) -> [ExtractedSource] {
+        var seen = Set<String>()
+        var out: [ExtractedSource] = []
+        for s in sources {
+            if seen.insert(s.url).inserted {
+                out.append(s)
+            }
+        }
+        return out
+    }
+
     /// Returns (url, name, isPlaylist, quality)
     private func processVidlinkResponse(data: [String: Any], title: String) -> [(String, String, Bool, String)] {
         var streams: [(String, String, Bool, String)] = []

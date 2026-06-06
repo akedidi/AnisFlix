@@ -52,6 +52,15 @@ export default {
             return handleMovieBoxCdnRequest(request);
         }
 
+        if (path === 'animepahe') {
+            return handleAnimePaheRequest(request);
+        }
+
+        // Legacy AnimePahe proxy (?url= only, no path param)
+        if (!path && params.get('url')) {
+            return handleAnimePaheRequest(request);
+        }
+
         return new Response('AnisFlix Worker Active. Specify ?path=...', {
             status: 200,
             headers: CORS_HEADERS
@@ -228,6 +237,106 @@ async function handleMobRequest(request: Request): Promise<Response> {
                 "Content-Type": "application/json",
                 ...CORS_HEADERS
             }
+        });
+    }
+}
+
+function isAllowedAnimePaheUrl(targetUrl: string): boolean {
+    try {
+        const host = new URL(targetUrl).hostname.toLowerCase();
+        return host === 'animepahe.pw' || host.endsWith('.animepahe.pw')
+            || host === 'animepahe.com' || host.endsWith('.animepahe.com')
+            || host === 'kwik.cx' || host.endsWith('.kwik.cx');
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Proxy animepahe.pw / kwik.cx with browser headers + cookie priming (replaces dead phisher worker).
+ */
+async function handleAnimePaheRequest(request: Request): Promise<Response> {
+    const params = new URL(request.url).searchParams;
+    const targetUrl = params.get('url');
+
+    if (!targetUrl || !isAllowedAnimePaheUrl(targetUrl)) {
+        return new Response(JSON.stringify({ error: 'Invalid or missing animepahe url' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
+        });
+    }
+
+    const browserHeaders: Record<string, string> = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9,fr;q=0.8',
+        'Referer': 'https://animepahe.pw/',
+        'Origin': 'https://animepahe.pw',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+    };
+
+    try {
+        let cookieHeader = '';
+
+        // Prime DDoS-Guard session cookie from homepage
+        const prime = await fetch('https://animepahe.pw/', {
+            method: 'GET',
+            headers: browserHeaders,
+            redirect: 'follow',
+        });
+
+        const setCookies: string[] = [];
+        if (typeof prime.headers.getSetCookie === 'function') {
+            setCookies.push(...prime.headers.getSetCookie());
+        } else {
+            const single = prime.headers.get('set-cookie');
+            if (single) setCookies.push(single);
+        }
+        if (setCookies.length > 0) {
+            cookieHeader = setCookies.map((c) => c.split(';')[0]).join('; ');
+        }
+
+        const upstreamHeaders: Record<string, string> = {
+            ...browserHeaders,
+            ...(cookieHeader ? { Cookie: cookieHeader } : { Cookie: '__ddg2_=1234567890' }),
+        };
+
+        let response = await fetch(targetUrl, {
+            method: 'GET',
+            headers: upstreamHeaders,
+            redirect: 'follow',
+        });
+
+        const contentType = response.headers.get('Content-Type') || '';
+        const isChallenge = response.status === 403
+            || contentType.includes('text/html')
+            && !(targetUrl.includes('/api?') || targetUrl.includes('kwik.cx'));
+
+        if (isChallenge && cookieHeader) {
+            console.log(`[Worker] AnimePahe retry after challenge (${response.status})`);
+            response = await fetch(targetUrl, {
+                method: 'GET',
+                headers: upstreamHeaders,
+                redirect: 'follow',
+            });
+        }
+
+        const outHeaders = new Headers(CORS_HEADERS);
+        const ct = response.headers.get('Content-Type');
+        if (ct) outHeaders.set('Content-Type', ct);
+        outHeaders.set('Cache-Control', 'no-cache');
+        outHeaders.set('X-Anisflix-Proxy', 'animepahe');
+
+        return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: outHeaders,
+        });
+    } catch (e: any) {
+        return new Response(JSON.stringify({ error: e.message }), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json', ...CORS_HEADERS }
         });
     }
 }

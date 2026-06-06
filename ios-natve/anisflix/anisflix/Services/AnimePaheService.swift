@@ -11,7 +11,7 @@ class AnimePaheService {
     private let tmdbApiKey = "1865f43a0549ca50d341dd9ab8b29f49"
     private let tmdbBase = "https://api.themoviedb.org/3"
     private let mainUrl = "https://animepahe.pw"
-    private let proxyUrl = "https://animepaheproxy.phisheranimepahe.workers.dev/?url="
+    private let proxyUrl = "https://anisflix.kedidi-anis.workers.dev/?path=animepahe&url="
     private let mappingBase = "https://id-mapping-api-malid.hf.space/api/resolve"
     private let jikanBase = "https://api.jikan.moe/v4/anime"
 
