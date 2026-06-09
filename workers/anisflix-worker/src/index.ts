@@ -353,13 +353,33 @@ function isAllowedMovieBoxCdnUrl(targetUrl: string): boolean {
     }
 }
 
+function buildMovieBoxCdnWorkerUrl(
+    workerOrigin: string,
+    absoluteUrl: string,
+    referer: string,
+    cookie: string,
+    userAgent: string
+): string {
+    const qs = new URLSearchParams({
+        path: 'moviebox-cdn',
+        url: absoluteUrl,
+        referer,
+    });
+    if (cookie) qs.set('cookie', cookie);
+    if (userAgent) qs.set('ua', userAgent);
+    return `${workerOrigin}/?${qs.toString()}`;
+}
+
 /**
- * Stream MovieBox CDN MP4 with Referer/Range (Vercel IPs are blocked by the CDN).
+ * Stream MovieBox CDN (MP4/HLS) with Referer + CloudFront signed cookies.
  */
 async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     const params = new URL(request.url).searchParams;
     const targetUrl = params.get('url');
-    const referer = params.get('referer') || 'https://fmoviesunblocked.net/';
+    const referer = params.get('referer') || 'https://api3.aoneroom.com/';
+    const cookie = params.get('cookie') || '';
+    const userAgent = params.get('ua')
+        || 'com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; MovieBox; Build/BP22.250325.006; Cronet/133.0.6876.3)';
 
     if (!targetUrl || !isAllowedMovieBoxCdnUrl(targetUrl)) {
         return new Response(JSON.stringify({ error: 'Invalid or missing CDN url' }), {
@@ -368,7 +388,7 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
         });
     }
 
-    let origin = 'https://fmoviesunblocked.net';
+    let origin = 'https://api3.aoneroom.com';
     try {
         origin = new URL(referer).origin;
     } catch {
@@ -376,15 +396,15 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     }
 
     const upstreamHeaders: Record<string, string> = {
-        'User-Agent': 'okhttp/4.12.0',
+        'User-Agent': userAgent,
         'Referer': referer,
         'Origin': origin,
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.5',
-        'X-Forwarded-For': '1.1.1.1',
-        'X-Real-IP': '1.1.1.1',
-        'CF-Connecting-IP': '1.1.1.1',
     };
+    if (cookie) {
+        upstreamHeaders['Cookie'] = cookie;
+    }
 
     const range = request.headers.get('Range');
     if (range) {
@@ -404,6 +424,36 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
             if (v) outHeaders.set(h, v);
         }
         outHeaders.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+        const contentType = response.headers.get('content-type') || '';
+        const isPlaylist = targetUrl.includes('.m3u8')
+            || contentType.includes('mpegurl')
+            || contentType.includes('m3u8');
+
+        if (isPlaylist && response.ok) {
+            const text = await response.text();
+            if (text.includes('#EXTM3U')) {
+                const workerOrigin = new URL(request.url).origin;
+                const basePath = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
+                const rewritten = text.split('\n').map((line) => {
+                    const trimmed = line.trim();
+                    if (!trimmed || trimmed.startsWith('#')) return line;
+                    try {
+                        const absolute = new URL(trimmed, basePath).href;
+                        return buildMovieBoxCdnWorkerUrl(workerOrigin, absolute, referer, cookie, userAgent);
+                    } catch {
+                        return line;
+                    }
+                }).join('\n');
+
+                outHeaders.set('Content-Type', 'application/vnd.apple.mpegurl');
+                return new Response(rewritten, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: outHeaders,
+                });
+            }
+        }
 
         return new Response(response.body, {
             status: response.status,

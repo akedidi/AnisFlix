@@ -1093,10 +1093,10 @@ const StreamingSources = memo(function StreamingSources({
     movieBoxData.streams.forEach((stream: any, index: number) => {
       allSources.push({
         id: `moviebox-${index}`,
-        name: `MovieBox ${stream.quality} - ${stream.size}`,  // Format: "MovieBox 720p - 2.9 GB"
+        name: `MovieBox ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
         provider: 'moviebox',
-        url: stream.url,  // Already proxied URL
-        type: 'mp4' as const,
+        url: stream.url,  // Worker proxy URL (includes CloudFront cookies)
+        type: (stream.type === 'hls' || stream.url?.includes('.m3u8') ? 'm3u8' : 'mp4') as const,
         player: 'moviebox',
         sourceKey: 'VO',
         quality: stream.quality,
