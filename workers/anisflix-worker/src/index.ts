@@ -218,16 +218,19 @@ async function handleMobRequest(request: Request): Promise<Response> {
         }
 
         const data = await response.arrayBuffer();
+        const outHeaders: Record<string, string> = {
+            ...CORS_HEADERS,
+            "Content-Type": response.headers.get("Content-Type") || "application/json",
+            "X-Proxy-Status": response.status.toString(),
+            "Cache-Control": "no-cache",
+        };
+        const xUser = response.headers.get('x-user');
+        if (xUser) outHeaders['x-user'] = xUser;
 
         return new Response(data, {
             status: response.status,
             statusText: response.statusText,
-            headers: {
-                ...CORS_HEADERS,
-                "Content-Type": response.headers.get("Content-Type") || "application/json",
-                "X-Proxy-Status": response.status.toString(),
-                "Cache-Control": "no-cache"
-            }
+            headers: outHeaders,
         });
 
     } catch (e: any) {
