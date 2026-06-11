@@ -336,7 +336,8 @@ struct MainTabView: View {
                     mediaId: playerManager.mediaId,
                     season: playerManager.season,
                     episode: playerManager.episode,
-                    headers: playerManager.vlcHeaders
+                    headers: playerManager.vlcHeaders,
+                    subtitles: playerManager.currentSubtitles
                 )
                 .edgesIgnoringSafeArea(.all)
             }

@@ -187,6 +187,41 @@ class VLCPlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         mediaPlayer.currentVideoSubTitleIndex = Int32(index)
         currentSubtitleIndex = index // Force UI Update
     }
+
+    func loadExternalSubtitle(from url: URL) {
+        Task {
+            do {
+                let (data, response) = try await URLSession.shared.data(from: url)
+                let mime = (response as? HTTPURLResponse)?.mimeType?.lowercased() ?? ""
+                let ext: String
+                if mime.contains("vtt") || url.absoluteString.lowercased().contains(".vtt") {
+                    ext = "vtt"
+                } else if mime.contains("ass") || url.absoluteString.lowercased().contains(".ass") {
+                    ext = "ass"
+                } else {
+                    ext = "srt"
+                }
+
+                let tempUrl = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("anisflix_sub_\(UUID().uuidString).\(ext)")
+                try data.write(to: tempUrl)
+
+                await MainActor.run {
+                    let result = self.mediaPlayer.addPlaybackSlave(
+                        tempUrl,
+                        type: .subtitle,
+                        enforce: true
+                    )
+                    print("📝 [VLCPlayerVM] External subtitle loaded (\(ext)): \(result)")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        self.updateTracks()
+                    }
+                }
+            } catch {
+                print("❌ [VLCPlayerVM] Failed to load external subtitle: \(error)")
+            }
+        }
+    }
     
     // PAUSE -> SEEK -> PLAY (Fixes Double Audio)
     func seek(to time: Double) {
@@ -279,17 +314,32 @@ struct VLCPlayerView: View {
     let season: Int?
     let episode: Int?
     let headers: [String: String]?
+    let subtitles: [Subtitle]
     
-    init(url: URL, title: String? = nil, posterUrl: URL? = nil, mediaId: Int? = nil, season: Int? = nil, episode: Int? = nil, headers: [String: String]? = nil) {
+    init(
+        url: URL,
+        title: String? = nil,
+        posterUrl: URL? = nil,
+        mediaId: Int? = nil,
+        season: Int? = nil,
+        episode: Int? = nil,
+        headers: [String: String]? = nil,
+        subtitles: [Subtitle] = []
+    ) {
         self.url = url
         self.title = title
         self.mediaId = mediaId
         self.season = season
         self.episode = episode
         self.headers = headers
+        self.subtitles = subtitles
     }
     
     @State private var showControls = true
+    @State private var showSubtitlesMenu = false
+    @State private var selectedSubtitle: Subtitle?
+    @State private var subtitleOffset: Double = 0
+    @State private var subtitleFontSize: Double = 100
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
     @State private var dragOffset: CGSize = .zero
@@ -470,20 +520,14 @@ struct VLCPlayerView: View {
                                 .font(.caption).foregroundColor(.white)
                             Spacer()
                             
-                            Menu {
-                                Button("Jeter les sous-titres") { viewModel.setSubtitle(-1) }
-                                ForEach(Array(viewModel.subtitleTracks), id: \.key) { key, val in
-                                    Button {
-                                        viewModel.setSubtitle(key)
-                                    } label: {
-                                        HStack {
-                                            Text(val)
-                                            if key == viewModel.currentSubtitleIndex { Image(systemName: "checkmark") }
-                                        }
-                                    }
+                            if !subtitles.isEmpty || !viewModel.subtitleTracks.isEmpty {
+                                Button {
+                                    showSubtitlesMenu = true
+                                } label: {
+                                    Image(systemName: "captions.bubble")
+                                        .foregroundColor(selectedSubtitle != nil || viewModel.currentSubtitleIndex >= 0 ? .yellow : .white)
+                                        .padding(8)
                                 }
-                            } label: {
-                                Image(systemName: "captions.bubble").foregroundColor(.white).padding(8)
                             }
                             
                             Menu {
@@ -540,6 +584,30 @@ struct VLCPlayerView: View {
                  attemptResume()
              }
         }
+        .sheet(isPresented: $showSubtitlesMenu) {
+            if subtitles.isEmpty {
+                vlcEmbeddedSubtitlePicker
+            } else {
+                SubtitleSelectionView(
+                    subtitles: subtitles,
+                    selectedSubtitle: $selectedSubtitle,
+                    subtitleOffset: $subtitleOffset,
+                    subtitleFontSize: $subtitleFontSize
+                )
+            }
+        }
+        .onChange(of: selectedSubtitle) { newValue in
+            guard let sub = newValue, let subUrl = URL(string: sub.url) else {
+                viewModel.setSubtitle(-1)
+                return
+            }
+            let load = { viewModel.loadExternalSubtitle(from: subUrl) }
+            if viewModel.isPlaying || viewModel.duration > 0 {
+                load()
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: load)
+            }
+        }
         .onAppear {
             viewModel.setup(url: url, headers: headers)
             viewModel.mediaId = mediaId
@@ -555,6 +623,26 @@ struct VLCPlayerView: View {
             if isFillMode { ScreenRotator.rotate(to: .portrait) }
             saveProgress()
             viewModel.stop()
+            selectedSubtitle = nil
+        }
+    }
+
+    @ViewBuilder
+    private var vlcEmbeddedSubtitlePicker: some View {
+        NavigationView {
+            List {
+                Button("Désactivé") { viewModel.setSubtitle(-1) }
+                ForEach(Array(viewModel.subtitleTracks), id: \.key) { key, val in
+                    Button(val) { viewModel.setSubtitle(key) }
+                }
+            }
+            .navigationTitle("Sous-titres")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fermer") { showSubtitlesMenu = false }
+                }
+            }
         }
     }
     

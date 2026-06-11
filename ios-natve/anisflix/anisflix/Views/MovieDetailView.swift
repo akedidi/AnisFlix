@@ -627,12 +627,11 @@ struct MovieDetailView: View {
                 print("✅ [MovieDetailView] Extraction successful: \(streamUrl)")
                 
                 if let url = URL(string: streamUrl) {
-                    // Fetch subtitles
-                    let subs: [Subtitle]
+                    // Fetch subtitles (source tracks + OpenSubtitles)
+                    var subs = source.tracks ?? []
                     if let imdbId = movie?.externalIds?.imdbId {
-                        subs = await StreamingService.shared.getSubtitles(imdbId: imdbId)
-                    } else {
-                        subs = []
+                        let osSubs = await StreamingService.shared.getSubtitles(imdbId: imdbId)
+                        subs.append(contentsOf: osSubs)
                     }
                     
                     await MainActor.run {
