@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Play, ExternalLink, Download, Copy, FileText } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { apiClient } from "@/lib/apiClient"; // ADDED IMPORT
+import { isPlayableMovieBoxStream } from '@/utils/codecSupport';
 
 interface Source {
   id: string;
@@ -354,8 +355,8 @@ const StreamingSources = memo(function StreamingSources({
       if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
         return true;
       }
-      // Vérifier MovieBox (VO uniquement)
-      if (movieBoxData && movieBoxData.success && movieBoxData.streams && movieBoxData.streams.length > 0) {
+      // Vérifier MovieBox (VO uniquement, exclure HEVC si navigateur incompatible)
+      if (movieBoxData?.success && movieBoxData.streams?.some(isPlayableMovieBoxStream)) {
         return true;
       }
       // Vérifier Cinepro (VO uniquement)
@@ -1091,12 +1092,17 @@ const StreamingSources = memo(function StreamingSources({
   if (selectedLanguage === 'VO' && movieBoxData && movieBoxData.success && movieBoxData.streams) {
     console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
     movieBoxData.streams.forEach((stream: any, index: number) => {
+      if (!isPlayableMovieBoxStream(stream)) {
+        console.log(`📦 [MovieBox] Source ${stream.quality} masquée (HEVC non supporté par ce navigateur)`);
+        return;
+      }
+      const isDash = stream.type === 'dash' || stream.url?.includes('.mpd');
       allSources.push({
         id: `moviebox-${index}`,
         name: `MovieBox ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
         provider: 'moviebox',
         url: stream.url,  // Worker proxy URL (includes CloudFront cookies)
-        type: (stream.type === 'dash' || stream.url?.includes('.mpd')
+        type: (isDash
           ? 'dash'
           : stream.type === 'hls' || stream.url?.includes('.m3u8')
             ? 'm3u8'
@@ -1104,7 +1110,8 @@ const StreamingSources = memo(function StreamingSources({
         player: 'moviebox',
         sourceKey: 'VO',
         quality: stream.quality,
-        language: 'VO'
+        language: 'VO',
+        codec: stream.codec,
       });
     });
 

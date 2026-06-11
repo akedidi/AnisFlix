@@ -9,6 +9,7 @@ import {
   isHakunaymatataUrl,
   parseMovieBoxCdnParams,
 } from "@/utils/movieboxCdn";
+import { canPlayHevcDash, streamRequiresHevc } from "@/utils/codecSupport";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
@@ -79,6 +80,12 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
     const setupPlayer = async () => {
       if (!videoRef.current || !window.shaka) return;
 
+      if (streamRequiresHevc(null, url) && !canPlayHevcDash()) {
+        setError(errorMessages.players.generic.hevcNotSupported);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         // Installer les polyfills pour la compatibilité
         window.shaka.polyfill.installAll();
@@ -108,6 +115,12 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           console.error('Erreur Shaka Player:', event.detail);
           console.error('Erreur de chargement du flux:', event.detail);
           
+          if (event.detail?.code === 4032) {
+            setError(errorMessages.players.generic.hevcNotSupported);
+            setIsLoading(false);
+            return;
+          }
+
           // Logs détaillés pour debugger l'erreur 3016
           if (event.detail?.code === 3016) {
             console.error('🔍 [DEBUG 3016] Erreur de réseau détectée:');

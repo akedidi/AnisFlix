@@ -30,7 +30,9 @@ export const errorMessages = {
     generic: {
       title: "Erreur de lecture",
       message: "Impossible de charger la source de streaming. Veuillez essayer un autre lien.",
-      hlsNotSupported: "Votre navigateur ne supporte pas HLS"
+      hlsNotSupported: "Votre navigateur ne supporte pas HLS",
+      hevcNotSupported:
+        "Ce flux MovieBox est encodé en HEVC (H.265). Chrome et Firefox ne peuvent pas le lire sur la plupart des ordinateurs. Utilisez Safari (macOS/iOS) ou choisissez une autre source.",
     }
   },
   

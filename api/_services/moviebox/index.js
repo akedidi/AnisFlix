@@ -25,6 +25,16 @@ function searchMovieBox(query) {
   });
 }
 
+function inferCodec(codecName, url) {
+  const name = String(codecName || '').toLowerCase();
+  if (name.includes('hevc') || name.includes('h265')) return 'hevc';
+  if (name.includes('h264') || name.includes('avc')) return 'h264';
+  const u = String(url || '').toLowerCase();
+  if (u.includes('h265') || u.includes('hevc') || u.includes('hev1') || u.includes('hvc1')) return 'hevc';
+  if (u.includes('h264') || u.includes('avc1')) return 'h264';
+  return null;
+}
+
 function findBestMatch(subjects, tmdbTitle, tmdbYear, mediaType) {
   const normTmdbTitle = normalizeTitle(tmdbTitle);
   const targetType = mediaType === 'movie' ? 1 : 2;
@@ -135,6 +145,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
             decoded_url: stream.url,
             quality,
             format: formatType,
+            codec: inferCodec(stream.codecName, stream.url),
             language: item.lang,
             subtitles,
             headers: {
@@ -153,6 +164,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
               decoded_url: video.resourceLink,
               quality: video.resolution ? `${video.resolution}p` : 'Auto',
               format: getFormatType(video.resourceLink),
+              codec: inferCodec(video.codecName, video.resourceLink),
               language: item.lang,
               subtitles: [],
               headers: { Referer: API_BASE, 'User-Agent': ua },
