@@ -4,6 +4,11 @@ import { X, Volume2, VolumeX, Maximize, Minimize, PictureInPicture } from "lucid
 import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
 import ChromecastButton from "@/components/ChromecastButton";
+import {
+  buildMovieBoxCdnProxyUrl,
+  isHakunaymatataUrl,
+  parseMovieBoxCdnParams,
+} from "@/utils/movieboxCdn";
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
   return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent) && 
@@ -84,12 +89,19 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
           return;
         }
 
-        // Créer le player Shaka (approche simplifiée)
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
-        // Approche simplifiée : laisser Shaka Player gérer directement les URLs
-        // Pas d'intercepteur complexe, Shaka Player est capable de gérer les URLs M3U8/MPD directement
+        // MovieBox DASH: proxy segments through CF worker (signed CloudFront cookies)
+        const movieBoxCdn = parseMovieBoxCdnParams(url);
+        if (movieBoxCdn) {
+          player.getNetworkingEngine().registerRequestFilter((type: number, request: { uris: string[] }) => {
+            const uri = request.uris?.[0];
+            if (uri && isHakunaymatataUrl(uri)) {
+              request.uris[0] = buildMovieBoxCdnProxyUrl(uri, movieBoxCdn);
+            }
+          });
+        }
 
         // Gérer les erreurs
         player.addEventListener('error', (event: any) => {

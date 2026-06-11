@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star, Calendar, X, Heart, Play } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import ShakaPlayer from "@/components/ShakaPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
@@ -43,7 +44,7 @@ export default function SeriesDetail() {
   const { navigate } = useAppNavigation();
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }>; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; quality?: string; language?: string; tracks?: Array<{ file: string; label: string; kind?: string }>; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
   const seriesId = parseInt(id || "0");
   const { t } = useLanguage();
@@ -473,11 +474,15 @@ export default function SeriesDetail() {
     // Check for Luluvid by flag, provider OR name to be absolutely sure
     const isLuluvidSource = source.isLuluvid || (source as any).provider === 'luluvid' || source.name.toLowerCase().includes('luluvid');
 
-    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isFStream && !isLuluvidSource) {
+    if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.type === "dash" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isFStream && !isLuluvidSource) {
       console.log(`🎌 [handleSourceSelect] Setting source with tracks:`, source.tracks);
       setSelectedSource({
         url: source.url,
-        type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+        type: source.type === "dash"
+          ? "dash"
+          : source.isMovixDownload || source.isDarki || source.isAnimeAPI
+            ? "m3u8"
+            : (source.type === "embed" ? "m3u8" : source.type),
         name: source.name,
         isDarki: source.isDarki,
         quality: source.quality,
@@ -930,6 +935,12 @@ export default function SeriesDetail() {
                                                     />
                                                   </div>
                                                 </div>
+                                              ) : selectedSource.type === 'dash' ? (
+                                                <ShakaPlayer
+                                                  url={selectedSource.url}
+                                                  title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
+                                                  embedded
+                                                />
                                               ) : (
                                                 <>
                                                   {console.log('🎥 [SeriesDetail] Rendering VideoPlayer with tracks:', (selectedSource as any).tracks)}

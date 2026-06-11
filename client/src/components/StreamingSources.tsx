@@ -1096,7 +1096,11 @@ const StreamingSources = memo(function StreamingSources({
         name: `MovieBox ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
         provider: 'moviebox',
         url: stream.url,  // Worker proxy URL (includes CloudFront cookies)
-        type: (stream.type === 'hls' || stream.url?.includes('.m3u8') ? 'm3u8' : 'mp4') as const,
+        type: (stream.type === 'dash' || stream.url?.includes('.mpd')
+          ? 'dash'
+          : stream.type === 'hls' || stream.url?.includes('.m3u8')
+            ? 'm3u8'
+            : 'mp4') as const,
         player: 'moviebox',
         sourceKey: 'VO',
         quality: stream.quality,

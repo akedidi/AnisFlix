@@ -426,9 +426,19 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
         outHeaders.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
 
         const contentType = response.headers.get('content-type') || '';
+        const isMpd = targetUrl.includes('.mpd') || contentType.includes('dash+xml');
         const isPlaylist = targetUrl.includes('.m3u8')
             || contentType.includes('mpegurl')
             || contentType.includes('m3u8');
+
+        if (isMpd && response.ok) {
+            outHeaders.set('Content-Type', 'application/dash+xml');
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: outHeaders,
+            });
+        }
 
         if (isPlaylist && response.ok) {
             const text = await response.text();

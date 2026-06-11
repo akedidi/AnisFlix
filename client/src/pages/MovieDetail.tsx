@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Star, Calendar, X, Heart } from "lucide-react";
 import MediaCarousel from "@/components/MediaCarousel";
 import VideoPlayer from "@/components/VideoPlayer";
+import ShakaPlayer from "@/components/ShakaPlayer";
 import VidMolyPlayer from "@/components/VidMolyPlayer";
 import DarkiPlayer from "@/components/DarkiPlayer";
 import StreamingSources from "@/components/StreamingSources";
@@ -41,7 +42,7 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -310,7 +311,7 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; provider?: string }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; provider?: string }) => {
     setIsLoadingSource(true);
 
     // Check for provider-based sources that need extraction (FSVid, Bysebuho)
@@ -430,10 +431,14 @@ export default function MovieDetail() {
       // Check for Luluvid by flag, provider OR name to be absolutely sure
       const isLuluvidSource = source.isLuluvid || (source as any).provider === 'luluvid' || source.name.toLowerCase().includes('luluvid');
 
-      if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isVidzy && !source.isFStream && !isLuluvidSource) {
+      if (source.url && (source.type === "mp4" || source.type === "embed" || source.type === "m3u8" || source.type === "dash" || source.isMovixDownload || source.isDarki || source.isAnimeAPI) && !source.isVidMoly && !source.isVidzy && !source.isFStream && !isLuluvidSource) {
         setSelectedSource({
           url: source.url,
-          type: source.isMovixDownload || source.isDarki || source.isAnimeAPI ? "m3u8" : (source.type === "embed" ? "m3u8" : source.type),
+          type: source.type === "dash"
+            ? "dash"
+            : source.isMovixDownload || source.isDarki || source.isAnimeAPI
+              ? "m3u8"
+              : (source.type === "embed" ? "m3u8" : source.type),
           name: source.name,
           isDarki: source.isDarki,
           provider: (source as any).provider,
@@ -780,6 +785,12 @@ export default function MovieDetail() {
                       />
                     </div>
                   </div>
+                ) : selectedSource.type === 'dash' ? (
+                  <ShakaPlayer
+                    url={selectedSource.url}
+                    title={movie.title}
+                    embedded
+                  />
                 ) : (
                   <VideoPlayer
                     src={selectedSource.url}
