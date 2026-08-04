@@ -1,6 +1,7 @@
 // import chromium from '@sparticuz/chromium';
 // import puppeteer from 'puppeteer-core';
 import { DarkiboxExtractor } from './_services/universalvo/extractors/DarkiboxExtractor.js';
+import { VidzyExtractor } from './_services/universalvo/extractors/VidzyExtractor.js';
 import { VidmolyExtractor } from './_services/universalvo/extractors/VidmolyExtractor.js';
 import { extract_voe } from './_services/universalvo/extractors/voe.js';
 import { FSVidExtractor } from './_services/universalvo/extractors/FSVidExtractor.js';
@@ -36,11 +37,13 @@ export default async function handler(req, res) {
         let result;
 
         switch (type) {
+            case 'vidzy':
+                const vidzyExtractor = new VidzyExtractor();
+                result = await vidzyExtractor.extract(url);
+                break;
+
             case 'darkibox':
-            case 'vidzy': // Darkibox extractor often handles vidzy/vidhide variants or detailed logic
                 const darkiExtractor = new DarkiboxExtractor();
-                // Check if extractor supports 'vidzy' explicitly or just generic extraction
-                // Assuming extract(url) returns { m3u8Url } or similar
                 result = await darkiExtractor.extract(url);
                 break;
 
@@ -127,7 +130,10 @@ export default async function handler(req, res) {
 
             default:
                 // Try to infer from URL if type is missing or generic
-                if (url.includes('darkibox') || url.includes('vidzy') || url.includes('vidhide')) {
+                if (url.includes('vidzy')) {
+                    const ext = new VidzyExtractor();
+                    result = await ext.extract(url);
+                } else if (url.includes('darkibox') || url.includes('vidhide')) {
                     const ext = new DarkiboxExtractor();
                     result = await ext.extract(url);
                 } else if (url.includes('vidmoly') || url.includes('flaswish')) {
