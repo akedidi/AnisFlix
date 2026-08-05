@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.68",
-          "date": "2026-06-11",
-          "size": 30925108,
+          "version": "1.0.69",
+          "date": "2026-08-05",
+          "size": 30984006,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "1.0.68 — Sous-titres OpenSubtitles dans le lecteur VLC (MovieBox DASH) ; masquage des flux HEVC MovieBox sur navigateurs non compatibles."
+          "localizedDescription": "fix(vixsrc): fix embed page parser for new window.masterPlaylist params format "
         }
       ]
     }

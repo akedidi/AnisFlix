@@ -212,64 +212,66 @@ class GlobalPlayerManager: ObservableObject {
             }
         }
         
-        if castManager.isConnected {
-            // For Cast, use serverUrl if provided (downloaded videos), otherwise use url (streaming)
-            var castUrl = serverUrl ?? url
-            
-            // Chromecast doesn't support custom headers (Referer, Origin, Cookie). 
-            // For providers like Vidlink, Vidzy, Luluvid or any URL with headers, we MUST wrap it in the Local Proxy.
-            let urlString = url.absoluteString.lowercased()
-            let isVidlink = urlString.contains("vodvidl.site") ||
-                            urlString.contains("vidlink") ||
-                            (headers?["Origin"]?.contains("vidlink") == true)
-            let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
-                          (headers?["Origin"]?.contains("yflix") == true) ||
-                          (headers?["Origin"]?.contains("rapidshare") == true)
-            let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
-                             (headers?["Origin"]?.contains("animekai") == true) ||
-                             (headers?["Origin"]?.contains("megaup") == true)
-            let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
-            let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
-            let hasHeaders = (headers != nil && !headers!.isEmpty)
-            
-            if !isVercelProxy && (isVidzyOrLuluvid || hasHeaders) && serverUrl == nil {
-                if let serverAppUrl = LocalStreamingServer.shared.serverUrl {
-                    var components = URLComponents()
-                    components.scheme = serverAppUrl.scheme
-                    components.host = serverAppUrl.host
-                    components.port = serverAppUrl.port
-                    
-                    // Route HLS via /manifest, others via /stream
-                    let isPlaylist = url.pathExtension.lowercased() == "m3u8" || urlString.contains(".m3u8")
-                    components.path = isPlaylist ? "/manifest" : "/stream"
-                    
-                    var queryItems = [URLQueryItem]()
-                    if let urlData = url.absoluteString.data(using: .utf8) {
-                        queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
-                    }
-                    if let referer = headers?["Referer"] ?? headers?["referer"] {
-                        queryItems.append(URLQueryItem(name: "referer", value: referer))
-                    }
-                    if let origin = headers?["Origin"] ?? headers?["origin"] {
-                        queryItems.append(URLQueryItem(name: "origin", value: origin))
-                    }
-                    if let ua = headers?["User-Agent"] ?? headers?["user-agent"] {
-                        queryItems.append(URLQueryItem(name: "user_agent", value: ua))
-                    }
-                    if let cookie = headers?["Cookie"] ?? headers?["cookie"] {
-                        queryItems.append(URLQueryItem(name: "cookie", value: cookie))
-                    }
-                    components.queryItems = queryItems
-                    
-                    if let proxyUrl = components.url {
-                        print("🚀 [GlobalPlayerManager] Wrapping URL in Local Proxy for Chromecast")
-                        print("   - Original: \(url)")
-                        print("   - Proxy: \(proxyUrl)")
-                        castUrl = proxyUrl
-                    }
+        // 1. Determine if we need to wrap the URL in the local proxy (for headers/CORS)
+        let urlString = url.absoluteString.lowercased()
+        let isVidlink = urlString.contains("vodvidl.site") ||
+                        urlString.contains("vidlink") ||
+                        (headers?["Origin"]?.contains("vidlink") == true)
+        let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
+                      (headers?["Origin"]?.contains("yflix") == true) ||
+                      (headers?["Origin"]?.contains("rapidshare") == true)
+        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
+                         (headers?["Origin"]?.contains("animekai") == true) ||
+                         (headers?["Origin"]?.contains("megaup") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
+        let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
+        let hasHeaders = (headers != nil && !headers!.isEmpty)
+        
+        var proxiedUrl: URL? = nil
+        
+        if !isVercelProxy && (isVidzyOrLuluvid || hasHeaders) && serverUrl == nil {
+            if let serverAppUrl = LocalStreamingServer.shared.serverUrl {
+                var components = URLComponents()
+                components.scheme = serverAppUrl.scheme
+                components.host = serverAppUrl.host
+                components.port = serverAppUrl.port
+                
+                // Route HLS via /manifest, others via /stream
+                let isPlaylist = url.pathExtension.lowercased() == "m3u8" || urlString.contains(".m3u8")
+                components.path = isPlaylist ? "/manifest" : "/stream"
+                
+                var queryItems = [URLQueryItem]()
+                if let urlData = url.absoluteString.data(using: .utf8) {
+                    queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
+                }
+                if let referer = headers?["Referer"] ?? headers?["referer"] {
+                    queryItems.append(URLQueryItem(name: "referer", value: referer))
+                }
+                if let origin = headers?["Origin"] ?? headers?["origin"] {
+                    queryItems.append(URLQueryItem(name: "origin", value: origin))
+                }
+                if let ua = headers?["User-Agent"] ?? headers?["user-agent"] {
+                    queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+                }
+                if let cookie = headers?["Cookie"] ?? headers?["cookie"] {
+                    queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+                }
+                components.queryItems = queryItems
+                
+                if let finalProxyUrl = components.url {
+                    print("🚀 [GlobalPlayerManager] Wrapping URL in Local Proxy")
+                    print("   - Original: \(url)")
+                    print("   - Proxy: \(finalProxyUrl)")
+                    proxiedUrl = finalProxyUrl
                 }
             }
-            
+        }
+        
+        let finalPlayUrl = proxiedUrl ?? url
+        
+        if castManager.isConnected {
+            // For Cast, use serverUrl if provided (downloaded videos), otherwise use proxy or streaming url
+            let castUrl = serverUrl ?? finalPlayUrl
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
              // Detect if we need VLC (MKV/4KHDHub/DASH/H.265 sources)
@@ -336,17 +338,17 @@ class GlobalPlayerManager: ObservableObject {
                   }
                   
                   // Direct VLC playback (MKV, H.265, DASH without cookies)
-                  self.vlcURL = url
+                  self.vlcURL = finalPlayUrl
                   self.vlcTitle = title
                   self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
-                  self.vlcHeaders = headers
+                  self.vlcHeaders = proxiedUrl != nil ? nil : headers // No headers needed if proxied
                   self.showVLCSheet = true
                   return // Don't show standard player
              } else {
                  print("ℹ️ [GlobalPlayerManager] Using standard AVPlayer")
              }
              
-             playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: headers, useVLCPlayer: false)
+             playerVM.setup(url: finalPlayUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: proxiedUrl != nil ? nil : headers, useVLCPlayer: false)
              
              // Seek to saved position after a short delay
              if startTime > 0 {
