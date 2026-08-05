@@ -26,24 +26,24 @@ interface ProcessedSource {
   url: string;
   quality: string;
   language: string;
-  provider: 'vidmoly' | 'vidzy' | 'darki' | 'unknown';
+  provider: 'vidmoly' | 'vidzy' | 'darki' | 'vixsrc' | 'unknown';
   originalQuality: string;
 }
 
 // Fonction pour analyser la qualité et l'URL pour déterminer le provider
-function analyzeProvider(quality: string, url: string): 'vidmoly' | 'vidzy' | 'darki' | 'unknown' {
+function analyzeProvider(quality: string, url: string): 'vidmoly' | 'vidzy' | 'darki' | 'vixsrc' | 'unknown' {
   const qualityLower = quality.toLowerCase();
   const urlLower = url.toLowerCase();
 
-  // Check both quality field and URL
+  if (qualityLower.includes('vixsrc') || urlLower.includes('vixsrc')) {
+    return 'vixsrc';
+  }
   if (qualityLower.includes('vidmoly') || urlLower.includes('vidmoly')) {
     return 'vidmoly';
   }
-
   if (qualityLower.includes('vidzy') || urlLower.includes('vidzy')) {
     return 'vidzy';
   }
-
   if (qualityLower.includes('darki') || urlLower.includes('darki')) {
     return 'darki';
   }
@@ -67,13 +67,12 @@ function normalizeLanguage(language: string): string {
     return 'VOSTFR';
   }
 
-  // Default to VF for unknown
   return 'VF';
 }
 
 // Fonction pour extraire le premier mot du champ quality
-function extractProviderName(quality: string): string {
-  // Extraire le premier mot du champ quality
+function extractProviderName(quality: string, providerType: string): string {
+  if (providerType === 'vixsrc') return 'VIXSRC';
   const firstWord = quality.split(' ')[0];
   return firstWord.toUpperCase();
 }
@@ -81,15 +80,17 @@ function extractProviderName(quality: string): string {
 // Fonction pour traiter les player_links et filtrer par provider
 function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
   return playerLinks.map(link => {
-    const provider = analyzeProvider(link.quality, link.decoded_url);
-    const providerName = extractProviderName(link.quality);
-    const normalizedLanguage = normalizeLanguage(link.language);
+    // Some endpoints wrap the provider name in quality or pass it in link.name
+    // Check if name exists for Vixsrc
+    const provider = analyzeProvider(link.quality, link.decoded_url || (link as any).url || '');
+    const providerName = extractProviderName((link as any).name || link.quality, provider);
+    const normalizedLanguage = normalizeLanguage(link.language || 'VF');
 
     return {
-      url: link.decoded_url,
-      quality: providerName, // Nom du provider (ex: "DARKI")
+      url: link.decoded_url || (link as any).url,
+      quality: providerName,
       language: normalizedLanguage,
-      provider: provider, // Type de provider pour la logique
+      provider: provider,
       originalQuality: link.quality
     };
   });
@@ -97,59 +98,35 @@ function processPlayerLinks(playerLinks: MovixTmdbSource[]): ProcessedSource[] {
 
 export const useMovixTmdbSources = (movieId: number) => {
   console.log('🔍 [MOVIX TMDB] Hook initialized with movieId:', movieId);
-  console.log('🔍 [MOVIX TMDB] Hook enabled check:', !!movieId, 'movieId type:', typeof movieId);
 
   const queryResult = useQuery({
     queryKey: ['movix-tmdb-sources', movieId],
     queryFn: async (): Promise<MovixTmdbResponse & { processedSources: ProcessedSource[] }> => {
-      console.log('🚀 [MOVIX TMDB] Fetching sources for movie:', movieId);
-      console.log('🔍 [MOVIX TMDB] queryFn started - movieId:', movieId, 'type:', typeof movieId);
-
       try {
-        console.log('🔍 [MOVIX TMDB] Entered try block');
-        // Utiliser l'API unifiée movix-proxy avec le paramètre path
-        console.log('🔍 [MOVIX TMDB] About to call apiClient.request...');
-
         const url = `/api/movix-proxy?path=tmdb/movie/${movieId}`;
-
-        console.log('🔍 [MOVIX TMDB] Request URL:', url);
-        // Use .request() method to be consistent with previous code
         const response = await apiClient.request(url);
-        console.log('✅ [MOVIX TMDB] Got response from apiClient, status:', response.status);
-
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch Movix TMDB sources: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('✅ [MOVIX TMDB] Sources fetched:', data);
+        const rawLinks = data.player_links || data.streams || [];
+        const processedSources = processPlayerLinks(rawLinks);
 
-        // Traiter les player_links pour analyser les providers
-        const processedSources = processPlayerLinks(data.player_links || []);
-
-        // Filtrer les sources par provider (vidmoly, vidzy, darki)
+        // Filtrer les sources par provider connu
         const filteredSources = processedSources.filter(source =>
           source.provider !== 'unknown'
         );
 
-        console.log('🔍 [MOVIX TMDB] Processed sources:', {
-          total: processedSources.length,
-          filtered: filteredSources.length,
-          byProvider: {
-            vidmoly: filteredSources.filter(s => s.provider === 'vidmoly').length,
-            vidzy: filteredSources.filter(s => s.provider === 'vidzy').length,
-            darki: filteredSources.filter(s => s.provider === 'darki').length,
-          }
-        });
-
         return {
           ...data,
           processedSources: filteredSources,
-          // Sources groupées par provider pour faciliter l'utilisation
           sourcesByProvider: {
             vidmoly: filteredSources.filter(s => s.provider === 'vidmoly'),
             vidzy: filteredSources.filter(s => s.provider === 'vidzy'),
             darki: filteredSources.filter(s => s.provider === 'darki'),
+            vixsrc: filteredSources.filter(s => s.provider === 'vixsrc'),
           }
         };
       } catch (error) {
