@@ -2,100 +2,168 @@ import axios from 'axios';
 import JsUnpacker from '../utils/JsUnpacker.js';
 import { ErrorObject } from '../helpers/ErrorObject.js';
 
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+function isTrollUrl(value) {
+    if (!value || typeof value !== 'string') return true;
+    const lower = value.toLowerCase();
+    return lower.includes('/troll/') || lower.includes('fake') || lower.includes('s1.fsvid.lol/troll');
+}
+
+function isVideoUrl(value) {
+    if (!value || typeof value !== 'string') return false;
+    if (!/^https?:\/\//i.test(value) || isTrollUrl(value)) return false;
+    return /\.(?:m3u8|mp4|mkv)(?:$|[?#])/i.test(value);
+}
+
+function hostnameHash(hostname) {
+    let hash = 0;
+    for (let i = 0; i < hostname.length; i++) {
+        hash = (hash + hostname.charCodeAt(i)) & 255;
+    }
+    return hash;
+}
+
+/**
+ * Native decoder for Vidzy/FSVid XOR IIFE:
+ * atob → reverse → XOR with (0x3d + i*89 + hostnameHash)
+ */
+function decodeXorPayload(encoded, hostname) {
+    const hash = hostnameHash(hostname || '');
+    const binary = Buffer.from(encoded, 'base64').toString('binary');
+    const reversed = binary.split('').reverse().join('');
+    let decoded = '';
+    for (let i = 0; i < reversed.length; i++) {
+        const key = (0x3d + i * 89 + hash) & 255;
+        decoded += String.fromCharCode(reversed.charCodeAt(i) ^ key);
+    }
+    return decoded;
+}
+
+function tryExecuteIife(fnCode, encoded, hostname) {
+    try {
+        const fn = new Function('atob', 'location', `return (${fnCode});`);
+        const decodeFn = fn(atob, { hostname: hostname || '' });
+        return decodeFn(encoded);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Vidzy now embeds the stream URL in a hostname-bound IIFE in the raw HTML
+ * (no packed JS, no quoted file/src). The only plaintext m3u8 is a troll decoy.
+ */
+function extractFromIife(source, hostname) {
+    if (!source) return null;
+
+    const iifeRegex = /\(\s*(function\s*\(\s*s\s*\)\s*\{[\s\S]{20,4000}?\})\s*\)\s*\(\s*["']([^"']+)["']\s*\)/g;
+    let match;
+    while ((match = iifeRegex.exec(source)) !== null) {
+        const fnCode = match[1];
+        const encoded = match[2];
+        if (!fnCode.includes('atob') || !fnCode.includes('charCodeAt')) continue;
+
+        const candidates = [];
+        if (fnCode.includes('location') || fnCode.includes('0x3d')) {
+            try {
+                candidates.push(decodeXorPayload(encoded, hostname));
+            } catch {
+                // ignore malformed payload
+            }
+        }
+        candidates.push(tryExecuteIife(fnCode, encoded, hostname));
+
+        for (const decoded of candidates) {
+            if (isVideoUrl(decoded)) return decoded;
+        }
+    }
+
+    return null;
+}
+
+function extractQuotedVideoUrl(source, preferDirectFile = false) {
+    if (!source) return null;
+
+    if (preferDirectFile) {
+        const fileMatch = source.match(/(?:file|src)\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
+        if (fileMatch && isVideoUrl(fileMatch[1])) return fileMatch[1];
+    }
+
+    for (const match of source.matchAll(/(?:file|src)\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/gi)) {
+        if (isVideoUrl(match[1])) return match[1];
+    }
+
+    return null;
+}
+
 export class VidzyExtractor {
     async extract(url) {
         try {
             console.log(`[VidzyExtractor] Extracting ${url}`);
 
-            const origin = new URL(url).origin;
+            const parsed = new URL(url);
+            const origin = parsed.origin;
+            const hostname = parsed.hostname;
             const response = await axios.get(url, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'User-Agent': UA,
                     'Referer': `${origin}/`
                 },
                 timeout: 15000
             });
 
-            const html = response.data;
-            let m3u8Url = null;
+            const html = typeof response.data === 'string' ? response.data : String(response.data || '');
+            let videoUrl = null;
 
-            // Strategy 1: Look for packed JS and IIFE decoder function or unpacked m3u8
-            const packedRegex = /eval\(function\(p,a,c,k,e,d\)[\s\S]*?split\('\|'\)\)\)/;
-            const packedMatch = html.match(packedRegex);
+            // Strategy 1: hostname-bound IIFE in raw HTML (current Vidzy / FSVid player)
+            videoUrl = extractFromIife(html, hostname);
+            if (videoUrl) {
+                console.log('[VidzyExtractor] Decoded video URL via HTML IIFE:', videoUrl);
+            }
 
-            if (packedMatch) {
-                console.log('[VidzyExtractor] Packed JS found, attempting unpack...');
-                const unpacker = new JsUnpacker(packedMatch[0]);
-                if (unpacker.detect()) {
-                    const unpacked = unpacker.unpack();
-                    if (unpacked) {
-                        // 1. Try to find IIFE decoder: (function(s){...})("encoded_string")
-                        const iifeMatch = unpacked.match(/\((function\(s\)[\s\S]+?)\)\s*\(\s*["']([^"']+)["']\s*\)/);
-                        if (iifeMatch) {
-                            try {
-                                const fnCode = iifeMatch[1];
-                                const argStr = iifeMatch[2];
-                                const fn = new Function('atob', `return (${fnCode});`);
-                                const decodeFn = fn(atob);
-                                const decoded = decodeFn(argStr);
-                                if (decoded && (decoded.includes('.m3u8') || decoded.includes('.mp4') || decoded.startsWith('http'))) {
-                                    m3u8Url = decoded;
-                                    console.log('[VidzyExtractor] Successfully decoded M3U8 URL via IIFE:', m3u8Url);
-                                }
-                            } catch (e) {
-                                console.warn('[VidzyExtractor] IIFE decoding error:', e.message);
-                            }
-                        }
-
-                        // 2. Priority 1: MP4/MKV in unpacked JS
-                        if (!m3u8Url) {
-                            const fileMatch = unpacked.match(/file\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i) ||
-                                unpacked.match(/src\s*:\s*["']([^"']+\.(?:mp4|mkv)[^"']*)["']/i);
-                            if (fileMatch) {
-                                m3u8Url = fileMatch[1];
-                                console.log('[VidzyExtractor] Found MP4/MKV URL in unpacked JS:', m3u8Url);
-                            }
-                        }
-
-                        // 3. Priority 2: Look for M3U8 (excluding troll/fake URLs)
-                        if (!m3u8Url) {
-                            const m3u8Matches = unpacked.matchAll(/(?:file|src)\s*:\s*["']([^"']+\.m3u8[^"']*)["']/gi);
-                            for (const match of m3u8Matches) {
-                                if (!match[1].includes('/troll/') && !match[1].includes('fake')) {
-                                    m3u8Url = match[1];
-                                    console.log('[VidzyExtractor] Found M3U8 in unpacked JS:', m3u8Url);
-                                    break;
-                                }
+            // Strategy 2: packed JS (legacy Vidzy)
+            if (!videoUrl) {
+                const packedMatch = html.match(/eval\(function\(p,a,c,k,e,d\)[\s\S]*?split\('\|'\)\)\)/);
+                if (packedMatch) {
+                    console.log('[VidzyExtractor] Packed JS found, attempting unpack...');
+                    const unpacker = new JsUnpacker(packedMatch[0]);
+                    if (unpacker.detect()) {
+                        const unpacked = unpacker.unpack();
+                        if (unpacked) {
+                            videoUrl = extractFromIife(unpacked, hostname)
+                                || extractQuotedVideoUrl(unpacked, true);
+                            if (videoUrl) {
+                                console.log('[VidzyExtractor] Found video URL in unpacked JS:', videoUrl);
                             }
                         }
                     }
                 }
             }
 
-            // Strategy 2: Direct match in raw HTML (excluding troll/fake URLs)
-            if (!m3u8Url) {
-                const directMatches = html.matchAll(/(?:file|src)\s*:\s*["']([^"']+\.(?:m3u8|mp4|mkv)[^"']*)["']/gi);
-                for (const match of directMatches) {
-                    if (!match[1].includes('/troll/') && !match[1].includes('fake')) {
-                        m3u8Url = match[1];
-                        console.log('[VidzyExtractor] Found video URL directly in HTML:', m3u8Url);
-                        break;
-                    }
+            // Strategy 3: quoted file/src in raw HTML
+            if (!videoUrl) {
+                videoUrl = extractQuotedVideoUrl(html, true);
+                if (videoUrl) {
+                    console.log('[VidzyExtractor] Found video URL directly in HTML:', videoUrl);
                 }
             }
 
-            if (!m3u8Url) {
+            if (!videoUrl) {
                 return new ErrorObject('No m3u8 found', 'Vidzy', 404, 'Could not extract m3u8 URL', false, true);
             }
 
+            const isDirectFile = /\.(?:mp4|mkv)(?:$|[?#])/i.test(videoUrl);
+
             return {
                 success: true,
-                m3u8Url: m3u8Url,
+                m3u8Url: videoUrl,
                 originalUrl: url,
+                type: isDirectFile ? 'file' : 'hls',
                 headers: {
                     'Referer': `${origin}/`,
                     'Origin': origin,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    'User-Agent': UA
                 }
             };
 
