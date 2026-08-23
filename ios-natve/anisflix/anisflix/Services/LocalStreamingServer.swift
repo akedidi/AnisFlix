@@ -28,7 +28,7 @@ class LocalStreamingServer {
         return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
     }()
     
-    private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp"]
+    private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp", "inmoviebox", "vidzy", "vidlink"]
     
     private func needsTLSBypass(url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
@@ -972,7 +972,7 @@ class LocalStreamingServer {
             if line.hasPrefix("#") {
                 // Check for URI attributes in tags
                 // e.g. #EXT-X-KEY:METHOD=AES-128,URI="..." or #EXT-X-I-FRAME-STREAM-INF:URI="..."
-                if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") || line.hasPrefix("#EXT-X-I-FRAME-STREAM-INF") {
+                if line.hasPrefix("#EXT-X-KEY") || line.hasPrefix("#EXT-X-MAP") || line.hasPrefix("#EXT-X-I-FRAME-STREAM-INF") || line.hasPrefix("#EXT-X-MEDIA") {
                     newLines.append(rewriteLine(line, baseUrl: baseUrl, queryItemsToPersist: queryItemsToPersist, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie, preferLoopbackHost: preferLoopbackHost))
                 } else {
                     newLines.append(line)
@@ -1031,9 +1031,9 @@ class LocalStreamingServer {
         
         // Construct Proxy URL
         let isPlaylist = resolved.pathExtension.lowercased() == "m3u8" || resolved.absoluteString.lowercased().contains(".m3u8")
-        // Use /proxy for segments (buffers into RAM, better for Chromecast), /stream for big MP4 files
+        // Use /stream for segments so AVPlayer Range requests are handled correctly (fixes Broken pipe / -12881 errors)
         // Manifest rewriting is only used for HLS, where everything except the playlist is small segments or keys
-        let endpoint = isPlaylist ? "/manifest" : "/proxy"
+        let endpoint = isPlaylist ? "/manifest" : "/stream"
         
         var components = URLComponents()
         components.scheme = "http"
