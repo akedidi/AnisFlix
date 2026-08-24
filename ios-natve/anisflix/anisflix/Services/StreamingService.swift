@@ -379,7 +379,8 @@ class StreamingService {
                     let animeApiResults = (try? await fetchAnimeAPISources(tmdbId: movieId, isMovie: true)) ?? []
                     let animeKaiResults = (try? await fetchAnimeKaiSources(tmdbId: movieId, type: "movie")) ?? []
                     let animePaheResults = (try? await fetchAnimePaheSources(tmdbId: movieId, type: "movie")) ?? []
-                    return animeApiResults + animeKaiResults + animePaheResults
+                    let hianimeResults = (try? await fetchHiAnimeSources(tmdbId: movieId, type: "movie")) ?? []
+                    return animeApiResults + animeKaiResults + animePaheResults + hianimeResults
                 }
             }
         } else {
@@ -632,10 +633,11 @@ class StreamingService {
                  animeKaiOnlyCount = animeKaiSources.count
 
                  let animePaheSources = (try? await fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
+                 let hianimeSources = (try? await fetchHiAnimeSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
                  
                  // Merge all
-                 animeSources = movixAnimeSources + animeApiSources + animeKaiSources + animePaheSources
-                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count), AnimeKai: \(animeKaiSources.count), AnimePahe: \(animePaheSources.count))")
+                 animeSources = movixAnimeSources + animeApiSources + animeKaiSources + animePaheSources + hianimeSources
+                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (VidMoly: \(movixAnimeSources.count), AnimeAPI: \(animeApiSources.count), AnimeKai: \(animeKaiSources.count), AnimePahe: \(animePaheSources.count), HiAnime: \(hianimeSources.count))")
             }
             
             // Fetch AfterDark sources (direct call - iOS has no CORS)
@@ -899,6 +901,9 @@ class StreamingService {
 
         case "animekai":
             return try await fetchAnimeKaiSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "hianime":
+            return try await fetchHiAnimeSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         case "animepahe":
             return try await fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -1528,6 +1533,41 @@ class StreamingService {
         }
     }
 
+
+    // MARK: - HiAnime Integration
+
+    private func fetchHiAnimeSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        let extractedSources = await HiAnimeService.shared.getStreams(
+            tmdbId: tmdbId,
+            mediaType: type,
+            season: season,
+            episode: episode
+        )
+        
+        var streamingSources: [StreamingSource] = []
+        for src in extractedSources {
+            var subs: [Subtitle] = []
+            for s in src.subtitles {
+                subs.append(Subtitle(url: s.url, label: s.language, code: s.language, flag: "🇬🇧"))
+            }
+            let streamSource = StreamingSource(
+                url: src.url,
+                directUrl: src.url,
+                quality: src.quality,
+                type: src.type,
+                provider: "hianime",
+                language: src.serverType,
+                origin: "hianime",
+                tracks: subs.isEmpty ? nil : subs,
+                headers: src.headers
+            )
+            streamingSources.append(streamSource)
+        }
+        if !streamingSources.isEmpty {
+            print("✅ [StreamingService] HiAnime: \(streamingSources.count) source(s) for TMDB:\(tmdbId) S\(season ?? 1)E\(episode ?? 1)")
+        }
+        return streamingSources
+    }
     // MARK: - AnimePahe Integration
 
     private func fetchAnimePaheSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
