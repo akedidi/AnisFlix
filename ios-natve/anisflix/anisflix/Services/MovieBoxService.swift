@@ -5,6 +5,11 @@ class MovieBoxService {
     static let shared = MovieBoxService()
     private init() {}
     
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
+    }()
+    
     private let apiBase = "https://api.inmoviebox.com"
     private let tmdbApiKey = "d131017ccc6e5462a81c9304d21476de"
     private let tmdbBaseUrl = "https://api.themoviedb.org/3"
@@ -124,7 +129,7 @@ class MovieBoxService {
             request.httpBody = Data(body.utf8)
         }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
             print("❌ [MovieBox] Non-OK status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
             throw URLError(.badServerResponse)
@@ -165,15 +170,33 @@ class MovieBoxService {
         let urlString = "\(tmdbBaseUrl)/\(type)/\(tmdbId)?api_key=\(tmdbApiKey)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await session.data(from: url)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         
-        let title = (type == "movie" ? json?["title"] as? String : json?["name"] as? String) ?? ""
-        let originalTitle = (type == "movie" ? json?["original_title"] as? String : json?["original_name"] as? String) ?? ""
-        let date = (type == "movie" ? json?["release_date"] as? String : json?["first_air_date"] as? String) ?? ""
-        let year = String(date.prefix(4))
+        let title: String
+        if type == "movie" {
+            title = (json?["title"] as? String) ?? ""
+        } else {
+            title = (json?["name"] as? String) ?? ""
+        }
         
-        return (title, originalTitle, year)
+        let originalTitle: String
+        if type == "movie" {
+            originalTitle = (json?["original_title"] as? String) ?? ""
+        } else {
+            originalTitle = (json?["original_name"] as? String) ?? ""
+        }
+        
+        let dateString: String
+        if type == "movie" {
+            dateString = (json?["release_date"] as? String) ?? ""
+        } else {
+            dateString = (json?["first_air_date"] as? String) ?? ""
+        }
+        
+        let year = String(dateString.prefix(4))
+        
+        return (title: title.isEmpty ? originalTitle : title, originalTitle: originalTitle, year: year)
     }
     
     private func search(query: String) async throws -> [[String: Any]] {

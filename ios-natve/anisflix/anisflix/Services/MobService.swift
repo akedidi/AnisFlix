@@ -4,6 +4,11 @@ import CryptoKit
 class MobService {
     static let shared = MobService()
     
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
+    }()
+    
     // Core URLs & Configurations
     private let apiBase = "https://api.inmoviebox.com"
     private let keyB64Default = "NzZpUmwwN3MweFNOOWpxbUVXQXQ3OUVCSlp1bElRSXNWNjRGWnIyTw=="
@@ -120,7 +125,7 @@ class MobService {
             request.httpBody = Data(body.utf8)
         }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
@@ -170,15 +175,33 @@ class MobService {
         let urlString = "https://api.themoviedb.org/3/\(type)/\(tmdbId)?api_key=\(tmdbApiKey)&append_to_response=external_ids"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await session.data(from: url)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         
-        let title = (type == "movie" ? json?["title"] as? String : json?["name"] as? String) ?? ""
-        let originalTitle = (type == "movie" ? json?["original_title"] as? String : json?["original_name"] as? String) ?? title
-        let dateString = (type == "movie" ? json?["release_date"] as? String : json?["first_air_date"] as? String) ?? ""
+        let title: String
+        if type == "movie" {
+            title = (json?["title"] as? String) ?? ""
+        } else {
+            title = (json?["name"] as? String) ?? ""
+        }
+        
+        let originalTitle: String
+        if type == "movie" {
+            originalTitle = (json?["original_title"] as? String) ?? title
+        } else {
+            originalTitle = (json?["original_name"] as? String) ?? title
+        }
+        
+        let dateString: String
+        if type == "movie" {
+            dateString = (json?["release_date"] as? String) ?? ""
+        } else {
+            dateString = (json?["first_air_date"] as? String) ?? ""
+        }
+        
         let year = String(dateString.prefix(4))
         
-        return (title.isEmpty ? originalTitle : title, originalTitle, year)
+        return (title: title, originalTitle: originalTitle, year: year)
     }
     
     // MARK: - Searching & Matching
@@ -259,7 +282,7 @@ class MobService {
         return nil
     }
     
-    private func normalizeQuality(_ q: String) -> String {
+    private nonisolated func normalizeQuality(_ q: String) -> String {
         let qLower = q.lowercased()
         if qLower.contains("1080") { return "1080p" }
         if qLower.contains("720") { return "720p" }
