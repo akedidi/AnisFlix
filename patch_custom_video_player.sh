@@ -1,0 +1,1 @@
+sed -i '' 's/let isAlreadyPlaying = playerVM.currentUrl == url/let isAlreadyPlaying = playerVM.currentUrl == url || playerVM.originalUrl == url/' ios-natve/anisflix/anisflix/Views/Components/CustomVideoPlayer.swift

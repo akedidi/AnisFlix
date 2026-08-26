@@ -53,11 +53,11 @@ class HLSFFmpegDownloader {
             command = "-i \"\(url)\" -c copy \"\(outputPath)\""
             print("📡 [HLSFFmpeg] Using LocalServer /stream proxy (MP4 copy)")
         } else if usesLocalManifest {
-            command = "-i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
+            command = "-analyzeduration 2000000 -probesize 2000000 -i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
             print("📡 [HLSFFmpeg] Using LocalServer /manifest proxy (HLS)")
         } else {
             let headers = Self.ffmpegHeaderBlock(provider: provider, url: url, customHeaders: customHeaders)
-            command = "-headers '\(headers)' -i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
+            command = "-analyzeduration 2000000 -probesize 2000000 -headers '\(headers)' -i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
         }
         
         print("📝 [VidzyFFmpeg] Command: ffmpeg \(command)")

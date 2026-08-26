@@ -584,7 +584,11 @@ struct MovieDetailView: View {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
                     
                     var newHeaders = finalHeaders ?? [:]
-                    newHeaders["Referer"] = "https://google.com"
+                    if let urlObj = URL(string: source.url), let host = urlObj.host {
+                        newHeaders["Referer"] = "\(urlObj.scheme ?? "https")://\(host)/"
+                    } else {
+                        newHeaders["Referer"] = source.url // Fallback
+                    }
                     newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
                     finalHeaders = newHeaders
                 } else if StreamingService.isDarkiboxProvider(source.provider) {
@@ -760,7 +764,8 @@ struct MovieDetailView: View {
             
             // For other streaming sources, show provider + index + quality
             let quality = formatQualityDisplay(source.quality)
-            return "\(source.provider.capitalized) \(providerIndex) - \(quality)"
+            let providerName = source.provider.lowercased() == "hianime" ? "HiAnime" : source.provider.capitalized
+            return "\(providerName) \(providerIndex) - \(quality)"
         }
     }
 }

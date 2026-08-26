@@ -25,7 +25,7 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
     init(subtitleUrl: URL? = nil) {
         let config = URLSessionConfiguration.default
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        self.session = URLSession(configuration: config)
+        self.session = URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
         self.subtitleUrl = subtitleUrl
         super.init()
     }
@@ -287,8 +287,13 @@ class VideoResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
         
         // Add Referer header matching DownloadManager (which works)
         if isVidzy {
-            request.setValue("https://vidzy.org/", forHTTPHeaderField: "Referer")
-            // request.setValue("https://vidzy.org", forHTTPHeaderField: "Origin") // Optional, mostly Referer matters
+            var host = cleanUrl.host ?? "vidzy.cc"
+            let components = host.split(separator: ".")
+            if components.count >= 2 {
+                host = components.suffix(2).joined(separator: ".")
+            }
+            request.setValue("https://\(host)/", forHTTPHeaderField: "Referer")
+            // request.setValue("https://\(host)", forHTTPHeaderField: "Origin") // Optional, mostly Referer matters
         }
         
         let task = session.dataTask(with: request) { [weak self] data, response, error in

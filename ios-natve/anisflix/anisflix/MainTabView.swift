@@ -277,7 +277,7 @@ struct MainTabView: View {
              // IMPORTANT: Do NOT show this view when Casting to prevent local audio playing in background
              if playerManager.isPresented && !castManager.isConnected {
                  CustomVideoPlayer(
-                    url: playerManager.currentMediaUrl ?? URL(string: "about:blank")!,
+                    url: playerManager.playerVM.currentUrl ?? playerManager.currentMediaUrl ?? URL(string: "about:blank")!,
                     title: playerManager.currentTitle,
                     posterUrl: playerManager.currentPosterUrl,
                     subtitles: playerManager.currentSubtitles,

@@ -108,7 +108,14 @@ class HiAnimeService {
         ])
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         
-        let file = (json?["sources"] as? [String: Any])?["file"] as? String
+        var file: String? = nil
+        
+        if let sourcesObj = json?["sources"] as? [String: Any] {
+            file = sourcesObj["file"] as? String
+        } else if let sourcesArr = json?["sources"] as? [[String: Any]], let first = sourcesArr.first {
+            file = first["file"] as? String
+        }
+        
         if file == nil { return [] }
         let streamTitle = "\(animeTitle) - Episode \(episodeNum) (\(type.uppercased()))"
         
@@ -153,32 +160,8 @@ class HiAnimeService {
         
         if let dataId = dataId {
             let apiUrl = "\(megaplayBase)/stream/getSources?id=\(dataId)&id=\(dataId)"
-            if let extractions = try? await extractSources(apiUrl: apiUrl, referer: megaUrl, origin: megaplayBase, serverName: "MegaPlay", animeTitle: animeTitle, episodeNum: episode, type: type) {
+            if let extractions = try? await extractSources(apiUrl: apiUrl, referer: megaUrl, origin: megaplayBase, serverName: "MegaPlay", animeTitle: animeTitle, episodeNum: episode, type: type), !extractions.isEmpty {
                 streams.append(contentsOf: extractions)
-            }
-        }
-        
-        if let realId = realId {
-            let vidPage = "\(vidwishBase)/stream/s-2/\(realId)/\(type)"
-            if let (vidData, _) = try? await fetch(url: vidPage, headers: ["Referer": megaUrl]), let vidHtml = String(data: vidData, encoding: .utf8) {
-                let (vDataId, _) = extractDataIds(html: vidHtml)
-                if let vDataId = vDataId {
-                    let apiUrl = "\(vidwishBase)/stream/getSources?id=\(vDataId)&id=\(vDataId)"
-                    if let ext = try? await extractSources(apiUrl: apiUrl, referer: vidPage, origin: vidwishBase, serverName: "Vidwish", animeTitle: animeTitle, episodeNum: episode, type: type) {
-                        streams.append(contentsOf: ext)
-                    }
-                }
-            }
-            
-            let megacloudPage = "\(megacloudBase)/stream/s-3/\(realId)/\(type)"
-            if let (mcData, _) = try? await fetch(url: megacloudPage, headers: ["Referer": megaUrl]), let mcHtml = String(data: mcData, encoding: .utf8) {
-                let (mDataId, _) = extractDataIds(html: mcHtml)
-                if let mDataId = mDataId {
-                    let apiUrl = "\(megacloudBase)/stream/getSources?id=\(mDataId)&id=\(mDataId)"
-                    if let ext = try? await extractSources(apiUrl: apiUrl, referer: megacloudPage, origin: megacloudBase, serverName: "MegaCloud", animeTitle: animeTitle, episodeNum: episode, type: type) {
-                        streams.append(contentsOf: ext)
-                    }
-                }
             }
         }
         

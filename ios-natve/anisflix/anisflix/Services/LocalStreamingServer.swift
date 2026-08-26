@@ -16,9 +16,11 @@ class LocalStreamingServer {
     
     // Manifest Cache (URL -> Rewritten Content) for VOD streams to prevent token expiration during Chromecast
     private var manifestCache: [String: String] = [:]
+    private let manifestCacheLock = NSLock()
     
     // DASH proxy session storage (session ID → session info)
     var dashSessions: [String: DashSession] = [:]
+    private let dashSessionsLock = NSLock()
     
     // TLS-bypassing URLSession for CDNs with invalid/untrusted certificates (e.g. megaup.cc)
     private let tlsBypassDelegate = TLSBypassDelegate()
@@ -82,6 +84,7 @@ class LocalStreamingServer {
         if isRunning { return }
         
         do {
+            GCDWebServer.setLogLevel(3) // 3 = WARNING, silences noisy DEBUG logs
             try webServer.start(options: [
                 GCDWebServerOption_Port: 8080,
                 GCDWebServerOption_BindToLocalhost: false, // Must be accessible from LAN for AirPlay
@@ -190,9 +193,17 @@ class LocalStreamingServer {
     // Helper to safely parse query without '+' being converted to space
     private func extractQuery(from request: GCDWebServerRequest) -> [String: String] {
         let items = URLComponents(url: request.url, resolvingAgainstBaseURL: false)?.queryItems ?? []
-        return items.reduce(into: [String: String]()) { result, item in
+        var result = items.reduce(into: [String: String]()) { result, item in
             result[item.name] = item.value ?? ""
         }
+        
+        // Base64 decoding for headers
+        if let b64 = result["referer64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["referer"] = str }
+        if let b64 = result["origin64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["origin"] = str }
+        if let b64 = result["ua64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["user_agent"] = str }
+        if let b64 = result["cookie64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["cookie"] = str }
+        
+        return result
     }
     
     /// Applies headers to a URLRequest using the proxy-level headers.
@@ -308,7 +319,27 @@ class LocalStreamingServer {
                 }
                 
                 let statusCode = httpResponse.statusCode
-                let contentType = httpResponse.mimeType ?? "video/mp4"
+                var contentType = httpResponse.mimeType ?? "video/mp4"
+                
+                let segmentName = targetUrl.lastPathComponent
+                var decodedSegmentName = segmentName
+                if let decodedData = Data(base64Encoded: segmentName), let decodedString = String(data: decodedData, encoding: .utf8) {
+                    decodedSegmentName = decodedString
+                }
+                
+                let ext = targetUrl.pathExtension.lowercased()
+                let decodedExt = (decodedSegmentName as NSString).pathExtension.lowercased()
+                let checkExt = ext.isEmpty ? decodedExt : ext
+                
+                let fakeExtensions = ["ts", "jpg", "jpeg", "png", "webp", "ico", "woff", "woff2", "html", "js", "css", "txt"]
+                let isVideoSegment = fakeExtensions.contains(checkExt) || 
+                                     segmentName.contains("seg-") || 
+                                     decodedSegmentName.contains("seg-")
+                
+                if isVideoSegment && (contentType.contains("image/") || contentType.contains("text/") || contentType.contains("application/")) {
+                    contentType = "video/mp2t"
+                }
+                
                 let clientRange = request.headers["Range"]
                 
                 // AVPlayer requires consistent Content-Range, Content-Length and body size for 206 responses.
@@ -377,7 +408,9 @@ class LocalStreamingServer {
                 }
                 
                 // Explicit Content-Length avoids chunked encoding (breaks MP4 seek in AVPlayer)
-                streamResponse.contentLength = bodyLength
+                if bodyLength > 0 {
+                    streamResponse.contentLength = bodyLength
+                }
                 if responseStatusCode == 206 {
                     print("🌊 [LocalServer] 206 bodyLength=\(bodyLength) Content-Range=\(contentRangeHeader ?? "nil")")
                 }
@@ -407,7 +440,10 @@ class LocalStreamingServer {
             }
             
             // Check Cache
-            if let cachedManifest = self.manifestCache[validUrlString] {
+            self.manifestCacheLock.lock()
+            let cachedManifest = self.manifestCache[validUrlString]
+            self.manifestCacheLock.unlock()
+            if let cachedManifest = cachedManifest {
                 print("♻️ [LocalServer] Serving cached manifest for: \(targetUrl.lastPathComponent)")
                 let resp = GCDWebServerDataResponse(text: cachedManifest)
                 resp?.contentType = "application/vnd.apple.mpegurl"
@@ -517,7 +553,9 @@ class LocalStreamingServer {
             // Cache VOD schemas and Master playlists. Live stream variant playlists continuously update so they are not cached.
             let isVODOrMaster = content.contains("#EXT-X-ENDLIST") || content.contains("#EXT-X-STREAM-INF")
             if isVODOrMaster {
+                self.manifestCacheLock.lock()
                 self.manifestCache[validUrlString] = rewrittenContent
+                self.manifestCacheLock.unlock()
                 print("💾 [LocalServer] Cached manifest for: \(targetUrl.lastPathComponent)")
             }
             
@@ -820,7 +858,9 @@ class LocalStreamingServer {
             // Then /dash/SESSION_ID/init-stream0.m4s → proxy to CDN_BASE/init-stream0.m4s with cookie
             
             // Store session info
+            self.dashSessionsLock.lock()
             self.dashSessions[String(mappingId)] = DashSession(baseUrl: baseUrl, cookie: cookie, referer: referer, userAgent: userAgent)
+            self.dashSessionsLock.unlock()
             
             // Inject BaseURL into MPD (after <Period ...> tag)
             let localBaseUrl = "http://\(serverHost):\(serverPort)/dash/\(mappingId)/"
@@ -849,8 +889,12 @@ class LocalStreamingServer {
             let path = request.path // e.g. /dash/ABC123/init-stream0.m4s
             let components = path.split(separator: "/") // ["dash", "ABC123", "init-stream0.m4s"]
             
-            guard components.count >= 3,
-                  let dashSession = self.dashSessions[String(components[1])] else {
+            guard components.count >= 3 else { return GCDWebServerDataResponse(statusCode: 404) }
+            self.dashSessionsLock.lock()
+            let dashSessionOpt = self.dashSessions[String(components[1])]
+            self.dashSessionsLock.unlock()
+            
+            guard let dashSession = dashSessionOpt else {
                 print("❌ [LocalServer] DASH Segment: Invalid session for path \(path)")
                 return GCDWebServerDataResponse(statusCode: 404)
             }
@@ -1050,18 +1094,19 @@ class LocalStreamingServer {
             queryItems.append(URLQueryItem(name: "url", value: resolved.absoluteString))
         }
         
-        if let referer = referer {
-             queryItems.append(URLQueryItem(name: "referer", value: referer))
+        if let referer = referer, let data = referer.data(using: .utf8) {
+             queryItems.append(URLQueryItem(name: "referer64", value: data.base64EncodedString()))
         }
-        if let origin = origin {
-             queryItems.append(URLQueryItem(name: "origin", value: origin))
+        if let origin = origin, let data = origin.data(using: .utf8) {
+             queryItems.append(URLQueryItem(name: "origin64", value: data.base64EncodedString()))
         }
-        if let ua = userAgent, !ua.isEmpty {
-            queryItems.append(URLQueryItem(name: "user_agent", value: ua))
+        if let ua = userAgent, !ua.isEmpty, let data = ua.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "ua64", value: data.base64EncodedString()))
         }
-        if let c = cookie {
-            queryItems.append(URLQueryItem(name: "cookie", value: c))
+        if let c = cookie, let data = c.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "cookie64", value: data.base64EncodedString()))
         }
+
         
         components.queryItems = queryItems
         

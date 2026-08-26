@@ -348,6 +348,7 @@ class GlobalPlayerManager: ObservableObject {
                  print("ℹ️ [GlobalPlayerManager] Using standard AVPlayer")
              }
              
+             playerVM.originalUrl = url
              playerVM.setup(url: finalPlayUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: proxiedUrl != nil ? nil : headers, useVLCPlayer: false)
              
              // Seek to saved position after a short delay

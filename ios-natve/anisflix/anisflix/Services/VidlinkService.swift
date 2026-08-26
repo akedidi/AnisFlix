@@ -23,6 +23,11 @@ class VidlinkService {
     
     private let qualityOrder: [String: Int] = ["4K": 5, "1440p": 4, "1080p": 3, "720p": 2, "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3]
     
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
+    }()
+    
     // MARK: - Models
     
     struct ExtractedSource {
@@ -73,7 +78,7 @@ class VidlinkService {
         var request = URLRequest(url: vidlinkUrl)
         request.allHTTPHeaderFields = headers
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         guard let httpRes = response as? HTTPURLResponse, httpRes.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
@@ -115,7 +120,7 @@ class VidlinkService {
     private func getTmdbInfo(tmdbId: String, mediaType: String) async throws -> (title: String, year: String?) {
         let endpoint = mediaType == "tv" ? "tv" : "movie"
         let url = URL(string: "https://api.themoviedb.org/3/\(endpoint)/\(tmdbId)?api_key=\(tmdbApiKey)")!
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await session.data(from: url)
         
         if mediaType == "tv" {
             let res = try JSONDecoder().decode(TMDBSimpleTV.self, from: data)
@@ -130,7 +135,7 @@ class VidlinkService {
     
     private func encryptTmdbId(tmdbId: String) async throws -> String {
         let url = URL(string: "\(encDecApi)/enc-vidlink?text=\(tmdbId)")!
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await session.data(from: url)
         let res = try JSONDecoder().decode(EncryptResponse.self, from: data)
         guard let result = res.result else {
             throw URLError(.cannotDecodeRawData)
@@ -241,7 +246,7 @@ class VidlinkService {
         request.allHTTPHeaderFields = headers
         
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await session.data(for: request)
             guard let content = String(data: data, encoding: .utf8) else {
                 return [ExtractedSource(name: "Vidlink - Auto", url: playlistUrl, quality: "Auto")]
             }

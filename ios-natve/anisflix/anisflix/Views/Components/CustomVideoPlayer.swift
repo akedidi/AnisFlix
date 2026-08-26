@@ -426,7 +426,7 @@ struct CustomVideoPlayer: View {
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
         .onAppear {
             // Check if we are already playing this URL (fullscreen transition)
-            let isAlreadyPlaying = playerVM.currentUrl == url
+            let isAlreadyPlaying = playerVM.currentUrl == url || playerVM.originalUrl == url
             
             if castManager.isConnected {
                 // If connected, check if we need to switch media on Cast
@@ -447,7 +447,7 @@ struct CustomVideoPlayer: View {
                     
                     castManager.loadMedia(url: url, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: castStartTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
                 }
-            } else {
+            } else if !isAlreadyPlaying {
                 playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             }
             
@@ -730,7 +730,7 @@ struct CustomVideoPlayer: View {
             let castUrl = playerVM.makeProxyUrl(for: newUrl, headers: nil, subtitleUrl: activeSubUrl)
             
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: 0, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
-        } else {
+        } else if playerVM.currentUrl != newUrl && playerVM.originalUrl != newUrl {
             playerVM.setup(url: newUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
         }
     }
@@ -754,7 +754,7 @@ struct CustomVideoPlayer: View {
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: selectedSubtitle?.url, startTime: playerVM.currentTime, isLive: isLive, subtitleOffset: subtitleOffset, mediaId: mediaId, season: season, episode: episode)
         } else {
             print("📱 Cast disconnected! Switching back to local player.")
-            playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
+            if playerVM.currentUrl == nil { playerVM.setup(url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath) } // (url: url, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath)
             
             // Seek to last known position from Cast?
             // Ideally we sync time.
@@ -809,7 +809,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         return pipController?.isPictureInPictureActive ?? false
     }
     private var observedItem: AVPlayerItem? // Track the item we're observing
-    private(set) var currentUrl: URL? // Track current URL to prevent restart
+    private(set) var currentUrl: URL?
+    var originalUrl: URL? // Track current URL to prevent restart
     private var currentTitle: String? // Track current content title for Now Playing Info
     private var currentArtwork: MPMediaItemArtwork? // Track downloaded artwork
     var isSwitchingModes = false // Track fullscreen transition

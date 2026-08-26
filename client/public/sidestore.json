@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.71",
-          "date": "2026-08-24",
-          "size": 31001118,
+          "version": "1.0.78",
+          "date": "2026-08-26",
+          "size": 31001240,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "chore: release version 1.0.70 (IPA and sidestore.json) "
+          "localizedDescription": "feat: add HiAnime scrapper for vo anime "
         }
       ]
     }

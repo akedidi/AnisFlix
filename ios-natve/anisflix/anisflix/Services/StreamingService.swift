@@ -311,7 +311,7 @@ class StreamingService {
     private static let allowedStreamingProviders: Set<String> = [
         "vidlink", "yflix", "fsvid", "vidmoly", "vidzy", "vixsrc", "primewire", "2embed",
         "afterdark", "movix", "darkibox", "darki", "animeapi", "animekai", "animepahe", "moviebox",
-        "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob"
+        "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob", "hianime"
     ]
     
     private func filterToAllowedProviders(_ sources: [StreamingSource]) -> [StreamingSource] {
