@@ -30,7 +30,7 @@ class LocalStreamingServer {
         return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
     }()
     
-    private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp", "inmoviebox", "vidzy", "vidlink"]
+    private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp", "inmoviebox", "vidzy", "vidlink", "kryntal", "watching.onl"]
     
     private func needsTLSBypass(url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
@@ -122,7 +122,7 @@ class LocalStreamingServer {
         components.scheme = "http"
         components.host = host
         components.port = port > 0 ? port : 8080
-        components.path = "/manifest"
+        components.path = "/manifest.m3u8"
         
         var queryItems: [URLQueryItem] = []
         if let urlData = targetURL.data(using: .utf8) {
@@ -161,7 +161,7 @@ class LocalStreamingServer {
         components.scheme = "http"
         components.host = host
         components.port = port > 0 ? port : 8080
-        components.path = "/stream"
+        components.path = "/stream.ts"
         
         var queryItems: [URLQueryItem] = []
         if let urlData = targetURL.data(using: .utf8) {
@@ -197,11 +197,21 @@ class LocalStreamingServer {
             result[item.name] = item.value ?? ""
         }
         
-        // Base64 decoding for headers
-        if let b64 = result["referer64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["referer"] = str }
-        if let b64 = result["origin64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["origin"] = str }
-        if let b64 = result["ua64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["user_agent"] = str }
-        if let b64 = result["cookie64"], let data = Data(base64Encoded: b64), let str = String(data: data, encoding: .utf8) { result["cookie"] = str }
+        func decodeBase64(_ b64: String?) -> String? {
+            guard let b64 = b64 else { return nil }
+            // Some parsers might have converted '+' to ' '
+            let fixedB64 = b64.replacingOccurrences(of: " ", with: "+")
+            guard let data = Data(base64Encoded: fixedB64, options: .ignoreUnknownCharacters),
+                  let str = String(data: data, encoding: .utf8) else { return nil }
+            return str
+        }
+        
+        // Base64 decoding for headers + target URL (`+` in b64 becomes space via query parsing)
+        if let str = decodeBase64(result["url64"]) { result["url"] = str }
+        if let str = decodeBase64(result["referer64"]) { result["referer"] = str }
+        if let str = decodeBase64(result["origin64"]) { result["origin"] = str }
+        if let str = decodeBase64(result["ua64"]) { result["user_agent"] = str }
+        if let str = decodeBase64(result["cookie64"]) { result["cookie"] = str }
         
         return result
     }
@@ -224,6 +234,16 @@ class LocalStreamingServer {
     private func isLuluvidCDN(_ url: URL) -> Bool {
         let host = url.host?.lowercased() ?? ""
         return host.contains("tnmr") || host.contains("htvpd") || host.contains("lulucdn")
+    }
+    
+    private func isVidzyCDN(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("vidzy")
+    }
+    
+    private func isHiAnimeCDN(_ url: URL) -> Bool {
+        let host = url.host?.lowercased() ?? ""
+        return host.contains("watching.onl") || host.contains("kryntal") || host.contains("megaplay")
     }
     
     private func applyHeaders(to request: inout URLRequest, targetUrl: URL, referer: String?, origin: String?, userAgent: String?, cookie: String?) {
@@ -252,6 +272,14 @@ class LocalStreamingServer {
             } else {
                 request.setValue("https://lulustream.com", forHTTPHeaderField: "Origin")
             }
+        } else if isVidzyCDN(targetUrl) {
+            request.setValue(Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
+            request.setValue((referer?.isEmpty == false ? referer : nil) ?? "https://vidzy.cc/", forHTTPHeaderField: "Referer")
+            request.setValue((origin?.isEmpty == false ? origin : nil) ?? "https://vidzy.cc", forHTTPHeaderField: "Origin")
+        } else if isHiAnimeCDN(targetUrl) {
+            request.setValue(Self.chromeDesktopUA, forHTTPHeaderField: "User-Agent")
+            request.setValue((referer?.isEmpty == false ? referer : nil) ?? "https://megaplay.buzz/", forHTTPHeaderField: "Referer")
+            request.setValue((origin?.isEmpty == false ? origin : nil) ?? "https://megaplay.buzz", forHTTPHeaderField: "Origin")
         } else {
             request.setValue(userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
             if let referer = referer {
@@ -269,7 +297,7 @@ class LocalStreamingServer {
     
     private func setupRoutes() {
         // 0. Stream Handler (For large MP4 streaming via HTTP byte ranges)
-        webServer.addHandler(forMethod: "GET", path: "/stream", request: GCDWebServerRequest.self) { [weak self] request, completion in
+        webServer.addHandler(forMethod: "GET", pathRegex: "^/stream(\\.ts)?$", request: GCDWebServerRequest.self) { [weak self] request, completion in
             guard let self = self else {
                 completion(GCDWebServerDataResponse(statusCode: 500))
                 return
@@ -321,12 +349,18 @@ class LocalStreamingServer {
                 let statusCode = httpResponse.statusCode
                 var contentType = httpResponse.mimeType ?? "video/mp4"
                 
-                let segmentName = targetUrl.lastPathComponent
+                // Decode segment name safely
+                let segmentName = URL(string: validUrlString)?.lastPathComponent ?? validUrlString
                 var decodedSegmentName = segmentName
                 if let decodedData = Data(base64Encoded: segmentName), let decodedString = String(data: decodedData, encoding: .utf8) {
                     decodedSegmentName = decodedString
                 }
                 
+                if decodedSegmentName.hasSuffix(".ts") {
+                    contentType = "video/MP2T"
+                } else if decodedSegmentName.hasSuffix(".m3u8") {
+                    contentType = "application/vnd.apple.mpegurl"
+                }
                 let ext = targetUrl.pathExtension.lowercased()
                 let decodedExt = (decodedSegmentName as NSString).pathExtension.lowercased()
                 let checkExt = ext.isEmpty ? decodedExt : ext
@@ -423,7 +457,7 @@ class LocalStreamingServer {
         }
         
         // 1. Manifest Handler (Rewrites M3U8) — sync handler (returns GCDWebServerResponse?)
-        webServer.addHandler(forMethod: "GET", path: "/manifest", request: GCDWebServerRequest.self) { [weak self] request in
+        webServer.addHandler(forMethod: "GET", pathRegex: "^/manifest(\\.m3u8)?$", request: GCDWebServerRequest.self) { [weak self] request in
             guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
             
             let query = self.extractQuery(from: request)
@@ -1077,7 +1111,7 @@ class LocalStreamingServer {
         let isPlaylist = resolved.pathExtension.lowercased() == "m3u8" || resolved.absoluteString.lowercased().contains(".m3u8")
         // Use /stream for segments so AVPlayer Range requests are handled correctly (fixes Broken pipe / -12881 errors)
         // Manifest rewriting is only used for HLS, where everything except the playlist is small segments or keys
-        let endpoint = isPlaylist ? "/manifest" : "/stream"
+        let endpoint = isPlaylist ? "/manifest.m3u8" : "/stream.ts"
         
         var components = URLComponents()
         components.scheme = "http"

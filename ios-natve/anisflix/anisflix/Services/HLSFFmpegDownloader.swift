@@ -267,7 +267,9 @@ class HLSFFmpegDownloader {
 
         switch provider.lowercased() {
         case "vidzy":
-            return "Referer: https://vidzy.org/\\r\\nUser-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
+            return "Referer: https://vidzy.cc/\\r\\nOrigin: https://vidzy.cc\\r\\nUser-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
+        case "hianime":
+            return "Referer: https://megaplay.buzz/\\r\\nOrigin: https://megaplay.buzz\\r\\nUser-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15\\r\\nAccept: */*\\r\\n"
         case "luluvid", "lulustream":
             let urlComponents = URLComponents(string: url)
             let refererDomain = urlComponents?.host ?? "luluvid.com"

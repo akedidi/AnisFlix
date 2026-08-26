@@ -233,7 +233,8 @@ class DownloadManager: NSObject, ObservableObject {
                     providerLower == "yflix" ||
                     providerLower == "vixsrc" ||
                     providerLower == "moviebox" ||
-                    providerLower == "animepahe"
+                    providerLower == "animepahe" ||
+                    providerLower == "hianime"
         // Note: Luluvid downloads are blocked at UI level due to iOS HLS header limitation
         
         // Initialize as queued
@@ -851,6 +852,24 @@ class DownloadManager: NSObject, ObservableObject {
             }
             if hdrs["User-Agent"] == nil {
                 hdrs["User-Agent"] = "okhttp/4.12.0"
+            }
+        }
+        
+        if providerLower == "vidzy" || resolvedUrl.contains("vidzy") {
+            if hdrs["Referer"] == nil {
+                hdrs["Referer"] = "https://vidzy.cc/"
+            }
+            if hdrs["Origin"] == nil {
+                hdrs["Origin"] = "https://vidzy.cc"
+            }
+        }
+        
+        if providerLower == "hianime" || resolvedUrl.contains("watching.onl") || resolvedUrl.contains("kryntal") {
+            if hdrs["Referer"] == nil {
+                hdrs["Referer"] = "https://megaplay.buzz/"
+            }
+            if hdrs["Origin"] == nil {
+                hdrs["Origin"] = "https://megaplay.buzz"
             }
         }
         

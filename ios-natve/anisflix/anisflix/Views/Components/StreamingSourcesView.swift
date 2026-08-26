@@ -234,18 +234,29 @@ struct DownloadButton: View {
         Task {
             do {
                 var streamUrl: String
+                var downloadSource = source
                 
                 if source.provider == "vidmoly" {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
                 } else if source.provider == "vidzy" {
                     streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
+                    var headers = downloadSource.headers ?? [:]
+                    if let urlObj = URL(string: source.url), let host = urlObj.host {
+                        headers["Referer"] = "\(urlObj.scheme ?? "https")://\(host)/"
+                        headers["Origin"] = "\(urlObj.scheme ?? "https")://\(host)"
+                    } else {
+                        headers["Referer"] = "https://vidzy.cc/"
+                        headers["Origin"] = "https://vidzy.cc"
+                    }
+                    headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    downloadSource.headers = headers
                 } else {
                     streamUrl = source.url
                 }
                 
                 await MainActor.run {
                     downloadManager.startDownload(
-                        source: source,
+                        source: downloadSource,
                         media: media,
                         season: season,
                         episode: episode,

@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.78",
+          "version": "1.0.81",
           "date": "2026-08-26",
-          "size": 31001240,
+          "size": 31005541,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "feat: add HiAnime scrapper for vo anime "
+          "localizedDescription": "fix: téléchargements Vidzy/HiAnime (headers, segments HLS déguisés, decode base64)"
         }
       ]
     }
