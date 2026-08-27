@@ -1,16 +1,19 @@
 #!/usr/bin/env swift
 //
-// Download-readiness test for Vidzy (Capture 2026) and HiAnime (Liar Game S1E1).
-// Mirrors DownloadManager + LocalStreamingServer query/header handling (no GCDWebServer).
+// Download-readiness + FULL ffmpeg copy for Vidzy (La captura 2026) and HiAnime (Liar Game S1E1).
+// Mirrors DownloadManager extract + HLSFFmpegDownloader (no GCDWebServer).
 //
 // Run from repo root:
 //   swift ios-natve/anisflix/scripts/VidzyHiAnimeDownloadTest.swift
 //
 
 import Foundation
+import Darwin
+
+setbuf(stdout, nil)
 
 let kBaseURL = "https://anisflix.vercel.app"
-let kCaptureTMDB = "1646950"
+let kCaptureTMDB = "1621552" // La captura (2026)
 let kLiarGameTMDB = 300126
 let kUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 let kTMDBKey = "1865f43a0549ca50d341dd9ab8b29f49"
@@ -20,9 +23,10 @@ struct Outcome {
     var extractOK = false
     var manifestOK = false
     var segmentOK = false
+    var downloadOK = false
     var b64OK = true
     var notes = ""
-    var passed: Bool { extractOK && manifestOK && segmentOK && b64OK }
+    var passed: Bool { extractOK && manifestOK && segmentOK && downloadOK && b64OK }
 }
 
 func httpGet(_ url: URL, headers: [String: String] = [:], method: String = "GET", body: Data? = nil) async -> (Int, Data?, [String: String], String?) {
@@ -99,44 +103,107 @@ func firstMediaLine(in m3u8: String, base: URL) -> URL? {
     return nil
 }
 
-func probeHLS(url: String, headers: [String: String]) async -> (manifestOK: Bool, segmentOK: Bool, note: String) {
-    guard let u = URL(string: url) else { return (false, false, "invalid URL") }
+struct HLSProbe {
+    var manifestOK = false
+    var segmentOK = false
+    var downloadURL: String
+    var durationSec: Double = 0
+    var note = ""
+}
+
+func playlistDurationSec(_ text: String) -> Double {
+    var total: Double = 0
+    for line in text.components(separatedBy: .newlines) {
+        guard line.hasPrefix("#EXTINF:") else { continue }
+        let payload = line.dropFirst("#EXTINF:".count)
+        let part = payload.split(separator: ",", maxSplits: 1).first
+        if let part, let s = Double(part) { total += s }
+    }
+    return total
+}
+
+func bestVariantURL(in master: String, base: URL) -> URL? {
+    var bestURL: URL?
+    var bestBw = -1
+    var pendingBw = 0
+    var pendingStreamInf = false
+    for line in master.split(separator: "\n", omittingEmptySubsequences: false) {
+        let s = String(line).trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("#EXT-X-STREAM-INF") {
+            pendingStreamInf = true
+            pendingBw = 0
+            if let r = s.range(of: "BANDWIDTH=") {
+                let rest = s[r.upperBound...]
+                pendingBw = Int(rest.prefix(while: { $0.isNumber })) ?? 0
+            }
+            continue
+        }
+        if pendingStreamInf, !s.isEmpty, !s.hasPrefix("#"), let u = URL(string: s, relativeTo: base)?.absoluteURL {
+            if pendingBw >= bestBw {
+                bestBw = pendingBw
+                bestURL = u
+            }
+        }
+        pendingStreamInf = false
+    }
+    return bestURL ?? firstMediaLine(in: master, base: base)
+}
+
+func probeHLS(url: String, headers: [String: String]) async -> HLSProbe {
+    var result = HLSProbe(downloadURL: url)
+    guard let u = URL(string: url) else {
+        result.note = "invalid URL"
+        return result
+    }
     var hdrs = headers
     hdrs["User-Agent"] = hdrs["User-Agent"] ?? kUA
     hdrs["Accept"] = "application/vnd.apple.mpegurl,application/x-mpegURL,*/*"
 
     let (code, data, _, err) = await httpGet(u, headers: hdrs)
-    if let err { return (false, false, err) }
+    if let err {
+        result.note = err
+        return result
+    }
     guard (200..<400).contains(code), let data, let text = String(data: data, encoding: .utf8) else {
-        return (false, false, "manifest HTTP \(code)")
+        result.note = "manifest HTTP \(code)"
+        return result
     }
     if text.prefix(200).lowercased().contains("<html") {
-        return (false, false, "manifest HTML challenge")
+        result.note = "manifest HTML challenge"
+        return result
     }
     guard text.contains("#EXT") else {
-        return (false, false, "not m3u8 (\(text.prefix(60)))")
+        result.note = "not m3u8 (\(text.prefix(60)))"
+        return result
     }
+    result.manifestOK = true
 
     var playlistURL = u
     var playlist = text
-    if text.contains("#EXT-X-STREAM-INF"), let variant = firstMediaLine(in: text, base: u) {
+    if text.contains("#EXT-X-STREAM-INF"), let variant = bestVariantURL(in: text, base: u) {
         let (c2, d2, _, _) = await httpGet(variant, headers: hdrs)
         guard (200..<400).contains(c2), let d2, let t2 = String(data: d2, encoding: .utf8), t2.contains("#EXT") else {
-            return (true, false, "variant HTTP \(c2)")
+            result.note = "variant HTTP \(c2)"
+            return result
         }
         playlistURL = variant
         playlist = t2
+        result.downloadURL = variant.absoluteString
     }
 
+    result.durationSec = playlistDurationSec(playlist)
     guard let seg = firstMediaLine(in: playlist, base: playlistURL) else {
-        return (true, false, "no media line")
+        result.note = "no media line"
+        return result
     }
     var segHdrs = hdrs
     segHdrs["Accept"] = "*/*"
     let (c3, d3, _, _) = await httpGet(seg, headers: segHdrs)
     let bytes = d3?.count ?? 0
-    let ok = (200..<400).contains(c3) && bytes > 1000
-    return (true, ok, "manifest OK | segment HTTP \(c3) \(bytes)B")
+    result.segmentOK = (200..<400).contains(c3) && bytes > 1000
+    let dur = result.durationSec > 0 ? String(format: "%.0fs", result.durationSec) : "?"
+    result.note = "manifest OK | variant/media \(result.downloadURL.contains(".m3u8") ? "yes" : "no") | ~\(dur) | segment HTTP \(c3) \(bytes)B"
+    return result
 }
 
 func findFFmpeg() -> String? {
@@ -148,45 +215,82 @@ func findFFmpeg() -> String? {
     return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
 }
 
-func ffmpegSmoke(_ url: String, headers: [String: String], output: String) -> (ok: Bool, note: String) {
+func ffmpegFull(_ url: String, headers: [String: String], output: String, expectedSec: Double, label: String) -> (ok: Bool, note: String) {
     guard let ffmpeg = findFFmpeg() else {
-        return (true, "ffmpeg absent — skipped")
+        return (false, "ffmpeg absent")
     }
+    try? FileManager.default.removeItem(atPath: output)
     let headerBlock = headers.map { "\($0.key): \($0.value)" }.joined(separator: "\r\n") + "\r\n"
     let proc = Process()
     proc.executableURL = URL(fileURLWithPath: ffmpeg)
+    // Same flags as HLSFFmpegDownloader + extension_picky 0 (HiAnime .jpg segments / no LocalServer here)
     proc.arguments = [
-        "-hide_banner", "-loglevel", "error", "-y",
+        "-hide_banner", "-loglevel", "error", "-stats", "-y",
         "-extension_picky", "0",
+        "-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_on_http_error", "4xx,5xx",
         "-headers", headerBlock,
-        "-t", "8",
+        "-analyzeduration", "2000000", "-probesize", "2000000",
         "-i", url,
         "-c", "copy",
+        "-bsf:a", "aac_adtstoasc",
         output
     ]
     let errPipe = Pipe()
     proc.standardError = errPipe
-    proc.standardOutput = Pipe()
+    proc.standardOutput = FileHandle.nullDevice
     do {
         try proc.run()
-        proc.waitUntilExit()
     } catch {
         return (false, "ffmpeg spawn: \(error.localizedDescription)")
     }
-    let err = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-    let size = (try? FileManager.default.attributesOfItem(atPath: output)[.size] as? Int) ?? 0
-    if proc.terminationStatus == 0, size > 10_000 {
-        return (true, "ffmpeg 8s OK (\(size / 1024) KB)")
+
+    let handle = errPipe.fileHandleForReading
+    var lastPct = -1
+    var buf = ""
+    let regex = try! NSRegularExpression(pattern: "time=\\s*(\\d{2}):(\\d{2}):(\\d{2}\\.\\d+)")
+    while proc.isRunning {
+        let data = handle.availableData
+        if data.isEmpty {
+            Thread.sleep(forTimeInterval: 0.4)
+            continue
+        }
+        buf += String(data: data, encoding: .utf8) ?? ""
+        let chunks = buf.components(separatedBy: CharacterSet.newlines.union(.init(charactersIn: "\r")))
+        buf = chunks.last ?? ""
+        for line in chunks.dropLast() {
+            let ns = line as NSString
+            if let m = regex.firstMatch(in: line, range: NSRange(location: 0, length: ns.length)),
+               m.numberOfRanges == 4 {
+                let h = Double(ns.substring(with: m.range(at: 1))) ?? 0
+                let mi = Double(ns.substring(with: m.range(at: 2))) ?? 0
+                let s = Double(ns.substring(with: m.range(at: 3))) ?? 0
+                let sec = h * 3600 + mi * 60 + s
+                if expectedSec > 0 {
+                    let pct = min(Int((sec / expectedSec) * 100), 99)
+                    if pct >= lastPct + 5 {
+                        lastPct = pct
+                        let size = (try? FileManager.default.attributesOfItem(atPath: output)[.size] as? Int) ?? 0
+                        print("   ⬇️ [\(label)] \(pct)%  \(Int(sec))s/\(Int(expectedSec))s  \(size / 1_000_000) MB")
+                    }
+                }
+            }
+        }
     }
-    return (false, "ffmpeg exit \(proc.terminationStatus) size=\(size) \(err.prefix(180))")
+    let leftover = handle.readDataToEndOfFile()
+    let err = buf + (String(data: leftover, encoding: .utf8) ?? "")
+    let size = (try? FileManager.default.attributesOfItem(atPath: output)[.size] as? Int) ?? 0
+    if proc.terminationStatus == 0, size > 100_000 {
+        return (true, "FULL download OK (\(size / 1_000_000) MB, \(output))")
+    }
+    return (false, "ffmpeg exit \(proc.terminationStatus) size=\(size) \(err.suffix(220))")
 }
 
-// MARK: - Vidzy (Capture 2026)
+// MARK: - Vidzy (La captura 2026)
 
 func extractVidzy(embed: String) async -> (url: String?, headers: [String: String], raw: String) {
     guard let api = URL(string: "\(kBaseURL)/api/extract") else { return (nil, [:], "bad api") }
     let body = try? JSONSerialization.data(withJSONObject: ["type": "vidzy", "url": embed])
-    var hdrs = ["Content-Type": "application/json", "User-Agent": kUA]
+    let hdrs = ["Content-Type": "application/json", "User-Agent": kUA]
     let (code, data, _, err) = await httpGet(api, headers: hdrs, method: "POST", body: body)
     let raw = data.flatMap { String(data: $0, encoding: .utf8) } ?? (err ?? "HTTP \(code)")
     guard let data, code == 200,
@@ -222,19 +326,17 @@ func fetchVidzyEmbedFromFStream() async -> String? {
 }
 
 func testVidzy() async -> Outcome {
-    print("\n=== VIDZY — Capture (TMDB \(kCaptureTMDB)) ===")
-    var o = Outcome(name: "Vidzy / Capture 2026")
+    print("\n=== VIDZY — La captura (TMDB \(kCaptureTMDB)) ===")
+    var o = Outcome(name: "Vidzy / La captura 2026")
 
-    var embed = await fetchVidzyEmbedFromFStream()
-    if let embed {
-        print("FStream embed: \(embed)")
-    } else {
-        print("FStream: Capture n'a pas de source Vidzy (film non indexé).")
-        print("Validation pipeline Vidzy via un embed FStream réel (Superman 2025).")
-        embed = "https://vidzy.cc/embed-kefebwb53xgb.html"
+    let embed = await fetchVidzyEmbedFromFStream()
+    guard let embed else {
+        o.notes = "FStream: pas d'embed Vidzy"
+        print("❌ \(o.notes)")
+        return o
     }
-
-    let extracted = await extractVidzy(embed: embed!)
+    print("FStream embed: \(embed)")
+    let extracted = await extractVidzy(embed: embed)
     guard let m3u8 = extracted.url else {
         o.notes = "extract fail: \(extracted.raw.prefix(220))"
         print("❌ \(o.notes)")
@@ -253,12 +355,20 @@ func testVidzy() async -> Outcome {
     o.segmentOK = probe.segmentOK
     o.notes = probe.note
     print(probe.manifestOK && probe.segmentOK ? "✅ \(probe.note)" : "❌ \(probe.note)")
+    print("   download URL: \(probe.downloadURL.prefix(120))…")
 
     if o.extractOK && o.manifestOK && o.segmentOK {
-        let smoke = ffmpegSmoke(m3u8, headers: extracted.headers, output: "/tmp/anisflix_vidzy_capture.mp4")
-        o.notes += " | \(smoke.note)"
-        if !smoke.ok { o.segmentOK = false }
-        print(smoke.ok ? "✅ \(smoke.note)" : "❌ \(smoke.note)")
+        print("📥 Téléchargement COMPLET Vidzy (pas de limite -t)…")
+        let full = ffmpegFull(
+            probe.downloadURL,
+            headers: extracted.headers,
+            output: "/tmp/anisflix_vidzy_lacaptura_full.mp4",
+            expectedSec: probe.durationSec,
+            label: "Vidzy"
+        )
+        o.downloadOK = full.ok
+        o.notes += " | \(full.note)"
+        print(full.ok ? "✅ \(full.note)" : "❌ \(full.note)")
     }
     return o
 }
@@ -289,7 +399,7 @@ func extractRealId(html: String) -> String? {
 }
 
 func hiAnimeSources(apiUrl: String, referer: String, origin: String) async -> (url: String, headers: [String: String])? {
-    var hdrs = [
+    let hdrs = [
         "User-Agent": kUA,
         "X-Requested-With": "XMLHttpRequest",
         "Referer": referer,
@@ -407,24 +517,34 @@ func testHiAnime() async -> Outcome {
     o.segmentOK = probe.segmentOK
     o.notes = probe.note
     print(probe.manifestOK && probe.segmentOK ? "✅ \(probe.note)" : "❌ \(probe.note)")
+    print("   download URL: \(probe.downloadURL.prefix(120))…")
 
     if o.extractOK && o.manifestOK && o.segmentOK {
-        let smoke = ffmpegSmoke(stream.url, headers: stream.headers, output: "/tmp/anisflix_hianime_liargame.mp4")
-        o.notes += " | \(smoke.note)"
-        if !smoke.ok { o.segmentOK = false }
-        print(smoke.ok ? "✅ \(smoke.note)" : "❌ \(smoke.note)")
+        print("📥 Téléchargement COMPLET HiAnime (pas de limite -t)…")
+        let full = ffmpegFull(
+            probe.downloadURL,
+            headers: stream.headers,
+            output: "/tmp/anisflix_hianime_liargame_full.mp4",
+            expectedSec: probe.durationSec,
+            label: "HiAnime"
+        )
+        o.downloadOK = full.ok
+        o.notes += " | \(full.note)"
+        print(full.ok ? "✅ \(full.note)" : "❌ \(full.note)")
     }
     return o
 }
 
 // MARK: - Main
 
-print("=== Vidzy + HiAnime download test ===")
+print("=== Vidzy + HiAnime FULL download test ===")
+print("Outputs: /tmp/anisflix_vidzy_lacaptura_full.mp4  /tmp/anisflix_hianime_liargame_full.mp4\n")
 let vidzy = await testVidzy()
 let hianime = await testHiAnime()
 
 print("\n=== SUMMARY ===")
 for o in [vidzy, hianime] {
-    print("\(o.passed ? "✅" : "❌") \(o.name)  extract=\(o.extractOK) manifest=\(o.manifestOK) segment=\(o.segmentOK) b64=\(o.b64OK)  \(o.notes)")
+    print("\(o.passed ? "✅" : "❌") \(o.name)  extract=\(o.extractOK) manifest=\(o.manifestOK) segment=\(o.segmentOK) full=\(o.downloadOK) b64=\(o.b64OK)")
+    print("   \(o.notes)")
 }
 exit((vidzy.passed && hianime.passed) ? 0 : 1)

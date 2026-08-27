@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.81",
-          "date": "2026-08-26",
-          "size": 31005541,
+          "version": "1.0.82",
+          "date": "2026-08-27",
+          "size": 31005540,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "15.0",
-          "localizedDescription": "fix: téléchargements Vidzy/HiAnime (headers, segments HLS déguisés, decode base64)"
+          "localizedDescription": "Téléchargements Vidzy et HiAnime : extract + HLS complets (La captura / Liar Game E1 validés)."
         }
       ]
     }
