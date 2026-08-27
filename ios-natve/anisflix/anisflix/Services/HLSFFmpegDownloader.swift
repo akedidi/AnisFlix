@@ -42,46 +42,53 @@ class HLSFFmpegDownloader {
         print("   - URL: \(url)")
         print("   - Output: \(outputPath)")
         
-        // LocalStreamingServer injects Referer/Origin on upstream requests
-        let isLoopback = url.contains("127.0.0.1") || url.contains("localhost") || url.contains(":8080/")
-        let usesLocalStream = url.contains("/stream") && isLoopback
-        let usesLocalManifest = url.contains("/manifest") && isLoopback
-        
-        let command: String
-        if usesLocalStream {
-            // Single MP4 via /stream (MovieBox, etc.) — not HLS
-            command = "-i \"\(url)\" -c copy \"\(outputPath)\""
-            print("📡 [HLSFFmpeg] Using LocalServer /stream proxy (MP4 copy)")
-        } else if usesLocalManifest {
-            command = "-analyzeduration 2000000 -probesize 2000000 -i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
-            print("📡 [HLSFFmpeg] Using LocalServer /manifest proxy (HLS)")
-        } else {
-            let headers = Self.ffmpegHeaderBlock(provider: provider, url: url, customHeaders: customHeaders)
-            command = "-analyzeduration 2000000 -probesize 2000000 -headers '\(headers)' -i \"\(url)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
-        }
-        
-        print("📝 [VidzyFFmpeg] Command: ffmpeg \(command)")
-        
         lastReportedProgress = 0
         estimatedDurationMs = 0
         expectedBytes = 0
         
+        // Resolve master → media playlist before FFmpeg (Vidzy AUDIO groups hang at 0% on master).
         Task { [weak self] in
             guard let self else { return }
+            
+            let isLoopback = url.contains("127.0.0.1") || url.contains("localhost") || url.contains(":8080/")
+            let usesLocalStream = url.contains("/stream") && isLoopback
+            let usesLocalManifest = url.contains("/manifest") && isLoopback
+            
+            var inputURL = url
+            if !usesLocalStream {
+                let resolveHeaders = (usesLocalManifest || isLoopback) ? nil : customHeaders
+                inputURL = await Self.resolveMediaPlaylistURL(url, headers: resolveHeaders)
+                if inputURL != url {
+                    print("📺 [HLSFFmpeg] Using media playlist instead of master")
+                }
+            }
+            
             if usesLocalStream {
-                self.expectedBytes = await Self.probeContentLength(url: url)
+                self.expectedBytes = await Self.probeContentLength(url: inputURL)
             } else {
-                self.estimatedDurationMs = await Self.probeHLSDurationMs(inputURL: url)
+                self.estimatedDurationMs = await Self.probeHLSDurationMs(inputURL: inputURL)
             }
             if self.estimatedDurationMs > 0 {
                 print("⏱️ [HLSFFmpeg] Estimated duration: \(self.estimatedDurationMs) ms")
             } else if self.expectedBytes > 0 {
                 print("⏱️ [HLSFFmpeg] Expected size: \(self.expectedBytes) bytes")
             }
-        }
-        
-        // Execute FFmpeg asynchronously
-        currentSession = FFmpegKit.executeAsync(command,
+            
+            let command: String
+            if usesLocalStream {
+                command = "-i \"\(inputURL)\" -c copy \"\(outputPath)\""
+                print("📡 [HLSFFmpeg] Using LocalServer /stream proxy (MP4 copy)")
+            } else if usesLocalManifest || (inputURL.contains("/manifest") && isLoopback) {
+                command = "-analyzeduration 2000000 -probesize 2000000 -i \"\(inputURL)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
+                print("📡 [HLSFFmpeg] Using LocalServer /manifest proxy (HLS)")
+            } else {
+                let headers = Self.ffmpegHeaderBlock(provider: provider, url: inputURL, customHeaders: customHeaders)
+                command = "-analyzeduration 2000000 -probesize 2000000 -headers '\(headers)' -i \"\(inputURL)\" -c copy -bsf:a aac_adtstoasc \"\(outputPath)\""
+            }
+            
+            print("📝 [VidzyFFmpeg] Command: ffmpeg \(command)")
+            
+            self.currentSession = FFmpegKit.executeAsync(command,
             withCompleteCallback: { [weak self] session in
                 guard let self = self else { return }
                 
@@ -154,6 +161,7 @@ class HLSFFmpegDownloader {
                 }
             }
         )
+        }
     }
     
     private func reportProgress(_ value: Double, progress: @escaping (Double) -> Void) {
@@ -211,37 +219,97 @@ class HLSFFmpegDownloader {
         return await fetchPlaylistDurationMs(url: url, depth: 0)
     }
     
-    private static func fetchPlaylistDurationMs(url: URL, depth: Int) async -> Int64 {
-        guard depth < 4 else { return 0 }
-        
+    /// Same as the test script: FFmpeg must get a media playlist, not a Vidzy/HiAnime master
+    /// with separate AUDIO groups (that path hangs at 0% / never produces stats).
+    static func resolveMediaPlaylistURL(_ urlString: String, headers: [String: String]?) async -> String {
+        guard let url = URL(string: urlString) else { return urlString }
+        return await resolveMediaPlaylist(url: url, headers: headers, depth: 0)
+    }
+    
+    private static func resolveMediaPlaylist(url: URL, headers: [String: String]?, depth: Int) async -> String {
+        guard depth < 4 else { return url.absoluteString }
+        guard let text = await fetchPlaylistText(url: url, headers: headers) else {
+            return url.absoluteString
+        }
+        if text.contains("#EXTINF:") && !text.contains("#EXT-X-STREAM-INF") {
+            return url.absoluteString
+        }
+        guard text.contains("#EXT-X-STREAM-INF"),
+              let variant = bestVariantURL(in: text, base: url) else {
+            return url.absoluteString
+        }
+        print("📺 [HLSFFmpeg] Master → variant: \(variant.lastPathComponent)")
+        return await resolveMediaPlaylist(url: variant, headers: headers, depth: depth + 1)
+    }
+    
+    private static func fetchPlaylistText(url: URL, headers: [String: String]?) async -> String? {
         var request = URLRequest(url: url)
         request.timeoutInterval = 25
         request.setValue("application/vnd.apple.mpegurl,*/*", forHTTPHeaderField: "Accept")
-        
+        headers?.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse,
               (200..<400).contains(http.statusCode),
-              let text = String(data: data, encoding: .utf8) else { return 0 }
+              let text = String(data: data, encoding: .utf8),
+              text.contains("#EXT") else { return nil }
+        if text.prefix(200).lowercased().contains("<html") { return nil }
+        return text
+    }
+    
+    private static func bestVariantURL(in master: String, base: URL) -> URL? {
+        var bestURL: URL?
+        var bestBw = -1
+        var pendingBw = 0
+        var pendingStreamInf = false
+        var pendingAudioOnly = false
+        for line in master.split(separator: "\n", omittingEmptySubsequences: false) {
+            let s = String(line).trimmingCharacters(in: .whitespaces)
+            if s.hasPrefix("#EXT-X-STREAM-INF") {
+                pendingStreamInf = true
+                pendingBw = 0
+                pendingAudioOnly = isAudioOnlyStreamInf(s)
+                if let r = s.range(of: "BANDWIDTH=") {
+                    let rest = s[r.upperBound...]
+                    pendingBw = Int(rest.prefix(while: { $0.isNumber })) ?? 0
+                }
+                continue
+            }
+            if pendingStreamInf, !s.isEmpty, !s.hasPrefix("#"),
+               !pendingAudioOnly,
+               let u = URL(string: s, relativeTo: base)?.absoluteURL {
+                if pendingBw >= bestBw {
+                    bestBw = pendingBw
+                    bestURL = u
+                }
+            }
+            pendingStreamInf = false
+            pendingAudioOnly = false
+        }
+        return bestURL
+    }
+    
+    private static func isAudioOnlyStreamInf(_ line: String) -> Bool {
+        guard let r = line.range(of: "CODECS=\"") else { return false }
+        let rest = line[r.upperBound...]
+        guard let end = rest.firstIndex(of: "\"") else { return false }
+        let codecs = String(rest[..<end]).lowercased()
+        let hasVideo = codecs.contains("avc") || codecs.contains("hvc") || codecs.contains("hev")
+            || codecs.contains("vp") || codecs.contains("av01")
+        let hasAudio = codecs.contains("mp4a") || codecs.contains("ac-3") || codecs.contains("ec-3")
+        return hasAudio && !hasVideo
+    }
+    
+    private static func fetchPlaylistDurationMs(url: URL, depth: Int) async -> Int64 {
+        guard depth < 4 else { return 0 }
+        guard let text = await fetchPlaylistText(url: url, headers: nil) else { return 0 }
         
         if let durationMs = parseHLSDurationMs(from: text) {
             return durationMs
         }
         
-        guard text.contains("#EXT-X-STREAM-INF") else { return 0 }
-        
-        var pendingStreamInf = false
-        for line in text.components(separatedBy: .newlines) {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("#EXT-X-STREAM-INF") {
-                pendingStreamInf = true
-                continue
-            }
-            if pendingStreamInf, !trimmed.isEmpty, !trimmed.hasPrefix("#") {
-                guard let variantURL = URL(string: trimmed, relativeTo: url) else { return 0 }
-                return await fetchPlaylistDurationMs(url: variantURL, depth: depth + 1)
-            }
-        }
-        return 0
+        guard text.contains("#EXT-X-STREAM-INF"),
+              let variantURL = bestVariantURL(in: text, base: url) else { return 0 }
+        return await fetchPlaylistDurationMs(url: variantURL, depth: depth + 1)
     }
     
     private static func ffmpegHeaderBlock(provider: String, url: String, customHeaders: [String: String]?) -> String {
