@@ -404,6 +404,10 @@ const StreamingSources = memo(function StreamingSources({
 
   // Ajuster la langue sélectionnée si la langue actuelle n'est pas disponible
   useEffect(() => {
+    // Attendre les providers qui déterminent les langues disponibles. Vidlink
+    // répond souvent avant French Stream et ne doit pas forcer l'onglet VO.
+    if (isLoadingFStream || isLoadingFrenchProviders || isLoadingVidlink) return;
+
     const hasVF = hasSourcesForLanguage('VF');
     const hasVOSTFR = hasSourcesForLanguage('VOSTFR');
     const hasVO = hasSourcesForLanguage('VO');
