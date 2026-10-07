@@ -8,6 +8,8 @@ import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
 import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
 import { useVixsrc } from '@/hooks/useVixsrc';
 import { useMovieBox } from '@/hooks/useMovieBox';
+import { useVidlink } from '@/hooks/useVidlink';
+import { useFrenchProviders } from '@/hooks/useFrenchProviders';
 
 import { useFourKHDHub } from '@/hooks/useFourKHDHub';
 import { useAfterDark } from '@/hooks/useAfterDark';
@@ -43,11 +45,13 @@ interface Source {
   isFourKHDHub?: boolean;
   isAfterDark?: boolean;
   isLuluvid?: boolean;
+  isExternalEmbed?: boolean;
   sourceKey?: string;
   isEpisode?: boolean;
   quality?: string;
   language?: string;
   tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
+  headers?: Record<string, string>;
 }
 
 interface StreamingSourcesProps {
@@ -68,6 +72,7 @@ interface StreamingSourcesProps {
     isVixsrc?: boolean;
     isAnimeAPI?: boolean;
     isLuluvid?: boolean;
+    isExternalEmbed?: boolean;
     quality?: string;
     language?: string;
     tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
@@ -188,11 +193,12 @@ const StreamingSources = memo(function StreamingSources({
   console.log('🔍 StreamingSources - Title:', title);
 
   // Détection par genres TMDB
-  const isAnimeByGenre = Boolean(type === 'tv' && genres && genres.some(genre =>
+  const isAnimationContent = Boolean(genres && genres.some(genre =>
     genre.name.toLowerCase() === 'animation' ||
     genre.name.toLowerCase() === 'anime' ||
     genre.id === 16 // ID du genre Animation dans TMDB
   ));
+  const isAnimeByGenre = type === 'tv' && isAnimationContent;
 
   // Détection de fallback par titre (pour les cas où les genres ne sont pas disponibles)
   const isAnimeByTitle = Boolean(type === 'tv' && title && (
@@ -226,6 +232,15 @@ const StreamingSources = memo(function StreamingSources({
     season ?? 1,
     episode ?? 1,
     isAnimeSeries // Ajouter la condition pour ne l'appeler que si c'est une série anime
+  );
+  const { data: vidlinkData, isLoading: isLoadingVidlink } = useVidlink(type, id, season, episode);
+  const { data: frenchProvidersData, isLoading: isLoadingFrenchProviders } = useFrenchProviders(
+    type,
+    id,
+    season,
+    episode,
+    isAnimationContent || isAnimeByTitle,
+    enabled,
   );
 
   console.log('🔍 StreamingSources - animeVidMolyData:', animeVidMolyData);
@@ -352,6 +367,9 @@ const StreamingSources = memo(function StreamingSources({
 
     // Vérifier Vixsrc (VO uniquement)
     if (language === 'VO') {
+      if (vidlinkData?.success && vidlinkData.streams?.length) {
+        return true;
+      }
       if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
         return true;
       }
@@ -363,6 +381,10 @@ const StreamingSources = memo(function StreamingSources({
       if (cineproData && cineproData.success && cineproData.streams && cineproData.streams.length > 0) {
         return true;
       }
+    }
+
+    if (frenchProvidersData?.streams?.some(stream => stream.language.toUpperCase() === language)) {
+      return true;
     }
 
     // Vérifier AfterDark (VF, VOSTFR, VO) - DISABLED
@@ -420,6 +442,49 @@ const StreamingSources = memo(function StreamingSources({
 
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];
+
+  // Providers français natifs : Anime-Sama, French-Anime et Streamzo.
+  frenchProvidersData?.streams?.forEach((stream, index) => {
+    const language = stream.language.toUpperCase();
+    if (language !== selectedLanguage) return;
+    const labels: Record<string, string> = {
+      animesama: 'Anime-Sama',
+      frenchanime: 'French-Anime',
+      streamzo: 'Streamzo',
+    };
+    allSources.push({
+      id: `${stream.provider}-${index}-${language}`,
+      name: `${labels[stream.provider] || stream.provider} (${language}) - ${stream.quality || 'HD'}`,
+      provider: stream.provider,
+      url: stream.url,
+      type: stream.type,
+      quality: stream.quality || 'HD',
+      language,
+      headers: stream.headers,
+      isExternalEmbed: stream.type === 'embed',
+    });
+  });
+
+  // Vidlink fournit les sources internationales et reste actif même lorsqu'un
+  // filtre réseau local bloque son domaine sur le poste de développement.
+  if (selectedLanguage === 'VO' && vidlinkData?.success && vidlinkData.streams) {
+    vidlinkData.streams.forEach((stream, index) => {
+      const params = new URLSearchParams({
+        url: stream.url,
+        referer: 'https://vidlink.pro/',
+        origin: 'https://vidlink.pro',
+      });
+      allSources.push({
+        id: `vidlink-${index}`,
+        name: stream.name || `Vidlink (VO) - ${stream.quality || 'Auto'}`,
+        provider: 'vidlink',
+        url: `/api/proxy?${params.toString()}`,
+        type: 'm3u8',
+        quality: stream.quality || 'Auto',
+        language: 'VO',
+      });
+    });
+  }
 
   // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
   if (sources && sources.length > 0) {
@@ -1238,6 +1303,10 @@ const StreamingSources = memo(function StreamingSources({
         return -1;
       }
 
+      if (['animesama', 'frenchanime', 'streamzo', 'vidlink'].includes(source.provider?.toLowerCase())) {
+        return 0.5;
+      }
+
       // Rang 0: Vidzy (Priorité haute)
       if (source.isVidzy ||
         source.name.toLowerCase().includes('vidzy') ||
@@ -1320,7 +1389,18 @@ const StreamingSources = memo(function StreamingSources({
     let downloadHeaders = (source as any).headers || {};
 
     // 1. Extraction logic for Embed sources
-    if (source.isAfterDark || source.name.toLowerCase().includes('darki') || source.url?.includes('darkibox') || source.url?.includes('vidzy')) {
+    const isVidzySource = source.isVidzy || source.name.toLowerCase().includes('vidzy') || source.url?.includes('vidzy');
+    if (isVidzySource && source.url) {
+      const fileCode = source.url.match(/embed-([^/?#.]+)\.html/i)?.[1];
+      if (fileCode) {
+        const providerOrigin = new URL(source.url).origin;
+        window.open(`${providerOrigin}/d/${fileCode}_n`, '_blank', 'noopener,noreferrer');
+        toast.success(t("Download page opened"));
+        return;
+      }
+    }
+
+    if (source.isAfterDark || source.name.toLowerCase().includes('darki') || source.url?.includes('darkibox')) {
       toast.info("Extracting download link...");
       try {
         const response = await apiClient.post('/api/extract', { type: 'darkibox', url: source.url });
@@ -1328,7 +1408,8 @@ const StreamingSources = memo(function StreamingSources({
           const data = await response.json();
           if (data.m3u8Url) {
             downloadUrl = data.m3u8Url;
-            console.log('✅ [DOWNLOAD] Extracted Darki URL:', downloadUrl);
+            downloadHeaders = data.headers || downloadHeaders;
+            console.log('✅ [DOWNLOAD] Extracted URL:', downloadUrl);
           }
         } else {
           console.error("Extraction failed");
@@ -1445,12 +1526,14 @@ const StreamingSources = memo(function StreamingSources({
             provider: 'fsvid'
           });
         } else {
-          // Pour Vidzy via FStream, on utilise le scraper existant
+          // Vidzy now binds extracted URLs to the extractor IP. Loading its
+          // embed keeps the page and HLS requests on the user's connection.
           onSourceClick({
             url: source.url,
-            type: 'm3u8' as const,
+            type: 'embed' as const,
             name: source.name,
-            isFStream: true
+            isVidzy: true,
+            provider: 'vidzy'
           });
         }
       } else if (source.provider?.toLowerCase() === 'bysebuho') {
@@ -1589,7 +1672,10 @@ const StreamingSources = memo(function StreamingSources({
           url: source.url,
           type: source.type || 'mp4',
           name: source.name,
-          language: source.language
+          language: source.language,
+          quality: source.quality,
+          provider: source.provider,
+          isExternalEmbed: source.isExternalEmbed,
         });
       } else if (source.isAfterDark) {
         console.log('✅ Source AfterDark détectée, URL:', source.url);
@@ -1615,7 +1701,7 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub) {
+  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub || isLoadingVidlink || isLoadingFrenchProviders) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">

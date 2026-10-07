@@ -442,7 +442,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'URL Vidzy requise' });
       }
 
-      if (!url.includes('vidzy.org')) {
+      let vidzyHost = '';
+      try {
+        vidzyHost = new URL(url).hostname.toLowerCase();
+      } catch {
+        return res.status(400).json({ error: 'URL Vidzy invalide' });
+      }
+      if (!/(^|\.)vidzy\.(?:org|cc|live|lol)$/.test(vidzyHost)) {
         return res.status(400).json({ error: 'URL Vidzy invalide' });
       }
 

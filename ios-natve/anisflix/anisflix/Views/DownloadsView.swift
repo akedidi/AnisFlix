@@ -571,7 +571,9 @@ struct ActiveDownloadRow: View {
         switch item.state {
         case .queued: return theme.t("downloads.queued") ?? "En attente..."
         case .waiting: return theme.t("downloads.waiting")
-        case .downloading: return "\(theme.t("downloads.downloading")) \(Int(item.progress * 100))%"
+        case .downloading:
+            let pct = item.progress > 0 ? max(1, Int((item.progress * 100).rounded())) : 0
+            return "\(theme.t("downloads.downloading")) \(pct)%"
         case .paused: return theme.t("downloads.paused")
         case .completed: return theme.t("downloads.completed")
         case .failed: return theme.t("downloads.failed")

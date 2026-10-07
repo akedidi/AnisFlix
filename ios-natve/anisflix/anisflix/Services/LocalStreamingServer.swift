@@ -325,10 +325,16 @@ class LocalStreamingServer {
             var urlRequest = URLRequest(url: targetUrl)
             self.applyHeaders(to: &urlRequest, targetUrl: targetUrl, referer: referer, origin: origin, userAgent: userAgent, cookie: cookie)
             
-            // VERY IMPORTANT: Forward Range header exactly as requested by AVPlayer
+            // AVPlayer HLS uses no Range; FFmpeg sends `bytes=0-` which makes CDNs return 206
+            // for the whole file and FFmpeg then stalls. Ignore open-ended from-start ranges.
             if let rangeHeader = request.headers["Range"] {
-                urlRequest.setValue(rangeHeader, forHTTPHeaderField: "Range")
-                print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (Range: \(rangeHeader))")
+                let normalized = rangeHeader.replacingOccurrences(of: " ", with: "").lowercased()
+                if normalized == "bytes=0-" {
+                    print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (ignoring Range bytes=0-)")
+                } else {
+                    urlRequest.setValue(rangeHeader, forHTTPHeaderField: "Range")
+                    print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (Range: \(rangeHeader))")
+                }
             } else {
                 print("🌊 [LocalServer] Streaming request: \(targetUrl.lastPathComponent) (No Range req)")
             }
@@ -391,8 +397,14 @@ class LocalStreamingServer {
                         let end = parsed.end == Int64.max ? parsed.start + segmentLength - 1 : parsed.end
                         contentRangeHeader = "bytes \(parsed.start)-\(end)/*"
                     }
-                    if let contentRangeHeader, let parsed = self.parseContentRange(contentRangeHeader) {
+                    if let cr = contentRangeHeader, let parsed = self.parseContentRange(cr) {
                         bodyLength = UInt(parsed.end - parsed.start + 1)
+                        // Whole file as 206 confuses FFmpeg's HTTP client — serve as 200.
+                        if parsed.start == 0, parsed.total > 0, parsed.end >= parsed.total - 1 {
+                            responseStatusCode = 200
+                            contentRangeHeader = nil
+                            bodyLength = UInt(parsed.total)
+                        }
                     }
                     if bodyLength == 0,
                        let clStr = self.httpHeader(httpResponse, "Content-Length"),

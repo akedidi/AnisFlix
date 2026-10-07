@@ -248,7 +248,9 @@ struct DownloadButton: View {
                         headers["Referer"] = "https://vidzy.cc/"
                         headers["Origin"] = "https://vidzy.cc"
                     }
-                    headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    // Vidzy rejects its HLS manifest with the mobile Safari UA (403).
+                    // Keep the same desktop UA returned by the extractor/playback path.
+                    headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     downloadSource.headers = headers
                 } else {
                     streamUrl = source.url
@@ -349,4 +351,3 @@ struct DownloadButtonContent: View {
         ], media: Media(id: 1, title: "Test Movie", overview: "", posterPath: nil, backdropPath: nil, rating: 0, year: "", mediaType: .movie, voteCount: 0, originalLanguage: "", releaseDate: "", episodeInfo: nil)) { _ in }
     }
 }
-

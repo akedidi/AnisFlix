@@ -1066,8 +1066,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let isMegaCDN = urlString.contains("megaup") || urlString.contains("megacdn") ||
                         urlString.contains("shop21") || urlString.contains("prjp") ||
                         (effectiveHeaders["Referer"]?.contains("megaup") == true)
-        let isAnimeKaiSource = isMegaCDN ||
-                         (effectiveHeaders["Origin"]?.contains("animekai") == true) ||
+        let isMegaCDNSource = isMegaCDN ||
                          (effectiveHeaders["Origin"]?.contains("megaup") == true)
         let isAnimePaheSource = urlString.contains("owocdn") || urlString.contains("vault-") ||
             (effectiveHeaders["Referer"]?.contains("kwik") == true) ||
@@ -1095,10 +1094,18 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             // MovieBox CDN supports byte-range + AVURLAsset can attach Referer/UA directly.
             needsProxy = false
             print("🎯 [PlayerVM] MovieBox CDN: direct playback with AVURLAsset headers")
-        } else if (isAnimeKaiSource || isAnimePaheSource) && isPlaylist && !isCasting && !isAirPlayActive {
+        } else if (isMegaCDNSource || isAnimePaheSource) && isPlaylist && !isCasting && !isAirPlayActive {
             // MegaUp / Kwik→owocdn HLS: AVURLAsset sends Referer/Origin directly.
             needsProxy = false
-            print("🎯 [PlayerVM] AnimeKai/AnimePahe HLS: direct playback with AVURLAsset headers")
+            print("🎯 [PlayerVM] Protected anime HLS: direct playback with AVURLAsset headers")
+        } else if isPlaylist && !isCasting && !isAirPlayActive
+                    && (isVidzyOrLuluvid || hasCustomHeaders) {
+            // AVURLAsset propagates these headers to HLS child playlists and
+            // segments. Keep local playback direct: the LAN proxy may require
+            // local-network permission and can otherwise leave AVPlayer stuck
+            // at 00:00. Casting/AirPlay still uses the LAN proxy below.
+            needsProxy = false
+            print("🎯 [PlayerVM] Protected HLS: direct local playback with AVURLAsset headers")
         } else if isVidzyOrLuluvid || (hasCustomHeaders && !isAnimePaheSource) {
             // ALWAYS use proxy if there are custom headers or it's Vidzy/Luluvid/Vidlink.
             // Why? Because if the user taps the AirPlay button mid-playback, AVPlayer sends 
@@ -1343,11 +1350,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         let isVidlink = urlString.contains("vodvidl.site") || urlString.contains("vidlink")
         let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node")
-        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn")
+        let isMegaCDN = urlString.contains("megaup") || urlString.contains("megacdn")
         let isLuluHeaders = effectiveHeaders["Referer"]?.contains("lulu") == true
         let isProviderRequiringProxy = urlString.contains("vidzy") || urlString.contains("luluvid")
             || urlString.contains("lulustream") || isLuluHeaders
-            || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix || isAnimeKai
+            || urlString.contains("fsvid") || urlString.contains("moovbob") || isVidlink || isYFlix || isMegaCDN
         
         print("🔍 [ProxyDebug] Requirements: Provider=\(isProviderRequiringProxy), CustomHeaders=\(hasCustomHeaders), Subtitles=\(hasSubtitles)")
         

@@ -28,16 +28,38 @@ function hostnameHash(hostname) {
  * Native decoder for Vidzy/FSVid XOR IIFE:
  * atob → reverse → XOR with (0x3d + i*89 + hostnameHash)
  */
-function decodeXorPayload(encoded, hostname) {
+function decodeXorPayload(encoded, hostname, browserCalibration = 0) {
     const hash = hostnameHash(hostname || '');
     const binary = Buffer.from(encoded, 'base64').toString('binary');
     const reversed = binary.split('').reverse().join('');
     let decoded = '';
     for (let i = 0; i < reversed.length; i++) {
-        const key = (0x3d + i * 89 + hash) & 255;
+        const key = (0x3d + i * 89 + hash + browserCalibration) & 255;
         decoded += String.fromCharCode(reversed.charCodeAt(i) ^ key);
     }
     return decoded;
+}
+
+function browserCalibrationCandidates(fnCode) {
+    const candidates = [];
+    const add = value => {
+        if (Number.isInteger(value) && value >= 0 && value <= 255 && !candidates.includes(value)) {
+            candidates.push(value);
+        }
+    };
+
+    // Current Vidzy pages bind the payload to a hidden element whose width is
+    // `calc(1in + Npx)`. Browsers define 1 CSS inch as 96 CSS pixels.
+    for (const match of fnCode.matchAll(/calc\(\s*1in\s*\+\s*(\d+)px\s*\)/gi)) {
+        add(96 + Number(match[1]));
+    }
+    for (const match of fnCode.matchAll(/(?:BC|browserCalibration)\s*!==?\s*(0x[\da-f]+|\d+)/gi)) {
+        add(Number(match[1]));
+    }
+
+    // Legacy pages did not include the browser calibration term.
+    add(0);
+    return candidates;
 }
 
 function tryExecuteIife(fnCode, encoded, hostname) {
@@ -66,10 +88,20 @@ function extractFromIife(source, hostname) {
 
         const candidates = [];
         if (fnCode.includes('location') || fnCode.includes('0x3d')) {
-            try {
-                candidates.push(decodeXorPayload(encoded, hostname));
-            } catch {
-                // ignore malformed payload
+            for (const calibration of browserCalibrationCandidates(fnCode)) {
+                try {
+                    candidates.push(decodeXorPayload(encoded, hostname, calibration));
+                } catch {
+                    // ignore malformed payload
+                }
+            }
+
+            // Keep extraction resilient if Vidzy changes the CSS measurement
+            // while retaining the same byte-sized XOR scheme.
+            if (fnCode.includes('+BC')) {
+                for (let calibration = 0; calibration <= 255; calibration++) {
+                    candidates.push(decodeXorPayload(encoded, hostname, calibration));
+                }
             }
         }
         candidates.push(tryExecuteIife(fnCode, encoded, hostname));
@@ -106,6 +138,10 @@ export class VidzyExtractor {
             const origin = parsed.origin;
             const hostname = parsed.hostname;
             const response = await axios.get(url, {
+                // Vidzy signs the media URL for the IP that fetched the embed
+                // page. Its media host is IPv4-only, so fetching the page over
+                // IPv6 produces a token that immediately fails with 403.
+                family: 4,
                 headers: {
                     'User-Agent': UA,
                     'Referer': `${origin}/`

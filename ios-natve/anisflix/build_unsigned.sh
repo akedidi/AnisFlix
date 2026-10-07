@@ -63,6 +63,16 @@ info() {
         
         # Also run agvtool just in case, but rely on sed
         xcrun agvtool new-marketing-version "$FULL_VERSION" > /dev/null 2>&1
+
+        # Keep the source Info.plist aligned with the build settings and SideStore metadata.
+        SOURCE_INFO_PLIST="anisflix/Info.plist"
+        if [ -f "$SOURCE_INFO_PLIST" ]; then
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUMBER" "$SOURCE_INFO_PLIST"
+            /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $FULL_VERSION" "$SOURCE_INFO_PLIST"
+            success "Info.plist mis à jour : version $FULL_VERSION (build $BUILD_NUMBER)"
+        else
+            error "Info.plist introuvable : $SOURCE_INFO_PLIST"
+        fi
         
         success "Nouvelle version : $FULL_VERSION"
     else
@@ -150,18 +160,20 @@ if [ -f "$IPA_NAME" ]; then
     INFO_PLIST="$ARCHIVE_PATH/Products/Applications/$SCHEME.app/Info.plist"
     if [ -f "$INFO_PLIST" ]; then
         BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$INFO_PLIST")
+        MIN_OS_VERSION=$(/usr/libexec/PlistBuddy -c "Print MinimumOSVersion" "$INFO_PLIST")
         success "Bundle ID détecté : $BUNDLE_ID"
     else
         BUNDLE_ID="com.anis.anisflix" # Fallback (should ideally error out)
+        MIN_OS_VERSION="16.0"
         echo "⚠️ Info.plist non trouvé, fallback sur $BUNDLE_ID"
     fi
     
     # Date YYYY-MM-DD
-    DATE=$(date +%Y-%m-%d)
+    DATE=$(TZ=Europe/Paris date +%Y-%m-%d)
     
     # Get last commit message for "What's New"
     # Escape quotes and newlines for JSON safety
-    COMMIT_MSG=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/"/\\"/g' | sed 's/  */ /g')
+    COMMIT_MSG="${RELEASE_NOTES:-$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/  */ /g')}"
     if [ -z "$COMMIT_MSG" ]; then
         COMMIT_MSG="Bug fixes and improvements"
     fi
@@ -177,7 +189,7 @@ if [ -f "$IPA_NAME" ]; then
         
         # Use node to update JSON cleanly
         
-        node -e "
+        SIDESTORE_RELEASE_NOTES="$COMMIT_MSG" node -e "
             const fs = require('fs');
             const data = JSON.parse(fs.readFileSync('$JSON_FILE', 'utf8'));
             const newVersion = {
@@ -185,8 +197,8 @@ if [ -f "$IPA_NAME" ]; then
                 date: '$DATE',
                 size: $FILE_SIZE_BYTES,
                 downloadURL: '$DOWNLOAD_URL',
-                minOSVersion: '15.0',
-                localizedDescription: '$COMMIT_MSG'
+                minOSVersion: '$MIN_OS_VERSION',
+                localizedDescription: process.env.SIDESTORE_RELEASE_NOTES
             };
             
             // Update Top Level Bundle ID if needed

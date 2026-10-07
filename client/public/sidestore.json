@@ -11,12 +11,12 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.83",
-          "date": "2026-08-27",
-          "size": 31008486,
+          "version": "1.0.84",
+          "date": "2026-10-07",
+          "size": 31025815,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
-          "minOSVersion": "15.0",
-          "localizedDescription": "Fix téléchargement Vidzy : FFmpeg utilise la variante HLS (plus de blocage à 0% sur le master)."
+          "minOSVersion": "16.0",
+          "localizedDescription": "Intégration iOS native d’Anime-Sama, French-Anime et Streamzo. Vidlink reste actif pour les films, les séries, les épisodes suivants et les téléchargements."
         }
       ]
     }

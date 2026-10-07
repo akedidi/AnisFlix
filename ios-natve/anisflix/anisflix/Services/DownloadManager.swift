@@ -132,7 +132,10 @@ class DownloadManager: NSObject, ObservableObject {
         
         loadDownloads()
         
+        let restoreGroup = DispatchGroup()
+
         // Re-attach standard tasks
+        restoreGroup.enter()
         urlSession.getAllTasks { tasks in
             for task in tasks {
                 if let downloadTask = task as? URLSessionDownloadTask,
@@ -140,10 +143,12 @@ class DownloadManager: NSObject, ObservableObject {
                     self.downloadTasks[desc] = downloadTask
                 }
             }
+            restoreGroup.leave()
         }
         
         
         // Re-attach HLS tasks
+        restoreGroup.enter()
         assetDownloadSession.getAllTasks { tasks in
             for task in tasks {
                 if let assetTask = task as? AVAssetDownloadTask,
@@ -151,12 +156,16 @@ class DownloadManager: NSObject, ObservableObject {
                     self.activeAssetDownloads[desc] = assetTask
                 }
             }
+            restoreGroup.leave()
         }
         
         startSpeedTimer()
-        // Initial queue processing after a short delay to allow UI to settle
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+
+        // FFmpeg/native HLS sessions cannot survive an app restart. Only keep persisted
+        // `.downloading` states that still have a background URLSession task attached.
+        restoreGroup.notify(queue: .main) {
             self.loadErrors()
+            self.recoverOrphanedDownloads()
             self.processQueue()
         }
     }
@@ -233,6 +242,9 @@ class DownloadManager: NSObject, ObservableObject {
                     providerLower == "yflix" ||
                     providerLower == "vixsrc" ||
                     providerLower == "moviebox" ||
+                    providerLower == "animesama" ||
+                    providerLower == "frenchanime" ||
+                    providerLower == "streamzo" ||
                     providerLower == "animepahe" ||
                     providerLower == "hianime"
         // Note: Luluvid downloads are blocked at UI level due to iOS HLS header limitation
@@ -751,7 +763,7 @@ class DownloadManager: NSObject, ObservableObject {
         )
         guard let url = URL(string: resolved.url) else { return }
         
-        // YFlix/AnimeKai CDN hostnames (rrr.*) often don't resolve — fail early with a clear message
+        // Some signed CDN hostnames (rrr.*) often do not resolve; fail early with a clear message.
         if let host = url.host?.lowercased(), host.hasPrefix("rrr.") {
             print("❌ [DownloadManager] Unreachable CDN host: \(host)")
             updateState(for: item.id, state: .failed)
@@ -891,7 +903,7 @@ class DownloadManager: NSObject, ObservableObject {
         
         let ffmpegProviders = [
             "vidzy", "luluvid", "lulustream", "afterdark", "animepahe",
-            "vidmoly", "vidlink", "yflix", "moviebox", "fsvid", "vixsrc", "animekai", "hianime"
+            "vidmoly", "vidlink", "yflix", "moviebox", "fsvid", "vixsrc", "animesama", "frenchanime", "streamzo", "hianime"
         ]
         if ffmpegProviders.contains(p) { return true }
         
@@ -913,7 +925,7 @@ class DownloadManager: NSObject, ObservableObject {
     private static func shouldUseLocalProxyForDownload(provider: String?) -> Bool {
         let p = provider?.lowercased() ?? ""
         return ["vidmoly", "vidlink", "yflix", "vidzy", "luluvid", "lulustream", "afterdark",
-                "animepahe", "animekai", "moviebox", "fsvid", "hianime"].contains(p)
+                "animepahe", "animesama", "frenchanime", "streamzo", "moviebox", "fsvid", "hianime"].contains(p)
     }
     
     private static func isDirectMP4(_ url: String) -> Bool {
@@ -1023,8 +1035,8 @@ class DownloadManager: NSObject, ObservableObject {
             let clamped = min(max(progress, 0), 1)
             let current = downloads[index].progress
             // Monotonic during download; always accept 100%
-            guard clamped >= 1.0 || clamped > current + 0.005 else { return }
-            if abs(current - clamped) > 0.005 || clamped >= 1.0 {
+            guard clamped >= 1.0 || clamped > current + 0.001 else { return }
+            if abs(current - clamped) > 0.001 || clamped >= 1.0 {
                 objectWillChange.send()
                 downloads[index].progress = clamped
                 saveDownloads()
@@ -1046,6 +1058,25 @@ class DownloadManager: NSObject, ObservableObject {
             // Fixup paths for HLS if needed (reconstruct from relative path)
             // For now, we rely on the saved URL, but in a real app we'd use relative paths.
             // Since we are in simulator/dev, we might need to handle this later.
+        }
+    }
+
+    private func recoverOrphanedDownloads() {
+        let activeIds = Set(downloadTasks.keys)
+            .union(activeAssetDownloads.keys)
+            .union(ffmpegDownloaders.keys)
+        var recoveredCount = 0
+
+        for index in downloads.indices
+        where downloads[index].state == .downloading && !activeIds.contains(downloads[index].id) {
+            downloads[index].state = .queued
+            downloads[index].progress = 0
+            recoveredCount += 1
+        }
+
+        if recoveredCount > 0 {
+            print("🔄 [DownloadManager] Re-queued \(recoveredCount) interrupted HLS download(s)")
+            saveDownloads()
         }
     }
     

@@ -220,16 +220,19 @@ class GlobalPlayerManager: ObservableObject {
         let isYFlix = urlString.contains("rapidshare") || urlString.contains("prime37node") ||
                       (headers?["Origin"]?.contains("yflix") == true) ||
                       (headers?["Origin"]?.contains("rapidshare") == true)
-        let isAnimeKai = urlString.contains("megaup") || urlString.contains("megacdn") ||
-                         (headers?["Origin"]?.contains("animekai") == true) ||
-                         (headers?["Origin"]?.contains("megaup") == true)
-        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isAnimeKai
+        let isProtectedAnimeStream = urlString.contains("megaup") || urlString.contains("megacdn") ||
+                                     (headers?["Origin"]?.contains("megaup") == true)
+        let isVidzyOrLuluvid = urlString.contains("vidzy") || urlString.contains("luluvid") || isVidlink || isYFlix || isProtectedAnimeStream
         let isVercelProxy = urlString.contains("anisflix.vercel.app/api/proxy")
         let hasHeaders = (headers != nil && !headers!.isEmpty)
         
         var proxiedUrl: URL? = nil
         
-        if !isVercelProxy && (isVidzyOrLuluvid || hasHeaders) && serverUrl == nil {
+        // The LAN proxy URL is intended for Chromecast. Using it for local
+        // playback can be blocked by iOS' local-network privacy layer (and it
+        // also caused PlayerViewModel to proxy an already-proxied URL). Local
+        // HLS playback receives the required headers through AVURLAsset.
+        if castManager.isConnected && !isVercelProxy && (isVidzyOrLuluvid || hasHeaders) && serverUrl == nil {
             if let serverAppUrl = LocalStreamingServer.shared.serverUrl {
                 var components = URLComponents()
                 components.scheme = serverAppUrl.scheme
@@ -929,4 +932,3 @@ class GlobalPlayerManager: ObservableObject {
         }
     }
 }
-

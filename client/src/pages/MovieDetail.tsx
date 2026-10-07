@@ -42,7 +42,7 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isDarki?: boolean; isLuluvid?: boolean; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isVidzy?: boolean; isDarki?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -311,7 +311,7 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; provider?: string }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string }) => {
     setIsLoadingSource(true);
 
     // Check for provider-based sources that need extraction (FSVid, Bysebuho)
@@ -426,6 +426,12 @@ export default function MovieDetail() {
     }
 
     try {
+      if (source.isExternalEmbed) {
+        setSelectedSource({ ...source, type: 'embed' });
+        setIsLoadingSource(false);
+        return;
+      }
+
       // Si l'URL est déjà fournie (MovixDownload, Darki, AnimeAPI ou autres sources directes), on l'utilise directement
       // SAUF pour Vidzy (isFStream) qui nécessite une extraction m3u8, et Luluvid qui nécessite le proxy backend
       // Check for Luluvid by flag, provider OR name to be absolutely sure
@@ -473,18 +479,9 @@ export default function MovieDetail() {
         return;
       }
 
-      // Pour Vidzy, extraire le m3u8
-      if (source.isVidzy && source.type === "embed") {
-        console.log("🎬 Extraction Vidzy pour:", source.url);
-        const m3u8Url = await extractVidzyM3u8(source.url);
-        console.log("🎬 Résultat extraction Vidzy:", m3u8Url);
-        if (!m3u8Url) {
-          console.warn("⚠️ Aucun lien m3u8 trouvé pour Vidzy");
-          alert("Aucun lien de streaming trouvé pour cette source Vidzy");
-          setIsLoadingSource(false);
-          return;
-        }
-        setSelectedSource({ url: m3u8Url, type: "m3u8", name: source.name });
+      // Vidzy media URLs are IP-bound: use the provider embed for playback.
+      if (source.isVidzy || (source.isFStream && source.url?.includes('vidzy'))) {
+        setSelectedSource({ url: source.url, type: "embed", name: source.name, isVidzy: true, provider: 'vidzy' });
         setIsLoadingSource(false);
         return;
       }
@@ -773,7 +770,7 @@ export default function MovieDetail() {
                     backdropPath={movie.backdrop_path}
                     onClose={handleClosePlayer}
                   />
-                ) : selectedSource.type === 'embed' && selectedSource.isLuluvid ? (
+                ) : selectedSource.type === 'embed' && (selectedSource.isLuluvid || selectedSource.isVidzy || selectedSource.isExternalEmbed) ? (
                   <div className="aspect-video w-full bg-black rounded-lg overflow-hidden relative">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <iframe

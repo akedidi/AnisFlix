@@ -536,7 +536,7 @@ struct SeriesDetailView: View {
                     } else {
                         newHeaders["Referer"] = source.url // Fallback
                     }
-                    newHeaders["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                    newHeaders["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     finalHeaders = newHeaders
                 } else if source.provider == "vidmoly" {
                     print("🔍 [SeriesDetailView] Extracting VidMoly...")
@@ -787,9 +787,10 @@ struct SeriesDetailView: View {
         } else if source.provider.lowercased() == "mob" {
             let quality = formatQualityDisplay(source.quality)
             return "MOB - \(quality)"
-        } else if source.provider.lowercased() == "animekai" {
+        } else if ["animesama", "frenchanime", "streamzo"].contains(source.provider.lowercased()) {
             let quality = formatQualityDisplay(source.quality)
-            return "AnimeKai \(providerIndex) - \(quality) — \(source.language)"
+            let names = ["animesama": "Anime-Sama", "frenchanime": "French-Anime", "streamzo": "Streamzo"]
+            return "\(names[source.provider.lowercased()] ?? source.provider.capitalized) \(providerIndex) - \(quality) — \(source.language)"
         } else if source.provider.lowercased() == "animepahe" {
             let quality = formatQualityDisplay(source.quality)
             return "AnimePahe - \(quality) — \(source.language)"
@@ -895,7 +896,7 @@ struct SeriesDetailView: View {
                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
                                     if provider == "yflix" { return -1 } // YFlix: high priority
-                                    if provider == "animekai" || provider == "animepahe" { return 0 } // AnimeKai/Pahe: high priority for anime
+                                    if ["animesama", "frenchanime", "streamzo", "animepahe"].contains(provider) { return 0 }
                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                     if provider.contains("luluvid") { return 99 }
                                     return 5

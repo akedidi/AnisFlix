@@ -53,7 +53,7 @@ function _unpack(p, a, c, k) {
     while (c--) {
         if (k[c]) {
             // Standard packer uses base36 or similar.
-            let token = c.toString(a);
+            let token = toBase(c, a);
             try {
                 p = p.replace(new RegExp('\\b' + token + '\\b', 'g'), k[c]);
             } catch (e) {
