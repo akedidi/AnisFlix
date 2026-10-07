@@ -39,14 +39,13 @@ export function useFrenchProviders(
       const providers = isAnimation ? ['animesama', 'frenchanime', 'streamzo'] : ['streamzo'];
       const results = await Promise.allSettled(providers.map(async provider => {
         const params = new URLSearchParams({
-          path: 'french-provider',
           provider,
           tmdbId: String(id),
           type,
         });
         if (season !== undefined) params.set('season', String(season));
         if (episode !== undefined) params.set('episode', String(episode));
-        const response = await axios.get<FrenchProvidersResponse>('/api/movix-proxy', { params });
+        const response = await axios.get<FrenchProvidersResponse>('/api/french-provider', { params });
         return response.data.streams || [];
       }));
 
