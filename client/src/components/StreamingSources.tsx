@@ -650,7 +650,7 @@ const StreamingSources = memo(function StreamingSources({
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-vidzy-${key.toLowerCase()}-${vidzyCounter}`,
-              name: `Vidzy${vidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+              name: `French Stream · Vidzy${vidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'm3u8' as const,
@@ -674,7 +674,7 @@ const StreamingSources = memo(function StreamingSources({
       vostfrVidzyPlayers.forEach((player: any) => {
         allSources.push({
           id: `fstream-vidzy-vostfr-${vidzyCounter}`,
-          name: `Vidzy${vidzyCounter} (VOSTFR) - ${player.quality}`,
+          name: `French Stream · Vidzy${vidzyCounter} (VOSTFR) - ${player.quality}`,
           provider: 'fstream',
           url: player.url,
           type: 'm3u8' as const,
@@ -699,7 +699,7 @@ const StreamingSources = memo(function StreamingSources({
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-vidzy-vo-${vidzyCounter}`,
-              name: `Vidzy${vidzyCounter} (VO) - ${player.quality}`,
+              name: `French Stream · Vidzy${vidzyCounter} (VO) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'm3u8' as const,
@@ -721,7 +721,7 @@ const StreamingSources = memo(function StreamingSources({
     if (selectedLanguage === 'VF') {
       // Pour VF, chercher les clés VFQ et VFF pour les players premium
       const vfKeys = Object.keys(fStreamData.players).filter(key =>
-        key.startsWith('VF') || key === 'VF' || key === 'VFQ'
+        key.startsWith('VF') || key === 'VF' || key === 'VFQ' || key === 'Default'
       );
 
       console.log('VF keys for premium (including VFQ):', vfKeys);
@@ -736,7 +736,7 @@ const StreamingSources = memo(function StreamingSources({
           premiumPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-premium-${key.toLowerCase()}-${premiumCounter}`,
-              name: `FSVid${premiumCounter} (${key}) - ${player.quality}`,
+              name: `French Stream · FSVid${premiumCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'embed' as const,
@@ -760,7 +760,7 @@ const StreamingSources = memo(function StreamingSources({
       vostfrPremiumPlayers.forEach((player: any) => {
         allSources.push({
           id: `fstream-premium-vostfr-${premiumCounter}`,
-          name: `FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
+          name: `French Stream · FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
           provider: 'fstream',
           url: player.url,
           type: 'embed' as const,
@@ -793,7 +793,7 @@ const StreamingSources = memo(function StreamingSources({
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-vidzy-${key.toLowerCase()}-${episodeVidzyCounter}`,
-                name: `Vidzy${episodeVidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+                name: `French Stream · Vidzy${episodeVidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'm3u8' as const,
@@ -815,7 +815,7 @@ const StreamingSources = memo(function StreamingSources({
         vostfrVidzyPlayers.forEach((player: any) => {
           allSources.push({
             id: `fstream-episode-vidzy-vostfr-${episodeVidzyCounter}`,
-            name: `Vidzy${episodeVidzyCounter} (VOSTFR) - ${player.quality}`,
+            name: `French Stream · Vidzy${episodeVidzyCounter} (VOSTFR) - ${player.quality}`,
             provider: 'fstream',
             url: player.url,
             type: 'm3u8' as const,
@@ -840,7 +840,7 @@ const StreamingSources = memo(function StreamingSources({
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-vidzy-vo-${episodeVidzyCounter}`,
-                name: `Vidzy${episodeVidzyCounter} (VO) - ${player.quality}`,
+                name: `French Stream · Vidzy${episodeVidzyCounter} (VO) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'm3u8' as const,
@@ -877,7 +877,7 @@ const StreamingSources = memo(function StreamingSources({
             premiumPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-premium-${key.toLowerCase()}-${episodeFsvidCounter}`,
-                name: `FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+                name: `French Stream · FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'embed' as const,
@@ -899,7 +899,7 @@ const StreamingSources = memo(function StreamingSources({
         vostfrPremiumPlayers.forEach((player: any) => {
           allSources.push({
             id: `fstream-episode-premium-vostfr-${episodeFsvidCounter}`,
-            name: `FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
+            name: `French Stream · FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
             provider: 'fstream',
             url: player.url,
             type: 'embed' as const,
@@ -924,7 +924,7 @@ const StreamingSources = memo(function StreamingSources({
             premiumPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-premium-vo-${episodeFsvidCounter}`,
-                name: `FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
+                name: `French Stream · FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'embed' as const,
