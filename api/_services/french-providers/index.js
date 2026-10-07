@@ -3,6 +3,7 @@ import { VidzyExtractor } from '../universalvo/extractors/VidzyExtractor.js';
 import { extract_voe } from '../universalvo/extractors/voe.js';
 import { extract_streamwish } from '../universalvo/extractors/streamwish.js';
 import { isPacked, unpack } from '../universalvo/extractors/utils/packer.js';
+import { getGowaruFrenchStreamStreams } from '../frenchstream/index.js';
 
 const TMDB_API_KEY = '8265bd1679663a7ea12ac168da84d2e8';
 const ANIME_SAMA_BASE = 'https://anime-sama.to';
@@ -482,7 +483,10 @@ async function getStreamzoStreams(metadata, mediaType, season, episode) {
 }
 
 export async function getFrenchProviderStreams({ provider, tmdbId, mediaType = 'movie', season, episode }) {
-  if (!['animesama', 'frenchanime', 'streamzo'].includes(provider)) throw new Error(`Unsupported provider: ${provider}`);
+  if (!['animesama', 'frenchanime', 'frenchstream', 'streamzo'].includes(provider)) throw new Error(`Unsupported provider: ${provider}`);
+  if (provider === 'frenchstream') {
+    return getGowaruFrenchStreamStreams({ tmdbId, mediaType, season, episode });
+  }
   const metadata = await tmdbMetadata(tmdbId, mediaType, season);
   if (!metadata.titles.length) return [];
   if (provider === 'animesama') return getAnimeSamaStreams(metadata, mediaType, season, episode);

@@ -447,13 +447,14 @@ const StreamingSources = memo(function StreamingSources({
   // Créer la liste unifiée des sources
   const allSources: Source[] = [];
 
-  // Providers français natifs : Anime-Sama, French-Anime et Streamzo.
+  // Providers français natifs : Anime-Sama, French-Anime, French Stream et Streamzo.
   frenchProvidersData?.streams?.forEach((stream, index) => {
     const language = stream.language.toUpperCase();
     if (language !== selectedLanguage) return;
     const labels: Record<string, string> = {
       animesama: 'Anime-Sama',
       frenchanime: 'French-Anime',
+      frenchstream: 'French Stream',
       streamzo: 'Streamzo',
     };
     allSources.push({
@@ -654,7 +655,7 @@ const StreamingSources = memo(function StreamingSources({
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-vidzy-${key.toLowerCase()}-${vidzyCounter}`,
-              name: `French Stream · Vidzy${vidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+              name: `FStream Movix · Vidzy${vidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'm3u8' as const,
@@ -678,7 +679,7 @@ const StreamingSources = memo(function StreamingSources({
       vostfrVidzyPlayers.forEach((player: any) => {
         allSources.push({
           id: `fstream-vidzy-vostfr-${vidzyCounter}`,
-          name: `French Stream · Vidzy${vidzyCounter} (VOSTFR) - ${player.quality}`,
+          name: `FStream Movix · Vidzy${vidzyCounter} (VOSTFR) - ${player.quality}`,
           provider: 'fstream',
           url: player.url,
           type: 'm3u8' as const,
@@ -703,7 +704,7 @@ const StreamingSources = memo(function StreamingSources({
           vidzyPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-vidzy-vo-${vidzyCounter}`,
-              name: `French Stream · Vidzy${vidzyCounter} (VO) - ${player.quality}`,
+              name: `FStream Movix · Vidzy${vidzyCounter} (VO) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'm3u8' as const,
@@ -740,7 +741,7 @@ const StreamingSources = memo(function StreamingSources({
           premiumPlayers.forEach((player: any) => {
             allSources.push({
               id: `fstream-premium-${key.toLowerCase()}-${premiumCounter}`,
-              name: `French Stream · FSVid${premiumCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+              name: `FStream Movix · FSVid${premiumCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
               provider: 'fstream',
               url: player.url,
               type: 'embed' as const,
@@ -764,7 +765,7 @@ const StreamingSources = memo(function StreamingSources({
       vostfrPremiumPlayers.forEach((player: any) => {
         allSources.push({
           id: `fstream-premium-vostfr-${premiumCounter}`,
-          name: `French Stream · FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
+          name: `FStream Movix · FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
           provider: 'fstream',
           url: player.url,
           type: 'embed' as const,
@@ -797,7 +798,7 @@ const StreamingSources = memo(function StreamingSources({
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-vidzy-${key.toLowerCase()}-${episodeVidzyCounter}`,
-                name: `French Stream · Vidzy${episodeVidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+                name: `FStream Movix · Vidzy${episodeVidzyCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'm3u8' as const,
@@ -819,7 +820,7 @@ const StreamingSources = memo(function StreamingSources({
         vostfrVidzyPlayers.forEach((player: any) => {
           allSources.push({
             id: `fstream-episode-vidzy-vostfr-${episodeVidzyCounter}`,
-            name: `French Stream · Vidzy${episodeVidzyCounter} (VOSTFR) - ${player.quality}`,
+            name: `FStream Movix · Vidzy${episodeVidzyCounter} (VOSTFR) - ${player.quality}`,
             provider: 'fstream',
             url: player.url,
             type: 'm3u8' as const,
@@ -844,7 +845,7 @@ const StreamingSources = memo(function StreamingSources({
             vidzyPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-vidzy-vo-${episodeVidzyCounter}`,
-                name: `French Stream · Vidzy${episodeVidzyCounter} (VO) - ${player.quality}`,
+                name: `FStream Movix · Vidzy${episodeVidzyCounter} (VO) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'm3u8' as const,
@@ -881,7 +882,7 @@ const StreamingSources = memo(function StreamingSources({
             premiumPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-premium-${key.toLowerCase()}-${episodeFsvidCounter}`,
-                name: `French Stream · FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
+                name: `FStream Movix · FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'embed' as const,
@@ -903,7 +904,7 @@ const StreamingSources = memo(function StreamingSources({
         vostfrPremiumPlayers.forEach((player: any) => {
           allSources.push({
             id: `fstream-episode-premium-vostfr-${episodeFsvidCounter}`,
-            name: `French Stream · FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
+            name: `FStream Movix · FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
             provider: 'fstream',
             url: player.url,
             type: 'embed' as const,
@@ -928,7 +929,7 @@ const StreamingSources = memo(function StreamingSources({
             premiumPlayers.forEach((player: any) => {
               allSources.push({
                 id: `fstream-episode-premium-vo-${episodeFsvidCounter}`,
-                name: `French Stream · FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
+                name: `FStream Movix · FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
                 provider: 'fstream',
                 url: player.url,
                 type: 'embed' as const,
@@ -1307,7 +1308,7 @@ const StreamingSources = memo(function StreamingSources({
         return -1;
       }
 
-      if (['animesama', 'frenchanime', 'streamzo', 'vidlink'].includes(source.provider?.toLowerCase())) {
+      if (['animesama', 'frenchanime', 'frenchstream', 'streamzo', 'vidlink'].includes(source.provider?.toLowerCase())) {
         return 0.5;
       }
 

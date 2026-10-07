@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
 export interface FrenchProviderStream {
-  provider: 'animesama' | 'frenchanime' | 'streamzo';
+  provider: 'animesama' | 'frenchanime' | 'frenchstream' | 'streamzo';
   url: string;
   quality: string;
   language: 'VF' | 'VOSTFR' | 'VO' | string;
@@ -36,7 +36,9 @@ export function useFrenchProviders(
   return useQuery<FrenchProvidersResponse>({
     queryKey: ['french-providers', type, id, season, episode, isAnimation],
     queryFn: async () => {
-      const providers = isAnimation ? ['animesama', 'frenchanime', 'streamzo'] : ['streamzo'];
+      const providers = isAnimation
+        ? ['animesama', 'frenchanime', 'frenchstream', 'streamzo']
+        : ['frenchstream', 'streamzo'];
       const results = await Promise.allSettled(providers.map(async provider => {
         const params = new URLSearchParams({
           path: 'french-provider',
