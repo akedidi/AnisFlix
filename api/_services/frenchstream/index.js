@@ -1,9 +1,7 @@
-import { createRequire } from 'node:module';
+import gowaruFrenchStream from './provider.js';
 
 // Vendored from Gowaru/gowaru-nuvio-providers at eb36f837 (GPL-3.0).
-// The generated CommonJS provider is kept intact in provider.cjs.
-const require = createRequire(import.meta.url);
-const gowaruFrenchStream = require('./provider.cjs');
+// provider.js is the generated provider converted to ESM so Vercel bundles it.
 
 function languageFrom(stream) {
   const label = `${stream.title || ''} ${stream.name || ''}`
