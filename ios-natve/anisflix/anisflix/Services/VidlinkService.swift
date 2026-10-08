@@ -16,11 +16,14 @@ class VidlinkService {
     private let streamListApi = "https://anisflix.vercel.app/api/movix-proxy"
     
     private let headers = [
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
         "Connection": "keep-alive",
         "Referer": "https://vidlink.pro/",
-        "Origin": "https://vidlink.pro"
+        "Origin": "https://vidlink.pro",
+        "X-Playback-Environment": "webkit"
     ]
+
+    private let vidlinkMediaProxy = "https://flood.sourcerrr.online"
     
     private let qualityOrder: [String: Int] = ["4K": 5, "1440p": 4, "1080p": 3, "720p": 2, "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3]
     
@@ -98,9 +101,9 @@ class VidlinkService {
         
         let vidlinkUrl: URL
         if mediaType == "tv", let s = season, let e = episode {
-            vidlinkUrl = URL(string: "\(vidlinkApi)/tv/\(encryptedId)/\(s)/\(e)")!
+            vidlinkUrl = URL(string: "\(vidlinkApi)/tv/\(encryptedId)/\(s)/\(e)?multiLang=0")!
         } else {
-            vidlinkUrl = URL(string: "\(vidlinkApi)/movie/\(encryptedId)")!
+            vidlinkUrl = URL(string: "\(vidlinkApi)/movie/\(encryptedId)?multiLang=0")!
         }
         
         print("🌍 [VidlinkService] Requesting: \(vidlinkUrl.absoluteString)")
@@ -116,6 +119,15 @@ class VidlinkService {
         }
         
         let rawDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
+
+        // Current Vidlink WebKit responses use a signed DASH manifest. Apply
+        // Vidlink's own client-side rewrite locally so playback goes directly
+        // from their media relay to the iPhone.
+        if let rewrittenPlaylist = rewriteVidlinkPlaylist(rawDict) {
+            print("✅ [VidlinkService] Returning fresh WebKit DASH stream")
+            return [ExtractedSource(name: "Vidlink - Auto", url: rewrittenPlaylist, quality: "Auto")]
+        }
+
         let rawStreams = processVidlinkResponse(data: rawDict, title: streamTitle)
         
         if rawStreams.isEmpty { return [] }
@@ -134,7 +146,7 @@ class VidlinkService {
             }
         }
 
-        allSources = dedupeVidlinkSources(allSources).filter { !isExpiredSignedURL($0.url) }
+        allSources = dedupeVidlinkSources(allSources)
         
         // Sort
         allSources.sort { s1, s2 in
@@ -175,7 +187,10 @@ class VidlinkService {
 
         let payload = try JSONDecoder().decode(StreamListResponse.self, from: data)
         return (payload.streams ?? []).compactMap { item in
-            guard !isExpiredSignedURL(item.url) else { return nil }
+            guard !isExpiredSignedURL(item.url) else {
+                print("⚠️ [VidlinkService] Ignoring expired backend URL: \(item.quality ?? "Unknown")")
+                return nil
+            }
             return ExtractedSource(
                 name: item.name ?? "Vidlink - \(item.quality ?? "Auto")",
                 url: item.url,
@@ -185,12 +200,45 @@ class VidlinkService {
     }
 
     private func isExpiredSignedURL(_ value: String) -> Bool {
-        guard let components = URLComponents(string: value),
-              components.host?.lowercased().hasSuffix("hakunaymatata.com") == true,
-              let rawTimestamp = components.queryItems?.first(where: { $0.name == "t" })?.value,
-              rawTimestamp.count == 10,
-              let timestamp = TimeInterval(rawTimestamp) else { return false }
-        return timestamp <= Date().timeIntervalSince1970
+        guard let url = URL(string: value),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let rawExpiry = components.queryItems?.first(where: { $0.name.lowercased() == "t" })?.value,
+              let expiry = TimeInterval(rawExpiry) else { return false }
+        return expiry <= Date().timeIntervalSince1970
+    }
+
+    private func rewriteVidlinkPlaylist(_ data: [String: Any]) -> String? {
+        guard let stream = data["stream"] as? [String: Any],
+              stream["requiresProxy"] as? Bool == true,
+              let playlist = stream["playlist"] as? String,
+              let sourceURL = URL(string: playlist),
+              let sourceOrigin = sourceURL.scheme.flatMap({ scheme in
+                  sourceURL.host.map { host in
+                      let port = sourceURL.port.map { ":\($0)" } ?? ""
+                      return "\(scheme)://\(host)\(port)"
+                  }
+              }),
+              let playlistHeaders = stream["playlistHeaders"] as? [String: Any],
+              let cookie = (playlistHeaders["Cookie"] ?? playlistHeaders["cookie"]) as? String else {
+            return nil
+        }
+
+        let signCookie = Data(cookie.utf8).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+
+        var queryItems = URLComponents(url: sourceURL, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        queryItems.removeAll { $0.name == "host" || $0.name == "sc" }
+        queryItems.append(URLQueryItem(name: "host", value: sourceOrigin))
+        queryItems.append(URLQueryItem(name: "sc", value: signCookie))
+
+        var rewritten = URLComponents()
+        rewritten.scheme = "https"
+        rewritten.host = URL(string: vidlinkMediaProxy)?.host
+        rewritten.path = "/sacdn\(sourceURL.path)"
+        rewritten.queryItems = queryItems
+        return rewritten.url?.absoluteString
     }
     
     // MARK: - Helpers

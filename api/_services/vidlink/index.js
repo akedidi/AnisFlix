@@ -11,8 +11,14 @@ const VIDLINK_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
     "Connection": "keep-alive",
     "Referer": "https://vidlink.pro/",
-    "Origin": "https://vidlink.pro"
+    "Origin": "https://vidlink.pro",
+    // Vidlink now chooses the delivery format from this header.  WebKit gets
+    // a fresh signed DASH manifest, while the legacy/default response can
+    // contain already-expired MP4 links.
+    "X-Playback-Environment": "webkit"
 };
+
+const VIDLINK_MEDIA_PROXY = "https://flood.sourcerrr.online";
 
 const QUALITY_ORDER = { "4K": 5, "1440p": 4, "1080p": 3, "720p": 2, "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3 };
 
@@ -91,6 +97,39 @@ function extractQuality(streamData) {
         }
     }
     return "Unknown";
+}
+
+function base64UrlEncode(value) {
+    return Buffer.from(value, "utf8")
+        .toString("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+}
+
+/**
+ * Apply the same signed-media rewrite used by vidlink.pro's current player.
+ * The resulting URL points at Vidlink's own media relay; video bytes never
+ * pass through the AnisFlix API.
+ */
+export function rewriteVidlinkPlaylist(data) {
+    const stream = data?.stream;
+    if (!stream?.playlist || stream.requiresProxy !== true) return stream?.playlist || null;
+
+    let source;
+    try {
+        source = new URL(stream.playlist);
+    } catch {
+        return null;
+    }
+
+    const cookie = stream.playlistHeaders?.Cookie || stream.playlistHeaders?.cookie;
+    if (!cookie) return null;
+
+    const params = new URLSearchParams(source.search);
+    params.set("host", source.origin);
+    params.set("sc", base64UrlEncode(cookie));
+    return `${VIDLINK_MEDIA_PROXY}/sacdn${source.pathname}?${params.toString()}`;
 }
 
 function parseM3U8(content, baseUrl) {
@@ -191,12 +230,27 @@ export class VidlinkScraper {
                 : year ? `${title} (${year})` : title;
 
             let vidlinkUrl = mediaType === "tv" && season && episode
-                ? `${VIDLINK_API}/tv/${encryptedId}/${season}/${episode}`
-                : `${VIDLINK_API}/movie/${encryptedId}`;
+                ? `${VIDLINK_API}/tv/${encryptedId}/${season}/${episode}?multiLang=0`
+                : `${VIDLINK_API}/movie/${encryptedId}?multiLang=0`;
 
             console.log(`[Vidlink] Requesting: ${vidlinkUrl}`);
             const response = await makeRequest(vidlinkUrl, { headers: VIDLINK_HEADERS });
             const data = await response.json();
+
+            const rewrittenPlaylist = rewriteVidlinkPlaylist(data);
+            if (rewrittenPlaylist) {
+                console.log(`[Vidlink] Returning WebKit DASH through Vidlink media relay`);
+                return [{
+                    name: "Vidlink - Auto",
+                    title: streamTitle,
+                    url: rewrittenPlaylist,
+                    quality: "Auto",
+                    size: "Stream",
+                    type: "dash",
+                    provider: "vidlink",
+                    headers: VIDLINK_HEADERS
+                }];
+            }
 
             const rawStreams = processVidlinkResponse(data, streamTitle);
             if (rawStreams.length === 0) return [];

@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.85",
-          "buildVersion": "85",
+          "version": "1.0.87",
+          "buildVersion": "87",
           "date": "2026-10-08",
-          "size": 31038110,
+          "size": 31038154,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Ajout de French Stream sur iOS natif et correction de Vidlink : découverte des flux via le backend, lecture directe depuis l’iPhone."
+          "localizedDescription": "Correction Vidlink iOS : flux WebKit signé et lecture locale validée jusqu’au démarrage vidéo."
         }
       ]
     }

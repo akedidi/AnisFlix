@@ -1464,19 +1464,28 @@ class StreamingService {
                 // By providing a directUrl, CustomVideoPlayer will natively inject the HTTP headers 
                 let directUrl: String? = source.url
                 
-                let lowerURL = source.url.lowercased()
-                let needsVidlinkHeaders = lowerURL.contains("vidlink") || lowerURL.contains("vodvidl")
-                let headers: [String: String]? = needsVidlinkHeaders ? [
+                // Every URL returned by Vidlink belongs to the same playback
+                // session, including CDN hosts such as hakunaymatata.com.
+                let headers: [String: String] = [
                     "Referer": "https://vidlink.pro/",
                     "Origin": "https://vidlink.pro",
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-                ] : nil
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+                ]
+
+                let sourceType: String
+                if source.url.contains(".m3u8") {
+                    sourceType = "m3u8"
+                } else if source.url.contains(".mpd") {
+                    sourceType = "dash"
+                } else {
+                    sourceType = "mp4"
+                }
                 
                 let streamSource = StreamingSource(
                     url: urlToPlay,
                     directUrl: directUrl,
                     quality: source.quality ?? "Auto",
-                    type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                    type: sourceType,
                     provider: "vidlink",
                     language: "VO", // Vidlink is mainly VO
                     origin: "vidlink",
