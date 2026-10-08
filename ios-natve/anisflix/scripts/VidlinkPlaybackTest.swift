@@ -177,8 +177,34 @@ private func verifyPlayback(_ url: URL) throws {
     }
     print("✅ Manifeste accessible: \(manifest.count) octets")
 
+    // Reproduce the application path: the MPD is stored locally and every
+    // child DASH request goes through LocalStreamingServer so VLC receives
+    // the Vidlink headers on init and media segments.
+    guard let manifestText = String(data: manifest, encoding: .utf8),
+          let scheme = url.scheme,
+          let host = url.host else {
+        throw TestFailure.playback("impossible de préparer le manifeste local")
+    }
+    LocalStreamingServer.shared.start()
+    defer { LocalStreamingServer.shared.stop() }
+    let remoteOrigin = "\(scheme)://\(host)"
+    let absoluteManifest = manifestText
+        .replacingOccurrences(of: "=\"/sacdn/", with: "=\"\(remoteOrigin)/sacdn/")
+    let proxiedManifest = LocalStreamingServer.shared.proxyDASHSegmentTemplates(
+        in: absoluteManifest,
+        headers: browserHeaders
+    )
+    guard proxiedManifest.contains("http://127.0.0.1:") else {
+        throw TestFailure.playback("les segments DASH ne passent pas par le proxy local")
+    }
+    let localManifest = FileManager.default.temporaryDirectory
+        .appendingPathComponent("anisflix-vidlink-playback-\(UUID().uuidString).mpd")
+    try proxiedManifest.write(to: localManifest, atomically: true, encoding: .utf8)
+    defer { try? FileManager.default.removeItem(at: localManifest) }
+    print("✅ Manifeste réécrit vers le proxy local iPhone")
+
     let probe = PlaybackProbe()
-    let media = VLCMedia(url: url)
+    let media = VLCMedia(url: localManifest)
     media.addOptions([
         "network-caching": 3_000,
         "http-user-agent": browserHeaders["User-Agent"]!,
@@ -208,15 +234,20 @@ private func verifyPlayback(_ url: URL) throws {
     print("✅ Playback vidéo atteint \(milliseconds) ms")
 }
 
-let tmdbID = CommandLine.arguments.dropFirst().first ?? "1458857"
-print("🎬 Test Vidlink iOS — TMDB \(tmdbID)")
-do {
-    let url = try backendStream(tmdbID: tmdbID) ?? discoverWebKitStream(tmdbID: tmdbID)
-    print("🔗 Lecture directe: \(url.host ?? "inconnu")\(url.path)")
-    try verifyPlayback(url)
-    print("\n✅ TEST RÉUSSI: le flux démarre réellement sur le lecteur iOS")
-    exit(0)
-} catch {
-    print("\n❌ TEST ÉCHOUÉ: \(error)")
-    exit(1)
+@main
+private enum VidlinkPlaybackTest {
+    static func main() {
+        let tmdbID = CommandLine.arguments.dropFirst().first ?? "1458857"
+        print("🎬 Test Vidlink iOS — TMDB \(tmdbID)")
+        do {
+            let url = try backendStream(tmdbID: tmdbID) ?? discoverWebKitStream(tmdbID: tmdbID)
+            print("🔗 Lecture directe: \(url.host ?? "inconnu")\(url.path)")
+            try verifyPlayback(url)
+            print("\n✅ TEST RÉUSSI: le flux démarre réellement sur le lecteur iOS")
+            exit(0)
+        } catch {
+            print("\n❌ TEST ÉCHOUÉ: \(error)")
+            exit(1)
+        }
+    }
 }

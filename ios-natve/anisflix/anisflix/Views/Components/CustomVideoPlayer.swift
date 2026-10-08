@@ -1843,6 +1843,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         // Cleanup any existing VLC player
         cleanupVLC()
         useVLC = true
+        // The VLC PiP controller is created only after the first decoded
+        // frame. Creating it while attaching the initial drawable can block
+        // MobileVLCKit before playback starts on a physical iPhone.
+        isPiPAvailable = false
         isInitialLoading = true
         pendingVLCSeekTime = nil
         pendingVLCSeekTarget = nil
@@ -1862,13 +1866,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         print("🎬 [PlayerVM] VLCMedia created for: \(url.absoluteString)")
         
         // Set network caching and user agent
-        let isVidlink = url.absoluteString.lowercased().contains("vidlink")
-            || customHeaders?["Origin"]?.lowercased().contains("vidlink") == true
         var options: [String: Any] = [
-            // Vidlink DASH already consists of short independent segments.
-            // A three-second VLC cache adds visible startup latency on top of
-            // the CDN handshake without improving stability.
-            "network-caching": isVidlink ? 1_000 : 3_000,
+            // Keep the value used by the stable 1.0.92 playback path.
+            "network-caching": 3_000,
             "avcodec-hw": "any",
             "http-user-agent": customHeaders?["User-Agent"] ?? customHeaders?["user-agent"] ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
         ]
@@ -1936,6 +1936,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                 if time > 0 && hasVideoFrame {
                     self.isInitialLoading = false
                     self.isBuffering = false
+                    self.prepareVLCPiPAfterFirstFrame()
                 }
                 
                 // Update playing state based on VLC state
@@ -1975,8 +1976,6 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     /// bound to an unusable surface, which results in a black screen.
     func attachVLCDrawable(_ view: UIView) {
         guard let vlc = vlcPlayer, useVLC else { return }
-
-        setupVLCPiP(with: view)
 
         if let attachedVLCDrawable,
            attachedVLCDrawable !== view,
@@ -2060,6 +2059,23 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         pipUsesVLC = true
         isPiPAvailable = true
         print("✅ [PlayerVM] VLC Picture in Picture ready")
+    }
+
+    /// PiP must not participate in VLC startup. It becomes available only
+    /// after MobileVLCKit has decoded and displayed a real video frame on the
+    /// normal inline surface.
+    private func prepareVLCPiPAfterFirstFrame() {
+        guard useVLC,
+              !pipUsesVLC,
+              let vlc = vlcPlayer,
+              vlc.hasVideoOut,
+              vlc.videoSize.width > 0,
+              vlc.videoSize.height > 0,
+              vlc.time.intValue > 0,
+              let inlineView = attachedVLCDrawable,
+              inlineView.window != nil,
+              vlc.drawable as? UIView === inlineView else { return }
+        setupVLCPiP(with: inlineView)
     }
 
     private func activateVLCPiPDrawable(_ renderView: VLCPictureInPictureRenderView) {
@@ -2186,6 +2202,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
              DispatchQueue.main.async {
                  self.isInitialLoading = false
                  self.isBuffering = false
+                 self.prepareVLCPiPAfterFirstFrame()
+             }
+        } else if hasVideoFrame && !pipUsesVLC {
+             DispatchQueue.main.async {
+                 self.prepareVLCPiPAfterFirstFrame()
              }
         }
     }
