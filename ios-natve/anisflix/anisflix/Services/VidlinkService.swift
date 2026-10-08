@@ -14,6 +14,7 @@ class VidlinkService {
     private let encDecApi = "https://enc-dec.app/api"
     private let vidlinkApi = "https://vidlink.pro/api/b"
     private let streamListApi = "https://anisflix.vercel.app/api/movix-proxy"
+    private let discoveryProxy = "https://anisflix.kedidi-anis.workers.dev/"
     
     private let headers = [
         "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
@@ -106,17 +107,8 @@ class VidlinkService {
             vidlinkUrl = URL(string: "\(vidlinkApi)/movie/\(encryptedId)?multiLang=0")!
         }
         
-        print("🌍 [VidlinkService] Requesting: \(vidlinkUrl.absoluteString)")
-        var request = URLRequest(url: vidlinkUrl)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.allHTTPHeaderFields = headers
-        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
-        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
-        
-        let (data, response) = try await session.data(for: request)
-        guard let httpRes = response as? HTTPURLResponse, httpRes.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
+        print("🌍 [VidlinkService] Requesting discovery list: \(vidlinkUrl.absoluteString)")
+        let data = try await fetchDiscoveryResponse(targetURL: vidlinkUrl)
         
         let rawDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
 
@@ -197,6 +189,33 @@ class VidlinkService {
                 quality: item.quality ?? "Auto"
             )
         }
+    }
+
+    /// Fetches Vidlink metadata through the existing discovery relay. Only
+    /// the JSON stream list crosses this relay; media playback uses the URL
+    /// returned by Vidlink and stays local on the iPhone.
+    private func fetchDiscoveryResponse(targetURL: URL) async throws -> Data {
+        guard var components = URLComponents(string: discoveryProxy) else { throw URLError(.badURL) }
+        components.queryItems = [
+            URLQueryItem(name: "path", value: "mob"),
+            URLQueryItem(name: "method", value: "GET"),
+            URLQueryItem(name: "url", value: targetURL.absoluteString)
+        ]
+        guard let proxyURL = components.url else { throw URLError(.badURL) }
+
+        let body = try JSONSerialization.data(withJSONObject: [
+            "headers": headers,
+            "body": NSNull()
+        ])
+        var request = URLRequest(url: proxyURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
+        request.httpMethod = "POST"
+        request.httpBody = body
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
+        return data
     }
 
     private func isExpiredSignedURL(_ value: String) -> Bool {

@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.87",
-          "buildVersion": "87",
+          "version": "1.0.88",
+          "buildVersion": "88",
           "date": "2026-10-08",
-          "size": 31038154,
+          "size": 31040039,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Correction Vidlink iOS : flux WebKit signé et lecture locale validée jusqu’au démarrage vidéo."
+          "localizedDescription": "Correction Vidlink iOS : flux DASH signé, découverte backend uniquement et lecture locale validée jusqu’au démarrage vidéo."
         }
       ]
     }
