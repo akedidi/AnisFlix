@@ -33,7 +33,13 @@ struct PlayerContentView: View {
                 CastPlaceholderView()
             } else if playerVM.useVLC, let vlcPlayer = playerVM.vlcPlayer {
                 // VLC Player for MKV/unsupported formats
-                VLCVideoViewWrapper(player: vlcPlayer, isZoomedToFill: isZoomedToFill)
+                VLCVideoViewWrapper(
+                    player: vlcPlayer,
+                    isZoomedToFill: isZoomedToFill,
+                    onDrawableReady: { view in
+                        playerVM.attachVLCDrawable(view)
+                    }
+                )
                     .background(Color.black)
                     .ignoresSafeArea(.all, edges: .all)
             } else {
@@ -87,28 +93,19 @@ struct PlayerContentView: View {
 struct VLCVideoViewWrapper: UIViewRepresentable {
     let player: VLCMediaPlayer
     var isZoomedToFill: Bool = false
+    let onDrawableReady: (UIView) -> Void
     
     func makeUIView(context: Context) -> UIView {
         let view = VLCRenderView()
         view.backgroundColor = .black
         view.player = player
+        view.onDrawableReady = onDrawableReady
         view.contentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
         view.clipsToBounds = true
-        
-        // Force drawable assignment immediately if possible
-        print("🎬 [VLCVideoViewWrapper] makeUIView - assigning player and drawable")
-        player.drawable = view
-        
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Ensure drawable is always set to current view
-        if player.drawable as? UIView !== uiView {
-            print("🎬 [VLCVideoViewWrapper] updateUIView - Reassigning drawable (was mismatch)")
-            player.drawable = uiView
-        }
-        
         // Update content mode based on zoom state
         let targetMode: UIView.ContentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
         if uiView.contentMode != targetMode {
@@ -117,59 +114,59 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
         
         // Also update the player property on the view in case it changed
         if let renderView = uiView as? VLCRenderView {
-            if renderView.player != player {
+            renderView.onDrawableReady = onDrawableReady
+            if renderView.player !== player {
                 print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
                 renderView.player = player
-                player.drawable = renderView
             }
+            renderView.attachDrawableIfReady()
         }
+    }
+
+    static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
+        (uiView as? VLCRenderView)?.detachDrawable()
     }
 }
 
 // Custom UIView that sets VLC drawable when added to window
 class VLCRenderView: UIView {
-    weak var player: VLCMediaPlayer?
-    private var hasStartedPlayback = false
+    weak var player: VLCMediaPlayer? {
+        didSet {
+            guard oldValue !== player else { return }
+            if oldValue?.drawable as? UIView === self {
+                oldValue?.drawable = nil
+            }
+            attachDrawableIfReady()
+        }
+    }
+    var onDrawableReady: ((UIView) -> Void)?
     
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil {
             print("🎬 [VLCRenderView] didMoveToWindow - window attached, bounds: \(bounds)")
-            // Defer drawable assignment to next run loop to allow layer setup
             DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                print("🎬 [VLCRenderView] Setting drawable (deferred)")
-                self.player?.drawable = self
-                self.checkAndStartPlayback()
+                self?.attachDrawableIfReady()
             }
+        } else {
+            detachDrawable()
         }
     }
     
-    private func checkAndStartPlayback() {
-        guard let player = player, !hasStartedPlayback else { return }
-        
-        hasStartedPlayback = true
-        // Longer delay to ensure OpenGL context is created
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            print("▶️ [VLCRenderView] Attempting to start playback...")
-            if player.state != .playing {
-                player.play()
-                print("▶️ [VLCRenderView] play() called")
-            }
-        }
+    func attachDrawableIfReady() {
+        guard window != nil, bounds.width > 0, bounds.height > 0, player != nil else { return }
+        onDrawableReady?(self)
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        if window != nil && bounds.width > 0 && bounds.height > 0 {
-            if player?.drawable as? UIView !== self {
-                print("🎬 [VLCRenderView] layoutSubviews - reassigning drawable")
-                player?.drawable = self
-            }
-            // Ensure playback starts if it hasn't yet (e.g. if didMoveToWindow didn't trigger it)
-            checkAndStartPlayback()
+        attachDrawableIfReady()
+    }
+
+    func detachDrawable() {
+        if player?.drawable as? UIView === self {
+            player?.drawable = nil
         }
     }
 }
-
 

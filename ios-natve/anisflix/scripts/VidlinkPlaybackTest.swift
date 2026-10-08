@@ -194,10 +194,17 @@ private func verifyPlayback(_ url: URL) throws {
     }
     let milliseconds = probe.player.time.intValue
     let state = VLCMediaPlayerStateToString(probe.player.state)
+    let hasVideoOutput = probe.player.hasVideoOut
+    let videoSize = probe.player.videoSize
     probe.player.stop()
-    guard milliseconds >= 1_000, probe.failure == nil else {
+    guard milliseconds >= 1_000,
+          probe.failure == nil,
+          hasVideoOutput,
+          videoSize.width > 0,
+          videoSize.height > 0 else {
         throw TestFailure.playback(probe.failure ?? "délai dépassé (\(state), \(milliseconds) ms)")
     }
+    print("✅ Sortie vidéo active: \(Int(videoSize.width))×\(Int(videoSize.height))")
     print("✅ Playback vidéo atteint \(milliseconds) ms")
 }
 

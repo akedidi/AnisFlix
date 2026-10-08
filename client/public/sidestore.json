@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.89",
-          "buildVersion": "89",
+          "version": "1.0.91",
+          "buildVersion": "91",
           "date": "2026-10-08",
-          "size": 31011927,
+          "size": 31012316,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Lecteur AnisFlix unifié : prise en charge intégrée de MobileVLCKit pour DASH et les formats incompatibles avec AVPlayer, bascule automatique et lecture des téléchargements avec la même interface."
+          "localizedDescription": "Correction de l’écran noir Vidlink/VLC : démarrage après attachement de la surface vidéo visible, avec reconnexion fiable lors des changements de vue."
         }
       ]
     }

@@ -827,6 +827,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     @Published var vlcPlayer: VLCMediaPlayer?
     private var vlcTimeObserver: Timer?
     private var pendingVLCSeekTime: Double?
+    private var vlcPlaybackRequested = false
     private var hasAttemptedVLCFallback = false
     private var avFallbackWorkItem: DispatchWorkItem?
     
@@ -1732,7 +1733,15 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
 
     func resumePlayback() {
         if useVLC, let vlc = vlcPlayer {
+            vlcPlaybackRequested = true
+            guard vlc.drawable != nil else {
+                isPlaying = false
+                isBuffering = true
+                print("⏳ [PlayerVM] VLC waiting for its visible drawable")
+                return
+            }
             vlc.play()
+            vlcPlaybackRequested = false
         } else {
             player.play()
         }
@@ -1741,6 +1750,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
 
     func pausePlayback() {
         if useVLC, let vlc = vlcPlayer {
+            vlcPlaybackRequested = false
             vlc.pause()
         } else {
             player.pause()
@@ -1749,6 +1759,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     }
 
     func stopPlayback() {
+        vlcPlaybackRequested = false
         if vlcPlayer != nil {
             cleanupVLC()
         }
@@ -1780,6 +1791,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         cleanupVLC()
         useVLC = true
         pendingVLCSeekTime = nil
+        vlcPlaybackRequested = true
         
         print("🎬 [PlayerVM] Creating new VLC player...")
         // Create new VLC player
@@ -1886,8 +1898,27 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         print("✅ [PlayerVM] VLC player setup complete - Waiting for View to attach drawable")
     }
+
+    /// MobileVLCKit must receive a visible, laid-out UIView before playback
+    /// starts. Starting earlier can decode audio while leaving video output
+    /// bound to an unusable surface, which results in a black screen.
+    func attachVLCDrawable(_ view: UIView) {
+        guard let vlc = vlcPlayer, useVLC else { return }
+
+        let drawableChanged = vlc.drawable as? UIView !== view
+        if drawableChanged {
+            print("🎬 [PlayerVM] Attaching VLC to visible drawable: \(view.bounds)")
+            vlc.drawable = view
+        }
+
+        guard vlcPlaybackRequested || drawableChanged else { return }
+        vlcPlaybackRequested = false
+        print("▶️ [PlayerVM] Starting VLC after drawable attachment")
+        vlc.play()
+    }
     
     private func cleanupVLC() {
+        vlcPlaybackRequested = false
         vlcTimeObserver?.invalidate()
         vlcTimeObserver = nil
         vlcPlayer?.stop()
