@@ -38,6 +38,9 @@ struct PlayerContentView: View {
                     isZoomedToFill: isZoomedToFill,
                     onDrawableReady: { view in
                         playerVM.attachVLCDrawable(view)
+                    },
+                    onDrawableDetached: { view in
+                        playerVM.detachVLCDrawable(view)
                     }
                 )
                     .background(Color.black)
@@ -94,12 +97,14 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
     let player: VLCMediaPlayer
     var isZoomedToFill: Bool = false
     let onDrawableReady: (UIView) -> Void
+    let onDrawableDetached: (UIView) -> Void
     
     func makeUIView(context: Context) -> UIView {
         let view = VLCRenderView()
         view.backgroundColor = .black
         view.player = player
         view.onDrawableReady = onDrawableReady
+        view.onDrawableDetached = onDrawableDetached
         view.contentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
         view.clipsToBounds = true
         return view
@@ -115,6 +120,7 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
         // Also update the player property on the view in case it changed
         if let renderView = uiView as? VLCRenderView {
             renderView.onDrawableReady = onDrawableReady
+            renderView.onDrawableDetached = onDrawableDetached
             if renderView.player !== player {
                 print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
                 renderView.player = player
@@ -140,6 +146,7 @@ class VLCRenderView: UIView {
         }
     }
     var onDrawableReady: ((UIView) -> Void)?
+    var onDrawableDetached: ((UIView) -> Void)?
     
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -164,9 +171,6 @@ class VLCRenderView: UIView {
     }
 
     func detachDrawable() {
-        if player?.drawable as? UIView === self {
-            player?.drawable = nil
-        }
+        onDrawableDetached?(self)
     }
 }
-

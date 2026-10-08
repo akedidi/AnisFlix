@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.91",
-          "buildVersion": "91",
+          "version": "1.0.92",
+          "buildVersion": "92",
           "date": "2026-10-08",
-          "size": 31012316,
+          "size": 31040748,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Correction de l’écran noir Vidlink/VLC : démarrage après attachement de la surface vidéo visible, avec reconnexion fiable lors des changements de vue."
+          "localizedDescription": "Correction de la lecture et du téléchargement Anime-Sama et French-Anime, avec les correctifs Vidlink pour l’image, la pause, la navigation et les résolutions."
         }
       ]
     }

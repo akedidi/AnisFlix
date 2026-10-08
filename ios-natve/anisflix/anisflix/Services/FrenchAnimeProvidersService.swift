@@ -8,6 +8,8 @@
 //
 
 import Foundation
+import Network
+import Security
 
 final class FrenchAnimeProvidersService {
     static let shared = FrenchAnimeProvidersService()
@@ -167,14 +169,42 @@ final class FrenchAnimeProvidersService {
                 }
             }
             if !direct.isEmpty {
-                print("🎌 [FrenchAnime] Returning \(direct.count) direct stream(s)")
-                return dedupe(direct)
+                let playable = await playableSources(dedupe(direct), provider: "FrenchAnime")
+                if !playable.isEmpty {
+                    print("🎌 [FrenchAnime] Returning \(playable.count) direct stream(s)")
+                    return playable
+                }
             }
         }
 
         let fallback = await getCoflixFallback(metadata: metadata, mediaType: mediaType, season: targetSeason, episode: targetEpisode)
-        print("🎌 [FrenchAnime] Coflix fallback returned \(fallback.count) stream(s)")
-        return fallback
+        let playableFallback = await playableSources(dedupe(fallback), provider: "FrenchAnime/Coflix")
+        if !playableFallback.isEmpty {
+            print("🎌 [FrenchAnime] Coflix fallback returned \(playableFallback.count) stream(s)")
+            return playableFallback
+        }
+
+        // The French-Anime catalogue can point at a temporarily blocked host.
+        // Keep the provider usable by resolving the same episode locally from
+        // Anime-Sama, then retain the French-Anime label in the source picker.
+        let animeFallback = await getAnimeSamaStreams(
+            tmdbId: tmdbId,
+            mediaType: mediaType,
+            season: season,
+            episode: episode
+        ).map {
+            ExtractedSource(
+                provider: "frenchanime",
+                url: $0.url,
+                quality: $0.quality,
+                language: $0.language,
+                type: $0.type,
+                headers: $0.headers
+            )
+        }
+        let playableAnimeFallback = await playableSources(dedupe(animeFallback), provider: "FrenchAnime/Anime-Sama")
+        print("🎌 [FrenchAnime] Local fallback returned \(playableAnimeFallback.count) stream(s)")
+        return playableAnimeFallback
     }
 
     func getStreamzoStreams(
@@ -525,6 +555,36 @@ final class FrenchAnimeProvidersService {
         return playable
     }
 
+    private func playableSources(_ sources: [ExtractedSource], provider: String) async -> [ExtractedSource] {
+        var playable: [ExtractedSource] = []
+        for source in sources {
+            guard let url = URL(string: source.url) else { continue }
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 18
+            request.setValue("bytes=0-8191", forHTTPHeaderField: "Range")
+            source.headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+
+            guard let (data, response) = try? await session.data(for: request),
+                  let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  !data.isEmpty else {
+                print("⚠️ [\(provider)] Discarding blocked source: \(url.host ?? source.url)")
+                continue
+            }
+            let prefix = String(decoding: data.prefix(8192), as: UTF8.self)
+            let contentType = http.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            if prefix.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#EXTM3U")
+                || contentType.hasPrefix("video/")
+                || contentType.contains("mpegurl")
+                || contentType.contains("octet-stream") {
+                playable.append(source)
+            } else {
+                print("⚠️ [\(provider)] Discarding invalid response: \(contentType)")
+            }
+        }
+        return playable
+    }
+
     // MARK: - Embed resolution
 
     private struct Resolved {
@@ -645,6 +705,23 @@ final class FrenchAnimeProvidersService {
             guard (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
             return String(decoding: data, as: UTF8.self)
         } catch {
+            // Cisco/OpenDNS can replace french-anime.com's DNS response with
+            // its block page. Connect to Cloudflare directly while keeping the
+            // real TLS server name and HTTP Host, so extraction still happens
+            // on the iPhone and the returned embed tokens belong to its IP.
+            if FrenchAnimeDirectHTTPClient.supports(url.host),
+               let direct = try? await FrenchAnimeDirectHTTPClient.fetch(
+                    url: url,
+                    method: method,
+                    body: body,
+                    headers: headers,
+                    referer: referer,
+                    userAgent: userAgent
+               ) {
+                print("✅ [FrenchAnime] Direct DNS bypass: \(url.path)")
+                return direct
+            }
+
             // Some catalogue domains are blocked by residential DNS filters or
             // reject iOS URLSession while remaining reachable from our backend.
             // GET pages can safely use the existing same-origin text proxy.
@@ -854,6 +931,180 @@ final class FrenchAnimeProvidersService {
         if let value = value as? String { return Int(value) }
         if let value = value as? NSNumber { return value.intValue }
         return nil
+    }
+}
+
+/// Minimal HTTPS client used only for french-anime.com when the system DNS is
+/// replaced by a filtering resolver. `NWConnection` lets us connect to the
+/// site's Cloudflare address while preserving french-anime.com as TLS SNI.
+private final class FrenchAnimeDirectHTTPClient {
+    private static let cloudflareAddresses: [String: [String]] = [
+        "french-anime.com": ["104.21.57.53", "172.67.159.108"],
+        "hgcloud.to": ["104.21.45.12", "172.67.207.73"],
+        "savefiles.com": ["104.26.10.63", "104.26.11.63", "172.67.69.198"],
+        "anime-sama.to": ["104.26.12.154", "104.26.13.154", "172.67.71.129"]
+    ]
+
+    private final class RequestState: @unchecked Sendable {
+        var data = Data()
+        var finished = false
+    }
+
+    static func supports(_ host: String?) -> Bool {
+        guard let host else { return false }
+        return cloudflareAddresses[host.lowercased()] != nil
+    }
+
+    static func fetch(
+        url: URL,
+        method: String,
+        body: Data?,
+        headers: [String: String],
+        referer: String?,
+        userAgent: String
+    ) async throws -> String {
+        guard let host = url.host?.lowercased(),
+              let addresses = cloudflareAddresses[host] else { throw URLError(.unsupportedURL) }
+        var lastError: Error = URLError(.cannotConnectToHost)
+        for address in addresses {
+            do {
+                return try await request(
+                    address: address,
+                    host: host,
+                    url: url,
+                    method: method,
+                    body: body,
+                    headers: headers,
+                    referer: referer,
+                    userAgent: userAgent
+                )
+            } catch {
+                lastError = error
+            }
+        }
+        throw lastError
+    }
+
+    private static func request(
+        address: String,
+        host: String,
+        url: URL,
+        method: String,
+        body: Data?,
+        headers: [String: String],
+        referer: String?,
+        userAgent: String
+    ) async throws -> String {
+        let tls = NWProtocolTLS.Options()
+        sec_protocol_options_set_tls_server_name(tls.securityProtocolOptions, host)
+        let parameters = NWParameters(tls: tls, tcp: NWProtocolTCP.Options())
+        let connection = NWConnection(host: NWEndpoint.Host(address), port: .https, using: parameters)
+        let queue = DispatchQueue(label: "com.anisflix.frenchanime.direct")
+        let state = RequestState()
+
+        return try await withCheckedThrowingContinuation { continuation in
+            func finish(_ result: Result<String, Error>) {
+                guard !state.finished else { return }
+                state.finished = true
+                connection.cancel()
+                continuation.resume(with: result)
+            }
+
+            func receiveNext() {
+                connection.receive(minimumIncompleteLength: 1, maximumLength: 256 * 1024) { data, _, complete, error in
+                    if let data { state.data.append(data) }
+                    if let error {
+                        finish(.failure(error))
+                    } else if complete {
+                        do { finish(.success(try decodeHTTPResponse(state.data))) }
+                        catch { finish(.failure(error)) }
+                    } else {
+                        receiveNext()
+                    }
+                }
+            }
+
+            connection.stateUpdateHandler = { connectionState in
+                switch connectionState {
+                case .ready:
+                    let payload = body ?? Data()
+                    var requestHeaders = headers
+                    requestHeaders["Host"] = host
+                    requestHeaders["User-Agent"] = userAgent
+                    requestHeaders["Accept-Encoding"] = "identity"
+                    requestHeaders["Connection"] = "close"
+                    if let referer { requestHeaders["Referer"] = referer }
+                    if body != nil { requestHeaders["Content-Length"] = String(payload.count) }
+
+                    let path = url.path.isEmpty ? "/" : url.path
+                    let target = url.query.map { "\(path)?\($0)" } ?? path
+                    var head = "\(method) \(target) HTTP/1.1\r\n"
+                    for (name, value) in requestHeaders where !name.contains("\r") && !value.contains("\r") {
+                        head += "\(name): \(value)\r\n"
+                    }
+                    head += "\r\n"
+                    var requestData = Data(head.utf8)
+                    requestData.append(payload)
+                    connection.send(content: requestData, completion: .contentProcessed { error in
+                        if let error { finish(.failure(error)) }
+                        else { receiveNext() }
+                    })
+                case .failed(let error):
+                    finish(.failure(error))
+                default:
+                    break
+                }
+            }
+
+            queue.asyncAfter(deadline: .now() + 20) {
+                finish(.failure(URLError(.timedOut)))
+            }
+            connection.start(queue: queue)
+        }
+    }
+
+    private static func decodeHTTPResponse(_ response: Data) throws -> String {
+        let separator = Data([13, 10, 13, 10])
+        guard let boundary = response.range(of: separator) else { throw URLError(.cannotParseResponse) }
+        let headerData = response[..<boundary.lowerBound]
+        guard let header = String(data: headerData, encoding: .utf8) else { throw URLError(.cannotParseResponse) }
+        let statusComponents = header.components(separatedBy: "\r\n").first?.split(separator: " ") ?? []
+        guard statusComponents.count >= 2, let status = Int(statusComponents[1]), (200..<300).contains(status) else {
+            throw URLError(.badServerResponse)
+        }
+
+        var body = Data(response[boundary.upperBound...])
+        if header.range(of: "transfer-encoding: chunked", options: .caseInsensitive) != nil {
+            body = try decodeChunkedBody(body)
+        }
+        return String(decoding: body, as: UTF8.self)
+    }
+
+    private static func decodeChunkedBody(_ input: Data) throws -> Data {
+        let lineBreak = Data([13, 10])
+        var cursor = input.startIndex
+        var output = Data()
+
+        while cursor < input.endIndex {
+            guard let lineRange = input[cursor...].range(of: lineBreak),
+                  let sizeLine = String(data: input[cursor..<lineRange.lowerBound], encoding: .ascii),
+                  let size = Int(sizeLine.split(separator: ";", maxSplits: 1)[0], radix: 16) else {
+                throw URLError(.cannotParseResponse)
+            }
+            cursor = lineRange.upperBound
+            if size == 0 { return output }
+            guard size <= input.distance(from: cursor, to: input.endIndex) else {
+                throw URLError(.cannotParseResponse)
+            }
+            let end = input.index(cursor, offsetBy: size)
+            output.append(input[cursor..<end])
+            cursor = end
+            guard cursor < input.endIndex,
+                  let nextBreak = input[cursor...].range(of: lineBreak),
+                  nextBreak.lowerBound == cursor else { throw URLError(.cannotParseResponse) }
+            cursor = nextBreak.upperBound
+        }
+        return output
     }
 }
 

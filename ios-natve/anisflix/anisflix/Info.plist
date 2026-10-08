@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.91</string>
+	<string>1.0.92</string>
 	<key>CFBundleVersion</key>
-	<string>91</string>
+	<string>92</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>youtube</string>

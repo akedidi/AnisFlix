@@ -930,7 +930,7 @@ class DownloadManager: NSObject, ObservableObject {
     private static func shouldUseLocalProxyForDownload(provider: String?) -> Bool {
         let p = provider?.lowercased() ?? ""
         return ["vidmoly", "vidlink", "yflix", "vidzy", "luluvid", "lulustream", "afterdark",
-                "animepahe", "animesama", "frenchanime", "frenchstream", "streamzo", "moviebox", "fsvid", "hianime"].contains(p)
+                "animepahe", "frenchstream", "streamzo", "moviebox", "fsvid", "hianime"].contains(p)
     }
     
     private static func isDirectMP4(_ url: String) -> Bool {

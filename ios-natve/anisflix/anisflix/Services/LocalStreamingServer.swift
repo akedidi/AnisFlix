@@ -109,6 +109,74 @@ class LocalStreamingServer {
     var serverUrl: URL? {
         return webServer.serverURL
     }
+
+    /// Rewrites absolute DASH segment templates so every media request is made
+    /// by the on-device loopback server with the same browser headers as the
+    /// manifest request. MobileVLCKit does not reliably forward the referrer to
+    /// DASH child requests, which makes Vidlink's CDN return a Cloudflare 403.
+    func proxyDASHSegmentTemplates(in manifest: String, headers: [String: String]) -> String {
+        guard isRunning else {
+            print("⚠️ [LocalServer] DASH template proxy unavailable: server is stopped")
+            return manifest
+        }
+
+        guard let regex = try? NSRegularExpression(
+            pattern: #"\b(initialization|media)="([^"]+)""#,
+            options: [.caseInsensitive]
+        ) else { return manifest }
+
+        let mutable = NSMutableString(string: manifest)
+        let matches = regex.matches(
+            in: manifest,
+            range: NSRange(location: 0, length: mutable.length)
+        )
+
+        for match in matches.reversed() {
+            guard match.numberOfRanges == 3 else { continue }
+            let attribute = mutable.substring(with: match.range(at: 1))
+            let xmlURL = mutable.substring(with: match.range(at: 2))
+            let remoteTemplate = xmlURL.replacingOccurrences(of: "&amp;", with: "&")
+            guard let localTemplate = registerDASHSegmentTemplate(remoteTemplate, headers: headers) else {
+                continue
+            }
+            mutable.replaceCharacters(
+                in: match.range,
+                with: "\(attribute)=\"\(localTemplate)\""
+            )
+        }
+
+        return mutable as String
+    }
+
+    private func registerDASHSegmentTemplate(
+        _ remoteTemplate: String,
+        headers: [String: String]
+    ) -> String? {
+        guard remoteTemplate.hasPrefix("https://") || remoteTemplate.hasPrefix("http://"),
+              let separator = remoteTemplate.lastIndex(of: "/") else { return nil }
+
+        let baseURL = String(remoteTemplate[...separator])
+        let filenameAndQuery = String(remoteTemplate[remoteTemplate.index(after: separator)...])
+        let parts = filenameAndQuery.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let filename = parts.first, !filename.isEmpty else { return nil }
+        let query = parts.count == 2 ? String(parts[1]) : nil
+        let sessionID = String(UUID().uuidString.prefix(12))
+
+        let session = DashSession(
+            baseUrl: baseURL,
+            query: query,
+            cookie: headers["Cookie"] ?? headers["cookie"],
+            referer: headers["Referer"] ?? headers["referer"],
+            origin: headers["Origin"] ?? headers["origin"],
+            userAgent: headers["User-Agent"] ?? headers["user-agent"]
+        )
+        dashSessionsLock.lock()
+        dashSessions[sessionID] = session
+        dashSessionsLock.unlock()
+
+        let port = Int(webServer.port)
+        return "http://127.0.0.1:\(port > 0 ? port : 8080)/dash/\(sessionID)/\(filename)"
+    }
     
     /// Builds a `/manifest` URL so FFmpeg (or AVPlayer) can pull HLS through this server with correct upstream headers.
     func manifestURLForDownload(targetURL: String, headers: [String: String]?) -> URL? {
@@ -905,7 +973,14 @@ class LocalStreamingServer {
             
             // Store session info
             self.dashSessionsLock.lock()
-            self.dashSessions[String(mappingId)] = DashSession(baseUrl: baseUrl, cookie: cookie, referer: referer, userAgent: userAgent)
+            self.dashSessions[String(mappingId)] = DashSession(
+                baseUrl: baseUrl,
+                query: nil,
+                cookie: cookie,
+                referer: referer,
+                origin: query["origin"],
+                userAgent: userAgent
+            )
             self.dashSessionsLock.unlock()
             
             // Inject BaseURL into MPD (after <Period ...> tag)
@@ -947,7 +1022,10 @@ class LocalStreamingServer {
             
             // Reconstruct segment path (everything after /dash/SESSION_ID/)
             let segmentPath = components[2...].joined(separator: "/")
-            let segmentUrl = dashSession.baseUrl + segmentPath
+            var segmentUrl = dashSession.baseUrl + segmentPath
+            if let query = dashSession.query, !query.isEmpty {
+                segmentUrl += "?\(query)"
+            }
             
             guard let targetUrl = URL(string: segmentUrl) else {
                 return GCDWebServerDataResponse(statusCode: 400)
@@ -962,6 +1040,7 @@ class LocalStreamingServer {
             let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
             urlRequest.setValue(dashSession.userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
             if let r = dashSession.referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
+            if let o = dashSession.origin { urlRequest.setValue(o, forHTTPHeaderField: "Origin") }
             if let c = dashSession.cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
             
             let fetchSession = self.session(for: targetUrl)
@@ -1281,7 +1360,9 @@ class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
 // DASH Proxy Session Info
 struct DashSession {
     let baseUrl: String
+    let query: String?
     let cookie: String?
     let referer: String?
+    let origin: String?
     let userAgent: String?
 }

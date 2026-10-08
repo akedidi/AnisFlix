@@ -827,7 +827,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     @Published var vlcPlayer: VLCMediaPlayer?
     private var vlcTimeObserver: Timer?
     private var pendingVLCSeekTime: Double?
+    private var pendingVLCSeekTarget: Double?
     private var vlcPlaybackRequested = false
+    private var wantsVLCPlayback = false
+    // Keep the active render surface alive for the entire VLC session. A weak
+    // reference can disappear between SwiftUI updates, causing VLC to attach
+    // repeatedly while decoded frames are sent to an obsolete black surface.
+    private var attachedVLCDrawable: UIView?
     private var hasAttemptedVLCFallback = false
     private var avFallbackWorkItem: DispatchWorkItem?
     
@@ -842,6 +848,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         let localPosterPath: String?
         let customHeaders: [String: String]?
         let useVLC: Bool
+        let preferredVideoHeight: Int?
         let subtitleUrl: URL?
     }
     private var lastSetupParams: SetupParams?
@@ -938,7 +945,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
     }
     
-    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
+    func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, preferredVideoHeight: Int? = nil, subtitleUrl: URL? = nil) {
         let isSamePlayback = url == currentUrl &&
             subtitleUrl == externalSubtitleUrl &&
             useVLC == useVLCPlayer
@@ -951,6 +958,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             localPosterPath: localPosterPath,
             customHeaders: customHeaders,
             useVLC: useVLCPlayer,
+            preferredVideoHeight: preferredVideoHeight,
             subtitleUrl: subtitleUrl
         )
         
@@ -1012,7 +1020,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             print("🎬 [PlayerVM] Using VLC player for: \(url)")
             clearAVPlayerState(removeCurrentItem: true)
             useVLC = true
-            setupVLCPlayer(url: url, customHeaders: customHeaders)
+            setupVLCPlayer(url: url, customHeaders: customHeaders, preferredVideoHeight: preferredVideoHeight)
             return
         }
 
@@ -1354,7 +1362,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         print("🔄 [PlayerVM] Switching AVPlayer → embedded VLC")
         clearAVPlayerState(removeCurrentItem: true)
         useVLC = true
-        setupVLCPlayer(url: params.url, customHeaders: params.customHeaders)
+        setupVLCPlayer(url: params.url, customHeaders: params.customHeaders, preferredVideoHeight: params.preferredVideoHeight)
         if resumeTime > 0 {
             seek(to: resumeTime)
         }
@@ -1733,8 +1741,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
 
     func resumePlayback() {
         if useVLC, let vlc = vlcPlayer {
+            wantsVLCPlayback = true
             vlcPlaybackRequested = true
-            guard vlc.drawable != nil else {
+            guard attachedVLCDrawable != nil else {
                 isPlaying = false
                 isBuffering = true
                 print("⏳ [PlayerVM] VLC waiting for its visible drawable")
@@ -1750,8 +1759,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
 
     func pausePlayback() {
         if useVLC, let vlc = vlcPlayer {
+            wantsVLCPlayback = false
             vlcPlaybackRequested = false
-            vlc.pause()
+            pauseVLCIfNeeded(vlc)
         } else {
             player.pause()
         }
@@ -1773,24 +1783,54 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if useVLC, let vlc = vlcPlayer {
             guard duration > 1 else {
                 pendingVLCSeekTime = max(0, time)
+                pendingVLCSeekTarget = max(0, time)
+                currentTime = max(0, time)
                 return
             }
-            let position = Float(time / duration)
-            vlc.position = position
+            applyVLCSeek(to: time, duration: duration, player: vlc)
         } else {
             player.seek(to: CMTime(seconds: time, preferredTimescale: 600))
         }
     }
+
+    private func applyVLCSeek(to time: Double, duration: Double, player: VLCMediaPlayer) {
+        let target = min(max(time, 0), duration)
+        pendingVLCSeekTarget = target
+
+        // VLC keeps reporting the old timestamp while DASH loads the target
+        // segment. Preserve the position selected in the UI until it catches up.
+        currentTime = target
+        // Use an absolute millisecond timestamp. Percentage seeks on long DASH
+        // timelines can first report the old position and can select the wrong
+        // segment around irregular SegmentTimeline boundaries.
+        let milliseconds = NSNumber(value: Int64((target * 1_000).rounded()))
+        player.time = VLCTime(number: milliseconds)
+
+        // Seeking a DASH stream can briefly resume a paused player.
+        if !wantsVLCPlayback {
+            DispatchQueue.main.async { [weak self, weak player] in
+                guard let self, let player else { return }
+                self.pauseVLCIfNeeded(player)
+            }
+        }
+    }
+
+    private func pauseVLCIfNeeded(_ player: VLCMediaPlayer) {
+        guard player.isPlaying else { return }
+        player.pause()
+    }
     
     // MARK: - VLC Player Methods
     
-    private func setupVLCPlayer(url: URL, customHeaders: [String: String]?) {
+    private func setupVLCPlayer(url: URL, customHeaders: [String: String]?, preferredVideoHeight: Int?) {
         print("🎬 [PlayerVM] setupVLCPlayer called with URL: \(url)")
         
         // Cleanup any existing VLC player
         cleanupVLC()
         useVLC = true
         pendingVLCSeekTime = nil
+        pendingVLCSeekTarget = nil
+        wantsVLCPlayback = true
         vlcPlaybackRequested = true
         
         print("🎬 [PlayerVM] Creating new VLC player...")
@@ -1820,6 +1860,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
             options["http-cookies"] = cookie
         }
+        if let preferredVideoHeight, preferredVideoHeight > 0 {
+            options["adaptive-maxheight"] = preferredVideoHeight
+            print("🎬 [PlayerVM] Limiting DASH video to \(preferredVideoHeight)p")
+        }
         
         media.addOptions(options)
         
@@ -1833,16 +1877,6 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         isBuffering = true
         isPlaying = false 
         
-        // Fallback Force Playback (Safety Net)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            guard let self = self, let player = self.vlcPlayer else { return }
-            // Only force play if drawable is attached to avoid "nil view" errors
-            if (player.state == .stopped || player.state == .ended) && player.drawable != nil {
-                print("⚠️ [PlayerVM] Fallback: Forcing VLC play() (Drawable is set)")
-                player.play()
-            }
-        }
-        
         // Setup time observer for VLC
         vlcTimeObserver = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self = self, let vlc = self.vlcPlayer else { return }
@@ -1851,14 +1885,28 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             let length = Double(vlc.media?.length.intValue ?? 0) / 1000.0
             
             DispatchQueue.main.async {
-                if !self.isSeeking {
-                    self.currentTime = time
-                }
                 if length > 0 {
                     self.duration = length
-                    if let target = self.pendingVLCSeekTime {
+                    // Let VLC render its first frame before restoring saved
+                    // progress. Seeking during decoder startup can leave HEVC
+                    // audio running while the video surface stays black.
+                    if time >= 1, let target = self.pendingVLCSeekTime {
                         self.pendingVLCSeekTime = nil
-                        vlc.position = Float(min(max(target / length, 0), 1))
+                        self.applyVLCSeek(to: target, duration: length, player: vlc)
+                    }
+                }
+
+                if !self.isSeeking {
+                    if let target = self.pendingVLCSeekTarget {
+                        let seekConfirmed = abs(time - target) <= 3
+                        if seekConfirmed {
+                            self.pendingVLCSeekTarget = nil
+                            self.currentTime = time
+                        } else {
+                            self.currentTime = target
+                        }
+                    } else {
+                        self.currentTime = time
                     }
                 }
                 
@@ -1870,7 +1918,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 // Update playing state based on VLC state
                 let state = vlc.state
                 let wasPlaying = self.isPlaying
-                let nowPlaying = (state == .playing || state == .buffering)
+                let nowPlaying = self.wantsVLCPlayback && (state == .playing || state == .buffering)
                 
                 if wasPlaying != nowPlaying {
                     print("🎬 [PlayerVM] VLC state changed: \(state.rawValue), isPlaying: \(nowPlaying)")
@@ -1905,20 +1953,41 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     func attachVLCDrawable(_ view: UIView) {
         guard let vlc = vlcPlayer, useVLC else { return }
 
-        let drawableChanged = vlc.drawable as? UIView !== view
-        if drawableChanged {
+        if let attachedVLCDrawable,
+           attachedVLCDrawable !== view,
+           attachedVLCDrawable.window != nil {
+            // SwiftUI can briefly keep two representable views alive during
+            // the mini-player expansion animation. Alternating VLC's drawable
+            // between them on every layout drops all visible frames.
+            return
+        }
+
+        if attachedVLCDrawable !== view {
             print("🎬 [PlayerVM] Attaching VLC to visible drawable: \(view.bounds)")
+            attachedVLCDrawable = view
             vlc.drawable = view
         }
 
-        guard vlcPlaybackRequested || drawableChanged else { return }
+        guard vlcPlaybackRequested, wantsVLCPlayback else { return }
         vlcPlaybackRequested = false
         print("▶️ [PlayerVM] Starting VLC after drawable attachment")
         vlc.play()
     }
+
+    func detachVLCDrawable(_ view: UIView) {
+        guard attachedVLCDrawable === view else { return }
+        print("🎬 [PlayerVM] Detaching VLC drawable")
+        vlcPlayer?.drawable = nil
+        attachedVLCDrawable = nil
+    }
     
     private func cleanupVLC() {
+        wantsVLCPlayback = false
         vlcPlaybackRequested = false
+        pendingVLCSeekTime = nil
+        pendingVLCSeekTarget = nil
+        vlcPlayer?.drawable = nil
+        attachedVLCDrawable = nil
         vlcTimeObserver?.invalidate()
         vlcTimeObserver = nil
         vlcPlayer?.stop()
@@ -1942,8 +2011,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         case .playing:
             print("▶️ [PlayerVM-Delegate] VLC Playing")
             DispatchQueue.main.async {
-                self.isPlaying = true
-                self.isBuffering = false
+                if self.wantsVLCPlayback {
+                    self.isPlaying = true
+                    self.isBuffering = false
+                } else {
+                    // A late VLC callback must never undo a user pause.
+                    self.pauseVLCIfNeeded(vlc)
+                    self.isPlaying = false
+                }
             }
         case .paused:
              print("⏸️ [PlayerVM-Delegate] VLC Paused")
@@ -1960,7 +2035,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         case .buffering:
              print("⏳ [PlayerVM-Delegate] VLC Buffering")
              DispatchQueue.main.async {
-                 self.isBuffering = true
+                 self.isBuffering = self.wantsVLCPlayback
              }
         case .error:
              print("❌ [PlayerVM-Delegate] VLC Error")
@@ -2011,6 +2086,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                     localPosterPath: params.localPosterPath,
                     customHeaders: params.customHeaders,
                     useVLCPlayer: params.useVLC,
+                    preferredVideoHeight: params.preferredVideoHeight,
                     subtitleUrl: url
                 )
                 

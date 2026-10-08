@@ -117,6 +117,8 @@ class VidlinkService {
         // from their media relay to the iPhone.
         if let rewrittenPlaylist = rewriteVidlinkPlaylist(rawDict) {
             print("✅ [VidlinkService] Returning fresh WebKit DASH stream")
+            let qualities = await expandDASHQualities(urlString: rewrittenPlaylist)
+            if !qualities.isEmpty { return qualities }
             return [ExtractedSource(name: "Vidlink - Auto", url: rewrittenPlaylist, quality: "Auto")]
         }
 
@@ -178,17 +180,142 @@ class VidlinkService {
               (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
 
         let payload = try JSONDecoder().decode(StreamListResponse.self, from: data)
-        return (payload.streams ?? []).compactMap { item in
+        var sources: [ExtractedSource] = []
+        for item in payload.streams ?? [] {
             guard !isExpiredSignedURL(item.url) else {
                 print("⚠️ [VidlinkService] Ignoring expired backend URL: \(item.quality ?? "Unknown")")
-                return nil
+                continue
             }
-            return ExtractedSource(
+
+            let quality = item.quality ?? "Auto"
+            if item.url.lowercased().contains(".mpd"),
+               quality == "Auto" || quality == "Unknown" {
+                let expanded = await expandDASHQualities(urlString: item.url)
+                if !expanded.isEmpty {
+                    sources.append(contentsOf: expanded)
+                    continue
+                }
+            }
+
+            sources.append(ExtractedSource(
                 name: item.name ?? "Vidlink - \(item.quality ?? "Auto")",
                 url: item.url,
-                quality: item.quality ?? "Auto"
-            )
+                quality: quality
+            ))
         }
+        return sources
+    }
+
+    /// A Vidlink DASH URL is an adaptive master manifest. Expose each video
+    /// representation as a source so the iOS UI can offer the same quality
+    /// choices as the web player. The selected height is later enforced with
+    /// VLC's `adaptive-maxheight` option.
+    private func expandDASHQualities(urlString: String) async -> [ExtractedSource] {
+        guard let url = URL(string: urlString) else { return [] }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 30)
+        request.allHTTPHeaderFields = headers
+        request.setValue("application/dash+xml,*/*", forHTTPHeaderField: "Accept")
+
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse,
+                  (200..<300).contains(http.statusCode),
+                  let manifest = String(data: data, encoding: .utf8) else { return [] }
+
+            let tagRegex = try NSRegularExpression(
+                pattern: #"<Representation\b[^>]*>"#,
+                options: [.caseInsensitive]
+            )
+            let range = NSRange(manifest.startIndex..., in: manifest)
+            var heights = Set<Int>()
+
+            for match in tagRegex.matches(in: manifest, range: range) {
+                guard let tagRange = Range(match.range, in: manifest) else { continue }
+                let tag = String(manifest[tagRange])
+                let mimeType = dashAttribute("mimeType", in: tag)?.lowercased() ?? ""
+                let codecs = dashAttribute("codecs", in: tag)?.lowercased() ?? ""
+                guard mimeType.contains("video") || codecs.contains("hev") || codecs.contains("avc") else { continue }
+                guard let rawHeight = dashAttribute("height", in: tag),
+                      let height = Int(rawHeight), height > 0 else { continue }
+                heights.insert(height)
+            }
+
+            let outputDirectory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("anisflix-vidlink-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+
+            let expanded = try heights.sorted(by: >).map { height in
+                let quality = "\(height)p"
+                let filteredManifest = try filteredDASHManifest(
+                    manifest,
+                    selectedHeight: height,
+                    remoteOrigin: "\(url.scheme ?? "https")://\(url.host ?? "flood.sourcerrr.online")"
+                )
+                let localURL = outputDirectory.appendingPathComponent("vidlink-\(height)p.mpd")
+                try filteredManifest.write(to: localURL, atomically: true, encoding: .utf8)
+                return ExtractedSource(name: "Vidlink - \(quality)", url: localURL.absoluteString, quality: quality)
+            }
+            if !expanded.isEmpty {
+                print("✅ [VidlinkService] DASH qualities: \(expanded.compactMap(\.quality).joined(separator: ", "))")
+            }
+            return expanded
+        } catch {
+            print("⚠️ [VidlinkService] Unable to inspect DASH qualities: \(error)")
+            return []
+        }
+    }
+
+    private func dashAttribute(_ name: String, in tag: String) -> String? {
+        let escapedName = NSRegularExpression.escapedPattern(for: name)
+        guard let regex = try? NSRegularExpression(
+            pattern: "\\b\(escapedName)\\s*=\\s*[\"']([^\"']+)[\"']",
+            options: [.caseInsensitive]
+        ) else { return nil }
+        let range = NSRange(tag.startIndex..., in: tag)
+        guard let match = regex.firstMatch(in: tag, range: range),
+              match.numberOfRanges > 1,
+              let valueRange = Range(match.range(at: 1), in: tag) else { return nil }
+        return String(tag[valueRange])
+    }
+
+    private func filteredDASHManifest(
+        _ manifest: String,
+        selectedHeight: Int,
+        remoteOrigin: String
+    ) throws -> String {
+        let representationRegex = try NSRegularExpression(
+            pattern: #"<Representation\b[^>]*>.*?</Representation>"#,
+            options: [.caseInsensitive, .dotMatchesLineSeparators]
+        )
+        let mutable = NSMutableString(string: manifest)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        let matches = representationRegex.matches(in: manifest, range: fullRange)
+
+        for match in matches.reversed() {
+            let block = mutable.substring(with: match.range)
+            let openingTag = block.components(separatedBy: ">").first ?? block
+            let mimeType = dashAttribute("mimeType", in: openingTag)?.lowercased() ?? ""
+            let codecs = dashAttribute("codecs", in: openingTag)?.lowercased() ?? ""
+            let isVideo = mimeType.contains("video") || codecs.contains("hev") || codecs.contains("avc")
+            let height = dashAttribute("height", in: openingTag).flatMap(Int.init)
+            if isVideo && height != selectedHeight {
+                mutable.deleteCharacters(in: match.range)
+            }
+        }
+
+        // A local MPD cannot resolve root-relative segment paths. Keep media
+        // traffic direct by converting Vidlink relay paths to absolute URLs.
+        let filtered = (mutable as String)
+            .replacingOccurrences(of: "=\"/sacdn/", with: "=\"\(remoteOrigin)/sacdn/")
+
+        // Vidlink requires its Referer on every DASH child request. VLC can
+        // open the MPD with that header but may omit it after a seek, yielding
+        // HTTP 403 responses and an audio-only black screen. Route segments
+        // through the iPhone's loopback server so media still loads locally.
+        return LocalStreamingServer.shared.proxyDASHSegmentTemplates(
+            in: filtered,
+            headers: headers
+        )
     }
 
     /// Fetches Vidlink metadata through the existing discovery relay. Only

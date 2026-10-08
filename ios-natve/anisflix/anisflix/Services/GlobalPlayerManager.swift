@@ -323,7 +323,8 @@ class GlobalPlayerManager: ObservableObject {
                 posterUrl: posterUrl,
                 localPosterPath: localPosterPath,
                 customHeaders: localPlaybackHeaders,
-                useVLCPlayer: useVLC
+                useVLCPlayer: useVLC,
+                preferredVideoHeight: Self.videoHeight(from: quality)
              )
              
              // Seek to saved position after a short delay
@@ -375,6 +376,12 @@ class GlobalPlayerManager: ObservableObject {
                value.contains(".mpd") ||
                value.contains("/h265/") ||
                value.contains("/hevc/")
+    }
+
+    private static func videoHeight(from quality: String?) -> Int? {
+        guard let quality else { return nil }
+        let digits = quality.filter(\.isNumber)
+        return Int(digits)
     }
     
     func toggleMinimise() {
