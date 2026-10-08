@@ -1,21 +1,21 @@
 {
   "name": "AnisFlix",
   "identifier": "com.anis.anisflix",
-  "sourceURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/sidestore.json",
+  "sourceURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/sidestore.json",
   "apps": [
     {
       "name": "AnisFlix",
       "bundleIdentifier": "com.anis.anisflix",
       "developerName": "Anisika",
       "localizedDescription": "AnisFlix est votre compagnon de streaming ultime. Regardez vos films, séries et chaînes TV préférés en haute qualité.",
-      "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/icon.png",
+      "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
           "version": "1.0.89",
           "buildVersion": "89",
           "date": "2026-10-08",
           "size": 31011927,
-          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public/anisflix.ipa",
+          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
           "localizedDescription": "Lecteur AnisFlix unifié : prise en charge intégrée de MobileVLCKit pour DASH et les formats incompatibles avec AVPlayer, bascule automatique et lecture des téléchargements avec la même interface."
         }

@@ -185,7 +185,7 @@ if [ -f "$IPA_NAME" ]; then
     # Use the versions read from the app that is actually inside the IPA.
     VERSION="$BUILT_VERSION"
     BUILD_VERSION="$BUILT_BUILD_VERSION"
-    RAW_BASE_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public"
+    RAW_BASE_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public"
     DOWNLOAD_URL="$RAW_BASE_URL/anisflix.ipa"
     
     # Check if JSON exists
