@@ -8,8 +8,11 @@
 import SwiftUI
 import AVKit
 import Combine
+import CoreMedia
+import CoreVideo
 import MediaPlayer
 import MobileVLCKit
+import ObjectiveC.runtime
 #if canImport(GoogleCast)
 import GoogleCast
 #endif
@@ -780,7 +783,7 @@ extension Notification.Name {
     static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
-class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPictureInPictureControllerDelegate {
+class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPictureInPictureControllerDelegate, AVPictureInPictureSampleBufferPlaybackDelegate {
     @Published var player = AVPlayer()
     @Published var isPlaying = false {
         didSet {
@@ -809,10 +812,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     private weak var playerLayer: AVPlayerLayer?
     @Published private(set) var isPiPAvailable = AVPictureInPictureController.isPictureInPictureSupported()
     private weak var pipSourceView: UIView?
-    private var pipVideoCallController: AVPictureInPictureVideoCallViewController?
-    private var vlcPiPRenderView: VLCPictureInPictureRenderView?
+    private var vlcPiPBridge: VLCSampleBufferPiPBridge?
+    private var vlcPiPPlayer: VLCMediaPlayer?
     private var pipUsesVLC = false
     private var isStartingVLCPiP = false
+    private var vlcPiPStartAttempts = 0
     
     // Expose PiP state for GlobalPlayerManager
     var isPiPActive: Bool {
@@ -1765,6 +1769,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                 return
             }
             vlc.play()
+            vlcPiPPlayer?.play()
+            vlcPiPBridge?.updatePlaybackTime(currentTime, isPlaying: true)
+            pipController?.invalidatePlaybackState()
             vlcPlaybackRequested = false
         } else {
             player.play()
@@ -1777,6 +1784,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             wantsVLCPlayback = false
             vlcPlaybackRequested = false
             pauseVLCIfNeeded(vlc)
+            if let pipPlayer = vlcPiPPlayer { pauseVLCIfNeeded(pipPlayer) }
+            vlcPiPBridge?.updatePlaybackTime(currentTime, isPlaying: false)
+            pipController?.invalidatePlaybackState()
         } else {
             player.pause()
         }
@@ -1803,6 +1813,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                 return
             }
             applyVLCSeek(to: time, duration: duration, player: vlc)
+            if let pipPlayer = vlcPiPPlayer {
+                pipPlayer.time = VLCTime(number: NSNumber(value: Int64((time * 1_000).rounded())))
+            }
+            vlcPiPBridge?.updatePlaybackTime(time, isPlaying: wantsVLCPlayback)
+            pipController?.invalidatePlaybackState()
         } else {
             player.seek(to: CMTime(seconds: time, preferredTimescale: 600))
         }
@@ -1831,7 +1846,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     }
 
     private func pauseVLCIfNeeded(_ player: VLCMediaPlayer) {
-        guard player.isPlaying else { return }
+        guard player.state != .paused,
+              player.state != .stopped,
+              player.state != .ended,
+              player.state != .error else { return }
         player.pause()
     }
     
@@ -1938,6 +1956,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                     self.isBuffering = false
                     self.prepareVLCPiPAfterFirstFrame()
                 }
+                if self.pipUsesVLC {
+                    self.vlcPiPBridge?.updatePlaybackTime(time, isPlaying: self.wantsVLCPlayback)
+                    if let pipPlayer = self.vlcPiPPlayer,
+                       abs(Double(pipPlayer.time.intValue) / 1000.0 - time) > 1.5 {
+                        pipPlayer.time = VLCTime(number: NSNumber(value: Int64((time * 1000).rounded())))
+                    }
+                }
                 
                 // Update playing state based on VLC state
                 let state = vlc.state
@@ -1977,6 +2002,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     func attachVLCDrawable(_ view: UIView) {
         guard let vlc = vlcPlayer, useVLC else { return }
 
+        if pipUsesVLC, pipSourceView === view {
+            vlcPiPBridge?.displayLayer.frame = view.bounds
+        }
+
         if let attachedVLCDrawable,
            attachedVLCDrawable !== view,
            attachedVLCDrawable.window != nil {
@@ -2002,6 +2031,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
 
     func detachVLCDrawable(_ view: UIView) {
         guard attachedVLCDrawable === view else { return }
+        if pipUsesVLC, pipController?.isPictureInPictureActive == true {
+            // Keep the inline surface alive while iOS owns its sample-buffer
+            // layer in Picture in Picture. It is restored when PiP closes.
+            return
+        }
         print("🎬 [PlayerVM] Detaching VLC drawable")
         attachedVLCDrawable = nil
         if !isStartingVLCPiP && pipController?.isPictureInPictureActive != true {
@@ -2009,9 +2043,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         }
     }
 
-    /// MobileVLCKit renders into a UIView instead of an AVPlayerLayer. The
-    /// video-call PiP content source is Apple's supported way to place such a
-    /// custom render surface in the system Picture in Picture window.
+    /// MobileVLCKit's Metal surface is not captured by the video-call PiP API
+    /// and produces a small black window on a physical iPhone. Use the normal
+    /// video PiP API with an AVSampleBufferDisplayLayer fed by a muted VLC
+    /// decoder instead.
     private func setupVLCPiP(with inlineView: UIView) {
         guard AVPictureInPictureController.isPictureInPictureSupported() else {
             isPiPAvailable = false
@@ -2020,41 +2055,23 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         guard pipController?.isPictureInPictureActive != true else { return }
         guard !pipUsesVLC || pipSourceView !== inlineView || pipController == nil else { return }
 
-        let renderView = VLCPictureInPictureRenderView()
-        renderView.backgroundColor = .black
-        renderView.onReady = { [weak self, weak renderView] in
-            guard let self, let renderView else { return }
-            self.activateVLCPiPDrawable(renderView)
-        }
-
-        let videoCallController = AVPictureInPictureVideoCallViewController()
         let size = vlcPlayer?.videoSize ?? CGSize(width: 16, height: 9)
-        if size.width > 0, size.height > 0 {
-            videoCallController.preferredContentSize = size
-        } else {
-            videoCallController.preferredContentSize = CGSize(width: 16, height: 9)
-        }
-        videoCallController.view.backgroundColor = .black
-        renderView.translatesAutoresizingMaskIntoConstraints = false
-        videoCallController.view.addSubview(renderView)
-        NSLayoutConstraint.activate([
-            renderView.leadingAnchor.constraint(equalTo: videoCallController.view.leadingAnchor),
-            renderView.trailingAnchor.constraint(equalTo: videoCallController.view.trailingAnchor),
-            renderView.topAnchor.constraint(equalTo: videoCallController.view.topAnchor),
-            renderView.bottomAnchor.constraint(equalTo: videoCallController.view.bottomAnchor)
-        ])
+        let bridge = VLCSampleBufferPiPBridge(videoSize: size)
+        bridge.displayLayer.frame = inlineView.bounds
+        bridge.displayLayer.isHidden = true
+        inlineView.layer.addSublayer(bridge.displayLayer)
 
         let source = AVPictureInPictureController.ContentSource(
-            activeVideoCallSourceView: inlineView,
-            contentViewController: videoCallController
+            sampleBufferDisplayLayer: bridge.displayLayer,
+            playbackDelegate: self
         )
         let controller = AVPictureInPictureController(contentSource: source)
         controller.delegate = self
-        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        controller.canStartPictureInPictureAutomaticallyFromInline = false
+        controller.requiresLinearPlayback = false
 
         pipSourceView = inlineView
-        pipVideoCallController = videoCallController
-        vlcPiPRenderView = renderView
+        vlcPiPBridge = bridge
         pipController = controller
         pipUsesVLC = true
         isPiPAvailable = true
@@ -2078,20 +2095,104 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         setupVLCPiP(with: inlineView)
     }
 
-    private func activateVLCPiPDrawable(_ renderView: VLCPictureInPictureRenderView) {
-        guard useVLC,
-              isStartingVLCPiP || pipController?.isPictureInPictureActive == true,
-              renderView.window != nil else { return }
-        let videoSize = vlcPlayer?.videoSize ?? .zero
-        if videoSize.width > 0, videoSize.height > 0 {
-            pipVideoCallController?.preferredContentSize = videoSize
+    private func startVLCSampleBufferPiP() {
+        guard let params = lastSetupParams,
+              let mainPlayer = vlcPlayer,
+              let bridge = vlcPiPBridge,
+              let pip = pipController else { return }
+
+        stopVLCPiPDecoder(removeImage: true)
+        bridge.displayLayer.isHidden = false
+        bridge.onFirstFrame = { [weak self] in
+            self?.attemptToStartVLCPiP()
         }
-        guard vlcPlayer?.drawable as? UIView !== renderView else { return }
-        print("📺 [PlayerVM] Moving VLC drawable into Picture in Picture")
-        vlcPlayer?.drawable = renderView
+
+        let media = VLCMedia(url: params.url)
+        var options: [String: Any] = [
+            "network-caching": 3_000,
+            "avcodec-hw": "any",
+            "http-user-agent": params.customHeaders?["User-Agent"]
+                ?? params.customHeaders?["user-agent"]
+                ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+        ]
+        if let referer = params.customHeaders?["Referer"] ?? params.customHeaders?["referer"] {
+            options["http-referrer"] = referer
+        }
+        if let cookie = params.customHeaders?["Cookie"] ?? params.customHeaders?["cookie"] {
+            options["http-cookies"] = cookie
+        }
+        if let height = params.preferredVideoHeight, height > 0 {
+            options["adaptive-maxheight"] = min(height, 540)
+        }
+        if currentTime > 0 {
+            // Ask the PiP decoder to open close to the current image. The
+            // explicit seek below remains necessary for DASH manifests whose
+            // timeline does not begin at zero.
+            options["start-time"] = currentTime
+        }
+        media.addOptions(options)
+
+        let mirrorPlayer = VLCMediaPlayer()
+        mirrorPlayer.media = media
+        mirrorPlayer.audio?.isMuted = true
+        guard bridge.connect(to: mirrorPlayer) else {
+            bridge.displayLayer.isHidden = true
+            print("❌ [PlayerVM] Unable to connect VLC frames to PiP")
+            return
+        }
+        vlcPiPPlayer = mirrorPlayer
+        isStartingVLCPiP = true
+        vlcPiPStartAttempts = 0
+        bridge.updatePlaybackTime(currentTime, isPlaying: wantsVLCPlayback)
+        mirrorPlayer.time = mainPlayer.time
+        mirrorPlayer.play()
+        let targetTime = mainPlayer.time
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self, weak mirrorPlayer] in
+            guard let self, let mirrorPlayer, self.vlcPiPPlayer === mirrorPlayer else { return }
+            mirrorPlayer.time = targetTime
+            if !self.wantsVLCPlayback { mirrorPlayer.pause() }
+        }
+        attemptToStartVLCPiP()
+        pip.invalidatePlaybackState()
+    }
+
+    private func attemptToStartVLCPiP() {
+        guard isStartingVLCPiP,
+              let pip = pipController,
+              let bridge = vlcPiPBridge else { return }
+        guard !pip.isPictureInPictureActive else { return }
+        if bridge.hasRenderedFrame, pip.isPictureInPicturePossible {
+            print("🔼 [PlayerVM] Starting video Picture in Picture")
+            pip.startPictureInPicture()
+            return
+        }
+        vlcPiPStartAttempts += 1
+        guard vlcPiPStartAttempts < 60 else {
+            isStartingVLCPiP = false
+            stopVLCPiPDecoder(removeImage: true)
+            print("❌ [PlayerVM] PiP did not become ready")
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.attemptToStartVLCPiP()
+        }
+    }
+
+    private func stopVLCPiPDecoder(removeImage: Bool) {
+        vlcPiPBridge?.onFirstFrame = nil
+        if let pipPlayer = vlcPiPPlayer {
+            pipPlayer.stop()
+            vlcPiPBridge?.disconnect()
+        }
+        vlcPiPPlayer = nil
+        if removeImage {
+            vlcPiPBridge?.reset()
+            vlcPiPBridge?.displayLayer.isHidden = true
+        }
     }
 
     private func restoreInlineVLCDrawable() {
+        stopVLCPiPDecoder(removeImage: true)
         guard useVLC, let inlineView = attachedVLCDrawable, inlineView.window != nil else { return }
         guard vlcPlayer?.drawable as? UIView !== inlineView else { return }
         print("📺 [PlayerVM] Restoring VLC drawable after Picture in Picture")
@@ -2105,9 +2206,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         if pipUsesVLC {
             pipController = nil
         }
+        stopVLCPiPDecoder(removeImage: true)
+        vlcPiPBridge?.displayLayer.removeFromSuperlayer()
         pipSourceView = nil
-        pipVideoCallController = nil
-        vlcPiPRenderView = nil
+        vlcPiPBridge = nil
         pipUsesVLC = false
         isStartingVLCPiP = false
     }
@@ -2304,6 +2406,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         if pip.isPictureInPictureActive {
             print("🔽 Stopping PiP")
             pip.stopPictureInPicture()
+        } else if pipUsesVLC {
+            startVLCSampleBufferPiP()
         } else {
             guard pip.isPictureInPicturePossible else {
                 print("⚠️ PiP is not ready yet")
@@ -2319,17 +2423,15 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         guard pipUsesVLC else { return }
         isStartingVLCPiP = true
-        if let renderView = vlcPiPRenderView {
-            activateVLCPiPDrawable(renderView)
-        }
     }
 
     func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         guard pipUsesVLC else { return }
         isStartingVLCPiP = false
-        if let renderView = vlcPiPRenderView {
-            activateVLCPiPDrawable(renderView)
-        }
+        // Keep the primary VLC instance for audio, time and controls while
+        // the sample-buffer decoder supplies the PiP video frames.
+        vlcPlayer?.drawable = nil
+        pictureInPictureController.invalidatePlaybackState()
         print("✅ [PlayerVM] VLC Picture in Picture started")
     }
 
@@ -2363,6 +2465,55 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             self?.restoreInlineVLCDrawable()
             completionHandler(true)
         }
+    }
+
+    // MARK: - AVPictureInPictureSampleBufferPlaybackDelegate
+
+    func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        setPlaying playing: Bool
+    ) {
+        if playing {
+            resumePlayback()
+        } else {
+            pausePlayback()
+        }
+    }
+
+    func pictureInPictureControllerTimeRangeForPlayback(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) -> CMTimeRange {
+        guard duration.isFinite, duration > 0 else { return .invalid }
+        return CMTimeRange(
+            start: .zero,
+            duration: CMTime(seconds: duration, preferredTimescale: 600)
+        )
+    }
+
+    func pictureInPictureControllerIsPlaybackPaused(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) -> Bool {
+        !wantsVLCPlayback
+    }
+
+    func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        didTransitionToRenderSize newRenderSize: CMVideoDimensions
+    ) {}
+
+    func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        skipByInterval skipInterval: CMTime,
+        completion: @escaping () -> Void
+    ) {
+        seek(to: currentTime + skipInterval.seconds)
+        completion()
+    }
+
+    func pictureInPictureControllerShouldProhibitBackgroundAudioPlayback(
+        _ pictureInPictureController: AVPictureInPictureController
+    ) -> Bool {
+        false
     }
     
     
@@ -2420,6 +2571,266 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         default:
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
         }
+    }
+}
+
+// MARK: - VLC sample-buffer Picture in Picture
+
+private typealias VLCVideoLockCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+) -> UnsafeMutableRawPointer?
+
+private typealias VLCVideoUnlockCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutableRawPointer?,
+    UnsafePointer<UnsafeMutableRawPointer?>?
+) -> Void
+
+private typealias VLCVideoDisplayCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutableRawPointer?
+) -> Void
+
+@_silgen_name("libvlc_video_set_callbacks")
+private func anisflixLibVLCSetVideoCallbacks(
+    _ player: UnsafeMutableRawPointer?,
+    _ lock: VLCVideoLockCallback?,
+    _ unlock: VLCVideoUnlockCallback?,
+    _ display: VLCVideoDisplayCallback?,
+    _ opaque: UnsafeMutableRawPointer?
+)
+
+@_silgen_name("libvlc_video_set_format")
+private func anisflixLibVLCSetVideoFormat(
+    _ player: UnsafeMutableRawPointer?,
+    _ chroma: UnsafePointer<CChar>?,
+    _ width: UInt32,
+    _ height: UInt32,
+    _ pitch: UInt32
+)
+
+private final class VLCPiPRawFrame {
+    let pixelBuffer: CVPixelBuffer
+    private var isLocked = false
+
+    init?(bridge: VLCSampleBufferPiPBridge) {
+        guard let buffer = bridge.makePixelBuffer() else { return nil }
+        pixelBuffer = buffer
+        guard CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess,
+              CVPixelBufferGetBaseAddress(buffer) != nil else { return nil }
+        isLocked = true
+    }
+
+    var baseAddress: UnsafeMutableRawPointer? {
+        CVPixelBufferGetBaseAddress(pixelBuffer)
+    }
+
+    func unlock() {
+        guard isLocked else { return }
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+        isLocked = false
+    }
+
+    deinit {
+        unlock()
+    }
+}
+
+private let anisflixVLCVideoLock: VLCVideoLockCallback = { opaque, planes in
+    guard let opaque,
+          let planes,
+          let frame = VLCPiPRawFrame(
+            bridge: Unmanaged<VLCSampleBufferPiPBridge>.fromOpaque(opaque).takeUnretainedValue()
+          ),
+          let address = frame.baseAddress else { return nil }
+    planes.pointee = address
+    return Unmanaged.passRetained(frame).toOpaque()
+}
+
+private let anisflixVLCVideoUnlock: VLCVideoUnlockCallback = { _, picture, _ in
+    guard let picture else { return }
+    Unmanaged<VLCPiPRawFrame>.fromOpaque(picture).takeUnretainedValue().unlock()
+}
+
+private let anisflixVLCVideoDisplay: VLCVideoDisplayCallback = { opaque, picture in
+    guard let opaque, let picture else { return }
+    let bridge = Unmanaged<VLCSampleBufferPiPBridge>.fromOpaque(opaque).takeUnretainedValue()
+    let frame = Unmanaged<VLCPiPRawFrame>.fromOpaque(picture).takeRetainedValue()
+    frame.unlock()
+    bridge.enqueue(frame.pixelBuffer)
+}
+
+/// Converts frames from a secondary muted VLC decoder into the sample-buffer
+/// layer required by the standard iOS video Picture in Picture controller.
+/// This avoids trying to capture MobileVLCKit's Metal drawable, which renders
+/// as black inside AVPictureInPictureVideoCallViewController on real devices.
+private final class VLCSampleBufferPiPBridge {
+    let displayLayer = AVSampleBufferDisplayLayer()
+    private(set) var hasRenderedFrame = false
+    var onFirstFrame: (() -> Void)?
+
+    private let width: Int
+    private let height: Int
+    private let pixelBufferAttributes: CFDictionary
+    private(set) var pitch: Int = 0
+    private var timebase: CMTimebase?
+    private var callbackPlayer: UnsafeMutableRawPointer?
+    private var callbackOpaque: UnsafeMutableRawPointer?
+
+    init(videoSize: CGSize) {
+        let sourceWidth = videoSize.width > 0 ? videoSize.width : 640
+        let sourceHeight = videoSize.height > 0 ? videoSize.height : 360
+        let outputWidth = min(max(Int(sourceWidth.rounded()), 320), 960)
+        let scaledHeight = Int((CGFloat(outputWidth) * sourceHeight / sourceWidth).rounded())
+        width = outputWidth.isMultiple(of: 2) ? outputWidth : outputWidth - 1
+        height = max(180, scaledHeight.isMultiple(of: 2) ? scaledHeight : scaledHeight - 1)
+
+        pixelBufferAttributes = [
+            kCVPixelBufferIOSurfacePropertiesKey: [:],
+            kCVPixelBufferMetalCompatibilityKey: true,
+            kCVPixelBufferCGImageCompatibilityKey: true,
+            kCVPixelBufferBytesPerRowAlignmentKey: 64
+        ] as CFDictionary
+
+        var prototype: CVPixelBuffer?
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            pixelBufferAttributes,
+            &prototype
+        )
+        pitch = prototype.map(CVPixelBufferGetBytesPerRow) ?? width * 4
+
+        displayLayer.videoGravity = .resizeAspect
+        displayLayer.backgroundColor = UIColor.black.cgColor
+
+        var createdTimebase: CMTimebase?
+        CMTimebaseCreateWithSourceClock(
+            allocator: kCFAllocatorDefault,
+            sourceClock: CMClockGetHostTimeClock(),
+            timebaseOut: &createdTimebase
+        )
+        timebase = createdTimebase
+        displayLayer.controlTimebase = createdTimebase
+        updatePlaybackTime(0, isPlaying: true)
+    }
+
+    func makePixelBuffer() -> CVPixelBuffer? {
+        var buffer: CVPixelBuffer?
+        let result = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            pixelBufferAttributes,
+            &buffer
+        )
+        return result == kCVReturnSuccess ? buffer : nil
+    }
+
+    func connect(to player: VLCMediaPlayer) -> Bool {
+        disconnect()
+        let selector = NSSelectorFromString("libVLCMediaPlayer")
+        guard player.responds(to: selector) else { return false }
+        typealias PlayerPointerGetter = @convention(c) (
+            AnyObject,
+            Selector
+        ) -> UnsafeMutableRawPointer?
+        let getter = unsafeBitCast(player.method(for: selector), to: PlayerPointerGetter.self)
+        guard let rawPlayer = getter(player, selector) else { return false }
+        let opaque = Unmanaged.passRetained(self).toOpaque()
+        callbackPlayer = rawPlayer
+        callbackOpaque = opaque
+        anisflixLibVLCSetVideoCallbacks(
+            rawPlayer,
+            anisflixVLCVideoLock,
+            anisflixVLCVideoUnlock,
+            anisflixVLCVideoDisplay,
+            opaque
+        )
+        "BGRA".withCString { chroma in
+            anisflixLibVLCSetVideoFormat(
+                rawPlayer,
+                chroma,
+                UInt32(width),
+                UInt32(height),
+                UInt32(pitch)
+            )
+        }
+        return true
+    }
+
+    func disconnect() {
+        if let callbackPlayer {
+            anisflixLibVLCSetVideoCallbacks(callbackPlayer, nil, nil, nil, nil)
+        }
+        callbackPlayer = nil
+        if let callbackOpaque {
+            Unmanaged<VLCSampleBufferPiPBridge>.fromOpaque(callbackOpaque).release()
+        }
+        callbackOpaque = nil
+    }
+
+    func enqueue(_ pixelBuffer: CVPixelBuffer) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            var format: CMVideoFormatDescription?
+            guard CMVideoFormatDescriptionCreateForImageBuffer(
+                allocator: kCFAllocatorDefault,
+                imageBuffer: pixelBuffer,
+                formatDescriptionOut: &format
+            ) == noErr, let format else { return }
+
+            var timing = CMSampleTimingInfo(
+                duration: .invalid,
+                presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+                decodeTimeStamp: .invalid
+            )
+            var sampleBuffer: CMSampleBuffer?
+            guard CMSampleBufferCreateReadyWithImageBuffer(
+                allocator: kCFAllocatorDefault,
+                imageBuffer: pixelBuffer,
+                formatDescription: format,
+                sampleTiming: &timing,
+                sampleBufferOut: &sampleBuffer
+            ) == noErr, let sampleBuffer else { return }
+
+            CMSetAttachment(
+                sampleBuffer,
+                key: kCMSampleAttachmentKey_DisplayImmediately,
+                value: kCFBooleanTrue,
+                attachmentMode: kCMAttachmentMode_ShouldNotPropagate
+            )
+            if displayLayer.status == .failed {
+                displayLayer.flush()
+            }
+            displayLayer.enqueue(sampleBuffer)
+            if !hasRenderedFrame {
+                hasRenderedFrame = true
+                onFirstFrame?()
+            }
+        }
+    }
+
+    func updatePlaybackTime(_ seconds: Double, isPlaying: Bool) {
+        guard let timebase else { return }
+        CMTimebaseSetTime(
+            timebase,
+            time: CMTime(seconds: max(0, seconds), preferredTimescale: 600)
+        )
+        CMTimebaseSetRate(timebase, rate: isPlaying ? 1 : 0)
+    }
+
+    func reset() {
+        hasRenderedFrame = false
+        displayLayer.flushAndRemoveImage()
+    }
+
+    deinit {
+        disconnect()
     }
 }
 

@@ -34,6 +34,9 @@ xcrun --sdk iphonesimulator swiftc \
   -F "$GCD_FRAMEWORK_DIR" \
   -framework MobileVLCKit \
   -framework GCDWebServer \
+  -framework AVFoundation \
+  -framework CoreMedia \
+  -framework CoreVideo \
   -framework UIKit \
   "$LOCAL_SERVER_SOURCE" \
   "$SOURCE" \

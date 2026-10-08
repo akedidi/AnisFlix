@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.95",
-          "buildVersion": "95",
+          "version": "1.0.96",
+          "buildVersion": "96",
           "date": "2026-10-08",
-          "size": 31048835,
+          "size": 31055569,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Restaure le démarrage stable de Vidlink, conserve les qualités vidéo et active le PiP seulement après la première image."
+          "localizedDescription": "Corrige le PiP Vidlink : image visible, format vidéo standard et commandes pause/seek synchronisées."
         }
       ]
     }

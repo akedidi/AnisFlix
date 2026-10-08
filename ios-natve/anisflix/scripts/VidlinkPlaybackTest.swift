@@ -1,5 +1,9 @@
 import Foundation
+import AVFoundation
+import CoreMedia
+import CoreVideo
 import MobileVLCKit
+import ObjectiveC.runtime
 import UIKit
 
 private let browserHeaders = [
@@ -14,6 +18,7 @@ private enum TestFailure: Error, CustomStringConvertible {
     case invalidJSON(String)
     case noStream
     case playback(String)
+    case pip(String)
 
     var description: String {
         switch self {
@@ -22,6 +27,7 @@ private enum TestFailure: Error, CustomStringConvertible {
         case .invalidJSON(let step): return "Réponse JSON invalide: \(step)"
         case .noStream: return "Aucun flux Vidlink utilisable"
         case .playback(let reason): return "Lecture VLC échouée: \(reason)"
+        case .pip(let reason): return "PiP VLC échoué: \(reason)"
         }
     }
 }
@@ -168,6 +174,273 @@ private final class PlaybackProbe: NSObject, VLCMediaPlayerDelegate {
     }
 }
 
+private typealias TestVideoLockCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+) -> UnsafeMutableRawPointer?
+
+private typealias TestVideoUnlockCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutableRawPointer?,
+    UnsafePointer<UnsafeMutableRawPointer?>?
+) -> Void
+
+private typealias TestVideoDisplayCallback = @convention(c) (
+    UnsafeMutableRawPointer?,
+    UnsafeMutableRawPointer?
+) -> Void
+
+@_silgen_name("libvlc_video_set_callbacks")
+private func testLibVLCSetVideoCallbacks(
+    _ player: UnsafeMutableRawPointer?,
+    _ lock: TestVideoLockCallback?,
+    _ unlock: TestVideoUnlockCallback?,
+    _ display: TestVideoDisplayCallback?,
+    _ opaque: UnsafeMutableRawPointer?
+)
+
+@_silgen_name("libvlc_video_set_format")
+private func testLibVLCSetVideoFormat(
+    _ player: UnsafeMutableRawPointer?,
+    _ chroma: UnsafePointer<CChar>?,
+    _ width: UInt32,
+    _ height: UInt32,
+    _ pitch: UInt32
+)
+
+private final class TestRawFrame {
+    let pixelBuffer: CVPixelBuffer
+    private var isLocked = false
+
+    init?(probe: SampleBufferProbe) {
+        guard let buffer = probe.makePixelBuffer(),
+              CVPixelBufferLockBaseAddress(buffer, []) == kCVReturnSuccess,
+              CVPixelBufferGetBaseAddress(buffer) != nil else { return nil }
+        pixelBuffer = buffer
+        isLocked = true
+    }
+
+    var baseAddress: UnsafeMutableRawPointer? {
+        CVPixelBufferGetBaseAddress(pixelBuffer)
+    }
+
+    func unlock() {
+        guard isLocked else { return }
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+        isLocked = false
+    }
+
+    deinit { unlock() }
+}
+
+private let testVideoLock: TestVideoLockCallback = { opaque, planes in
+    guard let opaque,
+          let planes,
+          let frame = TestRawFrame(
+            probe: Unmanaged<SampleBufferProbe>.fromOpaque(opaque).takeUnretainedValue()
+          ),
+          let address = frame.baseAddress else { return nil }
+    planes.pointee = address
+    return Unmanaged.passRetained(frame).toOpaque()
+}
+
+private let testVideoUnlock: TestVideoUnlockCallback = { _, picture, _ in
+    guard let picture else { return }
+    Unmanaged<TestRawFrame>.fromOpaque(picture).takeUnretainedValue().unlock()
+}
+
+private let testVideoDisplay: TestVideoDisplayCallback = { opaque, picture in
+    guard let opaque, let picture else { return }
+    let probe = Unmanaged<SampleBufferProbe>.fromOpaque(opaque).takeUnretainedValue()
+    let frame = Unmanaged<TestRawFrame>.fromOpaque(picture).takeRetainedValue()
+    frame.unlock()
+    probe.receive(frame.pixelBuffer)
+}
+
+/// Exercises the same libVLC -> CVPixelBuffer -> AVSampleBufferDisplayLayer
+/// route used by the application's Vidlink Picture in Picture implementation.
+private final class SampleBufferProbe {
+    let player = VLCMediaPlayer()
+    let displayLayer = AVSampleBufferDisplayLayer()
+    private(set) var frameCount = 0
+    private(set) var nonBlackFrameCount = 0
+    private(set) var layerFailure: String?
+
+    private let width = 640
+    private let height = 360
+    private let attributes: CFDictionary = [
+        kCVPixelBufferIOSurfacePropertiesKey: [:],
+        kCVPixelBufferMetalCompatibilityKey: true,
+        kCVPixelBufferCGImageCompatibilityKey: true,
+        kCVPixelBufferBytesPerRowAlignmentKey: 64,
+    ] as CFDictionary
+    private(set) var pitch = 640 * 4
+
+    init() {
+        var prototype: CVPixelBuffer?
+        CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes,
+            &prototype
+        )
+        pitch = prototype.map(CVPixelBufferGetBytesPerRow) ?? width * 4
+        displayLayer.videoGravity = .resizeAspect
+    }
+
+    func makePixelBuffer() -> CVPixelBuffer? {
+        var buffer: CVPixelBuffer?
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width,
+            height,
+            kCVPixelFormatType_32BGRA,
+            attributes,
+            &buffer
+        )
+        return status == kCVReturnSuccess ? buffer : nil
+    }
+
+    func connect() -> Bool {
+        let selector = NSSelectorFromString("libVLCMediaPlayer")
+        guard player.responds(to: selector) else { return false }
+        typealias PlayerPointerGetter = @convention(c) (AnyObject, Selector) -> UnsafeMutableRawPointer?
+        let getter = unsafeBitCast(player.method(for: selector), to: PlayerPointerGetter.self)
+        guard let rawPlayer = getter(player, selector) else { return false }
+        let opaque = Unmanaged.passUnretained(self).toOpaque()
+        testLibVLCSetVideoCallbacks(rawPlayer, testVideoLock, testVideoUnlock, testVideoDisplay, opaque)
+        "BGRA".withCString { chroma in
+            testLibVLCSetVideoFormat(rawPlayer, chroma, UInt32(width), UInt32(height), UInt32(pitch))
+        }
+        return true
+    }
+
+    func receive(_ pixelBuffer: CVPixelBuffer) {
+        let containsImage = containsNonBlackPixels(pixelBuffer)
+        DispatchQueue.main.async { [self] in
+            var format: CMVideoFormatDescription?
+            guard CMVideoFormatDescriptionCreateForImageBuffer(
+                allocator: kCFAllocatorDefault,
+                imageBuffer: pixelBuffer,
+                formatDescriptionOut: &format
+            ) == noErr, let format else {
+                layerFailure = "description vidéo impossible"
+                return
+            }
+            var timing = CMSampleTimingInfo(
+                duration: .invalid,
+                presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+                decodeTimeStamp: .invalid
+            )
+            var sample: CMSampleBuffer?
+            guard CMSampleBufferCreateReadyWithImageBuffer(
+                allocator: kCFAllocatorDefault,
+                imageBuffer: pixelBuffer,
+                formatDescription: format,
+                sampleTiming: &timing,
+                sampleBufferOut: &sample
+            ) == noErr, let sample else {
+                layerFailure = "sample vidéo impossible"
+                return
+            }
+            CMSetAttachment(
+                sample,
+                key: kCMSampleAttachmentKey_DisplayImmediately,
+                value: kCFBooleanTrue,
+                attachmentMode: kCMAttachmentMode_ShouldNotPropagate
+            )
+            if displayLayer.status == .failed { displayLayer.flush() }
+            displayLayer.enqueue(sample)
+            frameCount += 1
+            if containsImage { nonBlackFrameCount += 1 }
+            if displayLayer.status == .failed {
+                layerFailure = displayLayer.error?.localizedDescription ?? "AVSampleBufferDisplayLayer en erreur"
+            }
+        }
+    }
+
+    private func containsNonBlackPixels(_ pixelBuffer: CVPixelBuffer) -> Bool {
+        guard CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) == kCVReturnSuccess,
+              let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { return false }
+        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
+        let bytes = base.assumingMemoryBound(to: UInt8.self)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+        let imageWidth = CVPixelBufferGetWidth(pixelBuffer)
+        let imageHeight = CVPixelBufferGetHeight(pixelBuffer)
+        var visibleSamples = 0
+        for y in stride(from: 0, to: imageHeight, by: 18) {
+            for x in stride(from: 0, to: imageWidth, by: 18) {
+                let pixel = y * bytesPerRow + x * 4
+                if bytes[pixel] > 12 || bytes[pixel + 1] > 12 || bytes[pixel + 2] > 12 {
+                    visibleSamples += 1
+                    if visibleSamples >= 12 { return true }
+                }
+            }
+        }
+        return false
+    }
+}
+
+private func runLoop(until condition: () -> Bool, timeout: TimeInterval) {
+    let deadline = Date().addingTimeInterval(timeout)
+    while !condition() && Date() < deadline {
+        RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+    }
+}
+
+private func verifySampleBufferPiP(_ media: VLCMedia) throws {
+    let probe = SampleBufferProbe()
+    probe.player.media = media
+    probe.player.audio?.isMuted = true
+    guard probe.connect() else { throw TestFailure.pip("connexion aux images VLC impossible") }
+    probe.player.play()
+
+    runLoop(until: {
+        probe.frameCount >= 20 && probe.player.time.intValue >= 1_000
+    }, timeout: 45)
+    guard probe.frameCount >= 20 else {
+        probe.player.stop()
+        throw TestFailure.pip("moins de 20 images décodées (\(probe.frameCount))")
+    }
+    guard probe.nonBlackFrameCount > 0 else {
+        probe.player.stop()
+        throw TestFailure.pip("les images décodées sont noires")
+    }
+    guard probe.layerFailure == nil, probe.displayLayer.status != .failed else {
+        probe.player.stop()
+        throw TestFailure.pip(probe.layerFailure ?? "la couche vidéo a refusé les images")
+    }
+    print("✅ PiP: \(probe.frameCount) images, contenu visible, couche vidéo valide")
+
+    probe.player.pause()
+    let pauseTime = probe.player.time.intValue
+    RunLoop.current.run(until: Date().addingTimeInterval(1.2))
+    let pauseDrift = abs(probe.player.time.intValue - pauseTime)
+    guard pauseDrift <= 750 else {
+        probe.player.stop()
+        throw TestFailure.pip("pause désynchronisée (dérive \(pauseDrift) ms)")
+    }
+    print("✅ PiP: pause synchronisée")
+
+    let length = probe.player.media?.length.intValue ?? 0
+    let target = length > 30_000 ? min(Int32(30_000), length - 5_000) : Int32(5_000)
+    let framesBeforeSeek = probe.frameCount
+    probe.player.time = VLCTime(number: NSNumber(value: target))
+    probe.player.play()
+    runLoop(until: {
+        abs(probe.player.time.intValue - target) <= 4_000 && probe.frameCount >= framesBeforeSeek + 5
+    }, timeout: 30)
+    let seekDelta = abs(probe.player.time.intValue - target)
+    let receivedAfterSeek = probe.frameCount >= framesBeforeSeek + 5
+    probe.player.stop()
+    guard seekDelta <= 4_000, receivedAfterSeek else {
+        throw TestFailure.pip("seek non synchronisé (écart \(seekDelta) ms, nouvelles images: \(receivedAfterSeek))")
+    }
+    print("✅ PiP: seek synchronisé et nouvelles images reçues")
+}
+
 private func verifyPlayback(_ url: URL) throws {
     var manifestHeaders = browserHeaders
     manifestHeaders["Accept"] = "application/dash+xml,*/*"
@@ -232,6 +505,15 @@ private func verifyPlayback(_ url: URL) throws {
     }
     print("✅ Sortie vidéo active: \(Int(videoSize.width))×\(Int(videoSize.height))")
     print("✅ Playback vidéo atteint \(milliseconds) ms")
+
+    let pipMedia = VLCMedia(url: localManifest)
+    pipMedia.addOptions([
+        "network-caching": 3_000,
+        "http-user-agent": browserHeaders["User-Agent"]!,
+        "http-referrer": browserHeaders["Referer"]!,
+        "adaptive-maxheight": 540,
+    ])
+    try verifySampleBufferPiP(pipMedia)
 }
 
 @main
