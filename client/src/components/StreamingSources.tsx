@@ -1151,23 +1151,30 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : Bysebuho > AnimeAPI > Vidzy > MovieBox > MegaCDN > Luluvid > Reste
+  // En VF/VOSTFR : French Stream et Streamzo, puis FStream Movix, puis le reste.
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
+      const provider = source.provider?.toLowerCase() || '';
+
+      if (selectedLanguage !== 'VO') {
+        if (provider === 'frenchstream' || provider === 'streamzo') return -10;
+        if (provider === 'fstream' || source.name.toLowerCase().includes('fstream movix')) return -9;
+      }
+
       // Rang -2: Bysebuho - HIGHEST PRIORITY
-      if (source.provider?.toLowerCase() === 'bysebuho' ||
+      if (provider === 'bysebuho' ||
         source.name.toLowerCase().includes('bysebuho')) {
         return -2;
       }
 
       // Rang -1: AnimeAPI (Highest priority for VO anime)
-      if (source.provider?.toLowerCase() === 'animeapi' ||
+      if (provider === 'animeapi' ||
         source.name.toLowerCase().includes('animeapi')) {
         return -1;
       }
 
-      if (['animesama', 'frenchanime', 'frenchstream', 'streamzo', 'vidlink'].includes(source.provider?.toLowerCase())) {
+      if (['animesama', 'frenchanime', 'frenchstream', 'streamzo', 'vidlink'].includes(provider)) {
         return 0.5;
       }
 
