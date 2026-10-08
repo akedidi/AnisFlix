@@ -1022,7 +1022,7 @@ const StreamingSources = memo(function StreamingSources({
     console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
     movieBoxData.streams.forEach((stream: any, index: number) => {
       if (!isPlayableMovieBoxStream(stream)) {
-        console.log(`📦 [MovieBox] Source ${stream.quality} masquée (HEVC non supporté par ce navigateur)`);
+        console.log(`📦 [MovieBox] Source ${stream.quality} masquée (incompatible ou lien expiré)`);
         return;
       }
       const isDash = stream.type === 'dash' || stream.url?.includes('.mpd');

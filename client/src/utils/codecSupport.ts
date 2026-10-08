@@ -31,6 +31,19 @@ export function streamRequiresHevc(codec?: string | null, url?: string | null): 
   return isHevcCodec(codec) || isHevcStreamUrl(url);
 }
 
+export function isExpiredSignedStreamUrl(url?: string | null, now = Date.now()): boolean {
+  if (!url) return false;
+
+  try {
+    const parsed = new URL(url);
+    const expiresAt = parsed.searchParams.get("t");
+    if (!expiresAt || !/^\d{10}$/.test(expiresAt)) return false;
+    return Number(expiresAt) * 1000 <= now;
+  } catch {
+    return false;
+  }
+}
+
 export function canPlayHevcDash(): boolean {
   return isHevcMseSupported();
 }
@@ -42,7 +55,10 @@ export function isPlayableMovieBoxStream(stream: {
   directUrl?: string | null;
 }): boolean {
   const isDash = stream.type === "dash" || !!stream.url?.includes(".mpd");
-  const isHevc = streamRequiresHevc(stream.codec, stream.directUrl || stream.url);
+  const mediaUrl = stream.directUrl || stream.url;
+  if (isExpiredSignedStreamUrl(mediaUrl)) return false;
+
+  const isHevc = streamRequiresHevc(stream.codec, mediaUrl);
   if (isDash && isHevc && !canPlayHevcDash()) return false;
   return true;
 }
