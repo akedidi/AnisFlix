@@ -654,7 +654,8 @@ struct MovieDetailView: View {
                             isLive: false,
                             headers: finalHeaders,
                             provider: source.provider,
-                            language: source.language
+                            language: source.language,
+                            streamType: source.type
                         )
                         
                         self.isLoadingSources = false

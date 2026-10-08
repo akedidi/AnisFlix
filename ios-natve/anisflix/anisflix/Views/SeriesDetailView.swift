@@ -611,7 +611,8 @@ struct SeriesDetailView: View {
                             provider: source.provider,
                             language: source.language,
                             quality: source.quality,
-                            origin: source.origin // KEY: Pass scraper origin (fstream, moviebox, etc.) for targeted fetch
+                            origin: source.origin, // KEY: Pass scraper origin (fstream, moviebox, etc.) for targeted fetch
+                            streamType: source.type
                         )
                         
                         isLoadingSource = false

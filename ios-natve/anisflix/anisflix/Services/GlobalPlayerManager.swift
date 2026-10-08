@@ -25,6 +25,7 @@ class GlobalPlayerManager: ObservableObject {
     @Published var currentTitle: String = ""
     @Published var currentPosterUrl: String?
     @Published var currentSubtitles: [Subtitle] = []
+    @Published var currentStreamType: String?
     
     // Tracking context for navigation restoration
     @Published var mediaId: Int?
@@ -33,14 +34,6 @@ class GlobalPlayerManager: ObservableObject {
     @Published var totalEpisodesInSeason: Int?
     @Published var seriesTitle: String?
     @Published var isLive: Bool = false
-    
-    // VLC Player Sheet (for MKV/4KHDHub sources)
-    @Published var showVLCSheet = false
-    @Published var vlcURL: URL?
-    @Published var vlcTitle: String?
-    @Published var vlcPosterUrl: URL?
-    @Published var vlcHeaders: [String: String]?
-    @Published var isVLCMinimized = false // For VLC mini-player
     
     // Server URL for Cast (used for downloaded videos where local file can't be cast)
     private var currentServerUrl: URL?
@@ -105,7 +98,7 @@ class GlobalPlayerManager: ObservableObject {
                         )
                         
                         // Pause local player
-                        self.playerVM.player.pause()
+                        self.playerVM.pausePlayback()
                     }
                     
                     // Auto-minimize and show cast control sheet if in fullscreen
@@ -133,8 +126,7 @@ class GlobalPlayerManager: ObservableObject {
                         if castPosition > 0 {
                             self.playerVM.seek(to: castPosition)
                         }
-                        self.playerVM.player.play()
-                        self.playerVM.isPlaying = true
+                        self.playerVM.resumePlayback()
                     }
                 }
             }
@@ -148,24 +140,16 @@ class GlobalPlayerManager: ObservableObject {
     func stopAllPlayback() {
         print("🛑 [GlobalPlayerManager] STOP ALL PLAYBACK TRIGGERED")
         
-        // 1. Stop AVPlayer
-        if playerVM.isPlaying {
-            print("   - Stopping AVPlayer")
-            playerVM.player.pause()
-            playerVM.isPlaying = false
-        }
-        
-        // 2. Stop VLC Player
-        // VLC managed locally by View now - no shared instance to stop
+        // Stop whichever engine is currently active.
+        playerVM.stopPlayback()
         
         // 3. Reset states
         isMinimised = false
-        showVLCSheet = false
     }
 
     // Start playback (replaces current media)
     // serverUrl: Optional URL for Chromecast (used for downloaded videos where local file can't be cast)
-    func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil, provider: String? = nil, language: String? = nil, quality: String? = nil, origin: String? = nil, isFromDownload: Bool = false, localPosterPath: String? = nil) {
+    func play(url: URL, title: String, posterUrl: String?, subtitles: [Subtitle], mediaId: Int?, season: Int?, episode: Int?, isLive: Bool, serverUrl: URL? = nil, headers: [String: String]? = nil, provider: String? = nil, language: String? = nil, quality: String? = nil, origin: String? = nil, streamType: String? = nil, isFromDownload: Bool = false, localPosterPath: String? = nil) {
         
         // 0. STOP EVERYTHING FIRST
         stopAllPlayback()
@@ -185,6 +169,7 @@ class GlobalPlayerManager: ObservableObject {
         self.currentLanguage = language
         self.currentQuality = quality
         self.currentOrigin = origin
+        self.currentStreamType = streamType
         self.isPlayingFromDownload = isFromDownload
         
         // Reset Next Episode State
@@ -277,43 +262,35 @@ class GlobalPlayerManager: ObservableObject {
             let castUrl = serverUrl ?? finalPlayUrl
             castManager.loadMedia(url: castUrl, title: title, posterUrl: posterUrl.flatMap { URL(string: $0) }, subtitles: subtitles, activeSubtitleUrl: nil, startTime: startTime, isLive: isLive, subtitleOffset: 0, mediaId: mediaId, season: season, episode: episode, totalEpisodesInSeason: self.totalEpisodesInSeason, seriesTitle: self.seriesTitle)
         } else {
-             // Detect if we need VLC (MKV/4KHDHub/DASH/H.265 sources)
+             // Prefer VLC only for containers/codecs that AVPlayer cannot read.
+             // Unexpected AVPlayer errors also fall back inside PlayerViewModel,
+             // without changing the visible player or its controls.
              let urlLower = url.absoluteString.lowercased()
-             let useVLC = provider?.lowercased() == "4khdhub" || 
-                          provider?.lowercased() == "fourkhdhub" ||
-                          url.pathExtension.lowercased() == "mkv" ||
-                          url.pathExtension.lowercased() == "mpd" ||
-                          urlLower.contains(".mpd") ||
-                          urlLower.contains("/h265/") ||
-                          urlLower.contains("/hevc/")
-             
+             let useVLC = Self.requiresVLC(url: url, provider: provider, streamType: streamType)
              print("🎬 [GlobalPlayerManager] useVLC decision: \(useVLC)")
-             
+
+             var localPlaybackURL = finalPlayUrl
+             var localPlaybackHeaders = proxiedUrl != nil ? nil : headers
+
              if useVLC {
-                  // Use standalone VLCPlayerView for MKV/DASH/H.265 files
-                  print("✅ [GlobalPlayerManager] VLC source detected, using standalone VLCPlayerView")
-                  
-                  // Stop AVPlayer if running
-                  if playerVM.isPlaying {
-                      playerVM.player.pause()
-                      playerVM.isPlaying = false
-                  }
-                  
-                  // For DASH (.mpd) streams with cookies (e.g. MOB VF with CloudFront signCookie),
-                  // route through local /dash-proxy. VLC's DASH demuxer doesn't propagate http-cookies
-                  // to segment sub-requests, so we need the proxy to inject Cookie headers.
-                  let isDash = url.pathExtension.lowercased() == "mpd" || urlLower.contains(".mpd")
+                  print("✅ [GlobalPlayerManager] VLC source detected, using embedded engine")
+
+                  // VLC does not always propagate signed cookies to DASH segment
+                  // requests. The loopback proxy injects them for every request.
+                  let normalizedType = streamType?.lowercased()
+                  let isDash = normalizedType == "dash" || normalizedType == "mpd" ||
+                               url.pathExtension.lowercased() == "mpd" || urlLower.contains(".mpd")
                   let hasCookie = headers?["Cookie"] != nil || headers?["cookie"] != nil
-                  
+
                   if isDash && hasCookie, let serverUrl = LocalStreamingServer.shared.serverUrl {
                       print("🎬 [GlobalPlayerManager] DASH+Cookie detected → routing through /dash-proxy")
-                      
+
                       var components = URLComponents()
                       components.scheme = serverUrl.scheme
-                      components.host = serverUrl.host
+                      components.host = "127.0.0.1"
                       components.port = serverUrl.port
                       components.path = "/dash-proxy"
-                      
+
                       var queryItems = [URLQueryItem]()
                       if let urlData = url.absoluteString.data(using: .utf8) {
                           queryItems.append(URLQueryItem(name: "url64", value: urlData.base64EncodedString()))
@@ -328,31 +305,26 @@ class GlobalPlayerManager: ObservableObject {
                           queryItems.append(URLQueryItem(name: "user_agent", value: ua))
                       }
                       components.queryItems = queryItems
-                      
+
                       if let proxyUrl = components.url {
                           print("🎬 [GlobalPlayerManager] VLC will play proxied MPD: \(proxyUrl)")
-                          self.vlcURL = proxyUrl
-                          self.vlcTitle = title
-                          self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
-                          self.vlcHeaders = nil // No headers needed for localhost
-                          self.showVLCSheet = true
-                          return
+                          localPlaybackURL = proxyUrl
+                          localPlaybackHeaders = nil
                       }
                   }
-                  
-                  // Direct VLC playback (MKV, H.265, DASH without cookies)
-                  self.vlcURL = finalPlayUrl
-                  self.vlcTitle = title
-                  self.vlcPosterUrl = posterUrl.flatMap { URL(string: $0) }
-                  self.vlcHeaders = proxiedUrl != nil ? nil : headers // No headers needed if proxied
-                  self.showVLCSheet = true
-                  return // Don't show standard player
              } else {
                  print("ℹ️ [GlobalPlayerManager] Using standard AVPlayer")
              }
-             
+
              playerVM.originalUrl = url
-             playerVM.setup(url: finalPlayUrl, title: title, posterUrl: posterUrl, localPosterPath: localPosterPath, customHeaders: proxiedUrl != nil ? nil : headers, useVLCPlayer: false)
+             playerVM.setup(
+                url: localPlaybackURL,
+                title: title,
+                posterUrl: posterUrl,
+                localPosterPath: localPosterPath,
+                customHeaders: localPlaybackHeaders,
+                useVLCPlayer: useVLC
+             )
              
              // Seek to saved position after a short delay
              if startTime > 0 {
@@ -362,8 +334,7 @@ class GlobalPlayerManager: ObservableObject {
              }
              
              // Start playback
-             playerVM.player.play()
-             playerVM.isPlaying = true
+             playerVM.resumePlayback()
         }
 
         // 4. Show player
@@ -384,6 +355,26 @@ class GlobalPlayerManager: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Formats known to be unsupported by AVPlayer. MP4 and HLS stay on the
+    /// native engine; runtime AVPlayer failures are handled by PlayerViewModel.
+    static func requiresVLC(url: URL, provider: String?, streamType: String?) -> Bool {
+        let provider = provider?.lowercased() ?? ""
+        let type = streamType?.lowercased() ?? ""
+        let ext = url.pathExtension.lowercased()
+        let value = url.absoluteString.lowercased()
+
+        let vlcProviders = ["4khdhub", "fourkhdhub"]
+        let vlcTypes = ["dash", "mpd", "mkv", "matroska", "webm", "avi", "flv", "wmv", "ogv"]
+        let vlcExtensions = ["mpd", "mkv", "webm", "avi", "flv", "wmv", "ogv"]
+
+        return vlcProviders.contains(provider) ||
+               vlcTypes.contains(type) ||
+               vlcExtensions.contains(ext) ||
+               value.contains(".mpd") ||
+               value.contains("/h265/") ||
+               value.contains("/hevc/")
     }
     
     func toggleMinimise() {
@@ -420,11 +411,7 @@ class GlobalPlayerManager: ObservableObject {
         }
         
         // Normal close - stop playback (both AVPlayer and VLC)
-        if playerVM.useVLC {
-            playerVM.stopVLC()
-        } else {
-            playerVM.player.pause()
-        }
+        playerVM.stopPlayback()
         isPresented = false
         isMinimised = false
         currentMediaUrl = nil
@@ -761,6 +748,7 @@ class GlobalPlayerManager: ObservableObject {
                     language: downloaded.language,
                     quality: downloaded.quality,
                     origin: self.currentOrigin, 
+                    streamType: downloaded.sourceType,
                     isFromDownload: true, // Stay in download mode
                     localPosterPath: downloaded.localPosterPath
                 )
@@ -924,6 +912,7 @@ class GlobalPlayerManager: ObservableObject {
                 language: source.language,
                 quality: source.quality,
                 origin: source.origin, // KEY: Pass origin (fstream, moviebox, etc.) for targeted next-episode fetch
+                streamType: source.type,
                 isFromDownload: false // STREAMING MODE: Stay in streaming mode for next episode
             )
             

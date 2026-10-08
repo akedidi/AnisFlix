@@ -197,6 +197,7 @@ struct DownloadedMediaDetailView: View {
                                     serverUrl: serverUrl,
                                     provider: item.provider ?? "download", // Use original provider if available
                                     language: item.language,
+                                    streamType: item.sourceType,
                                     isFromDownload: true // IMPORTANT: Enable download mode for next episode logic
                                 )
                             }) {

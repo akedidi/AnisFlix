@@ -378,13 +378,16 @@ struct CustomVideoPlayer: View {
                                     .frame(width: 44, height: 44)
                             }
                             
-                            // PiP Button
-                            Button {
-                                playerVM.togglePiP()
-                            } label: {
-                                Image(systemName: "pip.enter")
-                                    .foregroundColor(.white)
-                                    .padding(8)
+                            // AVPictureInPictureController requires AVPlayerLayer.
+                            // Avoid presenting a non-functional black PiP window for VLC.
+                            if !playerVM.useVLC {
+                                Button {
+                                    playerVM.togglePiP()
+                                } label: {
+                                    Image(systemName: "pip.enter")
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                }
                             }
                             
                             // Fullscreen Button
@@ -739,12 +742,11 @@ struct CustomVideoPlayer: View {
         if connected {
             // Pause local player when casting starts
             if playerVM.isPlaying {
-                playerVM.player.pause()
-                playerVM.isPlaying = false 
+                playerVM.pausePlayback()
             }
             
             // Resume/Load on Cast
-            playerVM.player.pause()
+            playerVM.pausePlayback()
             
             // Use proxied URL to ensure headers are passed to Chromecast (essential for FSVid/Vidzy)
             // Note: getProxiedUrlForCast uses lastSetupParams, so it works even if we switched via handleUrlChange
@@ -763,8 +765,7 @@ struct CustomVideoPlayer: View {
                 playerVM.seek(to: time)
             }
             // Auto-play locally if we were casting
-            playerVM.player.play()
-            playerVM.isPlaying = true
+            playerVM.resumePlayback()
         }
     }
 }
@@ -825,6 +826,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     @Published var useVLC = false
     @Published var vlcPlayer: VLCMediaPlayer?
     private var vlcTimeObserver: Timer?
+    private var pendingVLCSeekTime: Double?
+    private var hasAttemptedVLCFallback = false
+    private var avFallbackWorkItem: DispatchWorkItem?
     
     private var resourceLoaderDelegate: VideoResourceLoaderDelegate?
     private var artworkTask: Task<Void, Never>?
@@ -881,8 +885,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if let sender = notification.object as? PlayerViewModel, sender !== self {
             if isPlaying {
                 print("⏸️ Pausing playback because another player started")
-                player.pause()
-                isPlaying = false
+                pausePlayback()
             }
         }
     }
@@ -935,6 +938,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     }
     
     func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, subtitleUrl: URL? = nil) {
+        let isSamePlayback = url == currentUrl &&
+            subtitleUrl == externalSubtitleUrl &&
+            useVLC == useVLCPlayer
+
         // Store params for reloading (e.g. when subtitles change)
         lastSetupParams = SetupParams(
             url: url,
@@ -946,18 +953,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             subtitleUrl: subtitleUrl
         )
         
-        self.externalSubtitleUrl = subtitleUrl
-        
         // Notify others to stop
         NotificationCenter.default.post(name: .stopPlayback, object: self)
-        
-        // Cleanup previous VLC player if switching modes
-        if useVLC && !useVLCPlayer {
-            cleanupVLC()
-        }
-        
-        // Set VLC mode
-        self.useVLC = useVLCPlayer
+
+        self.externalSubtitleUrl = subtitleUrl
         
         // Store the title if provided
         if let title = title {
@@ -990,17 +989,18 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         // If same URL AND same subtitle state, just ensure playing and return
-        if url == currentUrl && subtitleUrl == externalSubtitleUrl {
+        if isSamePlayback {
             if !isPlaying {
-                if useVLC, let vlc = vlcPlayer {
-                    vlc.play()
-                } else {
-                    player.play()
-                }
-                isPlaying = true
+                resumePlayback()
             }
             return
         }
+
+        hasAttemptedVLCFallback = false
+        avFallbackWorkItem?.cancel()
+        avFallbackWorkItem = nil
+        currentTime = 0
+        duration = 1
         
         currentUrl = url
         
@@ -1009,9 +1009,16 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // ═══════════════════════════════════════════════════════════════════
         if useVLCPlayer {
             print("🎬 [PlayerVM] Using VLC player for: \(url)")
+            clearAVPlayerState(removeCurrentItem: true)
+            useVLC = true
             setupVLCPlayer(url: url, customHeaders: customHeaders)
             return
         }
+
+        if vlcPlayer != nil {
+            cleanupVLC()
+        }
+        useVLC = false
         
         var finalUrl = url
         
@@ -1243,9 +1250,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Add observers for debugging - REMOVED due to build issues
         // We rely on the fact that ResourceLoader is now working
         
+        // Remove observers from the previous native item before replacing it.
+        clearAVPlayerState(removeCurrentItem: false)
+
         // Initialize remote commands
         setupRemoteCommands()
-        
+
         player.replaceCurrentItem(with: item)
         player.play()
         isPlaying = true
@@ -1255,15 +1265,6 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         // Initialize buffering state
         isBuffering = true
-        
-        // Clear previous observers if any
-        if let oldItem = observedItem {
-            oldItem.removeObserver(self, forKeyPath: "duration")
-            oldItem.removeObserver(self, forKeyPath: "status")
-            oldItem.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
-            oldItem.removeObserver(self, forKeyPath: "playbackBufferEmpty")
-            oldItem.removeObserver(self, forKeyPath: "playbackBufferFull")
-        }
         
         // Observe item properties
         observedItem = item
@@ -1299,8 +1300,63 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 self.updateNowPlayingInfo()
             }
         }
+
+        // Some unsupported streams remain in `.unknown` instead of failing.
+        // Give AVPlayer time to initialise, then transparently try VLC.
+        let fallback = DispatchWorkItem { [weak self, weak item] in
+            guard let self, let item,
+                  self.observedItem === item,
+                  !self.useVLC,
+                  item.status == .unknown,
+                  self.currentTime <= 0 else { return }
+            print("⚠️ [PlayerVM] AVPlayer stayed unavailable; trying embedded VLC")
+            self.fallbackToVLC(from: item)
+        }
+        avFallbackWorkItem = fallback
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: fallback)
         
         // setupPiP will be called separately with the layer
+    }
+
+    private func clearAVPlayerState(removeCurrentItem: Bool) {
+        avFallbackWorkItem?.cancel()
+        avFallbackWorkItem = nil
+        player.pause()
+
+        if let observer = timeObserver {
+            player.removeTimeObserver(observer)
+            timeObserver = nil
+        }
+
+        if let item = observedItem {
+            item.removeObserver(self, forKeyPath: "duration")
+            item.removeObserver(self, forKeyPath: "status")
+            item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+            item.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+            item.removeObserver(self, forKeyPath: "playbackBufferFull")
+            observedItem = nil
+        }
+
+        if removeCurrentItem {
+            player.replaceCurrentItem(with: nil)
+        }
+    }
+
+    private func fallbackToVLC(from failedItem: AVPlayerItem) {
+        guard !useVLC,
+              !hasAttemptedVLCFallback,
+              observedItem === failedItem,
+              let params = lastSetupParams else { return }
+
+        hasAttemptedVLCFallback = true
+        let resumeTime = currentTime
+        print("🔄 [PlayerVM] Switching AVPlayer → embedded VLC")
+        clearAVPlayerState(removeCurrentItem: true)
+        useVLC = true
+        setupVLCPlayer(url: params.url, customHeaders: params.customHeaders)
+        if resumeTime > 0 {
+            seek(to: resumeTime)
+        }
     }
     
     // MARK: - Proxy Helper
@@ -1426,8 +1482,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         commandCenter.playCommand.addTarget { [weak self] event in
             print("🎧 [REMOTE] Play command received from headphones")
             guard let self = self else { return .commandFailed }
-            self.player.play()
-            self.isPlaying = true
+            self.resumePlayback()
             self.updateNowPlayingInfo() // Update state to Playing
             print("🎧 [REMOTE] Play command executed - isPlaying: true")
             return .success
@@ -1438,8 +1493,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         commandCenter.pauseCommand.addTarget { [weak self] event in
             print("🎧 [REMOTE] Pause command received from headphones")
             guard let self = self else { return .commandFailed }
-            self.player.pause()
-            self.isPlaying = false
+            self.pausePlayback()
             self.updateNowPlayingInfo() // Update state to Paused
             print("🎧 [REMOTE] Pause command executed - isPlaying: false")
             return .success
@@ -1451,13 +1505,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         commandCenter.togglePlayPauseCommand.addTarget { [weak self] event in
             print("🎧 [REMOTE] Toggle Play/Pause command received")
             guard let self = self else { return .commandFailed }
-            if self.isPlaying {
-                self.player.pause()
-                self.isPlaying = false
-            } else {
-                self.player.play()
-                self.isPlaying = true
-            }
+            self.togglePlayPause()
             self.updateNowPlayingInfo()
             return .success
         }
@@ -1637,19 +1685,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
         
         currentUrl = nil
-        player.pause()
-        if let observer = timeObserver {
-            player.removeTimeObserver(observer)
-            timeObserver = nil
-        }
-        // Only remove observer if we actually added one
-        if let item = observedItem {
-            item.removeObserver(self, forKeyPath: "duration")
-            item.removeObserver(self, forKeyPath: "status")
-            item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
-            item.removeObserver(self, forKeyPath: "playbackBufferEmpty")
-            item.removeObserver(self, forKeyPath: "playbackBufferFull")
-            observedItem = nil
+        clearAVPlayerState(removeCurrentItem: true)
+        if vlcPlayer != nil {
+            cleanupVLC()
         }
         resourceLoaderDelegate = nil
         artworkTask?.cancel()
@@ -1681,32 +1719,51 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     }
     
     func togglePlayPause() {
-        if useVLC, let vlc = vlcPlayer {
-            if isPlaying {
-                vlc.pause()
-                isPlaying = false
-            } else {
-                vlc.play()
-                isPlaying = true
-            }
+        if isPlaying {
+            pausePlayback()
         } else {
-            if isPlaying {
-                player.pause()
-                isPlaying = false
-            } else {
-                player.play()
-                isPlaying = true
-            }
+            resumePlayback()
         }
         
         // Update Now Playing Info to sync with system
         updateNowPlayingInfo()
         print("🎧 [TOGGLE] Play/Pause toggled - isPlaying: \(isPlaying)")
     }
+
+    func resumePlayback() {
+        if useVLC, let vlc = vlcPlayer {
+            vlc.play()
+        } else {
+            player.play()
+        }
+        isPlaying = true
+    }
+
+    func pausePlayback() {
+        if useVLC, let vlc = vlcPlayer {
+            vlc.pause()
+        } else {
+            player.pause()
+        }
+        isPlaying = false
+    }
+
+    func stopPlayback() {
+        if vlcPlayer != nil {
+            cleanupVLC()
+        }
+        clearAVPlayerState(removeCurrentItem: true)
+        currentUrl = nil
+        isPlaying = false
+        isBuffering = false
+    }
     
     func seek(to time: Double) {
         if useVLC, let vlc = vlcPlayer {
-            guard duration > 0 else { return }
+            guard duration > 1 else {
+                pendingVLCSeekTime = max(0, time)
+                return
+            }
             let position = Float(time / duration)
             vlc.position = position
         } else {
@@ -1721,6 +1778,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         
         // Cleanup any existing VLC player
         cleanupVLC()
+        useVLC = true
+        pendingVLCSeekTime = nil
         
         print("🎬 [PlayerVM] Creating new VLC player...")
         // Create new VLC player
@@ -1737,14 +1796,17 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Set network caching and user agent
         var options: [String: Any] = [
             "network-caching": 3000,
-            "http-user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+            "avcodec-hw": "any",
+            "http-user-agent": customHeaders?["User-Agent"] ?? customHeaders?["user-agent"] ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
         ]
         
-        // Add custom headers if provided
-        if let headers = customHeaders {
-            for (key, value) in headers {
-                options["http-\(key.lowercased())"] = value
-            }
+        // MobileVLCKit uses dedicated option names for headers needed by
+        // protected streams. Generic "http-referer" is not recognised.
+        if let referer = customHeaders?["Referer"] ?? customHeaders?["referer"] {
+            options["http-referrer"] = referer
+        }
+        if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
+            options["http-cookies"] = cookie
         }
         
         media.addOptions(options)
@@ -1782,6 +1844,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 }
                 if length > 0 {
                     self.duration = length
+                    if let target = self.pendingVLCSeekTime {
+                        self.pendingVLCSeekTime = nil
+                        vlc.position = Float(min(max(target / length, 0), 1))
+                    }
                 }
                 
                 // Update buffering state
@@ -2007,17 +2073,18 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         case "status":
             if item.status == .readyToPlay {
                 DispatchQueue.main.async {
+                    self.avFallbackWorkItem?.cancel()
+                    self.avFallbackWorkItem = nil
                     // Start playing if not already
                     if !self.isPlaying {
-                        self.player.play()
-                        self.isPlaying = true
+                        self.resumePlayback()
                     }
                     self.isBuffering = false
                 }
             } else if item.status == .failed {
                 print("❌ [PlayerViewModel] AVPlayerItem failed: \(String(describing: item.error))")
                 DispatchQueue.main.async {
-                    self.isBuffering = false
+                    self.fallbackToVLC(from: item)
                 }
             }
             

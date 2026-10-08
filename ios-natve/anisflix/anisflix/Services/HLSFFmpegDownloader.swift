@@ -36,6 +36,7 @@ class HLSFFmpegDownloader {
                   outputPath: String,
                   provider: String,
                   customHeaders: [String: String]? = nil,
+                  isDASH: Bool = false,
                   progress: @escaping (Double) -> Void,
                   completion: @escaping (Result<URL, Error>) -> Void) {
 
@@ -64,6 +65,19 @@ class HLSFFmpegDownloader {
             let isLoopback = url.contains("127.0.0.1") || url.contains("localhost") || url.contains(":8080/")
             let usesLocalStream = url.contains("/stream") && isLoopback
             let usesLocalManifest = url.contains("/manifest") && isLoopback
+
+            if isDASH || url.lowercased().contains(".mpd") {
+                print("📦 [HLSFFmpeg] DASH input detected; FFmpeg will mux video and audio into MP4")
+                self.runFFmpegCopy(
+                    inputURL: url,
+                    outputPath: outputPath,
+                    headerBlock: Self.ffmpegHeaderBlock(provider: provider, url: url, customHeaders: customHeaders),
+                    isMP4Copy: false,
+                    progress: progress,
+                    completion: completion
+                )
+                return
+            }
 
             if usesLocalStream {
                 self.runFFmpegCopy(

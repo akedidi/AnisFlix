@@ -58,6 +58,7 @@ struct DownloadItem: Identifiable, Codable, Hashable {
     
     var headers: [String: String]? // Custom headers for download
     var provider: String? // Source provider (e.g. "vidzy", "vidmoly")
+    var sourceType: String? // Original stream type (hls, dash, mp4...)
     
     var isSeries: Bool {
         return season != nil && episode != nil
@@ -232,7 +233,7 @@ class DownloadManager: NSObject, ObservableObject {
         
         // HLS / FFmpeg providers (MovieBox MP4 is direct file — still uses FFmpeg via /stream)
         let providerLower = source.provider.lowercased()
-        var isHLS = resolved.url.contains(".m3u8") ||
+        let isHLS = resolved.url.contains(".m3u8") ||
                     source.type == "hls" ||
                     source.type == "m3u8" ||
                     source.type == "dash" ||
@@ -268,7 +269,8 @@ class DownloadManager: NSObject, ObservableObject {
             progress: 0.0,
             isHLS: isHLS,
             headers: resolved.headers,
-            provider: source.provider
+            provider: source.provider,
+            sourceType: source.type
         )
         
         downloads.append(item)
@@ -783,7 +785,10 @@ class DownloadManager: NSObject, ObservableObject {
                 for: item,
                 provider: provider,
                 streamUrl: resolved.url,
-                headers: resolved.headers
+                headers: resolved.headers,
+                isDASH: item.sourceType?.lowercased() == "dash" ||
+                        item.sourceType?.lowercased() == "mpd" ||
+                        resolved.url.lowercased().contains(".mpd")
             )
             return
         }
@@ -937,7 +942,8 @@ class DownloadManager: NSObject, ObservableObject {
         for item: DownloadItem,
         provider: String,
         streamUrl: String? = nil,
-        headers: [String: String]? = nil
+        headers: [String: String]? = nil,
+        isDASH: Bool = false
     ) {
         let downloader = HLSFFmpegDownloader()
         ffmpegDownloaders[item.id] = downloader
@@ -956,7 +962,9 @@ class DownloadManager: NSObject, ObservableObject {
         
         LocalStreamingServer.shared.start()
         
-        if Self.shouldUseLocalProxyForDownload(provider: provider) {
+        // DASH is handled directly by FFmpeg. The HLS manifest proxy rewrites
+        // M3U8 playlists and cannot represent an MPD document.
+        if !isDASH && Self.shouldUseLocalProxyForDownload(provider: provider) {
             let providerLower = provider.lowercased()
             let useStreamProxy = providerLower == "moviebox" && Self.isDirectMP4(resolved.url)
             
@@ -983,6 +991,7 @@ class DownloadManager: NSObject, ObservableObject {
             outputPath: outputPath,
             provider: provider,
             customHeaders: ffmpegHeaders,
+            isDASH: isDASH,
             progress: { [weak self] progress in
                 DispatchQueue.main.async {
                     self?.updateProgress(for: item.id, progress: progress)
