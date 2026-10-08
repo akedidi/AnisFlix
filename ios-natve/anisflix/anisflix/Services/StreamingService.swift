@@ -310,7 +310,7 @@ class StreamingService {
     /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter (e.g. vidlink on series, cinepro, darki from TMDB decode).
     private static let allowedStreamingProviders: Set<String> = [
         "vidlink", "yflix", "vidmoly", "vidzy", "vixsrc", "primewire", "2embed",
-        "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "streamzo", "animepahe", "moviebox",
+        "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "frenchstream", "streamzo", "animepahe", "moviebox",
         "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob", "hianime"
     ]
     
@@ -337,6 +337,7 @@ class StreamingService {
         async let vidlinkSources = fetchVidlinkSources(tmdbId: movieId, type: "movie")
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
+        async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: movieId, type: "movie")
 
         
@@ -392,11 +393,13 @@ class StreamingService {
         let animeSources = await (try? animeTask?.value) ?? []
         let vidlinkMovieResults = await (try? vidlinkSources) ?? []
         let yflixMovieResults = await (try? yflixSources) ?? []
+        let frenchStreamMovieResults = await frenchStreamSources
         let streamzoMovieResults = await streamzoSources
 
         print("📊 [StreamingService] Sources fetched:")
         print("   - Vidlink: \(vidlinkMovieResults.count)")
         print("   - YFlix: \(yflixMovieResults.count)")
+        print("   - French Stream: \(frenchStreamMovieResults.count)")
         print("   - Streamzo: \(streamzoMovieResults.count)")
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
         print("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
@@ -431,6 +434,7 @@ class StreamingService {
             allSources.append(contentsOf: yflixMovieResults)
         }
 
+        allSources.append(contentsOf: frenchStreamMovieResults)
         allSources.append(contentsOf: streamzoMovieResults)
 
         // Add Wiflix sources (Luluvid)
@@ -589,6 +593,7 @@ class StreamingService {
         async let vidlinkSources = fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
         print("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
@@ -663,11 +668,13 @@ class StreamingService {
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let vidlinkResults = await (try? vidlinkSources) ?? []
         let yflixResults = await (try? yflixSources) ?? []
+        let frenchStreamResults = await frenchStreamSources
         let streamzoResults = await streamzoSources
 
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - Vidlink: \(vidlinkResults.count)")
         print("   - YFlix: \(yflixResults.count)")
+        print("   - French Stream: \(frenchStreamResults.count)")
         print("   - Streamzo: \(streamzoResults.count)")
         print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
@@ -702,6 +709,7 @@ class StreamingService {
             allSources.append(contentsOf: yflixResults)
         }
 
+        allSources.append(contentsOf: frenchStreamResults)
         allSources.append(contentsOf: streamzoResults)
 
         // Add Wiflix sources (Luluvid)
@@ -891,7 +899,7 @@ class StreamingService {
         case "vidlink":
             return try await fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
-        case "animesama", "frenchanime", "streamzo":
+        case "animesama", "frenchanime", "frenchstream", "streamzo":
             return await fetchFrenchProviderSources(provider: targetProvider.lowercased(), tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         case "hianime":
@@ -1456,11 +1464,13 @@ class StreamingService {
                 // By providing a directUrl, CustomVideoPlayer will natively inject the HTTP headers 
                 let directUrl: String? = source.url
                 
-                let headers = [
+                let lowerURL = source.url.lowercased()
+                let needsVidlinkHeaders = lowerURL.contains("vidlink") || lowerURL.contains("vodvidl")
+                let headers: [String: String]? = needsVidlinkHeaders ? [
                     "Referer": "https://vidlink.pro/",
                     "Origin": "https://vidlink.pro",
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-                ]
+                ] : nil
                 
                 let streamSource = StreamingSource(
                     url: urlToPlay,
@@ -1618,6 +1628,10 @@ class StreamingService {
             )
         case "streamzo":
             extracted = await FrenchAnimeProvidersService.shared.getStreamzoStreams(
+                tmdbId: tmdbId, mediaType: type, season: season, episode: episode
+            )
+        case "frenchstream":
+            extracted = await FrenchAnimeProvidersService.shared.getFrenchStreamStreams(
                 tmdbId: tmdbId, mediaType: type, season: season, episode: episode
             )
         default:

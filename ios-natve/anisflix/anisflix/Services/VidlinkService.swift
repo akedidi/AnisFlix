@@ -13,6 +13,7 @@ class VidlinkService {
     private let tmdbApiKey = "68e094699525b18a70bab2f86b1fa706"
     private let encDecApi = "https://enc-dec.app/api"
     private let vidlinkApi = "https://vidlink.pro/api/b"
+    private let streamListApi = "https://anisflix.vercel.app/api/movix-proxy"
     
     private let headers = [
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
@@ -24,7 +25,11 @@ class VidlinkService {
     private let qualityOrder: [String: Int] = ["4K": 5, "1440p": 4, "1080p": 3, "720p": 2, "480p": 1, "360p": 0, "240p": -1, "Auto": -2, "Unknown": -3]
     
     private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
+        let config = URLSessionConfiguration.ephemeral
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.urlCache = nil
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
         return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
     }()
     
@@ -51,11 +56,35 @@ class VidlinkService {
         let name: String?
         let first_air_date: String?
     }
-    
+
+    private struct StreamListResponse: Codable {
+        let streams: [StreamListItem]?
+    }
+
+    private struct StreamListItem: Codable {
+        let name: String?
+        let url: String
+        let quality: String?
+    }
+
     // MARK: - Main Fetch Method
     
     func getStreams(tmdbId: String, mediaType: String = "movie", season: Int? = nil, episode: Int? = nil) async throws -> [ExtractedSource] {
         print("🎬 [VidlinkService] Fetching streams for TMDB:\(tmdbId), Type:\(mediaType)")
+
+        // Discovery only: the backend returns direct media URLs. Playback of
+        // those URLs remains entirely local on the iPhone (no media proxy).
+        if let listedStreams = try? await getBackendStreamList(
+            tmdbId: tmdbId,
+            mediaType: mediaType,
+            season: season,
+            episode: episode
+        ), !listedStreams.isEmpty {
+            print("✅ [VidlinkService] Backend listed \(listedStreams.count) valid direct stream(s)")
+            return listedStreams
+        }
+
+        print("⚠️ [VidlinkService] No valid backend listing, using direct iPhone discovery")
         
         let info = try await getTmdbInfo(tmdbId: tmdbId, mediaType: mediaType)
         let encryptedId = try await encryptTmdbId(tmdbId: tmdbId)
@@ -76,7 +105,10 @@ class VidlinkService {
         
         print("🌍 [VidlinkService] Requesting: \(vidlinkUrl.absoluteString)")
         var request = URLRequest(url: vidlinkUrl)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.allHTTPHeaderFields = headers
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
         
         let (data, response) = try await session.data(for: request)
         guard let httpRes = response as? HTTPURLResponse, httpRes.statusCode == 200 else {
@@ -84,7 +116,7 @@ class VidlinkService {
         }
         
         let rawDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] ?? [:]
-        var rawStreams = processVidlinkResponse(data: rawDict, title: streamTitle)
+        let rawStreams = processVidlinkResponse(data: rawDict, title: streamTitle)
         
         if rawStreams.isEmpty { return [] }
         
@@ -102,7 +134,7 @@ class VidlinkService {
             }
         }
 
-        allSources = dedupeVidlinkSources(allSources)
+        allSources = dedupeVidlinkSources(allSources).filter { !isExpiredSignedURL($0.url) }
         
         // Sort
         allSources.sort { s1, s2 in
@@ -113,6 +145,52 @@ class VidlinkService {
         
         print("✅ [VidlinkService] Returning \(allSources.count) streams")
         return allSources
+    }
+
+    private func getBackendStreamList(
+        tmdbId: String,
+        mediaType: String,
+        season: Int?,
+        episode: Int?
+    ) async throws -> [ExtractedSource] {
+        guard var components = URLComponents(string: streamListApi) else { throw URLError(.badURL) }
+        var queryItems = [
+            URLQueryItem(name: "path", value: "vidlink"),
+            URLQueryItem(name: "tmdbId", value: tmdbId),
+            URLQueryItem(name: "type", value: mediaType),
+            URLQueryItem(name: "client", value: "ios-native"),
+            URLQueryItem(name: "_", value: String(Int(Date().timeIntervalSince1970)))
+        ]
+        if let season { queryItems.append(URLQueryItem(name: "season", value: String(season))) }
+        if let episode { queryItems.append(URLQueryItem(name: "episode", value: String(episode))) }
+        components.queryItems = queryItems
+        guard let url = components.url else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
+
+        let payload = try JSONDecoder().decode(StreamListResponse.self, from: data)
+        return (payload.streams ?? []).compactMap { item in
+            guard !isExpiredSignedURL(item.url) else { return nil }
+            return ExtractedSource(
+                name: item.name ?? "Vidlink - \(item.quality ?? "Auto")",
+                url: item.url,
+                quality: item.quality ?? "Auto"
+            )
+        }
+    }
+
+    private func isExpiredSignedURL(_ value: String) -> Bool {
+        guard let components = URLComponents(string: value),
+              components.host?.lowercased().hasSuffix("hakunaymatata.com") == true,
+              let rawTimestamp = components.queryItems?.first(where: { $0.name == "t" })?.value,
+              rawTimestamp.count == 10,
+              let timestamp = TimeInterval(rawTimestamp) else { return false }
+        return timestamp <= Date().timeIntervalSince1970
     }
     
     // MARK: - Helpers

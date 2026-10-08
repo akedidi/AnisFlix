@@ -161,11 +161,15 @@ if [ -f "$IPA_NAME" ]; then
     if [ -f "$INFO_PLIST" ]; then
         BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print CFBundleIdentifier" "$INFO_PLIST")
         MIN_OS_VERSION=$(/usr/libexec/PlistBuddy -c "Print MinimumOSVersion" "$INFO_PLIST")
+        BUILT_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$INFO_PLIST")
+        BUILT_BUILD_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$INFO_PLIST")
         success "Bundle ID détecté : $BUNDLE_ID"
     else
-        BUNDLE_ID="com.anis.anisflix" # Fallback (should ideally error out)
-        MIN_OS_VERSION="16.0"
-        echo "⚠️ Info.plist non trouvé, fallback sur $BUNDLE_ID"
+        error "Info.plist introuvable dans l'archive : $INFO_PLIST"
+    fi
+
+    if [ "$BUILT_VERSION" != "$FULL_VERSION" ] || [ "$BUILT_BUILD_VERSION" != "$BUILD_NUMBER" ]; then
+        error "Versions incohérentes dans l'archive (attendu : $FULL_VERSION/$BUILD_NUMBER, trouvé : $BUILT_VERSION/$BUILT_BUILD_VERSION)"
     fi
     
     # Date YYYY-MM-DD
@@ -178,8 +182,9 @@ if [ -f "$IPA_NAME" ]; then
         COMMIT_MSG="Bug fixes and improvements"
     fi
     
-    # Use the ACTUAL version we just built
-    VERSION="$FULL_VERSION"
+    # Use the versions read from the app that is actually inside the IPA.
+    VERSION="$BUILT_VERSION"
+    BUILD_VERSION="$BUILT_BUILD_VERSION"
     DOWNLOAD_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa"
     
     # Check if JSON exists
@@ -194,6 +199,7 @@ if [ -f "$IPA_NAME" ]; then
             const data = JSON.parse(fs.readFileSync('$JSON_FILE', 'utf8'));
             const newVersion = {
                 version: '$VERSION',
+                buildVersion: '$BUILD_VERSION',
                 date: '$DATE',
                 size: $FILE_SIZE_BYTES,
                 downloadURL: '$DOWNLOAD_URL',
@@ -215,7 +221,7 @@ if [ -f "$IPA_NAME" ]; then
                 data.apps[0].versions = [newVersion];
             }
             
-            fs.writeFileSync('$JSON_FILE', JSON.stringify(data, null, 2));
+            fs.writeFileSync('$JSON_FILE', JSON.stringify(data, null, 2) + '\n');
         " && success "sidestore.json mis à jour avec la version unique : $VERSION" || error "Erreur lors de la mise à jour du JSON"
         
     else

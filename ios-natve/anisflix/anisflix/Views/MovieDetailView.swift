@@ -344,6 +344,8 @@ struct MovieDetailView: View {
                                             .sorted { s1, s2 in
                                                 func getRank(_ source: StreamingSource) -> Int {
                                                     let provider = source.provider.lowercased()
+                                                    if provider == "frenchstream" { return -3 }
+                                                    if provider == "streamzo" { return -2 }
                                                     if provider == "fsvid" { return -1 } // FSVid: highest priority (VF/VOSTFR)
                                                     if provider == "vidzy" { return 0 }
                                                     if provider == "moviebox" { return 1 }
@@ -351,7 +353,7 @@ struct MovieDetailView: View {
                                                     if provider == "megacdn" || provider == "cinepro" { return 3 }
                                                     if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
                                                     if provider == "yflix" { return -1 } // YFlix: high priority
-                                                    if ["animesama", "frenchanime", "streamzo", "animepahe"].contains(provider) { return 0 }
+                                                    if ["animesama", "frenchanime", "frenchstream", "streamzo", "animepahe"].contains(provider) { return 0 }
                                                     if provider == "mob" { return 6 }
                                                     if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                                     if provider.contains("luluvid") { return 99 }
@@ -750,9 +752,9 @@ struct MovieDetailView: View {
         } else if source.provider.lowercased() == "mob" {
             let quality = formatQualityDisplay(source.quality)
             return "MOB - \(quality)"
-        } else if ["animesama", "frenchanime", "streamzo"].contains(source.provider.lowercased()) {
+        } else if ["animesama", "frenchanime", "frenchstream", "streamzo"].contains(source.provider.lowercased()) {
             let quality = formatQualityDisplay(source.quality)
-            let names = ["animesama": "Anime-Sama", "frenchanime": "French-Anime", "streamzo": "Streamzo"]
+            let names = ["animesama": "Anime-Sama", "frenchanime": "French-Anime", "frenchstream": "French Stream", "streamzo": "Streamzo"]
             return "\(names[source.provider.lowercased()] ?? source.provider.capitalized) \(providerIndex) - \(quality) — \(source.language)"
         } else if source.provider.lowercased() == "animepahe" {
             let quality = formatQualityDisplay(source.quality)

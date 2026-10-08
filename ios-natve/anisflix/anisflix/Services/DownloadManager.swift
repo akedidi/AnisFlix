@@ -903,7 +903,7 @@ class DownloadManager: NSObject, ObservableObject {
         
         let ffmpegProviders = [
             "vidzy", "luluvid", "lulustream", "afterdark", "animepahe",
-            "vidmoly", "vidlink", "yflix", "moviebox", "fsvid", "vixsrc", "animesama", "frenchanime", "streamzo", "hianime"
+            "vidmoly", "vidlink", "yflix", "moviebox", "fsvid", "vixsrc", "animesama", "frenchanime", "frenchstream", "streamzo", "hianime"
         ]
         if ffmpegProviders.contains(p) { return true }
         
@@ -925,7 +925,7 @@ class DownloadManager: NSObject, ObservableObject {
     private static func shouldUseLocalProxyForDownload(provider: String?) -> Bool {
         let p = provider?.lowercased() ?? ""
         return ["vidmoly", "vidlink", "yflix", "vidzy", "luluvid", "lulustream", "afterdark",
-                "animepahe", "animesama", "frenchanime", "streamzo", "moviebox", "fsvid", "hianime"].contains(p)
+                "animepahe", "animesama", "frenchanime", "frenchstream", "streamzo", "moviebox", "fsvid", "hianime"].contains(p)
     }
     
     private static func isDirectMP4(_ url: String) -> Bool {

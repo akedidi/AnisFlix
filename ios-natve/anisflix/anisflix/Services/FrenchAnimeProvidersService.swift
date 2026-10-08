@@ -2,7 +2,8 @@
 //  FrenchAnimeProvidersService.swift
 //  anisflix
 //
-//  Native ports of the Anime-Sama, French-Anime and Streamzo Nuvio providers.
+//  Native ports of the Anime-Sama, French-Anime and Streamzo Nuvio providers,
+//  plus the backend-hosted Gowaru French Stream provider.
 //  Source behavior follows Gowaru/gowaru-nuvio-providers.
 //
 
@@ -52,7 +53,7 @@ final class FrenchAnimeProvidersService {
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 18
-        config.timeoutIntervalForResource = 45
+        config.timeoutIntervalForResource = 65
         config.httpMaximumConnectionsPerHost = 4
         return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
     }()
@@ -220,6 +221,55 @@ final class FrenchAnimeProvidersService {
         let playable = await playableStreamzoSources(dedupe(output))
         print("🎌 [Streamzo] Returning \(playable.count) playable stream(s)")
         return playable
+    }
+
+    func getFrenchStreamStreams(
+        tmdbId: Int,
+        mediaType: String,
+        season: Int? = nil,
+        episode: Int? = nil
+    ) async -> [ExtractedSource] {
+        guard var components = URLComponents(string: "\(backendBase)/api/movix-proxy") else { return [] }
+        var queryItems = [
+            URLQueryItem(name: "path", value: "french-provider"),
+            URLQueryItem(name: "provider", value: "frenchstream"),
+            URLQueryItem(name: "tmdbId", value: String(tmdbId)),
+            URLQueryItem(name: "type", value: mediaType)
+        ]
+        if let season { queryItems.append(URLQueryItem(name: "season", value: String(season))) }
+        if let episode { queryItems.append(URLQueryItem(name: "episode", value: String(episode))) }
+        components.queryItems = queryItems
+        guard let url = components.url else { return [] }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let streams = json["streams"] as? [[String: Any]] else { return [] }
+
+        let sources = streams.compactMap { stream -> ExtractedSource? in
+            guard let url = stream["url"] as? String, !url.isEmpty else { return nil }
+            let headers = stream["headers"] as? [String: String] ?? [:]
+            let rawLanguage = (stream["language"] as? String)?.uppercased() ?? "VF"
+            let language = rawLanguage.contains("VOST") ? "VOSTFR" : (rawLanguage == "VO" ? "VO" : "VF")
+            let inferredType = url.lowercased().contains(".m3u8") ? "m3u8" : "mp4"
+            let type = stream["type"] as? String ?? inferredType
+            guard type == "m3u8" || type == "mp4" else { return nil }
+            return ExtractedSource(
+                provider: "frenchstream",
+                url: url,
+                quality: stream["quality"] as? String ?? "HD",
+                language: language,
+                type: type,
+                headers: headers
+            )
+        }
+        let result = dedupe(sources)
+        print("🇫🇷 [FrenchStream] Returning \(result.count) direct stream(s)")
+        return result
     }
 
     // MARK: - Metadata
