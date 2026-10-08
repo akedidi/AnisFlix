@@ -185,7 +185,8 @@ if [ -f "$IPA_NAME" ]; then
     # Use the versions read from the app that is actually inside the IPA.
     VERSION="$BUILT_VERSION"
     BUILD_VERSION="$BUILT_BUILD_VERSION"
-    DOWNLOAD_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa"
+    RAW_BASE_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/refs/heads/main/client/public"
+    DOWNLOAD_URL="$RAW_BASE_URL/anisflix.ipa"
     
     # Check if JSON exists
     if [ -f "$JSON_FILE" ]; then
@@ -209,11 +210,13 @@ if [ -f "$IPA_NAME" ]; then
             
             // Update Top Level Bundle ID if needed
             data.identifier = '$BUNDLE_ID';
+            data.sourceURL = '$RAW_BASE_URL/sidestore.json';
             
             // Add to beginning of versions array
             if (data.apps && data.apps.length > 0) {
                 // Update App Metadata
                 data.apps[0].bundleIdentifier = '$BUNDLE_ID';
+                data.apps[0].iconURL = '$RAW_BASE_URL/icon.png';
                 data.apps[0].developerName = 'Anisika'; // User requested name
                 data.apps[0].localizedDescription = 'AnisFlix est votre compagnon de streaming ultime. Regardez vos films, séries et chaînes TV préférés en haute qualité.';
                 
