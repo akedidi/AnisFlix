@@ -1,5 +1,5 @@
 // Service Worker pour le cache offline
-const CACHE_NAME = 'anisflix-v1';
+const CACHE_NAME = 'anisflix-v2';
 const OFFLINE_URLS = [
   '/',
   '/movies',
@@ -17,6 +17,7 @@ self.addEventListener('install', (event) => {
       .then((cache) => {
         return cache.addAll(OFFLINE_URLS);
       })
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -29,6 +30,19 @@ self.addEventListener('fetch', (event) => {
 
   // Skip external requests
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  // API responses can contain short-lived signed streaming URLs. Caching them
+  // makes the browser reuse expired links and causes 429/403 responses.
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  // Never cache byte-range media requests.
+  if (event.request.headers.has('range') || ['video', 'audio'].includes(event.request.destination)) {
     return;
   }
 
@@ -69,6 +83,6 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
