@@ -15,16 +15,6 @@ interface FrenchProvidersResponse {
   streams: FrenchProviderStream[];
 }
 
-function playbackUrl(stream: FrenchProviderStream): string {
-  if (stream.type !== 'm3u8' || stream.url.startsWith('/api/proxy?')) return stream.url;
-  const params = new URLSearchParams({ url: stream.url });
-  const referer = stream.headers?.Referer || stream.headers?.referer;
-  const origin = stream.headers?.Origin || stream.headers?.origin;
-  if (referer) params.set('referer', referer);
-  if (origin) params.set('origin', origin);
-  return `/api/proxy?${params.toString()}`;
-}
-
 export function useFrenchProviders(
   type: 'movie' | 'tv',
   id: number,
@@ -52,8 +42,8 @@ export function useFrenchProviders(
         return response.data.streams || [];
       }));
 
-      const streams = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
-        .map(stream => ({ ...stream, url: playbackUrl(stream) }));
+      // Keep the provider media URLs untouched: web playback must stay direct.
+      const streams = results.flatMap(result => result.status === 'fulfilled' ? result.value : []);
       return { success: true, streams };
     },
     enabled: enabled && !!id && (type === 'movie' || (!!season && !!episode)),
