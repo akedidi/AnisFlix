@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.92",
-          "buildVersion": "92",
+          "version": "1.0.93",
+          "buildVersion": "93",
           "date": "2026-10-08",
-          "size": 31040748,
+          "size": 31045667,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Correction de la lecture et du téléchargement Anime-Sama et French-Anime, avec les correctifs Vidlink pour l’image, la pause, la navigation et les résolutions."
+          "localizedDescription": "Améliore le démarrage Vidlink et affiche le chargement jusqu'à la première image."
         }
       ]
     }

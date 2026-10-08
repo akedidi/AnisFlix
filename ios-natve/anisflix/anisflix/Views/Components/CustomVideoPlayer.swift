@@ -280,7 +280,7 @@ struct CustomVideoPlayer: View {
                     Spacer()
                     
                     // Center Controls (Rewind | Play/Pause | Forward)
-                    if playerVM.isBuffering {
+                    if playerVM.isInitialLoading || playerVM.isBuffering {
                         ProgressView()
                             .tint(.white)
                             .scaleEffect(1.5)
@@ -794,6 +794,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         }
     }
     @Published var isBuffering = false
+    /// Remains true until the active engine has produced a real video frame.
+    /// VLC can emit time-change callbacks at 0 ms during startup; those must
+    /// not replace the loader with an inactive Play button.
+    @Published private(set) var isInitialLoading = false
     @Published var currentTime: Double = 0
     @Published var duration: Double = 1
     @Published var currentSubtitleText: String?
@@ -1828,6 +1832,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Cleanup any existing VLC player
         cleanupVLC()
         useVLC = true
+        isInitialLoading = true
         pendingVLCSeekTime = nil
         pendingVLCSeekTarget = nil
         wantsVLCPlayback = true
@@ -1846,8 +1851,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         print("🎬 [PlayerVM] VLCMedia created for: \(url.absoluteString)")
         
         // Set network caching and user agent
+        let isVidlink = url.absoluteString.lowercased().contains("vidlink")
+            || customHeaders?["Origin"]?.lowercased().contains("vidlink") == true
         var options: [String: Any] = [
-            "network-caching": 3000,
+            // Vidlink DASH already consists of short independent segments.
+            // A three-second VLC cache adds visible startup latency on top of
+            // the CDN handshake without improving stability.
+            "network-caching": isVidlink ? 1_000 : 3_000,
             "avcodec-hw": "any",
             "http-user-agent": customHeaders?["User-Agent"] ?? customHeaders?["user-agent"] ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
         ]
@@ -1911,7 +1921,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                 }
                 
                 // Update buffering state
-                if time > 0 {
+                let hasVideoFrame = vlc.hasVideoOut && vlc.videoSize.width > 0 && vlc.videoSize.height > 0
+                if time > 0 && hasVideoFrame {
+                    self.isInitialLoading = false
                     self.isBuffering = false
                 }
                 
@@ -1993,6 +2005,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         vlcPlayer?.stop()
         vlcPlayer = nil
         useVLC = false
+        isInitialLoading = false
         print("🧹 [PlayerVM] VLC player cleaned up")
     }
     
@@ -2025,12 +2038,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
              DispatchQueue.main.async {
                  self.isPlaying = false
                  self.isBuffering = false
+                 self.isInitialLoading = false
              }
         case .stopped:
              print("⏹️ [PlayerVM-Delegate] VLC Stopped")
              DispatchQueue.main.async {
                  self.isPlaying = false
                  self.isBuffering = false
+                 self.isInitialLoading = false
              }
         case .buffering:
              print("⏳ [PlayerVM-Delegate] VLC Buffering")
@@ -2042,6 +2057,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
              DispatchQueue.main.async {
                  self.isBuffering = false
                  self.isPlaying = false
+                 self.isInitialLoading = false
              }
         case .ended:
              print("🏁 [PlayerVM-Delegate] VLC Ended")
@@ -2058,8 +2074,13 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         // Let the Timer handle UI updates to avoid too frequent updates,
         // but this delegate method confirms playback is actually progressing.
         // We can use this to double-check buffering state.
-        if isBuffering {
+        let hasVideoFrame = vlc.time.intValue > 0
+            && vlc.hasVideoOut
+            && vlc.videoSize.width > 0
+            && vlc.videoSize.height > 0
+        if hasVideoFrame && (isInitialLoading || isBuffering) {
              DispatchQueue.main.async {
+                 self.isInitialLoading = false
                  self.isBuffering = false
              }
         }
@@ -2186,6 +2207,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
                     if !self.isPlaying {
                         self.resumePlayback()
                     }
+                    self.isInitialLoading = false
                     self.isBuffering = false
                 }
             } else if item.status == .failed {

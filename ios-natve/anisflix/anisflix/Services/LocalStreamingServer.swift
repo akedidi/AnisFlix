@@ -29,6 +29,17 @@ class LocalStreamingServer {
         config.timeoutIntervalForRequest = 30
         return URLSession(configuration: config, delegate: tlsBypassDelegate, delegateQueue: nil)
     }()
+
+    // Keep one URLSession for all DASH media requests. Vidlink requests many
+    // small init/media files; sharing the session lets URLSession reuse the
+    // CDN connection instead of paying a new DNS/TLS handshake per segment.
+    private let dashStreamingDelegate = DASHStreamingSessionDelegate()
+    private lazy var dashStreamingSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.httpMaximumConnectionsPerHost = 6
+        return URLSession(configuration: config, delegate: dashStreamingDelegate, delegateQueue: nil)
+    }()
     
     private static let tlsUntrustedPatterns = ["megaup", "megacdn", "shop21", "prjp", "inmoviebox", "vidzy", "vidlink", "kryntal", "watching.onl"]
     
@@ -1004,20 +1015,30 @@ class LocalStreamingServer {
         }
         
         // 5. DASH Segment Proxy (catch-all for /dash/SESSION_ID/segment.m4s)
-        webServer.addHandler(forMethod: "GET", pathRegex: "/dash/.*", request: GCDWebServerRequest.self) { [weak self] request in
-            guard let self = self else { return GCDWebServerDataResponse(statusCode: 500) }
+        // Stream upstream bytes as soon as they arrive. Waiting for a complete
+        // Vidlink segment here added several seconds before VLC could decode
+        // its first frame.
+        webServer.addHandler(forMethod: "GET", pathRegex: "/dash/.*", request: GCDWebServerRequest.self) { [weak self] request, completion in
+            guard let self = self else {
+                completion(GCDWebServerDataResponse(statusCode: 500))
+                return
+            }
             
             let path = request.path // e.g. /dash/ABC123/init-stream0.m4s
             let components = path.split(separator: "/") // ["dash", "ABC123", "init-stream0.m4s"]
             
-            guard components.count >= 3 else { return GCDWebServerDataResponse(statusCode: 404) }
+            guard components.count >= 3 else {
+                completion(GCDWebServerDataResponse(statusCode: 404))
+                return
+            }
             self.dashSessionsLock.lock()
             let dashSessionOpt = self.dashSessions[String(components[1])]
             self.dashSessionsLock.unlock()
             
             guard let dashSession = dashSessionOpt else {
                 print("❌ [LocalServer] DASH Segment: Invalid session for path \(path)")
-                return GCDWebServerDataResponse(statusCode: 404)
+                completion(GCDWebServerDataResponse(statusCode: 404))
+                return
             }
             
             // Reconstruct segment path (everything after /dash/SESSION_ID/)
@@ -1028,43 +1049,91 @@ class LocalStreamingServer {
             }
             
             guard let targetUrl = URL(string: segmentUrl) else {
-                return GCDWebServerDataResponse(statusCode: 400)
+                completion(GCDWebServerDataResponse(statusCode: 400))
+                return
             }
-            
-            // Fetch segment with cookie
-            let semaphore = DispatchSemaphore(value: 0)
-            var responseData: Data?
-            var responseError: Error?
-            
+
+            // Fetch and immediately stream the segment with the playback
+            // headers Vidlink expects on every child request.
             var urlRequest = URLRequest(url: targetUrl)
+            urlRequest.timeoutInterval = 30
             let defaultUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
             urlRequest.setValue(dashSession.userAgent ?? defaultUA, forHTTPHeaderField: "User-Agent")
             if let r = dashSession.referer { urlRequest.setValue(r, forHTTPHeaderField: "Referer") }
             if let o = dashSession.origin { urlRequest.setValue(o, forHTTPHeaderField: "Origin") }
             if let c = dashSession.cookie { urlRequest.setValue(c, forHTTPHeaderField: "Cookie") }
-            
-            let fetchSession = self.session(for: targetUrl)
-            let task = fetchSession.dataTask(with: urlRequest) { data, response, error in
-                responseData = data
-                responseError = error
-                semaphore.signal()
+            if let range = request.headers["Range"] {
+                urlRequest.setValue(range, forHTTPHeaderField: "Range")
             }
+
+            let delegate = StreamingSessionDelegate()
+
+            // URLSession does not deliver `didReceive response` when DNS, TLS,
+            // or the connection itself fails. Complete the local request in
+            // that case so VLC can retry instead of waiting indefinitely.
+            let completionLock = NSLock()
+            var didCompleteLocalResponse = false
+            func completeOnce(_ response: GCDWebServerResponse) {
+                completionLock.lock()
+                guard !didCompleteLocalResponse else {
+                    completionLock.unlock()
+                    return
+                }
+                didCompleteLocalResponse = true
+                completionLock.unlock()
+                completion(response)
+            }
+
+            delegate.onResponse = { response in
+                guard let http = response as? HTTPURLResponse,
+                      (200..<300).contains(http.statusCode) else {
+                    completeOnce(GCDWebServerDataResponse(statusCode: 502))
+                    return
+                }
+
+                let contentType = http.mimeType ?? "video/mp4"
+                let streamed = GCDWebServerStreamedResponse(
+                    contentType: contentType,
+                    asyncStreamBlock: { asyncCompletion in
+                        delegate.readNextChunk { data, error in
+                            if let error {
+                                asyncCompletion(nil, error)
+                            } else if let data, !data.isEmpty {
+                                asyncCompletion(data, nil)
+                            } else {
+                                asyncCompletion(Data(), nil)
+                            }
+                        }
+                    }
+                )
+                streamed.statusCode = http.statusCode
+                if let contentRange = http.value(forHTTPHeaderField: "Content-Range") {
+                    streamed.setValue(contentRange, forAdditionalHeader: "Content-Range")
+                }
+                streamed.setValue(
+                    http.value(forHTTPHeaderField: "Accept-Ranges") ?? "bytes",
+                    forAdditionalHeader: "Accept-Ranges"
+                )
+                if let rawLength = http.value(forHTTPHeaderField: "Content-Length"),
+                   let length = UInt(rawLength), length > 0 {
+                    streamed.contentLength = length
+                }
+                self.addCorsHeaders(streamed)
+                completeOnce(streamed)
+            }
+            delegate.onComplete = { error in
+                if let error {
+                    print("❌ [LocalServer] DASH Segment error: \(error)")
+                    completeOnce(GCDWebServerDataResponse(statusCode: 502))
+                }
+            }
+            let task = self.dashStreamingSession.dataTask(with: urlRequest)
+            self.dashStreamingDelegate.register(
+                delegate,
+                for: task,
+                bypassTLS: self.needsTLSBypass(url: targetUrl)
+            )
             task.resume()
-            semaphore.wait()
-            
-            if let error = responseError {
-                print("❌ [LocalServer] DASH Segment error: \(error)")
-                return GCDWebServerDataResponse(statusCode: 502)
-            }
-            
-            if let data = responseData {
-                let contentType = "video/mp4" // m4s segments
-                let resp = GCDWebServerDataResponse(data: data, contentType: contentType)
-                self.addCorsHeaders(resp)
-                return resp
-            }
-            
-            return GCDWebServerDataResponse(statusCode: 404)
         }
     }
     
@@ -1297,6 +1366,7 @@ class TLSBypassDelegate: NSObject, URLSessionDelegate {
 // Helper class for URLSession streaming
 class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
     var onResponse: ((URLResponse) -> Void)?
+    var onComplete: ((Error?) -> Void)?
     var buffer: Data = Data()
     var readCallback: ((Data?, Error?) -> Void)?
     var isFinished = false
@@ -1354,6 +1424,83 @@ class StreamingSessionDelegate: NSObject, URLSessionDataDelegate {
                 self.readNextChunk(completion: callback)
             }
         }
+        onComplete?(error)
+    }
+}
+
+/// Multiplexes a shared URLSession into one buffered stream per DASH request.
+/// This preserves progressive delivery while allowing HTTP/2 and HTTP/3
+/// connections to be reused across init, audio, video, and seek segments.
+class DASHStreamingSessionDelegate: NSObject, URLSessionDataDelegate {
+    private struct Entry {
+        let stream: StreamingSessionDelegate
+        let bypassTLS: Bool
+    }
+
+    private let lock = NSLock()
+    private var entries: [Int: Entry] = [:]
+
+    func register(
+        _ stream: StreamingSessionDelegate,
+        for task: URLSessionTask,
+        bypassTLS: Bool
+    ) {
+        lock.lock()
+        entries[task.taskIdentifier] = Entry(stream: stream, bypassTLS: bypassTLS)
+        lock.unlock()
+    }
+
+    private func entry(for task: URLSessionTask) -> Entry? {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries[task.taskIdentifier]
+    }
+
+    private func removeEntry(for task: URLSessionTask) -> Entry? {
+        lock.lock()
+        defer { lock.unlock() }
+        return entries.removeValue(forKey: task.taskIdentifier)
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        if entry(for: task)?.bypassTLS == true,
+           challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+           let trust = challenge.protectionSpace.serverTrust {
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        } else {
+            completionHandler(.performDefaultHandling, nil)
+        }
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let stream = entry(for: dataTask)?.stream else {
+            completionHandler(.cancel)
+            return
+        }
+        stream.urlSession(
+            session,
+            dataTask: dataTask,
+            didReceive: response,
+            completionHandler: completionHandler
+        )
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        entry(for: dataTask)?.stream.urlSession(session, dataTask: dataTask, didReceive: data)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        removeEntry(for: task)?.stream.urlSession(session, task: task, didCompleteWithError: error)
     }
 }
 
