@@ -248,11 +248,21 @@ const StreamingSources = memo(function StreamingSources({
 
   const [selectedLanguage, setSelectedLanguage] = useState<'VF' | 'VOSTFR' | 'VO'>('VF');
 
+  const isFSVidSource = (source: Source) =>
+    source.provider?.toLowerCase() === 'fsvid' ||
+    source.player?.toLowerCase() === 'premium' ||
+    source.name.toLowerCase().includes('fsvid') ||
+    source.url?.toLowerCase().includes('fsvid');
+
+  const hasVidzyPlayer = (players?: Array<{ player?: string }>) =>
+    players?.some(player => player.player?.toLowerCase() === 'vidzy') ?? false;
+
   // Fonction pour vérifier s'il y a des sources disponibles pour une langue donnée
   const hasSourcesForLanguage = (language: 'VF' | 'VOSTFR' | 'VO') => {
     // Vérifier les sources passées en paramètre (props)
     if (sources && sources.length > 0) {
       const hasMatchedPropSource = sources.some(s => {
+        if (isFSVidSource(s)) return false;
         if (!s.language) return language === 'VF'; // Par défaut VF si non spécifié
 
         const lang = s.language.toLowerCase();
@@ -329,16 +339,16 @@ const StreamingSources = memo(function StreamingSources({
         const vfKeys = Object.keys(fStreamData.players).filter(key =>
           key.startsWith('VF') || key === 'VF' || key === 'Default'
         );
-        if (vfKeys.some(key => fStreamData.players![key] && fStreamData.players![key].length > 0)) return true;
+        if (vfKeys.some(key => hasVidzyPlayer(fStreamData.players![key]))) return true;
       } else if (language === 'VOSTFR') {
         // Vérifier VOSTFR
-        if (fStreamData.players.VOSTFR && fStreamData.players.VOSTFR.length > 0) return true;
+        if (hasVidzyPlayer(fStreamData.players.VOSTFR)) return true;
       } else {
         // Vérifier VO (VO, ENG, English)
         const voKeys = Object.keys(fStreamData.players).filter(key =>
           key === 'VO' || key === 'ENG' || key === 'English'
         );
-        if (voKeys.some(key => fStreamData.players![key] && fStreamData.players![key].length > 0)) return true;
+        if (voKeys.some(key => hasVidzyPlayer(fStreamData.players![key]))) return true;
       }
     }
 
@@ -350,17 +360,15 @@ const StreamingSources = memo(function StreamingSources({
           const vfKeys = Object.keys(episodeData.languages).filter(key =>
             key.startsWith('VF') || key === 'VF' || key === 'Default'
           );
-          if (vfKeys.some(key => episodeData.languages![key as keyof typeof episodeData.languages] &&
-            episodeData.languages![key as keyof typeof episodeData.languages]!.length > 0)) return true;
+          if (vfKeys.some(key => hasVidzyPlayer(episodeData.languages![key as keyof typeof episodeData.languages]))) return true;
         } else if (language === 'VOSTFR') {
-          if (episodeData.languages.VOSTFR && episodeData.languages.VOSTFR.length > 0) return true;
+          if (hasVidzyPlayer(episodeData.languages.VOSTFR)) return true;
         } else {
           // VO
           const voKeys = Object.keys(episodeData.languages).filter(key =>
             key === 'VO' || key === 'ENG' || key === 'English'
           );
-          if (voKeys.some(key => episodeData.languages![key as keyof typeof episodeData.languages] &&
-            episodeData.languages![key as keyof typeof episodeData.languages]!.length > 0)) return true;
+          if (voKeys.some(key => hasVidzyPlayer(episodeData.languages![key as keyof typeof episodeData.languages]))) return true;
         }
       }
     }
@@ -470,20 +478,15 @@ const StreamingSources = memo(function StreamingSources({
     });
   });
 
-  // Vidlink fournit les sources internationales et reste actif même lorsqu'un
-  // filtre réseau local bloque son domaine sur le poste de développement.
+  // Vidlink fournit déjà des URLs HLS lisibles directement par le navigateur.
+  // Le flux vidéo ne doit pas repasser par notre proxy.
   if (selectedLanguage === 'VO' && vidlinkData?.success && vidlinkData.streams) {
     vidlinkData.streams.forEach((stream, index) => {
-      const params = new URLSearchParams({
-        url: stream.url,
-        referer: 'https://vidlink.pro/',
-        origin: 'https://vidlink.pro',
-      });
       allSources.push({
         id: `vidlink-${index}`,
         name: stream.name || `Vidlink (VO) - ${stream.quality || 'Auto'}`,
         provider: 'vidlink',
-        url: `/api/proxy?${params.toString()}`,
+        url: stream.url,
         type: 'm3u8',
         quality: stream.quality || 'Auto',
         language: 'VO',
@@ -496,6 +499,7 @@ const StreamingSources = memo(function StreamingSources({
     console.log('🔍 [STREAMING SOURCES] Adding passed sources:', sources);
     // Filtrage par langue pour les sources passées en paramètre
     const filteredSources = sources.filter(s => {
+      if (isFSVidSource(s)) return false;
       // Si pas de langue spécifiée par TMDB, on la met dans VF par défaut
       if (!s.language) return selectedLanguage === 'VF';
 
@@ -625,8 +629,6 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
-  // Sources Premium (FSVid) déplacées après Vidzy pour dépriorisation
-
   // Ajouter seulement Vidzy depuis FStream si disponible
   if (fStreamData && fStreamData.players) {
 
@@ -719,65 +721,6 @@ const StreamingSources = memo(function StreamingSources({
     }
   }
 
-  // Ajouter les sources Premium (FSVid) depuis FStream si disponible (Dépriorisé après Vidzy)
-  if (fStreamData && fStreamData.players) {
-    let premiumCounter = 1;
-
-    if (selectedLanguage === 'VF') {
-      // Pour VF, chercher les clés VFQ et VFF pour les players premium
-      const vfKeys = Object.keys(fStreamData.players).filter(key =>
-        key.startsWith('VF') || key === 'VF' || key === 'VFQ' || key === 'Default'
-      );
-
-      console.log('VF keys for premium (including VFQ):', vfKeys);
-
-      vfKeys.forEach(key => {
-        if (fStreamData.players![key]) {
-          // Filtrer seulement les players premium
-          const premiumPlayers = fStreamData.players![key].filter((player: any) =>
-            player.player.toLowerCase() === 'premium'
-          );
-
-          premiumPlayers.forEach((player: any) => {
-            allSources.push({
-              id: `fstream-premium-${key.toLowerCase()}-${premiumCounter}`,
-              name: `FStream Movix · FSVid${premiumCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
-              provider: 'fstream',
-              url: player.url,
-              type: 'embed' as const,
-              player: 'premium',
-              isFStream: true,
-              sourceKey: key
-            });
-            premiumCounter++;
-          });
-        }
-      });
-    } else if (selectedLanguage === 'VOSTFR') {
-      // Pour VOSTFR, utiliser la clé VOSTFR
-      const vostfrPlayers = fStreamData.players.VOSTFR || [];
-      console.log('VOSTFR premium players:', vostfrPlayers);
-
-      const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
-        player.player.toLowerCase() === 'premium'
-      );
-
-      vostfrPremiumPlayers.forEach((player: any) => {
-        allSources.push({
-          id: `fstream-premium-vostfr-${premiumCounter}`,
-          name: `FStream Movix · FSVid${premiumCounter} (VOSTFR) - ${player.quality}`,
-          provider: 'fstream',
-          url: player.url,
-          type: 'embed' as const,
-          player: 'premium',
-          isFStream: true,
-          sourceKey: 'VOSTFR'
-        });
-        premiumCounter++;
-      });
-    }
-  }
-
   // Ajouter les sources Vidzy pour les épisodes si disponible
   if (type === 'tv' && fStreamData && fStreamData.episodes && episode) {
     const episodeData = fStreamData.episodes[episode.toString()];
@@ -855,90 +798,6 @@ const StreamingSources = memo(function StreamingSources({
                 isEpisode: true
               });
               episodeVidzyCounter++;
-            });
-          }
-        });
-      }
-    }
-  }
-
-  // Ajouter les sources FSVid (premium) pour les épisodes de séries
-  if (type === 'tv' && fStreamData && fStreamData.episodes && episode) {
-    const episodeData = fStreamData.episodes[episode.toString()];
-    if (episodeData && episodeData.languages) {
-      let episodeFsvidCounter = 1;
-
-      if (selectedLanguage === 'VF') {
-        const vfKeys = Object.keys(episodeData.languages).filter(key =>
-          key.startsWith('VF') || key === 'VF' || key === 'Default'
-        );
-
-        vfKeys.forEach(key => {
-          if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
-            const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
-              player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
-            );
-
-            premiumPlayers.forEach((player: any) => {
-              allSources.push({
-                id: `fstream-episode-premium-${key.toLowerCase()}-${episodeFsvidCounter}`,
-                name: `FStream Movix · FSVid${episodeFsvidCounter} (${key === 'Default' ? 'VF' : key}) - ${player.quality}`,
-                provider: 'fstream',
-                url: player.url,
-                type: 'embed' as const,
-                player: 'premium',
-                isFStream: true,
-                sourceKey: key,
-                isEpisode: true
-              });
-              episodeFsvidCounter++;
-            });
-          }
-        });
-      } else if (selectedLanguage === 'VOSTFR') {
-        const vostfrPlayers = episodeData.languages.VOSTFR || [];
-        const vostfrPremiumPlayers = vostfrPlayers.filter((player: any) =>
-          player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
-        );
-
-        vostfrPremiumPlayers.forEach((player: any) => {
-          allSources.push({
-            id: `fstream-episode-premium-vostfr-${episodeFsvidCounter}`,
-            name: `FStream Movix · FSVid${episodeFsvidCounter} (VOSTFR) - ${player.quality}`,
-            provider: 'fstream',
-            url: player.url,
-            type: 'embed' as const,
-            player: 'premium',
-            isFStream: true,
-            sourceKey: 'VOSTFR',
-            isEpisode: true
-          });
-          episodeFsvidCounter++;
-        });
-      } else if (selectedLanguage === 'VO') {
-        const voKeys = Object.keys(episodeData.languages).filter(key =>
-          key === 'VO' || key === 'ENG' || key === 'English'
-        );
-
-        voKeys.forEach(key => {
-          if (episodeData.languages && episodeData.languages[key as keyof typeof episodeData.languages]) {
-            const premiumPlayers = episodeData.languages[key as keyof typeof episodeData.languages]!.filter((player: any) =>
-              player.player.toLowerCase() === 'premium' || player.player.toLowerCase() === 'fsvid'
-            );
-
-            premiumPlayers.forEach((player: any) => {
-              allSources.push({
-                id: `fstream-episode-premium-vo-${episodeFsvidCounter}`,
-                name: `FStream Movix · FSVid${episodeFsvidCounter} (VO) - ${player.quality}`,
-                provider: 'fstream',
-                url: player.url,
-                type: 'embed' as const,
-                player: 'premium',
-                isFStream: true,
-                sourceKey: key,
-                isEpisode: true
-              });
-              episodeFsvidCounter++;
             });
           }
         });
@@ -1292,7 +1151,7 @@ const StreamingSources = memo(function StreamingSources({
     return getQualityValue(b) - getQualityValue(a); // Tri décroissant (Best quality first)
   };
 
-  // Trie final des sources : Bysebuho > AnimeAPI > Vidzy > FSVid > MovieBox > MegaCDN > Luluvid > Reste
+  // Trie final des sources : Bysebuho > AnimeAPI > Vidzy > MovieBox > MegaCDN > Luluvid > Reste
   allSources.sort((a, b) => {
     // Helper pour déterminer le rang
     const getRank = (source: Source) => {
@@ -1318,12 +1177,6 @@ const StreamingSources = memo(function StreamingSources({
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
         return 0;
-      }
-
-      // Rang 1: FSVid (après Vidzy)
-      if (source.player?.toLowerCase() === 'premium' ||
-        source.name.toLowerCase().includes('fsvid')) {
-        return 1;
       }
 
       // Rang 1: MovieBox
@@ -1519,28 +1372,15 @@ const StreamingSources = memo(function StreamingSources({
 
     try {
       if (source.isFStream) {
-        console.log('✅ Source FStream détectée');
-
-        // Cas spécial : FSVid Premium (player: "premium")
-        if (source.player?.toLowerCase() === 'premium') {
-          console.log('🎬 Source FSVid Premium détectée, utilisation de l\'extracteur FSVid');
-          onSourceClick({
-            url: source.url,
-            type: 'embed' as const,
-            name: source.name,
-            provider: 'fsvid'
-          });
-        } else {
-          // Vidzy now binds extracted URLs to the extractor IP. Loading its
-          // embed keeps the page and HLS requests on the user's connection.
-          onSourceClick({
-            url: source.url,
-            type: 'embed' as const,
-            name: source.name,
-            isVidzy: true,
-            provider: 'vidzy'
-          });
-        }
+        // Vidzy now binds extracted URLs to the extractor IP. Loading its
+        // embed keeps the page and HLS requests on the user's connection.
+        onSourceClick({
+          url: source.url,
+          type: 'embed' as const,
+          name: source.name,
+          isVidzy: true,
+          provider: 'vidzy'
+        });
       } else if (source.provider?.toLowerCase() === 'bysebuho') {
         console.log('✅ Source Bysebuho détectée, utilisation de l\'extracteur Bysebuho');
         onSourceClick({

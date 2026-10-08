@@ -1,8 +1,7 @@
 /**
  * VidlinkScraper - Extracts HLS streams from vidlink.pro
  * Uses TMDB ID encryption via enc-dec.app
- * Light proxy mode: only M3U8 playlists pass through the proxy,
- * segments are served directly with Referer: https://vidlink.pro/
+ * Returns the extracted HLS URLs without wrapping the media in a proxy.
  */
 
 const TMDB_API_KEY = "68e094699525b18a70bab2f86b1fa706";
@@ -179,8 +178,7 @@ function processVidlinkResponse(data, title) {
 export class VidlinkScraper {
     /**
      * Get streams for a movie or TV episode.
-     * M3U8 playlist URLs are returned as-is (will be proxied by the API route via /api/proxy).
-     * Segments need Referer: https://vidlink.pro/ (set by hls.js xhrSetup on the client).
+     * M3U8 playlist URLs are returned as-is for direct browser playback.
      */
     async getStreams(tmdbId, mediaType = "movie", season = null, episode = null) {
         console.log(`[Vidlink] Fetching streams for TMDB:${tmdbId}, Type:${mediaType}`);
