@@ -174,3 +174,24 @@ class VLCRenderView: UIView {
         onDrawableDetached?(self)
     }
 }
+
+/// Render target hosted by AVPictureInPictureVideoCallViewController for VLC.
+/// The callback fires only after the system has attached the PiP view to a
+/// window, which prevents MobileVLCKit from binding to a black offscreen view.
+final class VLCPictureInPictureRenderView: UIView {
+    var onReady: (() -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil else { return }
+        DispatchQueue.main.async { [weak self] in
+            self?.onReady?()
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard window != nil, bounds.width > 0, bounds.height > 0 else { return }
+        onReady?()
+    }
+}

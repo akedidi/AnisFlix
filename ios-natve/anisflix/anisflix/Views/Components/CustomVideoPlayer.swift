@@ -378,16 +378,15 @@ struct CustomVideoPlayer: View {
                                     .frame(width: 44, height: 44)
                             }
                             
-                            // AVPictureInPictureController requires AVPlayerLayer.
-                            // Avoid presenting a non-functional black PiP window for VLC.
-                            if !playerVM.useVLC {
+                            if playerVM.isPiPAvailable {
                                 Button {
                                     playerVM.togglePiP()
                                 } label: {
-                                    Image(systemName: "pip.enter")
+                                    Image(systemName: playerVM.isPiPActive ? "pip.exit" : "pip.enter")
                                         .foregroundColor(.white)
                                         .padding(8)
                                 }
+                                .accessibilityLabel(playerVM.isPiPActive ? "Quitter le Picture in Picture" : "Picture in Picture")
                             }
                             
                             // Fullscreen Button
@@ -781,7 +780,7 @@ extension Notification.Name {
     static let navigateToDetail = Notification.Name("navigateToDetail")
 }
 
-class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
+class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPictureInPictureControllerDelegate {
     @Published var player = AVPlayer()
     @Published var isPlaying = false {
         didSet {
@@ -808,6 +807,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     private var subtitleParser: SubtitleParser?
     private var pipController: AVPictureInPictureController?
     private weak var playerLayer: AVPlayerLayer?
+    @Published private(set) var isPiPAvailable = AVPictureInPictureController.isPictureInPictureSupported()
+    private weak var pipSourceView: UIView?
+    private var pipVideoCallController: AVPictureInPictureVideoCallViewController?
+    private var vlcPiPRenderView: VLCPictureInPictureRenderView?
+    private var pipUsesVLC = false
+    private var isStartingVLCPiP = false
     
     // Expose PiP state for GlobalPlayerManager
     var isPiPActive: Bool {
@@ -1671,8 +1676,14 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if AVPictureInPictureController.isPictureInPictureSupported() {
             print("✅ PiP is supported on this device")
             do {
+                if pipController?.isPictureInPictureActive == true {
+                    pipController?.stopPictureInPicture()
+                }
                 pipController = try AVPictureInPictureController(playerLayer: layer)
+                pipController?.delegate = self
                 pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+                pipUsesVLC = false
+                isPiPAvailable = true
                 print("✅ PiP controller created successfully")
                 print("   - isPictureInPicturePossible: \(pipController?.isPictureInPicturePossible ?? false)")
             } catch {
@@ -1965,6 +1976,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     func attachVLCDrawable(_ view: UIView) {
         guard let vlc = vlcPlayer, useVLC else { return }
 
+        setupVLCPiP(with: view)
+
         if let attachedVLCDrawable,
            attachedVLCDrawable !== view,
            attachedVLCDrawable.window != nil {
@@ -1977,7 +1990,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
         if attachedVLCDrawable !== view {
             print("🎬 [PlayerVM] Attaching VLC to visible drawable: \(view.bounds)")
             attachedVLCDrawable = view
-            vlc.drawable = view
+            if !isStartingVLCPiP && pipController?.isPictureInPictureActive != true {
+                vlc.drawable = view
+            }
         }
 
         guard vlcPlaybackRequested, wantsVLCPlayback else { return }
@@ -1989,11 +2004,100 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
     func detachVLCDrawable(_ view: UIView) {
         guard attachedVLCDrawable === view else { return }
         print("🎬 [PlayerVM] Detaching VLC drawable")
-        vlcPlayer?.drawable = nil
         attachedVLCDrawable = nil
+        if !isStartingVLCPiP && pipController?.isPictureInPictureActive != true {
+            vlcPlayer?.drawable = nil
+        }
+    }
+
+    /// MobileVLCKit renders into a UIView instead of an AVPlayerLayer. The
+    /// video-call PiP content source is Apple's supported way to place such a
+    /// custom render surface in the system Picture in Picture window.
+    private func setupVLCPiP(with inlineView: UIView) {
+        guard AVPictureInPictureController.isPictureInPictureSupported() else {
+            isPiPAvailable = false
+            return
+        }
+        guard pipController?.isPictureInPictureActive != true else { return }
+        guard !pipUsesVLC || pipSourceView !== inlineView || pipController == nil else { return }
+
+        let renderView = VLCPictureInPictureRenderView()
+        renderView.backgroundColor = .black
+        renderView.onReady = { [weak self, weak renderView] in
+            guard let self, let renderView else { return }
+            self.activateVLCPiPDrawable(renderView)
+        }
+
+        let videoCallController = AVPictureInPictureVideoCallViewController()
+        let size = vlcPlayer?.videoSize ?? CGSize(width: 16, height: 9)
+        if size.width > 0, size.height > 0 {
+            videoCallController.preferredContentSize = size
+        } else {
+            videoCallController.preferredContentSize = CGSize(width: 16, height: 9)
+        }
+        videoCallController.view.backgroundColor = .black
+        renderView.translatesAutoresizingMaskIntoConstraints = false
+        videoCallController.view.addSubview(renderView)
+        NSLayoutConstraint.activate([
+            renderView.leadingAnchor.constraint(equalTo: videoCallController.view.leadingAnchor),
+            renderView.trailingAnchor.constraint(equalTo: videoCallController.view.trailingAnchor),
+            renderView.topAnchor.constraint(equalTo: videoCallController.view.topAnchor),
+            renderView.bottomAnchor.constraint(equalTo: videoCallController.view.bottomAnchor)
+        ])
+
+        let source = AVPictureInPictureController.ContentSource(
+            activeVideoCallSourceView: inlineView,
+            contentViewController: videoCallController
+        )
+        let controller = AVPictureInPictureController(contentSource: source)
+        controller.delegate = self
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+
+        pipSourceView = inlineView
+        pipVideoCallController = videoCallController
+        vlcPiPRenderView = renderView
+        pipController = controller
+        pipUsesVLC = true
+        isPiPAvailable = true
+        print("✅ [PlayerVM] VLC Picture in Picture ready")
+    }
+
+    private func activateVLCPiPDrawable(_ renderView: VLCPictureInPictureRenderView) {
+        guard useVLC,
+              isStartingVLCPiP || pipController?.isPictureInPictureActive == true,
+              renderView.window != nil else { return }
+        let videoSize = vlcPlayer?.videoSize ?? .zero
+        if videoSize.width > 0, videoSize.height > 0 {
+            pipVideoCallController?.preferredContentSize = videoSize
+        }
+        guard vlcPlayer?.drawable as? UIView !== renderView else { return }
+        print("📺 [PlayerVM] Moving VLC drawable into Picture in Picture")
+        vlcPlayer?.drawable = renderView
+    }
+
+    private func restoreInlineVLCDrawable() {
+        guard useVLC, let inlineView = attachedVLCDrawable, inlineView.window != nil else { return }
+        guard vlcPlayer?.drawable as? UIView !== inlineView else { return }
+        print("📺 [PlayerVM] Restoring VLC drawable after Picture in Picture")
+        vlcPlayer?.drawable = inlineView
+    }
+
+    private func teardownVLCPiP() {
+        if pipUsesVLC, pipController?.isPictureInPictureActive == true {
+            pipController?.stopPictureInPicture()
+        }
+        if pipUsesVLC {
+            pipController = nil
+        }
+        pipSourceView = nil
+        pipVideoCallController = nil
+        vlcPiPRenderView = nil
+        pipUsesVLC = false
+        isStartingVLCPiP = false
     }
     
     private func cleanupVLC() {
+        teardownVLCPiP()
         wantsVLCPlayback = false
         vlcPlaybackRequested = false
         pendingVLCSeekTime = nil
@@ -2180,8 +2284,63 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate {
             print("🔽 Stopping PiP")
             pip.stopPictureInPicture()
         } else {
+            guard pip.isPictureInPicturePossible else {
+                print("⚠️ PiP is not ready yet")
+                return
+            }
             print("🔼 Starting PiP")
             pip.startPictureInPicture()
+        }
+    }
+
+    // MARK: - AVPictureInPictureControllerDelegate
+
+    func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        guard pipUsesVLC else { return }
+        isStartingVLCPiP = true
+        if let renderView = vlcPiPRenderView {
+            activateVLCPiPDrawable(renderView)
+        }
+    }
+
+    func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        guard pipUsesVLC else { return }
+        isStartingVLCPiP = false
+        if let renderView = vlcPiPRenderView {
+            activateVLCPiPDrawable(renderView)
+        }
+        print("✅ [PlayerVM] VLC Picture in Picture started")
+    }
+
+    func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        failedToStartPictureInPictureWithError error: Error
+    ) {
+        isStartingVLCPiP = false
+        if pipUsesVLC {
+            restoreInlineVLCDrawable()
+        }
+        print("❌ [PlayerVM] Picture in Picture failed: \(error)")
+    }
+
+    func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        isStartingVLCPiP = false
+        if pipUsesVLC {
+            DispatchQueue.main.async { [weak self] in
+                self?.restoreInlineVLCDrawable()
+            }
+        }
+        print("📺 [PlayerVM] Picture in Picture stopped")
+    }
+
+    func pictureInPictureController(
+        _ pictureInPictureController: AVPictureInPictureController,
+        restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
+    ) {
+        GlobalPlayerManager.shared.restoreFromPiP()
+        DispatchQueue.main.async { [weak self] in
+            self?.restoreInlineVLCDrawable()
+            completionHandler(true)
         }
     }
     
