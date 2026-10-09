@@ -112,19 +112,24 @@ export default function ShakaPlayer({ url, onClose, title, tracks = [], embedded
             }
           });
 
-          // Apple platforms and Chromium on macOS expose HEVC through the
-          // hvc1 sample entry while MovieBox labels these manifests as hev1.
-          // Normalize the manifest only when hvc1 is the supported MSE form.
+          // MovieBox sometimes announces HEVC with the generic `hev1` codec.
+          // Shaka rejects that value before loading segments even when the
+          // browser supports the more specific HEVC profile.
           networkingEngine.registerResponseFilter((type: number, response: { data: ArrayBuffer }) => {
             const manifestType = window.shaka.net.NetworkingEngine.RequestType.MANIFEST;
             if (type !== manifestType || typeof MediaSource === 'undefined') return;
-            const supportsHvc1 = MediaSource.isTypeSupported('video/mp4; codecs="hvc1"');
-            if (!supportsHvc1) return;
 
             const manifest = new TextDecoder().decode(response.data);
             if (!manifest.includes('codecs="hev1"')) return;
+
+            const supportedCodec = [
+              'hev1.1.6.L150.90',
+              'hvc1.1.6.L150.90',
+            ].find((codec) => MediaSource.isTypeSupported(`video/mp4; codecs="${codec}"`));
+            if (!supportedCodec) return;
+
             response.data = new TextEncoder()
-              .encode(manifest.replaceAll('codecs="hev1"', 'codecs="hvc1"'))
+              .encode(manifest.replaceAll('codecs="hev1"', `codecs="${supportedCodec}"`))
               .buffer;
           });
         }
