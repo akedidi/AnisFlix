@@ -346,11 +346,24 @@ async function handleAnimePaheRequest(request: Request): Promise<Response> {
 
 function isAllowedMovieBoxCdnUrl(targetUrl: string): boolean {
     try {
-        const host = new URL(targetUrl).hostname.toLowerCase();
-        return host.endsWith('hakunaymatata.com');
+        const parsed = new URL(targetUrl);
+        const host = parsed.hostname.toLowerCase();
+        if (host.endsWith('hakunaymatata.com')) return true;
+        if (host !== 'hm-cinema.me') return false;
+        return [
+            '/api/mp4/stream/',
+            '/api/dash/manifest/',
+            '/api/dash/segment/',
+        ].some((prefix) => parsed.pathname.startsWith(prefix));
     } catch {
         return false;
     }
+}
+
+function buildHmDashSegmentWorkerUrl(workerOrigin: string, assetPath: string): string {
+    // Keep DASH $RepresentationID$ / $Number%05d$ templates visible to the
+    // player. Encoding them as a normal query value prevents substitution.
+    return `${workerOrigin}/?path=moviebox-cdn&hmPath=${assetPath}`;
 }
 
 function buildMovieBoxCdnWorkerUrl(
@@ -375,7 +388,10 @@ function buildMovieBoxCdnWorkerUrl(
  */
 async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     const params = new URL(request.url).searchParams;
-    const targetUrl = params.get('url');
+    const hmPath = params.get('hmPath');
+    const targetUrl = hmPath?.startsWith('/api/dash/segment/')
+        ? `https://hm-cinema.me${hmPath}`
+        : params.get('url');
     const referer = params.get('referer') || 'https://api3.aoneroom.com/';
     const cookie = params.get('cookie') || '';
     const userAgent = params.get('ua')
@@ -432,8 +448,19 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
             || contentType.includes('m3u8');
 
         if (isMpd && response.ok) {
+            const text = await response.text();
+            const workerOrigin = new URL(request.url).origin;
+            const rewritten = text.replace(
+                /(["'])(\/api\/dash\/segment\/[^"']+)\1/g,
+                (_match, quote, assetPath) => {
+                    const proxyUrl = buildHmDashSegmentWorkerUrl(workerOrigin, assetPath)
+                        .replace(/&/g, '&amp;');
+                    return `${quote}${proxyUrl}${quote}`;
+                },
+            );
             outHeaders.set('Content-Type', 'application/dash+xml');
-            return new Response(response.body, {
+            outHeaders.delete('Content-Length');
+            return new Response(rewritten, {
                 status: response.status,
                 statusText: response.statusText,
                 headers: outHeaders,

@@ -227,6 +227,25 @@ async function fetchH5Downloads(subjectId, detailPath, season, episode) {
   return response?.code === 0 ? response.data : null;
 }
 
+async function fetchH5ProcessedSources(subjectId, detailPath, season, episode) {
+  const endpoint = new URL(`${H5_METADATA_BASE}/api/sources/${encodeURIComponent(subjectId)}`);
+  endpoint.searchParams.set('season', String(season));
+  endpoint.searchParams.set('episode', String(episode));
+  endpoint.searchParams.set('detailPath', detailPath);
+  const response = await fetchJson(endpoint.toString(), {}, 30000);
+  return response?.status === 'success' ? response.data : null;
+}
+
+function buildH5PlaybackRelayUrl(proxyPath) {
+  const targetUrl = new URL(proxyPath, H5_METADATA_BASE);
+  const relay = new URL(PROXY_URL);
+  relay.searchParams.set('path', 'moviebox-cdn');
+  relay.searchParams.set('url', targetUrl.toString());
+  relay.searchParams.set('referer', `${H5_METADATA_BASE}/`);
+  relay.searchParams.set('ua', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15');
+  return relay.toString();
+}
+
 async function getH5FallbackStreams(details, mediaType, season, episode) {
   const subjectType = mediaType === 'movie' ? 1 : 2;
   const searchUrl = `${H5_METADATA_BASE}/api/search/${encodeURIComponent(details.title)}?page=1&perPage=24&type=${subjectType}`;
@@ -256,24 +275,32 @@ async function getH5FallbackStreams(details, mediaType, season, episode) {
   const streams = [];
   for (const variant of variants) {
     if (!variant.subjectId || !variant.detailPath) continue;
-    const data = await fetchH5Downloads(variant.subjectId, variant.detailPath, season, episode);
-    const captions = mapH5Captions(data?.captions, variant.lanName || variant.language);
-    for (const download of Array.isArray(data?.downloads) ? data.downloads : []) {
-      if (!download?.url) continue;
-      const quality = download.resolution ? `${download.resolution}p` : 'Auto';
-      streams.push({
-        decoded_url: download.url,
-        quality,
-        format: getFormatType(download.url) === 'VIDEO' ? 'MP4' : getFormatType(download.url),
-        codec: 'h264',
-        language: variant.language,
-        languageLabel: variant.lanName || variant.language,
-        subtitles: variant.language === 'VO' ? captions : [],
-        headers: {
-          Referer: `${H5_API_BASE}/`,
-          'User-Agent': 'okhttp/4.12.0',
-        },
-      });
+    const [downloadData, sourceData] = await Promise.all([
+      fetchH5Downloads(variant.subjectId, variant.detailPath, season, episode),
+      fetchH5ProcessedSources(variant.subjectId, variant.detailPath, season, episode),
+    ]);
+    const captions = mapH5Captions(
+      downloadData?.captions?.length ? downloadData.captions : sourceData?.captions,
+      variant.lanName || variant.language,
+    );
+
+    for (const source of Array.isArray(sourceData?.processedSources) ? sourceData.processedSources : []) {
+      const proxyPath = source?.proxyUrl || source?.streamUrl;
+      if (!proxyPath) continue;
+      const format = String(source.format || '').toLowerCase() === 'dash' ? 'DASH' : 'MP4';
+      const qualities = parseQualities(source.quality || source.resolutions || source.resolution);
+      for (const resolution of qualities.length ? qualities : [null]) {
+        streams.push({
+          decoded_url: buildH5PlaybackRelayUrl(proxyPath),
+          quality: resolution ? `${resolution}p` : 'Auto',
+          format,
+          codec: inferCodec(null, source.directUrl || source.cdnUrl),
+          language: variant.language,
+          languageLabel: variant.lanName || variant.language,
+          subtitles: variant.language === 'VO' ? captions : [],
+          headers: {},
+        });
+      }
     }
   }
 
