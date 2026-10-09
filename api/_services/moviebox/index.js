@@ -2,7 +2,7 @@
  * MovieBox — api3.aoneroom.com mobile BFF (HMAC + Bearer auth)
  * Used by movix-proxy path=moviebox (iOS + web client)
  */
-import { API_BASE } from './constants.js';
+import { API_BASE, PROXY_URL } from './constants.js';
 import {
   fetchTmdbDetails,
   getFormatType,
@@ -146,6 +146,155 @@ function findBestMatch(subjects, tmdbTitle, tmdbYear, mediaType) {
   }
 
   return bestScore >= 40 ? bestMatch : null;
+}
+
+const H5_METADATA_BASE = 'https://hm-cinema.me';
+const H5_API_BASE = 'https://h5.aoneroom.com';
+
+async function fetchJson(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.warn(`[MovieBox H5] ${url}: ${error.message}`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function h5Request(targetUrl, headers = {}) {
+  const relay = new URL(PROXY_URL);
+  relay.searchParams.set('path', 'mob');
+  relay.searchParams.set('url', targetUrl);
+  relay.searchParams.set('method', 'GET');
+
+  return fetchJson(relay.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'okhttp/4.12.0',
+        'X-Client-Info': JSON.stringify({ timezone: 'Africa/Nairobi' }),
+        ...headers,
+      },
+      body: null,
+    }),
+  });
+}
+
+function mapH5Captions(captions, languageLabel) {
+  return (Array.isArray(captions) ? captions : [])
+    .filter((caption) => caption?.url)
+    .map((caption) => {
+      const rawLanguage = caption.lanName || caption.language || caption.lan || 'Unknown';
+      const normalized = String(caption.lan || caption.language || rawLanguage).trim().toLowerCase();
+      const code = normalized === 'fr'
+        || normalized === 'fra'
+        || normalized.includes('français')
+        || normalized.includes('french')
+        ? 'fr'
+        : normalized === 'en'
+          || normalized === 'eng'
+          || normalized.includes('english')
+          ? 'en'
+          : normalized;
+      return {
+        url: caption.url,
+        language: rawLanguage,
+        code,
+        label: `${rawLanguage} (${languageLabel})`,
+        headers: { Referer: `${H5_API_BASE}/` },
+      };
+    });
+}
+
+async function fetchH5Downloads(subjectId, detailPath, season, episode) {
+  const endpoint = new URL(`${H5_API_BASE}/wefeed-h5-bff/web/subject/download`);
+  endpoint.searchParams.set('subjectId', subjectId);
+  endpoint.searchParams.set('se', String(season));
+  endpoint.searchParams.set('ep', String(episode));
+  const referer = `${H5_API_BASE}/movies/${detailPath}`;
+  const response = await h5Request(endpoint.toString(), {
+    Referer: referer,
+    Origin: H5_API_BASE,
+  });
+  return response?.code === 0 ? response.data : null;
+}
+
+async function getH5FallbackStreams(details, mediaType, season, episode) {
+  const subjectType = mediaType === 'movie' ? 1 : 2;
+  const searchUrl = `${H5_METADATA_BASE}/api/search/${encodeURIComponent(details.title)}?page=1&perPage=24&type=${subjectType}`;
+  const search = await fetchJson(searchUrl);
+  const subjects = search?.data?.items || [];
+  const bestMatch = findBestMatch(subjects, details.title, details.year, mediaType);
+  if (!bestMatch?.subjectId || !bestMatch?.detailPath) return [];
+
+  const dubsUrl = `${H5_METADATA_BASE}/api/dubs/${encodeURIComponent(bestMatch.subjectId)}?detailPath=${encodeURIComponent(bestMatch.detailPath)}`;
+  const dubData = (await fetchJson(dubsUrl))?.data || {};
+  const original = dubData.original || {
+    subjectId: bestMatch.subjectId,
+    detailPath: bestMatch.detailPath,
+    lanName: 'Original Audio',
+    lanCode: 'en',
+  };
+  const variants = [{ ...original, language: 'VO' }];
+
+  for (const dub of Array.isArray(dubData.dubs) ? dubData.dubs : []) {
+    const code = String(dub.lanCode || '').toLowerCase();
+    const name = String(dub.lanName || '').toLowerCase();
+    if ((code === 'fr' || name.includes('french') || name.includes('français')) && !name.includes('sub')) {
+      variants.push({ ...dub, language: 'VF' });
+    }
+  }
+
+  const streams = [];
+  for (const variant of variants) {
+    if (!variant.subjectId || !variant.detailPath) continue;
+    const data = await fetchH5Downloads(variant.subjectId, variant.detailPath, season, episode);
+    const captions = mapH5Captions(data?.captions, variant.lanName || variant.language);
+    for (const download of Array.isArray(data?.downloads) ? data.downloads : []) {
+      if (!download?.url) continue;
+      const quality = download.resolution ? `${download.resolution}p` : 'Auto';
+      streams.push({
+        decoded_url: download.url,
+        quality,
+        format: getFormatType(download.url) === 'VIDEO' ? 'MP4' : getFormatType(download.url),
+        codec: 'h264',
+        language: variant.language,
+        languageLabel: variant.lanName || variant.language,
+        subtitles: variant.language === 'VO' ? captions : [],
+        headers: {
+          Referer: `${H5_API_BASE}/`,
+          'User-Agent': 'okhttp/4.12.0',
+        },
+      });
+    }
+  }
+
+  const categorized = [];
+  for (const stream of streams) {
+    categorized.push(stream);
+    const frenchSubtitles = stream.subtitles.filter((subtitle) => subtitle.code === 'fr');
+    if (stream.language === 'VO' && frenchSubtitles.length > 0) {
+      categorized.push({
+        ...stream,
+        language: 'VOSTFR',
+        languageLabel: 'French subtitles',
+        subtitles: frenchSubtitles.map((subtitle) => ({ ...subtitle, default: true })),
+      });
+    }
+  }
+
+  return Array.from(new Map(categorized.map((stream) => [
+    `${stream.language}:${stream.quality}:${stream.decoded_url}`,
+    stream,
+  ])).values()).sort((a, b) => parseQualityNumber(b.quality) - parseQualityNumber(a.quality));
 }
 
 async function fetchSubtitles(subjectId, streamId, authHeaders, langLabel) {
@@ -350,13 +499,16 @@ export async function getMovieBoxStreams(tmdbId, mediaType, seasonNum = 1, episo
     bestMatch = findBestMatch(subjects, details.originalTitle, details.year, mediaType);
   }
 
-  if (!bestMatch) {
-    console.log(`📦 [MovieBox] No match for "${details.title}"`);
-    return [];
-  }
-
-  console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId})`);
   const s = mediaType === 'tv' ? seasonNum : 0;
   const e = mediaType === 'tv' ? episodeNum : 0;
-  return getStreamLinks(bestMatch.subjectId, s, e, details.title, mediaType);
+  if (bestMatch) {
+    console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId})`);
+    const mobileStreams = await getStreamLinks(bestMatch.subjectId, s, e, details.title, mediaType);
+    if (mobileStreams.length > 0) return mobileStreams;
+  } else {
+    console.log(`📦 [MovieBox] Mobile API found no match for "${details.title}"`);
+  }
+
+  console.log(`📦 [MovieBox] Trying H5 relay fallback for "${details.title}"`);
+  return getH5FallbackStreams(details, mediaType, s, e);
 }
