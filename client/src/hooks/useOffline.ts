@@ -94,9 +94,10 @@ export function useOffline() {
 export function useServiceWorker() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then((registration) => {
           console.log('Service Worker registered:', registration);
+          return registration.update();
         })
         .catch((error) => {
           console.log('Service Worker registration failed:', error);
