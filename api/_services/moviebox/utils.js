@@ -1,6 +1,7 @@
 import CryptoJS from 'crypto-js';
 import {
   API_BASE,
+  API_HOST_POOL,
   BRAND_MODELS,
   KEY_B64_ALT,
   KEY_B64_DEFAULT,
@@ -172,10 +173,24 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
     if (token) targetHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const proxyTarget = `${PROXY_URL}/?path=mob&url=${encodeURIComponent(url)}&method=${method}`;
-  let retries = 2;
+  let originalUrl;
+  try {
+    originalUrl = new URL(url);
+  } catch {
+    return null;
+  }
 
-  while (retries > 0) {
+  const poolHosts = API_HOST_POOL.map((host) => new URL(host).host);
+  const apiHosts = new Set(poolHosts);
+  const candidates = apiHosts.has(originalUrl.host)
+    ? [originalUrl.host, ...poolHosts.filter((host) => host !== originalUrl.host)]
+    : [originalUrl.host];
+
+  for (const host of candidates) {
+    const requestUrl = new URL(originalUrl);
+    requestUrl.host = host;
+    const proxyTarget = `${PROXY_URL}/?path=mob&url=${encodeURIComponent(requestUrl)}&method=${method}`;
+
     try {
       let res = await fetch(proxyTarget, {
         method: 'POST',
@@ -186,7 +201,7 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
       // The worker can be rejected by MovieBox based on its egress IP. Keep the
       // public client on movix-proxy while allowing the server to retry upstream.
       if (!res.ok) {
-        res = await fetch(url, {
+        res = await fetch(requestUrl, {
           method,
           headers: targetHeaders,
           body: body || undefined,
@@ -194,8 +209,6 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
       }
 
       if (!res.ok) {
-        retries--;
-        if (retries > 0) await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
 
@@ -208,8 +221,6 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
       }
 
       if (parsed?.error) {
-        retries--;
-        if (retries > 0) await new Promise((r) => setTimeout(r, 1000));
         continue;
       }
 
@@ -228,12 +239,7 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
         headers: { get: (name) => (name.toLowerCase() === 'x-user' ? xUser : null) },
       };
     } catch (err) {
-      retries--;
-      if (retries === 0) {
-        console.error('[MovieBox Request Error]', err.message);
-        return null;
-      }
-      await new Promise((r) => setTimeout(r, 1000));
+      console.warn(`[MovieBox Request Error] ${host}:`, err.message);
     }
   }
 
