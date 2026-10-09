@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.97",
-          "buildVersion": "97",
+          "version": "1.0.98",
+          "buildVersion": "98",
           "date": "2026-10-10",
-          "size": 31058582,
+          "size": 31058777,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Ajoute MovieBox en VF, VOSTFR et VO avec les résolutions 1080p, 720p et 480p, lecture DASH corrigée et sous-titres français compatibles CORS."
+          "localizedDescription": "Masque VidLink lorsque MovieBox fournit des flux valides et conserve VidLink comme source de secours."
         }
       ]
     }

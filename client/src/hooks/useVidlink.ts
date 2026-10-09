@@ -17,7 +17,8 @@ export const useVidlink = (
     type: 'movie' | 'tv',
     id: number,
     season?: number,
-    episode?: number
+    episode?: number,
+    enabled = true,
 ) => {
     return useQuery<VidlinkResponse>({
         queryKey: ['vidlink', type, id, season, episode],
@@ -33,7 +34,7 @@ export const useVidlink = (
             const response = await axios.get('/api/movix-proxy', { params });
             return response.data;
         },
-        enabled: !!id,
+        enabled: enabled && !!id,
         staleTime: 1000 * 60 * 60, // 1 hour
         retry: 1,
     });

@@ -125,6 +125,9 @@ const StreamingSources = memo(function StreamingSources({
   const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
+  const hasPlayableMovieBoxSources = Boolean(
+    movieBoxData?.success && movieBoxData.streams?.some(isPlayableMovieBoxStream)
+  );
   const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
   // DISABLED: AfterDark sources
   // const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
@@ -234,7 +237,13 @@ const StreamingSources = memo(function StreamingSources({
     episode ?? 1,
     isAnimeSeries // Ajouter la condition pour ne l'appeler que si c'est une série anime
   );
-  const { data: vidlinkData, isLoading: isLoadingVidlink } = useVidlink(type, id, season, episode);
+  const { data: vidlinkData, isLoading: isLoadingVidlink } = useVidlink(
+    type,
+    id,
+    season,
+    episode,
+    !isLoadingMovieBox && !hasPlayableMovieBoxSources,
+  );
   const { data: frenchProvidersData, isLoading: isLoadingFrenchProviders } = useFrenchProviders(
     type,
     id,
@@ -376,7 +385,7 @@ const StreamingSources = memo(function StreamingSources({
 
     // Vérifier Vixsrc (VO uniquement)
     if (language === 'VO') {
-      if (vidlinkData?.success && vidlinkData.streams?.length) {
+      if (!hasPlayableMovieBoxSources && vidlinkData?.success && vidlinkData.streams?.length) {
         return true;
       }
       if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
@@ -419,7 +428,12 @@ const StreamingSources = memo(function StreamingSources({
   useEffect(() => {
     // Attendre les providers qui déterminent les langues disponibles. Vidlink
     // répond souvent avant French Stream et ne doit pas forcer l'onglet VO.
-    if (isLoadingFStream || isLoadingFrenchProviders || isLoadingVidlink) return;
+    if (
+      isLoadingFStream ||
+      isLoadingFrenchProviders ||
+      isLoadingMovieBox ||
+      (!hasPlayableMovieBoxSources && isLoadingVidlink)
+    ) return;
 
     const hasVF = hasSourcesForLanguage('VF');
     const hasVOSTFR = hasSourcesForLanguage('VOSTFR');
@@ -485,7 +499,12 @@ const StreamingSources = memo(function StreamingSources({
 
   // Vidlink fournit déjà des URLs HLS lisibles directement par le navigateur.
   // Le flux vidéo ne doit pas repasser par notre proxy.
-  if (selectedLanguage === 'VO' && vidlinkData?.success && vidlinkData.streams) {
+  if (
+    !hasPlayableMovieBoxSources &&
+    selectedLanguage === 'VO' &&
+    vidlinkData?.success &&
+    vidlinkData.streams
+  ) {
     vidlinkData.streams.forEach((stream, index) => {
       allSources.push({
         id: `vidlink-${index}`,

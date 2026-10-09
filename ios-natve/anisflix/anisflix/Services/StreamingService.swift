@@ -334,8 +334,6 @@ class StreamingService {
         async let cineproSources = fetchCineproSources(tmdbId: movieId)
         async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: movieId)
-        // Vidlink Native iOS Source (VO)
-        async let vidlinkSources = fetchVidlinkSources(tmdbId: movieId, type: "movie")
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
@@ -392,7 +390,13 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
         let animeSources = await (try? animeTask?.value) ?? []
-        let vidlinkMovieResults = await (try? vidlinkSources) ?? []
+        let vidlinkMovieResults: [StreamingSource]
+        if let mBox, !mBox.isEmpty {
+            vidlinkMovieResults = []
+            print("ℹ️ [StreamingService] MovieBox available; skipping Vidlink fallback")
+        } else {
+            vidlinkMovieResults = (try? await fetchVidlinkSources(tmdbId: movieId, type: "movie")) ?? []
+        }
         let yflixMovieResults = await (try? yflixSources) ?? []
         let frenchStreamMovieResults = await frenchStreamSources
         let streamzoMovieResults = await streamzoSources
@@ -425,7 +429,7 @@ class StreamingService {
             allSources.append(contentsOf: cinepro)
         }
         
-        // Add Vidlink Native sources (high priority for VO)
+        // Vidlink is only exposed when MovieBox returned no playable source.
         if !vidlinkMovieResults.isEmpty {
             allSources.append(contentsOf: vidlinkMovieResults)
         }
@@ -590,8 +594,6 @@ class StreamingService {
         async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
         async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
         async let tmdbProxySources = fetchTmdbProxySources(tmdbId: seriesId, season: season, episode: episode)
-        // Vidlink Native iOS Source (VO)
-        async let vidlinkSources = fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -667,7 +669,18 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
         let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
-        let vidlinkResults = await (try? vidlinkSources) ?? []
+        let vidlinkResults: [StreamingSource]
+        if let mBox, !mBox.isEmpty {
+            vidlinkResults = []
+            print("ℹ️ [StreamingService] MovieBox available; skipping Vidlink fallback")
+        } else {
+            vidlinkResults = (try? await fetchVidlinkSources(
+                tmdbId: seriesId,
+                type: "tv",
+                season: season,
+                episode: episode
+            )) ?? []
+        }
         let yflixResults = await (try? yflixSources) ?? []
         let frenchStreamResults = await frenchStreamSources
         let streamzoResults = await streamzoSources
@@ -700,7 +713,7 @@ class StreamingService {
             allSources.append(contentsOf: cinepro)
         }
         
-        // Add Vidlink Native sources (high priority for VO)
+        // Vidlink is only exposed when MovieBox returned no playable source.
         if !vidlinkResults.isEmpty {
             allSources.append(contentsOf: vidlinkResults)
         }
