@@ -445,7 +445,7 @@ class GlobalPlayerManager: ObservableObject {
     
     // Current Playback Metadata for matching
     @Published var currentProvider: String?
-    private var currentLanguage: String? // VF, VOSTFR, VO
+    private(set) var currentLanguage: String? // VF, VOSTFR, VO
     private var currentQuality: String? // HD, 360p, 480p, 1080p, etc.
     private var currentOrigin: String? // Scraper origin: "fstream", "moviebox", "vixsrc", etc.
     private var isPlayingFromDownload: Bool = false // Playback mode: true = downloaded, false = streaming

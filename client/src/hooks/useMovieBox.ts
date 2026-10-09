@@ -9,7 +9,16 @@ interface MovieBoxStream {
     size: string;
     type: string;
     language: string;
+    languageLabel?: string;
     provider: string;
+    codec?: string | null;
+    subtitles?: Array<{
+        url: string;
+        language: string;
+        code?: string;
+        label: string;
+        default?: boolean;
+    }>;
 }
 
 interface MovieBoxResponse {

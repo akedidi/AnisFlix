@@ -6,8 +6,8 @@ import { errorMessages } from "@/lib/errorMessages";
 import ChromecastButton from "@/components/ChromecastButton";
 import {
   buildMovieBoxCdnProxyUrl,
-  isHakunaymatataUrl,
   parseMovieBoxCdnParams,
+  resolveMovieBoxSegmentUrl,
 } from "@/utils/movieboxCdn";
 import { canPlayHevcDash, streamRequiresHevc } from "@/utils/codecSupport";
 // Détection de plateforme native (iOS/Android)
@@ -28,6 +28,7 @@ interface ShakaPlayerProps {
   url: string;
   onClose?: () => void;
   title?: string;
+  tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
   embedded?: boolean; // Nouveau prop pour l'affichage dans la carte
 }
 
@@ -37,7 +38,7 @@ declare global {
   }
 }
 
-export default function ShakaPlayer({ url, onClose, title, embedded = false }: ShakaPlayerProps) {
+export default function ShakaPlayer({ url, onClose, title, tracks = [], embedded = false }: ShakaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,11 +103,29 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         // MovieBox DASH: proxy segments through CF worker (signed CloudFront cookies)
         const movieBoxCdn = parseMovieBoxCdnParams(url);
         if (movieBoxCdn) {
-          player.getNetworkingEngine().registerRequestFilter((type: number, request: { uris: string[] }) => {
+          const networkingEngine = player.getNetworkingEngine();
+          networkingEngine.registerRequestFilter((type: number, request: { uris: string[] }) => {
             const uri = request.uris?.[0];
-            if (uri && isHakunaymatataUrl(uri)) {
-              request.uris[0] = buildMovieBoxCdnProxyUrl(uri, movieBoxCdn);
+            const segmentUrl = uri ? resolveMovieBoxSegmentUrl(uri, movieBoxCdn) : null;
+            if (segmentUrl) {
+              request.uris[0] = buildMovieBoxCdnProxyUrl(segmentUrl, movieBoxCdn);
             }
+          });
+
+          // Apple platforms and Chromium on macOS expose HEVC through the
+          // hvc1 sample entry while MovieBox labels these manifests as hev1.
+          // Normalize the manifest only when hvc1 is the supported MSE form.
+          networkingEngine.registerResponseFilter((type: number, response: { data: ArrayBuffer }) => {
+            const manifestType = window.shaka.net.NetworkingEngine.RequestType.MANIFEST;
+            if (type !== manifestType || typeof MediaSource === 'undefined') return;
+            const supportsHvc1 = MediaSource.isTypeSupported('video/mp4; codecs="hvc1"');
+            if (!supportsHvc1) return;
+
+            const manifest = new TextDecoder().decode(response.data);
+            if (!manifest.includes('codecs="hev1"')) return;
+            response.data = new TextEncoder()
+              .encode(manifest.replaceAll('codecs="hev1"', 'codecs="hvc1"'))
+              .buffer;
           });
         }
 
@@ -151,6 +170,27 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         
         // Shaka détermine le format (HLS ou DASH) tout seul !
         await player.load(url);
+
+        for (const track of tracks) {
+          try {
+            const label = track.label || 'Subtitle';
+            const isFrench = /fran[cç]ais|french|\bfr\b/i.test(label);
+            const addedTrack = await player.addTextTrackAsync(
+              track.file,
+              isFrench ? 'fr' : 'und',
+              track.kind || 'subtitles',
+              track.file.toLowerCase().includes('.vtt') ? 'text/vtt' : 'application/x-subrip',
+              undefined,
+              label,
+            );
+            if (track.default) {
+              player.selectTextTrack(addedTrack);
+              player.setTextTrackVisibility(true);
+            }
+          } catch (subtitleError) {
+            console.warn('[Shaka] Subtitle track unavailable:', subtitleError);
+          }
+        }
         console.log("Flux chargé avec succès par Shaka Player");
         setIsLoading(false);
 
@@ -182,7 +222,7 @@ export default function ShakaPlayer({ url, onClose, title, embedded = false }: S
         playerRef.current = null;
       }
     };
-  }, [url]);
+  }, [url, JSON.stringify(tracks)]);
 
   const toggleMute = () => {
     if (videoRef.current) {

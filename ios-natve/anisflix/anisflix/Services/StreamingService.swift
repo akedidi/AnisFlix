@@ -305,7 +305,8 @@ class StreamingService {
     static let shared = StreamingService()
     private init() {}
     
-    private let baseUrl = "https://anisflix.vercel.app"
+    private let baseUrl = ProcessInfo.processInfo.environment["ANISFLIX_API_BASE_URL"]
+        ?? "https://anisflix.vercel.app"
     
     /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter (e.g. vidlink on series, cinepro, darki from TMDB decode).
     private static let allowedStreamingProviders: Set<String> = [
@@ -1000,7 +1001,42 @@ class StreamingService {
         let directUrl: String?
         let quality: String?
         let type: String? // "mp4", "m3u8"
+        let language: String?
         let headers: [String: String]?
+        let subtitles: [MovieBoxSubtitle]?
+    }
+
+    struct MovieBoxSubtitle: Codable {
+        let url: String
+        let label: String?
+        let language: String?
+        let code: String?
+        let isDefault: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case url, label, language, code
+            case isDefault = "default"
+        }
+    }
+
+    private func movieBoxTracks(_ subtitles: [MovieBoxSubtitle]?) -> [Subtitle]? {
+        guard let subtitles, !subtitles.isEmpty else { return nil }
+        let tracks = subtitles.map { subtitle in
+            let code = subtitle.code ?? subtitle.language ?? "und"
+            let flag: String
+            switch code.lowercased() {
+            case "fr", "fra", "french", "français": flag = "🇫🇷"
+            case "en", "eng", "english": flag = "🇬🇧"
+            default: flag = "🏳️"
+            }
+            return Subtitle(
+                url: subtitle.url,
+                label: subtitle.label ?? subtitle.language ?? "Subtitle",
+                code: code,
+                flag: flag
+            )
+        }
+        return tracks.isEmpty ? nil : tracks
     }
 
     func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
@@ -1031,8 +1067,9 @@ class StreamingService {
                         quality: quality,
                         type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
-                        language: "VO",
+                        language: src.language ?? "VO",
                         origin: "moviebox",
+                        tracks: movieBoxTracks(src.subtitles),
                         headers: src.headers
                     )
                     sources.append(source)
@@ -1080,8 +1117,9 @@ class StreamingService {
                         quality: quality,
                         type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
                         provider: "moviebox",
-                        language: "VO",
+                        language: src.language ?? "VO",
                         origin: "moviebox",
+                        tracks: movieBoxTracks(src.subtitles),
                         headers: src.headers
                     )
                     sources.append(source)

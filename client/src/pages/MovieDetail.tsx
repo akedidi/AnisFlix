@@ -42,7 +42,7 @@ export default function MovieDetail() {
   console.log('🔍 [MOVIE DETAIL] Component rendering with movieId:', movieId, 'id param:', id);
   const { t } = useLanguage();
   const { navigate } = useAppNavigation();
-  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isVidzy?: boolean; isDarki?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string } | null>(null);
+  const [selectedSource, setSelectedSource] = useState<{ url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isVidzy?: boolean; isDarki?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string; tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }> } | null>(null);
   const [isLoadingSource, setIsLoadingSource] = useState(false);
 
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -311,7 +311,7 @@ export default function MovieDetail() {
   console.log('🎬 [MOVIE DETAIL] VidMoly sources:', vidMolySources);
   console.log('🌑 [MOVIE DETAIL] Darki sources:', darkiSources);
 
-  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string }) => {
+  const handleSourceSelect = async (source: { url: string; type: "m3u8" | "mp4" | "embed" | "mkv" | "dash"; name: string; isVidMoly?: boolean; isFStream?: boolean; isDarki?: boolean; isVidzy?: boolean; isAnimeAPI?: boolean; isMovixDownload?: boolean; isLuluvid?: boolean; isExternalEmbed?: boolean; provider?: string; tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }> }) => {
     setIsLoadingSource(true);
 
     // Check for provider-based sources that need extraction (FSVid, Bysebuho)
@@ -448,6 +448,7 @@ export default function MovieDetail() {
           name: source.name,
           isDarki: source.isDarki,
           provider: (source as any).provider,
+          tracks: source.tracks,
         });
         setIsLoadingSource(false);
         return;
@@ -786,6 +787,7 @@ export default function MovieDetail() {
                   <ShakaPlayer
                     url={selectedSource.url}
                     title={movie.title}
+                    tracks={selectedSource.tracks}
                     embedded
                   />
                 ) : (

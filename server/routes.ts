@@ -7,6 +7,8 @@ import { registerHLSProxyRoutes } from "./hls-proxy";
 import axios from "axios";
 import https from "https"; // Toujours utilisé pour d'autres routes
 import { vixsrcScraper } from "./vixsrc-scraper";
+// @ts-expect-error The shared Vercel handler is JavaScript and has no .d.ts.
+import movixProxyHandler from "../lib/handlers/movix-proxy.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -276,6 +278,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Décoder le path pour éviter le double encodage
       const decodedPath = decodeURIComponent(path as string);
+
+      // Keep the local web server aligned with the serverless route used in
+      // production. MovieBox has its own extractor and must not be forwarded
+      // to api.movix.cloud as a generic Movix path.
+      if (decodedPath === 'moviebox') {
+        return await movixProxyHandler(req, res);
+      }
 
       // GÉRER VIXSRC ICI
       if (decodedPath === 'vixsrc') {

@@ -2,6 +2,7 @@ const HAKUNAY_HOST = 'hakunaymatata.com';
 
 export interface MovieBoxCdnParams {
   workerOrigin: string;
+  targetUrl: string;
   referer: string;
   cookie: string;
   userAgent: string;
@@ -14,10 +15,36 @@ export function parseMovieBoxCdnParams(workerUrl: string): MovieBoxCdnParams | n
     if (!u.searchParams.get('path')?.includes('moviebox-cdn')) return null;
     return {
       workerOrigin: u.origin,
+      targetUrl: u.searchParams.get('url') || '',
       referer: u.searchParams.get('referer') || 'https://api3.aoneroom.com/',
       cookie: u.searchParams.get('cookie') || '',
       userAgent: u.searchParams.get('ua') || '',
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Shaka resolves relative MPD segment names against the Worker URL that
+ * returned the manifest. Rebuild those URLs against the signed CDN manifest
+ * before sending them through the same Worker.
+ */
+export function resolveMovieBoxSegmentUrl(
+  uri: string,
+  params: MovieBoxCdnParams,
+): string | null {
+  if (isHakunaymatataUrl(uri)) return uri;
+  if (!params.targetUrl) return null;
+
+  try {
+    const candidate = new URL(uri);
+    if (candidate.origin !== params.workerOrigin || candidate.searchParams.has('path')) {
+      return null;
+    }
+    const filename = candidate.pathname.split('/').filter(Boolean).pop();
+    if (!filename) return null;
+    return new URL(`${filename}${candidate.search}`, params.targetUrl).toString();
   } catch {
     return null;
   }

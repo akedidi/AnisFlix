@@ -1,4 +1,5 @@
 export const API_BASE = 'https://api3.aoneroom.com';
+export const TOKEN_URL = `${API_BASE}/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=4516404531735022304&page=1&perPage=1`;
 export const KEY_B64_DEFAULT = 'NzZpUmwwN3MweFNOOWpxbUVXQXQ3OUVCSlp1bElRSXNWNjRGWnIyTw==';
 export const KEY_B64_ALT = 'WHFuMm5uTzQxL0w5Mm8xaXVYaFNMSFRiWHZZNFo1Wlo2Mm04bVNMQQ==';
 export const TMDB_API_KEY = 'd131017ccc6e5462a81c9304d21476de';
@@ -15,6 +16,6 @@ export const BRAND_MODELS = {
 
 export const PACKAGE_INFO = {
   package_name: 'com.community.mbox.in',
-  version_name: '3.0.03.0529.03',
-  version_code: 50020042,
+  version_name: '4.0.03.0920.03',
+  version_code: 50020130,
 };

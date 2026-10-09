@@ -31,7 +31,7 @@ interface Source {
   name: string;
   provider: string;
   url?: string;
-  type?: "m3u8" | "mp4" | "embed" | "mkv";
+  type?: "m3u8" | "mp4" | "embed" | "mkv" | "dash";
   player?: string;
   isFStream?: boolean;
   isMovixDownload?: boolean;
@@ -50,6 +50,7 @@ interface Source {
   isEpisode?: boolean;
   quality?: string;
   language?: string;
+  codec?: string | null;
   tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
   headers?: Record<string, string>;
 }
@@ -62,7 +63,7 @@ interface StreamingSourcesProps {
   genres?: { id: number; name: string }[];
   onSourceClick: (source: {
     url: string;
-    type: "m3u8" | "mp4" | "embed" | "mkv";
+    type: "m3u8" | "mp4" | "embed" | "mkv" | "dash";
     name: string;
     isFStream?: boolean;
     isMovixDownload?: boolean;
@@ -381,14 +382,18 @@ const StreamingSources = memo(function StreamingSources({
       if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
         return true;
       }
-      // Vérifier MovieBox (VO uniquement, exclure HEVC si navigateur incompatible)
-      if (movieBoxData?.success && movieBoxData.streams?.some(isPlayableMovieBoxStream)) {
-        return true;
-      }
       // Vérifier Cinepro (VO uniquement)
       if (cineproData && cineproData.success && cineproData.streams && cineproData.streams.length > 0) {
         return true;
       }
+    }
+
+    // MovieBox exposes VF, VOSTFR and VO variants. Older cached responses with
+    // no language remain VO for backward compatibility.
+    if (movieBoxData?.success && movieBoxData.streams?.some((stream) =>
+      (stream.language || 'VO').toUpperCase() === language && isPlayableMovieBoxStream(stream)
+    )) {
+      return true;
     }
 
     if (frenchProvidersData?.streams?.some(stream => stream.language.toUpperCase() === language)) {
@@ -1017,30 +1022,40 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
-  // Ajouter les sources MovieBox (VO uniquement)
-  if (selectedLanguage === 'VO' && movieBoxData && movieBoxData.success && movieBoxData.streams) {
+  // Ajouter toutes les résolutions MovieBox de la catégorie sélectionnée.
+  if (movieBoxData && movieBoxData.success && movieBoxData.streams) {
     console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
     movieBoxData.streams.forEach((stream: any, index: number) => {
+      const streamLanguage = (stream.language || 'VO').toUpperCase();
+      if (streamLanguage !== selectedLanguage) return;
       if (!isPlayableMovieBoxStream(stream)) {
         console.log(`📦 [MovieBox] Source ${stream.quality} masquée (incompatible ou lien expiré)`);
         return;
       }
       const isDash = stream.type === 'dash' || stream.url?.includes('.mpd');
+      const movieBoxType: Source['type'] = isDash
+        ? 'dash'
+        : stream.type === 'hls' || stream.url?.includes('.m3u8')
+          ? 'm3u8'
+          : 'mp4';
+      const tracks = (stream.subtitles || []).map((subtitle: any) => ({
+        file: subtitle.url,
+        label: subtitle.label || subtitle.language || 'Subtitle',
+        kind: 'subtitles',
+        default: Boolean(subtitle.default || (selectedLanguage === 'VOSTFR' && subtitle.code === 'fr')),
+      }));
       allSources.push({
         id: `moviebox-${index}`,
-        name: `MovieBox ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
+        name: `MovieBox ${selectedLanguage} ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
         provider: 'moviebox',
         url: stream.url,  // Worker proxy URL (includes CloudFront cookies)
-        type: (isDash
-          ? 'dash'
-          : stream.type === 'hls' || stream.url?.includes('.m3u8')
-            ? 'm3u8'
-            : 'mp4') as const,
+        type: movieBoxType,
         player: 'moviebox',
-        sourceKey: 'VO',
+        sourceKey: selectedLanguage,
         quality: stream.quality,
-        language: 'VO',
+        language: selectedLanguage,
         codec: stream.codec,
+        tracks,
       });
     });
 
@@ -1528,6 +1543,7 @@ const StreamingSources = memo(function StreamingSources({
           quality: source.quality,
           provider: source.provider,
           isExternalEmbed: source.isExternalEmbed,
+          tracks: source.tracks,
         });
       } else if (source.isAfterDark) {
         console.log('✅ Source AfterDark détectée, URL:', source.url);

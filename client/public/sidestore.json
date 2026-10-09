@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.96",
-          "buildVersion": "96",
-          "date": "2026-10-08",
-          "size": 31055569,
+          "version": "1.0.97",
+          "buildVersion": "97",
+          "date": "2026-10-10",
+          "size": 31058582,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Corrige le PiP Vidlink : image visible, format vidéo standard et commandes pause/seek synchronisées."
+          "localizedDescription": "Ajoute MovieBox en VF, VOSTFR et VO avec les résolutions 1080p, 720p et 480p, lecture DASH corrigée et sous-titres français compatibles CORS."
         }
       ]
     }

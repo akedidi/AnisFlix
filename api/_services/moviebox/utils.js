@@ -6,6 +6,7 @@ import {
   KEY_B64_DEFAULT,
   PACKAGE_INFO,
   PROXY_URL,
+  TOKEN_URL,
   TMDB_API_KEY,
   TMDB_BASE_URL,
 } from './constants.js';
@@ -20,6 +21,41 @@ const SECRET_KEY_ALT = CryptoJS.enc.Base64.parse(
 let deviceId = '';
 let selectedBrand = '';
 let selectedModel = '';
+let bearerToken = null;
+
+function decodeJwtExpiry(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return 0;
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) base64 += '=';
+    const json = CryptoJS.enc.Base64.parse(base64).toString(CryptoJS.enc.Utf8);
+    return JSON.parse(json).exp || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function isTokenValid(token) {
+  return Boolean(token) && decodeJwtExpiry(token) > Date.now() / 1000 + 60;
+}
+
+async function getCachedToken() {
+  if (isTokenValid(bearerToken)) return bearerToken;
+
+  const response = await movieBoxRequest('GET', TOKEN_URL, null, {}, true);
+  const xUser = response?.headers?.get('x-user');
+  if (xUser) {
+    try {
+      const token = JSON.parse(xUser).token;
+      if (isTokenValid(token)) bearerToken = token;
+    } catch {
+      /* Ignore malformed anonymous-session headers. */
+    }
+  }
+
+  return bearerToken || '';
+}
 
 export function initializeSession() {
   if (!deviceId) {
@@ -94,10 +130,10 @@ function buildClientInfo() {
   return JSON.stringify({
     ...PACKAGE_INFO,
     os: 'android',
-    os_version: '16',
+    os_version: '14',
     device_id: deviceId,
-    install_store: 'ps',
-    gaid: 'd7578036d13336cc',
+    install_store: 'official',
+    gaid: '1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d',
     brand: selectedBrand.toLowerCase(),
     model: selectedModel,
     system_language: 'en',
@@ -109,10 +145,10 @@ function buildClientInfo() {
 }
 
 function buildUserAgent() {
-  return `${PACKAGE_INFO.package_name}/${PACKAGE_INFO.version_code} (Linux; U; Android 16; en_IN; ${selectedModel}; Build/BP22.250325.006; Cronet/133.0.6876.3)`;
+  return `${PACKAGE_INFO.package_name}/${PACKAGE_INFO.version_code} (Linux; U; Android 14; en_IN; ${selectedModel}; Build/UD1A.230803.041; Cronet/145.0.7582.0)`;
 }
 
-export async function movieBoxRequest(method, url, body = null, customHeaders = {}) {
+export async function movieBoxRequest(method, url, body = null, customHeaders = {}, isTokenFetch = false) {
   initializeSession();
 
   const timestamp = Date.now();
@@ -131,16 +167,31 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
     ...customHeaders,
   };
 
+  if (!isTokenFetch && !targetHeaders.Authorization) {
+    const token = await getCachedToken();
+    if (token) targetHeaders.Authorization = `Bearer ${token}`;
+  }
+
   const proxyTarget = `${PROXY_URL}/?path=mob&url=${encodeURIComponent(url)}&method=${method}`;
   let retries = 2;
 
   while (retries > 0) {
     try {
-      const res = await fetch(proxyTarget, {
+      let res = await fetch(proxyTarget, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ headers: targetHeaders, body }),
       });
+
+      // The worker can be rejected by MovieBox based on its egress IP. Keep the
+      // public client on movix-proxy while allowing the server to retry upstream.
+      if (!res.ok) {
+        res = await fetch(url, {
+          method,
+          headers: targetHeaders,
+          body: body || undefined,
+        });
+      }
 
       if (!res.ok) {
         retries--;
@@ -162,9 +213,19 @@ export async function movieBoxRequest(method, url, body = null, customHeaders = 
         continue;
       }
 
+      const xUser = res.headers.get('x-user');
+      if (xUser) {
+        try {
+          const token = JSON.parse(xUser).token;
+          if (isTokenValid(token)) bearerToken = token;
+        } catch {
+          /* Ignore malformed anonymous-session headers. */
+        }
+      }
+
       return {
         data: parsed,
-        headers: { get: (name) => (name.toLowerCase() === 'x-user' ? res.headers.get('x-user') : null) },
+        headers: { get: (name) => (name.toLowerCase() === 'x-user' ? xUser : null) },
       };
     } catch (err) {
       retries--;

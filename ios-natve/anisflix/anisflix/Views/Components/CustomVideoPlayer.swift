@@ -548,6 +548,15 @@ struct CustomVideoPlayer: View {
             SubtitleSelectionView(subtitles: subtitles, selectedSubtitle: $selectedSubtitle, subtitleOffset: $subtitleOffset, subtitleFontSize: $subtitleFontSize)
                 .presentationDetents([.medium])
         }
+        .onAppear {
+            if globalManager.currentLanguage?.uppercased() == "VOSTFR", selectedSubtitle == nil {
+                selectedSubtitle = subtitles.first { subtitle in
+                    let code = subtitle.code.lowercased()
+                    let label = subtitle.label.lowercased()
+                    return code == "fr" || code == "fra" || label.contains("français") || label.contains("french")
+                }
+            }
+        }
         .onChange(of: selectedSubtitle?.id) { _ in
             if castManager.isConnected {
                 // Reload media to apply subtitle selection (and offset if any)

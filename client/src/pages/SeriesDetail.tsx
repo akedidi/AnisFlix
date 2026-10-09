@@ -342,7 +342,7 @@ export default function SeriesDetail() {
 
   const handleSourceClick = async (source: {
     url: string;
-    type: "m3u8" | "mp4" | "embed" | "mkv";
+    type: "m3u8" | "mp4" | "embed" | "mkv" | "dash";
     name: string;
     isFStream?: boolean;
     isMovixDownload?: boolean;
@@ -931,6 +931,7 @@ export default function SeriesDetail() {
                                                 <ShakaPlayer
                                                   url={selectedSource.url}
                                                   title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
+                                                  tracks={selectedSource.tracks}
                                                   embedded
                                                 />
                                               ) : (
