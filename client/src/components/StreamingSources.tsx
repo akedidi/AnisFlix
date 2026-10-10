@@ -1588,7 +1588,22 @@ const StreamingSources = memo(function StreamingSources({
     }
   };
 
-  if (isLoadingFStream || isLoadingMovixDownload || isLoadingVidMoly || isLoadingAnimeVidMoly || isLoadingVixsrc || isLoadingExternal || isLoadingFourKHDHub || isLoadingVidlink || isLoadingFrenchProviders) {
+  const isLoadingProviders =
+    isLoadingFStream ||
+    isLoadingMovixDownload ||
+    isLoadingVidMoly ||
+    isLoadingAnimeVidMoly ||
+    isLoadingVixsrc ||
+    isLoadingExternal ||
+    isLoadingFourKHDHub ||
+    isLoadingVidlink ||
+    isLoadingFrenchProviders ||
+    isLoadingMovieBox ||
+    isLoadingCinepro ||
+    isLoadingTmdbProxy ||
+    isLoadingMovixLinks;
+
+  if (isLoadingProviders) {
     return (
       <div className="space-y-4">
         <h2 className="text-xl font-semibold flex items-center gap-2">
