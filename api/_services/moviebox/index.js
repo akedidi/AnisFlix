@@ -29,11 +29,15 @@ function classifyVariant(dub, isOriginal = false) {
   const label = String(dub?.lanName || '').trim().toLowerCase();
   const isSubtitle = Number(dub?.type) === 1 || /\b(sub|subtitle|vostfr)\b/.test(label);
   const isFrench = code === 'fr' || code === 'fra' || label.includes('french') || label.includes('français');
-  const isEnglish = code === 'en' || code === 'eng' || label.includes('english') || (isOriginal && label.includes('original'));
+  // VO = original-language audio (Japanese for anime, English only when that IS the original).
+  // English/other dubs must not be labeled VO.
+  const isOriginalAudio = Boolean(isOriginal)
+    || dub?.original === true
+    || /\boriginal\b/.test(label);
 
+  if (isOriginalAudio && !isSubtitle) return 'VO';
   if (isFrench && isSubtitle) return 'VOSTFR';
-  if (isFrench) return 'VF';
-  if (isEnglish && !isSubtitle) return 'VO';
+  if (isFrench && !isSubtitle) return 'VF';
   return null;
 }
 
@@ -256,18 +260,19 @@ async function getH5FallbackStreams(details, mediaType, season, episode) {
 
   const dubsUrl = `${H5_METADATA_BASE}/api/dubs/${encodeURIComponent(bestMatch.subjectId)}?detailPath=${encodeURIComponent(bestMatch.detailPath)}`;
   const dubData = (await fetchJson(dubsUrl))?.data || {};
-  const original = dubData.original || {
-    subjectId: bestMatch.subjectId,
-    detailPath: bestMatch.detailPath,
-    lanName: 'Original Audio',
-    lanCode: 'en',
+  const original = {
+    ...(dubData.original || {
+      subjectId: bestMatch.subjectId,
+      detailPath: bestMatch.detailPath,
+      lanName: 'Original Audio',
+    }),
+    language: 'VO',
   };
-  const variants = [{ ...original, language: 'VO' }];
+  const variants = [original];
 
   for (const dub of Array.isArray(dubData.dubs) ? dubData.dubs : []) {
-    const code = String(dub.lanCode || '').toLowerCase();
-    const name = String(dub.lanName || '').toLowerCase();
-    if ((code === 'fr' || name.includes('french') || name.includes('français')) && !name.includes('sub')) {
+    const language = classifyVariant(dub, false);
+    if (language === 'VF' && dub.subjectId && dub.detailPath) {
       variants.push({ ...dub, language: 'VF' });
     }
   }
@@ -383,7 +388,9 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
       }
     });
   }
-  if (!subjectIds.some((item) => item.id === String(subjectId))) {
+  // Guarantee a VO entry from the matched (original) subject when MovieBox
+  // omitted an explicit "Original Audio" dub row.
+  if (!subjectIds.some((item) => item.lang === 'VO')) {
     subjectIds.unshift({ id: String(subjectId), lang: 'VO', label: 'Original Audio' });
   }
 

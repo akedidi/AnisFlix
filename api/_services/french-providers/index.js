@@ -11,7 +11,25 @@ const FRENCH_ANIME_BASE = 'https://french-anime.com';
 const COFLIX_BASE = 'https://coflix.wiki';
 const STREAMZO_BASE = 'https://streamzo.fr';
 const BACKEND_BASE = 'https://anisflix.vercel.app';
+const WORKER_BASE = process.env.ANISFLIX_WORKER_URL || 'https://anisflix.kedidi-anis.workers.dev';
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
+
+// Domains that Vercel egress often cannot open (TLS / CF). Prefer the CF worker.
+const WORKER_PREFERRED_HOSTS = new Set([
+  'anime-sama.to',
+  'www.anime-sama.to',
+  'ansembed.net',
+  'www.ansembed.net',
+]);
+
+function hostnameOf(url) {
+  try { return new URL(url).hostname.toLowerCase(); } catch { return ''; }
+}
+
+function prefersWorker(url) {
+  const host = hostnameOf(url);
+  return WORKER_PREFERRED_HOSTS.has(host) || host.endsWith('.anime-sama.to');
+}
 
 const vidmolyExtractor = new VidmolyExtractor();
 const vidzyExtractor = new VidzyExtractor();
@@ -71,7 +89,72 @@ function unpackPage(html) {
   return decoded ? `${html}\n${decoded}` : html;
 }
 
+class HttpStatusError extends Error {
+  constructor(status, url) {
+    super(`HTTP ${status} for ${url}`);
+    this.name = 'HttpStatusError';
+    this.status = status;
+    this.url = url;
+  }
+}
+
+async function fetchViaWorker(url, { method = 'GET', body, headers = {}, referer, timeout = 25000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const proxy = `${WORKER_BASE}/?path=mob&url=${encodeURIComponent(url)}&method=${method}`;
+    const response = await fetch(proxy, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7',
+          Accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+          ...(referer ? { Referer: referer } : {}),
+          ...headers,
+        },
+        body: body ?? null,
+      }),
+    });
+    if (!response.ok) throw new HttpStatusError(response.status, url);
+    return await response.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchText(url, { method = 'GET', body, headers = {}, referer, timeout = 18000 } = {}) {
+  if (url.startsWith(BACKEND_BASE) || url.startsWith(WORKER_BASE)) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, {
+        method,
+        body,
+        signal: controller.signal,
+        headers: {
+          'User-Agent': USER_AGENT,
+          ...(referer ? { Referer: referer } : {}),
+          ...headers,
+        },
+      });
+      if (!response.ok) throw new HttpStatusError(response.status, url);
+      return await response.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Anime-Sama (and its embed hosts) are unreliable from Vercel egress — go through
+  // the Cloudflare worker first so web french-provider matches iOS reachability.
+  if (prefersWorker(url)) {
+    const text = await fetchViaWorker(url, { method, body, headers, referer, timeout: Math.max(timeout, 25000) });
+    console.log(`[FrenchProviders] Worker fetch: ${hostnameOf(url)}`);
+    return text;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
@@ -87,19 +170,44 @@ async function fetchText(url, { method = 'GET', body, headers = {}, referer, tim
         ...headers,
       },
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status} for ${url}`);
+    if (!response.ok) throw new HttpStatusError(response.status, url);
     return await response.text();
   } catch (error) {
-    if (method !== 'GET' || body || url.startsWith(BACKEND_BASE)) throw error;
-    const params = new URLSearchParams({ url });
-    if (referer || headers.Referer) params.set('referer', referer || headers.Referer);
-    const response = await fetch(`${BACKEND_BASE}/api/proxy?${params.toString()}`, {
-      signal: controller.signal,
-      headers: { 'User-Agent': USER_AGENT },
-    });
-    if (!response.ok) throw error;
-    console.warn(`[FrenchProviders] Backend fallback: ${new URL(url).hostname}`);
-    return await response.text();
+    // Real 404/410 from the origin — no point retrying through another proxy.
+    if (error instanceof HttpStatusError && (error.status === 404 || error.status === 410)) {
+      throw error;
+    }
+
+    // Worker fallback for GET/POST (search is POST) when direct egress fails.
+    try {
+      const text = await fetchViaWorker(url, { method, body, headers, referer, timeout: Math.max(timeout, 25000) });
+      console.warn(`[FrenchProviders] Worker fallback: ${hostnameOf(url)}`);
+      return text;
+    } catch (workerError) {
+      if (workerError instanceof HttpStatusError && (workerError.status === 404 || workerError.status === 410)) {
+        throw workerError;
+      }
+      console.warn(`[FrenchProviders] Worker fallback failed (${hostnameOf(url)}): ${workerError.message}`);
+    }
+
+    // Legacy same-origin GET proxy (still useful for some catalogue hosts).
+    if (method === 'GET' && !body) {
+      try {
+        const params = new URLSearchParams({ url });
+        if (referer || headers.Referer) params.set('referer', referer || headers.Referer);
+        const response = await fetch(`${BACKEND_BASE}/api/proxy?${params.toString()}`, {
+          signal: controller.signal,
+          headers: { 'User-Agent': USER_AGENT },
+        });
+        if (response.ok) {
+          console.warn(`[FrenchProviders] Backend proxy fallback: ${hostnameOf(url)}`);
+          return await response.text();
+        }
+      } catch {
+        /* keep original error */
+      }
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -164,6 +272,8 @@ async function resolveGenericPage(page, referer = page, hostBase) {
     const match = decoded.match(pattern);
     if (!match) continue;
     const url = absoluteUrl(match[1], hostBase || page);
+    // Ignore the demo asset exposed by some dead embed players.
+    if (/test-videos\.co\.uk|big_buck_bunny/i.test(url)) continue;
     return { url, quality: qualityFrom(url), headers: playbackHeaders(rootUrl(page)) };
   }
   return null;
@@ -218,22 +328,42 @@ function parseJavaScriptArrays(script) {
     .map(body => captures(/["']([^"']+)["']/g, body)).filter(row => row.length);
 }
 
+function rankAnimeSamaSlug(slug, titles) {
+  const slugTokens = tokens(slug.replace(/-/g, ' '));
+  let best = 0;
+  for (const title of titles) {
+    const wanted = tokens(title).filter(token => token.length >= 3);
+    if (!wanted.length) continue;
+    const hits = wanted.reduce((sum, token) => sum + (slugTokens.includes(token) ? 1 : 0), 0);
+    const extras = slugTokens.filter(token => !wanted.includes(token) && !/^\d+$/.test(token)).length;
+    // Penalize spin-offs (junior high, movie, ova) when the query is the main series.
+    const spinOffPenalty = /(chuugakkou|junior|movie|film|ova|special)/i.test(slug) ? 0.35 : 0;
+    best = Math.max(best, hits / wanted.length - extras * 0.08 - spinOffPenalty);
+  }
+  return best;
+}
+
 async function getAnimeSamaStreams(metadata, mediaType, season, episode) {
   const targetSeason = Math.max(Number(season) || 1, 1);
   const targetEpisode = Math.max(Number(episode) || 1, 1);
   const slugs = [];
-  if (mediaType !== 'movie') {
-    slugs.push(slugify(metadata.titles[0]));
-    if (targetSeason > 1) slugs.push(`${slugify(metadata.titles[0])}-saison-${targetSeason}`, `${slugify(metadata.titles[0])}-${targetSeason}`);
-  }
+  // Catalogue results are authoritative. Guessed TMDB slugs used to consume
+  // the four-slot limit before the real "shingeki-no-kyojin" result.
   for (const title of metadata.titles.slice(0, 5)) {
     try {
       const cleanTitle = title.replace(/\s+(saison|season|s)\s*\d+$/i, '');
-      for (const slug of (await searchAnimeSama(cleanTitle)).slice(0, 2)) if (!slugs.includes(slug)) slugs.push(slug);
+      for (const slug of (await searchAnimeSama(cleanTitle)).slice(0, 8)) if (!slugs.includes(slug)) slugs.push(slug);
     } catch { /* try another title */ }
   }
+  if (mediaType !== 'movie') {
+    const primary = slugify(metadata.titles[0]);
+    for (const fallback of [primary, `${primary}-saison-${targetSeason}`, `${primary}-${targetSeason}`]) {
+      if (!slugs.includes(fallback)) slugs.push(fallback);
+    }
+  }
+  slugs.sort((a, b) => rankAnimeSamaSlug(b, metadata.titles) - rankAnimeSamaSlug(a, metadata.titles));
   const output = [];
-  for (const slug of slugs.slice(0, 4)) {
+  for (const slug of slugs.slice(0, 8)) {
     for (const languagePath of ['vostfr', 'vf']) {
       const paths = mediaType === 'movie' ? ['film', 'film2'] : [`saison${targetSeason}`, ''];
       for (const path of paths) {

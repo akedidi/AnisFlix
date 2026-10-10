@@ -1591,15 +1591,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         is_virtual: true
       }));
 
+      // Episodes absorbed into regular seasons (e.g. AOT Final Chapters → S4E29-30)
+      // must not also appear under Specials/OAV.
+      const absorbedEpisodeIds = new Set<number | string>();
+      for (const group of groupDetails.groups) {
+        if (group.order === 0) continue;
+        for (const ep of group.episodes || []) {
+          if (ep?.id != null) absorbedEpisodeIds.add(ep.id);
+        }
+      }
+
       // Handle Season 0 logic
       const originalSeason0 = seriesData.seasons?.find((s: any) => s.season_number === 0);
       const groupSeason0 = newSeasons.find((s: any) => s.season_number === 0);
+      let filteredSeason0Details: any = null;
 
-      if (originalSeason0 && groupSeason0 && originalSeason0.episode_count > groupSeason0.episode_count) {
-        console.warn(`⚠️ [TMDB PROXY] Keeping original Season 0 (${originalSeason0.episode_count} eps) vs Group (${groupSeason0.episode_count} eps)`);
-        const index = newSeasons.indexOf(groupSeason0);
-        if (index > -1) newSeasons.splice(index, 1);
-        newSeasons.push(originalSeason0);
+      if (originalSeason0 && (!groupSeason0 || originalSeason0.episode_count > groupSeason0.episode_count)) {
+        try {
+          const rawSeason0 = await tmdbProxyFetch(`/tv/${seriesId}/season/0`, { language });
+          const filteredEpisodes = (rawSeason0.episodes || []).filter(
+            (ep: any) => !absorbedEpisodeIds.has(ep.id)
+          );
+          filteredSeason0Details = {
+            ...rawSeason0,
+            episode_count: filteredEpisodes.length,
+            episodes: filteredEpisodes,
+            is_virtual: true,
+          };
+          const season0Summary = {
+            ...originalSeason0,
+            episode_count: filteredEpisodes.length,
+            is_virtual: true,
+          };
+          if (groupSeason0) {
+            const index = newSeasons.indexOf(groupSeason0);
+            if (index > -1) newSeasons.splice(index, 1);
+          }
+          newSeasons.push(season0Summary);
+          console.log(
+            `⚠️ [TMDB PROXY] Season 0 filtered: ${rawSeason0.episodes?.length || 0} → ${filteredEpisodes.length} (removed absorbed eps)`
+          );
+        } catch (season0Error: any) {
+          console.warn(`⚠️ [TMDB PROXY] Season 0 filter failed: ${season0Error.message}`);
+          if (!groupSeason0) newSeasons.push(originalSeason0);
+        }
       } else if (originalSeason0 && !groupSeason0) {
         newSeasons.push(originalSeason0);
       }
@@ -1610,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       groupDetails.groups.forEach((group: any) => {
         const seasonNumber = group.order;
 
-        if (seasonNumber === 0 && originalSeason0 && originalSeason0.episode_count > (group.episodes?.length || 0)) {
+        if (seasonNumber === 0 && filteredSeason0Details) {
           return;
         }
 
@@ -1638,6 +1673,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tmdbVirtualSeasonsCache.set(cacheKey, seasonData);
         console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} (${language})`);
       });
+
+      if (filteredSeason0Details) {
+        const cacheKey = `${seriesId}_0_${language}`;
+        tmdbVirtualSeasonsCache.set(cacheKey, {
+          ...filteredSeason0Details,
+          season_number: 0,
+          show_id: seriesId,
+        });
+        console.log(`💧 [TMDB PROXY] Hydrated filtered Season 0 (${language})`);
+      }
 
       seriesData.seasons = newSeasons;
       seriesData.number_of_seasons = newSeasons.length;
@@ -1737,6 +1782,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (tmdbVirtualSeasonsCache.has(cacheKey)) {
           console.log(`⚡️ [TMDB PROXY] Returning cached virtual season ${seasonNum}`);
           return res.json(tmdbVirtualSeasonsCache.get(cacheKey));
+        }
+
+        // Cold cache miss: rebuild episode-group virtual seasons before raw TMDB fallback
+        try {
+          const seriesData = await tmdbProxyFetch(
+            `/tv/${seriesIdNum}?language=${language}&append_to_response=episode_groups`
+          );
+          await processEpisodeGroups(seriesData, seriesIdNum, language);
+          if (tmdbVirtualSeasonsCache.has(cacheKey)) {
+            console.log(`⚡️ [TMDB PROXY] Returning rebuilt virtual season ${seasonNum}`);
+            return res.json(tmdbVirtualSeasonsCache.get(cacheKey));
+          }
+        } catch (rebuildError: any) {
+          console.warn(`⚠️ [TMDB PROXY] Virtual season rebuild failed: ${rebuildError.message}`);
         }
 
         // Fetch from TMDB

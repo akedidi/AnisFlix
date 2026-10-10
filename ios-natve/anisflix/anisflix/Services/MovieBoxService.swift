@@ -1,361 +1,550 @@
 import Foundation
 import CryptoKit
 
-class MovieBoxService {
+/// Native MovieBox client used by iOS before falling back to the hosted proxy.
+/// MovieBox rejects some datacenter IPs, while the same signed requests work from
+/// the user's device network.
+final class MovieBoxService {
     static let shared = MovieBoxService()
-    private init() {}
-    
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.default
-        return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
-    }()
-    
-    private let apiBase = "https://api.inmoviebox.com"
-    private let tmdbApiKey = "d131017ccc6e5462a81c9304d21476de"
-    private let tmdbBaseUrl = "https://api.themoviedb.org/3"
-    
-    private let headersBase = [
-        "User-Agent": "com.community.mbox.in/50020042 (Linux; U; Android 16; en_IN; sdk_gphone64_x86_64; Build/BP22.250325.006; Cronet/133.0.6876.3)",
-        "Connection": "keep-alive",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "x-client-info": "{\"package_name\":\"com.community.mbox.in\",\"version_name\":\"3.0.03.0529.03\",\"version_code\":50020042,\"os\":\"android\",\"os_version\":\"16\",\"device_id\":\"da2b99c821e6ea023e4be55b54d5f7d8\",\"install_store\":\"ps\",\"gaid\":\"d7578036d13336cc\",\"brand\":\"google\",\"model\":\"sdk_gphone64_x86_64\",\"system_language\":\"en\",\"net\":\"NETWORK_WIFI\",\"region\":\"IN\",\"timezone\":\"Asia/Calcutta\",\"sp_code\":\"\"}",
-        "x-client-status": "0"
+
+    private let apiBase = "https://api3.aoneroom.com"
+    private let apiHosts = [
+        "https://apig.inmoviebox.com",
+        "https://api6.aoneroom.com",
+        "https://api5.aoneroom.com",
+        "https://api4.aoneroom.com",
+        "https://api4sg.aoneroom.com",
+        "https://api3.aoneroom.com"
     ]
-    
+    private let tokenURL = "https://apig.inmoviebox.com/wefeed-mobile-bff/tab/ranking-list?tabId=0&categoryType=4516404531735022304&page=1&perPage=1"
+    private let tmdbAPIKey = "d131017ccc6e5462a81c9304d21476de"
+    private let tmdbBaseURL = "https://api.themoviedb.org/3"
+    private let cdnWorker = "https://anisflix.kedidi-anis.workers.dev"
+
+    private let userAgent = "com.community.mbox.in/50020130 (Linux; U; Android 14; en_IN; MovieBox; Build/UD1A.230803.041; Cronet/145.0.7582.0)"
+    private let clientInfo = "{\"package_name\":\"com.community.mbox.in\",\"version_name\":\"4.0.03.0920.03\",\"version_code\":50020130,\"os\":\"android\",\"os_version\":\"14\",\"device_id\":\"da2b99c821e6ea023e4be55b54d5f7d8\",\"install_store\":\"official\",\"gaid\":\"1b2212c1-dadf-43c3-a0c8-bd6ce48ae22d\",\"brand\":\"google\",\"model\":\"Pixel 8\",\"system_language\":\"en\",\"net\":\"NETWORK_WIFI\",\"region\":\"IN\",\"timezone\":\"Asia/Calcutta\",\"sp_code\":\"\"}"
+
     private let keyB64Default = "NzZpUmwwN3MweFNOOWpxbUVXQXQ3OUVCSlp1bElRSXNWNjRGWnIyTw=="
-    private let keyB64Alt = "WHFuMm5uTzQxL0w5Mm8xaXVYaFNMSFRiWHZZNFo1Wlo2Mm04bVNMQQ=="
-    
-    private lazy var secretKeyDefault: Data = {
-        guard let data1 = Data(base64Encoded: keyB64Default),
-              let string1 = String(data: data1, encoding: .utf8),
-              let data2 = Data(base64Encoded: string1) else {
-            fatalError("Failed to decode MovieBox keys")
-        }
-        return data2
+    private let tokenLock = NSLock()
+    private var bearerToken: String?
+
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 20
+        configuration.timeoutIntervalForResource = 45
+        return URLSession(configuration: configuration, delegate: TLSBypassDelegate(), delegateQueue: nil)
     }()
-    
-    private lazy var secretKeyAlt: Data = {
-        guard let data1 = Data(base64Encoded: keyB64Alt),
-              let string1 = String(data: data1, encoding: .utf8),
-              let data2 = Data(base64Encoded: string1) else {
-            fatalError("Failed to decode MovieBox keys")
+
+    private lazy var secretKey: Data = {
+        guard let firstPass = Data(base64Encoded: keyB64Default),
+              let encodedKey = String(data: firstPass, encoding: .utf8),
+              let key = Data(base64Encoded: encodedKey) else {
+            fatalError("Failed to decode MovieBox key")
         }
-        return data2
+        return key
     }()
-    
-    // MARK: - Crypto Helpers
-    
-    private func md5(_ string: String) -> String {
-        let data = Data(string.utf8)
-        let hash = Insecure.MD5.hash(data: data)
-        return hash.map { String(format: "%02hhx", $0) }.joined()
-    }
-    
-    private func hmacMd5(key: Data, data: Data) -> String {
-        let signature = HMAC<Insecure.MD5>.authenticationCode(for: data, using: SymmetricKey(data: key))
-        return Data(signature).base64EncodedString()
-    }
-    
-    private func generateXClientToken(timestamp: Int64) -> String {
-        let ts = String(timestamp)
-        let reversedTs = String(ts.reversed())
-        let hash = md5(reversedTs)
-        return "\(ts),\(hash)"
-    }
-    
-    private func buildCanonicalString(method: String, accept: String?, contentType: String?, url: String, body: String?, timestamp: Int64) -> String {
-        guard let urlComponents = URLComponents(string: url) else { return "" }
-        let path = urlComponents.path
-        
-        var query = ""
-        if let queryItems = urlComponents.queryItems {
-            let sortedItems = queryItems.sorted { ($0.name, $0.value ?? "") < ($1.name, $1.value ?? "") }
-            query = sortedItems.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&")
-        }
-        
-        let canonicalUrl = query.isEmpty ? path : "\(path)?\(query)"
-        
-        var bodyHash = ""
-        var bodyLength = ""
-        
-        if let body = body {
-            let bodyData = Data(body.utf8)
-            bodyLength = String(bodyData.count)
-            let hash = Insecure.MD5.hash(data: bodyData)
-            bodyHash = hash.map { String(format: "%02hhx", $0) }.joined()
-        }
-        
-        return "\(method.uppercased())\n" +
-            "\(accept ?? "")\n" +
-            "\(contentType ?? "")\n" +
-            "\(bodyLength)\n" +
-            "\(timestamp)\n" +
-            "\(bodyHash)\n" +
-            "\(canonicalUrl)"
-    }
-    
-    private func generateXTrSignature(method: String, accept: String?, contentType: String?, url: String, body: String?, useAltKey: Bool = false, timestamp: Int64) -> String {
-        let canonical = buildCanonicalString(method: method, accept: accept, contentType: contentType, url: url, body: body, timestamp: timestamp)
-        let secret = useAltKey ? secretKeyAlt : secretKeyDefault
-        let signatureB64 = hmacMd5(key: secret, data: Data(canonical.utf8))
-        return "\(timestamp)|2|\(signatureB64)"
-    }
-    
-    // MARK: - API Request
-    
-    private func mobRequest(method: String, urlString: String, body: String? = nil) async throws -> Data {
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        let timestamp = Int64(Date().timeIntervalSince1970 * 1000)
-        let xClientToken = generateXClientToken(timestamp: timestamp)
-        let accept = "application/json"
-        let contentType = "application/json"
-        
-        let xTrSignature = generateXTrSignature(method: method, accept: accept, contentType: contentType, url: urlString, body: body, timestamp: timestamp)
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = method.uppercased()
-        
-        request.setValue(accept, forHTTPHeaderField: "Accept")
-        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
-        request.setValue(xClientToken, forHTTPHeaderField: "x-client-token")
-        request.setValue(xTrSignature, forHTTPHeaderField: "x-tr-signature")
-        request.setValue(headersBase["User-Agent"], forHTTPHeaderField: "User-Agent")
-        request.setValue(headersBase["x-client-info"], forHTTPHeaderField: "x-client-info")
-        request.setValue(headersBase["x-client-status"], forHTTPHeaderField: "x-client-status")
-        
-        if let body = body {
-            request.httpBody = Data(body.utf8)
-        }
-        
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            print("❌ [MovieBox] Non-OK status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-            throw URLError(.badServerResponse)
-        }
-        
-        return data
-    }
-    
-    // MARK: - Scraper Logic
-    
+
+    private init() {}
+
+    // MARK: - Public API
+
     func fetchSources(tmdbId: Int, type: String, season: Int = 1, episode: Int = 1) async throws -> [StreamingSource] {
-        print("📦 [MovieBox] Native fetch for \(type) \(tmdbId)")
-        
-        // Step 1: Search by title
-        // In a real app, we'd get the title from StreamingService or TMDBService
-        let tmdbInfo = try await fetchTmdbDetails(tmdbId: tmdbId, type: type)
-        let searchResults = try await search(query: tmdbInfo.title)
-        
-        guard let bestMatch = findBestMatch(results: searchResults, targetTitle: tmdbInfo.title, targetYear: tmdbInfo.year, isMovie: type == "movie") else {
-            print("📦 [MovieBox] No match found for title: \(tmdbInfo.title)")
-            // Try original title if different
-            if tmdbInfo.originalTitle != tmdbInfo.title {
-                print("📦 [MovieBox] Trying original title: \(tmdbInfo.originalTitle)")
-                let originalResults = try await search(query: tmdbInfo.originalTitle)
-                if let bestOriginalMatch = findBestMatch(results: originalResults, targetTitle: tmdbInfo.originalTitle, targetYear: tmdbInfo.year, isMovie: type == "movie") {
-                    return try await getStreamLinks(subjectId: bestOriginalMatch.subjectId, season: season, episode: episode, title: tmdbInfo.title, type: type)
-                }
-            }
+        print("📦 [MovieBox Native] Fetching \(type) \(tmdbId) S\(season)E\(episode)")
+        let tmdb = try await fetchTmdbDetails(tmdbId: tmdbId, type: type)
+
+        var results = try await search(query: tmdb.title)
+        var match = findBestMatch(results: results, targetTitle: tmdb.title, targetYear: tmdb.year, isMovie: type == "movie")
+
+        if match == nil, !tmdb.originalTitle.isEmpty,
+           normalizeTitle(tmdb.originalTitle) != normalizeTitle(tmdb.title) {
+            results = try await search(query: tmdb.originalTitle)
+            match = findBestMatch(results: results, targetTitle: tmdb.originalTitle, targetYear: tmdb.year, isMovie: type == "movie")
+        }
+
+        guard let match else {
+            print("⚠️ [MovieBox Native] No match for \(tmdb.title)")
             return []
         }
-        
-        print("✅ [MovieBox] Matched: \(bestMatch.title) (ID: \(bestMatch.subjectId))")
-        
-        return try await getStreamLinks(subjectId: bestMatch.subjectId, season: season, episode: episode, title: tmdbInfo.title, type: type)
+
+        print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId))")
+        let finalSeason = type == "movie" ? 0 : season
+        let finalEpisode = type == "movie" ? 0 : episode
+        return try await getStreamLinks(subjectId: match.subjectId, season: finalSeason, episode: finalEpisode)
     }
-    
-    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String) {
-        let urlString = "\(tmdbBaseUrl)/\(type)/\(tmdbId)?api_key=\(tmdbApiKey)"
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        let (data, _) = try await session.data(from: url)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        
-        let title: String
-        if type == "movie" {
-            title = (json?["title"] as? String) ?? ""
-        } else {
-            title = (json?["name"] as? String) ?? ""
-        }
-        
-        let originalTitle: String
-        if type == "movie" {
-            originalTitle = (json?["original_title"] as? String) ?? ""
-        } else {
-            originalTitle = (json?["original_name"] as? String) ?? ""
-        }
-        
-        let dateString: String
-        if type == "movie" {
-            dateString = (json?["release_date"] as? String) ?? ""
-        } else {
-            dateString = (json?["first_air_date"] as? String) ?? ""
-        }
-        
-        let year = String(dateString.prefix(4))
-        
-        return (title: title.isEmpty ? originalTitle : title, originalTitle: originalTitle, year: year)
+
+    // MARK: - Signed requests
+
+    private func md5(_ value: String) -> String {
+        Insecure.MD5.hash(data: Data(value.utf8)).map { String(format: "%02hhx", $0) }.joined()
     }
-    
-    private func search(query: String) async throws -> [[String: Any]] {
-        let url = "\(apiBase)/wefeed-mobile-bff/subject-api/search/v2"
-        let body = "{\"page\": 1, \"perPage\": 10, \"keyword\": \"\(query)\"}"
-        
-        let data = try await mobRequest(method: "POST", urlString: url, body: body)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        
-        var allSubjects: [[String: Any]] = []
-        if let results = json?["data"] as? [String: Any], let resultList = results["results"] as? [[String: Any]] {
-            for group in resultList {
-                if let subjects = group["subjects"] as? [[String: Any]] {
-                    allSubjects.append(contentsOf: subjects)
+
+    private func hmacMD5(_ value: String) -> String {
+        let signature = HMAC<Insecure.MD5>.authenticationCode(
+            for: Data(value.utf8),
+            using: SymmetricKey(data: secretKey)
+        )
+        return Data(signature).base64EncodedString()
+    }
+
+    private func canonicalString(method: String, accept: String, contentType: String, url: String, body: String?, timestamp: Int64) -> String {
+        guard let components = URLComponents(string: url) else { return "" }
+        let grouped = Dictionary(grouping: components.queryItems ?? [], by: \.name)
+        let query = grouped.keys.sorted().flatMap { key in
+            (grouped[key] ?? []).map { "\(key)=\($0.value ?? "")" }
+        }.joined(separator: "&")
+        let canonicalURL = query.isEmpty ? components.path : "\(components.path)?\(query)"
+        let bodyHash = body.map(md5) ?? ""
+        let bodyLength = body.map { String(Data($0.utf8).count) } ?? ""
+        return "\(method.uppercased())\n\(accept)\n\(contentType)\n\(bodyLength)\n\(timestamp)\n\(bodyHash)\n\(canonicalURL)"
+    }
+
+    private func currentToken() -> String? {
+        tokenLock.lock()
+        defer { tokenLock.unlock() }
+        guard let token = bearerToken, jwtExpiry(token) > Date().timeIntervalSince1970 + 60 else {
+            bearerToken = nil
+            return nil
+        }
+        return token
+    }
+
+    private func storeToken(_ token: String) {
+        guard jwtExpiry(token) > Date().timeIntervalSince1970 + 60 else { return }
+        tokenLock.lock()
+        bearerToken = token
+        tokenLock.unlock()
+    }
+
+    private func jwtExpiry(_ token: String) -> TimeInterval {
+        let pieces = token.split(separator: ".")
+        guard pieces.count > 1 else { return 0 }
+        var payload = String(pieces[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        while payload.count % 4 != 0 { payload.append("=") }
+        guard let data = Data(base64Encoded: payload),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let expiry = json["exp"] as? NSNumber else { return 0 }
+        return expiry.doubleValue
+    }
+
+    private func getBearerToken() async -> String? {
+        if let token = currentToken() { return token }
+        do {
+            _ = try await movieBoxRequest(method: "GET", urlString: tokenURL, isTokenFetch: true)
+        } catch {
+            print("⚠️ [MovieBox Native] Anonymous token request failed: \(error.localizedDescription)")
+        }
+        return currentToken()
+    }
+
+    private func movieBoxRequest(
+        method: String,
+        urlString: String,
+        body: String? = nil,
+        customHeaders: [String: String] = [:],
+        isTokenFetch: Bool = false
+    ) async throws -> Data {
+        guard let originalURL = URL(string: urlString) else { throw URLError(.badURL) }
+
+        let timestamp = Int64(Date().timeIntervalSince1970 * 1000)
+        let accept = customHeaders["Accept"] ?? "application/json"
+        let contentType = customHeaders["Content-Type"] ?? (body == nil ? "application/json" : "application/json; charset=utf-8")
+        let reversedTimestamp = String(String(timestamp).reversed())
+        let clientToken = "\(timestamp),\(md5(reversedTimestamp))"
+        let canonical = canonicalString(
+            method: method,
+            accept: accept,
+            contentType: contentType,
+            url: urlString,
+            body: body,
+            timestamp: timestamp
+        )
+
+        var headers: [String: String] = [
+            "Accept": accept,
+            "Content-Type": contentType,
+            "x-client-token": clientToken,
+            "x-tr-signature": "\(timestamp)|2|\(hmacMD5(canonical))",
+            "User-Agent": userAgent,
+            "x-client-info": clientInfo,
+            "x-client-status": "0"
+        ]
+        customHeaders.forEach { headers[$0.key] = $0.value }
+        if !isTokenFetch, let token = await getBearerToken() {
+            headers["Authorization"] = "Bearer \(token)"
+        }
+
+        let knownHosts = Set(apiHosts.compactMap { URL(string: $0)?.host })
+        let candidateHosts: [String]
+        if let originalHost = originalURL.host, knownHosts.contains(originalHost) {
+            candidateHosts = [originalHost] + knownHosts.filter { $0 != originalHost }
+        } else {
+            candidateHosts = [originalURL.host].compactMap { $0 }
+        }
+
+        var lastError: Error = URLError(.badServerResponse)
+        for host in candidateHosts {
+            guard var components = URLComponents(url: originalURL, resolvingAgainstBaseURL: false) else { continue }
+            components.host = host
+            guard let requestURL = components.url else { continue }
+
+            var request = URLRequest(url: requestURL)
+            request.httpMethod = method.uppercased()
+            request.timeoutInterval = 20
+            headers.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+            if let body { request.httpBody = Data(body.utf8) }
+
+            do {
+                let (data, response) = try await session.data(for: request)
+                guard let http = response as? HTTPURLResponse,
+                      (200..<300).contains(http.statusCode) else {
+                    lastError = URLError(.badServerResponse)
+                    continue
                 }
+
+                if let xUser = http.value(forHTTPHeaderField: "x-user"),
+                   let xUserData = xUser.data(using: .utf8),
+                   let json = try? JSONSerialization.jsonObject(with: xUserData) as? [String: Any],
+                   let token = json["token"] as? String {
+                    storeToken(token)
+                }
+
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any], json["error"] != nil {
+                    lastError = URLError(.cannotParseResponse)
+                    continue
+                }
+                return data
+            } catch {
+                lastError = error
             }
         }
-        return allSubjects
+        throw lastError
     }
-    
-    private func findBestMatch(results: [[String: Any]], targetTitle: String, targetYear: String, isMovie: Bool) -> (subjectId: Int, title: String)? {
-        let normTarget = normalizeTitle(targetTitle)
-        let targetType = isMovie ? 1 : 2
-        
-        var bestId: Int?
-        var bestTitle: String?
-        var bestScore = 0
-        
-        for item in results {
-            guard let subjectType = item["subjectType"] as? Int, subjectType == targetType,
-                  let subjectId = item["subjectId"] as? Int,
-                  let title = item["title"] as? String else { continue }
-            
-            let normTitle = normalizeTitle(title)
-            let year = (item["year"] as? Int).map { String($0) } ?? (item["releaseDate"] as? String).map { String($0.prefix(4)) } ?? ""
-            
-            var score = 0
-            if normTitle == normTarget { score += 50 }
-            else if normTitle.contains(normTarget) || normTarget.contains(normTitle) { score += 15 }
-            
-            if !targetYear.isEmpty && !year.isEmpty && targetYear == year { score += 35 }
-            
-            if score > bestScore {
-                bestScore = score
-                bestId = subjectId
-                bestTitle = title
-            }
+
+    // MARK: - Catalogue
+
+    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String) {
+        guard let url = URL(string: "\(tmdbBaseURL)/\(type)/\(tmdbId)?api_key=\(tmdbAPIKey)") else { throw URLError(.badURL) }
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
+              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw URLError(.cannotParseResponse)
         }
-        
-        if bestScore >= 40, let id = bestId, let t = bestTitle {
-            return (id, t)
-        }
+        let title = type == "movie" ? (json["title"] as? String) : (json["name"] as? String)
+        let original = type == "movie" ? (json["original_title"] as? String) : (json["original_name"] as? String)
+        let date = type == "movie" ? (json["release_date"] as? String) : (json["first_air_date"] as? String)
+        let finalTitle = title ?? original ?? ""
+        guard !finalTitle.isEmpty else { throw URLError(.cannotParseResponse) }
+        return (finalTitle, original ?? finalTitle, String((date ?? "").prefix(4)))
+    }
+
+    private func search(query: String) async throws -> [[String: Any]] {
+        let object: [String: Any] = ["page": 1, "perPage": 20, "keyword": query, "restrictKid": 1]
+        let bodyData = try JSONSerialization.data(withJSONObject: object)
+        guard let body = String(data: bodyData, encoding: .utf8) else { return [] }
+        let data = try await movieBoxRequest(
+            method: "POST",
+            urlString: "\(apiBase)/wefeed-mobile-bff/subject-api/search/v2",
+            body: body
+        )
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let root = json["data"] as? [String: Any],
+              let groups = root["results"] as? [[String: Any]] else { return [] }
+        return groups.flatMap { $0["subjects"] as? [[String: Any]] ?? [] }
+    }
+
+    private func identifier(_ value: Any?) -> String? {
+        if let string = value as? String, !string.isEmpty { return string }
+        if let number = value as? NSNumber { return number.stringValue }
         return nil
     }
-    
-    private func normalizeTitle(_ s: String) -> String {
-        return s.lowercased()
-            .replacingOccurrences(of: ":", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    
-    private func getStreamLinks(subjectId: Int, season: Int, episode: Int, title: String, type: String) async throws -> [StreamingSource] {
-        let subjectUrl = "\(apiBase)/wefeed-mobile-bff/subject-api/get?subjectId=\(subjectId)"
-        let data = try await mobRequest(method: "GET", urlString: subjectUrl)
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-        
-        var subjectIds: [(id: Int, lang: String)] = []
-        var originalLang = "Original Audio"
-        
-        if let dataDict = json?["data"] as? [String: Any] {
-            if let dubs = dataDict["dubs"] as? [[String: Any]] {
-                for dub in dubs {
-                    if let dId = dub["subjectId"] as? Int, let lang = dub["lanName"] as? String {
-                        if dId == subjectId {
-                            originalLang = lang
-                        } else {
-                            subjectIds.append((dId, lang))
-                        }
-                    }
-                }
+
+    private func findBestMatch(results: [[String: Any]], targetTitle: String, targetYear: String, isMovie: Bool) -> (subjectId: String, title: String)? {
+        let normalizedTarget = normalizeTitle(targetTitle)
+        let targetType = isMovie ? 1 : 2
+        var best: (subjectId: String, title: String)?
+        var bestScore = 0
+
+        for item in results {
+            guard (item["subjectType"] as? NSNumber)?.intValue == targetType,
+                  let subjectId = identifier(item["subjectId"]),
+                  let title = item["title"] as? String else { continue }
+            let normalizedTitle = normalizeTitle(title)
+            let year = (item["year"] as? NSNumber)?.stringValue
+                ?? (item["releaseDate"] as? String).map { String($0.prefix(4)) }
+                ?? ""
+            var score = 0
+            if normalizedTitle == normalizedTarget { score += 50 }
+            else if normalizedTitle.contains(normalizedTarget) || normalizedTarget.contains(normalizedTitle) { score += 15 }
+            if !targetYear.isEmpty, !year.isEmpty, targetYear == year { score += 35 }
+            if score > bestScore {
+                bestScore = score
+                best = (subjectId, title)
             }
         }
-        
-        // Add original subject first
-        subjectIds.insert((subjectId, originalLang), at: 0)
-        
-        var sources: [StreamingSource] = []
-        
-        for item in subjectIds {
-            let sNum = type == "movie" ? 0 : season
-            let eNum = type == "movie" ? 0 : episode
-            let playUrl = "\(apiBase)/wefeed-mobile-bff/subject-api/play-info?subjectId=\(item.id)&se=\(sNum)&ep=\(eNum)"
-            
+        return bestScore >= 40 ? best : nil
+    }
+
+    private func normalizeTitle(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\[.*?\\]", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\(.*?\\)", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\b(dub|dubbed|hd|4k|hindi|tamil|telugu|dual audio)\\b", with: " ", options: [.regularExpression, .caseInsensitive])
+            .lowercased()
+            .replacingOccurrences(of: ":", with: " ")
+            .replacingOccurrences(of: "[^a-z0-9\\s]", with: " ", options: .regularExpression)
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+    }
+
+    // MARK: - Streams
+
+    private func getStreamLinks(subjectId: String, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let detailData = try await movieBoxRequest(
+            method: "GET",
+            urlString: "\(apiBase)/wefeed-mobile-bff/subject-api/get?subjectId=\(subjectId)"
+        )
+        guard let json = try JSONSerialization.jsonObject(with: detailData) as? [String: Any],
+              let details = json["data"] as? [String: Any] else { return [] }
+
+        var variants: [(id: String, language: String, label: String)] = []
+        for dub in details["dubs"] as? [[String: Any]] ?? [] {
+            guard let id = identifier(dub["subjectId"]) else { continue }
+            let name = (dub["lanName"] as? String) ?? ""
+            let code = ((dub["lanCode"] as? String) ?? "").lowercased()
+            let loweredName = name.lowercased()
+            let isSubtitle = (dub["type"] as? NSNumber)?.intValue == 1
+                || loweredName.contains("sub")
+                || loweredName.contains("vostfr")
+            let isOriginal = (dub["original"] as? Bool) == true
+                || id == subjectId
+                || loweredName.contains("original")
+            let isFrench = code == "fr" || code == "fra"
+                || loweredName.contains("french")
+                || loweredName.contains("français")
+            // VO = original-language audio (Japanese for anime). English dubs are not VO.
+            let language: String?
+            if isOriginal && !isSubtitle {
+                language = "VO"
+            } else if isFrench && isSubtitle {
+                language = "VOSTFR"
+            } else if isFrench && !isSubtitle {
+                language = "VF"
+            } else {
+                language = nil
+            }
+            if let language { variants.append((id, language, name.isEmpty ? language : name)) }
+        }
+        if !variants.contains(where: { $0.language == "VO" }) {
+            variants.insert((subjectId, "VO", "Original Audio"), at: 0)
+        }
+
+        var seenVariants = Set<String>()
+        variants = variants.filter { seenVariants.insert("\($0.id):\($0.language)").inserted }
+        var output: [StreamingSource] = []
+        let playbackHeaders: [String: String] = [
+            "Origin": "https://moviebox.ph",
+            "Referer": "https://moviebox.ph/",
+            "User-Agent": userAgent,
+            "x-request-lang": "en",
+            "x-vip-restrict": "0",
+            "x-no-high-risk-restrict": "0"
+        ]
+
+        for variant in variants {
+            var components = URLComponents(string: "\(apiBase)/wefeed-mobile-bff/subject-api/play-info")!
+            components.queryItems = [
+                URLQueryItem(name: "subjectId", value: variant.id),
+                URLQueryItem(name: "se", value: String(season)),
+                URLQueryItem(name: "ep", value: String(episode)),
+                URLQueryItem(name: "streamSignType", value: "1"),
+                URLQueryItem(name: "supportCodecs[hevc]", value: "1"),
+                URLQueryItem(name: "supportCodecs[h264]", value: "1")
+            ]
+            guard let playURL = components.url?.absoluteString else { continue }
+
             do {
-                let playData = try await mobRequest(method: "GET", urlString: playUrl)
-                let playJson = try JSONSerialization.jsonObject(with: playData) as? [String: Any]
-                
-                if let pData = playJson?["data"] as? [String: Any], let streams = pData["streams"] as? [[String: Any]] {
-                    for stream in streams {
-                        if let url = stream["url"] as? String {
-                            let qualityField = stream["resolutions"] as? String ?? stream["quality"] as? String ?? "720p"
-                            let quality = normalizeQuality(qualityField)
-                            
-                            // Map languages according to user request
-                            // "Original Audio" -> "VO", "French dub" -> "FR"
-                            var mappedLanguage = "VO"
-                            let l = item.lang.lowercased()
-                            if l.contains("french") || l.contains("français") {
-                                mappedLanguage = "FR"
-                            } else if l.contains("original") {
-                                mappedLanguage = "VO"
-                            } else {
-                                mappedLanguage = item.lang // Keep original label if unknown
-                            }
-                            
-                            var headers: [String: String] = [
-                                "Referer": "https://api.inmoviebox.com",
-                                "User-Agent": headersBase["User-Agent"]!
-                            ]
-                            
-                            if let cookie = stream["signCookie"] as? String {
-                                headers["Cookie"] = cookie
-                            }
-                            
-                            let streamType = url.contains(".mpd") ? "dash" : (url.contains(".m3u8") ? "hls" : "mp4")
-                            
-                            let source = StreamingSource(
-                                url: url,
-                                quality: "MovieBox (\(mappedLanguage)) \(quality)",
-                                type: streamType,
+                let playData = try await movieBoxRequest(
+                    method: "GET",
+                    urlString: playURL,
+                    customHeaders: playbackHeaders
+                )
+                guard let playJSON = try JSONSerialization.jsonObject(with: playData) as? [String: Any],
+                      let root = playJSON["data"] as? [String: Any] else { continue }
+
+                for stream in root["streams"] as? [[String: Any]] ?? [] {
+                    guard let rawURL = (stream["url"] ?? stream["playUrl"] ?? stream["resourceLink"] ?? stream["streamUrl"]) as? String else { continue }
+                    let signCookie = stream["signCookie"] as? String
+                    let finalURL = extractPolicyResource(signCookie) ?? rawURL
+                    if finalURL == rawURL,
+                       (rawURL.contains("b164fbfb4347792950bdfbfb563d39d9") || rawURL.contains("/other/2026/09/")) {
+                        continue
+                    }
+
+                    var headers = playbackHeaders
+                    if let signCookie, !signCookie.isEmpty {
+                        let headerName = (stream["signHeaderKey"] as? String) ?? "Cookie"
+                        headers[headerName] = signCookie
+                    }
+
+                    let streamId = identifier(stream["id"]) ?? "\(variant.id)|\(season)|\(episode)"
+                    let tracks = await fetchSubtitles(
+                        subjectId: variant.id,
+                        streamId: streamId,
+                        headers: playbackHeaders,
+                        languageLabel: variant.label
+                    )
+                    let qualities = parseQualities(stream["resolutions"] ?? stream["resolution"] ?? stream["quality"])
+                    let finalQualities = qualities.isEmpty ? ["Auto"] : qualities.map { "\($0)p" }
+                    let type = streamType(format: stream["format"] as? String, url: finalURL)
+                    let publicURL = isMovieBoxCDN(finalURL)
+                        ? buildCDNProxyURL(url: finalURL, referer: playbackHeaders["Referer"], cookie: signCookie)
+                        : finalURL
+
+                    for quality in finalQualities {
+                        output.append(StreamingSource(
+                            url: publicURL,
+                            directUrl: finalURL,
+                            quality: quality,
+                            type: type,
+                            provider: "moviebox",
+                            language: variant.language,
+                            origin: "moviebox",
+                            tracks: tracks.isEmpty ? nil : tracks,
+                            headers: headers
+                        ))
+
+                        let frenchTracks = tracks.filter { ["fr", "fra", "french", "français"].contains($0.code.lowercased()) }
+                        if variant.language == "VO", !frenchTracks.isEmpty {
+                            output.append(StreamingSource(
+                                url: publicURL,
+                                directUrl: finalURL,
+                                quality: quality,
+                                type: type,
                                 provider: "moviebox",
-                                language: mappedLanguage,
+                                language: "VOSTFR",
                                 origin: "moviebox",
+                                tracks: frenchTracks,
                                 headers: headers
-                            )
-                            sources.append(source)
+                            ))
                         }
                     }
                 }
             } catch {
-                print("⚠️ [MovieBox] Failed to get play-info for \(item.id): \(error)")
+                print("⚠️ [MovieBox Native] \(variant.language) play-info failed: \(error.localizedDescription)")
             }
         }
-        
-        return sources
-    }
-    
-    private func normalizeQuality(_ q: String) -> String {
-        let qLower = q.lowercased()
-        if qLower.contains("1080") { return "1080p" }
-        if qLower.contains("720") { return "720p" }
-        if qLower.contains("480") { return "480p" }
-        if qLower.contains("360") { return "360p" }
-        return q
-    }
-}
 
-// MARK: - Legacy compatibility structs if needed
-struct MovieBoxResponse: Codable {
-    let success: Bool?
-    let results: [StreamingSource]?
+        var seen = Set<String>()
+        let unique = output.filter { seen.insert("\($0.language):\($0.quality):\($0.directUrl ?? $0.url)").inserted }
+        print("✅ [MovieBox Native] Returning \(unique.count) stream(s)")
+        return unique.sorted { qualityNumber($0.quality) > qualityNumber($1.quality) }
+    }
+
+    private func fetchSubtitles(subjectId: String, streamId: String, headers: [String: String], languageLabel: String) async -> [Subtitle] {
+        var first = URLComponents(string: "\(apiBase)/wefeed-mobile-bff/subject-api/get-stream-captions")!
+        first.queryItems = [URLQueryItem(name: "subjectId", value: subjectId), URLQueryItem(name: "streamId", value: streamId)]
+        var second = URLComponents(string: "\(apiBase)/wefeed-mobile-bff/subject-api/get-ext-captions")!
+        second.queryItems = [URLQueryItem(name: "subjectId", value: subjectId), URLQueryItem(name: "resourceId", value: streamId), URLQueryItem(name: "episode", value: "0")]
+        let endpoints = [first.url?.absoluteString, second.url?.absoluteString].compactMap { $0 }
+        var output: [Subtitle] = []
+        for endpoint in endpoints {
+            guard let data = try? await movieBoxRequest(method: "GET", urlString: endpoint, customHeaders: headers),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let root = json["data"] as? [String: Any],
+                  let captions = root["extCaptions"] as? [[String: Any]] else { continue }
+            for caption in captions {
+                guard let rawURL = caption["url"] as? String else { continue }
+                let rawLanguage = (caption["language"] ?? caption["lanName"] ?? caption["lan"]) as? String ?? "Unknown"
+                let code = normalizedLanguageCode(rawLanguage)
+                let finalURL = isMovieBoxCDN(rawURL)
+                    ? buildCDNProxyURL(url: rawURL, referer: headers["Referer"], cookie: nil)
+                    : rawURL
+                output.append(Subtitle(
+                    url: finalURL,
+                    label: "\((caption["lanName"] as? String) ?? rawLanguage) (\(languageLabel))",
+                    code: code,
+                    flag: code == "fr" ? "🇫🇷" : (code == "en" ? "🇬🇧" : "🏳️")
+                ))
+            }
+        }
+        var seen = Set<String>()
+        return output.filter { seen.insert($0.url).inserted }
+    }
+
+    private func normalizedLanguageCode(_ value: String) -> String {
+        let language = value.lowercased()
+        if ["fr", "fra"].contains(language) || language.contains("french") || language.contains("français") { return "fr" }
+        if ["en", "eng"].contains(language) || language.contains("english") { return "en" }
+        return language
+    }
+
+    private func extractPolicyResource(_ cookie: String?) -> String? {
+        guard let cookie else { return nil }
+        if let range = cookie.range(of: "CloudFront-Policy=") {
+            let tail = cookie[range.upperBound...]
+            let encoded = String(tail.prefix { $0 != ";" })
+                .replacingOccurrences(of: "-", with: "+")
+                .replacingOccurrences(of: "~", with: "/")
+                .replacingOccurrences(of: "_", with: "=")
+            var padded = encoded
+            while padded.count % 4 != 0 { padded.append("=") }
+            if let data = Data(base64Encoded: padded),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let statements = json["Statement"] as? [[String: Any]],
+               let resource = statements.first?["Resource"] as? String {
+                let trimmed = resource.trimmingCharacters(in: CharacterSet(charactersIn: "*/"))
+                return trimmed.lowercased().hasSuffix(".mpd") ? trimmed : "\(trimmed)/index.mpd"
+            }
+        }
+        if let range = cookie.range(of: "Edge-Cache-Cookie=urlprefix=") {
+            let tail = cookie[range.upperBound...]
+            var encoded = String(tail.prefix { $0 != ":" && $0 != ";" })
+                .replacingOccurrences(of: "_", with: "/")
+                .replacingOccurrences(of: "-", with: "+")
+            while encoded.count % 4 != 0 { encoded.append("=") }
+            if let data = Data(base64Encoded: encoded),
+               let decoded = String(data: data, encoding: .utf8) {
+                return "\(decoded.trimmingCharacters(in: CharacterSet(charactersIn: "/")))/index.mpd"
+            }
+        }
+        return nil
+    }
+
+    private func parseQualities(_ value: Any?) -> [Int] {
+        let raw = String(describing: value ?? "")
+        let qualities = raw.split(whereSeparator: { !$0.isNumber }).compactMap { Int($0) }
+            .filter { (144...4320).contains($0) }
+        return Array(Set(qualities)).sorted(by: >)
+    }
+
+    private func qualityNumber(_ value: String) -> Int {
+        Int(value.filter(\.isNumber)) ?? 0
+    }
+
+    private func streamType(format: String?, url: String) -> String {
+        let lowerURL = url.lowercased()
+        let lowerFormat = (format ?? "").lowercased()
+        if lowerURL.contains(".mpd") || lowerFormat == "dash" { return "dash" }
+        if lowerURL.contains(".m3u8") || lowerFormat == "hls" { return "hls" }
+        if lowerURL.contains(".mkv") || lowerFormat == "mkv" { return "mkv" }
+        return "mp4"
+    }
+
+    private func isMovieBoxCDN(_ value: String) -> Bool {
+        guard let host = URL(string: value)?.host?.lowercased() else { return false }
+        return host.hasSuffix("hakunaymatata.com")
+    }
+
+    private func buildCDNProxyURL(url: String, referer: String?, cookie: String?) -> String {
+        guard var components = URLComponents(string: cdnWorker) else { return url }
+        var items = [
+            URLQueryItem(name: "path", value: "moviebox-cdn"),
+            URLQueryItem(name: "url", value: url),
+            URLQueryItem(name: "referer", value: referer ?? apiBase),
+            URLQueryItem(name: "ua", value: userAgent)
+        ]
+        if let cookie, !cookie.isEmpty { items.append(URLQueryItem(name: "cookie", value: cookie)) }
+        components.queryItems = items
+        return components.url?.absoluteString ?? url
+    }
 }

@@ -76,24 +76,30 @@ final class FrenchAnimeProvidersService {
         let targetSeason = max(season ?? 1, 1)
         let targetEpisode = max(episode ?? 1, 1)
         var slugs: [String] = []
-        let primary = slugify(firstTitle)
-        if mediaType != "movie" {
-            slugs.append(primary)
-            if targetSeason > 1 {
-                slugs.append("\(primary)-saison-\(targetSeason)")
-                slugs.append("\(primary)-\(targetSeason)")
-            }
-        }
 
+        // Prefer catalogue slugs returned by Anime-Sama. TMDB title slugs are
+        // only guesses (for example "attack-on-titan"), and previously filled
+        // the four-slot limit before "shingeki-no-kyojin" could be checked.
         for title in metadata.titles.prefix(5) {
-            for slug in await searchAnimeSama(title: stripSeasonSuffix(title)).prefix(2)
+            for slug in await searchAnimeSama(title: stripSeasonSuffix(title)).prefix(4)
             where !slugs.contains(slug) {
                 slugs.append(slug)
             }
         }
 
+        let primary = slugify(firstTitle)
+        if mediaType != "movie" {
+            for fallback in [
+                primary,
+                "\(primary)-saison-\(targetSeason)",
+                "\(primary)-\(targetSeason)"
+            ] where !slugs.contains(fallback) {
+                slugs.append(fallback)
+            }
+        }
+
         var output: [ExtractedSource] = []
-        for slug in slugs.prefix(4) {
+        for slug in slugs.prefix(8) {
             for language in ["vostfr", "vf"] {
                 let paths: [String]
                 if mediaType == "movie" {
@@ -674,6 +680,13 @@ final class FrenchAnimeProvidersService {
             if stream.hasPrefix("//") { stream = "https:\(stream)" }
             if stream.hasPrefix("/"), let hostBase { stream = "\(hostBase)\(stream)" }
             guard stream.hasPrefix("http") else { continue }
+            // Some embed hosts keep a Big Buck Bunny demo URL in their page
+            // even when the real player is unavailable. Never expose it as an
+            // episode source.
+            let lowerStream = stream.lowercased()
+            if lowerStream.contains("test-videos.co.uk") || lowerStream.contains("big_buck_bunny") {
+                continue
+            }
             return Resolved(url: stream, headers: playbackHeaders(referer: rootURL(page) ?? referer), quality: qualityFrom(stream))
         }
         return nil

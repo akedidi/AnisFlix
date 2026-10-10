@@ -323,17 +323,12 @@ class StreamingService {
     
     func fetchSources(movieId: Int) async throws -> [StreamingSource] {
         // Fetch from all endpoints concurrently
-        async let tmdbSources = fetchTmdbSources(movieId: movieId)
         async let fstreamSources = fetchFStreamSources(movieId: movieId)
-        async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         // DISABLED: UniversalVO API is broken
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
         async let mobSources = fetchMobSources(tmdbId: movieId)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
-        async let cineproSources = fetchCineproSources(tmdbId: movieId)
-        async let wiflixSources = fetchWiflixSources(tmdbId: movieId)
-        async let tmdbProxySources = fetchTmdbProxySources(tmdbId: movieId)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
@@ -345,10 +340,9 @@ class StreamingService {
         
         print("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
         
-        // Fetch TMDB info for AfterDark and Movix Download (needs title)
+        // Fetch TMDB info for AfterDark (needs title)
         let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
         var afterDarkSources: [StreamingSource] = []
-        var movixDownloadSources: [StreamingSource] = []
         
         if let title = tmdbInfo?.title {
             print("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
@@ -363,13 +357,6 @@ class StreamingService {
                     originalTitle: tmdbInfo?.originalTitle
                 )) ?? []
             }
-            
-            // Fetch Movix Download sources (TMDB ID matching)
-            movixDownloadSources = (try? await fetchMovixDownloadSources(
-                tmdbId: movieId,
-                type: "movie",
-                title: title
-            )) ?? []
             
             // Check for Animation Genre (16)
             if tmdbInfo?.genreIds.contains(16) == true {
@@ -388,7 +375,7 @@ class StreamingService {
         }
         
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
+        let (fstream, mBox, mMob, hub4k) = await (try? fstreamSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources)
         let animeSources = await (try? animeTask?.value) ?? []
         let vidlinkMovieResults: [StreamingSource]
         if let mBox, !mBox.isEmpty {
@@ -409,25 +396,14 @@ class StreamingService {
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
         print("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
         print("   - Anime sources: \(animeSources.count)")
-        print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
-        print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - MOB: \(mMob?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
-        print("   - Cinepro: \(cinepro?.count ?? 0)")
-        print("   - Wiflix: \(wiflix?.count ?? 0)")
-        print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
-        print("   - Movix Download: \(movixDownloadSources.count)")
         
         var allSources: [StreamingSource] = []
-        
-        // Add Cinepro/MegaCDN sources (highest priority for VO)
-        if let cinepro = cinepro {
-            allSources.append(contentsOf: cinepro)
-        }
         
         // Vidlink is only exposed when MovieBox returned no playable source.
         if !vidlinkMovieResults.isEmpty {
@@ -442,16 +418,6 @@ class StreamingService {
         allSources.append(contentsOf: frenchStreamMovieResults)
         allSources.append(contentsOf: streamzoMovieResults)
 
-        // Add Wiflix sources (Luluvid)
-        if let wiflix = wiflix {
-            allSources.append(contentsOf: wiflix)
-        }
-        
-        // Add TMDB sources (includes Vidzy)
-        if let tmdb = tmdb {
-            allSources.append(contentsOf: tmdb)
-        }
-        
         // Add MovieBox sources
         if let mBox = mBox {
             allSources.append(contentsOf: mBox)
@@ -462,9 +428,6 @@ class StreamingService {
             allSources.append(contentsOf: mMob)
         }
         
-        // Add Movix/Darkibox Download sources
-        allSources.append(contentsOf: movixDownloadSources)
-        
         // DISABLED: UniversalVO API is broken
         // if let universalVO = universalVO {
         //     allSources.append(contentsOf: universalVO)
@@ -472,10 +435,6 @@ class StreamingService {
         
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
-        
-        if let vixsrc = vixsrc {
-            allSources.append(contentsOf: vixsrc)
-        }
         
         if let fstream = fstream {
             allSources.append(contentsOf: fstream)
@@ -489,11 +448,6 @@ class StreamingService {
         // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
-        }
-        
-        // Add TMDB Proxy sources (Luluvid)
-        if let tmdbProxy = tmdbProxy {
-            allSources.append(contentsOf: tmdbProxy)
         }
         
         return filterToAllowedProviders(allSources)
@@ -582,18 +536,13 @@ class StreamingService {
     
     func fetchSeriesSources(seriesId: Int, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo? = nil) async throws -> [StreamingSource] {
         // Fetch from all endpoints concurrently
-        async let tmdbSources = fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
         async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
-        async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // DISABLED: UniversalVO API is broken
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let mobSources = fetchMobSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-        async let cineproSources = fetchCineproSources(tmdbId: seriesId, season: season, episode: episode)
-        async let wiflixSources = fetchWiflixSources(tmdbId: seriesId, season: season, episode: episode)
-        async let tmdbProxySources = fetchTmdbProxySources(tmdbId: seriesId, season: season, episode: episode)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -610,7 +559,6 @@ class StreamingService {
         }
 
         var afterDarkSources: [StreamingSource] = []
-        var movixDownloadSources: [StreamingSource] = []
         // Add anime sources when genre animation is present.
         var animeSources: [StreamingSource] = []
         
@@ -650,15 +598,6 @@ class StreamingService {
                 episode: episode
             )) ?? []
             
-            // Fetch Movix Download sources (TMDB ID matching)
-            movixDownloadSources = (try? await fetchMovixDownloadSources(
-                tmdbId: seriesId,
-                type: "tv",
-                title: title,
-                season: season,
-                episode: episode
-            )) ?? []
-            
              // Await Anime sources (Already fetched above)
             // animeSources = (try? await fetchedAnime) ?? []
         } else {
@@ -668,7 +607,7 @@ class StreamingService {
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
         // DISABLED: UniversalVO API is broken - removed from tuple
-        let (tmdb, fstream, vixsrc, mBox, mMob, hub4k, cinepro, wiflix, tmdbProxy) = await (try? tmdbSources, try? fstreamSources, try? vixsrcSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources, try? cineproSources, try? wiflixSources, try? tmdbProxySources)
+        let (fstream, mBox, mMob, hub4k) = await (try? fstreamSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources)
         let vidlinkResults: [StreamingSource]
         if let mBox, !mBox.isEmpty {
             vidlinkResults = []
@@ -690,28 +629,17 @@ class StreamingService {
         print("   - YFlix: \(yflixResults.count)")
         print("   - French Stream: \(frenchStreamResults.count)")
         print("   - Streamzo: \(streamzoResults.count)")
-        print("   - TMDB: \(tmdb?.count ?? 0)")
         print("   - FStream: \(fstream?.count ?? 0)")
-        print("   - Vixsrc: \(vixsrc?.count ?? 0)")
         // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - MOB: \(mMob?.count ?? 0)")
         print("   - 4KHDHub: \(hub4k?.count ?? 0)")
-        print("   - Cinepro: \(cinepro?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
-        print("   - Movix Download: \(movixDownloadSources.count)")
-        print("   - Wiflix: \(wiflix?.count ?? 0)")
-        print("   - TMDB Proxy: \(tmdbProxy?.count ?? 0)")
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
         print("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
         print("   - Anime sources: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
-        
-        // Add Cinepro/MegaCDN sources (highest priority for VO)
-        if let cinepro = cinepro {
-            allSources.append(contentsOf: cinepro)
-        }
         
         // Vidlink is only exposed when MovieBox returned no playable source.
         if !vidlinkResults.isEmpty {
@@ -726,18 +654,8 @@ class StreamingService {
         allSources.append(contentsOf: frenchStreamResults)
         allSources.append(contentsOf: streamzoResults)
 
-        // Add Wiflix sources (Luluvid)
-        if let wiflix = wiflix {
-            allSources.append(contentsOf: wiflix)
-        }
-        
         // Add Anime sources (High Priority for VidMoly)
         allSources.append(contentsOf: animeSources)
-        
-        // Add TMDB sources (includes Vidzy)
-        if let tmdb = tmdb {
-            allSources.append(contentsOf: tmdb)
-        }
         
         // Add MovieBox sources
         if let mBox = mBox {
@@ -749,9 +667,6 @@ class StreamingService {
             allSources.append(contentsOf: mMob)
         }
         
-        // Add Movix/Darkibox Download sources
-        allSources.append(contentsOf: movixDownloadSources)
-        
         // DISABLED: UniversalVO API is broken
         // if let universalVO = universalVO {
         //     allSources.append(contentsOf: universalVO)
@@ -760,10 +675,6 @@ class StreamingService {
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
         
-        if let vixsrc = vixsrc {
-            allSources.append(contentsOf: vixsrc)
-        }
-        
         if let fstream = fstream {
             allSources.append(contentsOf: fstream)
         }
@@ -771,11 +682,6 @@ class StreamingService {
         // Add 4KHDHub sources (lower priority)
         if let hub4k = hub4k {
             allSources.append(contentsOf: hub4k)
-        }
-        
-        // Add TMDB Proxy sources (Luluvid)
-        if let tmdbProxy = tmdbProxy {
-            allSources.append(contentsOf: tmdbProxy)
         }
         
         return filterToAllowedProviders(allSources)
@@ -876,9 +782,6 @@ class StreamingService {
         print("🎯 [StreamingService] Targeted fetch for provider: \(targetProvider)")
         
         switch targetProvider.lowercased() {
-        case "vixsrc":
-            return try await fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-            
         case "moviebox":
             return try await fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
             
@@ -900,12 +803,6 @@ class StreamingService {
 
         case "fstream":
             return try await fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
-
-        case "vidmoly", "vidzy":
-             // These usually come from TMDB scraper or Vixsrc. Hard to know origin if provider is just "vidmoly".
-             // But if currentProvider was stored as "vidmoly", it likely came from TMDB scraper in initial implementation.
-             // We'll try TMDB for these constants.
-             return try await fetchTmdbSeriesSources(seriesId: seriesId, season: season, episode: episode)
 
         case "yflix":
             return try await fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -1053,6 +950,21 @@ class StreamingService {
     }
 
     func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
+        do {
+            let nativeSources = try await MovieBoxService.shared.fetchSources(
+                tmdbId: tmdbId,
+                type: "movie",
+                season: 0,
+                episode: 0
+            )
+            if !nativeSources.isEmpty {
+                print("📱 [MovieBox] Using \(nativeSources.count) native source(s)")
+                return nativeSources
+            }
+        } catch {
+            print("⚠️ [MovieBox] Native fetch failed, using hosted fallback: \(error.localizedDescription)")
+        }
+
         let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
@@ -1107,6 +1019,21 @@ class StreamingService {
     }
     
     func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        do {
+            let nativeSources = try await MovieBoxService.shared.fetchSources(
+                tmdbId: tmdbId,
+                type: "tv",
+                season: season,
+                episode: episode
+            )
+            if !nativeSources.isEmpty {
+                print("📱 [MovieBox] Using \(nativeSources.count) native series source(s)")
+                return nativeSources
+            }
+        } catch {
+            print("⚠️ [MovieBox] Native series fetch failed, using hosted fallback: \(error.localizedDescription)")
+        }
+
         let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
         guard let url = URL(string: urlString) else { throw URLError(.badURL) }
         
@@ -2453,20 +2380,68 @@ class StreamingService {
         
         // Find target season and episode
         var targetEpisode: [String: Any]? = nil
-        
-        // Find season by index or name
-        let targetSeason = seasons.first { s in
-            if let idx = s["index"] as? Int, idx == season { return true }
-            if let name = s["name"] as? String, name.contains("Saison \(season)") { return true }
-            return false
+        var targetSeason: [String: Any]? = nil
+
+        func seasonNamed(_ name: String) -> [String: Any]? {
+            seasons.first { ($0["name"] as? String) == name }
         }
-        
-        if let eps = targetSeason?["episodes"] as? [[String: Any]] {
-            targetEpisode = eps.first { e in
-                if let idx = e["index"] as? Int, idx == episode { return true }
-                if let name = e["name"] as? String, name.contains(String(format: "%02d", episode)) { return true }
+
+        func episodeInSeason(_ seasonObj: [String: Any]?, matching episodeNumber: Int) -> [String: Any]? {
+            guard let eps = seasonObj?["episodes"] as? [[String: Any]] else { return nil }
+            return eps.first { e in
+                if let idx = e["index"] as? Int, idx == episodeNumber { return true }
+                if let name = e["name"] as? String, name.contains(String(format: "%02d", episodeNumber)) { return true }
                 return false
             }
+        }
+
+        // Attack on Titan: TMDB S4 is Part1 1-16, Part2 17-28, Final Chapters 29-30.
+        // Raw TMDB also lists Final Chapters under Specials as S0E36/E37.
+        if isAOT {
+            if season == 4 {
+                if episode <= 16 {
+                    targetSeason = seasonNamed("Saison 4 partie 1")
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode)
+                } else if episode <= 28 {
+                    targetSeason = seasonNamed("Saison 4 partie 2")
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode - 16)
+                } else if episode == 29 {
+                    targetSeason = seasonNamed("Saison 4 partie 3")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else if episode == 30 {
+                    targetSeason = seasonNamed("Saison 4 partie 4")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                }
+            } else if season == 0 {
+                if episode == 36 {
+                    targetSeason = seasonNamed("Saison 4 partie 3")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else if episode == 37 {
+                    targetSeason = seasonNamed("Saison 4 partie 4")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else {
+                    targetSeason = seasons.first {
+                        let name = ($0["name"] as? String)?.lowercased() ?? ""
+                        return name.contains("oav") || name.contains("special")
+                    }
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode)
+                }
+            } else {
+                targetSeason = seasonNamed("Saison \(season)")
+                targetEpisode = episodeInSeason(targetSeason, matching: episode)
+            }
+        } else {
+            // Generic: find season by index or name
+            targetSeason = seasons.first { s in
+                if let idx = s["index"] as? Int, idx == season { return true }
+                if let name = s["name"] as? String, name.contains("Saison \(season)") { return true }
+                if season == 0, let name = s["name"] as? String {
+                    let lowered = name.lowercased()
+                    if lowered.contains("oav") || lowered.contains("special") { return true }
+                }
+                return false
+            }
+            targetEpisode = episodeInSeason(targetSeason, matching: episode)
         }
         
         // Fallback: Absolute episode search

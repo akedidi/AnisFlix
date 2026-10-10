@@ -112,15 +112,23 @@ export const extractVidMolyFromAnime = (
     let targetEpisode: Episode | undefined;
 
     // Specific mapping for Attack on Titan (ID 1429)
+    // TMDB S4 is 30 eps via episode groups: Part1 1-16, Part2 17-28, Final Chapters 29-30.
+    // Raw TMDB still lists Final Chapters under Specials as S0E36/E37 — keep that fallback.
     if (seriesId === 1429) {
         if (seasonNumber === 4) {
             if (episodeNumber <= 16) {
                 targetSeason = anime.seasons.find(s => s.name === 'Saison 4 partie 1');
                 targetEpisode = targetSeason?.episodes.find(e => e.index === episodeNumber || e.name.includes(String(episodeNumber).padStart(2, '0')));
-            } else {
+            } else if (episodeNumber <= 28) {
                 targetSeason = anime.seasons.find(s => s.name === 'Saison 4 partie 2');
                 const offsetEpisode = episodeNumber - 16;
                 targetEpisode = targetSeason?.episodes.find(e => e.index === offsetEpisode || e.name.includes(String(offsetEpisode).padStart(2, '0')));
+            } else if (episodeNumber === 29) {
+                targetSeason = anime.seasons.find(s => s.name === 'Saison 4 partie 3');
+                targetEpisode = targetSeason?.episodes[0];
+            } else if (episodeNumber === 30) {
+                targetSeason = anime.seasons.find(s => s.name === 'Saison 4 partie 4');
+                targetEpisode = targetSeason?.episodes[0];
             }
         } else if (seasonNumber === 0) {
             // Specials

@@ -83,15 +83,51 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
             is_virtual: true
         }));
 
+        // Episodes absorbed into regular seasons (e.g. AOT Final Chapters → S4E29-30)
+        // must not also appear under Specials/OAV.
+        const absorbedEpisodeIds = new Set();
+        for (const group of groupDetails.groups) {
+            if (group.order === 0) continue;
+            for (const ep of group.episodes || []) {
+                if (ep?.id != null) absorbedEpisodeIds.add(ep.id);
+            }
+        }
+
         // Handle Season 0 logic
         const originalSeason0 = seriesData.seasons?.find(s => s.season_number === 0);
         const groupSeason0 = newSeasons.find(s => s.season_number === 0);
+        let filteredSeason0Details = null;
 
-        if (originalSeason0 && groupSeason0 && originalSeason0.episode_count > groupSeason0.episode_count) {
-            console.warn(`⚠️ [TMDB PROXY] Keeping original Season 0`);
-            const index = newSeasons.indexOf(groupSeason0);
-            if (index > -1) newSeasons.splice(index, 1);
-            newSeasons.push(originalSeason0);
+        if (originalSeason0 && (!groupSeason0 || originalSeason0.episode_count > groupSeason0.episode_count)) {
+            // Keep the richer TMDB specials list, but drop anything already placed in S1+.
+            try {
+                const rawSeason0 = await tmdbFetch(`/tv/${seriesId}/season/0`, { language });
+                const filteredEpisodes = (rawSeason0.episodes || []).filter(
+                    (ep) => !absorbedEpisodeIds.has(ep.id)
+                );
+                filteredSeason0Details = {
+                    ...rawSeason0,
+                    episode_count: filteredEpisodes.length,
+                    episodes: filteredEpisodes,
+                    is_virtual: true,
+                };
+                const season0Summary = {
+                    ...originalSeason0,
+                    episode_count: filteredEpisodes.length,
+                    is_virtual: true,
+                };
+                if (groupSeason0) {
+                    const index = newSeasons.indexOf(groupSeason0);
+                    if (index > -1) newSeasons.splice(index, 1);
+                }
+                newSeasons.push(season0Summary);
+                console.log(
+                    `⚠️ [TMDB PROXY] Season 0 filtered: ${rawSeason0.episodes?.length || 0} → ${filteredEpisodes.length} (removed absorbed eps)`
+                );
+            } catch (season0Error) {
+                console.warn(`⚠️ [TMDB PROXY] Season 0 filter failed: ${season0Error.message}`);
+                if (!groupSeason0) newSeasons.push(originalSeason0);
+            }
         } else if (originalSeason0 && !groupSeason0) {
             newSeasons.push(originalSeason0);
         }
@@ -135,7 +171,8 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
         groupDetails.groups.forEach(group => {
             const seasonNumber = group.order;
 
-            if (seasonNumber === 0 && originalSeason0 && originalSeason0.episode_count > (group.episodes?.length || 0)) {
+            // Prefer the filtered original Season 0 when we built one above
+            if (seasonNumber === 0 && filteredSeason0Details) {
                 return;
             }
 
@@ -162,6 +199,16 @@ async function processEpisodeGroups(seriesData, seriesId, language) {
             virtualSeasonsCache.set(cacheKey, seasonData);
             console.log(`💧 [TMDB PROXY] Hydrated cache for Season ${seasonNumber} (${language})`);
         });
+
+        if (filteredSeason0Details) {
+            const cacheKey = `${seriesId}_0_${language}`;
+            virtualSeasonsCache.set(cacheKey, {
+                ...filteredSeason0Details,
+                season_number: 0,
+                show_id: seriesId,
+            });
+            console.log(`💧 [TMDB PROXY] Hydrated filtered Season 0 (${language})`);
+        }
 
         seriesData.seasons = mergedSeasons;
         seriesData.number_of_seasons = mergedSeasons.length;
@@ -419,6 +466,22 @@ export default async function handler(req, res) {
             if (virtualSeasonsCache.has(cacheKey)) {
                 console.log(`⚡️ [TMDB PROXY] Returning cached season ${seasonNum}`);
                 return res.status(200).json(virtualSeasonsCache.get(cacheKey));
+            }
+
+            // Cold isolate / cache miss: rebuild episode-group virtual seasons so
+            // AOT S4 returns 30 eps (incl. Final Chapters) instead of raw TMDB's 28.
+            try {
+                const seriesData = await tmdbFetch(`/tv/${seriesIdNum}`, {
+                    language,
+                    append_to_response: 'episode_groups',
+                });
+                await processEpisodeGroups(seriesData, seriesIdNum, language);
+                if (virtualSeasonsCache.has(cacheKey)) {
+                    console.log(`⚡️ [TMDB PROXY] Returning rebuilt virtual season ${seasonNum}`);
+                    return res.status(200).json(virtualSeasonsCache.get(cacheKey));
+                }
+            } catch (rebuildError) {
+                console.warn(`⚠️ [TMDB PROXY] Virtual season rebuild failed: ${rebuildError.message}`);
             }
 
             // Fetch from TMDB
