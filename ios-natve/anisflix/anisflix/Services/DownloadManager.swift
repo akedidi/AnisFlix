@@ -973,7 +973,10 @@ class DownloadManager: NSObject, ObservableObject {
             print("📦 [DownloadManager] FFmpeg via LocalServer DASH proxy")
         } else if !isDASH && Self.shouldUseLocalProxyForDownload(provider: provider) {
             let providerLower = provider.lowercased()
-            let useStreamProxy = providerLower == "moviebox" && Self.isDirectMP4(resolved.url)
+            let sourceType = item.sourceType?.lowercased()
+            let isDeclaredMP4 = sourceType == "mp4" || sourceType == "video"
+            let useStreamProxy = providerLower == "moviebox"
+                && (isDeclaredMP4 || Self.isDirectMP4(resolved.url))
             
             if useStreamProxy,
                let proxyUrl = LocalStreamingServer.shared.streamURLForDownload(

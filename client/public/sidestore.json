@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.99",
-          "buildVersion": "99",
+          "version": "1.0.100",
+          "buildVersion": "100",
           "date": "2026-10-10",
-          "size": 31068272,
+          "size": 31067922,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Corrige le téléchargement MovieBox sur iOS : progression fiable et relais local des fragments DASH signés."
+          "localizedDescription": "Corrige le téléchargement des flux MovieBox MP4 relayés sur iOS, notamment Animals VO 360p."
         }
       ]
     }
