@@ -69,7 +69,31 @@ final class MovieBoxService {
         print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId))")
         let finalSeason = type == "movie" ? 0 : season
         let finalEpisode = type == "movie" ? 0 : episode
-        return try await getStreamLinks(subjectId: match.subjectId, season: finalSeason, episode: finalEpisode)
+        return try await getStreamLinks(
+            subjectId: match.subjectId,
+            season: finalSeason,
+            episode: finalEpisode,
+            tmdbId: tmdbId,
+            mediaType: type
+        )
+    }
+
+    /// MovieBox sometimes renumbers multi-part seasons differently from TMDB.
+    /// Attack on Titan: Original/English use S4/S5/S6 while French keeps flat S4.
+    private func movieBoxEpisodeCandidates(tmdbId: Int, mediaType: String, season: Int, episode: Int) -> [(se: Int, ep: Int)] {
+        if mediaType != "tv" { return [(se: 0, ep: 0)] }
+        var candidates: [(se: Int, ep: Int)] = [(se: season, ep: episode)]
+        if tmdbId == 1429, season == 4 {
+            if episode >= 17, episode <= 28 {
+                candidates.insert((se: 5, ep: episode - 16), at: 0)
+            } else if episode >= 29, episode <= 30 {
+                candidates.insert((se: 6, ep: episode - 28), at: 0)
+            }
+        }
+        var seen = Set<String>()
+        return candidates.filter { candidate in
+            seen.insert("\(candidate.se):\(candidate.ep)").inserted
+        }
     }
 
     // MARK: - Signed requests
@@ -298,7 +322,13 @@ final class MovieBoxService {
 
     // MARK: - Streams
 
-    private func getStreamLinks(subjectId: String, season: Int, episode: Int) async throws -> [StreamingSource] {
+    private func getStreamLinks(
+        subjectId: String,
+        season: Int,
+        episode: Int,
+        tmdbId: Int = 0,
+        mediaType: String = "tv"
+    ) async throws -> [StreamingSource] {
         let detailData = try await movieBoxRequest(
             method: "GET",
             urlString: "\(apiBase)/wefeed-mobile-bff/subject-api/get?subjectId=\(subjectId)"
@@ -340,6 +370,12 @@ final class MovieBoxService {
 
         var seenVariants = Set<String>()
         variants = variants.filter { seenVariants.insert("\($0.id):\($0.language)").inserted }
+        let episodeCandidates = movieBoxEpisodeCandidates(
+            tmdbId: tmdbId,
+            mediaType: mediaType,
+            season: season,
+            episode: episode
+        )
         var output: [StreamingSource] = []
         let playbackHeaders: [String: String] = [
             "Origin": "https://moviebox.ph",
@@ -351,25 +387,56 @@ final class MovieBoxService {
         ]
 
         for variant in variants {
-            var components = URLComponents(string: "\(apiBase)/wefeed-mobile-bff/subject-api/play-info")!
-            components.queryItems = [
-                URLQueryItem(name: "subjectId", value: variant.id),
-                URLQueryItem(name: "se", value: String(season)),
-                URLQueryItem(name: "ep", value: String(episode)),
-                URLQueryItem(name: "streamSignType", value: "1"),
-                URLQueryItem(name: "supportCodecs[hevc]", value: "1"),
-                URLQueryItem(name: "supportCodecs[h264]", value: "1")
-            ]
-            guard let playURL = components.url?.absoluteString else { continue }
-
             do {
-                let playData = try await movieBoxRequest(
-                    method: "GET",
-                    urlString: playURL,
-                    customHeaders: playbackHeaders
-                )
-                guard let playJSON = try JSONSerialization.jsonObject(with: playData) as? [String: Any],
-                      let root = playJSON["data"] as? [String: Any] else { continue }
+                var root: [String: Any]?
+                var usedSeason = season
+                var usedEpisode = episode
+
+                for candidate in episodeCandidates {
+                    var components = URLComponents(string: "\(apiBase)/wefeed-mobile-bff/subject-api/play-info")!
+                    components.queryItems = [
+                        URLQueryItem(name: "subjectId", value: variant.id),
+                        URLQueryItem(name: "se", value: String(candidate.se)),
+                        URLQueryItem(name: "ep", value: String(candidate.ep)),
+                        URLQueryItem(name: "streamSignType", value: "1"),
+                        URLQueryItem(name: "supportCodecs[hevc]", value: "1"),
+                        URLQueryItem(name: "supportCodecs[h264]", value: "1")
+                    ]
+                    guard let playURL = components.url?.absoluteString else { continue }
+                    let playData = try await movieBoxRequest(
+                        method: "GET",
+                        urlString: playURL,
+                        customHeaders: playbackHeaders
+                    )
+                    guard let playJSON = try JSONSerialization.jsonObject(with: playData) as? [String: Any],
+                          let candidateRoot = playJSON["data"] as? [String: Any] else { continue }
+
+                    let streams = candidateRoot["streams"] as? [[String: Any]] ?? []
+                    let hasPlayable = streams.contains { stream in
+                        guard let rawURL = (stream["url"] ?? stream["playUrl"] ?? stream["resourceLink"] ?? stream["streamUrl"]) as? String else {
+                            return false
+                        }
+                        let signCookie = stream["signCookie"] as? String
+                        let finalURL = extractPolicyResource(signCookie) ?? rawURL
+                        if finalURL == rawURL,
+                           (rawURL.contains("b164fbfb4347792950bdfbfb563d39d9") || rawURL.contains("/other/2026/09/")) {
+                            return false
+                        }
+                        return true
+                    }
+                    if hasPlayable {
+                        root = candidateRoot
+                        usedSeason = candidate.se
+                        usedEpisode = candidate.ep
+                        if usedSeason != season || usedEpisode != episode {
+                            print("📦 [MovieBox Native] \(variant.language): TMDB S\(season)E\(episode) → MB S\(usedSeason)E\(usedEpisode)")
+                        }
+                        break
+                    }
+                    if root == nil { root = candidateRoot }
+                }
+
+                guard let root else { continue }
 
                 for stream in root["streams"] as? [[String: Any]] ?? [] {
                     guard let rawURL = (stream["url"] ?? stream["playUrl"] ?? stream["resourceLink"] ?? stream["streamUrl"]) as? String else { continue }
@@ -386,7 +453,7 @@ final class MovieBoxService {
                         headers[headerName] = signCookie
                     }
 
-                    let streamId = identifier(stream["id"]) ?? "\(variant.id)|\(season)|\(episode)"
+                    let streamId = identifier(stream["id"]) ?? "\(variant.id)|\(usedSeason)|\(usedEpisode)"
                     let tracks = await fetchSubtitles(
                         subjectId: variant.id,
                         streamId: streamId,

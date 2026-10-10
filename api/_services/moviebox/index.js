@@ -371,7 +371,37 @@ async function fetchSubtitles(subjectId, streamId, authHeaders, langLabel) {
   return Array.from(new Map(subtitles.map((subtitle) => [subtitle.url, subtitle])).values());
 }
 
-async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie') {
+/**
+ * MovieBox sometimes renumbers multi-part seasons differently from TMDB.
+ * Attack on Titan (1429): Original/English use S4/S5/S6 while French keeps a
+ * flat S4 with 30 episodes. Return candidates in preference order.
+ */
+function movieBoxEpisodeCandidates(tmdbId, mediaType, season, episode) {
+  if (mediaType !== 'tv') return [{ se: 0, ep: 0 }];
+  const se = Number(season) || 1;
+  const ep = Number(episode) || 1;
+  const candidates = [{ se, ep }];
+
+  if (Number(tmdbId) === 1429 && se === 4) {
+    if (ep >= 17 && ep <= 28) {
+      // Final Season Part 2 → MovieBox season 5
+      candidates.unshift({ se: 5, ep: ep - 16 });
+    } else if (ep >= 29 && ep <= 30) {
+      // Final Chapters → MovieBox season 6
+      candidates.unshift({ se: 6, ep: ep - 28 });
+    }
+  }
+
+  const seen = new Set();
+  return candidates.filter((item) => {
+    const key = `${item.se}:${item.ep}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie', tmdbId = null) {
   const subjectUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/get?subjectId=${subjectId}`;
   const detailRes = await movieBoxRequest('GET', subjectUrl);
   if (!detailRes?.data?.data) return [];
@@ -395,6 +425,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
   }
 
   const variants = Array.from(new Map(subjectIds.map((item) => [`${item.id}:${item.lang}`, item])).values());
+  const episodeCandidates = movieBoxEpisodeCandidates(tmdbId, mediaType, season, episode);
 
   const allStreams = [];
   const ua = `com.community.mbox.in/50020130 (Linux; U; Android 14; en_IN; MovieBox; Build/UD1A.230803.041; Cronet/145.0.7582.0)`;
@@ -409,19 +440,45 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
 
   for (const item of variants) {
     try {
-      const params = new URLSearchParams({
-        subjectId: item.id,
-        se: String(season),
-        ep: String(episode),
-        streamSignType: '1',
-        'supportCodecs[hevc]': '1',
-        'supportCodecs[h264]': '1',
-      });
-      const playUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/play-info?${params}`;
-      const playRes = await movieBoxRequest('GET', playUrl, null, playbackHeaders);
-      if (!playRes?.data?.data) continue;
+      let playData = null;
+      let usedSeason = season;
+      let usedEpisode = episode;
 
-      const playData = playRes.data.data;
+      for (const candidate of episodeCandidates) {
+        const params = new URLSearchParams({
+          subjectId: item.id,
+          se: String(candidate.se),
+          ep: String(candidate.ep),
+          streamSignType: '1',
+          'supportCodecs[hevc]': '1',
+          'supportCodecs[h264]': '1',
+        });
+        const playUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/play-info?${params}`;
+        const playRes = await movieBoxRequest('GET', playUrl, null, playbackHeaders);
+        const candidateData = playRes?.data?.data;
+        const candidateStreams = collectStreams(candidateData);
+        const hasPlayable = candidateStreams.some((stream) => {
+          const rawUrl = stream.url || stream.playUrl || stream.resourceLink || stream.streamUrl || '';
+          const finalUrl = extractPolicyResource(stream.signCookie) || rawUrl;
+          if (!finalUrl) return false;
+          if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) return false;
+          if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) return false;
+          return true;
+        });
+        if (hasPlayable) {
+          playData = candidateData;
+          usedSeason = candidate.se;
+          usedEpisode = candidate.ep;
+          if (candidate.se !== season || candidate.ep !== episode) {
+            console.log(`📦 [MovieBox] ${item.lang}: TMDB S${season}E${episode} → MB S${usedSeason}E${usedEpisode}`);
+          }
+          break;
+        }
+        if (!playData && candidateData) playData = candidateData;
+      }
+
+      if (!playData) continue;
+
       const streamsList = collectStreams(playData);
       let hasValidStream = false;
 
@@ -442,7 +499,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
               : 'VIDEO';
           const qualityValues = parseQualities(stream.resolutions || stream.resolution || stream.quality || '');
           const qualities = qualityValues.length > 0 ? qualityValues.map((value) => `${value}p`) : ['Auto'];
-          const streamId = stream.id || `${item.id}|${season}|${episode}`;
+          const streamId = stream.id || `${item.id}|${usedSeason}|${usedEpisode}`;
           const subtitles = await fetchSubtitles(item.id, streamId, playbackHeaders, item.label);
           const signHeaderKey = stream.signHeaderKey || stream.sign_header_key || 'Cookie';
 
@@ -475,7 +532,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
             if (!video.resourceLink) continue;
             const videoSeason = video.se ?? 0;
             const videoEpisode = video.ep ?? 0;
-            if ((season > 0 || episode > 0) && (videoSeason !== season || videoEpisode !== episode)) continue;
+            if ((usedSeason > 0 || usedEpisode > 0) && (videoSeason !== usedSeason || videoEpisode !== usedEpisode)) continue;
             allStreams.push({
               decoded_url: video.resourceLink,
               quality: video.resolution ? `${video.resolution}p` : 'Auto',
@@ -537,12 +594,17 @@ export async function getMovieBoxStreams(tmdbId, mediaType, seasonNum = 1, episo
   const e = mediaType === 'tv' ? episodeNum : 0;
   if (bestMatch) {
     console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId})`);
-    const mobileStreams = await getStreamLinks(bestMatch.subjectId, s, e, details.title, mediaType);
+    const mobileStreams = await getStreamLinks(bestMatch.subjectId, s, e, details.title, mediaType, tmdbId);
     if (mobileStreams.length > 0) return mobileStreams;
   } else {
     console.log(`📦 [MovieBox] Mobile API found no match for "${details.title}"`);
   }
 
   console.log(`📦 [MovieBox] Trying H5 relay fallback for "${details.title}"`);
-  return getH5FallbackStreams(details, mediaType, s, e);
+  // H5 fallback: try remapped coords first for split-season titles like AOT.
+  for (const candidate of movieBoxEpisodeCandidates(tmdbId, mediaType, s, e)) {
+    const streams = await getH5FallbackStreams(details, mediaType, candidate.se, candidate.ep);
+    if (streams.length) return streams;
+  }
+  return [];
 }
