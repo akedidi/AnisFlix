@@ -962,9 +962,16 @@ class DownloadManager: NSObject, ObservableObject {
         
         LocalStreamingServer.shared.start()
         
-        // DASH is handled directly by FFmpeg. The HLS manifest proxy rewrites
-        // M3U8 playlists and cannot represent an MPD document.
-        if !isDASH && Self.shouldUseLocalProxyForDownload(provider: provider) {
+        if isDASH,
+           Self.shouldUseLocalProxyForDownload(provider: provider),
+           let proxyUrl = LocalStreamingServer.shared.dashManifestURLForDownload(
+               targetURL: resolved.url,
+               headers: resolved.headers
+           ) {
+            ffmpegUrl = proxyUrl.absoluteString
+            ffmpegHeaders = nil
+            print("📦 [DownloadManager] FFmpeg via LocalServer DASH proxy")
+        } else if !isDASH && Self.shouldUseLocalProxyForDownload(provider: provider) {
             let providerLower = provider.lowercased()
             let useStreamProxy = providerLower == "moviebox" && Self.isDirectMP4(resolved.url)
             

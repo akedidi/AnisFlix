@@ -68,6 +68,13 @@ class HLSFFmpegDownloader {
 
             if isDASH || url.lowercased().contains(".mpd") {
                 print("📦 [HLSFFmpeg] DASH input detected; FFmpeg will mux video and audio into MP4")
+                self.estimatedDurationMs = await Self.probeDASHDurationMs(
+                    inputURL: url,
+                    headers: customHeaders
+                )
+                if self.estimatedDurationMs > 0 {
+                    print("⏱️ [HLSFFmpeg] DASH duration: \(self.estimatedDurationMs) ms")
+                }
                 self.runFFmpegCopy(
                     inputURL: url,
                     outputPath: outputPath,
@@ -80,6 +87,10 @@ class HLSFFmpegDownloader {
             }
 
             if usesLocalStream {
+                self.expectedBytes = await Self.probeContentLength(url: url)
+                if self.expectedBytes > 0 {
+                    print("📦 [HLSFFmpeg] Expected MP4 size: \(self.expectedBytes) bytes")
+                }
                 self.runFFmpegCopy(
                     inputURL: url,
                     outputPath: outputPath,
@@ -317,6 +328,7 @@ class HLSFFmpegDownloader {
         )
         print("📝 [VidzyFFmpeg] Command: ffmpeg \(command)")
         reportProgress(0.01, progress: progress)
+        startProgressPolling(outputPath: outputPath, progress: progress)
         currentSession = FFmpegKit.executeAsync(command,
             withCompleteCallback: { [weak self] session in
                 guard let self else { return }
@@ -342,6 +354,11 @@ class HLSFFmpegDownloader {
             },
             withStatisticsCallback: { [weak self] statistics in
                 guard let self, let stats = statistics else { return }
+                let timeMs = Int64(stats.getTime())
+                if self.estimatedDurationMs > 0, timeMs > 0 {
+                    self.reportProgress(min(Double(timeMs) / Double(self.estimatedDurationMs), 0.97), progress: progress)
+                    return
+                }
                 let size = stats.getSize()
                 if self.expectedBytes > 0, size > 0 {
                     self.reportProgress(min(Double(size) / Double(self.expectedBytes), 0.97), progress: progress)
@@ -351,6 +368,33 @@ class HLSFFmpegDownloader {
                 }
             }
         )
+    }
+
+    private func startProgressPolling(outputPath: String, progress: @escaping (Double) -> Void) {
+        progressPollTask?.cancel()
+        progressPollTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled && !self.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard !Task.isCancelled else { break }
+                guard let attributes = try? FileManager.default.attributesOfItem(atPath: outputPath),
+                      let fileSize = attributes[.size] as? NSNumber else { continue }
+                let bytes = fileSize.int64Value
+                guard bytes > 0 else { continue }
+
+                if self.expectedBytes > 0 {
+                    self.reportProgress(
+                        min(Double(bytes) / Double(self.expectedBytes), 0.97),
+                        progress: progress
+                    )
+                } else if self.estimatedDurationMs == 0 {
+                    // Keep the UI visibly alive even when the remote server does not expose
+                    // a content length and FFmpegKit does not emit statistics for stream copy.
+                    let mb = Double(bytes) / 1_000_000.0
+                    self.reportProgress(min(0.85, 0.01 + mb / (mb + 160.0)), progress: progress)
+                }
+            }
+        }
     }
 
     // MARK: - Progress probes
@@ -410,6 +454,61 @@ class HLSFFmpegDownloader {
     private static func probeHLSDurationMs(inputURL: String) async -> Int64 {
         guard let url = URL(string: inputURL) else { return 0 }
         return await fetchPlaylistDurationMs(url: url, depth: 0)
+    }
+
+    private static func probeDASHDurationMs(
+        inputURL: String,
+        headers: [String: String]?
+    ) async -> Int64 {
+        guard let url = URL(string: inputURL) else { return 0 }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 25
+        request.setValue("application/dash+xml,*/*", forHTTPHeaderField: "Accept")
+        headers?.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse,
+              (200..<400).contains(http.statusCode),
+              let manifest = String(data: data, encoding: .utf8) else { return 0 }
+
+        let patterns = [
+            #"mediaPresentationDuration\s*=\s*[\"']([^\"']+)[\"']"#,
+            #"<Period[^>]+duration\s*=\s*[\"']([^\"']+)[\"']"#,
+        ]
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(
+                    in: manifest,
+                    range: NSRange(manifest.startIndex..., in: manifest)
+                  ),
+                  let range = Range(match.range(at: 1), in: manifest) else { continue }
+            if let duration = parseISODurationMs(String(manifest[range])) {
+                return duration
+            }
+        }
+        return 0
+    }
+
+    private static func parseISODurationMs(_ value: String) -> Int64? {
+        guard value.uppercased().hasPrefix("P") else { return nil }
+        let pattern = #"^P(?:(\d+(?:\.\d+)?)D)?(?:T(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?)?$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+              let match = regex.firstMatch(
+                in: value,
+                range: NSRange(value.startIndex..., in: value)
+              ) else { return nil }
+
+        func component(_ index: Int) -> Double {
+            guard match.range(at: index).location != NSNotFound,
+                  let range = Range(match.range(at: index), in: value) else { return 0 }
+            return Double(value[range]) ?? 0
+        }
+
+        let seconds = component(1) * 86_400
+            + component(2) * 3_600
+            + component(3) * 60
+            + component(4)
+        guard seconds > 0 else { return nil }
+        return Int64(seconds * 1_000)
     }
 
     /// Same as the test script: FFmpeg must get a media playlist, not a Vidzy/HiAnime master
@@ -579,21 +678,38 @@ class HLSFFmpegDownloader {
     private static func ffmpegHeaderBlock(provider: String, url: String, customHeaders: [String: String]?) -> String {
         if let customHeaders, !customHeaders.isEmpty {
             var lines: [String] = []
-            var referer = customHeaders["Referer"]
+            func header(_ name: String) -> String? {
+                customHeaders.first { $0.key.caseInsensitiveCompare(name) == .orderedSame }?.value
+            }
+
+            var referer = header("Referer")
             if provider.lowercased() == "vidmoly",
                let r = referer, r.contains("embed") {
                 referer = "https://vidmoly.net/"
             }
             if let referer { lines.append("Referer: \(referer)") }
-            var origin = customHeaders["Origin"]
+            var origin = header("Origin")
             if provider.lowercased() == "vidmoly", referer == "https://vidmoly.net/" {
                 origin = "https://vidmoly.net"
             }
             if let origin { lines.append("Origin: \(origin)") }
-            let ua = customHeaders["User-Agent"]
+            let ua = header("User-Agent")
                 ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
             lines.append("User-Agent: \(ua)")
-            lines.append("Accept: */*")
+
+            let alreadyHandled = Set(["referer", "origin", "user-agent"])
+            for (key, value) in customHeaders.sorted(by: { $0.key < $1.key }) {
+                let normalized = key.lowercased()
+                guard !alreadyHandled.contains(normalized),
+                      normalized != "host",
+                      normalized != "content-length",
+                      !key.contains("\r"), !key.contains("\n"),
+                      !value.contains("\r"), !value.contains("\n") else { continue }
+                lines.append("\(key): \(value)")
+            }
+            if header("Accept") == nil {
+                lines.append("Accept: */*")
+            }
             return lines.map { "\($0)\\r\\n" }.joined()
         }
 

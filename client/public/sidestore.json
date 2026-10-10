@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.98",
-          "buildVersion": "98",
+          "version": "1.0.99",
+          "buildVersion": "99",
           "date": "2026-10-10",
-          "size": 31058777,
+          "size": 31068272,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Masque VidLink lorsque MovieBox fournit des flux valides et conserve VidLink comme source de secours."
+          "localizedDescription": "Corrige le téléchargement MovieBox sur iOS : progression fiable et relais local des fragments DASH signés."
         }
       ]
     }

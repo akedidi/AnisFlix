@@ -217,6 +217,47 @@ class LocalStreamingServer {
         print("📡 [LocalServer] Download manifest proxy: \(url.absoluteString.prefix(120))...")
         return url
     }
+
+    /// Builds a loopback DASH manifest URL. The local server fetches both the
+    /// MPD and every relative fragment with the signed MovieBox headers.
+    func dashManifestURLForDownload(targetURL: String, headers: [String: String]?) -> URL? {
+        guard isRunning else { return nil }
+
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = "127.0.0.1"
+        let port = Int(webServer.port)
+        components.port = port > 0 ? port : 8080
+        components.path = "/dash-proxy"
+
+        var queryItems: [URLQueryItem] = []
+        if let data = targetURL.data(using: .utf8) {
+            queryItems.append(URLQueryItem(name: "url64", value: data.base64EncodedString()))
+        } else {
+            queryItems.append(URLQueryItem(name: "url", value: targetURL))
+        }
+
+        func header(_ name: String) -> String? {
+            headers?.first { $0.key.caseInsensitiveCompare(name) == .orderedSame }?.value
+        }
+        if let cookie = header("Cookie") {
+            queryItems.append(URLQueryItem(name: "cookie", value: cookie))
+        }
+        if let referer = header("Referer") {
+            queryItems.append(URLQueryItem(name: "referer", value: referer))
+        }
+        if let origin = header("Origin") {
+            queryItems.append(URLQueryItem(name: "origin", value: origin))
+        }
+        if let userAgent = header("User-Agent") {
+            queryItems.append(URLQueryItem(name: "user_agent", value: userAgent))
+        }
+        components.queryItems = queryItems
+
+        guard let url = components.url else { return nil }
+        print("📦 [LocalServer] Download DASH proxy: \(url.absoluteString.prefix(120))...")
+        return url
+    }
     
     /// Builds a `/stream` URL for FFmpeg to download a single MP4 through this server (byte-range friendly).
     func streamURLForDownload(targetURL: String, headers: [String: String]?) -> URL? {
@@ -871,7 +912,9 @@ class LocalStreamingServer {
             // We need to rewrite these relative URLs to absolute /stream URLs
             
             let baseUrl = targetUrl.deletingLastPathComponent().absoluteString
-            let serverHost = self.webServer.serverURL?.host ?? "127.0.0.1"
+            // FFmpeg and VLC run in this app, so keep fragment traffic on the
+            // device even when no Wi-Fi interface is available.
+            let serverHost = "127.0.0.1"
             let serverPort = Int(self.webServer.port)
             
             // Build query params for /stream
