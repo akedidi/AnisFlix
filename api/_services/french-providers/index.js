@@ -240,12 +240,18 @@ async function tmdbMetadata(tmdbId, mediaType, season) {
 }
 
 function makeSource(provider, resolved, language, fallbackQuality = 'HD') {
+  const mediaUrl = unwrapWorkerMediaUrl(resolved.url);
+  const type = /\.m3u8(?:$|[?#])/i.test(mediaUrl) || /\/hls2\//i.test(mediaUrl)
+    ? 'm3u8'
+    : /\.(?:mp4|mkv)(?:$|[?#])/i.test(mediaUrl)
+      ? 'mp4'
+      : 'embed';
   return {
     provider,
     url: resolved.url,
-    quality: resolved.quality || fallbackQuality,
+    quality: resolved.quality || fallbackQuality || qualityFrom(mediaUrl) || 'HD',
     language,
-    type: /\.m3u8(?:$|[?#])/i.test(resolved.url) ? 'm3u8' : /\.(?:mp4|mkv)(?:$|[?#])/i.test(resolved.url) ? 'mp4' : 'embed',
+    type,
     headers: resolved.headers || {},
   };
 }
@@ -272,41 +278,120 @@ async function resolveGenericPage(page, referer = page, hostBase) {
     const match = decoded.match(pattern);
     if (!match) continue;
     const url = absoluteUrl(match[1], hostBase || page);
-    // Ignore the demo asset exposed by some dead embed players.
-    if (/test-videos\.co\.uk|big_buck_bunny/i.test(url)) continue;
+    if (isDemoMediaUrl(url) || !isDirectMediaUrl(url)) continue;
     return { url, quality: qualityFrom(url), headers: playbackHeaders(rootUrl(page)) };
   }
   return null;
 }
 
+function isDemoMediaUrl(url) {
+  return /test-videos\.co\.uk|big_buck_bunny|sample-videos|example\.com\/.*\.(?:mp4|m3u8)/i.test(url);
+}
+
+function isDirectMediaUrl(url) {
+  if (!url || isDemoMediaUrl(url)) return false;
+  return /\.(?:m3u8|mp4|mkv)(?:$|[?#])/i.test(url) || /\/hls2\//i.test(url);
+}
+
+function isIpBoundCdn(url) {
+  return /(?:vmget|vmpx)\.online/i.test(url);
+}
+
+function unwrapWorkerMediaUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.origin === new URL(WORKER_BASE).origin && parsed.searchParams.get('path') === 'mob') {
+      return parsed.searchParams.get('url') || url;
+    }
+  } catch { /* keep original */ }
+  return url;
+}
+
+function isPlayableAnimeSamaUrl(url) {
+  return isDirectMediaUrl(unwrapWorkerMediaUrl(url));
+}
+
+/** Proxy IP-bound HLS through the CF worker that minted the token. */
+function wrapPlaybackUrl(url, referer) {
+  if (!isIpBoundCdn(url)) return url;
+  const proxy = new URL(WORKER_BASE);
+  proxy.searchParams.set('path', 'mob');
+  proxy.searchParams.set('url', url);
+  proxy.searchParams.set('method', 'GET');
+  if (referer) proxy.searchParams.set('referer', referer);
+  return proxy.toString();
+}
+
 async function resolveEmbed(rawUrl, referer) {
   const url = decodeText(rawUrl).trim();
   if (!/^https?:/i.test(url)) return null;
-  if (/\.(?:m3u8|mp4|mkv)(?:$|[?#])/i.test(url)) return { url, quality: qualityFrom(url), headers: playbackHeaders(referer) };
+  if (isDirectMediaUrl(url)) {
+    return { url: wrapPlaybackUrl(url, referer), quality: qualityFrom(url), headers: playbackHeaders(referer) };
+  }
   const lower = url.toLowerCase();
   try {
-    if (lower.includes('vidmoly.') || lower.includes('voembed.')) {
-      const result = await vidmolyExtractor.extract(url);
-      if (result?.success && result.m3u8Url) return { url: result.m3u8Url, quality: qualityFrom(result.m3u8Url), headers: playbackHeaders(rootUrl(url)) };
+    // Gowaru anime-sama.js: ansembeb is resolved like Vidmoly (direct file/m3u8).
+    if (lower.includes('vidmoly.') || lower.includes('voembed.') || lower.includes('ansembed.')) {
+      // Prefer worker-backed page fetch (Vercel cannot always open these hosts).
+      const fromPage = await resolveGenericPage(url, rootUrl(url) || referer);
+      if (fromPage?.url && isDirectMediaUrl(fromPage.url)) {
+        return {
+          ...fromPage,
+          url: wrapPlaybackUrl(fromPage.url, fromPage.headers?.Referer || rootUrl(url)),
+        };
+      }
+      try {
+        const result = await vidmolyExtractor.extract(url);
+        if (result?.success && result.m3u8Url && isDirectMediaUrl(result.m3u8Url)) {
+          return {
+            url: wrapPlaybackUrl(result.m3u8Url, rootUrl(url)),
+            quality: qualityFrom(result.m3u8Url),
+            headers: playbackHeaders(rootUrl(url)),
+          };
+        }
+      } catch { /* page extract above is the primary path */ }
+      return null;
     }
     if (lower.includes('vidzy.') || lower.includes('fsvid.')) {
       const result = await vidzyExtractor.extract(url);
       if (result?.success && result.m3u8Url) return { url: result.m3u8Url, quality: qualityFrom(result.m3u8Url), headers: result.headers || playbackHeaders(rootUrl(url)) };
     }
-    if (lower.includes('voe.') || lower.includes('vocancellario') || lower.includes('primevideos.')) {
+    // Gowaru maps several rotating Voe domains (teresa*, jeremy*, etc.).
+    if (
+      lower.includes('voe.')
+      || lower.includes('vocancellario')
+      || lower.includes('primevideos.')
+      || lower.includes('teresapoliticallearn')
+      || lower.includes('jeremyparticipant')
+      || lower.includes('weneverbeenfree')
+      || lower.includes('maryspecialwatch')
+      || lower.includes('charlestoughrace')
+      || lower.includes('sandratableother')
+    ) {
       const result = await extract_voe(url, referer);
-      if (typeof result === 'string') return { url: result, quality: qualityFrom(result), headers: playbackHeaders(rootUrl(url)) };
+      if (typeof result === 'string' && isDirectMediaUrl(result)) {
+        return { url: result, quality: qualityFrom(result), headers: playbackHeaders(rootUrl(url)) };
+      }
     }
     if (lower.includes('streamwish') || lower.includes('wishfast') || lower.includes('filelions')) {
       const result = await extract_streamwish(url, referer);
-      if (typeof result === 'string') return { url: result, quality: qualityFrom(result), headers: playbackHeaders(rootUrl(url)) };
+      if (typeof result === 'string' && isDirectMediaUrl(result)) {
+        return { url: result, quality: qualityFrom(result), headers: playbackHeaders(rootUrl(url)) };
+      }
     }
     if (lower.includes('sibnet.ru')) return await resolveGenericPage(url, 'https://video.sibnet.ru/', 'https://video.sibnet.ru');
     if (lower.includes('sendvid.')) {
       const normalized = url.includes('/embed/') ? url : url.replace(/sendvid\.com\/([a-z0-9]+)/i, 'sendvid.com/embed/$1');
       return await resolveGenericPage(normalized, 'https://sendvid.com/');
     }
-    return await resolveGenericPage(url, referer);
+    const generic = await resolveGenericPage(url, referer);
+    if (generic?.url && isDirectMediaUrl(generic.url)) {
+      return {
+        ...generic,
+        url: wrapPlaybackUrl(generic.url, generic.headers?.Referer || referer),
+      };
+    }
+    return null;
   } catch (error) {
     console.warn(`[FrenchProviders] Could not resolve ${url}: ${error.message}`);
     return null;
@@ -371,17 +456,29 @@ async function getAnimeSamaStreams(metadata, mediaType, season, episode) {
         let script;
         try { script = await fetchText(jsUrl); } catch { continue; }
         const index = mediaType === 'movie' ? 0 : targetEpisode - 1;
-        for (const row of parseJavaScriptArrays(script).slice(0, 4)) {
-          if (!row[index]) continue;
-          const resolved = await resolveEmbed(row[index], `${ANIME_SAMA_BASE}/`);
-          if (resolved) {
-            // These CDN tokens are tied to the IP that opened the embed page.
-            // Let the viewer open the embed so the token is minted for them.
-            const browserResolved = /(?:vmget|vmpx)\.online/i.test(resolved.url)
-              ? { url: row[index], headers: playbackHeaders(`${ANIME_SAMA_BASE}/`), quality: resolved.quality }
-              : resolved;
-            output.push(makeSource('animesama', browserResolved, languagePath === 'vf' ? 'VF' : 'VOSTFR'));
-          }
+        // Prefer hosts that extract cleanly (Gowaru-style): never return the
+        // Anime-Sama/ansembed HTML player page — only direct m3u8/mp4.
+        const embedUrls = parseJavaScriptArrays(script)
+          .slice(0, 6)
+          .map(row => row[index])
+          .filter(Boolean);
+        // Prefer hosts that usually yield real CDN links; deprioritize dead/demo
+        // Voe mirrors and the Anime-Sama HTML player host.
+        const embedRank = (value) => {
+          const lower = String(value).toLowerCase();
+          if (lower.includes('minochinos') || lower.includes('smoothpre') || lower.includes('sendvid')) return 0;
+          if (lower.includes('sibnet') || lower.includes('vidmoly') || lower.includes('vidzy')) return 1;
+          if (lower.includes('ansembed')) return 3;
+          if (lower.includes('teresa') || lower.includes('jeremy') || lower.includes('voe')) return 4;
+          return 2;
+        };
+        embedUrls.sort((a, b) => embedRank(a) - embedRank(b));
+        for (const embedUrl of embedUrls) {
+          const resolved = await resolveEmbed(embedUrl, `${ANIME_SAMA_BASE}/`);
+          if (!resolved?.url || !isPlayableAnimeSamaUrl(resolved.url)) continue;
+          const source = makeSource('animesama', resolved, languagePath === 'vf' ? 'VF' : 'VOSTFR');
+          if (source.type === 'embed') continue;
+          output.push(source);
           if (output.length >= 4) return dedupe(output);
         }
         if (output.some(source => source.language === (languagePath === 'vf' ? 'VF' : 'VOSTFR'))) break;

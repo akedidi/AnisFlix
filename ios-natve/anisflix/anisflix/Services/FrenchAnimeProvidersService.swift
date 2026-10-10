@@ -607,7 +607,12 @@ final class FrenchAnimeProvidersService {
             return Resolved(url: value, headers: playbackHeaders(referer: referer), quality: qualityFrom(value))
         }
 
-        if lower.contains("vidmoly.") || lower.contains("voembed.") {
+        // Gowaru anime-sama.js resolves ansembeb with the Vidmoly extractor.
+        // Prefer on-device page extract first so CDN tokens match the iPhone IP.
+        if lower.contains("vidmoly.") || lower.contains("voembed.") || lower.contains("ansembed.") {
+            if let direct = await resolveGenericPage(value, referer: rootURL(value) ?? value) {
+                return direct
+            }
             return await resolveViaBackend(type: "vidmoly", embed: value, referer: value)
         }
         if lower.contains("vidzy.") || lower.contains("fsvid.") {
@@ -684,9 +689,15 @@ final class FrenchAnimeProvidersService {
             // even when the real player is unavailable. Never expose it as an
             // episode source.
             let lowerStream = stream.lowercased()
-            if lowerStream.contains("test-videos.co.uk") || lowerStream.contains("big_buck_bunny") {
+            if lowerStream.contains("test-videos.co.uk")
+                || lowerStream.contains("big_buck_bunny")
+                || lowerStream.contains("sample-videos") {
                 continue
             }
+            guard lowerStream.contains(".m3u8")
+                || lowerStream.contains(".mp4")
+                || lowerStream.contains(".mkv")
+                || lowerStream.contains("/hls2/") else { continue }
             return Resolved(url: stream, headers: playbackHeaders(referer: rootURL(page) ?? referer), quality: qualityFrom(stream))
         }
         return nil
