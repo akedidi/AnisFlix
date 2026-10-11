@@ -547,18 +547,24 @@ struct SeriesDetailView: View {
                     let extracted = try await StreamingService.shared.extractDarkibox(url: source.url)
                     finalURL = URL(string: extracted)
                     finalHeaders = StreamingService.darkiboxPlaybackHeaders(embedUrl: source.url)
-                } else if source.provider == "luluvid" {
-                    print("🔍 [SeriesDetailView] Extracting Luluvid...")
-                    let (url, cookie) = try await StreamingService.shared.extractLuluvid(url: source.url)
-                    finalURL = URL(string: url)
+                } else if source.provider == "luluvid" || StreamingService.isLuluvidCdnUrl(source.url) {
+                    print("🔍 [SeriesDetailView] Extracting Luluvid (direct)...")
+                    let mediaUrl: String
+                    let cookie: String?
+                    let raw = StreamingService.unwrapProxiedMediaUrl(source.url)
+                    if raw.lowercased().contains(".m3u8") || raw.lowercased().contains("/hls2/") {
+                        mediaUrl = raw
+                        cookie = nil
+                    } else {
+                        let extracted = try await StreamingService.shared.extractLuluvid(url: raw)
+                        mediaUrl = extracted.0
+                        cookie = extracted.1
+                    }
+                    finalURL = URL(string: mediaUrl)
                     finalHeaders = StreamingService.luluvidPlaybackHeaders(embedUrl: source.url, cookie: cookie)
-                } else if source.provider == "primewire" || source.provider == "2embed" || source.provider == "vixsrc" || source.provider == "afterdark" {
-                    // UniversalVO and Vixsrc sources are already proxied, use directly
+                } else if source.provider == "primewire" || source.provider == "2embed" || source.provider == "afterdark" {
+                    // Already proxied / direct-playable sources
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
-                    finalURL = URL(string: source.url)
-                } else if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
-                    // 4KHDHub sources are MKV - route through GlobalPlayerManager (uses VLC)
-                    print("🎬 [SeriesDetailView] MKV source detected, routing to GlobalPlayerManager with VLC")
                     finalURL = URL(string: source.url)
                 } else if source.provider.lowercased() == "moviebox" {
                     // MovieBox: dual-mode playback
@@ -895,12 +901,9 @@ struct SeriesDetailView: View {
                                     if provider == "fsvid" { return -1 } // FSVid: highest priority (VF/VOSTFR)
                                     if provider == "vidzy" { return 0 }
                                     if provider == "moviebox" { return 1 }
-                                    if provider == "vixsrc" { return 2 }
-                                    if provider == "megacdn" || provider == "cinepro" { return 3 }
-                                    if provider == "vidlink" { return -2 } // Vidlink: absolute highest priority
+                                    if provider == "megacdn" { return 3 }
                                     if provider == "yflix" { return -1 } // YFlix: high priority
                                     if ["animesama", "frenchanime", "frenchstream", "streamzo", "animepahe"].contains(provider) { return 0 }
-                                    if provider == "4khdhub" || provider == "fourkhdhub" { return 10 }
                                     if provider.contains("luluvid") { return 99 }
                                     return 5
                                 }
@@ -936,9 +939,8 @@ struct SeriesDetailView: View {
                                                 .font(.title3)
                                             
                                             let displayText = getSourceDisplayText(source: source, filteredSources: filterSources(episodeSources, language: theme.preferredSourceLanguage))
-                                            let is4kHub = source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub"
                                             
-                                            Text(is4kHub ? "\(displayText) (VLC Player)" : displayText)
+                                            Text(displayText)
                                                 .font(.subheadline) // Reduced from headline
                                                 .fontWeight(.medium)
                                                 .foregroundColor(theme.primaryText)
@@ -954,21 +956,6 @@ struct SeriesDetailView: View {
                                         .padding(12)
                                         .background(theme.cardBackground)
                                         .cornerRadius(8)
-                                    }
-                                    
-                                    // Copy Button for 4khdhub
-                                    if source.provider.lowercased() == "4khdhub" || source.provider.lowercased() == "fourkhdhub" {
-                                        Button(action: {
-                                            UIPasteboard.general.string = source.url
-                                            let generator = UINotificationFeedbackGenerator()
-                                            generator.notificationOccurred(.success)
-                                        }) {
-                                            Image(systemName: "doc.on.doc")
-                                                .foregroundColor(theme.secondaryText)
-                                                .padding(12)
-                                                .background(theme.cardBackground)
-                                                .cornerRadius(8)
-                                        }
                                     }
                                     
                                     DownloadButton(

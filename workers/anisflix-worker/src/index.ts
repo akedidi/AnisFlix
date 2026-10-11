@@ -8,6 +8,8 @@
  * Bind resources to your worker in `wrangler.jsonc` or `wrangler.toml`.
  */
 
+import { connect } from 'cloudflare:sockets';
+
 export interface Env {
 }
 
@@ -16,6 +18,15 @@ const CORS_HEADERS = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': '*',
 };
+
+const MOVIEBOX_API_HOSTS = new Set([
+    'apig.inmoviebox.com',
+    'api6.aoneroom.com',
+    'api5.aoneroom.com',
+    'api4.aoneroom.com',
+    'api4sg.aoneroom.com',
+    'api3.aoneroom.com',
+]);
 
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -162,6 +173,142 @@ async function handleAfterDarkRequest(request: Request): Promise<Response> {
  * Handle generic proxying for MovieBox (Mob) API
  * Supports POST/GET with custom headers and body
  */
+function findBytes(haystack: Uint8Array, needle: number[], start = 0): number {
+    outer: for (let i = start; i <= haystack.length - needle.length; i++) {
+        for (let j = 0; j < needle.length; j++) {
+            if (haystack[i + j] !== needle[j]) continue outer;
+        }
+        return i;
+    }
+    return -1;
+}
+
+function decodeChunkedBody(input: Uint8Array): Uint8Array {
+    const chunks: Uint8Array[] = [];
+    let totalLength = 0;
+    let offset = 0;
+    const decoder = new TextDecoder();
+
+    while (offset < input.length) {
+        const lineEnd = findBytes(input, [13, 10], offset);
+        if (lineEnd < 0) break;
+        const sizeText = decoder.decode(input.slice(offset, lineEnd)).split(';')[0].trim();
+        const size = Number.parseInt(sizeText, 16);
+        if (!Number.isFinite(size) || size <= 0) break;
+
+        const chunkStart = lineEnd + 2;
+        const chunkEnd = chunkStart + size;
+        if (chunkEnd > input.length) break;
+        const chunk = input.slice(chunkStart, chunkEnd);
+        chunks.push(chunk);
+        totalLength += chunk.length;
+        offset = chunkEnd + 2;
+    }
+
+    const output = new Uint8Array(totalLength);
+    let writeOffset = 0;
+    for (const chunk of chunks) {
+        output.set(chunk, writeOffset);
+        writeOffset += chunk.length;
+    }
+    return output;
+}
+
+/**
+ * MovieBox rejects the normal Workers HTTP egress with code 440. TCP socket
+ * egress uses a separate Cloudflare address pool, so retry the same signed
+ * request over a small HTTP/1.1 TLS client. This is deliberately restricted to
+ * the known MovieBox API hosts and is never used for arbitrary proxy targets.
+ */
+async function fetchMovieBoxViaSocket(
+    targetUrl: string,
+    method: string,
+    headers: Record<string, string>,
+    body: any,
+): Promise<Response> {
+    const url = new URL(targetUrl);
+    if (url.protocol !== 'https:' || !MOVIEBOX_API_HOSTS.has(url.hostname.toLowerCase())) {
+        throw new Error('Socket fallback is restricted to MovieBox API hosts');
+    }
+
+    const encodedBody = body
+        ? new TextEncoder().encode(typeof body === 'string' ? body : JSON.stringify(body))
+        : new Uint8Array();
+    const requestHeaders = new Headers(headers);
+    requestHeaders.set('Host', url.host);
+    requestHeaders.set('Connection', 'close');
+    requestHeaders.set('Accept-Encoding', 'identity');
+    if (encodedBody.length > 0) requestHeaders.set('Content-Length', String(encodedBody.length));
+    else requestHeaders.delete('Content-Length');
+
+    let head = `${method.toUpperCase()} ${url.pathname}${url.search} HTTP/1.1\r\n`;
+    requestHeaders.forEach((value, key) => {
+        head += `${key}: ${value}\r\n`;
+    });
+    head += '\r\n';
+
+    const encodedHead = new TextEncoder().encode(head);
+    const requestBytes = new Uint8Array(encodedHead.length + encodedBody.length);
+    requestBytes.set(encodedHead);
+    requestBytes.set(encodedBody, encodedHead.length);
+
+    const socket = connect(
+        { hostname: url.hostname, port: 443 },
+        { secureTransport: 'on', allowHalfOpen: true },
+    );
+    await socket.opened;
+    const writer = socket.writable.getWriter();
+    await writer.write(requestBytes);
+    writer.releaseLock();
+
+    const reader = socket.readable.getReader();
+    const responseChunks: Uint8Array[] = [];
+    let responseLength = 0;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        responseChunks.push(value);
+        responseLength += value.length;
+    }
+    await socket.close();
+
+    const raw = new Uint8Array(responseLength);
+    let rawOffset = 0;
+    for (const chunk of responseChunks) {
+        raw.set(chunk, rawOffset);
+        rawOffset += chunk.length;
+    }
+
+    const headerEnd = findBytes(raw, [13, 10, 13, 10]);
+    if (headerEnd < 0) throw new Error('Invalid HTTP response from MovieBox');
+
+    const headerText = new TextDecoder().decode(raw.slice(0, headerEnd));
+    const headerLines = headerText.split('\r\n');
+    const statusMatch = headerLines.shift()?.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/i);
+    if (!statusMatch) throw new Error('Invalid MovieBox HTTP status line');
+
+    const responseHeaders = new Headers();
+    for (const line of headerLines) {
+        const separator = line.indexOf(':');
+        if (separator <= 0) continue;
+        responseHeaders.append(line.slice(0, separator).trim(), line.slice(separator + 1).trim());
+    }
+
+    let responseBody = raw.slice(headerEnd + 4);
+    if (responseHeaders.get('transfer-encoding')?.toLowerCase().includes('chunked')) {
+        responseBody = decodeChunkedBody(responseBody);
+        responseHeaders.delete('transfer-encoding');
+    }
+    responseHeaders.delete('content-length');
+    responseHeaders.delete('connection');
+
+    return new Response(responseBody, {
+        status: Number(statusMatch[1]),
+        statusText: statusMatch[2],
+        headers: responseHeaders,
+    });
+}
+
 async function handleMobRequest(request: Request): Promise<Response> {
     const urlParams = new URL(request.url).searchParams;
     const targetUrl = urlParams.get('url');
@@ -205,16 +352,11 @@ async function handleMobRequest(request: Request): Promise<Response> {
             body: requestBody ? (typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)) : null
         });
 
-        // If Cloudflare IP is blocked (403), try via CorsProxy as fallback
-        if (response.status === 403) {
-            console.log(`[Worker] Direct fetch blocked (403), trying CorsProxy fallback...`);
-            const proxyRelayUrl = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-
-            response = await fetch(proxyRelayUrl, {
-                method: targetMethod,
-                headers: finalHeaders, // Keep the spoofed headers
-                body: requestBody ? (typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)) : null
-            });
+        // MovieBox blocks normal Cloudflare HTTP egress with 403/440. Retry
+        // through Workers TCP socket egress, which uses a separate IP pool.
+        if (response.status === 403 || response.status === 440) {
+            console.log(`[Worker] Direct fetch blocked (${response.status}), trying socket fallback...`);
+            response = await fetchMovieBoxViaSocket(targetUrl, targetMethod, finalHeaders, requestBody);
         }
 
         const data = await response.arrayBuffer();
@@ -383,6 +525,31 @@ function buildMovieBoxCdnWorkerUrl(
     return `${workerOrigin}/?${qs.toString()}`;
 }
 
+function buildMovieBoxDashTemplateWorkerUrl(
+    workerOrigin: string,
+    absoluteUrl: string,
+    referer: string,
+    cookie: string,
+    userAgent: string
+): string {
+    const dashTokens: string[] = [];
+    const protectedUrl = absoluteUrl.replace(/\$(?:RepresentationID|Bandwidth|Time|Number(?:%0\d+d)?)\$/g, (token) => {
+        const placeholder = `__ANISFLIX_DASH_${dashTokens.length}__`;
+        dashTokens.push(token);
+        return placeholder;
+    });
+
+    let encodedUrl = encodeURIComponent(protectedUrl);
+    dashTokens.forEach((token, index) => {
+        encodedUrl = encodedUrl.replace(`__ANISFLIX_DASH_${index}__`, token);
+    });
+
+    let result = `${workerOrigin}/?path=moviebox-cdn&url=${encodedUrl}&referer=${encodeURIComponent(referer)}`;
+    if (cookie) result += `&cookie=${encodeURIComponent(cookie)}`;
+    if (userAgent) result += `&ua=${encodeURIComponent(userAgent)}`;
+    return result;
+}
+
 /**
  * Stream MovieBox CDN (MP4/HLS) with Referer + CloudFront signed cookies.
  */
@@ -450,12 +617,33 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
         if (isMpd && response.ok) {
             const text = await response.text();
             const workerOrigin = new URL(request.url).origin;
-            const rewritten = text.replace(
+            let rewritten = text.replace(
                 /(["'])(\/api\/dash\/segment\/[^"']+)\1/g,
                 (_match, quote, assetPath) => {
                     const proxyUrl = buildHmDashSegmentWorkerUrl(workerOrigin, assetPath)
                         .replace(/&/g, '&amp;');
                     return `${quote}${proxyUrl}${quote}`;
+                },
+            );
+            rewritten = rewritten.replace(
+                /\b(initialization|media|sourceURL)=(["'])([^"']+)\2/g,
+                (match, attribute, quote, assetValue) => {
+                    if (assetValue.includes('path=moviebox-cdn')) return match;
+                    try {
+                        const decodedAsset = assetValue.replace(/&amp;/g, '&');
+                        const absolute = new URL(decodedAsset, targetUrl).href;
+                        if (!isAllowedMovieBoxCdnUrl(absolute)) return match;
+                        const proxyUrl = buildMovieBoxDashTemplateWorkerUrl(
+                            workerOrigin,
+                            absolute,
+                            referer,
+                            cookie,
+                            userAgent,
+                        ).replace(/&/g, '&amp;');
+                        return `${attribute}=${quote}${proxyUrl}${quote}`;
+                    } catch {
+                        return match;
+                    }
                 },
             );
             outHeaders.set('Content-Type', 'application/dash+xml');

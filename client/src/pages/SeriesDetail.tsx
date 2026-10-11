@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { IonPage } from '@ionic/react';
 import NativeHeader from "@/components/NativeHeader";
 import { useRouteParams } from "@/hooks/useRouteParams";
@@ -20,11 +19,10 @@ import { useSeriesDetails, useSeriesVideos, useSeasonDetails, useSimilarSeries, 
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 import { useMovixAnime, extractVidMolyFromAnime } from "@/hooks/useMovixAnime";
-import { useMovixTmdbSeriesSources } from "@/hooks/useMovixTmdbSeriesSources";
 
 import { getImageUrl, tmdb } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { getSeriesStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8 } from "@/lib/movix";
+import { getSeriesStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8, isLuluvidCdnUrl, wrapLuluvidPlaybackUrl } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -170,71 +168,8 @@ export default function SeriesDetail() {
 
 
 
-  // Fetch AnimeKai sources for Animation genre
-  // Use relativeEpisode in queryKey to trigger refetch when it changes
-  const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
-    queryKey: ['animekai-sources', seriesId, selectedSeasonNumber, relativeEpisode],
-    queryFn: async () => {
-      // Check if this is an animation (genre ID: 16)
-      const isAnimation = series?.genres?.some((g: any) => g.id === 16);
-
-      if (!isAnimation || !selectedEpisode) {
-        return [];
-      }
-
-      // Get English title from TMDB (original_name is often Japanese for anime)
-      try {
-        const tmdbResponse = await fetch(
-          `https://api.themoviedb.org/3/tv/${seriesId}?api_key=68e094699525b18a70bab2f86b1fa706&language=en-US`
-        );
-        const tmdbData = await tmdbResponse.json();
-        const englishTitle = tmdbData.name || series.original_name;
-
-        console.log(`🟣 [AnimeKai] Fetching: ${englishTitle} S${selectedSeasonNumber}E${selectedEpisode}`);
-
-        const params = new URLSearchParams({
-          path: 'animekai',
-          title: englishTitle,
-          season: selectedSeasonNumber.toString(),
-          episode: relativeEpisode.toString(), // Send relative episode number (e.g. 1 instead of 422)
-          tmdbId: seriesId.toString(),
-        });
-
-        const response = await fetch(`/api/movix-proxy?${params}`);
-        const data = await response.json();
-
-        if (!data.success || !data.results) {
-          return [];
-        }
-
-        console.log(`🟣 [AnimeKai] Found ${data.results.length} sources`);
-        console.log(`🟣 [AnimeKai] First source tracks:`, data.results[0]?.tracks);
-        return data.results;
-      } catch (error) {
-        console.error('[AnimeKai] Error:', error);
-        return [];
-      }
-    },
-    enabled: !!series && !!selectedEpisode,
-    staleTime: 5 * 60 * 1000,
-  });
-
   // Fetch Movix Anime sources
   const { data: movixAnime, isLoading: isLoadingMovixAnime, error: movixAnimeError } = useMovixAnime(series?.name, seriesId);
-
-  // Fetch Movix TMDB sources (Vidzy/VidMoly) - only when episode is selected
-  const { data: movixTmdbSeries, isLoading: isLoadingMovixTmdbSeries } = useMovixTmdbSeriesSources(
-    seriesId,
-    selectedSeasonNumber,
-    selectedEpisode ? (relativeEpisode || selectedEpisode) : 0 // Pass 0 when no episode selected
-  );
-
-  // Debug Movix TMDB Series sources
-  useEffect(() => {
-    if (movixTmdbSeries?.processedSources?.length) {
-      console.log('🎬 [MOVIX TMDB SERIES] Sources:', movixTmdbSeries.processedSources);
-    }
-  }, [movixTmdbSeries]);
 
   // Debug Movix Anime
   useEffect(() => {
@@ -259,21 +194,6 @@ export default function SeriesDetail() {
   const isPlayerActive = !!selectedSource;
   // Sources statiques supprimées - on utilise maintenant l'API FStream pour Vidzy
   const episodeSources: any[] = [
-    // Movix TMDB sources (Vidzy/VidMoly from tmdb path)
-    ...(movixTmdbSeries?.processedSources?.map((source: any, index: number) => ({
-      id: `movix-tmdb-${source.provider}-${index}`,
-      name: source.quality,
-      provider: source.provider === 'vidzy' ? 'Vidzy' : source.provider === 'vidmoly' ? 'VidMoly' : source.provider,
-      url: source.url,
-      type: 'm3u8' as const,
-      isFStream: source.provider === 'vidzy', // Vidzy needs extraction
-      isMovixDownload: false,
-      isVidMoly: source.provider === 'vidmoly',
-      isDarki: source.provider === 'darki',
-      isMovixTmdb: true,
-      quality: source.quality,
-      language: source.language
-    })) || []),
     ...(universalVOSources?.files?.map((source: any, index: number) => ({
       id: `universal-${source.provider}-${index}`,
       name: `${source.provider}`,
@@ -305,22 +225,6 @@ export default function SeriesDetail() {
       language: 'VF'
     })) || []),
     */
-    ...(animeAPISources?.map((source: any, index: number) => ({
-      id: `animekai-${index}`,
-      name: 'AnimeKai',
-      provider: 'AnimeKai',
-      // Use our internal anime m3u8-proxy (spoofs headers for netmagcdn)
-      url: `/api/anime?action=m3u8-proxy&url=${encodeURIComponent(source.url)}`,
-      type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
-      isFStream: false,
-      isMovixDownload: false,
-      isVidMoly: false,
-      isDarki: false,
-      isAnimeAPI: true,
-      quality: source.quality || 'HD',
-      language: 'VO',
-      tracks: source.tracks // Pass subtitles to player
-    })) || []),
     ...(extractVidMolyFromAnime(movixAnime, series, selectedSeasonNumber, relativeEpisode || 0, seriesId).map((source: any) => ({
       ...source,
       id: `movix-anime-${source.id}`
@@ -528,12 +432,14 @@ export default function SeriesDetail() {
       return;
     }
 
-    // Pour Luluvid, extraire le m3u8 via le backend
-    if (isLuluvidSource) {
+    // Pour Luluvid / dramiyos CDN : toujours passer par cinepro-proxy (ASN AWS)
+    if (isLuluvidSource || isLuluvidCdnUrl(source.url)) {
       console.log("🎬 Extraction Luluvid pour:", source.url);
-      if (!source.url) return; // Should not happen given logic above but safe to check
+      if (!source.url) return;
 
-      const m3u8Url = await extractLuluvidM3u8(source.url);
+      const m3u8Url = source.url.includes('cinepro-proxy')
+        ? source.url
+        : (await extractLuluvidM3u8(source.url)) || wrapLuluvidPlaybackUrl(source.url);
       console.log("🎬 Résultat extraction Luluvid:", m3u8Url);
 
       if (!m3u8Url) {
@@ -552,21 +458,6 @@ export default function SeriesDetail() {
       setIsLoadingSource(false);
       return;
     }
-    // Logic moved to StreamingSources.tsx to handle proxy wrapping and extensions
-    // We now treat Vixsrc as a standard source
-    if ((source as any).isVixsrc && source.url) {
-      setSelectedSource({
-        url: source.url,
-        type: "m3u8",
-        name: source.name,
-        quality: source.quality,
-        language: source.language,
-        provider: 'vixsrc'
-      });
-      setIsLoadingSource(false);
-      return;
-    }
-
     // Plus de sources statiques à gérer - toutes les sources viennent des APIs
   };
   const backdropUrl = series?.backdrop_path ? getImageUrl(series.backdrop_path, 'original') : "";
@@ -865,7 +756,7 @@ export default function SeriesDetail() {
                                               genres={series?.genres}
                                               onSourceClick={handleSourceClick}
                                               isLoadingSource={isLoadingSource}
-                                              isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark || isLoadingAnimeAPI}
+                                              isLoadingExternal={isLoadingUniversalVOSources || isLoadingAfterDark}
                                               season={selectedSeasonNumber}
                                               episode={relativeEpisode || episode.episode_number}
                                               imdbId={series?.external_ids?.imdb_id}

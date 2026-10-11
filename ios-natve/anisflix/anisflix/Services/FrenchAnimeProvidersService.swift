@@ -287,19 +287,24 @@ final class FrenchAnimeProvidersService {
               let streams = json["streams"] as? [[String: Any]] else { return [] }
 
         let sources = streams.compactMap { stream -> ExtractedSource? in
-            guard let url = stream["url"] as? String, !url.isEmpty else { return nil }
-            let headers = stream["headers"] as? [String: String] ?? [:]
+            guard let rawUrl = stream["url"] as? String, !rawUrl.isEmpty else { return nil }
+            // iOS plays CDN URLs directly — unwrap web-only cinepro-proxy wrappers.
+            let url = unwrapProxiedMediaUrl(rawUrl)
+            var headers = stream["headers"] as? [String: String] ?? [:]
+            if headers.isEmpty || url != rawUrl {
+                headers = playbackHeaders(referer: headers["Referer"] ?? "https://luluvid.com/")
+            }
             let rawLanguage = (stream["language"] as? String)?.uppercased() ?? "VF"
             let language = rawLanguage.contains("VOST") ? "VOSTFR" : (rawLanguage == "VO" ? "VO" : "VF")
             let inferredType = url.lowercased().contains(".m3u8") ? "m3u8" : "mp4"
             let type = stream["type"] as? String ?? inferredType
-            guard type == "m3u8" || type == "mp4" else { return nil }
+            guard type == "m3u8" || type == "mp4" || url.lowercased().contains("/hls2/") else { return nil }
             return ExtractedSource(
                 provider: "frenchstream",
                 url: url,
                 quality: stream["quality"] as? String ?? "HD",
                 language: language,
-                type: type,
+                type: (type == "m3u8" || url.lowercased().contains(".m3u8") || url.lowercased().contains("/hls2/")) ? "m3u8" : "mp4",
                 headers: headers
             )
         }
@@ -650,7 +655,8 @@ final class FrenchAnimeProvidersService {
               let stream = json["m3u8Url"] as? String,
               stream.hasPrefix("http") else { return nil }
         let hostRoot = rootURL(embed) ?? referer
-        return Resolved(url: stream, headers: playbackHeaders(referer: hostRoot), quality: qualityFrom(stream))
+        let direct = unwrapProxiedMediaUrl(stream)
+        return Resolved(url: direct, headers: playbackHeaders(referer: hostRoot), quality: qualityFrom(direct))
     }
 
     private func resolveVidzy(_ embed: String) async -> Resolved? {
@@ -782,13 +788,25 @@ final class FrenchAnimeProvidersService {
 
     // MARK: - Helpers
 
+    /// Web wraps ASN-bound CDNs in cinepro-proxy; iOS must hit the CDN directly.
+    private func unwrapProxiedMediaUrl(_ url: String) -> String {
+        guard url.contains("cinepro-proxy") || url.contains("/api/movix-proxy"),
+              let components = URLComponents(string: url),
+              let nested = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              nested.hasPrefix("http") else {
+            return url
+        }
+        return nested
+    }
+
     private func makeSource(provider: String, resolved: Resolved, quality: String, language: String) -> ExtractedSource {
-        ExtractedSource(
+        let url = unwrapProxiedMediaUrl(resolved.url)
+        return ExtractedSource(
             provider: provider,
-            url: resolved.url,
+            url: url,
             quality: quality,
             language: language,
-            type: resolved.url.lowercased().contains(".m3u8") ? "m3u8" : "mp4",
+            type: url.lowercased().contains(".m3u8") || url.lowercased().contains("/hls2/") ? "m3u8" : "mp4",
             headers: resolved.headers
         )
     }

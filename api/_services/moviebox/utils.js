@@ -261,6 +261,8 @@ export async function fetchTmdbDetails(tmdbId, mediaType) {
       title: mediaType === 'movie' ? data.title || data.original_title : data.name || data.original_name,
       year: (data.release_date || data.first_air_date || '').substring(0, 4),
       originalTitle: data.original_title || data.original_name,
+      // ISO 639-1 (ja, ko, en, fr…) — drives MovieBox VO classification.
+      originalLanguage: String(data.original_language || '').trim().toLowerCase(),
     };
   } catch (e) {
     console.error('[MovieBox TMDB Error]', e.message);
@@ -277,8 +279,20 @@ export function normalizeTitle(s) {
     .trim()
     .toLowerCase()
     .replace(/:/g, ' ')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ');
+    // Keep unicode letters (CJK etc.) — stripping them made "進撃の巨人" → " "
+    // which then matched every title via String.includes(" ").
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** MovieBox catalogue search is Latin-oriented; CJK-only queries return junk. */
+export function isSearchableMovieBoxTitle(title) {
+  const norm = normalizeTitle(title);
+  if (norm.length < 2) return false;
+  // Need at least one Latin token (MovieBox EN index) OR a long CJK string.
+  if (/[a-z0-9]{2,}/i.test(norm)) return true;
+  return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]{2,}/u.test(title || '');
 }
 
 export function parseQualityNumber(value) {

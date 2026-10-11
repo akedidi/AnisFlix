@@ -52,13 +52,19 @@ final class MovieBoxService {
         print("📦 [MovieBox Native] Fetching \(type) \(tmdbId) S\(season)E\(episode)")
         let tmdb = try await fetchTmdbDetails(tmdbId: tmdbId, type: type)
 
-        var results = try await search(query: tmdb.title)
-        var match = findBestMatch(results: results, targetTitle: tmdb.title, targetYear: tmdb.year, isMovie: type == "movie")
+        // MovieBox search is Latin-first — try EN/localized title before CJK original.
+        // VO language is decided later via TMDB original_language, not search order.
+        var searchQueries = [tmdb.title, tmdb.originalTitle]
+            .filter { !$0.isEmpty && isSearchableMovieBoxTitle($0) }
+        var seenQueries = Set<String>()
+        searchQueries = searchQueries.filter { seenQueries.insert(normalizeTitle($0)).inserted }
 
-        if match == nil, !tmdb.originalTitle.isEmpty,
-           normalizeTitle(tmdb.originalTitle) != normalizeTitle(tmdb.title) {
-            results = try await search(query: tmdb.originalTitle)
-            match = findBestMatch(results: results, targetTitle: tmdb.originalTitle, targetYear: tmdb.year, isMovie: type == "movie")
+        var match: (subjectId: String, title: String)?
+        for query in searchQueries {
+            let results = try await search(query: query)
+            match = findBestMatch(results: results, targetTitle: query, targetYear: tmdb.year, isMovie: type == "movie")
+                ?? findBestMatch(results: results, targetTitle: tmdb.title, targetYear: tmdb.year, isMovie: type == "movie")
+            if match != nil { break }
         }
 
         guard let match else {
@@ -66,7 +72,7 @@ final class MovieBoxService {
             return []
         }
 
-        print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId))")
+        print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId)) origLang=\(tmdb.originalLanguage)")
         let finalSeason = type == "movie" ? 0 : season
         let finalEpisode = type == "movie" ? 0 : episode
         return try await getStreamLinks(
@@ -74,7 +80,8 @@ final class MovieBoxService {
             season: finalSeason,
             episode: finalEpisode,
             tmdbId: tmdbId,
-            mediaType: type
+            mediaType: type,
+            originalLanguage: tmdb.originalLanguage
         )
     }
 
@@ -246,7 +253,7 @@ final class MovieBoxService {
 
     // MARK: - Catalogue
 
-    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String) {
+    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String, originalLanguage: String) {
         guard let url = URL(string: "\(tmdbBaseURL)/\(type)/\(tmdbId)?api_key=\(tmdbAPIKey)") else { throw URLError(.badURL) }
         let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
@@ -256,9 +263,39 @@ final class MovieBoxService {
         let title = type == "movie" ? (json["title"] as? String) : (json["name"] as? String)
         let original = type == "movie" ? (json["original_title"] as? String) : (json["original_name"] as? String)
         let date = type == "movie" ? (json["release_date"] as? String) : (json["first_air_date"] as? String)
+        let originalLanguage = ((json["original_language"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let finalTitle = title ?? original ?? ""
         guard !finalTitle.isEmpty else { throw URLError(.cannotParseResponse) }
-        return (finalTitle, original ?? finalTitle, String((date ?? "").prefix(4)))
+        return (finalTitle, original ?? finalTitle, String((date ?? "").prefix(4)), originalLanguage)
+    }
+
+    /// Normalize MovieBox / TMDB language tokens. VO follows TMDB original_language.
+    private func normalizeLangCode(_ value: String) -> String {
+        let s = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if s.isEmpty { return "" }
+        let patterns: [(String, String)] = [
+            ("ja|jp|jpn|japanese|japonais", "ja"),
+            ("ko|kor|korean|coréen|coreen", "ko"),
+            ("zh|chi|cn|chinese|mandarin|cantonese|chinois", "zh"),
+            ("en|eng|english|anglais", "en"),
+            ("fr|fra|fre|french|français|francais", "fr"),
+            ("es|spa|spanish|espagnol", "es"),
+            ("de|ger|deu|german|allemand", "de"),
+            ("it|ita|italian|italien", "it"),
+            ("pt|por|portuguese|portugais", "pt"),
+            ("hi|hin|hindi", "hi"),
+            ("th|tha|thai", "th"),
+            ("ar|ara|arabic|arabe", "ar"),
+        ]
+        for (pattern, code) in patterns {
+            if s.range(of: "(^|\\b)(\(pattern))(\\b|$)", options: .regularExpression) != nil {
+                return code
+            }
+        }
+        if s.range(of: "^[a-z]{2,3}$", options: .regularExpression) != nil {
+            return s == "jp" ? "ja" : String(s.prefix(2))
+        }
+        return ""
     }
 
     private func search(query: String) async throws -> [[String: Any]] {
@@ -284,6 +321,7 @@ final class MovieBoxService {
 
     private func findBestMatch(results: [[String: Any]], targetTitle: String, targetYear: String, isMovie: Bool) -> (subjectId: String, title: String)? {
         let normalizedTarget = normalizeTitle(targetTitle)
+        guard normalizedTarget.count >= 2 else { return nil }
         let targetType = isMovie ? 1 : 2
         var best: (subjectId: String, title: String)?
         var bestScore = 0
@@ -293,6 +331,7 @@ final class MovieBoxService {
                   let subjectId = identifier(item["subjectId"]),
                   let title = item["title"] as? String else { continue }
             let normalizedTitle = normalizeTitle(title)
+            guard normalizedTitle.count >= 2 else { continue }
             let year = (item["year"] as? NSNumber)?.stringValue
                 ?? (item["releaseDate"] as? String).map { String($0.prefix(4)) }
                 ?? ""
@@ -309,15 +348,30 @@ final class MovieBoxService {
     }
 
     private func normalizeTitle(_ value: String) -> String {
-        value
+        let stripped = value
             .replacingOccurrences(of: "\\[.*?\\]", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "\\(.*?\\)", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "\\b(dub|dubbed|hd|4k|hindi|tamil|telugu|dual audio)\\b", with: " ", options: [.regularExpression, .caseInsensitive])
             .lowercased()
             .replacingOccurrences(of: ":", with: " ")
-            .replacingOccurrences(of: "[^a-z0-9\\s]", with: " ", options: .regularExpression)
+        // Keep letters from any script (CJK…) — ASCII-only stripping turned JP titles into " ".
+        let scalars = stripped.unicodeScalars.map { scalar -> Character in
+            if CharacterSet.alphanumerics.contains(scalar) || CharacterSet.whitespaces.contains(scalar) {
+                return Character(scalar)
+            }
+            return " "
+        }
+        return String(scalars)
             .split(whereSeparator: \.isWhitespace)
             .joined(separator: " ")
+    }
+
+    private func isSearchableMovieBoxTitle(_ title: String) -> Bool {
+        let norm = normalizeTitle(title)
+        guard norm.count >= 2 else { return false }
+        if norm.range(of: "[a-z0-9]{2,}", options: .regularExpression) != nil { return true }
+        // Allow pure CJK queries only when long enough (rarely useful on MovieBox).
+        return title.count >= 2 && norm.range(of: "[a-z0-9]", options: .regularExpression) == nil
     }
 
     // MARK: - Streams
@@ -327,7 +381,8 @@ final class MovieBoxService {
         season: Int,
         episode: Int,
         tmdbId: Int = 0,
-        mediaType: String = "tv"
+        mediaType: String = "tv",
+        originalLanguage: String = ""
     ) async throws -> [StreamingSource] {
         let detailData = try await movieBoxRequest(
             method: "GET",
@@ -336,24 +391,41 @@ final class MovieBoxService {
         guard let json = try JSONSerialization.jsonObject(with: detailData) as? [String: Any],
               let details = json["data"] as? [String: Any] else { return [] }
 
+        let orig = normalizeLangCode(originalLanguage)
+        let dubs = details["dubs"] as? [[String: Any]] ?? []
         var variants: [(id: String, language: String, label: String)] = []
-        for dub in details["dubs"] as? [[String: Any]] ?? [] {
+        for dub in dubs {
             guard let id = identifier(dub["subjectId"]) else { continue }
             let name = (dub["lanName"] as? String) ?? ""
-            let code = ((dub["lanCode"] as? String) ?? "").lowercased()
+            let code = normalizeLangCode((dub["lanCode"] as? String) ?? "")
             let loweredName = name.lowercased()
+            let labelCode = normalizeLangCode(name)
+            let effectiveCode = code.isEmpty ? labelCode : code
             let isSubtitle = (dub["type"] as? NSNumber)?.intValue == 1
                 || loweredName.contains("sub")
                 || loweredName.contains("vostfr")
-            let isOriginal = (dub["original"] as? Bool) == true
-                || id == subjectId
-                || loweredName.contains("original")
-            let isFrench = code == "fr" || code == "fra"
+            let isPrimarySubject = id == subjectId
+            let markedOriginal = (dub["original"] as? Bool) == true || loweredName.contains("original")
+            let isFrench = effectiveCode == "fr"
                 || loweredName.contains("french")
                 || loweredName.contains("français")
-            // VO = original-language audio (Japanese for anime). English dubs are not VO.
+                || loweredName.contains("francais")
+
+            // Generic VO: match TMDB original_language; never treat EN dub as VO for ja/ko/…
+            var isOriginalAudio = false
+            if !orig.isEmpty, !effectiveCode.isEmpty {
+                isOriginalAudio = effectiveCode == orig
+            } else if markedOriginal {
+                isOriginalAudio = true
+            } else if effectiveCode.isEmpty && isPrimarySubject {
+                isOriginalAudio = true
+            }
+            if !effectiveCode.isEmpty, !orig.isEmpty, effectiveCode != orig {
+                isOriginalAudio = false
+            }
+
             let language: String?
-            if isOriginal && !isSubtitle {
+            if isOriginalAudio && !isSubtitle {
                 language = "VO"
             } else if isFrench && isSubtitle {
                 language = "VOSTFR"
@@ -365,7 +437,15 @@ final class MovieBoxService {
             if let language { variants.append((id, language, name.isEmpty ? language : name)) }
         }
         if !variants.contains(where: { $0.language == "VO" }) {
-            variants.insert((subjectId, "VO", "Original Audio"), at: 0)
+            let matching = dubs.first { dub in
+                guard identifier(dub["subjectId"]) != nil else { return false }
+                let code = normalizeLangCode((dub["lanCode"] as? String) ?? (dub["lanName"] as? String) ?? "")
+                let isSub = (dub["type"] as? NSNumber)?.intValue == 1
+                return !orig.isEmpty && code == orig && !isSub
+            }
+            let voId = identifier(matching?["subjectId"]) ?? subjectId
+            let voLabel = (matching?["lanName"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Original Audio"
+            variants.insert((voId, "VO", voLabel), at: 0)
         }
 
         var seenVariants = Set<String>()

@@ -108,7 +108,7 @@ struct StreamingSourcesView: View {
     
     // Helper function to format quality display based on provider
     private func displayQuality(for source: StreamingSource) -> String {
-        let streamingProviders = ["vidzy", "vidmoly", "vixsrc", "primewire", "2embed", "afterdark"]
+        let streamingProviders = ["vidzy", "vidmoly", "primewire", "2embed", "afterdark"]
         
         if streamingProviders.contains(source.provider.lowercased()) {
             // For streaming providers, show HD as default

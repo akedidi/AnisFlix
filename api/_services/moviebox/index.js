@@ -8,6 +8,7 @@ import {
   getFormatType,
   movieBoxRequest,
   normalizeTitle,
+  isSearchableMovieBoxTitle,
   parseQualityNumber,
 } from './utils.js';
 
@@ -24,16 +25,61 @@ function searchMovieBox(query) {
   });
 }
 
-function classifyVariant(dub, isOriginal = false) {
-  const code = String(dub?.lanCode || dub?.language || '').trim().toLowerCase();
+/**
+ * Normalize MovieBox / TMDB language tokens to a short comparable code.
+ * VO must follow TMDB original_language — never assume English is VO.
+ */
+function normalizeLangCode(value) {
+  const s = String(value || '').trim().toLowerCase();
+  if (!s) return '';
+  if (/(^|\b)(ja|jp|jpn|japanese|japonais)(\b|$)/.test(s)) return 'ja';
+  if (/(^|\b)(ko|kor|korean|coréen|coreen)(\b|$)/.test(s)) return 'ko';
+  if (/(^|\b)(zh|chi|cn|chinese|mandarin|cantonese|chinois)(\b|$)/.test(s)) return 'zh';
+  if (/(^|\b)(en|eng|english|anglais)(\b|$)/.test(s)) return 'en';
+  if (/(^|\b)(fr|fra|fre|french|français|francais)(\b|$)/.test(s)) return 'fr';
+  if (/(^|\b)(es|spa|spanish|espagnol)(\b|$)/.test(s)) return 'es';
+  if (/(^|\b)(de|ger|deu|german|allemand)(\b|$)/.test(s)) return 'de';
+  if (/(^|\b)(it|ita|italian|italien)(\b|$)/.test(s)) return 'it';
+  if (/(^|\b)(pt|por|portuguese|portugais)(\b|$)/.test(s)) return 'pt';
+  if (/(^|\b)(hi|hin|hindi)(\b|$)/.test(s)) return 'hi';
+  if (/(^|\b)(th|tha|thai)(\b|$)/.test(s)) return 'th';
+  if (/(^|\b)(ar|ara|arabic|arabe)(\b|$)/.test(s)) return 'ar';
+  if (/^[a-z]{2,3}$/.test(s)) return s === 'jp' ? 'ja' : s.slice(0, 2);
+  return '';
+}
+
+/**
+ * Generic VO rule (all titles):
+ * - VO = audio whose language matches TMDB original_language
+ * - OR MovieBox marks the variant as Original Audio
+ * - English / other dubs are never VO unless that language IS the original
+ * - French audio → VF; French subs alone are handled later as VOSTFR clones
+ */
+function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' } = {}) {
+  const code = normalizeLangCode(dub?.lanCode || dub?.language);
   const label = String(dub?.lanName || '').trim().toLowerCase();
+  const labelCode = normalizeLangCode(label);
+  const effectiveCode = code || labelCode;
   const isSubtitle = Number(dub?.type) === 1 || /\b(sub|subtitle|vostfr)\b/.test(label);
-  const isFrench = code === 'fr' || code === 'fra' || label.includes('french') || label.includes('français');
-  // VO = original-language audio (Japanese for anime, English only when that IS the original).
-  // English/other dubs must not be labeled VO.
-  const isOriginalAudio = Boolean(isOriginal)
-    || dub?.original === true
-    || /\boriginal\b/.test(label);
+  const isFrench = effectiveCode === 'fr' || label.includes('french') || label.includes('français') || label.includes('francais');
+  const orig = normalizeLangCode(originalLanguage);
+  const markedOriginal = dub?.original === true || /\boriginal\b/.test(label);
+
+  let isOriginalAudio = false;
+  if (orig && effectiveCode) {
+    // Hard rule: language code decides VO when both sides are known.
+    isOriginalAudio = effectiveCode === orig;
+  } else if (markedOriginal) {
+    isOriginalAudio = true;
+  } else if (!effectiveCode && isPrimarySubject) {
+    // No lanCode on the primary subject → treat as original catalogue entry.
+    isOriginalAudio = true;
+  }
+
+  // Safety: never label English (or any other) as VO when TMDB original differs.
+  if (effectiveCode && orig && effectiveCode !== orig) {
+    isOriginalAudio = false;
+  }
 
   if (isOriginalAudio && !isSubtitle) return 'VO';
   if (isFrench && isSubtitle) return 'VOSTFR';
@@ -131,6 +177,8 @@ function inferCodec(codecName, url) {
 
 function findBestMatch(subjects, tmdbTitle, tmdbYear, mediaType) {
   const normTmdbTitle = normalizeTitle(tmdbTitle);
+  // Reject whitespace / 1-char queries — `includes(" ")` matches almost everything.
+  if (normTmdbTitle.length < 2) return null;
   const targetType = mediaType === 'movie' ? 1 : 2;
   let bestMatch = null;
   let bestScore = 0;
@@ -138,6 +186,7 @@ function findBestMatch(subjects, tmdbTitle, tmdbYear, mediaType) {
   for (const subject of subjects) {
     if (subject.subjectType !== targetType) continue;
     const normTitle = normalizeTitle(subject.title);
+    if (normTitle.length < 2) continue;
     const year = subject.year || (subject.releaseDate ? subject.releaseDate.substring(0, 4) : null);
     let score = 0;
     if (normTitle === normTmdbTitle) score += 50;
@@ -271,7 +320,7 @@ async function getH5FallbackStreams(details, mediaType, season, episode) {
   const variants = [original];
 
   for (const dub of Array.isArray(dubData.dubs) ? dubData.dubs : []) {
-    const language = classifyVariant(dub, false);
+    const language = classifyVariant(dub, { originalLanguage: details.originalLanguage });
     if (language === 'VF' && dub.subjectId && dub.detailPath) {
       variants.push({ ...dub, language: 'VF' });
     }
@@ -401,7 +450,7 @@ function movieBoxEpisodeCandidates(tmdbId, mediaType, season, episode) {
   });
 }
 
-async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie', tmdbId = null) {
+async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie', tmdbId = null, originalLanguage = '') {
   const subjectUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/get?subjectId=${subjectId}`;
   const detailRes = await movieBoxRequest('GET', subjectUrl);
   if (!detailRes?.data?.data) return [];
@@ -411,17 +460,28 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
   const dubs = subjectData.dubs;
   if (Array.isArray(dubs)) {
     dubs.forEach((dub) => {
-      const isOriginal = String(dub.subjectId) === String(subjectId) || dub.original === true;
-      const language = classifyVariant(dub, isOriginal);
+      const isPrimarySubject = String(dub.subjectId) === String(subjectId);
+      const language = classifyVariant(dub, { isPrimarySubject, originalLanguage });
       if (language && dub.subjectId) {
         subjectIds.push({ id: String(dub.subjectId), lang: language, label: dub.lanName || language });
       }
     });
   }
-  // Guarantee a VO entry from the matched (original) subject when MovieBox
-  // omitted an explicit "Original Audio" dub row.
+  // Guarantee a VO entry when MovieBox omitted an explicit original-audio row.
+  // Prefer a dub whose lanCode matches TMDB original_language; else primary subject.
   if (!subjectIds.some((item) => item.lang === 'VO')) {
-    subjectIds.unshift({ id: String(subjectId), lang: 'VO', label: 'Original Audio' });
+    const orig = normalizeLangCode(originalLanguage);
+    const matchingDub = Array.isArray(dubs)
+      ? dubs.find((dub) => {
+        const code = normalizeLangCode(dub?.lanCode || dub?.language || dub?.lanName);
+        return dub?.subjectId && orig && code === orig && Number(dub?.type) !== 1;
+      })
+      : null;
+    subjectIds.unshift({
+      id: String(matchingDub?.subjectId || subjectId),
+      lang: 'VO',
+      label: matchingDub?.lanName || 'Original Audio',
+    });
   }
 
   const variants = Array.from(new Map(subjectIds.map((item) => [`${item.id}:${item.lang}`, item])).values());
@@ -582,19 +642,33 @@ export async function getMovieBoxStreams(tmdbId, mediaType, seasonNum = 1, episo
   const details = await fetchTmdbDetails(tmdbId, mediaType);
   if (!details) return [];
 
-  let subjects = await searchMovieBox(details.title);
-  let bestMatch = findBestMatch(subjects, details.title, details.year, mediaType);
+  // MovieBox's search index is Latin-first. CJK original titles (e.g. 進撃の巨人)
+  // return unrelated junk — always try the EN/localized title first, then original
+  // only if it's searchable. VO language is decided later via TMDB original_language.
+  const searchOrder = [details.title, details.originalTitle]
+    .filter((query, index, arr) => query && arr.indexOf(query) === index)
+    .filter(isSearchableMovieBoxTitle);
 
-  if (!bestMatch && details.originalTitle && details.originalTitle !== details.title) {
-    subjects = await searchMovieBox(details.originalTitle);
-    bestMatch = findBestMatch(subjects, details.originalTitle, details.year, mediaType);
+  let bestMatch = null;
+  for (const query of searchOrder) {
+    const subjects = await searchMovieBox(query);
+    // Score against both the query and the EN title so JP catalogue rows can
+    // still match when we searched with a localized name.
+    bestMatch = findBestMatch(subjects, query, details.year, mediaType)
+      || findBestMatch(subjects, details.title, details.year, mediaType)
+      || (details.originalTitle && details.originalTitle !== details.title
+        ? findBestMatch(subjects, details.originalTitle, details.year, mediaType)
+        : null);
+    if (bestMatch) break;
   }
 
   const s = mediaType === 'tv' ? seasonNum : 0;
   const e = mediaType === 'tv' ? episodeNum : 0;
   if (bestMatch) {
-    console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId})`);
-    const mobileStreams = await getStreamLinks(bestMatch.subjectId, s, e, details.title, mediaType, tmdbId);
+    console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId}) origLang=${details.originalLanguage || '?'}`);
+    const mobileStreams = await getStreamLinks(
+      bestMatch.subjectId, s, e, details.title, mediaType, tmdbId, details.originalLanguage,
+    );
     if (mobileStreams.length > 0) return mobileStreams;
   } else {
     console.log(`📦 [MovieBox] Mobile API found no match for "${details.title}"`);

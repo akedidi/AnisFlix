@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { IonPage } from '@ionic/react';
 import NativeHeader from "@/components/NativeHeader";
 import { useRouteParams } from "@/hooks/useRouteParams";
@@ -15,13 +14,12 @@ import StreamingSources from "@/components/StreamingSources";
 import WatchProviders from "@/components/WatchProviders";
 import CommonLayout from "@/components/CommonLayout";
 import { useMovieDetails, useMovieVideos, useSimilarMovies, useMultiSearch, useMovixPlayerLinks } from "@/hooks/useTMDB";
-import { useMovixTmdbSources } from "@/hooks/useMovixTmdbSources";
 import { useUniversalVOSources } from "@/hooks/useUniversalVOSources";
 import { useAfterDarkSources } from "@/hooks/useAfterDarkSources";
 
 import { getImageUrl } from "@/lib/tmdb";
 import { useLanguage } from "@/lib/i18n/LanguageContext";
-import { getMovieStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8 } from "@/lib/movix";
+import { getMovieStream, extractVidzyM3u8, extractLuluvidM3u8, extractBysebuhoM3u8, extractFSVidM3u8, isLuluvidCdnUrl, wrapLuluvidPlaybackUrl } from "@/lib/movix";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -68,118 +66,13 @@ export default function MovieDetail() {
     movie?.original_title
   );
 
-  // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
-
-
-  // Fetch Movix TMDB sources (VidMoly, Darkibox, etc.)
-  console.log('🔍 [MOVIE DETAIL] About to call useMovixTmdbSources with movieId:', movieId);
-  const { data: movixTmdbSources } = useMovixTmdbSources(movieId);
-  console.log('🔍 [MOVIE DETAIL] useMovixTmdbSources result:', {
-    hasData: !!movixTmdbSources,
-    processedSources: movixTmdbSources?.processedSources?.length || 0
-  });
-
-  // Récupérer les sources films/download en cherchant par titre d'abord
-  const { data: searchResults } = useQuery({
-    queryKey: ['search-movie', movie?.original_title || movie?.title],
-    queryFn: async () => {
-      if (!movie) return null;
-
-      // Essayer d'abord avec le titre original, puis le titre si nécessaire
-      const searchTitle = movie.original_title || movie.title;
-      console.log(`🔍 [FILMS DOWNLOAD] Searching for movie: "${searchTitle}"`);
-      const response = await fetch(`/api/movix-proxy?path=search&title=${encodeURIComponent(searchTitle)}`);
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      console.log(`🔍 [FILMS DOWNLOAD] Search results:`, data);
-      return data;
-    },
-    enabled: !!movie,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
-  });
-
-  // Chercher le résultat qui correspond au TMDB ID du film (pas forcément le premier)
-  const matchingResult = searchResults?.results?.find((result: any) => result.tmdb_id === movieId);
-  const shouldFetchFilmsDownload = !!matchingResult && matchingResult.tmdb_id === movieId;
-
-  console.log(`🔍 [FILMS DOWNLOAD] Debug:`, {
-    movieTitle: movie?.title,
-    movieOriginalTitle: movie?.original_title,
-    movieId: movieId,
-    matchingResult: matchingResult,
-    matchingResultTmdbId: matchingResult?.tmdb_id,
-    matchingResultMovixId: matchingResult?.id,
-    shouldFetch: shouldFetchFilmsDownload,
-    allResults: searchResults?.results?.map((r: any) => ({ id: r.id, tmdb_id: r.tmdb_id, name: r.name }))
-  });
-
-  // Fetch AnimeKai sources for Animation genre (Movies)
-  const { data: animeAPISources, isLoading: isLoadingAnimeAPI } = useQuery({
-    queryKey: ['animekai-sources-movie', movieId],
-    queryFn: async () => {
-      // Check if this is an animation (genre ID: 16)
-      const isAnimation = movie?.genres?.some((g: any) => g.id === 16);
-
-      if (!isAnimation) {
-        return [];
-      }
-
-      // Get English title from TMDB (original_title is often Japanese for anime)
-      try {
-        const tmdbResponse = await fetch(
-          `https://api.themoviedb.org/3/movie/${movieId}?api_key=68e094699525b18a70bab2f86b1fa706&language=en-US`
-        );
-        const tmdbData = await tmdbResponse.json();
-        const englishTitle = tmdbData.title || movie.original_title;
-
-        console.log(`🟣 [AnimeKai Movie] Fetching: ${englishTitle}`);
-
-        // For movies, we try season 1 episode 1 or just title search
-        const params = new URLSearchParams({
-          path: 'animekai',
-          title: englishTitle,
-          season: '1',
-          episode: '1',
-          tmdbId: movieId.toString(),
-        });
-
-        const response = await fetch(`/api/movix-proxy?${params}`);
-        const data = await response.json();
-
-        if (!data.success || !data.results) {
-          return [];
-        }
-
-        console.log(`🟣 [AnimeKai Movie] Found ${data.results.length} sources`);
-        return data.results;
-      } catch (error) {
-        console.error('[AnimeKai Movie] Error:', error);
-        return [];
-      }
-    },
-    enabled: !!movie,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // BLOQUER explicitement si matchingResult n'existe pas ou ne correspond pas
-  if (matchingResult && matchingResult.tmdb_id !== movieId) {
-    console.error(`❌ [FILMS DOWNLOAD] CRITICAL: matchingResult tmdb_id (${matchingResult.tmdb_id}) does not match movieId (${movieId})`);
-  }
-  if (!matchingResult && searchResults?.results?.length > 0) {
-    console.error(`❌ [FILMS DOWNLOAD] CRITICAL: No matching result found for movieId ${movieId}. Available tmdb_ids:`, searchResults.results.map((r: any) => r.tmdb_id));
-  }
-
-  // Ne PAS appeler films/download si les tmdb_id ne correspondent pas
-
   // Get trailer
   const trailer = videos?.results?.find((video: any) => video.type === 'Trailer' && video.site === 'YouTube');
 
   // Navigation au clavier pour contrôler la lecture vidéo
   const isPlayerActive = !!selectedSource;
 
-  // Generate sources from Movix links
+  // Generate sources from Movix links (FStream only; Wiflix disabled)
   const sources = movixLinks ? [
     ...(movixLinks?.player_links || []).map((link: any) => ({
       id: `fstream-${link.id}`,
@@ -194,43 +87,7 @@ export default function MovieDetail() {
       quality: link.quality || 'HD',
       language: link.language || 'Français'
     })),
-    ...(movixLinks?.player_links || []).map((link: any) => ({
-      id: `wiflix-${link.id}`,
-      name: 'Wiflix',
-      provider: 'Wiflix',
-      url: link.url,
-      type: 'm3u8' as const,
-      isFStream: false,
-      isMovixDownload: false,
-      isVidMoly: false,
-      isDarki: false,
-      quality: link.quality || 'HD',
-      language: link.language || 'Français'
-    }))
   ] : [];
-
-  // Add Movix TMDB sources (VidMoly, Darkibox, etc.) using processed sources
-  const tmdbSources = movixTmdbSources?.processedSources?.map((source: any, index: number) => {
-    const isVidMoly = source.provider === 'vidmoly';
-    const isVidzy = source.provider === 'vidzy';
-    const isDarki = source.provider === 'darki';
-
-    return {
-      id: `tmdb-${source.provider}-${index}`,
-      name: source.quality, // Utiliser le nom du provider déjà formaté
-      provider: source.provider.toUpperCase(),
-      url: source.url,
-      type: isVidzy ? 'm3u8' as const : 'embed' as const, // Vidzy uses m3u8 type like FStream
-      isFStream: isVidzy ? true : false, // Vidzy acts like FStream
-      isMovixDownload: false,
-      isVidMoly: isVidMoly,
-      isVidzy: isVidzy,
-      isDarki: isDarki,
-      quality: source.quality,
-      language: source.language,
-      originalQuality: source.originalQuality
-    };
-  }) || [];
 
   // Add UniversalVO sources
   const universalSources = universalVOSources?.files?.map((source, index) => ({
@@ -266,41 +123,7 @@ export default function MovieDetail() {
     language: 'VF'
   }));
 
-  // Map AnimeKai sources
-  const mappedAnimeAPISources = (animeAPISources || []).map((source: any, index: number) => ({
-    id: `animekai-${index}`,
-    name: 'AnimeKai',
-    provider: 'AnimeKai',
-    // Use our internal anime m3u8-proxy (spoofs headers for netmagcdn)
-    url: `/api/anime?action=m3u8-proxy&url=${encodeURIComponent(source.url)}`,
-    type: source.type === 'hls' ? 'm3u8' as const : 'mp4' as const,
-    isFStream: false,
-    isMovixDownload: false,
-    isVidMoly: false,
-    isDarki: false,
-    isAnimeAPI: true,
-    quality: source.quality || 'HD',
-    language: 'VO',
-    tracks: source.tracks // Pass subtitles to player
-  }));
-
-  // Prioritize TMDB sources (Vidzy, VidMoly) over Movix FStream (FSVid)
-  const allSources = [...tmdbSources, ...sources, ...universalSources, ...mappedAnimeAPISources].filter(source => !source.isDarki);
-
-
-  // Debug logs pour les sources TMDB
-  console.log('🔍 [MOVIE DETAIL] Movix TMDB Sources Debug:', {
-    hasData: !!movixTmdbSources,
-    processedSources: movixTmdbSources?.processedSources?.length || 0,
-    tmdbSources: tmdbSources.length,
-    allSources: allSources.length,
-    rawData: movixTmdbSources
-  });
-
-  // Log détaillé des sources TMDB
-  if (movixTmdbSources?.processedSources) {
-    console.log('📊 [MOVIE DETAIL] Sources TMDB détaillées:', movixTmdbSources.processedSources);
-  }
+  const allSources = [...sources, ...universalSources].filter(source => !source.isDarki);
 
   // Log des sources finales
   console.log('🎯 [MOVIE DETAIL] Sources finales (allSources):', allSources);
@@ -487,21 +310,6 @@ export default function MovieDetail() {
         return;
       }
 
-      // Logic moved to StreamingSources.tsx to handle proxy wrapping and extensions
-      // We now treat Vixsrc as a standard source
-      if ((source as any).isVixsrc && source.url) {
-        setSelectedSource({
-          url: source.url,
-          type: "m3u8",
-          name: source.name,
-          isVidMoly: false,
-          isDarki: false,
-          provider: 'vixsrc'
-        });
-        setIsLoadingSource(false);
-        return;
-      }
-
       // Si c'est une source Vidzy via FStream (type marqué m3u8 mais url = page embed), extraire d'abord le vrai m3u8
       if (source.url && source.type === "m3u8" && source.isFStream) {
         console.log("🎬 Extraction Vidzy pour:", source.url);
@@ -518,10 +326,12 @@ export default function MovieDetail() {
         return;
       }
 
-      // Pour Luluvid, extraire le m3u8 via le backend
-      if (isLuluvidSource) {
+      // Pour Luluvid / dramiyos CDN : toujours passer par cinepro-proxy (ASN AWS)
+      if (isLuluvidSource || isLuluvidCdnUrl(source.url)) {
         console.log("🎬 Extraction Luluvid pour:", source.url);
-        const m3u8Url = await extractLuluvidM3u8(source.url);
+        const m3u8Url = source.url.includes('cinepro-proxy')
+          ? source.url
+          : (await extractLuluvidM3u8(source.url)) || wrapLuluvidPlaybackUrl(source.url);
         console.log("🎬 Résultat extraction Luluvid:", m3u8Url);
 
         if (!m3u8Url) {
@@ -734,7 +544,7 @@ export default function MovieDetail() {
                   onSourceClick={handleSourceSelect}
                   isLoadingSource={isLoadingSource}
                   imdbId={movie.imdb_id}
-                  isLoadingExternal={isLoadingUniversalVOSources || isLoadingAnimeAPI}
+                  isLoadingExternal={isLoadingUniversalVOSources}
                 />
               </div>
             ) : (

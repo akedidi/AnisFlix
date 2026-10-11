@@ -308,11 +308,11 @@ class StreamingService {
     private let baseUrl = ProcessInfo.processInfo.environment["ANISFLIX_API_BASE_URL"]
         ?? "https://anisflix.vercel.app"
     
-    /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter (e.g. vidlink on series, cinepro, darki from TMDB decode).
+    /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter.
     private static let allowedStreamingProviders: Set<String> = [
-        "vidlink", "yflix", "vidmoly", "vidzy", "vixsrc", "primewire", "2embed",
+        "yflix", "vidmoly", "vidzy", "primewire", "2embed",
         "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "frenchstream", "streamzo", "animepahe", "moviebox",
-        "4khdhub", "megacdn", "premilkyway", "cinepro", "luluvid", "mob", "hianime"
+        "megacdn", "premilkyway", "luluvid", "mob", "hianime"
     ]
     
     private func filterToAllowedProviders(_ sources: [StreamingSource]) -> [StreamingSource] {
@@ -328,7 +328,6 @@ class StreamingService {
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
         async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
         async let mobSources = fetchMobSources(tmdbId: movieId)
-        async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: movieId, type: "movie")
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
@@ -374,22 +373,14 @@ class StreamingService {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        // DISABLED: UniversalVO API is broken - removed from tuple
-        let (fstream, mBox, mMob, hub4k) = await (try? fstreamSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources)
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / vixsrc / wiflix / TMDB proxy
+        let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let animeSources = await (try? animeTask?.value) ?? []
-        let vidlinkMovieResults: [StreamingSource]
-        if let mBox, !mBox.isEmpty {
-            vidlinkMovieResults = []
-            print("ℹ️ [StreamingService] MovieBox available; skipping Vidlink fallback")
-        } else {
-            vidlinkMovieResults = (try? await fetchVidlinkSources(tmdbId: movieId, type: "movie")) ?? []
-        }
         let yflixMovieResults = await (try? yflixSources) ?? []
         let frenchStreamMovieResults = await frenchStreamSources
         let streamzoMovieResults = await streamzoSources
 
         print("📊 [StreamingService] Sources fetched:")
-        print("   - Vidlink: \(vidlinkMovieResults.count)")
         print("   - YFlix: \(yflixMovieResults.count)")
         print("   - French Stream: \(frenchStreamMovieResults.count)")
         print("   - Streamzo: \(streamzoMovieResults.count)")
@@ -397,18 +388,11 @@ class StreamingService {
         print("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
         print("   - Anime sources: \(animeSources.count)")
         print("   - FStream: \(fstream?.count ?? 0)")
-        // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - MOB: \(mMob?.count ?? 0)")
-        print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         
         var allSources: [StreamingSource] = []
-        
-        // Vidlink is only exposed when MovieBox returned no playable source.
-        if !vidlinkMovieResults.isEmpty {
-            allSources.append(contentsOf: vidlinkMovieResults)
-        }
 
         // Add YFlix Native sources (VO)
         if !yflixMovieResults.isEmpty {
@@ -428,11 +412,6 @@ class StreamingService {
             allSources.append(contentsOf: mMob)
         }
         
-        // DISABLED: UniversalVO API is broken
-        // if let universalVO = universalVO {
-        //     allSources.append(contentsOf: universalVO)
-        // }
-        
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
         
@@ -440,14 +419,9 @@ class StreamingService {
             allSources.append(contentsOf: fstream)
         }
         
-        // Add AnimeAPI sources
+        // Add anime sources (AnimeAPI / Anime-Sama / French-Anime / AnimePahe / HiAnime)
         if !animeSources.isEmpty {
             allSources.append(contentsOf: animeSources)
-        }
-        
-        // Add 4KHDHub sources (lower priority)
-        if let hub4k = hub4k {
-            allSources.append(contentsOf: hub4k)
         }
         
         return filterToAllowedProviders(allSources)
@@ -542,7 +516,6 @@ class StreamingService {
         // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         async let mobSources = fetchMobSeriesSources(tmdbId: seriesId, season: season, episode: episode)
-        async let fourKHDHubSources = fetchFourKHDHubSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -574,7 +547,7 @@ class StreamingService {
                  // Fetch VidMoly sources from Movix anime scraping
                  let movixAnimeSources = (try? await fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode, tmdbInfo: info)) ?? []
                  
-                 // Fetch HLS sources from AnimeAPI (GogoAnime)
+                 // Fetch HLS sources from AnimeAPI (path=anime-api, not animekai)
                  let animeApiSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
 
                  async let animeSama = fetchFrenchProviderSources(provider: "animesama", tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -585,7 +558,7 @@ class StreamingService {
                  let frenchSources = await animeSama + frenchAnime
                  let remainingSources = await animePahe + hiAnime
                  animeSources = movixAnimeSources + animeApiSources + frenchSources + remainingSources
-                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (Anime-Sama: \(frenchSources.filter { $0.provider == "animesama" }.count), French-Anime: \(frenchSources.filter { $0.provider == "frenchanime" }.count), Vidlink VO loaded separately: yes)")
+                 print("🎌 [StreamingService] Total anime sources: \(animeSources.count) (Anime-Sama: \(frenchSources.filter { $0.provider == "animesama" }.count), French-Anime: \(frenchSources.filter { $0.provider == "frenchanime" }.count)")
             }
             
             // Fetch AfterDark sources (direct call - iOS has no CORS)
@@ -597,54 +570,29 @@ class StreamingService {
                 season: season,
                 episode: episode
             )) ?? []
-            
-             // Await Anime sources (Already fetched above)
-            // animeSources = (try? await fetchedAnime) ?? []
         } else {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        // DISABLED: UniversalVO API is broken - removed from tuple
-        // DISABLED: UniversalVO API is broken - removed from tuple
-        // DISABLED: UniversalVO API is broken - removed from tuple
-        let (fstream, mBox, mMob, hub4k) = await (try? fstreamSources, try? movieBoxSources, try? mobSources, try? fourKHDHubSources)
-        let vidlinkResults: [StreamingSource]
-        if let mBox, !mBox.isEmpty {
-            vidlinkResults = []
-            print("ℹ️ [StreamingService] MovieBox available; skipping Vidlink fallback")
-        } else {
-            vidlinkResults = (try? await fetchVidlinkSources(
-                tmdbId: seriesId,
-                type: "tv",
-                season: season,
-                episode: episode
-            )) ?? []
-        }
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / vixsrc / wiflix / TMDB proxy
+        let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let yflixResults = await (try? yflixSources) ?? []
         let frenchStreamResults = await frenchStreamSources
         let streamzoResults = await streamzoSources
 
         print("📊 [StreamingService] Series Sources fetched:")
-        print("   - Vidlink: \(vidlinkResults.count)")
         print("   - YFlix: \(yflixResults.count)")
         print("   - French Stream: \(frenchStreamResults.count)")
         print("   - Streamzo: \(streamzoResults.count)")
         print("   - FStream: \(fstream?.count ?? 0)")
-        // print("   - UniversalVO: \(universalVO?.count ?? 0)") // DISABLED
         print("   - MovieBox: \(mBox?.count ?? 0)")
         print("   - MOB: \(mMob?.count ?? 0)")
-        print("   - 4KHDHub: \(hub4k?.count ?? 0)")
         print("   - AfterDark: \(afterDarkSources.count)")
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
         print("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
         print("   - Anime sources: \(animeSources.count)")
         
         var allSources: [StreamingSource] = []
-        
-        // Vidlink is only exposed when MovieBox returned no playable source.
-        if !vidlinkResults.isEmpty {
-            allSources.append(contentsOf: vidlinkResults)
-        }
 
         // Add YFlix Native sources (VO)
         if !yflixResults.isEmpty {
@@ -667,21 +615,11 @@ class StreamingService {
             allSources.append(contentsOf: mMob)
         }
         
-        // DISABLED: UniversalVO API is broken
-        // if let universalVO = universalVO {
-        //     allSources.append(contentsOf: universalVO)
-        // }
-        
         // Add AfterDark sources
         allSources.append(contentsOf: afterDarkSources)
         
         if let fstream = fstream {
             allSources.append(contentsOf: fstream)
-        }
-        
-        // Add 4KHDHub sources (lower priority)
-        if let hub4k = hub4k {
-            allSources.append(contentsOf: hub4k)
         }
         
         return filterToAllowedProviders(allSources)
@@ -806,9 +744,6 @@ class StreamingService {
 
         case "yflix":
             return try await fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
-
-        case "vidlink":
-            return try await fetchVidlinkSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
 
         case "animesama", "frenchanime", "frenchstream", "streamzo":
             return await fetchFrenchProviderSources(provider: targetProvider.lowercased(), tmdbId: seriesId, type: "tv", season: season, episode: episode)
@@ -1807,6 +1742,27 @@ class StreamingService {
             headers["Cookie"] = cookie
         }
         return headers
+    }
+
+    /// Detect Luluvid / Lulustream embed or CDN URLs.
+    /// iOS always plays these **directly** with Referer/Origin headers (no Vercel proxy).
+    static func isLuluvidCdnUrl(_ url: String) -> Bool {
+        let lower = url.lowercased()
+        if lower.contains("dramiyos-cdn.com") { return true }
+        if lower.contains("luluvid.") || lower.contains("lulustream.") { return true }
+        if lower.contains("/hls2/") && lower.contains(".m3u8") { return true }
+        return false
+    }
+
+    /// Unwrap accidental web proxy URLs so AVPlayer hits the CDN directly.
+    static func unwrapProxiedMediaUrl(_ url: String) -> String {
+        guard url.contains("cinepro-proxy") || url.contains("/api/movix-proxy"),
+              let components = URLComponents(string: url),
+              let nested = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              nested.hasPrefix("http") else {
+            return url
+        }
+        return nested
     }
     
     func extractVidzy(url: String) async throws -> String {
@@ -3072,20 +3028,29 @@ class StreamingService {
             } catch {
                 print("⚠️ [StreamingService] Darkibox extraction failed: \(error). Using original.")
             }
-        } else if provider == "luluvid" {
-            print("⛏️ [StreamingService] Extracting Luluvid via internal method...")
+        } else if provider == "luluvid" || Self.isLuluvidCdnUrl(source.url) {
+            print("⛏️ [StreamingService] Extracting Luluvid (direct device playback)...")
             do {
-                let (directUrl, cookie) = try await extractLuluvid(url: source.url)
-                print("✅ [StreamingService] Luluvid extraction successful: \(directUrl)")
-                
+                let mediaUrl: String
+                let cookie: String?
+                let raw = Self.unwrapProxiedMediaUrl(source.url)
+                if raw.lowercased().contains(".m3u8") || raw.lowercased().contains("/hls2/") {
+                    mediaUrl = raw
+                    cookie = nil
+                } else {
+                    let extracted = try await extractLuluvid(url: raw)
+                    mediaUrl = extracted.0
+                    cookie = extracted.1
+                }
                 let headers = Self.luluvidPlaybackHeaders(embedUrl: source.url, cookie: cookie)
-                
+                print("✅ [StreamingService] Luluvid direct: \(mediaUrl.prefix(100))...")
+
                 return StreamingSource(
                     id: source.id,
-                    url: directUrl,
+                    url: mediaUrl,
                     quality: source.quality,
-                    type: "hls", // It's always HLS
-                    provider: source.provider,
+                    type: "hls",
+                    provider: "luluvid",
                     language: source.language,
                     origin: source.origin,
                     tracks: source.tracks,

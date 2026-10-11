@@ -201,13 +201,36 @@ export async function extractVidMolyM3u8(vidmolyUrl: string): Promise<string | n
  * @param luluvidUrl - URL complète de la page Luluvid
  * @returns Le lien m3u8 extrait ou null si échec
  */
+/** Luluvid CDN (dramiyos) is ASN-locked to AWS — always play via Vercel cinepro-proxy. */
+export function wrapLuluvidPlaybackUrl(
+  mediaOrEmbedUrl: string,
+  referer?: string,
+): string {
+  const refererBase = /lulustream/i.test(mediaOrEmbedUrl + (referer || ''))
+    ? 'https://lulustream.com/'
+    : 'https://luluvid.com/';
+  const headers = JSON.stringify({
+    Referer: referer && /^https?:/i.test(referer) ? referer : refererBase,
+    Origin: refererBase.replace(/\/$/, ''),
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
+  return `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(mediaOrEmbedUrl)}&headers=${encodeURIComponent(headers)}`;
+}
+
+export function isLuluvidCdnUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return /dramiyos-cdn\.com/i.test(url)
+    || /luluvid\.|lulustream\./i.test(url)
+    || (/\/hls2\//i.test(url) && /\.m3u8(?:$|[?#])/i.test(url));
+}
+
 export async function extractLuluvidM3u8(luluvidUrl: string): Promise<string | null> {
   try {
     console.log('🔍 Luluvid proxy generation for:', luluvidUrl);
 
-    // Construct the proxy URL directly
-    // The backend's cinepro-proxy handles extraction and header wrapping
-    const proxyUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(luluvidUrl)}`;
+    // cinepro-proxy extracts embed pages and rewrites ASN-bound CDN playlists/segments
+    const proxyUrl = wrapLuluvidPlaybackUrl(luluvidUrl);
 
     console.log('✅ Generated Luluvid Proxy URL:', proxyUrl);
     return proxyUrl;

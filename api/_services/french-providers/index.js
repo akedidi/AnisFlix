@@ -297,6 +297,13 @@ function isIpBoundCdn(url) {
   return /(?:vmget|vmpx)\.online/i.test(url);
 }
 
+/** Luluvid/Lulustream CDN tokens are minted for AWS ASN (14618). Browser/iOS IPs get 403. */
+function isAsnBoundLuluvidCdn(url) {
+  if (!url) return false;
+  return /dramiyos-cdn\.com/i.test(url)
+    || (/\/hls2\//i.test(url) && /\.m3u8(?:$|[?#])/i.test(url));
+}
+
 function unwrapWorkerMediaUrl(url) {
   try {
     const parsed = new URL(url);
@@ -311,8 +318,26 @@ function isPlayableAnimeSamaUrl(url) {
   return isDirectMediaUrl(unwrapWorkerMediaUrl(url));
 }
 
-/** Proxy IP-bound HLS through the CF worker that minted the token. */
+/**
+ * Proxy playback URLs that cannot be fetched from the client:
+ * - vmget/vmpx → CF worker (IP-bound token)
+ * - dramiyos / luluvid hls2 → Vercel cinepro-proxy (ASN-bound to AWS)
+ */
 function wrapPlaybackUrl(url, referer) {
+  if (!url) return url;
+
+  if (isAsnBoundLuluvidCdn(url)) {
+    const refererBase = /lulustream/i.test(referer || '')
+      ? 'https://lulustream.com/'
+      : 'https://luluvid.com/';
+    const headers = JSON.stringify({
+      Referer: referer && /^https?:/i.test(referer) ? referer : refererBase,
+      Origin: refererBase.replace(/\/$/, ''),
+      'User-Agent': USER_AGENT,
+    });
+    return `${BACKEND_BASE}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(url)}&headers=${encodeURIComponent(headers)}`;
+  }
+
   if (!isIpBoundCdn(url)) return url;
   const proxy = new URL(WORKER_BASE);
   proxy.searchParams.set('path', 'mob');

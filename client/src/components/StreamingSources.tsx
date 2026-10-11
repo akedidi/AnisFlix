@@ -1,30 +1,18 @@
-import { useState, useEffect, memo, useCallback } from 'react';
-import axios from "axios";
+import { useState, useEffect, memo } from 'react';
 import { useFStream } from '@/hooks/useFStream';
-import { useMovixDownload } from '@/hooks/useMovixDownload';
-import { useVidMolyLinks } from '@/hooks/useWiFlix';
 
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
-import { useMovixDownload as useMovixDownloadNew } from '@/hooks/useMovixSeriesDownload';
-import { useVixsrc } from '@/hooks/useVixsrc';
 import { useMovieBox } from '@/hooks/useMovieBox';
-import { useVidlink } from '@/hooks/useVidlink';
 import { useFrenchProviders } from '@/hooks/useFrenchProviders';
 
-import { useFourKHDHub } from '@/hooks/useFourKHDHub';
-import { useAfterDark } from '@/hooks/useAfterDark';
-import { useCinepro } from '@/hooks/useCinepro';
-import { useTmdbProxyLinks } from '@/hooks/useTmdbProxy';
 import { useMovixLinks } from '@/hooks/useMovixLinks';
-import { useVideoDownload } from '@/hooks/useVideoDownload';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Play, ExternalLink, Download, Copy, FileText } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { apiClient } from "@/lib/apiClient"; // ADDED IMPORT
 import { isPlayableMovieBoxStream } from '@/utils/codecSupport';
+import { isLuluvidCdnUrl, wrapLuluvidPlaybackUrl } from '@/lib/movix';
 
 interface Source {
   id: string;
@@ -39,10 +27,7 @@ interface Source {
   isVidzy?: boolean;
   isDarkibox?: boolean;
   isDarki?: boolean;
-  isVixsrc?: boolean;
-
   isAnimeAPI?: boolean;
-  isFourKHDHub?: boolean;
   isAfterDark?: boolean;
   isLuluvid?: boolean;
   isExternalEmbed?: boolean;
@@ -70,7 +55,6 @@ interface StreamingSourcesProps {
     isVidMoly?: boolean;
     isVidzy?: boolean;
     isDarki?: boolean;
-    isVixsrc?: boolean;
     isAnimeAPI?: boolean;
     isLuluvid?: boolean;
     isExternalEmbed?: boolean;
@@ -119,46 +103,11 @@ const StreamingSources = memo(function StreamingSources({
 
   // Désactiver les hooks si enabled est false
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
-  const { data: vidmolyData, isLoading: isLoadingVidMoly, hasVidMolyLinks } = useVidMolyLinks(type, id, season);
-
-  const { data: movixDownloadData, isLoading: isLoadingMovixDownload } = useMovixDownloadNew(type, id, season, episode, title);
-  const { data: vixsrcData, isLoading: isLoadingVixsrc } = useVixsrc(type, id, season, episode);
 
   const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
-  const hasPlayableMovieBoxSources = Boolean(
-    movieBoxData?.success && movieBoxData.streams?.some(isPlayableMovieBoxStream)
-  );
-  const { data: fourKHDHubData, isLoading: isLoadingFourKHDHub } = useFourKHDHub(type, id, season, episode);
   // DISABLED: AfterDark sources
-  // const { data: afterDarkData, isLoading: isLoadingAfterDark } = useAfterDark(type, id, season, episode, title);
   const afterDarkData: any = null;
-  const isLoadingAfterDark = false;
-  const { data: cineproData, isLoading: isLoadingCinepro } = useCinepro(type, id, season, episode);
-  const { data: tmdbProxyData, isLoading: isLoadingTmdbProxy, hasLinks: hasTmdbProxyLinks } = useTmdbProxyLinks(type, id, season, episode);
   const { data: movixLinksData, isLoading: isLoadingMovixLinks } = useMovixLinks(type, id, season, episode);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const { downloadVideo } = useVideoDownload();
-
-  console.log('🔍 [VIXSRC DEBUG]', {
-    type, id, season, episode,
-    isLoading: isLoadingVixsrc,
-    hasData: !!vixsrcData,
-    success: vixsrcData?.success,
-    streams: vixsrcData?.streams?.length,
-    data: vixsrcData
-  });
-
-  // Debug logs pour MovixDownload
-  console.log('🔍 [STREAMING SOURCES] MovixDownload Debug:', {
-    type,
-    id,
-    season,
-    episode,
-    title,
-    isLoading: isLoadingMovixDownload,
-    hasData: !!movixDownloadData,
-    sourcesCount: movixDownloadData?.sources?.length || 0
-  });
 
   // Debug spécifique pour comprendre pourquoi le hook n'est pas activé
   console.log('🔍 [STREAMING SOURCES] Hook Activation Check:', {
@@ -237,13 +186,6 @@ const StreamingSources = memo(function StreamingSources({
     episode ?? 1,
     isAnimeSeries // Ajouter la condition pour ne l'appeler que si c'est une série anime
   );
-  const { data: vidlinkData, isLoading: isLoadingVidlink } = useVidlink(
-    type,
-    id,
-    season,
-    episode,
-    !isLoadingMovieBox && !hasPlayableMovieBoxSources,
-  );
   const { data: frenchProvidersData, isLoading: isLoadingFrenchProviders } = useFrenchProviders(
     type,
     id,
@@ -295,32 +237,6 @@ const StreamingSources = memo(function StreamingSources({
         return false;
       });
       if (hasMatchedPropSource) return true;
-    }
-
-    console.log(`🔍 [DEBUG LANG] hasSourcesForLanguage(${language}) - Checking scrapers...`, {
-      movixDownloadData: !!movixDownloadData,
-      vidmolyData: !!vidmolyData,
-      fStreamData: !!fStreamData,
-      animeVidMolyData: !!animeVidMolyData,
-      isLoadingAnimeVidMoly,
-      vixsrcData
-    });
-    // Vérifier MovixDownload (VF uniquement)
-    if (language === 'VF' && movixDownloadData && movixDownloadData.sources && movixDownloadData.sources.length > 0) {
-      return true;
-    }
-
-
-    // Vérifier VidMoly (normal)
-    if (vidmolyData) {
-      if (language === 'VF' && vidmolyData.vf && vidmolyData.vf.length > 0) {
-        return true;
-      }
-      if (language === 'VOSTFR' && vidmolyData.vostfr && vidmolyData.vostfr.length > 0) {
-        return true;
-      }
-      // VidMoly ne semble pas avoir de section explicite VO dans l'API actuelle, 
-      // mais si on en ajoute, ce sera ici. Pour l'instant on assume non.
     }
 
     // Vérifier VidMoly anime (pour les séries anime)
@@ -383,20 +299,6 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
 
-    // Vérifier Vixsrc (VO uniquement)
-    if (language === 'VO') {
-      if (!hasPlayableMovieBoxSources && vidlinkData?.success && vidlinkData.streams?.length) {
-        return true;
-      }
-      if (vixsrcData && vixsrcData.success && vixsrcData.streams && vixsrcData.streams.length > 0) {
-        return true;
-      }
-      // Vérifier Cinepro (VO uniquement)
-      if (cineproData && cineproData.success && cineproData.streams && cineproData.streams.length > 0) {
-        return true;
-      }
-    }
-
     // MovieBox exposes VF, VOSTFR and VO variants. Older cached responses with
     // no language remain VO for backward compatibility.
     if (movieBoxData?.success && movieBoxData.streams?.some((stream) =>
@@ -426,13 +328,11 @@ const StreamingSources = memo(function StreamingSources({
 
   // Ajuster la langue sélectionnée si la langue actuelle n'est pas disponible
   useEffect(() => {
-    // Attendre les providers qui déterminent les langues disponibles. Vidlink
-    // répond souvent avant French Stream et ne doit pas forcer l'onglet VO.
+    // Attendre les providers qui déterminent les langues disponibles.
     if (
       isLoadingFStream ||
       isLoadingFrenchProviders ||
-      isLoadingMovieBox ||
-      (!hasPlayableMovieBoxSources && isLoadingVidlink)
+      isLoadingMovieBox
     ) return;
 
     const hasVF = hasSourcesForLanguage('VF');
@@ -484,39 +384,24 @@ const StreamingSources = memo(function StreamingSources({
       frenchstream: 'French Stream',
       streamzo: 'Streamzo',
     };
+    const isLulu = isLuluvidCdnUrl(stream.url);
+    // ASN-bound Luluvid CDN must never hit the browser directly (403).
+    const playUrl = isLulu && stream.url && !stream.url.includes('cinepro-proxy')
+      ? wrapLuluvidPlaybackUrl(stream.url, stream.headers?.Referer)
+      : stream.url;
     allSources.push({
       id: `${stream.provider}-${index}-${language}`,
       name: `${labels[stream.provider] || stream.provider} (${language}) - ${stream.quality || 'HD'}`,
-      provider: stream.provider,
-      url: stream.url,
-      type: stream.type,
+      provider: isLulu ? 'luluvid' : stream.provider,
+      url: playUrl,
+      type: isLulu ? 'm3u8' : stream.type,
       quality: stream.quality || 'HD',
       language,
-      headers: stream.headers,
-      isExternalEmbed: stream.type === 'embed',
+      headers: isLulu ? undefined : stream.headers,
+      isLuluvid: isLulu,
+      isExternalEmbed: !isLulu && stream.type === 'embed',
     });
   });
-
-  // Vidlink fournit déjà des URLs HLS lisibles directement par le navigateur.
-  // Le flux vidéo ne doit pas repasser par notre proxy.
-  if (
-    !hasPlayableMovieBoxSources &&
-    selectedLanguage === 'VO' &&
-    vidlinkData?.success &&
-    vidlinkData.streams
-  ) {
-    vidlinkData.streams.forEach((stream, index) => {
-      allSources.push({
-        id: `vidlink-${index}`,
-        name: stream.name || `Vidlink (VO) - ${stream.quality || 'Auto'}`,
-        provider: 'vidlink',
-        url: stream.url,
-        type: 'm3u8',
-        quality: stream.quality || 'Auto',
-        language: 'VO',
-      });
-    });
-  }
 
   // Ajouter les sources passées en paramètre (sources TMDB VidMoly/Darki)
   if (sources && sources.length > 0) {
@@ -563,92 +448,6 @@ const StreamingSources = memo(function StreamingSources({
         type: 'embed' as const,
         quality: 'HD',
         language: 'VF'
-      });
-    });
-  }
-
-  if (movixDownloadData && movixDownloadData.sources && selectedLanguage === 'VF') {
-    console.log('🔍 [MOVIX DOWNLOAD NEW] Processing sources:', movixDownloadData.sources);
-
-    // Trier les sources par qualité (du meilleur au moins bon)
-    const qualityOrder = ['4K', '2160p', '1080p', '720p', '480p', '360p', '240p'];
-
-    const sortedSources = movixDownloadData.sources.sort((a: any, b: any) => {
-      const qualityA = a.quality || 'Unknown';
-      const qualityB = b.quality || 'Unknown';
-
-      const indexA = qualityOrder.indexOf(qualityA);
-      const indexB = qualityOrder.indexOf(qualityB);
-
-      // Si les deux qualités sont dans la liste, trier par index
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-
-      // Si une seule est dans la liste, la prioriser
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-
-      // Si aucune n'est dans la liste, trier alphabétiquement
-      return qualityA.localeCompare(qualityB);
-    });
-
-    // Grouper par qualité et numéroter
-    const sourcesByQuality = sortedSources.reduce((acc: any, source: any) => {
-      const quality = source.quality || 'Unknown';
-      if (!acc[quality]) {
-        acc[quality] = [];
-      }
-      acc[quality].push(source);
-      return acc;
-    }, {});
-
-    // Ajouter les sources groupées par qualité
-    Object.entries(sourcesByQuality).forEach(([quality, sources]: [string, any]) => {
-      sources.forEach((source: any, index: number) => {
-        // Filter out Alpha sources as requested
-        if (source.label === 'Alpha') return;
-
-        // Normalize Language for Display
-        let languageDisplay = source.language || 'VF';
-        const langLower = languageDisplay.toLowerCase();
-
-        if (['vf', 'vff', 'vfq', 'truefrench', 'french'].some(l => langLower.includes(l)) || langLower === 'multi') {
-          languageDisplay = 'VF';
-        } else if (langLower.includes('english') || langLower.includes('eng') || langLower === 'vo') {
-          languageDisplay = 'VO';
-        } else {
-          // Keep original if not standard
-          languageDisplay = source.language;
-        }
-
-        const languageLabel = languageDisplay;
-
-        // Ajouter un numéro si plusieurs sources de même qualité
-        const qualityLabel = sources.length > 1 ? `${quality} #${index + 1}` : quality;
-
-        // Modifier l'URL pour forcer les sous-titres français si nécessaire
-        // Note: For now we just use the url directly, but we can append params if needed.
-        const originalUrl = source.m3u8 || source.src || "";
-        // Some providers might need specific params for french subs if Multi
-        const isMulti = source.language?.toLowerCase().includes('multi');
-        // Example: logic to add subs if needed, for now keep original
-        const modifiedUrl = originalUrl;
-
-        const isLuluvidSource = modifiedUrl.includes('luluvid') || modifiedUrl.includes('lulustream');
-
-        allSources.push({
-          id: `movix-download-${quality.toLowerCase()}-${index}`,
-          name: `${qualityLabel} (${languageLabel})`,
-          provider: 'movix',
-          url: modifiedUrl,
-          type: 'm3u8' as const,
-          isMovixDownload: true,
-          isLuluvid: isLuluvidSource, // Correctly flag Luluvid sources
-          quality: quality,
-          // Store as VF for Multi sources
-          language: isMulti ? 'VF' : source.language
-        });
       });
     });
   }
@@ -829,121 +628,6 @@ const StreamingSources = memo(function StreamingSources({
     }
   }
 
-  // Ajouter les sources VidMoly si disponibles
-  console.log('🔍 StreamingSources - VidMoly data:', vidmolyData);
-  console.log('🔍 StreamingSources - hasVidMolyLinks:', hasVidMolyLinks);
-  console.log('🔍 StreamingSources - selectedLanguage:', selectedLanguage);
-
-  if (vidmolyData && hasVidMolyLinks) {
-    let vidmolyCounter = 1;
-
-    if (selectedLanguage === 'VF' && vidmolyData.vf) {
-      console.log('🔍 Ajout des sources VidMoly/Luluvid VF:', vidmolyData.vf);
-      vidmolyData.vf.forEach((player: any) => {
-        console.log('🔍 Player VF original:', player);
-        const isLuluvid = player.name.toLowerCase().includes('luluvid') || player.name.toLowerCase().includes('lulustream');
-        const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
-        const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
-
-        let sourceUrl = player.url;
-        let sourceType: 'embed' | 'm3u8' = 'embed';
-
-        if (isLuluvid) {
-          // For Luluvid, route through proxy to extract M3U8
-          // The proxy will detect Luluvid domain, extract M3U8, and process it
-          sourceUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(player.url)}`;
-          sourceType = 'm3u8' as const;
-        }
-
-        const source = {
-          id: `${providerKey}-vf-${vidmolyCounter}`,
-          name: `${providerName} ${vidmolyCounter} (VF)`,
-          provider: providerKey,
-          url: sourceUrl,
-          type: sourceType,
-          player: providerKey,
-          isVidMoly: !isLuluvid, // For specialized click handling if needed
-          isLuluvid: isLuluvid, // Add flags if needed
-          quality: isLuluvid ? 'HD' : undefined, // Luluvid defaults to HD
-          sourceKey: 'VF'
-        };
-        console.log(`✅ Ajout source ${providerName} VF:`, source);
-        allSources.push(source);
-        vidmolyCounter++;
-      });
-    }
-
-    if (selectedLanguage === 'VOSTFR' && vidmolyData.vostfr) {
-      console.log('🔍 Ajout des sources VidMoly/Luluvid VOSTFR:', vidmolyData.vostfr);
-      vidmolyData.vostfr.forEach((player: any) => {
-        const isLuluvid = player.name.toLowerCase().includes('luluvid') || player.name.toLowerCase().includes('lulustream');
-        const providerName = isLuluvid ? 'Luluvid' : 'VidMoly';
-        const providerKey = isLuluvid ? 'luluvid' : 'vidmoly';
-
-        let sourceUrl = player.url;
-        let sourceType: 'embed' | 'm3u8' = 'embed';
-
-        if (isLuluvid) {
-          sourceUrl = `/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(player.url)}`;
-          sourceType = 'm3u8' as const;
-        }
-
-        const source = {
-          id: `${providerKey}-vostfr-${vidmolyCounter}`,
-          name: `${providerName} ${vidmolyCounter} (VOSTFR)`,
-          provider: providerKey,
-          url: sourceUrl,
-          type: sourceType,
-          player: providerKey,
-          isVidMoly: !isLuluvid,
-          isLuluvid: isLuluvid,
-          quality: isLuluvid ? 'HD' : undefined, // Luluvid defaults to HD
-          sourceKey: 'VOSTFR'
-        };
-        console.log(`✅ Ajout source ${providerName} VOSTFR:`, source);
-        allSources.push(source);
-        vidmolyCounter++;
-      });
-    }
-  } else {
-    console.log('❌ Pas de sources VidMoly - vidmolyData:', vidmolyData, 'hasVidMolyLinks:', hasVidMolyLinks);
-  }
-
-
-  // Ajouter les sources TMDB Proxy (Luluvid)
-  if (hasTmdbProxyLinks && tmdbProxyData) {
-    console.log('🔍 [TMDB PROXY] Ajout des sources Luluvid:', tmdbProxyData);
-    let tmdbProxyCounter = 1;
-
-    tmdbProxyData.forEach((link) => {
-      const lang = (link.language || 'VF').toUpperCase();
-      const displayLang = lang.includes('FRENCH') ? 'VF' : lang;
-
-      // Filter by selected language
-      if (selectedLanguage === 'VF' && !['VF', 'VFF', 'VFQ'].includes(displayLang)) return;
-      if (selectedLanguage === 'VOSTFR' && displayLang !== 'VOSTFR') return;
-      if (selectedLanguage === 'VO' && displayLang !== 'VO') return;
-
-      // Use direct URL for embed
-      const sourceUrl = link.decoded_url;
-
-      const source: Source = {
-        id: `tmdb-proxy-luluvid-${tmdbProxyCounter}`,
-        name: `Luluvid ${tmdbProxyCounter} (${displayLang})`,
-        provider: 'luluvid',
-        url: sourceUrl,
-        type: 'm3u8',
-        player: 'luluvid',
-        quality: 'HD', // Luluvid is always HD
-        language: displayLang,
-        isLuluvid: true
-      };
-
-      allSources.push(source);
-      tmdbProxyCounter++;
-    });
-  }
-
   // Ajouter les sources VidMoly anime si disponibles (pour les séries anime)
   if (isAnimeSeries && animeVidMolyData && hasAnimeVidMolyLinks) {
     console.log('🔍 StreamingSources - Anime VidMoly data:', animeVidMolyData);
@@ -1022,25 +706,6 @@ const StreamingSources = memo(function StreamingSources({
 
 
 
-  // Ajouter les sources Vixsrc (VO uniquement)
-  if (selectedLanguage === 'VO' && vixsrcData && vixsrcData.success && vixsrcData.streams) {
-    console.log('🔍 [VIXSRC] Sources trouvées:', vixsrcData.streams);
-    vixsrcData.streams.forEach((stream: any, index: number) => {
-      allSources.push({
-        id: `vixsrc-${index}`,
-        name: `Vixsrc (VO) - ${stream.quality}`,
-        provider: 'vixsrc',
-        url: stream.url,
-        type: 'm3u8' as const,
-        player: 'vixsrc',
-        isVixsrc: true,
-        sourceKey: 'VO',
-        quality: stream.quality,
-        language: 'VO'
-      });
-    });
-  }
-
   // Ajouter toutes les résolutions MovieBox de la catégorie sélectionnée.
   if (movieBoxData && movieBoxData.success && movieBoxData.streams) {
     console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
@@ -1078,55 +743,6 @@ const StreamingSources = memo(function StreamingSources({
       });
     });
 
-  }
-
-  // Ajouter les sources 4KHDHub (VO uniquement)
-  if (selectedLanguage === 'VO' && fourKHDHubData && fourKHDHubData.success && fourKHDHubData.streams) {
-    console.log('📦 [4KHDHub] Sources trouvées:', fourKHDHubData.streams);
-    fourKHDHubData.streams.forEach((stream: any, index: number) => {
-      allSources.push({
-        id: `4khdhub-${index}`,
-        name: `4KHDHub ${stream.quality} - ${stream.size}`,
-        provider: '4khdhub',
-        url: stream.url,
-        type: 'mkv' as const,
-        player: '4khdhub',
-        sourceKey: 'VO',
-        quality: stream.quality,
-        language: 'VO',
-        isFourKHDHub: true
-      });
-    });
-  }
-
-
-
-  // Ajouter les sources Cinepro MegaCDN (VO uniquement) - PRIORITIZED AT TOP
-  // Use unshift to add at the beginning of the array so MegaCDN appears first
-  if (selectedLanguage === 'VO' && cineproData && cineproData.success && cineproData.streams) {
-    console.log('🔍 [Cinepro MegaCDN] Sources trouvées (prioritized):', cineproData.streams);
-    // Sort by quality (1080p first, then 720p, then 360p)
-    const qualityOrder = ['1080p', '720p', '480p', '360p', 'Auto'];
-    const sortedStreams = [...cineproData.streams].sort((a: any, b: any) => {
-      const qA = qualityOrder.indexOf(a.quality || 'Auto');
-      const qB = qualityOrder.indexOf(b.quality || 'Auto');
-      return (qA === -1 ? 999 : qA) - (qB === -1 ? 999 : qB);
-    });
-
-    // Add in reverse order so highest quality ends up first after all unshifts
-    sortedStreams.reverse().forEach((stream: any, index: number) => {
-      allSources.unshift({
-        id: `cinepro-megacdn-${index}`,
-        name: `${stream.server || 'MegaCDN'} ${stream.quality || 'Auto'} (VO)`,
-        provider: 'cinepro',
-        url: stream.link,
-        type: stream.type === 'mp4' ? 'mp4' : 'm3u8',
-        player: 'cinepro',
-        sourceKey: 'VO',
-        quality: stream.quality || 'Auto',
-        language: 'VO'
-      });
-    });
   }
 
   // Ajouter les sources AfterDark
@@ -1208,7 +824,7 @@ const StreamingSources = memo(function StreamingSources({
         return -1;
       }
 
-      if (['animesama', 'frenchanime', 'frenchstream', 'streamzo', 'vidlink'].includes(provider)) {
+      if (['animesama', 'frenchanime', 'frenchstream', 'streamzo'].includes(provider)) {
         return 0.5;
       }
 
@@ -1224,18 +840,6 @@ const StreamingSources = memo(function StreamingSources({
       if (source.provider.toLowerCase() === 'moviebox' ||
         source.name.toLowerCase().includes('moviebox')) {
         return 1;
-      }
-
-      // Rang 1.5: Vixsrc (Added for prioritization)
-      if (source.provider.toLowerCase() === 'vixsrc' ||
-        source.name.toLowerCase().includes('vixsrc')) {
-        return 1.5;
-      }
-
-      // Rang 2: MegaCDN (sources Cinepro)
-      if (source.provider?.toLowerCase() === 'cinepro' ||
-        source.name.toLowerCase().includes('megacdn')) {
-        return 2;
       }
 
       // Rang 3: VidMoly
@@ -1256,12 +860,7 @@ const StreamingSources = memo(function StreamingSources({
         return 4;
       }
 
-      // Rang 10: 4KHDHub (Dernier)
-      if (source.isFourKHDHub || source.provider.toLowerCase() === '4khdhub') {
-        return 10;
-      }
-
-      // Rang 5: Le reste (Darki, Movix, Vixsrc, etc.)
+      // Rang 5: Le reste (Darki, Movix, etc.)
       return 5;
     };
 
@@ -1279,126 +878,6 @@ const StreamingSources = memo(function StreamingSources({
 
   // Sources statiques supprimées - on utilise maintenant uniquement les APIs TopStream, FStream, VidMoly et Darkibox
 
-
-  const handleDownloadVideo = async (source: Source, e: React.MouseEvent) => {
-    e.stopPropagation();
-    console.log('🔍 [DOWNLOAD DEBUG] Video download clicked for:', source);
-
-    let downloadUrl = source.url || '';
-    let downloadHeaders = (source as any).headers || {};
-
-    // 1. Extraction logic for Embed sources
-    const isVidzySource = source.isVidzy || source.name.toLowerCase().includes('vidzy') || source.url?.includes('vidzy');
-    if (isVidzySource && source.url) {
-      const fileCode = source.url.match(/embed-([^/?#.]+)\.html/i)?.[1];
-      if (fileCode) {
-        const providerOrigin = new URL(source.url).origin;
-        window.open(`${providerOrigin}/d/${fileCode}_n`, '_blank', 'noopener,noreferrer');
-        toast.success(t("Download page opened"));
-        return;
-      }
-    }
-
-    if (source.isAfterDark || source.name.toLowerCase().includes('darki') || source.url?.includes('darkibox')) {
-      toast.info("Extracting download link...");
-      try {
-        const response = await apiClient.post('/api/extract', { type: 'darkibox', url: source.url });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.m3u8Url) {
-            downloadUrl = data.m3u8Url;
-            downloadHeaders = data.headers || downloadHeaders;
-            console.log('✅ [DOWNLOAD] Extracted URL:', downloadUrl);
-          }
-        } else {
-          console.error("Extraction failed");
-        }
-      } catch (err) {
-        console.error("Extraction error:", err);
-      }
-    } else if (source.name.toLowerCase().includes('vidmoly')) {
-      toast.info("Extracting download link...");
-      try {
-        // Vidmoly extraction
-        const result = await apiClient.extractVidMoly(source.url || '');
-        if (result.success && result.m3u8Url) {
-          downloadUrl = result.m3u8Url;
-          console.log('✅ [DOWNLOAD] Extracted Vidmoly URL:', downloadUrl);
-        }
-      } catch (err) { console.error(err); }
-    }
-
-    // 2. Identification and Proxy Logic
-    const isVidmolyOrVidzy = source.name.toLowerCase().includes('vidmoly') || source.name.toLowerCase().includes('vidzy') || downloadUrl.includes('vidmoly') || downloadUrl.includes('vidzy');
-    const isHls = downloadUrl.includes('.m3u8');
-    const isMp4 = downloadUrl.includes('.mp4') || downloadUrl.includes('.mkv') || source.type === 'mp4' || source.type === 'mkv';
-
-    // 3. Download Routing Logic
-    // If we have headers, we MUST use a proxy that supports them.
-    // If it's HLS, we use our new ffmpeg-based downloader (api/proxy?action=download).
-    // If it's MP4/MKV with headers, we can also use api/proxy (it supports simple copy).
-    // If it's MP4 without headers, direct link might fail (CORS/Referer) so safer to use proxy too.
-
-    // EXCEPTION: 4KHDHub links are direct MKV downloads that don't need proxying
-    if ((source as any).isFourKHDHub || source.name.toLowerCase().includes('4khdhub') || source.provider === '4khdhub') {
-      console.log('✅ [DOWNLOAD] Direct download for 4KHDHub (no proxy needed)');
-      window.open(downloadUrl, '_blank');
-      toast.success(t("Download started..."));
-      return;
-    }
-
-    // Client-Side Download using FFmpeg
-    console.log('✅ [DOWNLOAD] Starting Client-Side FFmpeg Download');
-
-    setDownloadingId(source.id);
-
-    // Show toast for start
-    const promise = downloadVideo(downloadUrl, `${title || 'video'}.mp4`);
-
-    toast.promise(promise, {
-      loading: 'Downloading & Converting locally... (Classic Download)',
-      success: 'Download ready!',
-      error: (err) => `Download failed: ${err.message}`
-    });
-
-    try {
-      await promise;
-    } catch (e) {
-      // Error handled by toast
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
-  const handleDownloadSubtitles = async () => {
-    console.log('🔍 [DOWNLOAD DEBUG] Subtitles download clicked. IMDB ID:', imdbId); // ADDED LOG
-    if (!imdbId) {
-      toast.error("IMDB ID missing, cannot fetch subtitles");
-      return;
-    }
-
-    const params = new URLSearchParams({
-      action: 'subtitles',
-      imdbId: imdbId,
-      type: type,
-      title: title || 'video'
-    });
-
-    if (season) params.append('season', season.toString());
-    if (episode) params.append('episode', episode.toString());
-
-    const url = `/api/proxy?${params.toString()}`;
-
-    // Trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success("Subtitle download started...");
-  };
 
   const handleSourceClick = async (source: any) => {
     console.log('🔍 StreamingSources handleSourceClick appelé avec source:', source);
@@ -1464,69 +943,6 @@ const StreamingSources = memo(function StreamingSources({
           quality: source.quality,
           language: source.language
         });
-      } else if (source.isVixsrc) {
-        console.log('✅ Source Vixsrc détectée, URL:', source.url);
-        // L'URL est déjà proxifiée par le serveur (via api/movix-proxy/index.js)
-        onSourceClick({
-          url: source.url,
-          type: 'm3u8' as const,
-          name: source.name,
-          quality: source.quality,
-          language: source.language,
-          isVixsrc: true,
-          provider: 'vixsrc'
-        });
-        /* REMOVED MANUAL FETCH
-        try {
-          // Use the same API as iOS - GET /api/vixsrc with query params
-          const params = new URLSearchParams({
-            tmdbId: id.toString(),
-            type: type
-          });
-   
-          if (season) params.append('season', season.toString());
-          if (episode) params.append('episode', episode.toString());
-   
-          const response = await fetch(`/api/vixsrc?${params.toString()}`);
-   
-          if (!response.ok) {
-            throw new Error(`Erreur extraction Vixsrc: ${response.statusText}`);
-          }
-   
-          const data = await response.json();
-   
-          if (data.success && data.streams && data.streams.length > 0) {
-            const stream = data.streams[0];
-            console.log('✅ Stream Vixsrc extrait:', stream.url);
-   
-            // IMPORTANT: Like iOS, wrap the URL in vixsrc-proxy to handle CORS/Headers
-            // AND append .m3u8 extension hint for Safari/Browsers which are pickier than AVPlayer
-            const proxyUrl = `/api/vixsrc-proxy?url=${encodeURIComponent(stream.url)}&ext=.m3u8`;
-            console.log('✅ URL proxifiée:', proxyUrl);
-            onSourceClick({
-              url: proxyUrl,
-              type: 'm3u8' as const,
-              name: source.name,
-              quality: stream.quality || source.quality,
-              language: source.language,
-              isVixsrc: true,
-              provider: 'vixsrc'
-            });
-          } else {
-            throw new Error('Pas de streams dans la réponse');
-          }
-        } catch (error) {
-          console.error('Erreur lors de l\'extraction Vixsrc:', error);
-          alert('Impossible de lire cette source Vixsrc. Veuillez réessayer.');
-          // Retirer du chargement
-          setLoadingSources(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(source.id);
-            return newSet;
-          });
-        } */
-
-
       } else if (source.isLuluvid) {
         console.log('✅ Source Luluvid détectée, via proxy');
         onSourceClick({
@@ -1590,17 +1006,10 @@ const StreamingSources = memo(function StreamingSources({
 
   const isLoadingProviders =
     isLoadingFStream ||
-    isLoadingMovixDownload ||
-    isLoadingVidMoly ||
     isLoadingAnimeVidMoly ||
-    isLoadingVixsrc ||
     isLoadingExternal ||
-    isLoadingFourKHDHub ||
-    isLoadingVidlink ||
     isLoadingFrenchProviders ||
     isLoadingMovieBox ||
-    isLoadingCinepro ||
-    isLoadingTmdbProxy ||
     isLoadingMovixLinks;
 
   if (isLoadingProviders) {
@@ -1756,21 +1165,6 @@ const StreamingSources = memo(function StreamingSources({
                     <span className="flex items-center gap-2">
                       <Play className="w-4 h-4" />
                       {source.name}
-                      {source.isVixsrc && (
-                        <Badge variant="default" className="text-xs">
-                          Vixsrc
-                        </Badge>
-                      )}
-                      {source.isFourKHDHub && (
-                        <Badge variant="destructive" className="text-xs">
-                          MKV
-                        </Badge>
-                      )}
-                      {source.isFourKHDHub && (
-                        <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-700 border-yellow-500">
-                          MKV Not natively supported
-                        </Badge>
-                      )}
                       {source.quality && (
                         <Badge variant="secondary" className="text-xs">
                           {source.quality}
@@ -1786,35 +1180,6 @@ const StreamingSources = memo(function StreamingSources({
                       {loadingSources.has(source.id) ? t("streaming.loading") : "Regarder"}
                     </span>
                   </Button>
-                  {source.isFourKHDHub && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(source.url || '');
-                        toast.success("Lien copié !");
-                      }}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  )}
-
-                  {/* Always show download button if URL is present */}
-                  {/* Only show download button for 4KHDHub sources */}
-                  {source.url && source.isFourKHDHub && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={(e) => handleDownloadVideo(source, e)}
-                      title="Download Video (Local)"
-                      disabled={downloadingId === source.id}
-                    >
-                      {downloadingId === source.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                    </Button>
-                  )}
                 </div>
               </div>
             );
