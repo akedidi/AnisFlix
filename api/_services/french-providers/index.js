@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { VidmolyExtractor } from '../universalvo/extractors/VidmolyExtractor.js';
 import { VidzyExtractor } from '../universalvo/extractors/VidzyExtractor.js';
 import { extract_voe } from '../universalvo/extractors/voe.js';
@@ -155,31 +156,35 @@ async function fetchText(url, { method = 'GET', body, headers = {}, referer, tim
     }
   }
 
-  // Ansembed/minochinos mint vmpx tokens for the fetcher ASN (= playback proxy ASN).
-  // On Vercel: fetch the embed page DIRECTLY (same egress as cinepro-proxy).
+  // Ansembed/minochinos mint vmpx tokens for the fetcher ASN.
+  // cinepro-proxy uses axios — native fetch() on Vercel can egress via a different
+  // IP, so the later cinepro m3u8 fetch gets 403. Use axios here to match playback.
   // Never HTTP self-call cinepro-proxy from inside the serverless function — it hangs.
   // Off Vercel (local): go through deployed cinepro-proxy so the token is AWS ASN.
   if (method === 'GET' && !body && isVercelBoundEmbedHost(url)) {
     const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
     if (onVercel) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), Math.max(timeout, 25000));
       try {
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal,
+        const response = await axios.get(url, {
+          timeout: Math.max(timeout, 25000),
+          responseType: 'text',
           headers: {
             'User-Agent': USER_AGENT,
             Accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
             ...(referer ? { Referer: referer } : { Referer: `${ANIME_SAMA_BASE}/` }),
             ...headers,
           },
+          // Same defaults as cinepro-proxy media fetches
+          decompress: true,
+          validateStatus: (status) => status >= 200 && status < 400,
         });
-        if (!response.ok) throw new HttpStatusError(response.status, url);
-        console.log(`[FrenchProviders] Direct Vercel embed fetch: ${hostnameOf(url)}`);
-        return await response.text();
-      } finally {
-        clearTimeout(timer);
+        console.log(`[FrenchProviders] Axios Vercel embed fetch: ${hostnameOf(url)}`);
+        return typeof response.data === 'string' ? response.data : String(response.data);
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status) throw new HttpStatusError(status, url);
+        throw error;
       }
     }
     const text = await fetchViaVercelCinepro(url, { referer, timeout: Math.max(timeout, 25000) });
