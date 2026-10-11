@@ -13,6 +13,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
+import { getMaxReleasedDateString } from "@/utils/releaseDate";
 
 export default function AmazonSeries() {
   const { t } = useLanguage();
@@ -37,8 +38,7 @@ export default function AmazonSeries() {
         
         // Essayer d'abord avec le network filter pour Amazon Originals
         try {
-          const today = new Date();
-          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const firstAirDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
           const url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=1024&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&include_null_first_air_dates=false&include_adult=false&page=${currentPage}`;
           
           const response = await fetch(url);
@@ -51,8 +51,7 @@ export default function AmazonSeries() {
         
         // Si échec, essayer avec with_watch_providers et plusieurs régions
         if (!result || !result.results || result.results.length === 0) {
-          const today = new Date();
-          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const firstAirDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
           const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
           
           // Essayer chaque région

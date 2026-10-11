@@ -2845,18 +2845,14 @@ class StreamingService {
                 print("⚠️ [StreamingService] Episode S\(ep.seasonNumber) E\(ep.episodeNumber) has NO air_date. Treating as unreleased.")
                 return false
             }
-            
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd"
-            guard let date = formatter.date(from: dateStr) else {
-                print("⚠️ [StreamingService] Could not parse air_date: '\(dateStr)'. Treating as unreleased.")
-                return false
-            }
-            
-            // Allow if date is today or in past
-            let isPast = date <= Date()
-            print("🗓️ [StreamingService] Checking S\(ep.seasonNumber) E\(ep.episodeNumber): AirDate='\(dateStr)' released? \(isPast)")
-            return isPast
+
+            // TMDB air_date is date-only (no reliable air time). Same-day eps wait until evening.
+            let released = ReleaseDateUtils.isReleaseDateAvailable(
+                dateStr,
+                missingDateMeansReleased: false
+            )
+            print("🗓️ [StreamingService] Checking S\(ep.seasonNumber) E\(ep.episodeNumber): AirDate='\(dateStr)' released? \(released)")
+            return released
         }
         
         // 1. Check if next episode exists in CURRENT season

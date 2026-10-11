@@ -29,6 +29,7 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { cn, formatDuration } from "@/lib/utils";
+import { isReleaseDateAvailable } from "@/utils/releaseDate";
 
 // Convert ISO country code to flag emoji
 const getCountryFlag = (countryCode: string): string => {
@@ -36,6 +37,12 @@ const getCountryFlag = (countryCode: string): string => {
   const flag = code.split('').map(char => String.fromCodePoint(0x1F1E6 + char.charCodeAt(0) - 65)).join('');
   return flag;
 };
+
+/** Hide unaired episodes (TMDB air_date is date-only; optional air_time used when present). */
+const isEpisodeReleased = (episode: { air_date?: string; air_time?: string }) =>
+  isReleaseDateAvailable(episode.air_date, episode.air_time, {
+    missingDateMeansReleased: true,
+  });
 
 export default function SeriesDetail() {
   const { id } = useRouteParams<{ id: string }>();
@@ -607,15 +614,7 @@ export default function SeriesDetail() {
                     {(() => {
                       const isSelectedSeason = seasonDetails?.season_number === season.season_number;
                       const validEpisodeCount = isSelectedSeason && seasonDetails?.episodes
-                        ? seasonDetails.episodes.filter((episode: any) => {
-                          if (!episode.air_date) return true;
-                          const today = new Date();
-                          const year = today.getFullYear();
-                          const month = String(today.getMonth() + 1).padStart(2, '0');
-                          const day = String(today.getDate()).padStart(2, '0');
-                          const todayStr = `${year}-${month}-${day}`;
-                          return episode.air_date <= todayStr;
-                        }).length
+                        ? seasonDetails.episodes.filter(isEpisodeReleased).length
                         : season.episode_count;
 
                       return (
@@ -658,28 +657,12 @@ export default function SeriesDetail() {
                         {seasonDetails?.season_number == season.season_number ? (
                           seasonDetails?.episodes && seasonDetails.episodes.length > 0 ? (
                             seasonDetails.episodes
-                              .filter((episode: any) => {
-                                if (!episode.air_date) return true;
-                                const today = new Date();
-                                const year = today.getFullYear();
-                                const month = String(today.getMonth() + 1).padStart(2, '0');
-                                const day = String(today.getDate()).padStart(2, '0');
-                                const todayStr = `${year}-${month}-${day}`;
-                                return episode.air_date <= todayStr;
-                              })
+                              .filter(isEpisodeReleased)
                               .length === 0 ? (
                               <p className="text-muted-foreground italic">Aucun épisode disponible pour le moment.</p>
                             ) : (
                               seasonDetails.episodes
-                                .filter((episode: any) => {
-                                  if (!episode.air_date) return true;
-                                  const today = new Date();
-                                  const year = today.getFullYear();
-                                  const month = String(today.getMonth() + 1).padStart(2, '0');
-                                  const day = String(today.getDate()).padStart(2, '0');
-                                  const todayStr = `${year}-${month}-${day}`;
-                                  return episode.air_date <= todayStr;
-                                })
+                                .filter(isEpisodeReleased)
                                 .map((episode: any) => {
                                   const episodeProgress = getMediaProgress(seriesId, 'tv', selectedSeasonNumber, episode.episode_number);
 

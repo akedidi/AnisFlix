@@ -14,6 +14,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
+import { getMaxReleasedDateString } from "@/utils/releaseDate";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -130,8 +131,7 @@ export default function ProviderSeriesGenre() {
         // Pour Amazon (9) uniquement, utiliser le network filter pour Amazon Originals
         if (providerId === 9) {
           try {
-            const today = new Date();
-            const firstAirDateLte = today.toISOString().slice(0, 10);
+            const firstAirDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
             let url = `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_networks=1024&sort_by=first_air_date.desc&first_air_date.lte=${firstAirDateLte}&include_null_first_air_dates=false&include_adult=false&page=${currentPage}`;
 
             if (genreId) {
@@ -150,8 +150,7 @@ export default function ProviderSeriesGenre() {
         // Pour les autres providers ou si Amazon échoue, utiliser with_watch_providers
         if (!result || !result.results || result.results.length === 0) {
           // Pour les autres providers, utiliser with_watch_providers
-          const today = new Date();
-          const firstAirDateLte = today.toISOString().slice(0, 10);
+          const firstAirDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
           const providerFilter = providerId === 384 ? '384|1899' : String(providerId);
           const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
 

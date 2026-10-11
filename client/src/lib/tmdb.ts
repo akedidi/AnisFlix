@@ -1,6 +1,11 @@
+import { getMaxReleasedDateString } from '@/utils/releaseDate';
+
 const TMDB_API_KEY = 'f3d757824f08ea2cff45eb8f47ca3a1e';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+
+/** TMDB has no reliable release time — hide same-day titles until late morning. */
+const maxReleasedDate = () => getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
 export interface TMDBMovie {
   id: number;
@@ -142,11 +147,10 @@ export const tmdb = {
   getMoviesByGenre: async (genreId: number, page = 1) => {
     // Special handling for Science Fiction (878)
     if (genreId === 878) {
-      const today = new Date().toISOString().split('T')[0];
       return tmdbFetch('/discover/movie', {
         with_genres: genreId.toString(),
         sort_by: 'primary_release_date.desc',
-        'primary_release_date.lte': today,
+        'primary_release_date.lte': maxReleasedDate(),
         with_watch_monetization_types: 'flatrate',
         watch_region: 'FR',
         page: page.toString(),
@@ -168,14 +172,11 @@ export const tmdb = {
   getLatestSeries: async (page = 1) => {
     // Découverte des séries récentes (toutes, sans filtre de provider ou de date passée)
     // Tri par date de première diffusion (plus récent au plus ancien)
-    const today = new Date();
-    const lastDateLte = today.toISOString().slice(0, 10);
-
     return tmdbFetch('/discover/tv', {
       sort_by: 'first_air_date.desc',
       include_adult: 'false',
       include_null_first_air_dates: 'false',
-      'first_air_date.lte': lastDateLte,
+      'first_air_date.lte': maxReleasedDate(),
       page: page.toString(),
     } as any);
   },
@@ -222,11 +223,10 @@ export const tmdb = {
   getSeriesByGenre: async (genreId: number, page = 1) => {
     // Special handling for Sci-Fi & Fantasy (10765)
     if (genreId === 10765) {
-      const today = new Date().toISOString().split('T')[0];
       return tmdbFetch('/discover/tv', {
         with_genres: genreId.toString(),
         sort_by: 'first_air_date.desc',
-        'first_air_date.lte': today,
+        'first_air_date.lte': maxReleasedDate(),
         with_watch_monetization_types: 'flatrate',
         watch_region: 'FR',
         page: page.toString(),
@@ -320,9 +320,8 @@ export const tmdb = {
 
   // Discover by provider
   discoverMoviesByProvider: async (providerId: number, page = 1, regionOverride?: string) => {
-    // Récentes sorties et exclure le futur
-    const today = new Date();
-    const releaseDateLte = today.toISOString().slice(0, 10);
+    // Récentes sorties et exclure le futur / sorties du jour pas encore disponibles
+    const releaseDateLte = maxReleasedDate();
 
     // Si une région est forcée, on l'utilise seule. Sinon on garde la logique de fallback.
     // iOS Strategy: Amazon (9) -> US, Others -> FR.
@@ -374,8 +373,7 @@ export const tmdb = {
     // Pour Amazon (9) uniquement, utiliser le network filter pour avoir les Amazon Originals
     if (providerId === 9) {
       try {
-        const today = new Date();
-        const firstAirDateLte = today.toISOString().slice(0, 10);
+        const firstAirDateLte = maxReleasedDate();
         return await tmdbFetch('/discover/tv', {
           with_networks: '1024', // Amazon Studios
           sort_by: 'first_air_date.desc',
@@ -391,8 +389,7 @@ export const tmdb = {
     }
 
     // Pour les autres providers, utiliser with_watch_providers
-    const today = new Date();
-    const firstAirDateLte = today.toISOString().slice(0, 10);
+    const firstAirDateLte = maxReleasedDate();
 
     let regions: string[];
     if (regionOverride) {
@@ -441,9 +438,8 @@ export const tmdb = {
 
   // Discover by provider + genre with fallback logic
   discoverMoviesByProviderAndGenre: async (providerId: number, genreId: number, page = 1, regionOverride?: string) => {
-    // Exclure le futur, trier par dernières sorties
-    const today = new Date();
-    const releaseDateLte = today.toISOString().slice(0, 10);
+    // Exclure le futur / sorties du jour pas encore disponibles, trier par dernières sorties
+    const releaseDateLte = maxReleasedDate();
 
     let regions: string[];
     if (regionOverride) {
@@ -492,9 +488,8 @@ export const tmdb = {
   },
 
   discoverSeriesByProviderAndGenre: async (providerId: number, genreId: number, page = 1, regionOverride?: string) => {
-    // Exclure le futur, trier par dernières sorties
-    const today = new Date();
-    const firstAirDateLte = today.toISOString().slice(0, 10);
+    // Exclure le futur / sorties du jour pas encore disponibles, trier par dernières sorties
+    const firstAirDateLte = maxReleasedDate();
 
     let regions: string[];
     if (regionOverride) {

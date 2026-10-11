@@ -1,4 +1,8 @@
 import axios from 'axios';
+import {
+    isReleaseDateAvailable,
+    getMaxReleasedDateString,
+} from '../_utils/releaseDate.js';
 
 const TMDB_API_KEY = 'f3d757824f08ea2cff45eb8f47ca3a1e';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
@@ -257,10 +261,10 @@ export default async function handler(req, res) {
             const page = req.query.page || 1;
             // Major Networks IDs (Expanded list including Netflix, Amazon, Disney+, Hulu, HBO, Paramount+, Apple TV+, etc.)
             const majorNetworks = "213|1024|2552|2739|453|1112|49|3186|8304|6783|67|318|3353|4330|6|2|16|19|88|3267|4|332|285|290|712|6694|662|1628|2278|302|23|94|160|2363|4661|43|174|218|4590|7635|827|80|384|141|3877|156";
-            const today = new Date();
-            const lastDateLte = today.toISOString().slice(0, 10);
+            // TMDB has no reliable release time: hide same-day titles until late morning (streaming drops)
+            const lastDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
-            console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language})`);
+            console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language}, lte=${lastDateLte})`);
 
             const data = await tmdbFetch('/discover/tv', {
                 sort_by: 'first_air_date.desc',
@@ -279,13 +283,13 @@ export default async function handler(req, res) {
         // Endpoint 1c: Latest Movies (Centralized Logic - DVD/Bluray/Digital)
         if (type === 'movie' && req.query.filter === 'last') {
             const page = req.query.page || 1;
-            const today = new Date();
-            const lastDateLte = today.toISOString().slice(0, 10);
+            // TMDB has no reliable release time: hide same-day titles until late morning (streaming drops)
+            const lastDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
             // Release Types: 4 (Digital), 5 (Physical/DVD/Blu-ray)
             const releaseTypes = "4|5";
 
-            console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language})`);
+            console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language}, lte=${lastDateLte})`);
 
             const data = await tmdbFetch('/discover/movie', {
                 sort_by: 'release_date.desc',
@@ -319,8 +323,8 @@ export default async function handler(req, res) {
                 // International: HBO España (3877), SBS (156), MBS (94), TBS (160)
                 const allowedNetworkIds = "213|1024|2552|2739|453|1112|49|3186|8304|6783|67|318|3353|4330|6|2|16|19|88|3267|4|332|285|290|712|6694|662|1628|2278|302|23|94|160|2363|4661|43|174|218|4590|7635|827|80|384|141|3877|156";
 
-                const today = new Date();
-                const todayStr = today.toISOString().slice(0, 10);
+                // TMDB episode air_date is date-only; don't treat "today" as released until evening
+                const todayStr = getMaxReleasedDateString({ sameDayCutoffHour: 20 });
                 const pastDate = new Date();
                 pastDate.setDate(pastDate.getDate() - 60); // Look back 60 days to fill the list (ensures >200 items)
                 const pastDateStr = pastDate.toISOString().slice(0, 10);
@@ -341,7 +345,7 @@ export default async function handler(req, res) {
                     'air_date.lte': todayStr,
                     'air_date.gte': pastDateStr,
                     'sort_by': 'popularity.desc', // Use popularity to surface active/relevant shows first
-                    timezone: 'America/New_York'
+                    timezone: 'Europe/Paris'
                 });
 
                 // CRITICAL: Always exclude on_the_air IDs from discover to prevent cross-page duplicates
@@ -383,14 +387,35 @@ export default async function handler(req, res) {
                                 return null;
                             }
 
-                            // Determine the correct "latest" episode
-                            // TMDB sometimes lists today's episode as "next_episode_to_air" until later in the day
+                            // Determine the correct "latest" episode.
+                            // Prefer last_episode_to_air. Only promote next_episode_to_air when
+                            // its air_date is actually considered released (TMDB has no air time).
                             let latestEp = details.last_episode_to_air;
                             const nextEp = details.next_episode_to_air;
-                            const todayDate = new Date().toISOString().slice(0, 10);
+                            const nextAirTime = nextEp?.air_time || nextEp?.airTime || null;
 
-                            if (nextEp && nextEp.air_date && nextEp.air_date <= todayDate) {
+                            if (
+                                nextEp?.air_date &&
+                                isReleaseDateAvailable(nextEp.air_date, nextAirTime, {
+                                    sameDayCutoffHour: 20,
+                                    missingDateMeansReleased: false,
+                                })
+                            ) {
                                 latestEp = nextEp;
+                            }
+
+                            if (
+                                !latestEp?.air_date ||
+                                !isReleaseDateAvailable(
+                                    latestEp.air_date,
+                                    latestEp.air_time || latestEp.airTime || null,
+                                    {
+                                        sameDayCutoffHour: 20,
+                                        missingDateMeansReleased: false,
+                                    }
+                                )
+                            ) {
+                                return null;
                             }
 
                             return {
@@ -408,12 +433,12 @@ export default async function handler(req, res) {
                                 year: show.first_air_date?.substring(0, 4) || '',
                                 media_type: 'tv',
                                 mediaType: 'tv',
-                                episodeInfo: latestEp ? {
+                                episodeInfo: {
                                     season: latestEp.season_number,
                                     episode: latestEp.episode_number,
                                     title: latestEp.name,
                                     date: latestEp.air_date
-                                } : null
+                                }
                             };
                         } catch (err) {
                             return null;

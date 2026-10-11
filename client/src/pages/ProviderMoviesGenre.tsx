@@ -14,6 +14,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
+import { getMaxReleasedDateString } from "@/utils/releaseDate";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -120,8 +121,7 @@ export default function ProviderMoviesGenre() {
         setError(null);
 
         // Pour Amazon (9) utiliser popularity, pour les autres utiliser date de sortie
-        const today = new Date();
-        const releaseDateLte = today.toISOString().slice(0, 10);
+        const releaseDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
         // Construire l'URL selon le provider
         // HBO Max: inclure Max 1899 également

@@ -9,6 +9,8 @@ import https from "https"; // Toujours utilisé pour d'autres routes
 import { vixsrcScraper } from "./vixsrc-scraper";
 // @ts-expect-error The shared Vercel handler is JavaScript and has no .d.ts.
 import movixProxyHandler from "../lib/handlers/movix-proxy.js";
+// @ts-expect-error Shared release-date helper is JavaScript and has no .d.ts.
+import { getMaxReleasedDateString } from "../api/_utils/releaseDate.js";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // put application routes here
@@ -1722,10 +1724,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Netflix(213), Amazon(1024), Disney+(2739), Apple TV+(2552), HBO(49), Canal+(380)
         const majorNetworks = "213|1024|2739|2552|49|380";
 
-        const today = new Date();
-        const lastDateLte = today.toISOString().slice(0, 10);
+        const lastDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
-        console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language})`);
+        console.log(`🆕 [TMDB PROXY] Fetching Latest Series (Page ${page}, Lang: ${language}, lte=${lastDateLte})`);
 
         const data = await tmdbProxyFetch('/discover/tv', {
           sort_by: 'first_air_date.desc',
@@ -1747,14 +1748,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Endpoint 1c: Latest Movies (Centralized Logic - DVD/Bluray/Digital)
       if (type === 'movie' && req.query.filter === 'last') {
         const page = req.query.page || 1;
-        const today = new Date();
-        const lastDateLte = today.toISOString().slice(0, 10);
+        const lastDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
 
         // Release Types: 4 (Digital), 5 (Physical/DVD/Blu-ray)
         // We exclude 3 (Theatrical) to ensure better quality links usually.
         const releaseTypes = "4|5";
 
-        console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language})`);
+        console.log(`🎥 [TMDB PROXY] Fetching Latest Movies (Page ${page}, Lang: ${language}, lte=${lastDateLte})`);
 
         const data = await tmdbProxyFetch('/discover/movie', {
           sort_by: 'primary_release_date.desc',

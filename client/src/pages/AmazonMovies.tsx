@@ -13,6 +13,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { useAppNavigation } from "@/lib/useAppNavigation";
 import { navPaths } from "@/lib/nativeNavigation";
+import { getMaxReleasedDateString } from "@/utils/releaseDate";
 
 export default function AmazonMovies() {
   const { t } = useLanguage();
@@ -36,8 +37,7 @@ export default function AmazonMovies() {
         let result: any = null;
         
         // Essayer d'abord avec plusieurs régions
-        const today = new Date();
-        const releaseDateLte = today.toISOString().slice(0, 10);
+        const releaseDateLte = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
         const regions = ['US', 'FR', 'GB', 'CA', 'NL', 'DE', 'ES', 'IT'];
         
         // Essayer chaque région

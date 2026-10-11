@@ -296,12 +296,11 @@ struct SeriesDetailView: View {
                                         .padding()
                                 } else if let season = seasonDetails {
                                     let filteredEpisodes = season.episodes.filter { episode in
-                                        // Show episodes with no date or episodes released today or in the past
-                                        guard let airDate = episode.airDate, !airDate.isEmpty else { return true }
-                                        let dateFormatter = DateFormatter()
-                                        dateFormatter.dateFormat = "yyyy-MM-dd"
-                                        let todayStr = dateFormatter.string(from: Date())
-                                        return airDate <= todayStr
+                                        // TMDB air_date is date-only; hide same-day unaired eps until evening
+                                        ReleaseDateUtils.isReleaseDateAvailable(
+                                            episode.airDate,
+                                            missingDateMeansReleased: true
+                                        )
                                     }
                                     
                                     if filteredEpisodes.isEmpty {

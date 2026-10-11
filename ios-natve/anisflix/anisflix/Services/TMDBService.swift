@@ -153,9 +153,8 @@ class TMDBService {
     // MARK: - Movies by Provider
     
     func fetchMoviesByProvider(providerId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        // TMDB has no reliable release time — hide same-day titles until late morning
+        let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         // MATCHING WEB LOGIC: sort_by 'release_date.desc' + filter future releases (lte today) + Digital/Physical types
         let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=release_date.desc&release_date.lte=\(todayStr)&with_release_type=4|5&with_watch_monetization_types=flatrate"
@@ -166,9 +165,7 @@ class TMDBService {
     // MARK: - Series by Provider
     
     func fetchSeriesByProvider(providerId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=popularity.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)
@@ -178,9 +175,7 @@ class TMDBService {
     // MARK: - Movies by Genre
     
     func fetchMoviesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         // Special handling for Science Fiction (878) to match web logic
         if genreId == 878 {
@@ -207,9 +202,7 @@ class TMDBService {
     // MARK: - Series by Genre
     
     func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         // Special handling for Sci-Fi & Fantasy (10765) to match web logic
         if genreId == 10765 {
@@ -244,9 +237,7 @@ class TMDBService {
     // MARK: - Series by Provider AND Genre
     
     func fetchSeriesByProviderAndGenre(providerId: Int, genreId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let todayStr = dateFormatter.string(from: Date())
+        let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&with_genres=\(genreId)&watch_region=\(region)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)

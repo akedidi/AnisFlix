@@ -14,6 +14,7 @@ import { useMultiSearch } from "@/hooks/useTMDB";
 import { usePaginationState } from "@/hooks/usePaginationState";
 import { navPaths } from "@/lib/nativeNavigation";
 import { useAppNavigation } from "@/lib/useAppNavigation";
+import { getMaxReleasedDateString } from "@/utils/releaseDate";
 
 // Mapping des genres avec leurs IDs et clés de traduction
 const GENRES = {
@@ -70,9 +71,9 @@ export default function SeriesGenre() {
         setLoading(true);
         setError(null);
 
-        const today = new Date().toISOString().split('T')[0];
+        const maxDate = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
         const sortBy = genreSlug === 'science-fiction' ? 'first_air_date.desc' : 'popularity.desc';
-        const dateFilter = genreSlug === 'science-fiction' ? `&first_air_date.lte=${today}` : '';
+        const dateFilter = genreSlug === 'science-fiction' ? `&first_air_date.lte=${maxDate}` : '';
         const streamingFilter = genreSlug === 'science-fiction' ? '&with_watch_monetization_types=flatrate&watch_region=FR' : '';
 
         const response = await fetch(
