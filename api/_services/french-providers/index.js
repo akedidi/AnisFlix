@@ -15,11 +15,12 @@ const WORKER_BASE = process.env.ANISFLIX_WORKER_URL || 'https://anisflix.kedidi-
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
 
 // Domains that Vercel egress often cannot open (TLS / CF). Prefer the CF worker.
+// NOTE: ansembed.net must NOT go through the worker — its vmpx CDN tokens are
+// ASN-bound to the IP that fetched the embed page. Worker page + Vercel m3u8 = 403.
+// Catalogue (anime-sama.to) stays on the worker; embed pages use Vercel egress.
 const WORKER_PREFERRED_HOSTS = new Set([
   'anime-sama.to',
   'www.anime-sama.to',
-  'ansembed.net',
-  'www.ansembed.net',
 ]);
 
 function hostnameOf(url) {
@@ -29,6 +30,13 @@ function hostnameOf(url) {
 function prefersWorker(url) {
   const host = hostnameOf(url);
   return WORKER_PREFERRED_HOSTS.has(host) || host.endsWith('.anime-sama.to');
+}
+
+/** Embed hosts whose CDN tokens are minted for the fetcher ASN (must match playback proxy). */
+function isVercelBoundEmbedHost(url) {
+  const host = hostnameOf(url);
+  return host === 'ansembed.net' || host.endsWith('.ansembed.net')
+    || host === 'minochinos.com' || host.endsWith('.minochinos.com');
 }
 
 const vidmolyExtractor = new VidmolyExtractor();
@@ -147,8 +155,15 @@ async function fetchText(url, { method = 'GET', body, headers = {}, referer, tim
     }
   }
 
-  // Anime-Sama (and its embed hosts) are unreliable from Vercel egress — go through
-  // the Cloudflare worker first so web french-provider matches iOS reachability.
+  // Ansembed/minochinos mint vmpx tokens for the fetcher ASN. Always pull these
+  // pages through Vercel cinepro-proxy so playback via the same proxy gets 200.
+  if (method === 'GET' && !body && isVercelBoundEmbedHost(url)) {
+    const text = await fetchViaVercelCinepro(url, { referer, timeout: Math.max(timeout, 25000) });
+    console.log(`[FrenchProviders] Vercel embed fetch: ${hostnameOf(url)}`);
+    return text;
+  }
+
+  // Anime-Sama catalogue is unreliable from Vercel egress — CF worker first.
   if (prefersWorker(url)) {
     const text = await fetchViaWorker(url, { method, body, headers, referer, timeout: Math.max(timeout, 25000) });
     console.log(`[FrenchProviders] Worker fetch: ${hostnameOf(url)}`);
@@ -240,7 +255,7 @@ async function tmdbMetadata(tmdbId, mediaType, season) {
 }
 
 function makeSource(provider, resolved, language, fallbackQuality = 'HD') {
-  const mediaUrl = unwrapWorkerMediaUrl(resolved.url);
+  const mediaUrl = unwrapProxiedMediaUrl(resolved.url);
   const type = /\.m3u8(?:$|[?#])/i.test(mediaUrl) || /\/hls2\//i.test(mediaUrl)
     ? 'm3u8'
     : /\.(?:mp4|mkv)(?:$|[?#])/i.test(mediaUrl)
@@ -304,10 +319,15 @@ function isAsnBoundLuluvidCdn(url) {
     || (/\/hls2\//i.test(url) && /\.m3u8(?:$|[?#])/i.test(url));
 }
 
-function unwrapWorkerMediaUrl(url) {
+function unwrapProxiedMediaUrl(url) {
   try {
     const parsed = new URL(url);
     if (parsed.origin === new URL(WORKER_BASE).origin && parsed.searchParams.get('path') === 'mob') {
+      return parsed.searchParams.get('url') || url;
+    }
+    if (parsed.origin === new URL(BACKEND_BASE).origin
+      && parsed.pathname.includes('movix-proxy')
+      && parsed.searchParams.get('path') === 'cinepro-proxy') {
       return parsed.searchParams.get('url') || url;
     }
   } catch { /* keep original */ }
@@ -315,36 +335,59 @@ function unwrapWorkerMediaUrl(url) {
 }
 
 function isPlayableAnimeSamaUrl(url) {
-  return isDirectMediaUrl(unwrapWorkerMediaUrl(url));
+  return isDirectMediaUrl(unwrapProxiedMediaUrl(url));
+}
+
+/** Wrap media through Vercel cinepro-proxy (AWS ASN). Worker path=mob cannot fetch vmpx HLS. */
+function wrapViaVercelCinepro(url, referer) {
+  const refererBase = referer && /^https?:/i.test(referer)
+    ? referer
+    : 'https://ansembed.net/';
+  let origin = 'https://ansembed.net';
+  try { origin = new URL(refererBase).origin; } catch { /* keep default */ }
+  const headers = JSON.stringify({
+    Referer: refererBase,
+    Origin: origin,
+    'User-Agent': USER_AGENT,
+    Accept: '*/*',
+  });
+  return `${BACKEND_BASE}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(url)}&headers=${encodeURIComponent(headers)}`;
 }
 
 /**
  * Proxy playback URLs that cannot be fetched from the client:
- * - vmget/vmpx → CF worker (IP-bound token)
- * - dramiyos / luluvid hls2 → Vercel cinepro-proxy (ASN-bound to AWS)
+ * - vmget/vmpx / ansembed hls2 → Vercel cinepro-proxy (token ASN = Vercel)
+ * - dramiyos / luluvid hls2 → same Vercel cinepro-proxy
+ * Never use CF worker for these CDNs (socket fallback is MovieBox-only → 500).
  */
 function wrapPlaybackUrl(url, referer) {
   if (!url) return url;
 
-  if (isAsnBoundLuluvidCdn(url)) {
-    const refererBase = /lulustream/i.test(referer || '')
-      ? 'https://lulustream.com/'
-      : 'https://luluvid.com/';
-    const headers = JSON.stringify({
-      Referer: referer && /^https?:/i.test(referer) ? referer : refererBase,
-      Origin: refererBase.replace(/\/$/, ''),
-      'User-Agent': USER_AGENT,
-    });
-    return `${BACKEND_BASE}/api/movix-proxy?path=cinepro-proxy&url=${encodeURIComponent(url)}&headers=${encodeURIComponent(headers)}`;
+  if (isAsnBoundLuluvidCdn(url) || isIpBoundCdn(url)) {
+    if (isAsnBoundLuluvidCdn(url) && !isIpBoundCdn(url)) {
+      const refererBase = /lulustream/i.test(referer || '')
+        ? 'https://lulustream.com/'
+        : 'https://luluvid.com/';
+      return wrapViaVercelCinepro(url, referer && /^https?:/i.test(referer) ? referer : refererBase);
+    }
+    return wrapViaVercelCinepro(url, referer || 'https://ansembed.net/');
   }
 
-  if (!isIpBoundCdn(url)) return url;
-  const proxy = new URL(WORKER_BASE);
-  proxy.searchParams.set('path', 'mob');
-  proxy.searchParams.set('url', url);
-  proxy.searchParams.set('method', 'GET');
-  if (referer) proxy.searchParams.set('referer', referer);
-  return proxy.toString();
+  return url;
+}
+
+/** Fetch embed HTML via Vercel so minted CDN tokens match cinepro-proxy egress. */
+async function fetchViaVercelCinepro(url, { referer, timeout = 25000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const proxyUrl = wrapViaVercelCinepro(url, referer || `${ANIME_SAMA_BASE}/`);
+    const response = await fetch(proxyUrl, { signal: controller.signal });
+    if (!response.ok) throw new HttpStatusError(response.status, url);
+    return await response.text();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function resolveEmbed(rawUrl, referer) {
@@ -491,11 +534,12 @@ async function getAnimeSamaStreams(metadata, mediaType, season, episode) {
         // Voe mirrors and the Anime-Sama HTML player host.
         const embedRank = (value) => {
           const lower = String(value).toLowerCase();
-          if (lower.includes('minochinos') || lower.includes('smoothpre') || lower.includes('sendvid')) return 0;
-          if (lower.includes('sibnet') || lower.includes('vidmoly') || lower.includes('vidzy')) return 1;
-          if (lower.includes('ansembed')) return 3;
+          // Ansembed → vmpx works when page+playlist both go through Vercel.
+          if (lower.includes('ansembed')) return 0;
+          if (lower.includes('minochinos') || lower.includes('smoothpre') || lower.includes('sendvid')) return 1;
+          if (lower.includes('sibnet') || lower.includes('vidmoly') || lower.includes('vidzy')) return 2;
           if (lower.includes('teresa') || lower.includes('jeremy') || lower.includes('voe')) return 4;
-          return 2;
+          return 3;
         };
         embedUrls.sort((a, b) => embedRank(a) - embedRank(b));
         for (const embedUrl of embedUrls) {
