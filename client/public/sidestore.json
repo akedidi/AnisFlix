@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.100",
-          "buildVersion": "100",
-          "date": "2026-10-10",
-          "size": 31067922,
+          "version": "1.0.101",
+          "buildVersion": "101",
+          "date": "2026-10-11",
+          "size": 31046049,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Corrige le téléchargement des flux MovieBox MP4 relayés sur iOS, notamment Animals VO 360p."
+          "localizedDescription": "MovieBox VO = langue d'origine TMDB (ex. japonais pour les animes). Providers morts retirés. Luluvid en lecture directe iOS. Anime-Sama / matching titres CJK améliorés."
         }
       ]
     }
