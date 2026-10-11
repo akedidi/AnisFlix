@@ -155,11 +155,35 @@ async function fetchText(url, { method = 'GET', body, headers = {}, referer, tim
     }
   }
 
-  // Ansembed/minochinos mint vmpx tokens for the fetcher ASN. Always pull these
-  // pages through Vercel cinepro-proxy so playback via the same proxy gets 200.
+  // Ansembed/minochinos mint vmpx tokens for the fetcher ASN (= playback proxy ASN).
+  // On Vercel: fetch the embed page DIRECTLY (same egress as cinepro-proxy).
+  // Never HTTP self-call cinepro-proxy from inside the serverless function — it hangs.
+  // Off Vercel (local): go through deployed cinepro-proxy so the token is AWS ASN.
   if (method === 'GET' && !body && isVercelBoundEmbedHost(url)) {
+    const onVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+    if (onVercel) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.max(timeout, 25000));
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': USER_AGENT,
+            Accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+            ...(referer ? { Referer: referer } : { Referer: `${ANIME_SAMA_BASE}/` }),
+            ...headers,
+          },
+        });
+        if (!response.ok) throw new HttpStatusError(response.status, url);
+        console.log(`[FrenchProviders] Direct Vercel embed fetch: ${hostnameOf(url)}`);
+        return await response.text();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
     const text = await fetchViaVercelCinepro(url, { referer, timeout: Math.max(timeout, 25000) });
-    console.log(`[FrenchProviders] Vercel embed fetch: ${hostnameOf(url)}`);
+    console.log(`[FrenchProviders] Remote Vercel embed fetch: ${hostnameOf(url)}`);
     return text;
   }
 
