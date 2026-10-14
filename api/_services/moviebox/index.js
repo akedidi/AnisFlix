@@ -175,6 +175,41 @@ function inferCodec(codecName, url) {
   return null;
 }
 
+/**
+ * MovieBox occasionally publishes a trailer/placeholder as the full stream.
+ * Durations close to the TMDB runtime are accepted whether MovieBox reports
+ * minutes or seconds; clearly incomplete streams are ignored.
+ */
+export function isPlausibleMovieBoxDuration(value, expectedMinutes) {
+  const expected = Number(expectedMinutes);
+  if (!Number.isFinite(expected) || expected < 10 || value == null || value === '') return true;
+
+  let declaredMinutes;
+  if (typeof value === 'string' && value.includes(':')) {
+    const parts = value.split(':').map(Number);
+    if (parts.every(Number.isFinite)) {
+      const seconds = parts.reduce((total, part) => total * 60 + part, 0);
+      declaredMinutes = seconds / 60;
+    }
+  }
+  if (declaredMinutes == null) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return true;
+    // Mobile metadata uses seconds for long values, while some catalogue rows
+    // use minutes. Treat small values as minutes to avoid rejecting valid rows.
+    declaredMinutes = numeric <= Math.max(expected * 2, 300) ? numeric : numeric / 60;
+  }
+  return declaredMinutes >= expected * 0.5;
+}
+
+function streamDuration(stream) {
+  return stream?.duration
+    ?? stream?.durationSeconds
+    ?? stream?.videoDuration
+    ?? stream?.length
+    ?? null;
+}
+
 function findBestMatch(subjects, tmdbTitle, tmdbYear, mediaType) {
   const normTmdbTitle = normalizeTitle(tmdbTitle);
   // Reject whitespace / 1-char queries — `includes(" ")` matches almost everything.
@@ -450,7 +485,7 @@ function movieBoxEpisodeCandidates(tmdbId, mediaType, season, episode) {
   });
 }
 
-async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie', tmdbId = null, originalLanguage = '') {
+async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '', mediaType = 'movie', tmdbId = null, originalLanguage = '', expectedMinutes = null) {
   const subjectUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/get?subjectId=${subjectId}`;
   const detailRes = await movieBoxRequest('GET', subjectUrl);
   if (!detailRes?.data?.data) return [];
@@ -500,6 +535,13 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
 
   for (const item of variants) {
     try {
+      const rejectedShortUrls = new Set();
+      let variantSubjectData = subjectData;
+      if (String(item.id) !== String(subjectId)) {
+        const variantUrl = `${API_BASE}/wefeed-mobile-bff/subject-api/get?subjectId=${item.id}`;
+        const variantRes = await movieBoxRequest('GET', variantUrl);
+        if (variantRes?.data?.data) variantSubjectData = variantRes.data.data;
+      }
       let playData = null;
       let usedSeason = season;
       let usedEpisode = episode;
@@ -523,6 +565,10 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
           if (!finalUrl) return false;
           if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) return false;
           if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) return false;
+          if (!isPlausibleMovieBoxDuration(streamDuration(stream), expectedMinutes)) {
+            rejectedShortUrls.add(finalUrl);
+            return false;
+          }
           return true;
         });
         if (hasPlayable) {
@@ -549,6 +595,11 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
           if (!finalUrl) continue;
           if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) continue;
           if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) continue;
+          if (!isPlausibleMovieBoxDuration(streamDuration(stream), expectedMinutes)) {
+            rejectedShortUrls.add(finalUrl);
+            console.warn(`📦 [MovieBox] Rejected short stream for "${mediaTitle}" (${streamDuration(stream)} vs ${expectedMinutes} min)`);
+            continue;
+          }
 
           const declaredFormat = String(stream.format || '').toUpperCase();
           const detectedFormat = getFormatType(finalUrl);
@@ -585,11 +636,13 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
       if (!hasValidStream) {
         const detectors = Array.isArray(playData.resourceDetectors)
           ? playData.resourceDetectors
-          : subjectData.resourceDetectors;
+          : variantSubjectData.resourceDetectors;
         for (const detector of Array.isArray(detectors) ? detectors : []) {
           if (!Array.isArray(detector.resolutionList)) continue;
           for (const video of detector.resolutionList) {
             if (!video.resourceLink) continue;
+            if (rejectedShortUrls.has(video.resourceLink)) continue;
+            if (!isPlausibleMovieBoxDuration(streamDuration(video), expectedMinutes)) continue;
             const videoSeason = video.se ?? 0;
             const videoEpisode = video.ep ?? 0;
             if ((usedSeason > 0 || usedEpisode > 0) && (videoSeason !== usedSeason || videoEpisode !== usedEpisode)) continue;
@@ -668,6 +721,7 @@ export async function getMovieBoxStreams(tmdbId, mediaType, seasonNum = 1, episo
     console.log(`✅ [MovieBox] Matched "${bestMatch.title}" (${bestMatch.subjectId}) origLang=${details.originalLanguage || '?'}`);
     const mobileStreams = await getStreamLinks(
       bestMatch.subjectId, s, e, details.title, mediaType, tmdbId, details.originalLanguage,
+      details.runtimeMinutes,
     );
     if (mobileStreams.length > 0) return mobileStreams;
   } else {

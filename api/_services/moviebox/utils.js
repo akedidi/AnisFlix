@@ -261,6 +261,9 @@ export async function fetchTmdbDetails(tmdbId, mediaType) {
       title: mediaType === 'movie' ? data.title || data.original_title : data.name || data.original_name,
       year: (data.release_date || data.first_air_date || '').substring(0, 4),
       originalTitle: data.original_title || data.original_name,
+      runtimeMinutes: mediaType === 'movie'
+        ? Number(data.runtime) || null
+        : Number(data.episode_run_time?.[0]) || null,
       // ISO 639-1 (ja, ko, en, fr…) — drives MovieBox VO classification.
       originalLanguage: String(data.original_language || '').trim().toLowerCase(),
     };
