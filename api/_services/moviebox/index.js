@@ -587,6 +587,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
 
       const streamsList = collectStreams(playData);
       let hasValidStream = false;
+      let fallbackSubtitles = [];
 
       if (Array.isArray(streamsList) && streamsList.length > 0) {
         for (const stream of streamsList) {
@@ -595,6 +596,11 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
           if (!finalUrl) continue;
           if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) continue;
           if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) continue;
+          const streamId = stream.id || `${item.id}|${usedSeason}|${usedEpisode}`;
+          const subtitles = await fetchSubtitles(item.id, streamId, playbackHeaders, item.label);
+          if (fallbackSubtitles.length === 0 && subtitles.length > 0) {
+            fallbackSubtitles = subtitles;
+          }
           if (!isPlausibleMovieBoxDuration(streamDuration(stream), expectedMinutes)) {
             rejectedShortUrls.add(finalUrl);
             console.warn(`📦 [MovieBox] Rejected short stream for "${mediaTitle}" (${streamDuration(stream)} vs ${expectedMinutes} min)`);
@@ -610,8 +616,6 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
               : 'VIDEO';
           const qualityValues = parseQualities(stream.resolutions || stream.resolution || stream.quality || '');
           const qualities = qualityValues.length > 0 ? qualityValues.map((value) => `${value}p`) : ['Auto'];
-          const streamId = stream.id || `${item.id}|${usedSeason}|${usedEpisode}`;
-          const subtitles = await fetchSubtitles(item.id, streamId, playbackHeaders, item.label);
           const signHeaderKey = stream.signHeaderKey || stream.sign_header_key || 'Cookie';
 
           for (const quality of qualities) {
@@ -653,7 +657,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
               codec: inferCodec(video.codecName, video.resourceLink),
               language: item.lang,
               languageLabel: item.label,
-              subtitles: [],
+              subtitles: fallbackSubtitles,
               headers: playbackHeaders,
             });
           }
