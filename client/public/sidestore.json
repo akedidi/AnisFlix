@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.105",
-          "buildVersion": "105",
+          "version": "1.0.106",
+          "buildVersion": "106",
           "date": "2026-10-16",
-          "size": 31059418,
+          "size": 31059247,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix MovieBox iOS: AVPlayer pour HEVC/detector (plus de VLC+UA → 428). Worker/bare OK sur Animals VO."
+          "localizedDescription": "Fix MovieBox black screen: play bare CDN on AVPlayer instead of CF worker"
         }
       ]
     }

@@ -599,23 +599,23 @@ struct MovieDetailView: View {
                     streamUrl = source.url
                 } else if source.provider.lowercased() == "moviebox" {
                     // MovieBox: dual-mode playback
-                    // Detector CDN rejects Cookie/Referer/UA (428/429). Prefer worker URL
-                    // when present; otherwise play directUrl with empty headers.
-                    // Signed streams keep Cookie headers + direct CDN.
+                    // Detector CDN rejects Cookie/Referer/UA (428/429). On device, play the
+                    // bare directUrl — the CF worker is for browser CORS and can yield
+                    // black-screen/no-audio on large progressive MP4s in AVPlayer.
+                    // Chromecast still uses the worker/proxied URL.
                     let hasCookie = (source.headers ?? [:]).keys.contains { $0.lowercased() == "cookie" }
-                    let isWorkerURL = source.url.contains("moviebox-cdn") || source.url.contains("workers.dev")
                     let isDetector = !hasCookie
                     if isDetector {
                         finalHeaders = [:]
                     }
-                    if CastManager.shared.isConnected || (isWorkerURL && isDetector) {
-                        print("📺 [MovieDetailView] MovieBox worker/proxied playback (detector=\(isDetector))")
+                    if CastManager.shared.isConnected {
+                        print("📺 [MovieDetailView] MovieBox Cast → worker/proxied URL")
                         streamUrl = source.url
-                    } else if let directUrl = source.directUrl {
-                        print("📱 [MovieDetailView] MovieBox local mode - direct URL (cookie=\(hasCookie))")
+                    } else if let directUrl = source.directUrl, !directUrl.isEmpty {
+                        print("📱 [MovieDetailView] MovieBox local → direct CDN (detector=\(isDetector), cookie=\(hasCookie))")
                         streamUrl = directUrl
                     } else {
-                        print("⚠️ [MovieDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")
+                        print("⚠️ [MovieDetailView] MovieBox local → fallback URL")
                         streamUrl = source.url
                     }
                 } else {

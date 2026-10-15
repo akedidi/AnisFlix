@@ -967,6 +967,24 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         }
     }
     
+    /// Pulls the bare MovieBox CDN URL out of `?path=moviebox-cdn&url=...`.
+    static func unwrapMovieBoxCDNWorkerURL(_ url: URL) -> URL? {
+        let absolute = url.absoluteString.lowercased()
+        guard absolute.contains("moviebox-cdn") || absolute.contains("kedidi-anis.workers.dev") else {
+            return nil
+        }
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let items = components.queryItems else { return nil }
+        let path = items.first(where: { $0.name.lowercased() == "path" })?.value?.lowercased()
+        guard path == nil || path == "moviebox-cdn" else { return nil }
+        guard let embedded = items.first(where: { $0.name.lowercased() == "url" })?.value,
+              let bare = URL(string: embedded),
+              bare.host?.lowercased().contains("hakunaymatata.com") == true else {
+            return nil
+        }
+        return bare
+    }
+
     func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, preferredVideoHeight: Int? = nil, subtitleUrl: URL? = nil) {
         let isSamePlayback = url == currentUrl &&
             subtitleUrl == externalSubtitleUrl &&
@@ -1052,13 +1070,22 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         useVLC = false
         
         var finalUrl = url
+
+        // MovieBox CF worker is for browser CORS. Local AVPlayer can get duration
+        // from a partial moov read but fail to decode (black screen, no audio).
+        // Prefer the bare CDN URL embedded in ?url= when playing on-device.
+        if !CastManager.shared.isConnected,
+           let unwrapped = Self.unwrapMovieBoxCDNWorkerURL(url) {
+            print("🎯 [PlayerVM] MovieBox worker→bare CDN for local AVPlayer")
+            finalUrl = unwrapped
+        }
         
         // Prepare headers (including auto-detection for Vidzy)
         var effectiveHeaders = customHeaders ?? [:]
         
         
         // Add Referer header for Vidzy URLs to fix playback (Direct & Proxy)
-        let urlString = url.absoluteString.lowercased()
+        let urlString = finalUrl.absoluteString.lowercased()
         if urlString.contains("vidzy") {
             effectiveHeaders["Referer"] = "https://vidzy.org/"
             print("🎬 [CustomVideoPlayer] Added Vidzy Referer header")
@@ -1260,6 +1287,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
 
         let headers: [String: String]
         if isMovieBoxDetectorBare {
+            // Never attach AVURLAssetHTTPHeaderFieldsKey — even a default UA override
+            // can 428 the detector while still exposing duration from a partial probe.
             headers = [:]
             print("🎬 [CustomVideoPlayer] MovieBox detector: bare AVURLAsset (no UA/Referer/Cookie)")
         } else {

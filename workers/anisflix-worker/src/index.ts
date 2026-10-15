@@ -777,6 +777,22 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
             const v = response.headers.get(h);
             if (v) outHeaders.set(h, v);
         }
+        // AVPlayer/ffprobe need Content-Length on ranged MP4 responses. Socket
+        // streaming sometimes drops it — rebuild from Content-Range when missing.
+        if (!outHeaders.has('Content-Length')) {
+            const contentRange = outHeaders.get('Content-Range') || '';
+            const match = contentRange.match(/bytes\s+(\d+)-(\d+)\/(\d+|\*)/i);
+            if (match) {
+                const start = Number(match[1]);
+                const end = Number(match[2]);
+                if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+                    outHeaders.set('Content-Length', String(end - start + 1));
+                }
+            }
+        }
+        if (!outHeaders.has('Accept-Ranges')) {
+            outHeaders.set('Accept-Ranges', 'bytes');
+        }
         outHeaders.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
 
         const contentType = response.headers.get('content-type') || '';

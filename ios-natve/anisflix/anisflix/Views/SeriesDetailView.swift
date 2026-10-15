@@ -566,21 +566,21 @@ struct SeriesDetailView: View {
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
                     finalURL = URL(string: source.url)
                 } else if source.provider.lowercased() == "moviebox" {
-                    // MovieBox: dual-mode playback (aligned with MovieDetailView / web)
+                    // MovieBox: dual-mode playback (aligned with MovieDetailView)
+                    // Local AVPlayer must use bare directUrl for detector streams.
                     let hasCookie = (source.headers ?? [:]).keys.contains { $0.lowercased() == "cookie" }
-                    let isWorkerURL = source.url.contains("moviebox-cdn") || source.url.contains("workers.dev")
                     let isDetector = !hasCookie
                     if isDetector {
                         finalHeaders = [:]
                     }
-                    if CastManager.shared.isConnected || (isWorkerURL && isDetector) {
-                        print("📺 [SeriesDetailView] MovieBox worker/proxied playback (detector=\(isDetector))")
+                    if CastManager.shared.isConnected {
+                        print("📺 [SeriesDetailView] MovieBox Cast → worker/proxied URL")
                         finalURL = URL(string: source.url)
-                    } else if let directUrl = source.directUrl {
-                        print("📱 [SeriesDetailView] MovieBox local mode - direct URL (cookie=\(hasCookie))")
+                    } else if let directUrl = source.directUrl, !directUrl.isEmpty {
+                        print("📱 [SeriesDetailView] MovieBox local → direct CDN (detector=\(isDetector), cookie=\(hasCookie))")
                         finalURL = URL(string: directUrl)
                     } else {
-                        print("⚠️ [SeriesDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")
+                        print("⚠️ [SeriesDetailView] MovieBox local → fallback URL")
                         finalURL = URL(string: source.url)
                     }
                 } else {

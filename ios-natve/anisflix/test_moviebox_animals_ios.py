@@ -123,6 +123,67 @@ def tmdb_title(tmdb_id: int) -> dict:
     return json.loads(raw)
 
 
+def ffmpeg_decode_ok(url: str, headers: dict | None, label: str) -> bool:
+    """Real decode test (not just HTTP 206) — catches black-screen cases."""
+    import shutil
+    import subprocess
+    import tempfile
+
+    ffprobe = shutil.which("ffprobe")
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffprobe or not ffmpeg:
+        print(f"  skip decode ({label}): ffmpeg not installed")
+        return True
+
+    ua = (headers or {}).get("User-Agent", "")
+    cmd_probe = [
+        ffprobe,
+        "-v",
+        "error",
+        "-show_entries",
+        "stream=codec_type,codec_name",
+        "-of",
+        "csv=p=0",
+    ]
+    if ua:
+        cmd_probe.extend(["-user_agent", ua])
+    elif headers is None:
+        cmd_probe.extend(["-user_agent", ""])
+    cmd_probe.append(url)
+    try:
+        probe = subprocess.run(cmd_probe, capture_output=True, text=True, timeout=90)
+    except Exception as e:
+        print(f"  [FAIL] decode probe {label}: {e}")
+        return False
+    lines = [ln.strip() for ln in probe.stdout.splitlines() if ln.strip()]
+    has_video = any(ln.startswith("video,") or ",video" in ln or ln.startswith("h264") or "h264" in ln for ln in lines)
+    # csv may be codec_name,codec_type depending on order — check both
+    has_video = any("h264" in ln or "hevc" in ln or ln.startswith("video") for ln in lines) or any(
+        "video" in ln for ln in lines
+    )
+    has_audio = any("aac" in ln or "audio" in ln for ln in lines)
+    print(f"  ffprobe {label}: rc={probe.returncode} streams={lines} err={probe.stderr.strip()[:120]}")
+    if probe.returncode != 0 or not has_video or not has_audio:
+        print(f"  [FAIL] {label}: need video+audio tracks")
+        return False
+
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=True) as tmp:
+        cmd = [ffmpeg, "-y", "-hide_banner", "-loglevel", "error"]
+        if ua:
+            cmd.extend(["-user_agent", ua])
+        elif headers is None:
+            cmd.extend(["-user_agent", ""])
+        cmd.extend(["-i", url, "-t", "1", "-f", "null", "-"])
+        try:
+            run = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        except Exception as e:
+            print(f"  [FAIL] decode {label}: {e}")
+            return False
+        ok = run.returncode == 0
+        print(f"  [{'OK' if ok else 'FAIL'}] ffmpeg decode 1s {label} rc={run.returncode} {run.stderr.strip()[:160]}")
+        return ok
+
+
 def main() -> int:
     print("=== MovieBox iOS probe: Animals VO ===\n")
     asset_ids = {}
@@ -220,6 +281,22 @@ def main() -> int:
                 print("  ⇒ HEVC also broken on worker — investigate codecs")
                 worst = max(worst, 1)
 
+        # Real A/V decode — this is what black-screen bugs need
+        d_direct = ffmpeg_decode_ok(direct, None, "DIRECT bare decode (iOS local target)")
+        d_worker = ffmpeg_decode_ok(
+            worker,
+            {"User-Agent": "AnisFlix/1.0.105 (iPhone; iOS 18.0)"},
+            "WORKER decode (previous iOS hosted path)",
+        )
+        if d_direct and not d_worker:
+            print("  ⇒ CONFIRMED: use DIRECT bare on iOS; worker HTTP OK but decode fails")
+            worst = max(worst, 1)
+        elif not d_direct and not d_worker:
+            print("  ⇒ CRITICAL: cannot decode Animals VO at all")
+            worst = 2
+        elif d_direct:
+            print("  ⇒ DIRECT bare decodes video+audio — correct iOS path")
+
         if not r1["ok"] and not r2["ok"]:
             print("  ⇒ CRITICAL: neither worker nor bare direct works for AVPlayer")
             worst = 2
@@ -230,7 +307,7 @@ def main() -> int:
             print("  ⇒ iOS should prefer WORKER (direct CDN blocked)")
             worst = max(worst, 1)
         else:
-            print("  ⇒ both worker and bare direct OK for start+seek")
+            print("  ⇒ both worker and bare direct OK for start+seek HTTP")
 
         if r3["ok"] or r4["ok"]:
             print("  note: CDN currently tolerates some headers; still prefer bare/worker")
