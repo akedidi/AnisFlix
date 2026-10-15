@@ -881,10 +881,11 @@ export default function VideoPlayer({
           }}
           preload="auto"
           crossOrigin={
+            // Do not set crossOrigin on hakunaymatata.com: browsers send Origin
+            // and the CDN answers 429. Worker-proxied URLs still need CORS.
             type === 'm3u8' ||
               src.includes('kedidi-anis.workers.dev') ||
-              src.includes('moviebox-stream') ||
-              src.includes('hakunaymatata.com')
+              src.includes('moviebox-stream')
               ? 'anonymous'
               : undefined
           }

@@ -44,22 +44,44 @@ export function isMovieBoxDetectorFallback(
   return !hasCookie;
 }
 
+function isAdaptiveMovieBoxUrl(url: string, type?: string | null): boolean {
+  const normalizedType = (type || '').toLowerCase();
+  if (normalizedType === 'dash' || normalizedType === 'hls' || normalizedType === 'm3u8') {
+    return true;
+  }
+  return /\.mpd(?:$|[?#])/i.test(url) || /\.m3u8(?:$|[?#])/i.test(url);
+}
+
 /**
  * Resolve the playback URL for a MovieBox stream.
- * Signed streams keep the CDN worker relay; detector fallback uses a bare
- * worker fetch (no rejected headers) so browsers still get CORS.
- * When the API already returned a bare moviebox-cdn URL, reuse it as-is.
+ * Signed / adaptive streams keep the CDN worker relay (CORS + manifest rewrite).
+ * Progressive detector MP4s play the CDN URL directly: CF Worker HTTP egress is
+ * blocked by the CDN, and forcing crossOrigin+Origin on hakunaymatata returns 429.
  */
 export function resolveMovieBoxPlaybackUrl(stream: {
   url?: string | null;
   directUrl?: string | null;
+  type?: string | null;
   headers?: Record<string, string> | null;
 }): { url: string; headers?: Record<string, string> } {
   const apiUrl = stream.url || '';
   const directUrl = stream.directUrl || apiUrl;
   const existing = apiUrl ? parseMovieBoxCdnParams(apiUrl) : null;
+  const mediaForType = directUrl || apiUrl;
+  const needsWorker =
+    isAdaptiveMovieBoxUrl(mediaForType, stream.type) ||
+    Boolean(existing && !existing.bare);
 
-  // API already mapped detector streams to a bare worker URL.
+  // Progressive detector MP4: prefer the raw CDN link over the worker hop.
+  if (
+    isMovieBoxDetectorFallback(directUrl, stream.headers) &&
+    !needsWorker &&
+    isHakunaymatataUrl(directUrl)
+  ) {
+    return { url: directUrl };
+  }
+
+  // API already mapped detector adaptive streams to a bare worker URL.
   if (existing?.bare && apiUrl) {
     return { url: apiUrl };
   }

@@ -214,6 +214,20 @@ function decodeChunkedBody(input: Uint8Array): Uint8Array {
     return output;
 }
 
+function isAllowedMovieBoxSocketHost(hostname: string): boolean {
+    const host = hostname.toLowerCase();
+    if (MOVIEBOX_API_HOSTS.has(host)) return true;
+    if (host.endsWith('hakunaymatata.com')) return true;
+    if (host === 'hm-cinema.me') return true;
+    return false;
+}
+
+function isBlockedMovieBoxUpstreamStatus(status: number): boolean {
+    // 1010 is Cloudflare's browser-signature ban (surfaced as 403).
+    // 427 is MovieBox CDN's custom block for CF HTTP egress.
+    return status === 403 || status === 427 || status === 440;
+}
+
 /**
  * MovieBox rejects the normal Workers HTTP egress with code 440. TCP socket
  * egress uses a separate Cloudflare address pool, so retry the same signed
@@ -354,7 +368,7 @@ async function handleMobRequest(request: Request): Promise<Response> {
 
         // MovieBox blocks normal Cloudflare HTTP egress with 403/440. Retry
         // through Workers TCP socket egress, which uses a separate IP pool.
-        if (response.status === 403 || response.status === 440) {
+        if (isBlockedMovieBoxUpstreamStatus(response.status)) {
             console.log(`[Worker] Direct fetch blocked (${response.status}), trying socket fallback...`);
             response = await fetchMovieBoxViaSocket(targetUrl, targetMethod, finalHeaders, requestBody);
         }
@@ -502,6 +516,141 @@ function isAllowedMovieBoxCdnUrl(targetUrl: string): boolean {
     }
 }
 
+/**
+ * Stream MovieBox CDN over Workers TCP sockets when HTTP egress is blocked.
+ * Unlike the API socket helper, this streams the body so Range video requests
+ * do not buffer multi‑GB MP4s into Worker memory.
+ */
+async function fetchMovieBoxCdnViaSocket(
+    targetUrl: string,
+    headers: Record<string, string>,
+): Promise<Response> {
+    const url = new URL(targetUrl);
+    if (url.protocol !== 'https:' || !isAllowedMovieBoxSocketHost(url.hostname)) {
+        throw new Error('Socket CDN fallback is restricted to MovieBox CDN hosts');
+    }
+
+    const requestHeaders = new Headers(headers);
+    requestHeaders.set('Host', url.host);
+    requestHeaders.set('Connection', 'close');
+    requestHeaders.set('Accept-Encoding', 'identity');
+
+    let head = `GET ${url.pathname}${url.search} HTTP/1.1\r\n`;
+    requestHeaders.forEach((value, key) => {
+        head += `${key}: ${value}\r\n`;
+    });
+    head += '\r\n';
+
+    const socket = connect(
+        { hostname: url.hostname, port: 443 },
+        { secureTransport: 'on', allowHalfOpen: true },
+    );
+    await socket.opened;
+    const writer = socket.writable.getWriter();
+    await writer.write(new TextEncoder().encode(head));
+    writer.releaseLock();
+
+    const reader = socket.readable.getReader();
+    let buffer = new Uint8Array(0);
+
+    const append = (chunk: Uint8Array) => {
+        const next = new Uint8Array(buffer.length + chunk.length);
+        next.set(buffer);
+        next.set(chunk, buffer.length);
+        buffer = next;
+    };
+
+    while (true) {
+        const headerEnd = findBytes(buffer, [13, 10, 13, 10]);
+        if (headerEnd >= 0) {
+            const headerText = new TextDecoder().decode(buffer.slice(0, headerEnd));
+            const headerLines = headerText.split('\r\n');
+            const statusMatch = headerLines.shift()?.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/i);
+            if (!statusMatch) throw new Error('Invalid MovieBox CDN HTTP status line');
+
+            const responseHeaders = new Headers();
+            for (const line of headerLines) {
+                const separator = line.indexOf(':');
+                if (separator <= 0) continue;
+                responseHeaders.append(line.slice(0, separator).trim(), line.slice(separator + 1).trim());
+            }
+
+            // Transfer-Encoding: chunked cannot be streamed raw into a Fetch body.
+            // Buffer small chunked payloads (manifests / errors); reject huge ones.
+            if (responseHeaders.get('transfer-encoding')?.toLowerCase().includes('chunked')) {
+                let rawBody = buffer.slice(headerEnd + 4);
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const next = new Uint8Array(rawBody.length + value.length);
+                    next.set(rawBody);
+                    next.set(value, rawBody.length);
+                    rawBody = next;
+                    if (rawBody.length > 8 * 1024 * 1024) {
+                        await socket.close();
+                        throw new Error('Chunked MovieBox CDN response too large for socket buffer');
+                    }
+                }
+                await socket.close();
+                const decoded = decodeChunkedBody(rawBody);
+                responseHeaders.delete('transfer-encoding');
+                responseHeaders.delete('content-length');
+                responseHeaders.delete('connection');
+                return new Response(decoded, {
+                    status: Number(statusMatch[1]),
+                    statusText: statusMatch[2],
+                    headers: responseHeaders,
+                });
+            }
+
+            const pending = buffer.slice(headerEnd + 4);
+            responseHeaders.delete('connection');
+
+            const stream = new ReadableStream<Uint8Array>({
+                start(controller) {
+                    if (pending.length) controller.enqueue(pending);
+                    (async () => {
+                        try {
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                controller.enqueue(value);
+                            }
+                            controller.close();
+                        } catch (error) {
+                            controller.error(error);
+                        } finally {
+                            try {
+                                await socket.close();
+                            } catch {
+                                // ignore close races
+                            }
+                        }
+                    })();
+                },
+                cancel() {
+                    reader.cancel().catch(() => undefined);
+                    socket.close().catch(() => undefined);
+                },
+            });
+
+            return new Response(stream, {
+                status: Number(statusMatch[1]),
+                statusText: statusMatch[2],
+                headers: responseHeaders,
+            });
+        }
+
+        const { done, value } = await reader.read();
+        if (done) throw new Error('Invalid HTTP response from MovieBox CDN');
+        append(value);
+        if (buffer.length > 256 * 1024) {
+            await socket.close();
+            throw new Error('MovieBox CDN headers too large');
+        }
+    }
+}
+
 function buildHmDashSegmentWorkerUrl(workerOrigin: string, assetPath: string): string {
     // Keep DASH $RepresentationID$ / $Number%05d$ templates visible to the
     // player. Encoding them as a normal query value prevents substitution.
@@ -610,10 +759,17 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     }
 
     try {
-        const response = await fetch(targetUrl, {
+        let response = await fetch(targetUrl, {
             method: 'GET',
             headers: upstreamHeaders,
         });
+
+        // CDN blocks Cloudflare HTTP egress (403/1010, 427). TCP sockets use a
+        // different address pool — same trick as the MovieBox API `mob` path.
+        if (isBlockedMovieBoxUpstreamStatus(response.status)) {
+            console.log(`[Worker] MovieBox CDN blocked (${response.status}), trying socket fallback...`);
+            response = await fetchMovieBoxCdnViaSocket(targetUrl, upstreamHeaders);
+        }
 
         const outHeaders = new Headers(CORS_HEADERS);
         const forward = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'cache-control', 'etag', 'last-modified'];
