@@ -846,6 +846,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     
     // VLC Player for MKV support - Re-integration
     @Published var useVLC = false
+    /// Aspect-fill zoom for VLC (UIView.contentMode is ignored by MobileVLCKit).
+    @Published var vlcZoomToFill = false
     @Published var vlcPlayer: VLCMediaPlayer?
     private var vlcTimeObserver: Timer?
     private var pendingVLCSeekTime: Double?
@@ -983,6 +985,48 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             return nil
         }
         return bare
+    }
+
+    /// Shared VLC HTTP options for main playback and the muted PiP mirror.
+    /// MovieBox detector CDN accepts AppleCoreMedia but 428s Safari/Chrome UAs.
+    static func vlcHTTPPlayback(
+        url: URL,
+        customHeaders: [String: String]?,
+        preferredVideoHeight: Int? = nil,
+        startTime: TimeInterval? = nil,
+        networkCaching: Int? = nil
+    ) -> (url: URL, options: [String: Any]) {
+        var playURL = url
+        if let bare = unwrapMovieBoxCDNWorkerURL(url) {
+            playURL = bare
+        }
+        let isMovieBoxDetectorBare = playURL.absoluteString.lowercased().contains("hakunaymatata.com")
+            && !(customHeaders ?? [:]).keys.contains { $0.lowercased() == "cookie" }
+
+        var options: [String: Any] = [
+            "network-caching": networkCaching ?? (isMovieBoxDetectorBare ? 5_000 : 3_000),
+            "avcodec-hw": "any",
+        ]
+        if isMovieBoxDetectorBare {
+            options["http-user-agent"] = "AppleCoreMedia/1.0.0.22D72 (iPhone; U; CPU OS 18_3 like Mac OS X; en_us)"
+        } else {
+            options["http-user-agent"] = customHeaders?["User-Agent"]
+                ?? customHeaders?["user-agent"]
+                ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+            if let referer = customHeaders?["Referer"] ?? customHeaders?["referer"] {
+                options["http-referrer"] = referer
+            }
+            if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
+                options["http-cookies"] = cookie
+            }
+        }
+        if let preferredVideoHeight, preferredVideoHeight > 0 {
+            options["adaptive-maxheight"] = preferredVideoHeight
+        }
+        if let startTime, startTime > 0 {
+            options["start-time"] = startTime
+        }
+        return (playURL, options)
     }
 
     func setup(url: URL, title: String? = nil, posterUrl: String? = nil, localPosterPath: String? = nil, customHeaders: [String: String]? = nil, useVLCPlayer: Bool = false, preferredVideoHeight: Int? = nil, subtitleUrl: URL? = nil) {
@@ -1971,52 +2015,35 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         vlc.libraryInstance.debugLogging = true
         vlc.libraryInstance.debugLoggingLevel = 3 // Verbose
         
-        // Prefer bare CDN over CF worker (same as Android TV / Flutter detector path).
-        var playURL = url
-        if let bare = Self.unwrapMovieBoxCDNWorkerURL(url) {
+        let playback = Self.vlcHTTPPlayback(
+            url: url,
+            customHeaders: customHeaders,
+            preferredVideoHeight: preferredVideoHeight
+        )
+        if playback.url != url {
             print("🎯 [PlayerVM] VLC MovieBox worker→bare CDN")
-            playURL = bare
         }
-
-        let media = VLCMedia(url: playURL)
-        print("🎬 [PlayerVM] VLCMedia created for: \(playURL.absoluteString)")
-        
-        // MovieBox detector CDN rejects Safari/Chrome UA + Referer/Cookie (428/429).
-        // AppleCoreMedia is accepted (verified against bcdn.hakunaymatata.com).
-        let isMovieBoxDetectorBare = playURL.absoluteString.lowercased().contains("hakunaymatata.com")
-            && !(customHeaders ?? [:]).keys.contains { $0.lowercased() == "cookie" }
-
-        // Set network caching and user agent
-        var options: [String: Any] = [
-            // Larger cache helps progressive MP4s with a multi-MB moov atom.
-            "network-caching": isMovieBoxDetectorBare ? 5_000 : 3_000,
-            "avcodec-hw": "any",
-        ]
-        if isMovieBoxDetectorBare {
-            options["http-user-agent"] = "AppleCoreMedia/1.0.0.22D72 (iPhone; U; CPU OS 18_3 like Mac OS X; en_us)"
+        if playback.url.absoluteString.lowercased().contains("hakunaymatata.com") {
             print("🎬 [PlayerVM] VLC MovieBox detector: AppleCoreMedia UA (no Referer/Cookie)")
-        } else {
-            options["http-user-agent"] = customHeaders?["User-Agent"]
-                ?? customHeaders?["user-agent"]
-                ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
         }
-        
-        // MobileVLCKit uses dedicated option names for headers needed by
-        // protected streams. Generic "http-referer" is not recognised.
-        if !isMovieBoxDetectorBare {
-            if let referer = customHeaders?["Referer"] ?? customHeaders?["referer"] {
-                options["http-referrer"] = referer
-            }
-            if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
-                options["http-cookies"] = cookie
-            }
+        // PiP mirror must reuse the resolved CDN URL + same HTTP options.
+        if var params = lastSetupParams {
+            params = SetupParams(
+                url: playback.url,
+                title: params.title,
+                posterUrl: params.posterUrl,
+                localPosterPath: params.localPosterPath,
+                customHeaders: params.customHeaders,
+                useVLC: params.useVLC,
+                preferredVideoHeight: params.preferredVideoHeight,
+                subtitleUrl: params.subtitleUrl
+            )
+            lastSetupParams = params
         }
-        if let preferredVideoHeight, preferredVideoHeight > 0 {
-            options["adaptive-maxheight"] = preferredVideoHeight
-            print("🎬 [PlayerVM] Limiting DASH video to \(preferredVideoHeight)p")
-        }
-        
-        media.addOptions(options)
+
+        let media = VLCMedia(url: playback.url)
+        print("🎬 [PlayerVM] VLCMedia created for: \(playback.url.absoluteString)")
+        media.addOptions(playback.options)
         
         vlc.media = media
         vlc.delegate = self // Set delegate to receive state/time updates
@@ -2067,6 +2094,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                     self.isInitialLoading = false
                     self.isBuffering = false
                     self.prepareVLCPiPAfterFirstFrame()
+                    // Re-apply fit/fill once videoSize is known (scaleFactor needs it).
+                    if let render = self.attachedVLCDrawable as? VLCRenderView {
+                        render.isZoomedToFill = self.vlcZoomToFill
+                        render.applyVideoScaling()
+                    }
                 }
                 if self.pipUsesVLC {
                     self.vlcPiPBridge?.updatePlaybackTime(time, isPlaying: self.wantsVLCPlayback)
@@ -2133,6 +2165,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             if !isStartingVLCPiP && pipController?.isPictureInPictureActive != true {
                 vlc.drawable = view
             }
+        }
+
+        if let render = view as? VLCRenderView {
+            render.isZoomedToFill = vlcZoomToFill
+            render.applyVideoScaling()
         }
 
         guard vlcPlaybackRequested, wantsVLCPlayback else { return }
@@ -2211,7 +2248,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         guard let params = lastSetupParams,
               let mainPlayer = vlcPlayer,
               let bridge = vlcPiPBridge,
-              let pip = pipController else { return }
+              let pip = pipController else {
+            print("⚠️ [PlayerVM] PiP not ready (params/bridge/controller missing)")
+            return
+        }
 
         stopVLCPiPDecoder(removeImage: true)
         bridge.displayLayer.isHidden = false
@@ -2219,30 +2259,24 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             self?.attemptToStartVLCPiP()
         }
 
-        let media = VLCMedia(url: params.url)
-        var options: [String: Any] = [
-            "network-caching": 3_000,
-            "avcodec-hw": "any",
-            "http-user-agent": params.customHeaders?["User-Agent"]
-                ?? params.customHeaders?["user-agent"]
-                ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
-        ]
-        if let referer = params.customHeaders?["Referer"] ?? params.customHeaders?["referer"] {
-            options["http-referrer"] = referer
-        }
-        if let cookie = params.customHeaders?["Cookie"] ?? params.customHeaders?["cookie"] {
-            options["http-cookies"] = cookie
-        }
-        if let height = params.preferredVideoHeight, height > 0 {
-            options["adaptive-maxheight"] = min(height, 540)
-        }
-        if currentTime > 0 {
-            // Ask the PiP decoder to open close to the current image. The
-            // explicit seek below remains necessary for DASH manifests whose
-            // timeline does not begin at zero.
-            options["start-time"] = currentTime
-        }
-        media.addOptions(options)
+        // Must match main MovieBox options — Safari UA here → CDN 428 → no PiP frames.
+        let pipHeight: Int? = {
+            if let height = params.preferredVideoHeight, height > 0 {
+                return min(height, 540)
+            }
+            return 540
+        }()
+        let playback = Self.vlcHTTPPlayback(
+            url: params.url,
+            customHeaders: params.customHeaders,
+            preferredVideoHeight: pipHeight,
+            startTime: currentTime > 0 ? currentTime : nil,
+            networkCaching: 3_000
+        )
+        print("🎬 [PlayerVM] PiP mirror URL: \(playback.url.absoluteString.prefix(120))…")
+
+        let media = VLCMedia(url: playback.url)
+        media.addOptions(playback.options)
 
         let mirrorPlayer = VLCMediaPlayer()
         mirrorPlayer.media = media
@@ -2511,14 +2545,18 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     }
     
     func togglePiP() {
+        if useVLC, pipController == nil {
+            prepareVLCPiPAfterFirstFrame()
+        }
         guard let pip = pipController else {
-            print("⚠️ PiP controller not available")
+            print("⚠️ PiP controller not available yet — wait for the first video frame")
             return
         }
         if pip.isPictureInPictureActive {
             print("🔽 Stopping PiP")
             pip.stopPictureInPicture()
         } else if pipUsesVLC {
+            print("🔼 Starting VLC sample-buffer PiP")
             startVLCSampleBufferPiP()
         } else {
             guard pip.isPictureInPicturePossible else {
@@ -2544,6 +2582,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         // the sample-buffer decoder supplies the PiP video frames.
         vlcPlayer?.drawable = nil
         pictureInPictureController.invalidatePlaybackState()
+        GlobalPlayerManager.shared.minimizeForPiP()
         print("✅ [PlayerVM] VLC Picture in Picture started")
     }
 

@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.108",
-          "buildVersion": "108",
+          "version": "1.0.110",
+          "buildVersion": "110",
           "date": "2026-10-16",
-          "size": 31062822,
+          "size": 31064893,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix MovieBox black video: use VLC like Android ExoPlayer, AppleCoreMedia UA"
+          "localizedDescription": "Fix MovieBox VLC zoom/fill + PiP mirror AppleCoreMedia UA"
         }
       ]
     }

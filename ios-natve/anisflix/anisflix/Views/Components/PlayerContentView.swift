@@ -15,7 +15,7 @@ struct PlayerContentView: View {
     @Binding var isFullscreen: Bool
     @ObservedObject var playerVM: PlayerViewModel
     
-    // Zoom toggle: false = aspect fit (default), true = aspect fill (zoom to safe area)
+    // Zoom toggle: false = aspect fit (default), true = aspect fill (crop to cover)
     @State private var isZoomedToFill: Bool = false
     
     // Callbacks
@@ -32,7 +32,7 @@ struct PlayerContentView: View {
             if castManager.isConnected {
                 CastPlaceholderView()
             } else if playerVM.useVLC, let vlcPlayer = playerVM.vlcPlayer {
-                // VLC Player for MKV/unsupported formats
+                // VLC Player for MKV / MovieBox progressive MP4
                 VLCVideoViewWrapper(
                     player: vlcPlayer,
                     isZoomedToFill: isZoomedToFill,
@@ -76,18 +76,25 @@ struct PlayerContentView: View {
                             onSingleTap()
                         }
                 }
-                .gesture(
+                // simultaneousGesture so pinch works together with the tap handlers
+                .simultaneousGesture(
                     MagnificationGesture()
                         .onEnded { value in
-                            // Pinch out (zoom in) -> fill, Pinch in (zoom out) -> normal
-                            if value > 1.0 {
+                            // Pinch out → fill/crop, pinch in → fit with letterbox
+                            if value > 1.05 {
                                 isZoomedToFill = true
-                            } else {
+                            } else if value < 0.95 {
                                 isZoomedToFill = false
                             }
                         }
                 )
             }
+        }
+        .onChange(of: isZoomedToFill) { fill in
+            playerVM.vlcZoomToFill = fill
+        }
+        .onAppear {
+            playerVM.vlcZoomToFill = isZoomedToFill
         }
     }
 }
@@ -102,31 +109,25 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
     func makeUIView(context: Context) -> UIView {
         let view = VLCRenderView()
         view.backgroundColor = .black
+        view.clipsToBounds = true
         view.player = player
+        view.isZoomedToFill = isZoomedToFill
         view.onDrawableReady = onDrawableReady
         view.onDrawableDetached = onDrawableDetached
-        view.contentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
-        view.clipsToBounds = true
         return view
     }
     
     func updateUIView(_ uiView: UIView, context: Context) {
-        // Update content mode based on zoom state
-        let targetMode: UIView.ContentMode = isZoomedToFill ? .scaleAspectFill : .scaleAspectFit
-        if uiView.contentMode != targetMode {
-            uiView.contentMode = targetMode
+        guard let renderView = uiView as? VLCRenderView else { return }
+        renderView.onDrawableReady = onDrawableReady
+        renderView.onDrawableDetached = onDrawableDetached
+        if renderView.player !== player {
+            print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
+            renderView.player = player
         }
-        
-        // Also update the player property on the view in case it changed
-        if let renderView = uiView as? VLCRenderView {
-            renderView.onDrawableReady = onDrawableReady
-            renderView.onDrawableDetached = onDrawableDetached
-            if renderView.player !== player {
-                print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
-                renderView.player = player
-            }
-            renderView.attachDrawableIfReady()
-        }
+        renderView.isZoomedToFill = isZoomedToFill
+        renderView.attachDrawableIfReady()
+        renderView.applyVideoScaling()
     }
 
     static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
@@ -143,10 +144,18 @@ class VLCRenderView: UIView {
                 oldValue?.drawable = nil
             }
             attachDrawableIfReady()
+            applyVideoScaling()
         }
     }
     var onDrawableReady: ((UIView) -> Void)?
     var onDrawableDetached: ((UIView) -> Void)?
+    /// UIView.contentMode is ignored by MobileVLCKit — use scaleFactor instead.
+    var isZoomedToFill: Bool = false {
+        didSet {
+            guard oldValue != isZoomedToFill else { return }
+            applyVideoScaling()
+        }
+    }
     
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -154,6 +163,7 @@ class VLCRenderView: UIView {
             print("🎬 [VLCRenderView] didMoveToWindow - window attached, bounds: \(bounds)")
             DispatchQueue.main.async { [weak self] in
                 self?.attachDrawableIfReady()
+                self?.applyVideoScaling()
             }
         } else {
             detachDrawable()
@@ -168,6 +178,39 @@ class VLCRenderView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         attachDrawableIfReady()
+        applyVideoScaling()
+    }
+
+    /// Aspect-fit (`scaleFactor = 0`) or aspect-fill (cover + crop via scaleFactor).
+    func applyVideoScaling() {
+        guard let player else { return }
+        guard bounds.width > 1, bounds.height > 1 else { return }
+
+        let videoSize = player.videoSize
+        guard videoSize.width > 1, videoSize.height > 1 else {
+            // Video size unknown yet — let VLC fit the drawable.
+            if player.scaleFactor != 0 {
+                player.scaleFactor = 0
+            }
+            return
+        }
+
+        // Clear any forced aspect from older fill hacks.
+        if player.videoAspectRatio != nil {
+            player.videoAspectRatio = nil
+        }
+
+        if isZoomedToFill {
+            let scale = max(bounds.width / videoSize.width, bounds.height / videoSize.height)
+            let target = Float(scale)
+            if abs(player.scaleFactor - target) > 0.001 {
+                player.scaleFactor = target
+                print("🔍 [VLCRenderView] zoom fill scaleFactor=\(target) view=\(bounds.size) video=\(videoSize)")
+            }
+        } else if player.scaleFactor != 0 {
+            player.scaleFactor = 0
+            print("🔍 [VLCRenderView] zoom fit (scaleFactor=0)")
+        }
     }
 
     func detachDrawable() {
