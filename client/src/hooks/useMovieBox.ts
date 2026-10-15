@@ -62,7 +62,8 @@ export const useMovieBox = (
             return response.data;
         },
         enabled: !!id,
-        staleTime: 1000 * 60 * 10, // 10 minutes
-        retry: 1,
+        // Keep fresher than signed CDN cookies; detector links stay playable longer.
+        staleTime: 1000 * 60 * 2,
+        retry: 2,
     });
 };

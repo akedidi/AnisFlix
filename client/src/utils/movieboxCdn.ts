@@ -48,21 +48,29 @@ export function isMovieBoxDetectorFallback(
  * Resolve the playback URL for a MovieBox stream.
  * Signed streams keep the CDN worker relay; detector fallback uses a bare
  * worker fetch (no rejected headers) so browsers still get CORS.
+ * When the API already returned a bare moviebox-cdn URL, reuse it as-is.
  */
 export function resolveMovieBoxPlaybackUrl(stream: {
   url?: string | null;
   directUrl?: string | null;
   headers?: Record<string, string> | null;
 }): { url: string; headers?: Record<string, string> } {
-  const directUrl = stream.directUrl || stream.url || '';
+  const apiUrl = stream.url || '';
+  const directUrl = stream.directUrl || apiUrl;
+  const existing = apiUrl ? parseMovieBoxCdnParams(apiUrl) : null;
+
+  // API already mapped detector streams to a bare worker URL.
+  if (existing?.bare && apiUrl) {
+    return { url: apiUrl };
+  }
+
   if (!isMovieBoxDetectorFallback(directUrl, stream.headers)) {
     return {
-      url: stream.url || directUrl,
+      url: apiUrl || directUrl,
       headers: stream.headers || undefined,
     };
   }
 
-  const existing = stream.url ? parseMovieBoxCdnParams(stream.url) : null;
   const workerOrigin = existing?.workerOrigin || DEFAULT_MOVIEBOX_CDN_WORKER;
   return {
     url: buildMovieBoxCdnProxyUrl(directUrl, {

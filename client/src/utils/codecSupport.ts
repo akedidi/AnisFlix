@@ -31,6 +31,11 @@ export function streamRequiresHevc(codec?: string | null, url?: string | null): 
   return isHevcCodec(codec) || isHevcStreamUrl(url);
 }
 
+/**
+ * Soft signal only. MovieBox detector URLs carry a `t=` query that often ages
+ * out while the CDN link still plays — Android TV never hides on this.
+ * Do not use for filtering the source list.
+ */
 export function isExpiredSignedStreamUrl(url?: string | null, now = Date.now()): boolean {
   if (!url) return false;
 
@@ -48,17 +53,38 @@ export function canPlayHevcDash(): boolean {
   return isHevcMseSupported();
 }
 
+function isMovieBoxDashStream(stream: {
+  type?: string;
+  url?: string | null;
+  directUrl?: string | null;
+}): boolean {
+  const type = (stream.type || "").toLowerCase();
+  if (type === "dash") return true;
+  // Prefer the raw CDN URL — worker proxy query strings can contain ".mpd".
+  const mediaUrl = stream.directUrl || stream.url || "";
+  return /\.mpd(?:$|[?#])/i.test(mediaUrl);
+}
+
+/**
+ * Whether a MovieBox stream should appear in the web source list.
+ * Align with Android TV: show detector / signed links even when `t=` is old.
+ * Only hide HEVC DASH when the browser cannot play it via MSE.
+ */
 export function isPlayableMovieBoxStream(stream: {
   type?: string;
   codec?: string | null;
   url?: string | null;
   directUrl?: string | null;
 }): boolean {
-  const isDash = stream.type === "dash" || !!stream.url?.includes(".mpd");
-  const mediaUrl = stream.directUrl || stream.url;
-  if (isExpiredSignedStreamUrl(mediaUrl)) return false;
+  const mediaUrl = stream.directUrl || stream.url || "";
+  if (!mediaUrl) return false;
 
-  const isHevc = streamRequiresHevc(stream.codec, mediaUrl);
-  if (isDash && isHevc && !canPlayHevcDash()) return false;
+  if (
+    isMovieBoxDashStream(stream) &&
+    streamRequiresHevc(stream.codec, mediaUrl) &&
+    !canPlayHevcDash()
+  ) {
+    return false;
+  }
   return true;
 }

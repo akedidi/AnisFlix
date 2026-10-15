@@ -44,3 +44,4 @@ api/*.log
 *.xcuserstate
 ios-natve/anisflix/AnisFlix.xcarchive/
 build/
+.vercel

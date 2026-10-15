@@ -650,7 +650,21 @@ async function getFrenchAnimeStreams(metadata, mediaType, season, episode) {
     }
   }
   if (output.length) return dedupe(output);
-  return getCoflixFallback(metadata, mediaType, targetSeason, targetEpisode);
+
+  const coflixFallback = await getCoflixFallback(
+    metadata,
+    mediaType,
+    targetSeason,
+    targetEpisode,
+  );
+  if (coflixFallback.length) return dedupe(coflixFallback);
+
+  // Match the active iOS behavior: when French-Anime and Coflix are blocked,
+  // reuse the resolved Anime-Sama episode but keep the French-Anime identity.
+  return dedupe(
+    (await getAnimeSamaStreams(metadata, mediaType, targetSeason, targetEpisode))
+      .map(source => ({ ...source, provider: 'frenchanime' })),
+  );
 }
 
 function ajaxHeaders(base) {

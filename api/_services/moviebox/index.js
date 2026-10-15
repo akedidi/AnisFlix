@@ -49,11 +49,11 @@ function normalizeLangCode(value) {
 }
 
 /**
- * Categories (all titles):
- * - English/JA/… film + French audio dub → VF only
+ * Categories (audio only — soft captions never decide the bucket):
+ * - EN/JA/… title + French audio dub → VF
  * - French original audio → VO (also mirrored to VF later)
- * - Non-French original + French captions → VOSTFR (applied later)
- * - Non-French original without FR captions → VO
+ * - Non-French original audio → VO (optional FR soft-subs stay selectable in the player)
+ * - Never promote VO → VOSTFR just because MovieBox attached optional captions
  */
 function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' } = {}) {
   const code = normalizeLangCode(dub?.lanCode || dub?.language);
@@ -65,10 +65,12 @@ function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' 
   const orig = normalizeLangCode(originalLanguage);
   const markedOriginal = dub?.original === true || /\boriginal\b/.test(label);
 
-  // French subtitle track row (not audio).
-  if (isFrench && isSubtitle) return 'VOSTFR';
+  // MovieBox "subtitle" dub rows are not a separate playable audio — skip them.
+  // Soft captions are fetched later and left for the user to enable.
+  if (isSubtitle) return null;
+
   // Non-French title with French dub → VF only (never VO).
-  if (isFrench && !isSubtitle && orig && orig !== 'fr') return 'VF';
+  if (isFrench && orig && orig !== 'fr') return 'VF';
 
   let isOriginalAudio = false;
   if (orig && effectiveCode) {
@@ -85,16 +87,15 @@ function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' 
   }
 
   // Includes French originals (orig=fr + French audio) → VO; mirrored to VF later.
-  if (isOriginalAudio && !isSubtitle) return 'VO';
+  if (isOriginalAudio) return 'VO';
   // French audio when original language is unknown.
-  if (isFrench && !isSubtitle) return 'VF';
+  if (isFrench) return 'VF';
   return null;
 }
 
-/** Finalize VO / VOSTFR / VF mirrors after captions are attached. */
+/** Finalize VF mirrors for French originals. Soft captions do not change category. */
 function categorizeMovieBoxStream(stream, originalLanguage = '') {
   const orig = normalizeLangCode(originalLanguage);
-  const frenchSubtitles = stream.subtitles?.filter((subtitle) => subtitle.code === 'fr') || [];
 
   // French original audio → list under both VO and VF.
   if (stream.language === 'VO' && orig === 'fr') {
@@ -106,16 +107,6 @@ function categorizeMovieBoxStream(stream, originalLanguage = '') {
         languageLabel: stream.languageLabel || 'VF',
       },
     ];
-  }
-
-  // Non-French original + French captions → VOSTFR only (not VO).
-  if (stream.language === 'VO' && frenchSubtitles.length > 0) {
-    return [{
-      ...stream,
-      language: 'VOSTFR',
-      languageLabel: 'French subtitles',
-      subtitles: frenchSubtitles.map((subtitle) => ({ ...subtitle, default: true })),
-    }];
   }
 
   return [stream];

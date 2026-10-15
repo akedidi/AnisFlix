@@ -714,13 +714,20 @@ const StreamingSources = memo(function StreamingSources({
       const streamLanguage = (stream.language || 'VO').toUpperCase();
       if (streamLanguage !== selectedLanguage) return;
       if (!isPlayableMovieBoxStream(stream)) {
-        console.log(`📦 [MovieBox] Source ${stream.quality} masquée (incompatible ou lien expiré)`);
+        console.log(
+          `📦 [MovieBox] Source ${stream.quality} masquée (HEVC DASH non supporté par ce navigateur)`,
+        );
         return;
       }
       // Same rule as Android TV: detector-fallback CDN links reject Cookie/Referer/UA.
       const playback = resolveMovieBoxPlaybackUrl(stream);
       const mediaUrl = playback.url || stream.directUrl || stream.url || '';
-      const isDash = stream.type === 'dash' || mediaUrl.includes('.mpd');
+      if (!mediaUrl) {
+        console.log(`📦 [MovieBox] Source ${stream.quality} ignorée (URL vide)`);
+        return;
+      }
+      const isDash =
+        stream.type === 'dash' || /\.mpd(?:$|[?#])/i.test(stream.directUrl || mediaUrl);
       const movieBoxType: Source['type'] = isDash
         ? 'dash'
         : stream.type === 'hls' || mediaUrl.includes('.m3u8')
