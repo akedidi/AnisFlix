@@ -599,13 +599,17 @@ struct MovieDetailView: View {
                     streamUrl = source.url
                 } else if source.provider.lowercased() == "moviebox" {
                     // MovieBox: dual-mode playback
-                    // - Chromecast / worker URL: use proxied URL (CORS + no rejected headers)
-                    // - Detector bare CDN: direct URL with empty headers (CDN rejects UA/Referer)
-                    // - Signed CDN: prefer direct URL with Cookie headers
+                    // Detector CDN rejects Cookie/Referer/UA (428/429). Prefer worker URL
+                    // when present; otherwise play directUrl with empty headers.
+                    // Signed streams keep Cookie headers + direct CDN.
                     let hasCookie = (source.headers ?? [:]).keys.contains { $0.lowercased() == "cookie" }
                     let isWorkerURL = source.url.contains("moviebox-cdn") || source.url.contains("workers.dev")
-                    if CastManager.shared.isConnected || (isWorkerURL && !hasCookie) {
-                        print("📺 [MovieDetailView] MovieBox proxied/worker playback")
+                    let isDetector = !hasCookie
+                    if isDetector {
+                        finalHeaders = [:]
+                    }
+                    if CastManager.shared.isConnected || (isWorkerURL && isDetector) {
+                        print("📺 [MovieDetailView] MovieBox worker/proxied playback (detector=\(isDetector))")
                         streamUrl = source.url
                     } else if let directUrl = source.directUrl {
                         print("📱 [MovieDetailView] MovieBox local mode - direct URL (cookie=\(hasCookie))")

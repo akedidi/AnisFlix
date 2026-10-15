@@ -1906,21 +1906,33 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         let media = VLCMedia(url: url)
         print("🎬 [PlayerVM] VLCMedia created for: \(url.absoluteString)")
         
+        // MovieBox detector CDN rejects UA/Referer/Cookie (428/429). Stay bare.
+        let isMovieBoxDetectorBare = url.absoluteString.lowercased().contains("hakunaymatata.com")
+            && !(customHeaders ?? [:]).keys.contains { $0.lowercased() == "cookie" }
+
         // Set network caching and user agent
         var options: [String: Any] = [
             // Keep the value used by the stable 1.0.92 playback path.
             "network-caching": 3_000,
             "avcodec-hw": "any",
-            "http-user-agent": customHeaders?["User-Agent"] ?? customHeaders?["user-agent"] ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
         ]
+        if isMovieBoxDetectorBare {
+            print("🎬 [PlayerVM] VLC MovieBox detector: omitting http-user-agent")
+        } else {
+            options["http-user-agent"] = customHeaders?["User-Agent"]
+                ?? customHeaders?["user-agent"]
+                ?? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15"
+        }
         
         // MobileVLCKit uses dedicated option names for headers needed by
         // protected streams. Generic "http-referer" is not recognised.
-        if let referer = customHeaders?["Referer"] ?? customHeaders?["referer"] {
-            options["http-referrer"] = referer
-        }
-        if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
-            options["http-cookies"] = cookie
+        if !isMovieBoxDetectorBare {
+            if let referer = customHeaders?["Referer"] ?? customHeaders?["referer"] {
+                options["http-referrer"] = referer
+            }
+            if let cookie = customHeaders?["Cookie"] ?? customHeaders?["cookie"] {
+                options["http-cookies"] = cookie
+            }
         }
         if let preferredVideoHeight, preferredVideoHeight > 0 {
             options["adaptive-maxheight"] = preferredVideoHeight

@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.104",
-          "buildVersion": "104",
-          "date": "2026-10-15",
-          "size": 31058060,
+          "version": "1.0.105",
+          "buildVersion": "105",
+          "date": "2026-10-16",
+          "size": 31059418,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "MovieBox iOS: rejet des stubs courts, fallback resourceDetectors, lecture bare/worker alignée web/Android TV."
+          "localizedDescription": "Fix MovieBox iOS: AVPlayer pour HEVC/detector (plus de VLC+UA → 428). Worker/bare OK sur Animals VO."
         }
       ]
     }

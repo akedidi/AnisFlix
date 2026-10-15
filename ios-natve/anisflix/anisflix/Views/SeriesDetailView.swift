@@ -569,8 +569,12 @@ struct SeriesDetailView: View {
                     // MovieBox: dual-mode playback (aligned with MovieDetailView / web)
                     let hasCookie = (source.headers ?? [:]).keys.contains { $0.lowercased() == "cookie" }
                     let isWorkerURL = source.url.contains("moviebox-cdn") || source.url.contains("workers.dev")
-                    if CastManager.shared.isConnected || (isWorkerURL && !hasCookie) {
-                        print("📺 [SeriesDetailView] MovieBox proxied/worker playback")
+                    let isDetector = !hasCookie
+                    if isDetector {
+                        finalHeaders = [:]
+                    }
+                    if CastManager.shared.isConnected || (isWorkerURL && isDetector) {
+                        print("📺 [SeriesDetailView] MovieBox worker/proxied playback (detector=\(isDetector))")
                         finalURL = URL(string: source.url)
                     } else if let directUrl = source.directUrl {
                         print("📱 [SeriesDetailView] MovieBox local mode - direct URL (cookie=\(hasCookie))")

@@ -370,6 +370,17 @@ class GlobalPlayerManager: ObservableObject {
         let vlcTypes = ["dash", "mpd", "mkv", "matroska", "webm", "avi", "flv", "wmv", "ogv"]
         let vlcExtensions = ["mpd", "mkv", "webm", "avi", "flv", "wmv", "ogv"]
 
+        // MovieBox progressive MP4 (including HEVC under /h265/) must stay on
+        // AVPlayer: VLC injects a Safari UA and the detector CDN answers 428.
+        if provider == "moviebox"
+            || value.contains("hakunaymatata.com")
+            || value.contains("moviebox-cdn")
+            || value.contains("kedidi-anis.workers.dev") {
+            return vlcTypes.contains(type) ||
+                   vlcExtensions.contains(ext) ||
+                   value.contains(".mpd")
+        }
+
         return vlcProviders.contains(provider) ||
                vlcTypes.contains(type) ||
                vlcExtensions.contains(ext) ||
