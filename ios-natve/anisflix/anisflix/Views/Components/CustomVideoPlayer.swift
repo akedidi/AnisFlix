@@ -823,9 +823,12 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     private weak var pipSourceView: UIView?
     private var vlcPiPBridge: VLCSampleBufferPiPBridge?
     private var vlcPiPPlayer: VLCMediaPlayer?
+    /// When true, PiP sample buffers come from the main VLC player (no second CDN stream).
+    private var vlcPiPUsesMainPlayer = false
     private var pipUsesVLC = false
     private var isStartingVLCPiP = false
     private var vlcPiPStartAttempts = 0
+    private var resignActiveObserver: NSObjectProtocol?
     
     // Expose PiP state for GlobalPlayerManager
     var isPiPActive: Bool {
@@ -906,10 +909,33 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             name: .stopPlayback,
             object: nil
         )
+
+        // Start VLC PiP as the app resigns — must begin before full background
+        // or iOS refuses Picture in Picture for sample-buffer sources.
+        resignActiveObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleAppWillResignActive()
+        }
     }
     
     deinit {
+        if let resignActiveObserver {
+            NotificationCenter.default.removeObserver(resignActiveObserver)
+        }
         NotificationCenter.default.removeObserver(self)
+    }
+
+    private func handleAppWillResignActive() {
+        guard useVLC,
+              pipUsesVLC,
+              isPiPAvailable,
+              !(pipController?.isPictureInPictureActive ?? false),
+              wantsVLCPlayback || isPlaying else { return }
+        print("📺 [PlayerVM] App resigning active → starting VLC PiP")
+        startVLCSampleBufferPiP()
     }
     
     @objc private func handleStopPlayback(_ notification: Notification) {
@@ -2159,17 +2185,21 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             return
         }
 
+        let drawableTarget = (view as? VLCRenderView)?.videoCanvas ?? view
+
         if attachedVLCDrawable !== view {
             print("🎬 [PlayerVM] Attaching VLC to visible drawable: \(view.bounds)")
             attachedVLCDrawable = view
-            if !isStartingVLCPiP && pipController?.isPictureInPictureActive != true {
-                vlc.drawable = view
+            if !isStartingVLCPiP
+                && !vlcPiPUsesMainPlayer
+                && pipController?.isPictureInPictureActive != true {
+                vlc.drawable = drawableTarget
             }
         }
 
         if let render = view as? VLCRenderView {
             render.isZoomedToFill = vlcZoomToFill
-            render.applyVideoScaling()
+            render.layoutVideoCanvas()
         }
 
         guard vlcPlaybackRequested, wantsVLCPlayback else { return }
@@ -2216,7 +2246,8 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         )
         let controller = AVPictureInPictureController(contentSource: source)
         controller.delegate = self
-        controller.canStartPictureInPictureAutomaticallyFromInline = false
+        // Enabled so iOS can promote PiP; we also start explicitly on background.
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
         controller.requiresLinearPlayback = false
 
         pipSourceView = inlineView
@@ -2245,58 +2276,36 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     }
 
     private func startVLCSampleBufferPiP() {
-        guard let params = lastSetupParams,
-              let mainPlayer = vlcPlayer,
+        guard let mainPlayer = vlcPlayer,
               let bridge = vlcPiPBridge,
               let pip = pipController else {
-            print("⚠️ [PlayerVM] PiP not ready (params/bridge/controller missing)")
+            print("⚠️ [PlayerVM] PiP not ready (bridge/controller missing)")
             return
         }
+        guard !pip.isPictureInPictureActive else { return }
 
+        // Use the MAIN player for sample buffers. A second CDN stream for the
+        // muted mirror often freezes after the first frame (MovieBox progressive).
         stopVLCPiPDecoder(removeImage: true)
         bridge.displayLayer.isHidden = false
         bridge.onFirstFrame = { [weak self] in
             self?.attemptToStartVLCPiP()
         }
 
-        // Must match main MovieBox options — Safari UA here → CDN 428 → no PiP frames.
-        let pipHeight: Int? = {
-            if let height = params.preferredVideoHeight, height > 0 {
-                return min(height, 540)
-            }
-            return 540
-        }()
-        let playback = Self.vlcHTTPPlayback(
-            url: params.url,
-            customHeaders: params.customHeaders,
-            preferredVideoHeight: pipHeight,
-            startTime: currentTime > 0 ? currentTime : nil,
-            networkCaching: 3_000
-        )
-        print("🎬 [PlayerVM] PiP mirror URL: \(playback.url.absoluteString.prefix(120))…")
-
-        let media = VLCMedia(url: playback.url)
-        media.addOptions(playback.options)
-
-        let mirrorPlayer = VLCMediaPlayer()
-        mirrorPlayer.media = media
-        mirrorPlayer.audio?.isMuted = true
-        guard bridge.connect(to: mirrorPlayer) else {
+        mainPlayer.drawable = nil
+        guard bridge.connect(to: mainPlayer) else {
             bridge.displayLayer.isHidden = true
-            print("❌ [PlayerVM] Unable to connect VLC frames to PiP")
+            restoreInlineVLCDrawable()
+            print("❌ [PlayerVM] Unable to connect main VLC frames to PiP")
             return
         }
-        vlcPiPPlayer = mirrorPlayer
+        vlcPiPUsesMainPlayer = true
+        vlcPiPPlayer = nil
         isStartingVLCPiP = true
         vlcPiPStartAttempts = 0
         bridge.updatePlaybackTime(currentTime, isPlaying: wantsVLCPlayback)
-        mirrorPlayer.time = mainPlayer.time
-        mirrorPlayer.play()
-        let targetTime = mainPlayer.time
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self, weak mirrorPlayer] in
-            guard let self, let mirrorPlayer, self.vlcPiPPlayer === mirrorPlayer else { return }
-            mirrorPlayer.time = targetTime
-            if !self.wantsVLCPlayback { mirrorPlayer.pause() }
+        if !mainPlayer.isPlaying && wantsVLCPlayback {
+            mainPlayer.play()
         }
         attemptToStartVLCPiP()
         pip.invalidatePlaybackState()
@@ -2313,9 +2322,10 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             return
         }
         vlcPiPStartAttempts += 1
-        guard vlcPiPStartAttempts < 60 else {
+        guard vlcPiPStartAttempts < 80 else {
             isStartingVLCPiP = false
             stopVLCPiPDecoder(removeImage: true)
+            restoreInlineVLCDrawable()
             print("❌ [PlayerVM] PiP did not become ready")
             return
         }
@@ -2326,7 +2336,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
 
     private func stopVLCPiPDecoder(removeImage: Bool) {
         vlcPiPBridge?.onFirstFrame = nil
-        if let pipPlayer = vlcPiPPlayer {
+        if vlcPiPUsesMainPlayer {
+            // Only detach callbacks — never stop the main player.
+            vlcPiPBridge?.disconnect()
+            vlcPiPUsesMainPlayer = false
+        } else if let pipPlayer = vlcPiPPlayer {
             pipPlayer.stop()
             vlcPiPBridge?.disconnect()
         }
@@ -2338,11 +2352,15 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     }
 
     private func restoreInlineVLCDrawable() {
+        let wasUsingMain = vlcPiPUsesMainPlayer
         stopVLCPiPDecoder(removeImage: true)
         guard useVLC, let inlineView = attachedVLCDrawable, inlineView.window != nil else { return }
-        guard vlcPlayer?.drawable as? UIView !== inlineView else { return }
-        print("📺 [PlayerVM] Restoring VLC drawable after Picture in Picture")
-        vlcPlayer?.drawable = inlineView
+        let target = (inlineView as? VLCRenderView)?.videoCanvas ?? inlineView
+        if wasUsingMain || vlcPlayer?.drawable as? UIView !== target {
+            print("📺 [PlayerVM] Restoring VLC drawable after Picture in Picture")
+            vlcPlayer?.drawable = target
+            (inlineView as? VLCRenderView)?.layoutVideoCanvas()
+        }
     }
 
     private func teardownVLCPiP() {
@@ -2358,6 +2376,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         vlcPiPBridge = nil
         pipUsesVLC = false
         isStartingVLCPiP = false
+        vlcPiPUsesMainPlayer = false
     }
     
     private func cleanupVLC() {
@@ -2578,9 +2597,11 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
         guard pipUsesVLC else { return }
         isStartingVLCPiP = false
-        // Keep the primary VLC instance for audio, time and controls while
-        // the sample-buffer decoder supplies the PiP video frames.
-        vlcPlayer?.drawable = nil
+        // Main player already feeds sample buffers; keep drawable nil so
+        // callbacks stay the active video output (audio continues on main).
+        if !vlcPiPUsesMainPlayer {
+            vlcPlayer?.drawable = nil
+        }
         pictureInPictureController.invalidatePlaybackState()
         GlobalPlayerManager.shared.minimizeForPiP()
         print("✅ [PlayerVM] VLC Picture in Picture started")

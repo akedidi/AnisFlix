@@ -15,27 +15,29 @@ struct PlayerContentView: View {
     @Binding var isFullscreen: Bool
     @ObservedObject var playerVM: PlayerViewModel
     
-    // Zoom toggle: false = aspect fit (default), true = aspect fill (crop to cover)
+    // Zoom toggle: false = aspect fit, true = aspect fill (crop to cover)
     @State private var isZoomedToFill: Bool = false
     
-    // Callbacks
     var onDoubleTapBack: () -> Void
     var onDoubleTapForward: () -> Void
     var onSingleTap: () -> Void
     
     var body: some View {
         ZStack {
-            // Full black background
             Color.black
                 .ignoresSafeArea(.all, edges: .all)
             
             if castManager.isConnected {
                 CastPlaceholderView()
             } else if playerVM.useVLC, let vlcPlayer = playerVM.vlcPlayer {
-                // VLC Player for MKV / MovieBox progressive MP4
                 VLCVideoViewWrapper(
                     player: vlcPlayer,
                     isZoomedToFill: isZoomedToFill,
+                    onZoomChanged: { fill in
+                        if isZoomedToFill != fill {
+                            isZoomedToFill = fill
+                        }
+                    },
                     onDrawableReady: { view in
                         playerVM.attachVLCDrawable(view)
                     },
@@ -43,44 +45,39 @@ struct PlayerContentView: View {
                         playerVM.detachVLCDrawable(view)
                     }
                 )
-                    .background(Color.black)
-                    .ignoresSafeArea(.all, edges: .all)
+                .background(Color.black)
+                .ignoresSafeArea(.all, edges: .all)
             } else {
                 VideoPlayerView(player: playerVM.player, playerVM: playerVM, isZoomedToFill: isZoomedToFill)
                     .background(Color.black)
                     .ignoresSafeArea(.all, edges: .all)
             }
             
-            // Gesture Overlay (Pinch + Tap)
             if !castManager.isConnected {
                 HStack(spacing: 0) {
-                    // Left Side (Rewind)
                     Rectangle()
                         .fill(Color.black.opacity(0.001))
                         .contentShape(Rectangle())
-                        .onTapGesture(count: 2) {
-                            onDoubleTapBack()
-                        }
-                        .onTapGesture(count: 1) {
-                            onSingleTap()
-                        }
+                        .onTapGesture(count: 2) { onDoubleTapBack() }
+                        .onTapGesture(count: 1) { onSingleTap() }
                     
-                    // Right Side (Forward)
                     Rectangle()
                         .fill(Color.black.opacity(0.001))
                         .contentShape(Rectangle())
-                        .onTapGesture(count: 2) {
-                            onDoubleTapForward()
-                        }
-                        .onTapGesture(count: 1) {
-                            onSingleTap()
-                        }
+                        .onTapGesture(count: 2) { onDoubleTapForward() }
+                        .onTapGesture(count: 1) { onSingleTap() }
                 }
-                // simultaneousGesture so pinch works together with the tap handlers
-                .simultaneousGesture(
+                // highPriority so pinch wins over the tap handlers
+                .highPriorityGesture(
                     MagnificationGesture()
+                        .onChanged { value in
+                            if value > 1.08 {
+                                isZoomedToFill = true
+                            } else if value < 0.92 {
+                                isZoomedToFill = false
+                            }
+                        }
                         .onEnded { value in
-                            // Pinch out → fill/crop, pinch in → fit with letterbox
                             if value > 1.05 {
                                 isZoomedToFill = true
                             } else if value < 0.95 {
@@ -93,16 +90,27 @@ struct PlayerContentView: View {
         .onChange(of: isZoomedToFill) { fill in
             playerVM.vlcZoomToFill = fill
         }
+        .onChange(of: isFullscreen) { fullscreen in
+            // Movies look better edge-to-edge in landscape fullscreen.
+            if fullscreen {
+                isZoomedToFill = true
+            }
+        }
         .onAppear {
             playerVM.vlcZoomToFill = isZoomedToFill
+            if isFullscreen {
+                isZoomedToFill = true
+            }
         }
     }
 }
 
-// MARK: - VLC Video View Wrapper (UIViewRepresentable)
+// MARK: - VLC Video View Wrapper
+
 struct VLCVideoViewWrapper: UIViewRepresentable {
     let player: VLCMediaPlayer
     var isZoomedToFill: Bool = false
+    var onZoomChanged: ((Bool) -> Void)?
     let onDrawableReady: (UIView) -> Void
     let onDrawableDetached: (UIView) -> Void
     
@@ -112,6 +120,7 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
         view.clipsToBounds = true
         view.player = player
         view.isZoomedToFill = isZoomedToFill
+        view.onZoomChanged = onZoomChanged
         view.onDrawableReady = onDrawableReady
         view.onDrawableDetached = onDrawableDetached
         return view
@@ -121,13 +130,15 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
         guard let renderView = uiView as? VLCRenderView else { return }
         renderView.onDrawableReady = onDrawableReady
         renderView.onDrawableDetached = onDrawableDetached
+        renderView.onZoomChanged = onZoomChanged
         if renderView.player !== player {
-            print("🎬 [VLCVideoViewWrapper] updateUIView - Updating player instance on view")
             renderView.player = player
         }
-        renderView.isZoomedToFill = isZoomedToFill
+        if renderView.isZoomedToFill != isZoomedToFill {
+            renderView.isZoomedToFill = isZoomedToFill
+        }
         renderView.attachDrawableIfReady()
-        renderView.applyVideoScaling()
+        renderView.layoutVideoCanvas()
     }
 
     static func dismantleUIView(_ uiView: UIView, coordinator: ()) {
@@ -135,35 +146,72 @@ struct VLCVideoViewWrapper: UIViewRepresentable {
     }
 }
 
-// Custom UIView that sets VLC drawable when added to window
+/// Hosts a `videoCanvas` subview sized for aspect-fit or aspect-fill.
+/// MobileVLCKit ignores UIView.contentMode and scaleFactor is unreliable on
+/// the iOS Metal drawable — sizing the canvas is the reliable approach.
 class VLCRenderView: UIView {
+    let videoCanvas = UIView()
+    
     weak var player: VLCMediaPlayer? {
         didSet {
             guard oldValue !== player else { return }
-            if oldValue?.drawable as? UIView === self {
+            if oldValue?.drawable as? UIView === videoCanvas {
                 oldValue?.drawable = nil
             }
             attachDrawableIfReady()
-            applyVideoScaling()
+            layoutVideoCanvas()
         }
     }
     var onDrawableReady: ((UIView) -> Void)?
     var onDrawableDetached: ((UIView) -> Void)?
-    /// UIView.contentMode is ignored by MobileVLCKit — use scaleFactor instead.
+    var onZoomChanged: ((Bool) -> Void)?
     var isZoomedToFill: Bool = false {
         didSet {
             guard oldValue != isZoomedToFill else { return }
-            applyVideoScaling()
+            layoutVideoCanvas()
+            onZoomChanged?(isZoomedToFill)
+        }
+    }
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        commonInit()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+    
+    private func commonInit() {
+        backgroundColor = .black
+        clipsToBounds = true
+        videoCanvas.backgroundColor = .black
+        videoCanvas.isUserInteractionEnabled = false
+        addSubview(videoCanvas)
+        
+        let pinch = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        pinch.cancelsTouchesInView = false
+        addGestureRecognizer(pinch)
+    }
+    
+    @objc private func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        guard gesture.state == .changed || gesture.state == .ended else { return }
+        if gesture.scale > 1.08 {
+            isZoomedToFill = true
+            if gesture.state == .ended { gesture.scale = 1 }
+        } else if gesture.scale < 0.92 {
+            isZoomedToFill = false
+            if gesture.state == .ended { gesture.scale = 1 }
         }
     }
     
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil {
-            print("🎬 [VLCRenderView] didMoveToWindow - window attached, bounds: \(bounds)")
             DispatchQueue.main.async { [weak self] in
                 self?.attachDrawableIfReady()
-                self?.applyVideoScaling()
+                self?.layoutVideoCanvas()
             }
         } else {
             detachDrawable()
@@ -172,45 +220,61 @@ class VLCRenderView: UIView {
     
     func attachDrawableIfReady() {
         guard window != nil, bounds.width > 0, bounds.height > 0, player != nil else { return }
+        // Pass self — PlayerViewModel routes drawable to videoCanvas.
         onDrawableReady?(self)
     }
     
     override func layoutSubviews() {
         super.layoutSubviews()
         attachDrawableIfReady()
-        applyVideoScaling()
+        layoutVideoCanvas()
     }
 
-    /// Aspect-fit (`scaleFactor = 0`) or aspect-fill (cover + crop via scaleFactor).
-    func applyVideoScaling() {
-        guard let player else { return }
+    /// Size `videoCanvas` so VLC (scaleFactor 0) paints edge-to-edge inside it.
+    func layoutVideoCanvas() {
         guard bounds.width > 1, bounds.height > 1 else { return }
-
-        let videoSize = player.videoSize
-        guard videoSize.width > 1, videoSize.height > 1 else {
-            // Video size unknown yet — let VLC fit the drawable.
-            if player.scaleFactor != 0 {
-                player.scaleFactor = 0
-            }
-            return
+        
+        let raw = player?.videoSize ?? .zero
+        let videoSize: CGSize
+        if raw.width > 1, raw.height > 1 {
+            videoSize = raw
+        } else {
+            // Assume 16:9 until the decoder reports a real size.
+            videoSize = CGSize(width: 16, height: 9)
         }
-
-        // Clear any forced aspect from older fill hacks.
-        if player.videoAspectRatio != nil {
-            player.videoAspectRatio = nil
-        }
-
+        
+        let fitted = AVMakeRect(aspectRatio: videoSize, insideRect: bounds)
+        let canvasFrame: CGRect
         if isZoomedToFill {
-            let scale = max(bounds.width / videoSize.width, bounds.height / videoSize.height)
-            let target = Float(scale)
-            if abs(player.scaleFactor - target) > 0.001 {
-                player.scaleFactor = target
-                print("🔍 [VLCRenderView] zoom fill scaleFactor=\(target) view=\(bounds.size) video=\(videoSize)")
-            }
-        } else if player.scaleFactor != 0 {
-            player.scaleFactor = 0
-            print("🔍 [VLCRenderView] zoom fit (scaleFactor=0)")
+            let coverScale = max(bounds.width / fitted.width, bounds.height / fitted.height)
+            let w = fitted.width * coverScale
+            let h = fitted.height * coverScale
+            canvasFrame = CGRect(
+                x: (bounds.width - w) * 0.5,
+                y: (bounds.height - h) * 0.5,
+                width: w,
+                height: h
+            )
+        } else {
+            canvasFrame = fitted
         }
+        
+        if videoCanvas.frame != canvasFrame {
+            videoCanvas.frame = canvasFrame
+        }
+        
+        // Always let VLC fill its canvas; we own fit/fill via the canvas frame.
+        if let player, player.scaleFactor != 0 {
+            player.scaleFactor = 0
+        }
+        if player?.videoAspectRatio != nil {
+            player?.videoAspectRatio = nil
+        }
+    }
+    
+    /// Legacy name used by PlayerViewModel after the first decoded frame.
+    func applyVideoScaling() {
+        layoutVideoCanvas()
     }
 
     func detachDrawable() {

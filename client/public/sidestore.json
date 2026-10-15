@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.110",
-          "buildVersion": "110",
+          "version": "1.0.111",
+          "buildVersion": "111",
           "date": "2026-10-16",
-          "size": 31064893,
+          "size": 31065120,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix MovieBox VLC zoom/fill + PiP mirror AppleCoreMedia UA"
+          "localizedDescription": "Fix VLC PiP live frames, auto-PiP on background, fullscreen zoom via video canvas"
         }
       ]
     }
