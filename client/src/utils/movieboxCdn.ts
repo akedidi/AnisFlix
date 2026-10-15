@@ -44,19 +44,11 @@ export function isMovieBoxDetectorFallback(
   return !hasCookie;
 }
 
-function isAdaptiveMovieBoxUrl(url: string, type?: string | null): boolean {
-  const normalizedType = (type || '').toLowerCase();
-  if (normalizedType === 'dash' || normalizedType === 'hls' || normalizedType === 'm3u8') {
-    return true;
-  }
-  return /\.mpd(?:$|[?#])/i.test(url) || /\.m3u8(?:$|[?#])/i.test(url);
-}
-
 /**
  * Resolve the playback URL for a MovieBox stream.
- * Signed / adaptive streams keep the CDN worker relay (CORS + manifest rewrite).
- * Progressive detector MP4s play the CDN URL directly: CF Worker HTTP egress is
- * blocked by the CDN, and forcing crossOrigin+Origin on hakunaymatata returns 429.
+ * Hakunaymatata CDN blocks browser Origin/Referer (428/429) and CF HTTP egress,
+ * so playback must go through the moviebox-cdn Worker (socket fallback).
+ * Prefer an API-provided worker URL when present; otherwise build one.
  */
 export function resolveMovieBoxPlaybackUrl(stream: {
   url?: string | null;
@@ -67,42 +59,30 @@ export function resolveMovieBoxPlaybackUrl(stream: {
   const apiUrl = stream.url || '';
   const directUrl = stream.directUrl || apiUrl;
   const existing = apiUrl ? parseMovieBoxCdnParams(apiUrl) : null;
-  const mediaForType = directUrl || apiUrl;
-  const needsWorker =
-    isAdaptiveMovieBoxUrl(mediaForType, stream.type) ||
-    Boolean(existing && !existing.bare);
 
-  // Progressive detector MP4: prefer the raw CDN link over the worker hop.
-  if (
-    isMovieBoxDetectorFallback(directUrl, stream.headers) &&
-    !needsWorker &&
-    isHakunaymatataUrl(directUrl)
-  ) {
-    return { url: directUrl };
-  }
-
-  // API already mapped detector adaptive streams to a bare worker URL.
-  if (existing?.bare && apiUrl) {
+  // Already a moviebox-cdn worker URL (signed or bare detector).
+  if (existing && apiUrl) {
     return { url: apiUrl };
   }
 
-  if (!isMovieBoxDetectorFallback(directUrl, stream.headers)) {
+  // Detector fallback without a prebuilt worker URL — wrap for CORS + CDN access.
+  if (isMovieBoxDetectorFallback(directUrl, stream.headers)) {
     return {
-      url: apiUrl || directUrl,
-      headers: stream.headers || undefined,
+      url: buildMovieBoxCdnProxyUrl(directUrl, {
+        workerOrigin: DEFAULT_MOVIEBOX_CDN_WORKER,
+        targetUrl: directUrl,
+        referer: '',
+        cookie: '',
+        userAgent: '',
+        bare: true,
+      }),
     };
   }
 
-  const workerOrigin = existing?.workerOrigin || DEFAULT_MOVIEBOX_CDN_WORKER;
+  // Non-detector streams (e.g. macdn.aoneroom.com): use API URL as-is.
   return {
-    url: buildMovieBoxCdnProxyUrl(directUrl, {
-      workerOrigin,
-      targetUrl: directUrl,
-      referer: '',
-      cookie: '',
-      userAgent: '',
-      bare: true,
-    }),
+    url: apiUrl || directUrl,
+    headers: stream.headers || undefined,
   };
 }
 
