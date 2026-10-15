@@ -1721,6 +1721,33 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         }
     }
     
+    /// Progressive MP4 can play audio while AVPlayerLayer stays black if the
+    /// layer was laid out at ~0 size or auto-PiP stole the surface. Rebind and
+    /// nudge the playhead so VideoToolbox starts emitting frames again.
+    func ensureAVPlayerLayerDisplaying() {
+        guard !useVLC, let layer = playerLayer else { return }
+        if pipController?.isPictureInPictureActive == true {
+            pipController?.stopPictureInPicture()
+        }
+        if layer.player !== player {
+            layer.player = player
+        }
+        if layer.isReadyForDisplay { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, !self.useVLC else { return }
+            guard let layer = self.playerLayer, !layer.isReadyForDisplay else { return }
+            guard self.player.rate > 0 || self.isPlaying else { return }
+            print("⚠️ [PlayerVM] AVPlayerLayer not readyForDisplay — rebinding + seek nudge")
+            layer.player = nil
+            layer.player = self.player
+            let t = max(self.currentTime, 0.05)
+            self.player.seek(to: CMTime(seconds: t, preferredTimescale: 600)) { [weak self] _ in
+                self?.player.play()
+            }
+        }
+    }
+
     func setupPiPWithLayer(_ layer: AVPlayerLayer) {
         print("🎬 setupPiPWithLayer called")
         self.playerLayer = layer
@@ -1737,7 +1764,9 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                 }
                 pipController = try AVPictureInPictureController(playerLayer: layer)
                 pipController?.delegate = self
-                pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+                // Auto-PiP blanks the inline AVPlayerLayer (audio continues, video
+                // looks black). Only start PiP from an explicit user action.
+                pipController?.canStartPictureInPictureAutomaticallyFromInline = false
                 pipUsesVLC = false
                 isPiPAvailable = true
                 print("✅ PiP controller created successfully")
@@ -2604,6 +2633,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
                     }
                     self.isInitialLoading = false
                     self.isBuffering = false
+                    self.ensureAVPlayerLayerDisplaying()
                 }
             } else if item.status == .failed {
                 print("❌ [PlayerViewModel] AVPlayerItem failed: \(String(describing: item.error))")
@@ -3083,10 +3113,20 @@ class PlayerView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         playerLayer.videoGravity = .resizeAspect
+        backgroundColor = .black
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Keep the video layer matched to the view — animated size changes
+        // (mini ↔ full) otherwise leave a black surface with audio only.
+        if playerLayer.frame != bounds {
+            playerLayer.frame = bounds
+        }
     }
     
     // Allow becoming first responder to handle remote commands

@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.106",
-          "buildVersion": "106",
+          "version": "1.0.107",
+          "buildVersion": "107",
           "date": "2026-10-16",
-          "size": 31059247,
+          "size": 31060991,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix MovieBox black screen: play bare CDN on AVPlayer instead of CF worker"
+          "localizedDescription": "Fix MovieBox black video (audio only): keep full AVPlayerLayer size when minimized, disable auto-PiP"
         }
       ]
     }

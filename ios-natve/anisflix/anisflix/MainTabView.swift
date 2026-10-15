@@ -286,12 +286,11 @@ struct MainTabView: View {
                     episode: playerManager.episode,
                     playerVM: playerManager.playerVM
                  )
-                 // When minimized: keep visible but VERY small and behind everything
-                 // When expanded: full size and on top
-                 .frame(
-                    width: playerManager.isMinimised ? 1 : nil,
-                    height: playerManager.isMinimised ? 1 : nil
-                 )
+                 // Keep a real AVPlayerLayer size even when "minimized".
+                 // A 1×1 frame lets progressive MP4 (MovieBox) decode audio while
+                 // video never becomes readyForDisplay → black screen + sound.
+                 .opacity(playerManager.isMinimised ? 0.001 : 1)
+                 .offset(y: playerManager.isMinimised ? UIScreen.main.bounds.height : 0)
                  .zIndex(playerManager.isMinimised ? -100 : 200)
                  .allowsHitTesting(!playerManager.isMinimised)
                  .animation(.easeOut(duration: 0.35), value: playerManager.isMinimised)
