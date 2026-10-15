@@ -580,7 +580,8 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
           const finalUrl = extractPolicyResource(stream.signCookie) || rawUrl;
           if (!finalUrl) return false;
           if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) return false;
-          if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) return false;
+          // Catalogue placeholders (short trailers) live under /other/YYYY/MM/
+          if (finalUrl.includes('/other/20')) return false;
           if (!isPlausibleMovieBoxDuration(streamDuration(stream), expectedMinutes)) {
             rejectedShortUrls.add(finalUrl);
             return false;
@@ -611,7 +612,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
           const finalUrl = extractPolicyResource(stream.signCookie) || rawUrl;
           if (!finalUrl) continue;
           if (finalUrl.includes('b164fbfb4347792950bdfbfb563d39d9')) continue;
-          if (finalUrl === rawUrl && rawUrl.includes('/other/2026/09/')) continue;
+          if (finalUrl.includes('/other/20')) continue;
           const streamId = stream.id || `${item.id}|${usedSeason}|${usedEpisode}`;
           const subtitles = await fetchSubtitles(item.id, streamId, playbackHeaders, item.label);
           if (fallbackSubtitles.length === 0 && subtitles.length > 0) {
