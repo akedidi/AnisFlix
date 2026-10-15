@@ -513,15 +513,20 @@ function buildMovieBoxCdnWorkerUrl(
     absoluteUrl: string,
     referer: string,
     cookie: string,
-    userAgent: string
+    userAgent: string,
+    bare = false,
 ): string {
     const qs = new URLSearchParams({
         path: 'moviebox-cdn',
         url: absoluteUrl,
-        referer,
     });
-    if (cookie) qs.set('cookie', cookie);
-    if (userAgent) qs.set('ua', userAgent);
+    if (bare) {
+        qs.set('bare', '1');
+    } else {
+        qs.set('referer', referer);
+        if (cookie) qs.set('cookie', cookie);
+        if (userAgent) qs.set('ua', userAgent);
+    }
     return `${workerOrigin}/?${qs.toString()}`;
 }
 
@@ -530,7 +535,8 @@ function buildMovieBoxDashTemplateWorkerUrl(
     absoluteUrl: string,
     referer: string,
     cookie: string,
-    userAgent: string
+    userAgent: string,
+    bare = false,
 ): string {
     const dashTokens: string[] = [];
     const protectedUrl = absoluteUrl.replace(/\$(?:RepresentationID|Bandwidth|Time|Number(?:%0\d+d)?)\$/g, (token) => {
@@ -544,14 +550,20 @@ function buildMovieBoxDashTemplateWorkerUrl(
         encodedUrl = encodedUrl.replace(`__ANISFLIX_DASH_${index}__`, token);
     });
 
-    let result = `${workerOrigin}/?path=moviebox-cdn&url=${encodedUrl}&referer=${encodeURIComponent(referer)}`;
-    if (cookie) result += `&cookie=${encodeURIComponent(cookie)}`;
-    if (userAgent) result += `&ua=${encodeURIComponent(userAgent)}`;
+    let result = `${workerOrigin}/?path=moviebox-cdn&url=${encodedUrl}`;
+    if (bare) {
+        result += '&bare=1';
+    } else {
+        result += `&referer=${encodeURIComponent(referer)}`;
+        if (cookie) result += `&cookie=${encodeURIComponent(cookie)}`;
+        if (userAgent) result += `&ua=${encodeURIComponent(userAgent)}`;
+    }
     return result;
 }
 
 /**
  * Stream MovieBox CDN (MP4/HLS) with Referer + CloudFront signed cookies.
+ * Detector-fallback links (`bare=1`) reject Cookie/Referer/UA — fetch bare.
  */
 async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     const params = new URL(request.url).searchParams;
@@ -559,6 +571,7 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
     const targetUrl = hmPath?.startsWith('/api/dash/segment/')
         ? `https://hm-cinema.me${hmPath}`
         : params.get('url');
+    const bare = params.get('bare') === '1';
     const referer = params.get('referer') || 'https://api3.aoneroom.com/';
     const cookie = params.get('cookie') || '';
     const userAgent = params.get('ua')
@@ -578,14 +591,16 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
         // keep default
     }
 
-    const upstreamHeaders: Record<string, string> = {
-        'User-Agent': userAgent,
-        'Referer': referer,
-        'Origin': origin,
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.5',
-    };
-    if (cookie) {
+    const upstreamHeaders: Record<string, string> = bare
+        ? { 'Accept': '*/*' }
+        : {
+            'User-Agent': userAgent,
+            'Referer': referer,
+            'Origin': origin,
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.5',
+        };
+    if (!bare && cookie) {
         upstreamHeaders['Cookie'] = cookie;
     }
 
@@ -639,6 +654,7 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
                             referer,
                             cookie,
                             userAgent,
+                            bare,
                         ).replace(/&/g, '&amp;');
                         return `${attribute}=${quote}${proxyUrl}${quote}`;
                     } catch {
@@ -665,7 +681,7 @@ async function handleMovieBoxCdnRequest(request: Request): Promise<Response> {
                     if (!trimmed || trimmed.startsWith('#')) return line;
                     try {
                         const absolute = new URL(trimmed, basePath).href;
-                        return buildMovieBoxCdnWorkerUrl(workerOrigin, absolute, referer, cookie, userAgent);
+                        return buildMovieBoxCdnWorkerUrl(workerOrigin, absolute, referer, cookie, userAgent, bare);
                     } catch {
                         return line;
                     }

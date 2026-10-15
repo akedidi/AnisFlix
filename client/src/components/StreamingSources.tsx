@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { isPlayableMovieBoxStream } from '@/utils/codecSupport';
+import { resolveMovieBoxPlaybackUrl } from '@/utils/movieboxCdn';
 import { isLuluvidCdnUrl, wrapLuluvidPlaybackUrl } from '@/lib/movix';
 
 interface Source {
@@ -716,10 +717,13 @@ const StreamingSources = memo(function StreamingSources({
         console.log(`📦 [MovieBox] Source ${stream.quality} masquée (incompatible ou lien expiré)`);
         return;
       }
-      const isDash = stream.type === 'dash' || stream.url?.includes('.mpd');
+      // Same rule as Android TV: detector-fallback CDN links reject Cookie/Referer/UA.
+      const playback = resolveMovieBoxPlaybackUrl(stream);
+      const mediaUrl = playback.url || stream.directUrl || stream.url || '';
+      const isDash = stream.type === 'dash' || mediaUrl.includes('.mpd');
       const movieBoxType: Source['type'] = isDash
         ? 'dash'
-        : stream.type === 'hls' || stream.url?.includes('.m3u8')
+        : stream.type === 'hls' || mediaUrl.includes('.m3u8')
           ? 'm3u8'
           : 'mp4';
       const tracks = (stream.subtitles || []).map((subtitle: any) => ({
@@ -732,7 +736,7 @@ const StreamingSources = memo(function StreamingSources({
         id: `moviebox-${index}`,
         name: `MovieBox ${selectedLanguage} ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
         provider: 'moviebox',
-        url: stream.url,  // Worker proxy URL (includes CloudFront cookies)
+        url: mediaUrl,
         type: movieBoxType,
         player: 'moviebox',
         sourceKey: selectedLanguage,
@@ -740,6 +744,7 @@ const StreamingSources = memo(function StreamingSources({
         language: selectedLanguage,
         codec: stream.codec,
         tracks,
+        headers: playback.headers,
       });
     });
 

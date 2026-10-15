@@ -49,11 +49,11 @@ function normalizeLangCode(value) {
 }
 
 /**
- * Generic VO rule (all titles):
- * - VO = audio whose language matches TMDB original_language
- * - OR MovieBox marks the variant as Original Audio
- * - English / other dubs are never VO unless that language IS the original
- * - French audio → VF; French subs alone are handled later as VOSTFR clones
+ * Categories (all titles):
+ * - English/JA/… film + French audio dub → VF only
+ * - French original audio → VO (also mirrored to VF later)
+ * - Non-French original + French captions → VOSTFR (applied later)
+ * - Non-French original without FR captions → VO
  */
 function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' } = {}) {
   const code = normalizeLangCode(dub?.lanCode || dub?.language);
@@ -65,14 +65,17 @@ function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' 
   const orig = normalizeLangCode(originalLanguage);
   const markedOriginal = dub?.original === true || /\boriginal\b/.test(label);
 
+  // French subtitle track row (not audio).
+  if (isFrench && isSubtitle) return 'VOSTFR';
+  // Non-French title with French dub → VF only (never VO).
+  if (isFrench && !isSubtitle && orig && orig !== 'fr') return 'VF';
+
   let isOriginalAudio = false;
   if (orig && effectiveCode) {
-    // Hard rule: language code decides VO when both sides are known.
     isOriginalAudio = effectiveCode === orig;
   } else if (markedOriginal) {
     isOriginalAudio = true;
   } else if (!effectiveCode && isPrimarySubject) {
-    // No lanCode on the primary subject → treat as original catalogue entry.
     isOriginalAudio = true;
   }
 
@@ -81,10 +84,41 @@ function classifyVariant(dub, { isPrimarySubject = false, originalLanguage = '' 
     isOriginalAudio = false;
   }
 
+  // Includes French originals (orig=fr + French audio) → VO; mirrored to VF later.
   if (isOriginalAudio && !isSubtitle) return 'VO';
-  if (isFrench && isSubtitle) return 'VOSTFR';
+  // French audio when original language is unknown.
   if (isFrench && !isSubtitle) return 'VF';
   return null;
+}
+
+/** Finalize VO / VOSTFR / VF mirrors after captions are attached. */
+function categorizeMovieBoxStream(stream, originalLanguage = '') {
+  const orig = normalizeLangCode(originalLanguage);
+  const frenchSubtitles = stream.subtitles?.filter((subtitle) => subtitle.code === 'fr') || [];
+
+  // French original audio → list under both VO and VF.
+  if (stream.language === 'VO' && orig === 'fr') {
+    return [
+      stream,
+      {
+        ...stream,
+        language: 'VF',
+        languageLabel: stream.languageLabel || 'VF',
+      },
+    ];
+  }
+
+  // Non-French original + French captions → VOSTFR only (not VO).
+  if (stream.language === 'VO' && frenchSubtitles.length > 0) {
+    return [{
+      ...stream,
+      language: 'VOSTFR',
+      languageLabel: 'French subtitles',
+      subtitles: frenchSubtitles.map((subtitle) => ({ ...subtitle, default: true })),
+    }];
+  }
+
+  return [stream];
 }
 
 function collectStreams(playData) {
@@ -395,16 +429,7 @@ async function getH5FallbackStreams(details, mediaType, season, episode) {
 
   const categorized = [];
   for (const stream of streams) {
-    categorized.push(stream);
-    const frenchSubtitles = stream.subtitles.filter((subtitle) => subtitle.code === 'fr');
-    if (stream.language === 'VO' && frenchSubtitles.length > 0) {
-      categorized.push({
-        ...stream,
-        language: 'VOSTFR',
-        languageLabel: 'French subtitles',
-        subtitles: frenchSubtitles.map((subtitle) => ({ ...subtitle, default: true })),
-      });
-    }
+    categorized.push(...categorizeMovieBoxStream(stream, details.originalLanguage));
   }
 
   return Array.from(new Map(categorized.map((stream) => [
@@ -670,20 +695,7 @@ async function getStreamLinks(subjectId, season = 0, episode = 0, mediaTitle = '
 
   const categorizedStreams = [];
   for (const stream of allStreams) {
-    categorizedStreams.push(stream);
-
-    // MovieBox exposes optional captions separately from dubbed variants. The
-    // same English source therefore also belongs in VOSTFR when French captions
-    // are available; playback clients receive the French track as the default.
-    const frenchSubtitles = stream.subtitles?.filter((subtitle) => subtitle.code === 'fr') || [];
-    if (stream.language === 'VO' && frenchSubtitles.length > 0) {
-      categorizedStreams.push({
-        ...stream,
-        language: 'VOSTFR',
-        languageLabel: 'French subtitles',
-        subtitles: frenchSubtitles.map((subtitle) => ({ ...subtitle, default: true })),
-      });
-    }
+    categorizedStreams.push(...categorizeMovieBoxStream(stream, originalLanguage));
   }
 
   const deduplicated = Array.from(new Map(categorizedStreams.map((stream) => [

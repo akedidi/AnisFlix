@@ -424,11 +424,15 @@ final class MovieBoxService {
                 isOriginalAudio = false
             }
 
+            // EN/JA/… + French dub → VF only.
+            // French original audio → VO (mirrored to VF after streams are built).
             let language: String?
-            if isOriginalAudio && !isSubtitle {
-                language = "VO"
-            } else if isFrench && isSubtitle {
+            if isFrench && isSubtitle {
                 language = "VOSTFR"
+            } else if isFrench && !isSubtitle && !orig.isEmpty && orig != "fr" {
+                language = "VF"
+            } else if isOriginalAudio && !isSubtitle {
+                language = "VO"
             } else if isFrench && !isSubtitle {
                 language = "VF"
             } else {
@@ -548,7 +552,8 @@ final class MovieBoxService {
                         : finalURL
 
                     for quality in finalQualities {
-                        output.append(StreamingSource(
+                        let frenchTracks = tracks.filter { ["fr", "fra", "french", "français"].contains($0.code.lowercased()) }
+                        let base = StreamingSource(
                             url: publicURL,
                             directUrl: finalURL,
                             quality: quality,
@@ -558,10 +563,23 @@ final class MovieBoxService {
                             origin: "moviebox",
                             tracks: tracks.isEmpty ? nil : tracks,
                             headers: headers
-                        ))
-
-                        let frenchTracks = tracks.filter { ["fr", "fra", "french", "français"].contains($0.code.lowercased()) }
-                        if variant.language == "VO", !frenchTracks.isEmpty {
+                        )
+                        // French original → VO + VF.
+                        if variant.language == "VO", orig == "fr" {
+                            output.append(base)
+                            output.append(StreamingSource(
+                                url: publicURL,
+                                directUrl: finalURL,
+                                quality: quality,
+                                type: type,
+                                provider: "moviebox",
+                                language: "VF",
+                                origin: "moviebox",
+                                tracks: tracks.isEmpty ? nil : tracks,
+                                headers: headers
+                            ))
+                        } else if variant.language == "VO", !frenchTracks.isEmpty {
+                            // Non-French original + FR captions → VOSTFR only.
                             output.append(StreamingSource(
                                 url: publicURL,
                                 directUrl: finalURL,
@@ -573,6 +591,8 @@ final class MovieBoxService {
                                 tracks: frenchTracks,
                                 headers: headers
                             ))
+                        } else {
+                            output.append(base)
                         }
                     }
                 }

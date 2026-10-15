@@ -12,6 +12,7 @@ interface MovieBoxStream {
     languageLabel?: string;
     provider: string;
     codec?: string | null;
+    headers?: Record<string, string>;
     subtitles?: Array<{
         url: string;
         language: string;

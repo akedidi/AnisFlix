@@ -1,4 +1,5 @@
 const HAKUNAY_HOST = 'hakunaymatata.com';
+const DEFAULT_MOVIEBOX_CDN_WORKER = 'https://anisflix.kedidi-anis.workers.dev';
 
 export interface MovieBoxCdnParams {
   workerOrigin: string;
@@ -6,6 +7,7 @@ export interface MovieBoxCdnParams {
   referer: string;
   cookie: string;
   userAgent: string;
+  bare?: boolean;
 }
 
 /** Parse cookie/referer from a moviebox-cdn worker manifest URL. */
@@ -19,10 +21,59 @@ export function parseMovieBoxCdnParams(workerUrl: string): MovieBoxCdnParams | n
       referer: u.searchParams.get('referer') || 'https://api3.aoneroom.com/',
       cookie: u.searchParams.get('cookie') || '',
       userAgent: u.searchParams.get('ua') || '',
+      bare: u.searchParams.get('bare') === '1',
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Detector-fallback MovieBox links (resourceDetectors) are public CDN URLs
+ * without CloudFront cookies. Their CDN rejects Referer / UA / Cookie — same
+ * rule as the Android TV / Flutter client.
+ */
+export function isMovieBoxDetectorFallback(
+  directUrl?: string | null,
+  headers?: Record<string, string> | null,
+): boolean {
+  if (!directUrl || !isHakunaymatataUrl(directUrl)) return false;
+  const hasCookie = Object.keys(headers || {}).some(
+    (key) => key.toLowerCase() === 'cookie' && Boolean(headers?.[key]),
+  );
+  return !hasCookie;
+}
+
+/**
+ * Resolve the playback URL for a MovieBox stream.
+ * Signed streams keep the CDN worker relay; detector fallback uses a bare
+ * worker fetch (no rejected headers) so browsers still get CORS.
+ */
+export function resolveMovieBoxPlaybackUrl(stream: {
+  url?: string | null;
+  directUrl?: string | null;
+  headers?: Record<string, string> | null;
+}): { url: string; headers?: Record<string, string> } {
+  const directUrl = stream.directUrl || stream.url || '';
+  if (!isMovieBoxDetectorFallback(directUrl, stream.headers)) {
+    return {
+      url: stream.url || directUrl,
+      headers: stream.headers || undefined,
+    };
+  }
+
+  const existing = stream.url ? parseMovieBoxCdnParams(stream.url) : null;
+  const workerOrigin = existing?.workerOrigin || DEFAULT_MOVIEBOX_CDN_WORKER;
+  return {
+    url: buildMovieBoxCdnProxyUrl(directUrl, {
+      workerOrigin,
+      targetUrl: directUrl,
+      referer: '',
+      cookie: '',
+      userAgent: '',
+      bare: true,
+    }),
+  };
 }
 
 /**
@@ -54,10 +105,14 @@ export function buildMovieBoxCdnProxyUrl(targetUrl: string, params: MovieBoxCdnP
   const qs = new URLSearchParams({
     path: 'moviebox-cdn',
     url: targetUrl,
-    referer: params.referer,
   });
-  if (params.cookie) qs.set('cookie', params.cookie);
-  if (params.userAgent) qs.set('ua', params.userAgent);
+  if (params.bare) {
+    qs.set('bare', '1');
+  } else if (params.referer) {
+    qs.set('referer', params.referer);
+  }
+  if (!params.bare && params.cookie) qs.set('cookie', params.cookie);
+  if (!params.bare && params.userAgent) qs.set('ua', params.userAgent);
   return `${params.workerOrigin}/?${qs.toString()}`;
 }
 
