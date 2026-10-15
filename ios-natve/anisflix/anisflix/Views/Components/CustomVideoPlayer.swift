@@ -1723,7 +1723,7 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
     
     /// Progressive MP4 can play audio while AVPlayerLayer stays black if the
     /// layer was laid out at ~0 size or auto-PiP stole the surface. Rebind and
-    /// nudge the playhead so VideoToolbox starts emitting frames again.
+    /// nudge the playhead; if still black, hand off to VLC (MovieBox path).
     func ensureAVPlayerLayerDisplaying() {
         guard !useVLC, let layer = playerLayer else { return }
         if pipController?.isPictureInPictureActive == true {
@@ -1744,6 +1744,16 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             let t = max(self.currentTime, 0.05)
             self.player.seek(to: CMTime(seconds: t, preferredTimescale: 600)) { [weak self] _ in
                 self?.player.play()
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self, !self.useVLC else { return }
+                guard let layer = self.playerLayer, !layer.isReadyForDisplay else { return }
+                guard let item = self.observedItem else { return }
+                let url = (self.currentUrl ?? self.originalUrl)?.absoluteString.lowercased() ?? ""
+                guard url.contains("hakunaymatata.com") || url.contains("moviebox") else { return }
+                print("🔄 [PlayerVM] MovieBox still black on AVPlayer → VLC")
+                self.fallbackToVLC(from: item)
             }
         }
     }
@@ -1961,21 +1971,30 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         vlc.libraryInstance.debugLogging = true
         vlc.libraryInstance.debugLoggingLevel = 3 // Verbose
         
-        let media = VLCMedia(url: url)
-        print("🎬 [PlayerVM] VLCMedia created for: \(url.absoluteString)")
+        // Prefer bare CDN over CF worker (same as Android TV / Flutter detector path).
+        var playURL = url
+        if let bare = Self.unwrapMovieBoxCDNWorkerURL(url) {
+            print("🎯 [PlayerVM] VLC MovieBox worker→bare CDN")
+            playURL = bare
+        }
+
+        let media = VLCMedia(url: playURL)
+        print("🎬 [PlayerVM] VLCMedia created for: \(playURL.absoluteString)")
         
-        // MovieBox detector CDN rejects UA/Referer/Cookie (428/429). Stay bare.
-        let isMovieBoxDetectorBare = url.absoluteString.lowercased().contains("hakunaymatata.com")
+        // MovieBox detector CDN rejects Safari/Chrome UA + Referer/Cookie (428/429).
+        // AppleCoreMedia is accepted (verified against bcdn.hakunaymatata.com).
+        let isMovieBoxDetectorBare = playURL.absoluteString.lowercased().contains("hakunaymatata.com")
             && !(customHeaders ?? [:]).keys.contains { $0.lowercased() == "cookie" }
 
         // Set network caching and user agent
         var options: [String: Any] = [
-            // Keep the value used by the stable 1.0.92 playback path.
-            "network-caching": 3_000,
+            // Larger cache helps progressive MP4s with a multi-MB moov atom.
+            "network-caching": isMovieBoxDetectorBare ? 5_000 : 3_000,
             "avcodec-hw": "any",
         ]
         if isMovieBoxDetectorBare {
-            print("🎬 [PlayerVM] VLC MovieBox detector: omitting http-user-agent")
+            options["http-user-agent"] = "AppleCoreMedia/1.0.0.22D72 (iPhone; U; CPU OS 18_3 like Mac OS X; en_us)"
+            print("🎬 [PlayerVM] VLC MovieBox detector: AppleCoreMedia UA (no Referer/Cookie)")
         } else {
             options["http-user-agent"] = customHeaders?["User-Agent"]
                 ?? customHeaders?["user-agent"]

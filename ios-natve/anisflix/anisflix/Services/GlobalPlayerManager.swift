@@ -340,7 +340,11 @@ class GlobalPlayerManager: ObservableObject {
 
         // 4. Show player
         self.isPresented = true
-        self.isMinimised = true // Start minimized (banner visible)
+        // VLC (MovieBox) needs a visible, laid-out drawable immediately — starting
+        // minimized delays the surface and can yield audio-only black video.
+        let needsImmediateFullScreen = !castManager.isConnected &&
+            Self.requiresVLC(url: url, provider: provider, streamType: streamType)
+        self.isMinimised = !needsImmediateFullScreen
         
         // If casting, staying minimized and show control sheet
         if castManager.isConnected {
@@ -348,6 +352,8 @@ class GlobalPlayerManager: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.showCastControlSheet = true
             }
+        } else if needsImmediateFullScreen {
+            self.isMinimised = false
         } else {
             // Animate to full screen after a brief moment if local playback
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
@@ -370,15 +376,13 @@ class GlobalPlayerManager: ObservableObject {
         let vlcTypes = ["dash", "mpd", "mkv", "matroska", "webm", "avi", "flv", "wmv", "ogv"]
         let vlcExtensions = ["mpd", "mkv", "webm", "avi", "flv", "wmv", "ogv"]
 
-        // MovieBox progressive MP4 (including HEVC under /h265/) must stay on
-        // AVPlayer: VLC injects a Safari UA and the detector CDN answers 428.
+        // MovieBox progressive MP4: AVPlayer often yields audio + black video on
+        // detector CDN streams (Android TV/ExoPlayer shows the image fine).
+        // Force embedded VLC with an AppleCoreMedia UA (Safari UA → CDN 428).
         if provider == "moviebox"
             || value.contains("hakunaymatata.com")
-            || value.contains("moviebox-cdn")
-            || value.contains("kedidi-anis.workers.dev") {
-            return vlcTypes.contains(type) ||
-                   vlcExtensions.contains(ext) ||
-                   value.contains(".mpd")
+            || value.contains("moviebox-cdn") {
+            return true
         }
 
         return vlcProviders.contains(provider) ||

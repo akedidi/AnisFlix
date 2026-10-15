@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.107",
-          "buildVersion": "107",
+          "version": "1.0.108",
+          "buildVersion": "108",
           "date": "2026-10-16",
-          "size": 31060991,
+          "size": 31062822,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix MovieBox black video (audio only): keep full AVPlayerLayer size when minimized, disable auto-PiP"
+          "localizedDescription": "Fix MovieBox black video: use VLC like Android ExoPlayer, AppleCoreMedia UA"
         }
       ]
     }
