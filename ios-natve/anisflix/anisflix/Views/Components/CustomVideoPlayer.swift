@@ -1254,19 +1254,33 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
             print("❌ Failed to re-activate audio session: \(error)")
         }
         
-        var headers: [String: String] = [
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        ]
-        
-        // Merge effective headers (including Vidzy Referer if applicable)
-        if !effectiveHeaders.isEmpty {
-            for (key, value) in effectiveHeaders {
-                headers[key] = value
+        // MovieBox detector fallback CDN rejects Cookie/Referer/UA (same as Android TV / web bare).
+        let isMovieBoxDetectorBare = finalUrl.absoluteString.lowercased().contains("hakunaymatata.com")
+            && !effectiveHeaders.keys.contains { $0.lowercased() == "cookie" }
+
+        let headers: [String: String]
+        if isMovieBoxDetectorBare {
+            headers = [:]
+            print("🎬 [CustomVideoPlayer] MovieBox detector: bare AVURLAsset (no UA/Referer/Cookie)")
+        } else {
+            var merged: [String: String] = [
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            ]
+            if !effectiveHeaders.isEmpty {
+                for (key, value) in effectiveHeaders {
+                    merged[key] = value
+                }
+                print("🎬 [CustomVideoPlayer] Added effective headers: \(merged.keys)")
             }
-            print("🎬 [CustomVideoPlayer] Added effective headers: \(headers.keys)")
+            headers = merged
         }
-        
-        let asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+
+        let asset: AVURLAsset
+        if headers.isEmpty {
+            asset = AVURLAsset(url: finalUrl)
+        } else {
+            asset = AVURLAsset(url: finalUrl, options: ["AVURLAssetHTTPHeaderFieldsKey": headers])
+        }
         
         if useResourceLoader {
             // Pass subtitleUrl to delegate for injection

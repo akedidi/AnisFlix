@@ -884,7 +884,56 @@ class StreamingService {
         return tracks.isEmpty ? nil : tracks
     }
 
+    /// Soft captions must not force VOSTFR — same rule as Android TV / API.
+    private func movieBoxLanguageCategory(_ raw: String?) -> String {
+        let value = (raw ?? "VO").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if value == "VOSTFR" || value.contains("VOST") { return "VO" }
+        if value == "VF" || value == "VFQ" || value == "FR" { return "VF" }
+        if value == "VO" { return "VO" }
+        return value.isEmpty ? "VO" : value
+    }
+
+    private func decodeMovieBoxProxyStreams(from data: Data) -> [StreamingSource] {
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            for src in decoded.streams ?? [] {
+                let quality = src.quality ?? "HD"
+                sources.append(StreamingSource(
+                    url: src.url,
+                    directUrl: src.directUrl,
+                    quality: quality,
+                    type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
+                    provider: "moviebox",
+                    language: movieBoxLanguageCategory(src.language),
+                    origin: "moviebox",
+                    tracks: movieBoxTracks(src.subtitles),
+                    headers: src.headers
+                ))
+            }
+            return sources
+        } catch {
+            print("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+
     func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
+        // Prefer hosted MovieBox first — same pipeline as Android TV (detectors + VF/VO).
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
+        if let url = URL(string: urlString) {
+            print("🌐 [MovieBox] Fetching Movie URL (Android TV parity): \(urlString)")
+            if let (data, response) = try? await URLSession.shared.data(for: URLRequest(url: url)),
+               let http = response as? HTTPURLResponse,
+               http.statusCode == 200 {
+                let proxySources = decodeMovieBoxProxyStreams(from: data)
+                if !proxySources.isEmpty {
+                    print("🌐 [MovieBox] Using \(proxySources.count) hosted source(s)")
+                    return proxySources
+                }
+            }
+        }
+
         do {
             let nativeSources = try await MovieBoxService.shared.fetchSources(
                 tmdbId: tmdbId,
@@ -894,52 +943,24 @@ class StreamingService {
             )
             if !nativeSources.isEmpty {
                 print("📱 [MovieBox] Using \(nativeSources.count) native source(s)")
-                return nativeSources
-            }
-        } catch {
-            print("⚠️ [MovieBox] Native fetch failed, using hosted fallback: \(error.localizedDescription)")
-        }
-
-        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        print("🌐 [MovieBox] Fetching Movie URL: \(urlString)")
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            return []
-        }
-        
-        do {
-            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
-            var sources: [StreamingSource] = []
-            
-            if let movieBoxStreams = decoded.streams {
-                for src in movieBoxStreams {
-                    let quality = src.quality ?? "HD"
-                    let source = StreamingSource(
-                        url: src.url,
-                        directUrl: src.directUrl,
-                        quality: quality,
-                        type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
-                        provider: "moviebox",
-                        language: src.language ?? "VO",
-                        origin: "moviebox",
-                        tracks: movieBoxTracks(src.subtitles),
-                        headers: src.headers
+                return nativeSources.map { source in
+                    StreamingSource(
+                        url: source.url,
+                        directUrl: source.directUrl,
+                        quality: source.quality,
+                        type: source.type,
+                        provider: source.provider,
+                        language: movieBoxLanguageCategory(source.language),
+                        origin: source.origin,
+                        tracks: source.tracks,
+                        headers: source.headers
                     )
-                    sources.append(source)
                 }
             }
-            return sources
         } catch {
-            print("❌ [MovieBox] Decoding Error: \(error)")
-            return []
+            print("⚠️ [MovieBox] Native fetch failed: \(error.localizedDescription)")
         }
+        return []
     }
     
     func fetchMobSources(tmdbId: Int) async throws -> [StreamingSource] {
@@ -954,6 +975,21 @@ class StreamingService {
     }
     
     func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        // Prefer hosted MovieBox first — same pipeline as Android TV.
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
+        if let url = URL(string: urlString) {
+            print("🌐 [MovieBox] Fetching Series URL (Android TV parity): \(urlString)")
+            if let (data, response) = try? await URLSession.shared.data(from: url),
+               let http = response as? HTTPURLResponse,
+               http.statusCode == 200 {
+                let proxySources = decodeMovieBoxProxyStreams(from: data)
+                if !proxySources.isEmpty {
+                    print("🌐 [MovieBox] Using \(proxySources.count) hosted series source(s)")
+                    return proxySources
+                }
+            }
+        }
+
         do {
             let nativeSources = try await MovieBoxService.shared.fetchSources(
                 tmdbId: tmdbId,
@@ -963,48 +999,24 @@ class StreamingService {
             )
             if !nativeSources.isEmpty {
                 print("📱 [MovieBox] Using \(nativeSources.count) native series source(s)")
-                return nativeSources
-            }
-        } catch {
-            print("⚠️ [MovieBox] Native series fetch failed, using hosted fallback: \(error.localizedDescription)")
-        }
-
-        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        print("🌐 [MovieBox] Fetching Series URL: \(urlString)")
-        
-        let (data, response) = try await URLSession.shared.data(from: url)
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            return []
-        }
-        
-        do {
-            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
-            var sources: [StreamingSource] = []
-            
-            if let movieBoxStreams = decoded.streams {
-                for src in movieBoxStreams {
-                    let quality = src.quality ?? "HD"
-                    let source = StreamingSource(
-                        url: src.url,
-                        directUrl: src.directUrl,
-                        quality: quality,
-                        type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
-                        provider: "moviebox",
-                        language: src.language ?? "VO",
-                        origin: "moviebox",
-                        tracks: movieBoxTracks(src.subtitles),
-                        headers: src.headers
+                return nativeSources.map { source in
+                    StreamingSource(
+                        url: source.url,
+                        directUrl: source.directUrl,
+                        quality: source.quality,
+                        type: source.type,
+                        provider: source.provider,
+                        language: movieBoxLanguageCategory(source.language),
+                        origin: source.origin,
+                        tracks: source.tracks,
+                        headers: source.headers
                     )
-                    sources.append(source)
                 }
             }
-            return sources
         } catch {
-            print("❌ [MovieBox] Decoding Error: \(error)")
-            return []
+            print("⚠️ [MovieBox] Native series fetch failed: \(error.localizedDescription)")
         }
+        return []
     }
     
     func fetchMobSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {

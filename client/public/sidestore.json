@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.102",
-          "buildVersion": "102",
-          "date": "2026-10-11",
-          "size": 31047454,
+          "version": "1.0.104",
+          "buildVersion": "104",
+          "date": "2026-10-15",
+          "size": 31058060,
           "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa",
           "minOSVersion": "16.0",
-          "localizedDescription": "Masque les films/séries/épisodes du jour pas encore sortis (TMDB date seule, coupure soirée / air_time si dispo)."
+          "localizedDescription": "MovieBox iOS: rejet des stubs courts, fallback resourceDetectors, lecture bare/worker alignée web/Android TV."
         }
       ]
     }

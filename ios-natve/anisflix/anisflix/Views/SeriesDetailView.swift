@@ -566,14 +566,14 @@ struct SeriesDetailView: View {
                     print("ℹ️ [SeriesDetailView] Using direct URL for provider: \(source.provider)")
                     finalURL = URL(string: source.url)
                 } else if source.provider.lowercased() == "moviebox" {
-                    // MovieBox: dual-mode playback
-                    // - Chromecast: use proxied URL (Chromecast can't handle custom headers)
-                    // - Local AVPlayer: prefer direct URL with headers for lower latency
-                    if CastManager.shared.isConnected {
-                        print("📺 [SeriesDetailView] MovieBox Chromecast mode - using proxied URL")
+                    // MovieBox: dual-mode playback (aligned with MovieDetailView / web)
+                    let hasCookie = (source.headers ?? [:]).keys.contains { $0.lowercased() == "cookie" }
+                    let isWorkerURL = source.url.contains("moviebox-cdn") || source.url.contains("workers.dev")
+                    if CastManager.shared.isConnected || (isWorkerURL && !hasCookie) {
+                        print("📺 [SeriesDetailView] MovieBox proxied/worker playback")
                         finalURL = URL(string: source.url)
                     } else if let directUrl = source.directUrl {
-                        print("📱 [SeriesDetailView] MovieBox local mode - using direct URL with headers")
+                        print("📱 [SeriesDetailView] MovieBox local mode - direct URL (cookie=\(hasCookie))")
                         finalURL = URL(string: directUrl)
                     } else {
                         print("⚠️ [SeriesDetailView] MovieBox local mode - no directUrl, falling back to proxied URL")

@@ -72,7 +72,7 @@ final class MovieBoxService {
             return []
         }
 
-        print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId)) origLang=\(tmdb.originalLanguage)")
+        print("✅ [MovieBox Native] Matched \(match.title) (\(match.subjectId)) origLang=\(tmdb.originalLanguage) runtime=\(tmdb.runtimeMinutes.map(String.init) ?? "?")m")
         let finalSeason = type == "movie" ? 0 : season
         let finalEpisode = type == "movie" ? 0 : episode
         return try await getStreamLinks(
@@ -81,7 +81,8 @@ final class MovieBoxService {
             episode: finalEpisode,
             tmdbId: tmdbId,
             mediaType: type,
-            originalLanguage: tmdb.originalLanguage
+            originalLanguage: tmdb.originalLanguage,
+            expectedMinutes: tmdb.runtimeMinutes
         )
     }
 
@@ -253,7 +254,7 @@ final class MovieBoxService {
 
     // MARK: - Catalogue
 
-    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String, originalLanguage: String) {
+    private func fetchTmdbDetails(tmdbId: Int, type: String) async throws -> (title: String, originalTitle: String, year: String, originalLanguage: String, runtimeMinutes: Int?) {
         guard let url = URL(string: "\(tmdbBaseURL)/\(type)/\(tmdbId)?api_key=\(tmdbAPIKey)") else { throw URLError(.badURL) }
         let (data, response) = try await session.data(from: url)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode),
@@ -264,9 +265,62 @@ final class MovieBoxService {
         let original = type == "movie" ? (json["original_title"] as? String) : (json["original_name"] as? String)
         let date = type == "movie" ? (json["release_date"] as? String) : (json["first_air_date"] as? String)
         let originalLanguage = ((json["original_language"] as? String) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let runtimeMinutes: Int?
+        if type == "movie" {
+            runtimeMinutes = (json["runtime"] as? NSNumber)?.intValue ?? (json["runtime"] as? Int)
+        } else if let episodeRunTimes = json["episode_run_time"] as? [Int], let first = episodeRunTimes.first, first > 0 {
+            runtimeMinutes = first
+        } else if let episodeRunTimes = json["episode_run_time"] as? [NSNumber], let first = episodeRunTimes.first?.intValue, first > 0 {
+            runtimeMinutes = first
+        } else {
+            runtimeMinutes = nil
+        }
         let finalTitle = title ?? original ?? ""
         guard !finalTitle.isEmpty else { throw URLError(.cannotParseResponse) }
-        return (finalTitle, original ?? finalTitle, String((date ?? "").prefix(4)), originalLanguage)
+        return (finalTitle, original ?? finalTitle, String((date ?? "").prefix(4)), originalLanguage, runtimeMinutes)
+    }
+
+    /// MovieBox sometimes publishes a trailer/placeholder as the full stream.
+    /// Match api/_services/moviebox `isPlausibleMovieBoxDuration`.
+    private func isPlausibleMovieBoxDuration(_ value: Any?, expectedMinutes: Int?) -> Bool {
+        guard let expectedMinutes, expectedMinutes >= 10 else { return true }
+        guard let value else { return true }
+
+        var declaredMinutes: Double?
+        if let text = value as? String, text.contains(":") {
+            let parts = text.split(separator: ":").compactMap { Double($0) }
+            if parts.count == text.split(separator: ":").count, !parts.isEmpty {
+                declaredMinutes = parts.reduce(0) { $0 * 60 + $1 } / 60
+            }
+        }
+        if declaredMinutes == nil {
+            let numeric: Double?
+            if let number = value as? NSNumber {
+                numeric = number.doubleValue
+            } else if let intValue = value as? Int {
+                numeric = Double(intValue)
+            } else if let doubleValue = value as? Double {
+                numeric = doubleValue
+            } else if let text = value as? String {
+                numeric = Double(text)
+            } else {
+                numeric = nil
+            }
+            guard let numeric, numeric > 0 else { return true }
+            // Long values are seconds; small catalogue values are minutes.
+            declaredMinutes = numeric <= Double(max(expectedMinutes * 2, 300)) ? numeric : numeric / 60
+        }
+        guard let declaredMinutes else { return true }
+        return declaredMinutes >= Double(expectedMinutes) * 0.5
+    }
+
+    private func streamDurationValue(_ stream: [String: Any]) -> Any? {
+        stream["duration"] ?? stream["durationSeconds"] ?? stream["videoDuration"] ?? stream["length"]
+    }
+
+    private func isBlockedMovieBoxPlaceholderURL(_ url: String) -> Bool {
+        url.contains("b164fbfb4347792950bdfbfb563d39d9")
+            || url.contains("/other/20")
     }
 
     /// Normalize MovieBox / TMDB language tokens. VO follows TMDB original_language.
@@ -382,7 +436,8 @@ final class MovieBoxService {
         episode: Int,
         tmdbId: Int = 0,
         mediaType: String = "tv",
-        originalLanguage: String = ""
+        originalLanguage: String = "",
+        expectedMinutes: Int? = nil
     ) async throws -> [StreamingSource] {
         let detailData = try await movieBoxRequest(
             method: "GET",
@@ -424,16 +479,16 @@ final class MovieBoxService {
                 isOriginalAudio = false
             }
 
-            // EN/JA/… + French dub → VF only.
-            // French original audio → VO (mirrored to VF after streams are built).
+            // Soft captions never decide the bucket. Skip subtitle-only dub rows.
+            // EN/JA/… + French dub → VF; original audio → VO (FR original also mirrored to VF).
             let language: String?
-            if isFrench && isSubtitle {
-                language = "VOSTFR"
-            } else if isFrench && !isSubtitle && !orig.isEmpty && orig != "fr" {
+            if isSubtitle {
+                language = nil
+            } else if isFrench && !orig.isEmpty && orig != "fr" {
                 language = "VF"
-            } else if isOriginalAudio && !isSubtitle {
+            } else if isOriginalAudio {
                 language = "VO"
-            } else if isFrench && !isSubtitle {
+            } else if isFrench {
                 language = "VF"
             } else {
                 language = nil
@@ -502,13 +557,20 @@ final class MovieBoxService {
                         }
                         let signCookie = stream["signCookie"] as? String
                         let finalURL = extractPolicyResource(signCookie) ?? rawURL
-                        if finalURL == rawURL,
-                           (rawURL.contains("b164fbfb4347792950bdfbfb563d39d9") || rawURL.contains("/other/2026/09/")) {
+                        if isBlockedMovieBoxPlaceholderURL(finalURL) {
                             return false
                         }
-                        return true
+                        return isPlausibleMovieBoxDuration(streamDurationValue(stream), expectedMinutes: expectedMinutes)
                     }
-                    if hasPlayable {
+                    let detectors = candidateRoot["resourceDetectors"] as? [[String: Any]] ?? []
+                    let hasDetectors = detectors.contains { detector in
+                        ((detector["resolutionList"] as? [[String: Any]]) ?? []).contains {
+                            guard let link = $0["resourceLink"] as? String, !link.isEmpty else { return false }
+                            return !isBlockedMovieBoxPlaceholderURL(link)
+                                && isPlausibleMovieBoxDuration(streamDurationValue($0), expectedMinutes: expectedMinutes)
+                        }
+                    }
+                    if hasPlayable || hasDetectors {
                         root = candidateRoot
                         usedSeason = candidate.se
                         usedEpisode = candidate.ep
@@ -522,12 +584,19 @@ final class MovieBoxService {
 
                 guard let root else { continue }
 
+                var hasValidStream = false
+                var fallbackTracks: [Subtitle] = []
+                var rejectedShortURLs = Set<String>()
                 for stream in root["streams"] as? [[String: Any]] ?? [] {
                     guard let rawURL = (stream["url"] ?? stream["playUrl"] ?? stream["resourceLink"] ?? stream["streamUrl"]) as? String else { continue }
                     let signCookie = stream["signCookie"] as? String
                     let finalURL = extractPolicyResource(signCookie) ?? rawURL
-                    if finalURL == rawURL,
-                       (rawURL.contains("b164fbfb4347792950bdfbfb563d39d9") || rawURL.contains("/other/2026/09/")) {
+                    if isBlockedMovieBoxPlaceholderURL(finalURL) {
+                        continue
+                    }
+                    if !isPlausibleMovieBoxDuration(streamDurationValue(stream), expectedMinutes: expectedMinutes) {
+                        rejectedShortURLs.insert(finalURL)
+                        print("📦 [MovieBox Native] Rejected short stream (\(streamDurationValue(stream) ?? "nil") vs \(expectedMinutes.map(String.init) ?? "?") min)")
                         continue
                     }
 
@@ -544,6 +613,7 @@ final class MovieBoxService {
                         headers: playbackHeaders,
                         languageLabel: variant.label
                     )
+                    if fallbackTracks.isEmpty, !tracks.isEmpty { fallbackTracks = tracks }
                     let qualities = parseQualities(stream["resolutions"] ?? stream["resolution"] ?? stream["quality"])
                     let finalQualities = qualities.isEmpty ? ["Auto"] : qualities.map { "\($0)p" }
                     let type = streamType(format: stream["format"] as? String, url: finalURL)
@@ -552,47 +622,62 @@ final class MovieBoxService {
                         : finalURL
 
                     for quality in finalQualities {
-                        let frenchTracks = tracks.filter { ["fr", "fra", "french", "français"].contains($0.code.lowercased()) }
-                        let base = StreamingSource(
+                        appendMovieBoxSource(
+                            to: &output,
                             url: publicURL,
                             directUrl: finalURL,
                             quality: quality,
                             type: type,
-                            provider: "moviebox",
                             language: variant.language,
-                            origin: "moviebox",
-                            tracks: tracks.isEmpty ? nil : tracks,
-                            headers: headers
+                            tracks: tracks,
+                            headers: headers,
+                            originalLanguage: orig
                         )
-                        // French original → VO + VF.
-                        if variant.language == "VO", orig == "fr" {
-                            output.append(base)
-                            output.append(StreamingSource(
-                                url: publicURL,
-                                directUrl: finalURL,
+                        hasValidStream = true
+                    }
+                }
+
+                // Nuvio / Android TV / web API parity: when signed play-info streams are
+                // missing or only short trailers, use public resourceDetectors CDN links.
+                if !hasValidStream {
+                    let detectors = (root["resourceDetectors"] as? [[String: Any]])
+                        ?? (details["resourceDetectors"] as? [[String: Any]])
+                        ?? []
+                    print("📦 [MovieBox Native] \(variant.language): using \(detectors.count) resourceDetector(s)")
+                    for detector in detectors {
+                        guard let list = detector["resolutionList"] as? [[String: Any]] else { continue }
+                        for video in list {
+                            guard let resourceLink = video["resourceLink"] as? String else { continue }
+                            if rejectedShortURLs.contains(resourceLink) { continue }
+                            if isBlockedMovieBoxPlaceholderURL(resourceLink) { continue }
+                            if !isPlausibleMovieBoxDuration(streamDurationValue(video), expectedMinutes: expectedMinutes) {
+                                continue
+                            }
+                            let videoSeason = (video["se"] as? NSNumber)?.intValue ?? (video["se"] as? Int) ?? 0
+                            let videoEpisode = (video["ep"] as? NSNumber)?.intValue ?? (video["ep"] as? Int) ?? 0
+                            if (usedSeason > 0 || usedEpisode > 0),
+                               (videoSeason != usedSeason || videoEpisode != usedEpisode) {
+                                continue
+                            }
+                            let quality: String
+                            if let resolution = video["resolution"] {
+                                quality = "\(resolution)p"
+                            } else {
+                                quality = "Auto"
+                            }
+                            let type = streamType(format: nil, url: resourceLink)
+                            // Detector CDN rejects Cookie/Referer/UA — bare direct URL like Android TV.
+                            appendMovieBoxSource(
+                                to: &output,
+                                url: resourceLink,
+                                directUrl: resourceLink,
                                 quality: quality,
                                 type: type,
-                                provider: "moviebox",
-                                language: "VF",
-                                origin: "moviebox",
-                                tracks: tracks.isEmpty ? nil : tracks,
-                                headers: headers
-                            ))
-                        } else if variant.language == "VO", !frenchTracks.isEmpty {
-                            // Non-French original + FR captions → VOSTFR only.
-                            output.append(StreamingSource(
-                                url: publicURL,
-                                directUrl: finalURL,
-                                quality: quality,
-                                type: type,
-                                provider: "moviebox",
-                                language: "VOSTFR",
-                                origin: "moviebox",
-                                tracks: frenchTracks,
-                                headers: headers
-                            ))
-                        } else {
-                            output.append(base)
+                                language: variant.language,
+                                tracks: fallbackTracks,
+                                headers: [:],
+                                originalLanguage: orig
+                            )
                         }
                     }
                 }
@@ -695,6 +780,45 @@ final class MovieBoxService {
         if lowerURL.contains(".m3u8") || lowerFormat == "hls" { return "hls" }
         if lowerURL.contains(".mkv") || lowerFormat == "mkv" { return "mkv" }
         return "mp4"
+    }
+
+    /// French original audio → VO + VF mirror (Android TV / API parity). Soft captions stay optional.
+    private func appendMovieBoxSource(
+        to output: inout [StreamingSource],
+        url: String,
+        directUrl: String,
+        quality: String,
+        type: String,
+        language: String,
+        tracks: [Subtitle],
+        headers: [String: String],
+        originalLanguage: String
+    ) {
+        let trackList: [Subtitle]? = tracks.isEmpty ? nil : tracks
+        output.append(StreamingSource(
+            url: url,
+            directUrl: directUrl,
+            quality: quality,
+            type: type,
+            provider: "moviebox",
+            language: language,
+            origin: "moviebox",
+            tracks: trackList,
+            headers: headers.isEmpty ? nil : headers
+        ))
+        if language == "VO", originalLanguage == "fr" {
+            output.append(StreamingSource(
+                url: url,
+                directUrl: directUrl,
+                quality: quality,
+                type: type,
+                provider: "moviebox",
+                language: "VF",
+                origin: "moviebox",
+                tracks: trackList,
+                headers: headers.isEmpty ? nil : headers
+            ))
+        }
     }
 
     private func isMovieBoxCDN(_ value: String) -> Bool {
