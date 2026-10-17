@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "buildNumber": 2,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "5b4cca0c3c92f013d28b210c113d0ba91da16f4fd8d05bc0793224e10ab7a0cb",
-  "releaseNotes": "TV: focus Voir tout entre sections, épisodes (chevrons + Droite fin de carrousel), MovieBox VO, Wi-Fi non requis.",
+  "sha256": "b0282f6bc3b58e241db9f434e97a7dfde3a2b99593ed5a0d2d5173124153eba1",
+  "releaseNotes": "TV: correctif rectangle vert Firestick (platformView), focus Voir tout, épisodes, MovieBox VO, Wi-Fi non requis.",
   "mandatory": false
 }
