@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.2",
-  "buildNumber": 13,
-  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-13/anisflix-android-tv.apk",
-  "sha256": "168b97a05797ba98ad6faed21da51c1c3c732a7e255f8497cd0ff5cebcb5caf0",
-  "releaseNotes": "TV 1.0.2 (13) : correctif bouton MAJ, Back menu quitte, similaires pleine largeur, Paramètres TV.",
+  "buildNumber": 14,
+  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-14/anisflix-android-tv.apk",
+  "sha256": "cbdfa4392b55aa76a97759860a252d8d1478c118dfc9e6ca1c673b3c1dcc0ad7",
+  "releaseNotes": "TV 1.0.2 (14) : correctif téléchargement MAJ (redirects GitHub / 404).",
   "mandatory": false
 }
