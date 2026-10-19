@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.1",
-  "buildNumber": 5,
+  "buildNumber": 6,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "6f2ff1e434e30500b1b7ccc5f3b36a76f06636a698cae921fff4ee70af569493",
-  "releaseNotes": "TV: clavier recherche (curseur ◀▶, ✕ focus), update sous Paramètres, carrousel, Firestick.",
+  "sha256": "0293a3d33249434e323ebaa4d16a1eaeff9e8b67f07c53be30a3f367c91d3a82",
+  "releaseNotes": "TV: Accueil→recherche, champ+✕ collés, curseur ◀▶, update sous Paramètres, Firestick.",
   "mandatory": false
 }
