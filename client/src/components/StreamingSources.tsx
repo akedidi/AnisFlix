@@ -719,7 +719,7 @@ const StreamingSources = memo(function StreamingSources({
         );
         return;
       }
-      // Local CDN playback (Flutter/iOS): bare hakunaymatata URL, no CF Worker.
+      // Web keeps the CF Worker relay — browsers get 428/429 on bare CDN.
       const playback = resolveMovieBoxPlaybackUrl(stream);
       const mediaUrl = playback.url || stream.directUrl || stream.url || '';
       if (!mediaUrl) {

@@ -51,15 +51,11 @@ export function isMovieBoxDetectorFallback(
 }
 
 /**
- * Resolve the playback URL for a MovieBox stream.
+ * Resolve the playback URL for a MovieBox stream on **web**.
  *
- * Prefer **local/browser CDN playback** (same idea as Flutter / iOS): the CDN
- * blocks Cloudflare egress IPs, so proxying video through the Worker burns CPU
- * and often OOMs. Device/browser IPs work with the direct hakunaymatata URL.
- *
- * - Detector fallback → bare CDN URL, no Cookie/Referer/UA
- * - Signed streams → bare CDN URL + headers for the player
- * - Legacy Worker URLs → unwrap to the embedded CDN target
+ * Browsers hit hakunaymatata with Origin/Referer → 428/429. Native apps can
+ * play the CDN directly; the web client must keep the moviebox-cdn Worker
+ * (CORS + no browser Origin on the CDN hop).
  */
 export function resolveMovieBoxPlaybackUrl(stream: {
   url?: string | null;
@@ -68,28 +64,48 @@ export function resolveMovieBoxPlaybackUrl(stream: {
   headers?: Record<string, string> | null;
 }): { url: string; headers?: Record<string, string> } {
   const apiUrl = stream.url || '';
-  const directUrl = stream.directUrl || '';
-  const unwrapped = apiUrl ? unwrapMovieBoxCdnWorkerUrl(apiUrl) : null;
-  const candidate = directUrl || unwrapped || apiUrl;
+  const directUrl = stream.directUrl || apiUrl;
+  const existing = apiUrl ? parseMovieBoxCdnParams(apiUrl) : null;
 
-  if (!candidate) {
-    return { url: '' };
+  // Already a moviebox-cdn worker URL (signed or bare detector).
+  if (existing && apiUrl) {
+    return { url: apiUrl };
   }
 
-  if (isMovieBoxDetectorFallback(candidate, stream.headers)) {
-    return { url: candidate };
+  // Detector fallback — wrap for CORS + CDN access (CDN rejects browser Origin).
+  if (isMovieBoxDetectorFallback(directUrl, stream.headers)) {
+    return {
+      url: buildMovieBoxCdnProxyUrl(directUrl, {
+        workerOrigin: DEFAULT_MOVIEBOX_CDN_WORKER,
+        targetUrl: directUrl,
+        referer: '',
+        cookie: '',
+        userAgent: '',
+        bare: true,
+      }),
+    };
+  }
+
+  // Non-detector / non-hakunay streams: use API URL as-is.
+  if (isHakunaymatataUrl(directUrl)) {
+    const headers = stream.headers || {};
+    return {
+      url: buildMovieBoxCdnProxyUrl(directUrl, {
+        workerOrigin: DEFAULT_MOVIEBOX_CDN_WORKER,
+        targetUrl: directUrl,
+        referer: headers.Referer || headers.referer || 'https://api3.aoneroom.com/',
+        cookie: headers.Cookie || headers.cookie || '',
+        userAgent: headers['User-Agent'] || headers['user-agent'] || '',
+      }),
+    };
   }
 
   return {
-    url: candidate,
+    url: apiUrl || directUrl,
     headers: stream.headers || undefined,
   };
 }
 
-/**
- * Optional emergency Worker proxy (kept for tooling / fallback experiments).
- * Normal playback must not use this — it streams video bytes through Cloudflare.
- */
 export function buildMovieBoxCdnProxyUrl(targetUrl: string, params: MovieBoxCdnParams): string {
   const qs = new URLSearchParams({
     path: 'moviebox-cdn',
@@ -106,9 +122,9 @@ export function buildMovieBoxCdnProxyUrl(targetUrl: string, params: MovieBoxCdnP
 }
 
 /**
- * Shaka resolves relative MPD segment names against the manifest URL.
- * When the manifest was historically loaded via the Worker, rebuild against the
- * real CDN base. With local playback this is mostly unused.
+ * Shaka resolves relative MPD segment names against the Worker URL that
+ * returned the manifest. Rebuild those URLs against the signed CDN manifest
+ * before sending them through the same Worker.
  */
 export function resolveMovieBoxSegmentUrl(
   uri: string,
@@ -141,17 +157,4 @@ export function isHakunaymatataUrl(uri: string): boolean {
 export function isDashStream(url: string, type?: string): boolean {
   const t = (type || '').toLowerCase();
   return t === 'dash' || url.includes('.mpd');
-}
-
-/** Normalize header map for native / MSE players (Cookie key casing, etc.). */
-export function movieBoxPlaybackHeaders(
-  headers?: Record<string, string> | null,
-): Record<string, string> | undefined {
-  if (!headers || Object.keys(headers).length === 0) return undefined;
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(headers)) {
-    if (value == null || value === '') continue;
-    out[key] = String(value);
-  }
-  return Object.keys(out).length ? out : undefined;
 }

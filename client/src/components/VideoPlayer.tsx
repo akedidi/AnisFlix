@@ -16,7 +16,6 @@ import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
 import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
 import { useChromecast } from "@/hooks/useChromecast";
 import { useTrakt } from "@/hooks/useTrakt";
-import { unwrapMovieBoxCdnWorkerUrl } from "@/utils/movieboxCdn";
 
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -67,7 +66,7 @@ export default function VideoPlayer({
   provider,
   headers,
 }: VideoPlayerProps) {
-  const playbackSrc = unwrapMovieBoxCdnWorkerUrl(src) || src;
+  const playbackSrc = src;
   console.log(`📺 [VIDEO PLAYER PROPS] src=${playbackSrc} tracks=${JSON.stringify(tracks)}`);
 
   const { isNative } = useDeviceType();

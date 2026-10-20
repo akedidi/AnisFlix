@@ -5,7 +5,9 @@ import { ErrorPopup } from "@/components/ErrorPopup";
 import { errorMessages } from "@/lib/errorMessages";
 import ChromecastButton from "@/components/ChromecastButton";
 import {
-  isHakunaymatataUrl,
+  buildMovieBoxCdnProxyUrl,
+  parseMovieBoxCdnParams,
+  resolveMovieBoxSegmentUrl,
   unwrapMovieBoxCdnWorkerUrl,
 } from "@/utils/movieboxCdn";
 import { canPlayHevcDash, streamRequiresHevc } from "@/utils/codecSupport";
@@ -109,29 +111,25 @@ export default function ShakaPlayer({
         const player = new window.shaka.Player(videoRef.current);
         playerRef.current = player;
 
-        // Local CDN playback (Flutter/iOS style): unwrap legacy Worker URLs and
-        // attach headers on the device — do not stream bytes through Cloudflare.
-        const playbackUrl = unwrapMovieBoxCdnWorkerUrl(url) || url;
+        // Web cannot hit hakunaymatata directly (428/429). Keep MovieBox DASH
+        // on the Cloudflare Worker and rewrite relative segments back through it.
+        const playbackUrl = url;
+        const movieBoxCdn = parseMovieBoxCdnParams(url);
         const networkingEngine = player.getNetworkingEngine();
-        const playbackHeaders = headers && Object.keys(headers).length > 0 ? headers : null;
-
-        networkingEngine.registerRequestFilter((
-          _type: number,
-          request: { uris: string[]; headers: Record<string, string> },
-        ) => {
-          const uri = request.uris?.[0];
-          if (!uri) return;
-          const unwrapped = unwrapMovieBoxCdnWorkerUrl(uri);
-          if (unwrapped) request.uris[0] = unwrapped;
-          if (!playbackHeaders) return;
-          const target = request.uris[0];
-          if (!isHakunaymatataUrl(target) && !target.includes('aoneroom.com')) return;
-          request.headers = { ...request.headers, ...playbackHeaders };
-        });
+        if (movieBoxCdn) {
+          networkingEngine.registerRequestFilter((
+            _type: number,
+            request: { uris: string[] },
+          ) => {
+            const uri = request.uris?.[0];
+            const segmentUrl = uri ? resolveMovieBoxSegmentUrl(uri, movieBoxCdn) : null;
+            if (segmentUrl) {
+              request.uris[0] = buildMovieBoxCdnProxyUrl(segmentUrl, movieBoxCdn);
+            }
+          });
+        }
 
         // MovieBox sometimes announces HEVC with the generic `hev1` codec.
-        // Shaka rejects that value before loading segments even when the
-        // browser supports the more specific HEVC profile.
         networkingEngine.registerResponseFilter((type: number, response: { data: ArrayBuffer }) => {
           const manifestType = window.shaka.net.NetworkingEngine.RequestType.MANIFEST;
           if (type !== manifestType || typeof MediaSource === 'undefined') return;
@@ -186,8 +184,7 @@ export default function ShakaPlayer({
           }
         });
 
-        // Direct CDN URL (local browser IP) — not the Cloudflare Worker.
-        console.log('🔍 [SHAKA] Chargement CDN local:', playbackUrl);
+        console.log('🔍 [SHAKA] Chargement:', playbackUrl);
         await player.load(playbackUrl);
 
         for (const track of tracks) {
