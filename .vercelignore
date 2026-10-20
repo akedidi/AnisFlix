@@ -21,3 +21,23 @@ scripts/
 Thumbs.db
 *.tmp
 *.temp
+
+# Native / local build artifacts (blow past Vercel 15k file upload limit)
+anisflix_flutter/
+android-native/
+ios-natve/
+design-audit/
+updates/
+workers/
+*.apk
+AnisFlix-android*.apk
+output*.mp4
+output.mp4
+output2.mp4
+test*.m3u8
+master.m3u8
+test_vid*.ts
+test_noaudio.ts
+test_audio.ts
+server.py
+.github/
