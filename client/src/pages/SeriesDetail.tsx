@@ -806,6 +806,7 @@ export default function SeriesDetail() {
                                                   url={selectedSource.url}
                                                   title={`${series.name} - S${selectedSeasonNumber}E${episode.episode_number}`}
                                                   tracks={selectedSource.tracks}
+                                                  headers={(selectedSource as any).headers}
                                                   embedded
                                                 />
                                               ) : (
@@ -828,6 +829,7 @@ export default function SeriesDetail() {
                                                     imdbId={series?.external_ids?.imdb_id}
                                                     tracks={(selectedSource as any).tracks}
                                                     provider={(selectedSource as any).provider}
+                                                    headers={(selectedSource as any).headers}
                                                     hasNextEpisode={(() => {
                                                       // Check if there's a next episode in the same season
                                                       const episodes = seasonDetails?.episodes || [];

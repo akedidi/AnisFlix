@@ -598,6 +598,7 @@ export default function MovieDetail() {
                     url={selectedSource.url}
                     title={movie.title}
                     tracks={selectedSource.tracks}
+                    headers={(selectedSource as any).headers}
                     embedded
                   />
                 ) : (
@@ -612,6 +613,7 @@ export default function MovieDetail() {
                     imdbId={movie.imdb_id}
                     tracks={(selectedSource as any).tracks}
                     provider={selectedSource.provider}
+                    headers={(selectedSource as any).headers}
                   />
                 )}
               </div>

@@ -719,7 +719,7 @@ const StreamingSources = memo(function StreamingSources({
         );
         return;
       }
-      // Same rule as Android TV: detector-fallback CDN links reject Cookie/Referer/UA.
+      // Local CDN playback (Flutter/iOS): bare hakunaymatata URL, no CF Worker.
       const playback = resolveMovieBoxPlaybackUrl(stream);
       const mediaUrl = playback.url || stream.directUrl || stream.url || '';
       if (!mediaUrl) {

@@ -16,6 +16,7 @@ import { getSubtitles, Subtitle } from "@/lib/opensubtitles";
 import { fetchAndConvertSubtitle } from "@/lib/subtitleUtils";
 import { useChromecast } from "@/hooks/useChromecast";
 import { useTrakt } from "@/hooks/useTrakt";
+import { unwrapMovieBoxCdnWorkerUrl } from "@/utils/movieboxCdn";
 
 // Détection de plateforme native (iOS/Android)
 const isNativePlatform = () => {
@@ -46,6 +47,8 @@ interface VideoPlayerProps {
   tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>; // Add tracks for external subtitles
   hasNextEpisode?: boolean; // For series: true if there's a next episode
   provider?: string; // Source provider (e.g. 'vixsrc', 'vidmoly')
+  /** CDN auth headers for local playback (MovieBox, etc.) — not via CF Worker. */
+  headers?: Record<string, string>;
 }
 
 export default function VideoPlayer({
@@ -61,9 +64,11 @@ export default function VideoPlayer({
   imdbId,
   tracks = [], // Default to empty array
   hasNextEpisode,
-  provider
+  provider,
+  headers,
 }: VideoPlayerProps) {
-  console.log(`📺 [VIDEO PLAYER PROPS] src=${src} tracks=${JSON.stringify(tracks)}`);
+  const playbackSrc = unwrapMovieBoxCdnWorkerUrl(src) || src;
+  console.log(`📺 [VIDEO PLAYER PROPS] src=${playbackSrc} tracks=${JSON.stringify(tracks)}`);
 
   const { isNative } = useDeviceType();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -229,11 +234,11 @@ export default function VideoPlayer({
 
   // Initialize video source with hls.js or native player
   useEffect(() => {
-    if (!videoRef.current || !src) return;
+    if (!videoRef.current || !playbackSrc) return;
 
     const video = videoRef.current;
 
-    console.log('🎬 [VideoPlayer] Initializing with src:', src, 'type:', type);
+    console.log('🎬 [VideoPlayer] Initializing with src:', playbackSrc, 'type:', type);
 
     // Destroy previous hls instance if exists
     if (hlsRef.current) {
@@ -243,7 +248,7 @@ export default function VideoPlayer({
     }
 
     // Determine if we need HLS.js (for m3u8 on non-Safari browsers)
-    const isM3u8 = src.includes('.m3u8') || type === 'm3u8';
+    const isM3u8 = playbackSrc.includes('.m3u8') || type === 'm3u8';
 
     // STRICT CHECK: Safari is the only major browser with reliable native HLS
     // Chrome/Firefox often report "maybe" or "probably" but fail with complex streams or proxies
@@ -258,15 +263,26 @@ export default function VideoPlayer({
       // Use HLS.js for m3u8 streams on browsers that don't natively support it (or where we force it)
       if (Hls.isSupported()) {
         console.log('📺 [VideoPlayer] Using HLS.js for m3u8 stream (Not Safari)');
-        const hlsConfig = {
+        const hlsConfig: any = {
           enableWorker: true,
           lowLatencyMode: false,
-          backBufferLength: 90
+          backBufferLength: 90,
         };
+        if (headers && Object.keys(headers).length > 0) {
+          hlsConfig.xhrSetup = (xhr: XMLHttpRequest) => {
+            for (const [key, value] of Object.entries(headers)) {
+              try {
+                xhr.setRequestHeader(key, value);
+              } catch {
+                // Forbidden header names are ignored by the browser.
+              }
+            }
+          };
+        }
 
         // If the source is proxied via CorsProxy, we MUST enforce the proxy for all segments/fragments
         // to avoid "Connection Refused" when Hls.js tries to fetch direct internal links.
-        if (src.includes('corsproxy.io') && Hls.DefaultConfig.loader) {
+        if (playbackSrc.includes('corsproxy.io') && Hls.DefaultConfig.loader) {
           console.log('🛡️ [VideoPlayer] Enabling Universal Proxy Loader (CorsProxy Mode)');
 
           class ProxiedLoader extends (Hls.DefaultConfig.loader as any) {
@@ -279,12 +295,12 @@ export default function VideoPlayer({
               super.load(context, config, callbacks);
             }
           }
-          (hlsConfig as any).loader = ProxiedLoader;
+          hlsConfig.loader = ProxiedLoader;
         }
 
         const hls = new Hls(hlsConfig);
 
-        hls.loadSource(src);
+        hls.loadSource(playbackSrc);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -314,16 +330,16 @@ export default function VideoPlayer({
         });
 
         hlsRef.current = hls;
-        setFinalMediaUrl(src);
+        setFinalMediaUrl(playbackSrc);
       } else {
         console.error('❌ [VideoPlayer] HLS.js not supported on this browser');
       }
     } else {
       // Use native HTML5 player for mp4 or m3u8 on Safari
       console.log('📺 [VideoPlayer] Using native player for:', type || 'auto');
-      video.src = src;
+      video.src = playbackSrc;
       setSourceType(isM3u8 ? 'm3u8' : 'mp4');
-      setFinalMediaUrl(src);
+      setFinalMediaUrl(playbackSrc);
       video.load();
       video.play().catch(e => console.log('Play failed:', e));
     }
@@ -335,7 +351,7 @@ export default function VideoPlayer({
         hlsRef.current = null;
       }
     };
-  }, [src, type]);
+  }, [playbackSrc, type, headers]);
 
   // Restore saved watch progress
   useEffect(() => {
@@ -882,10 +898,10 @@ export default function VideoPlayer({
           preload="auto"
           crossOrigin={
             // Do not set crossOrigin on hakunaymatata.com: browsers send Origin
-            // and the CDN answers 429. Worker-proxied URLs still need CORS.
+            // and the CDN answers 429. Only force CORS for proxied / HLS cases.
             type === 'm3u8' ||
-              src.includes('kedidi-anis.workers.dev') ||
-              src.includes('moviebox-stream')
+              playbackSrc.includes('kedidi-anis.workers.dev') ||
+              playbackSrc.includes('moviebox-stream')
               ? 'anonymous'
               : undefined
           }

@@ -349,16 +349,6 @@ async function fetchH5ProcessedSources(subjectId, detailPath, season, episode) {
   return response?.status === 'success' ? response.data : null;
 }
 
-function buildH5PlaybackRelayUrl(proxyPath) {
-  const targetUrl = new URL(proxyPath, H5_METADATA_BASE);
-  const relay = new URL(PROXY_URL);
-  relay.searchParams.set('path', 'moviebox-cdn');
-  relay.searchParams.set('url', targetUrl.toString());
-  relay.searchParams.set('referer', `${H5_METADATA_BASE}/`);
-  relay.searchParams.set('ua', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15');
-  return relay.toString();
-}
-
 async function getH5FallbackStreams(details, mediaType, season, episode) {
   const subjectType = mediaType === 'movie' ? 1 : 2;
   const searchUrl = `${H5_METADATA_BASE}/api/search/${encodeURIComponent(details.title)}?page=1&perPage=24&type=${subjectType}`;
@@ -399,16 +389,24 @@ async function getH5FallbackStreams(details, mediaType, season, episode) {
     );
 
     for (const source of Array.isArray(sourceData?.processedSources) ? sourceData.processedSources : []) {
-      const proxyPath = source?.proxyUrl || source?.streamUrl;
-      if (!proxyPath) continue;
+      // Prefer a direct CDN URL so clients play locally (browser/device IP).
+      // Avoid wrapping every segment through the Cloudflare moviebox-cdn Worker.
+      const direct =
+        source?.directUrl ||
+        source?.cdnUrl ||
+        source?.streamUrl ||
+        (source?.proxyUrl
+          ? new URL(source.proxyUrl, H5_METADATA_BASE).toString()
+          : null);
+      if (!direct) continue;
       const format = String(source.format || '').toLowerCase() === 'dash' ? 'DASH' : 'MP4';
       const qualities = parseQualities(source.quality || source.resolutions || source.resolution);
       for (const resolution of qualities.length ? qualities : [null]) {
         streams.push({
-          decoded_url: buildH5PlaybackRelayUrl(proxyPath),
+          decoded_url: direct,
           quality: resolution ? `${resolution}p` : 'Auto',
           format,
-          codec: inferCodec(null, source.directUrl || source.cdnUrl),
+          codec: inferCodec(null, direct),
           language: variant.language,
           languageLabel: variant.lanName || variant.language,
           subtitles: variant.language === 'VO' ? captions : [],
