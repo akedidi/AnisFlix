@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.2",
-  "buildNumber": 15,
-  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-15/anisflix-android-tv.apk",
-  "sha256": "2ee5fd697d22989de53572ed9a0ec8883a27a773bcef3c51b8c0c0c62ff9c683",
-  "releaseNotes": "TV 1.0.2 (15) : build courant (remplace 14).",
+  "buildNumber": 16,
+  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-16/anisflix-android-tv.apk",
+  "sha256": "885c75cf1786ba8e8e8a86fcde9e5d21c62e95797e6b16bf205ebacf34576aba",
+  "releaseNotes": "TV 1.0.2 (16) : chevrons haut/bas visibles sur la liste de sources.",
   "mandatory": false
 }
