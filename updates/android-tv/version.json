@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 20,
+  "buildNumber": 21,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "7ac4cdb93ff70c0a7d67bcce89cceeded80fdb6d814d1d039b8f2733a104c208",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (20) : Sources regroupées par provider (Vixsrc VO en fin) + Vixsrc HTTPS master.",
+  "sha256": "f589f79d3982730f41945f2ed63c2a8c0796b4ad61764dff6f10ad424ea72c94",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (21) : correctif minutage / barre de progression Android TV (horloge UI).",
   "mandatory": false
 }
