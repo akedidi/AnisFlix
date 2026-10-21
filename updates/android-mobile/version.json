@@ -1,9 +1,9 @@
 {
   "channel": "android-mobile",
   "version": "1.0.3",
-  "buildNumber": 7,
+  "buildNumber": 8,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-3/anisflix-android-mobile.apk",
-  "sha256": "cb6956a44e974f1d5e1ed9765eb1fd820444815bbbe4d57a26b3351602af7d24",
-  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (7) : catégories séries triées par dernières sorties.",
+  "sha256": "b31e723e1811d0b4fa35b9d74a38f4541ba2453b19e5f322c56b6cba95b34468",
+  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (8) : TMDB recharge dans la langue choisie (accueil, catalogues, détails).",
   "mandatory": false
 }
