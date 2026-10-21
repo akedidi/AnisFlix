@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 22,
+  "buildNumber": 23,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "2dabf44b0482a9b8226f7d9d404dd2a728ff83dd92a9256d2bd9c17e478bd646",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (22) : catégories séries triées par dernières sorties + correctif minutage TV.",
+  "sha256": "4264321f272cf64926cabe0650fcae4f6b27705e5ab11aa1f6500a5d4aa4a4e4",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (23) : correctif focus D-pad sous-titres (taille texte ne capture plus haut/bas).",
   "mandatory": false
 }
