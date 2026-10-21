@@ -351,6 +351,7 @@ struct MovieDetailView: View {
                                                     if provider == "moviebox" { return 1 }
                                                     if provider == "megacdn" { return 3 }
                                                     if provider == "yflix" { return -1 } // YFlix: high priority
+                                                    if provider == "vaplayer" || provider == "vixsrc" { return 0 }
                                                     if ["animesama", "frenchanime", "frenchstream", "streamzo", "animepahe"].contains(provider) { return 0 }
                                                     if provider == "mob" { return 6 }
                                                     if provider.contains("luluvid") { return 99 }
@@ -697,19 +698,29 @@ struct MovieDetailView: View {
     // Helper to filter sources by language
     private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
         return sources.filter { source in
-            let lang = source.language.lowercased()
-            if language == "VF" {
-                return lang.contains("french") || lang.contains("vf")
-            } else if language == "VOSTFR" {
-                return lang.contains("vostfr")
-            } else {
-                // VO: Only sources that are NOT VF and NOT VOSTFR
-                let isVF = lang.contains("french") || lang.contains("vf")
-                let isVOSTFR = lang.contains("vostfr")
-                // Accept VO, English, or any source that isn't explicitly VF/VOSTFR
-                return !isVF && !isVOSTFR
+            switch languageCategory(for: source) {
+            case "VF": return language == "VF"
+            case "VOSTFR": return language == "VOSTFR"
+            default: return language == "VO"
             }
         }
+    }
+
+    /// Exact buckets so "VO" is never confused with substring "vf" inside other labels.
+    private func languageCategory(for source: StreamingSource) -> String {
+        let lang = source.language
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if lang.contains("vost") || lang.contains("subtitle") || lang.contains("subbed") {
+            return "VOSTFR"
+        }
+        let token = lang.replacingOccurrences(of: "[^a-z0-9]+", with: " ", options: .regularExpression)
+        let words = Set(token.split(separator: " ").map(String.init))
+        if words.contains("vf") || words.contains("vfq") || words.contains("french") || words.contains("francais")
+            || words.contains("fr") || words.contains("fra") || words.contains("fre") {
+            return "VF"
+        }
+        return "VO"
     }
     
     // Helper to format quality display for Movix sources
@@ -762,8 +773,16 @@ struct MovieDetailView: View {
             
             // For other streaming sources, show provider + index + quality
             let quality = formatQualityDisplay(source.quality)
-            let providerName = source.provider.lowercased() == "hianime" ? "HiAnime" : source.provider.capitalized
-            return "\(providerName) \(providerIndex) - \(quality)"
+            let providerName: String = {
+                switch source.provider.lowercased() {
+                case "hianime": return "HiAnime"
+                case "vaplayer": return "VaPlayer"
+                case "vixsrc": return "Vixsrc"
+                case "yflix": return "YFlix"
+                default: return source.provider.capitalized
+                }
+            }()
+            return "\(providerName) \(providerIndex) - \(quality) — \(source.language)"
         }
     }
 }

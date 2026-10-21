@@ -747,19 +747,28 @@ struct SeriesDetailView: View {
     // Helper to filter sources by language
     private func filterSources(_ sources: [StreamingSource], language: String) -> [StreamingSource] {
         return sources.filter { source in
-            let lang = source.language.lowercased()
-            if language == "VF" {
-                return lang.contains("french") || lang.contains("vf")
-            } else if language == "VOSTFR" {
-                return lang.contains("vostfr")
-            } else {
-                // VO: Only sources that are NOT VF and NOT VOSTFR
-                let isVF = lang.contains("french") || lang.contains("vf")
-                let isVOSTFR = lang.contains("vostfr")
-                // Accept VO, English, or any source that isn't explicitly VF/VOSTFR
-                return !isVF && !isVOSTFR
+            switch languageCategory(for: source) {
+            case "VF": return language == "VF"
+            case "VOSTFR": return language == "VOSTFR"
+            default: return language == "VO"
             }
         }
+    }
+
+    private func languageCategory(for source: StreamingSource) -> String {
+        let lang = source.language
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        if lang.contains("vost") || lang.contains("subtitle") || lang.contains("subbed") {
+            return "VOSTFR"
+        }
+        let token = lang.replacingOccurrences(of: "[^a-z0-9]+", with: " ", options: .regularExpression)
+        let words = Set(token.split(separator: " ").map(String.init))
+        if words.contains("vf") || words.contains("vfq") || words.contains("french") || words.contains("francais")
+            || words.contains("fr") || words.contains("fra") || words.contains("fre") {
+            return "VF"
+        }
+        return "VO"
     }
     
     // Helper to format quality display for Movix sources

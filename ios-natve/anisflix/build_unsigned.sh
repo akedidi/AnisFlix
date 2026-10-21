@@ -186,7 +186,9 @@ if [ -f "$IPA_NAME" ]; then
     VERSION="$BUILT_VERSION"
     BUILD_VERSION="$BUILT_BUILD_VERSION"
     RAW_BASE_URL="https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public"
-    DOWNLOAD_URL="$RAW_BASE_URL/anisflix.ipa"
+    # Cache-bust: SideStore/CDNs often keep serving a stale anisflix.ipa when the
+    # path is unchanged even after sidestore.json points at a newer build.
+    DOWNLOAD_URL="$RAW_BASE_URL/anisflix.ipa?v=$BUILD_VERSION"
     
     # Check if JSON exists
     if [ -f "$JSON_FILE" ]; then
