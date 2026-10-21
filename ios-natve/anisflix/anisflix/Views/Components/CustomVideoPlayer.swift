@@ -1390,6 +1390,25 @@ class PlayerViewModel: NSObject, ObservableObject, VLCMediaPlayerDelegate, AVPic
         }
         
         let item = AVPlayerItem(asset: asset)
+        // Lock HLS ladder to the source quality (Vixsrc 1080p/720p/480p share one master).
+        if let preferredVideoHeight, preferredVideoHeight > 0 {
+            if #available(iOS 15.0, *) {
+                item.preferredMaximumResolution = CGSize(
+                    width: Double(preferredVideoHeight) * 16.0 / 9.0,
+                    height: Double(preferredVideoHeight)
+                )
+            }
+            // Peak bitrate ≈ height ladder used by Vixsrc masters.
+            let peak: Double
+            switch preferredVideoHeight {
+            case 1080...: peak = 6_000_000
+            case 720...: peak = 2_500_000
+            case 480...: peak = 1_400_000
+            default: peak = 1_000_000
+            }
+            item.preferredPeakBitRate = peak
+            print("🎬 [PlayerVM] AVPlayer max height \(preferredVideoHeight)p / peak \(Int(peak))")
+        }
         
         // Add observers for debugging - REMOVED due to build issues
         // We rely on the fact that ResourceLoader is now working

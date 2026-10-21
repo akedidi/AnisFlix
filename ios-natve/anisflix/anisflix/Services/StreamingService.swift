@@ -1119,13 +1119,18 @@ class StreamingService {
         return []
     }
     
-    /// Device-side Vixsrc VO extract (API → embed → playlist). No worker/proxy.
+    /// Device-side Vixsrc VO extract (API → embed → master). No worker/proxy.
+    /// Always returns https:// master URLs (never file://) so listing/playback
+    /// match YFlix/VaPlayer. Qualities share the adaptive master; AVPlayer/VLC
+    /// lock height via preferredVideoHeight.
     func fetchVixsrcSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
         do {
-            return try await extractVixsrcOnDevice(tmdbId: tmdbId, type: type, season: season, episode: episode)
+            let sources = try await extractVixsrcOnDevice(tmdbId: tmdbId, type: type, season: season, episode: episode)
+            print("✅ [Vixsrc] \(sources.count) source(s) for \(type) \(tmdbId): \(sources.map(\.quality))")
+            return sources
         } catch {
             print("❌ [Vixsrc] extract failed for \(type) \(tmdbId): \(error)")
-            throw error
+            return []
         }
     }
 
@@ -1143,135 +1148,84 @@ class StreamingService {
             apiPath = "/api/tv/\(tmdbId)/\(seasonNum)/\(episodeNum)"
         }
         let referer = origin + pagePath
-        let userAgents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+        let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        let headers: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": userAgent,
+            "Accept": "application/json,text/html;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
         ]
 
-        let session: URLSession = {
-            let config = URLSessionConfiguration.ephemeral
-            config.timeoutIntervalForRequest = 20
-            config.timeoutIntervalForResource = 30
-            config.waitsForConnectivity = true
-            config.httpCookieAcceptPolicy = .always
-            config.httpShouldSetCookies = true
-            return URLSession(configuration: config)
-        }()
-        defer { session.finishTasksAndInvalidate() }
-
-        var lastError: Error = URLError(.badServerResponse)
-        for userAgent in userAgents {
-            do {
-                guard let apiURL = URL(string: origin + apiPath) else { throw URLError(.badURL) }
-                var apiRequest = URLRequest(url: apiURL)
-                apiRequest.httpMethod = "GET"
-                apiRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-                apiRequest.setValue("application/json,text/html;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
-                apiRequest.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
-                apiRequest.setValue(referer, forHTTPHeaderField: "Referer")
-                apiRequest.setValue(origin, forHTTPHeaderField: "Origin")
-
-                let (apiData, apiResponse) = try await session.data(for: apiRequest)
-                let apiStatus = (apiResponse as? HTTPURLResponse)?.statusCode ?? -1
-                guard apiStatus == 200 else {
-                    print("⚠️ [Vixsrc] API HTTP \(apiStatus)")
-                    throw URLError(.badServerResponse)
-                }
-
-                struct VixsrcAPI: Codable { let src: String? }
-                let api = try JSONDecoder().decode(VixsrcAPI.self, from: apiData)
-                guard let src = api.src?.trimmingCharacters(in: .whitespacesAndNewlines), !src.isEmpty else {
-                    print("⚠️ [Vixsrc] missing src for \(apiPath)")
-                    return []
-                }
-
-                let embedString = src.hasPrefix("http") ? src : origin + src
-                guard let embedURL = URL(string: embedString),
-                      embedURL.host == "vixsrc.to",
-                      embedURL.path.hasPrefix("/embed/") else {
-                    print("⚠️ [Vixsrc] invalid embed: \(embedString)")
-                    return []
-                }
-
-                var embedRequest = URLRequest(url: embedURL)
-                embedRequest.httpMethod = "GET"
-                embedRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
-                embedRequest.setValue(
-                    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    forHTTPHeaderField: "Accept"
-                )
-                embedRequest.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
-                embedRequest.setValue(referer, forHTTPHeaderField: "Referer")
-                embedRequest.setValue(origin, forHTTPHeaderField: "Origin")
-
-                let (embedData, embedResponse) = try await session.data(for: embedRequest)
-                let embedStatus = (embedResponse as? HTTPURLResponse)?.statusCode ?? -1
-                guard embedStatus == 200 else {
-                    print("⚠️ [Vixsrc] embed HTTP \(embedStatus)")
-                    throw URLError(.badServerResponse)
-                }
-
-                let html = String(decoding: embedData, as: UTF8.self)
-                guard let master = Self.parseVixsrcMasterPlaylist(html: html),
-                      let masterURL = URL(string: master) else {
-                    print("⚠️ [Vixsrc] playlist parse failed (html \(html.count) bytes)")
-                    return []
-                }
-
-                let headers: [String: String] = [
-                    "Referer": referer,
-                    "Origin": origin,
-                    "User-Agent": userAgent
-                ]
-
-                var masterRequest = URLRequest(url: masterURL)
-                masterRequest.httpMethod = "GET"
-                for (key, value) in headers {
-                    masterRequest.setValue(value, forHTTPHeaderField: key)
-                }
-                let (masterData, masterResponse) = try await session.data(for: masterRequest)
-                let masterStatus = (masterResponse as? HTTPURLResponse)?.statusCode ?? -1
-                guard masterStatus == 200 else {
-                    print("⚠️ [Vixsrc] master HTTP \(masterStatus)")
-                    throw URLError(.badServerResponse)
-                }
-                let masterBody = String(decoding: masterData, as: UTF8.self)
-                let variants = Self.parseVixsrcQualityVariants(masterBody: masterBody)
-                if variants.isEmpty {
-                    print("⚠️ [Vixsrc] no quality variants — falling back to Auto")
-                    return [
-                        StreamingSource(
-                            url: master,
-                            directUrl: master,
-                            quality: "Auto",
-                            type: "m3u8",
-                            provider: "vixsrc",
-                            language: "VO",
-                            origin: "vixsrc",
-                            headers: headers
-                        )
-                    ]
-                }
-
-                print("✅ [Vixsrc] extracted \(variants.count) qualities for \(type) \(tmdbId)")
-                return variants.map { variant in
-                    StreamingSource(
-                        url: variant.playbackURL,
-                        directUrl: variant.streamURL,
-                        quality: variant.quality,
-                        type: "m3u8",
-                        provider: "vixsrc",
-                        language: "VO",
-                        origin: "vixsrc",
-                        headers: headers
-                    )
-                }
-            } catch {
-                lastError = error
-                print("⚠️ [Vixsrc] attempt failed (\(userAgent.prefix(30))…): \(error)")
-            }
+        func request(_ urlString: String) async throws -> (Data, Int) {
+            guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+            var req = URLRequest(url: url, timeoutInterval: 20)
+            req.httpMethod = "GET"
+            req.allHTTPHeaderFields = headers
+            let (data, response) = try await URLSession.shared.data(for: req)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            return (data, status)
         }
-        throw lastError
+
+        let (apiData, apiStatus) = try await request(origin + apiPath)
+        guard apiStatus == 200 else {
+            print("⚠️ [Vixsrc] API HTTP \(apiStatus)")
+            throw URLError(.badServerResponse)
+        }
+        struct VixsrcAPI: Codable { let src: String? }
+        let api = try JSONDecoder().decode(VixsrcAPI.self, from: apiData)
+        guard let src = api.src?.trimmingCharacters(in: .whitespacesAndNewlines), !src.isEmpty else {
+            print("⚠️ [Vixsrc] missing src for \(apiPath)")
+            return []
+        }
+
+        let embedString = src.hasPrefix("http") ? src : origin + src
+        guard let embedURL = URL(string: embedString),
+              embedURL.host == "vixsrc.to",
+              embedURL.path.hasPrefix("/embed/") else {
+            print("⚠️ [Vixsrc] invalid embed: \(embedString)")
+            return []
+        }
+
+        let (embedData, embedStatus) = try await request(embedURL.absoluteString)
+        guard embedStatus == 200 else {
+            print("⚠️ [Vixsrc] embed HTTP \(embedStatus)")
+            throw URLError(.badServerResponse)
+        }
+        let html = String(decoding: embedData, as: UTF8.self)
+        guard let master = Self.parseVixsrcMasterPlaylist(html: html) else {
+            print("⚠️ [Vixsrc] playlist parse failed (html \(html.count) bytes)")
+            return []
+        }
+
+        // Discover labeled qualities from the master when possible; otherwise
+        // still publish the common ladder so VO is never empty after a successful embed.
+        var qualities = ["1080p", "720p", "480p"]
+        if let (masterData, masterStatus) = try? await request(master), masterStatus == 200 {
+            let body = String(decoding: masterData, as: UTF8.self)
+            let parsed = Self.parseVixsrcQualityLabels(masterBody: body)
+            if !parsed.isEmpty { qualities = parsed }
+        } else {
+            print("⚠️ [Vixsrc] master fetch skipped/failed — using default ladder")
+        }
+
+        let playbackHeaders: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": userAgent
+        ]
+        return qualities.map { quality in
+            StreamingSource(
+                url: master,
+                directUrl: master,
+                quality: quality,
+                type: "m3u8",
+                provider: "vixsrc",
+                language: "VO",
+                origin: "vixsrc",
+                headers: playbackHeaders
+            )
+        }
     }
 
     static func parseVixsrcMasterPlaylist(html: String) -> String? {
@@ -1326,43 +1280,27 @@ class StreamingService {
         return components.url?.absoluteString
     }
 
-    /// One playable single-variant master per resolution (keeps AUDIO/SUBS tags).
-    static func parseVixsrcQualityVariants(masterBody: String) -> [(quality: String, playbackURL: String, streamURL: String)] {
+    /// Labels only — playback always uses the https master (audio/subs intact).
+    static func parseVixsrcQualityLabels(masterBody: String) -> [String] {
         let lines = masterBody.components(separatedBy: .newlines)
-        var prefix: [String] = []
-        var variants: [(info: String, uri: String)] = []
+        var labels: [String] = []
+        var seen = Set<String>()
         var index = 0
         while index < lines.count {
             let line = lines[index]
             if line.hasPrefix("#EXT-X-STREAM-INF:") {
                 let uri = index + 1 < lines.count ? lines[index + 1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
-                if uri.hasPrefix("http") {
-                    variants.append((info: line, uri: uri))
+                let quality = vixsrcQualityLabel(streamInf: line, uri: uri)
+                if seen.insert(quality).inserted {
+                    labels.append(quality)
                 }
                 index += 2
                 continue
             }
-            prefix.append(line)
             index += 1
         }
-
-        var seen = Set<String>()
-        var output: [(quality: String, playbackURL: String, streamURL: String)] = []
-        let tmp = FileManager.default.temporaryDirectory
-        for variant in variants {
-            let quality = vixsrcQualityLabel(streamInf: variant.info, uri: variant.uri)
-            guard seen.insert(quality).inserted else { continue }
-            let body = (prefix + [variant.info, variant.uri, ""]).joined(separator: "\n")
-            let fileURL = tmp.appendingPathComponent("anisflix-vixsrc-\(quality)-\(UUID().uuidString).m3u8")
-            do {
-                try body.write(to: fileURL, atomically: true, encoding: .utf8)
-                output.append((quality: quality, playbackURL: fileURL.absoluteString, streamURL: variant.uri))
-            } catch {
-                print("⚠️ [Vixsrc] failed to write \(quality) playlist: \(error)")
-            }
-        }
-        output.sort { vixsrcQualityRank($0.quality) > vixsrcQualityRank($1.quality) }
-        return output
+        labels.sort { vixsrcQualityRank($0) > vixsrcQualityRank($1) }
+        return labels
     }
 
     static func vixsrcQualityLabel(streamInf: String, uri: String) -> String {
