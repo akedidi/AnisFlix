@@ -469,7 +469,7 @@ struct SeriesDetailView: View {
         }
         // .navigationBarHidden(true) removed to show system back button
 
-        .task {
+        .task(id: theme.selectedLanguage) {
             await loadSeriesDetails()
         }
     }
@@ -644,9 +644,7 @@ struct SeriesDetailView: View {
     private func loadSeriesDetails() async {
         isLoading = true
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         do {
             async let details = TMDBService.shared.fetchSeriesDetails(seriesId: seriesId, language: language)
@@ -685,9 +683,7 @@ struct SeriesDetailView: View {
     private func loadSeasonDetails() async {
         isSeasonLoading = true
         self.seasonDetails = nil // Reset to prevent showing stale data
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         do {
             async let details = TMDBService.shared.fetchSeasonDetails(seriesId: seriesId, seasonNumber: selectedSeason, language: language)

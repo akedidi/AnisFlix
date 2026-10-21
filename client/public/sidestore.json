@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.118",
-          "buildVersion": "118",
+          "version": "1.0.119",
+          "buildVersion": "119",
           "date": "2026-10-21",
-          "size": 31080701,
-          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=118",
+          "size": 31079308,
+          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=119",
           "minOSVersion": "16.0",
-          "localizedDescription": "Catégories séries triées par dernières sorties (plus par popularité)"
+          "localizedDescription": "TMDB recharge dans la langue choisie (accueil, catalogues, détails)"
         }
       ]
     }

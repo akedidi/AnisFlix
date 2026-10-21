@@ -171,7 +171,7 @@ struct ProviderMediaListView: View {
             .tint(AppTheme.primaryRed)
         } // End ZStack
         .navigationBarHidden(true)
-        .task {
+        .task(id: theme.selectedLanguage) {
             await loadAllData(showLoadingUI: true)
         }
     }
@@ -183,14 +183,7 @@ struct ProviderMediaListView: View {
             isLoading = true
         }
         
-        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
-        
-        // Peacock (386) is US-only, force English to ensure content visibility
-        if providerId == 386 {
-            language = "en-US"
-        }
+        var language = theme.tmdbLanguageCode
         
         print("📺 Loading \(providerName) content...")
         

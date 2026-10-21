@@ -146,7 +146,7 @@ struct MoviesView: View {
              }
         }
         .background(theme.backgroundColor.ignoresSafeArea())
-        .task {
+        .task(id: theme.selectedLanguage) {
             await loadAllCategories(showLoadingUI: latestMovies.isEmpty)
         }
     }

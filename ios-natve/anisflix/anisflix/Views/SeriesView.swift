@@ -147,7 +147,7 @@ struct SeriesView: View {
              }
         }
         .background(theme.backgroundColor.ignoresSafeArea())
-        .task {
+        .task(id: theme.selectedLanguage) {
             await loadAllCategories(showLoadingUI: latestSeries.isEmpty)
         }
     }

@@ -16,6 +16,11 @@ class TMDBService {
     private let proxyBaseURL = "https://anisflix.vercel.app/api/tmdb-proxy"
     
     private init() {}
+
+    /// Defaults to the in-app language so callers that omit `language` still match Settings.
+    private func resolvedLanguage(_ language: String?) -> String {
+        language ?? AppTheme.shared.tmdbLanguageCode
+    }
     
     // MARK: - Popular Movies
     
@@ -152,7 +157,8 @@ class TMDBService {
     
     // MARK: - Movies by Provider
     
-    func fetchMoviesByProvider(providerId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
+    func fetchMoviesByProvider(providerId: Int, page: Int = 1, language: String? = nil, region: String = "FR") async throws -> [Media] {
+        let language = resolvedLanguage(language)
         // TMDB has no reliable release time — hide same-day titles until late morning
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
@@ -164,7 +170,8 @@ class TMDBService {
     
     // MARK: - Series by Provider
     
-    func fetchSeriesByProvider(providerId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
+    func fetchSeriesByProvider(providerId: Int, page: Int = 1, language: String? = nil, region: String = "FR") async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&watch_region=\(region)&sort_by=popularity.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
@@ -174,7 +181,8 @@ class TMDBService {
     
     // MARK: - Movies by Genre
     
-    func fetchMoviesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
+    func fetchMoviesByGenre(genreId: Int, page: Int = 1, language: String? = nil, sortBy: String? = nil) async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         // Special handling for Science Fiction (878) to match web logic
@@ -201,7 +209,8 @@ class TMDBService {
     
     // MARK: - Series by Genre
     
-    func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
+    func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String? = nil, sortBy: String? = nil) async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         // Sci-Fi keeps the streaming-region filter; all series genres sort by
@@ -225,7 +234,8 @@ class TMDBService {
     
     // MARK: - Movies by Provider AND Genre
     
-    func fetchMoviesByProviderAndGenre(providerId: Int, genreId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
+    func fetchMoviesByProviderAndGenre(providerId: Int, genreId: Int, page: Int = 1, language: String? = nil, region: String = "FR") async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let endpoint = "\(baseURL)/discover/movie?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&with_genres=\(genreId)&watch_region=\(region)&sort_by=primary_release_date.desc&with_watch_monetization_types=flatrate"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
@@ -233,7 +243,8 @@ class TMDBService {
     
     // MARK: - Series by Provider AND Genre
     
-    func fetchSeriesByProviderAndGenre(providerId: Int, genreId: Int, page: Int = 1, language: String = "fr-FR", region: String = "FR") async throws -> [Media] {
+    func fetchSeriesByProviderAndGenre(providerId: Int, genreId: Int, page: Int = 1, language: String? = nil, region: String = "FR") async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
         let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_watch_providers=\(providerId)&with_genres=\(genreId)&watch_region=\(region)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate"
@@ -243,13 +254,15 @@ class TMDBService {
     
     // MARK: - Similar Content
     
-    func fetchSimilarMovies(movieId: Int, page: Int = 1, language: String = "fr-FR") async throws -> [Media] {
+    func fetchSimilarMovies(movieId: Int, page: Int = 1, language: String? = nil) async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let endpoint = "\(baseURL)/movie/\(movieId)/similar?api_key=\(apiKey)&language=\(language)&page=\(page)"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .movie) }
     }
     
-    func fetchSimilarSeries(seriesId: Int, page: Int = 1, language: String = "fr-FR") async throws -> [Media] {
+    func fetchSimilarSeries(seriesId: Int, page: Int = 1, language: String? = nil) async throws -> [Media] {
+        let language = resolvedLanguage(language)
         let endpoint = "\(baseURL)/tv/\(seriesId)/similar?api_key=\(apiKey)&language=\(language)&page=\(page)"
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }
@@ -257,7 +270,8 @@ class TMDBService {
     
     // MARK: - Season Details (via Proxy)
     
-    func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> SeasonDetails {
+    func fetchSeasonDetails(seriesId: Int, seasonNumber: Int, language: String? = nil) async throws -> SeasonDetails {
+        let language = resolvedLanguage(language)
         // Use centralized TMDB proxy - handles virtual seasons, sequential numbering, and generic name fallback
         // Add timestamp to force fresh fetch (bust cache)
         let endpoint = "\(proxyBaseURL)?type=season&seriesId=\(seriesId)&seasonNumber=\(seasonNumber)&language=\(language)&_t=\(Date().timeIntervalSince1970)"
@@ -267,12 +281,14 @@ class TMDBService {
     
     // MARK: - Media Details
     
-    func fetchMovieDetails(movieId: Int, language: String = "fr-FR") async throws -> MovieDetail {
+    func fetchMovieDetails(movieId: Int, language: String? = nil) async throws -> MovieDetail {
+        let language = resolvedLanguage(language)
         let endpoint = "\(baseURL)/movie/\(movieId)?api_key=\(apiKey)&language=\(language)&append_to_response=external_ids,credits,watch/providers"
         return try await fetch(from: endpoint)
     }
     
-    func fetchSeriesDetails(seriesId: Int, language: String = "fr-FR") async throws -> SeriesDetail {
+    func fetchSeriesDetails(seriesId: Int, language: String? = nil) async throws -> SeriesDetail {
+        let language = resolvedLanguage(language)
         // Use centralized TMDB proxy - handles Episode Groups and virtual seasons
         let endpoint = "\(proxyBaseURL)?type=series&id=\(seriesId)&language=\(language)"
         print("🎬 [TMDBService] Fetching series via proxy: \(endpoint)")
@@ -285,7 +301,8 @@ class TMDBService {
 
     // MARK: - Videos (Trailers)
     
-    func fetchVideos(mediaId: Int, type: Media.MediaType, language: String = "fr-FR") async throws -> [Video] {
+    func fetchVideos(mediaId: Int, type: Media.MediaType, language: String? = nil) async throws -> [Video] {
+        let language = resolvedLanguage(language)
         let typePath = type == .movie ? "movie" : "tv"
         // Try to get French videos first
         let endpoint = "\(baseURL)/\(typePath)/\(mediaId)/videos?api_key=\(apiKey)&language=\(language)"
@@ -301,7 +318,8 @@ class TMDBService {
         return response.results
     }
     
-    func fetchSeasonVideos(seriesId: Int, seasonNumber: Int, language: String = "fr-FR") async throws -> [Video] {
+    func fetchSeasonVideos(seriesId: Int, seasonNumber: Int, language: String? = nil) async throws -> [Video] {
+        let language = resolvedLanguage(language)
         // Try to get French videos first
         let endpoint = "\(baseURL)/tv/\(seriesId)/season/\(seasonNumber)/videos?api_key=\(apiKey)&language=\(language)"
         

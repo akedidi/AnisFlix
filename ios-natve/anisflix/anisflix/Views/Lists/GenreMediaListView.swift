@@ -115,8 +115,8 @@ struct GenreMediaListView: View {
             .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
-        .task {
-            await loadInitialData()
+        .task(id: theme.selectedLanguage) {
+            await loadInitialData(forceReload: true)
         }
     }
     
@@ -132,9 +132,7 @@ struct GenreMediaListView: View {
             print("📥 [GenreMediaListView] Loading page \(currentPage)...")
         }
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         print("🎬 Loading \(genreName) - Genre \(genreId) - Page 1")
         
@@ -173,9 +171,7 @@ struct GenreMediaListView: View {
         isLoading = true
         let nextPage = currentPage + 1
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         print("📄 Loading page \(nextPage) for \(genreName)")
         

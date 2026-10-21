@@ -118,8 +118,8 @@ struct ProviderCategoryListView: View {
             .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
-        .task {
-            await loadInitialData()
+        .task(id: theme.selectedLanguage) {
+            await loadInitialData(forceReload: true)
         }
     }
     
@@ -135,14 +135,7 @@ struct ProviderCategoryListView: View {
             print("📥 [ProviderCategoryListView] Loading page \(currentPage)...")
         }
         
-        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
-        
-        // Peacock (386) is US-only, force English to ensure content visibility
-        if providerId == 386 {
-            language = "en-US"
-        }
+        var language = theme.tmdbLanguageCode
         
         print("📺 Loading \(providerName) - \(category) - Page 1")
         
@@ -159,13 +152,7 @@ struct ProviderCategoryListView: View {
         isLoading = true
         let nextPage = currentPage + 1
         
-        var language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
-        
-        if providerId == 386 {
-            language = "en-US"
-        }
+        var language = theme.tmdbLanguageCode
         
         print("📄 Loading page \(nextPage) for \(providerName) - \(category)")
         

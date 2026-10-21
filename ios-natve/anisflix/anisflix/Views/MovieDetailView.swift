@@ -434,7 +434,7 @@ struct MovieDetailView: View {
                     .foregroundColor(theme.primaryText)
             }
         }
-        .task {
+        .task(id: theme.selectedLanguage) {
             await loadData()
         }
     }

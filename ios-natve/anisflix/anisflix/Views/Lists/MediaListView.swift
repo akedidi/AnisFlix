@@ -42,9 +42,7 @@ struct MediaListView: View {
         
         // Assign Fetcher
         self.fetcher = { page in
-            let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                          theme.selectedLanguage == "en" ? "en-US" :
-                          theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+            let language = theme.tmdbLanguageCode
             
             // Prioritize Genre Search if ID is present
             if let genreId = genreId {
@@ -143,10 +141,8 @@ struct MediaListView: View {
             .tint(AppTheme.primaryRed)
         }
         .navigationBarHidden(true)
-        .task {
-            if items.isEmpty {
-                await loadData(reset: false, showLoadingUI: true)
-            }
+        .task(id: theme.selectedLanguage) {
+            await loadData(reset: true, showLoadingUI: items.isEmpty)
         }
     }
     

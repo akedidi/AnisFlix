@@ -151,14 +151,12 @@ struct LatestEpisodesView: View {
         }
         .background(theme.backgroundColor)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            if episodes.isEmpty {
-                await loadEpisodes()
-            }
+        .task(id: theme.selectedLanguage) {
+            await loadEpisodes(forceReload: true)
         }
     }
         
-    private func loadEpisodes() async {
+    private func loadEpisodes(forceReload: Bool = false) async {
         isLoading = true
         do {
             let result = try await TMDBService.shared.fetchLatestEpisodes(page: 1)

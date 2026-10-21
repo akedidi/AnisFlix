@@ -110,21 +110,21 @@ struct LatestSeriesView: View {
             }
         }
         .navigationBarHidden(true)
-        .task {
-            await loadInitialData()
+        .task(id: theme.selectedLanguage) {
+            await loadInitialData(forceReload: true)
         }
     }
     
     // MARK: - Data Loading
     
-    private func loadInitialData() async {
-        guard items.isEmpty else { return }
+    private func loadInitialData(forceReload: Bool = false) async {
+        if !forceReload {
+            guard items.isEmpty else { return }
+        }
         isLoading = true
         print("📥 [LatestSeriesView] Loading page \(currentPage)...")
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         print("📺 Loading Latest Series - Page 1")
         
@@ -146,9 +146,7 @@ struct LatestSeriesView: View {
         isLoading = true
         let nextPage = currentPage + 1
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" :
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         print("📄 Loading page \(nextPage) for Latest Series")
         

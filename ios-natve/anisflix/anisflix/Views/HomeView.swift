@@ -601,8 +601,8 @@ struct HomeView: View {
         }
         .background(theme.backgroundColor.ignoresSafeArea())
         .navigationBarHidden(true)
-        .task {
-            // Silent refresh if we already have data
+        .task(id: theme.selectedLanguage) {
+            // Re-fetch TMDB when UI language changes (titles/overviews).
             await loadAllData(showLoadingUI: popularMovies.isEmpty)
         }
     }
@@ -615,9 +615,7 @@ struct HomeView: View {
             isLoading = true
         }
         
-        let language = theme.selectedLanguage == "fr" ? "fr-FR" : 
-                      theme.selectedLanguage == "en" ? "en-US" :
-                      theme.selectedLanguage == "es" ? "es-ES" : "fr-FR"
+        let language = theme.tmdbLanguageCode
         
         print("🌍 Using language: \(language)")
         
@@ -634,7 +632,7 @@ struct HomeView: View {
         async let animeSeriesLat = TMDBService.shared.fetchSeriesByGenre(genreId: 16, page: 1, language: language)
         async let animeSeriesPop = TMDBService.shared.fetchSeriesByGenre(genreId: 16, page: 2, language: language)
         
-        // Providers
+        // Providers (metadata language follows UI; Peacock keeps US watch region)
         async let netflixMov = TMDBService.shared.fetchMoviesByProvider(providerId: 8, language: language)
         async let netflixSer = TMDBService.shared.fetchSeriesByProvider(providerId: 8, language: language)
         async let amazonMov = TMDBService.shared.fetchMoviesByProvider(providerId: 9, language: language)
@@ -645,8 +643,8 @@ struct HomeView: View {
         async let disneySer = TMDBService.shared.fetchSeriesByProvider(providerId: 337, language: language)
         async let hboMov = TMDBService.shared.fetchMoviesByProvider(providerId: 384, language: language)
         async let hboSer = TMDBService.shared.fetchSeriesByProvider(providerId: 384, language: language)
-        async let peacockMov = TMDBService.shared.fetchMoviesByProvider(providerId: 386, language: "en-US", region: "US")
-        async let peacockSer = TMDBService.shared.fetchSeriesByProvider(providerId: 386, language: "en-US", region: "US")
+        async let peacockMov = TMDBService.shared.fetchMoviesByProvider(providerId: 386, language: language, region: "US")
+        async let peacockSer = TMDBService.shared.fetchSeriesByProvider(providerId: 386, language: language, region: "US")
         async let canalMov = TMDBService.shared.fetchMoviesByProvider(providerId: 381, language: language)
         async let canalSer = TMDBService.shared.fetchSeriesByProvider(providerId: 381, language: language)
         async let crunchyrollMov = TMDBService.shared.fetchMoviesByProvider(providerId: 283, language: language)
