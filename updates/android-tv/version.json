@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 19,
+  "buildNumber": 20,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "39db89a0699ffe069e180097b0c9c1789488a598924af5b99d645491a59bb530",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (19) : Vixsrc VO extraction native (sans worker).",
+  "sha256": "7ac4cdb93ff70c0a7d67bcce89cceeded80fdb6d814d1d039b8f2733a104c208",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (20) : Sources regroupées par provider (Vixsrc VO en fin) + Vixsrc HTTPS master.",
   "mandatory": false
 }

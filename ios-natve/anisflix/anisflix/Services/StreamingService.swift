@@ -301,6 +301,55 @@ struct MovixAnimePlayer: Codable {
     let players: [String]?
 }
 
+/// Shared source-list ordering: one contiguous block per provider, quality DESC inside.
+/// Vixsrc is last (VO).
+enum StreamingSourceListOrdering {
+    static func providerRank(_ provider: String) -> Int {
+        let value = provider.lowercased()
+        if value.contains("luluvid") { return 99 }
+        switch value {
+        case "frenchstream": return 0
+        case "streamzo": return 1
+        case "fsvid": return 2
+        case "yflix": return 3
+        case "vaplayer": return 4
+        case "vidzy": return 5
+        case "animesama": return 6
+        case "frenchanime": return 7
+        case "animepahe": return 8
+        case "hianime": return 9
+        case "moviebox": return 10
+        case "mob": return 11
+        case "megacdn": return 12
+        case "vidmoly": return 13
+        case "afterdark": return 14
+        case "darkibox", "darki": return 15
+        case "movix": return 16
+        case "vixsrc": return 90
+        default: return 50
+        }
+    }
+
+    static func qualityValue(_ quality: String) -> Int {
+        let q = quality.lowercased()
+        if q.contains("4k") || q.contains("2160") { return 2160 }
+        if q.contains("1080") { return 1080 }
+        if q.contains("720") { return 720 }
+        if q.contains("480") { return 480 }
+        if q.contains("360") { return 360 }
+        return 0
+    }
+
+    static func isSortedBefore(_ left: StreamingSource, _ right: StreamingSource) -> Bool {
+        let rankL = providerRank(left.provider)
+        let rankR = providerRank(right.provider)
+        if rankL != rankR { return rankL < rankR }
+        let name = left.provider.lowercased().compare(right.provider.lowercased())
+        if name != .orderedSame { return name == .orderedAscending }
+        return qualityValue(left.quality) > qualityValue(right.quality)
+    }
+}
+
 class StreamingService {
     static let shared = StreamingService()
     private init() {}

@@ -905,42 +905,9 @@ struct SeriesDetailView: View {
                             .padding(.vertical, 20)
                     } else {
                         VStack(spacing: 12) {
-                            ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage).sorted { s1, s2 in
-                                func getRank(_ source: StreamingSource) -> Int {
-                                    let provider = source.provider.lowercased()
-                                    if provider == "frenchstream" { return -3 }
-                                    if provider == "streamzo" { return -2 }
-                                    if provider == "fsvid" { return -1 } // FSVid: highest priority (VF/VOSTFR)
-                                    if provider == "vidzy" { return 0 }
-                                    if provider == "moviebox" { return 1 }
-                                    if provider == "megacdn" { return 3 }
-                                    if provider == "yflix" { return -1 } // YFlix: high priority
-                                    if ["animesama", "frenchanime", "frenchstream", "streamzo", "animepahe"].contains(provider) { return 0 }
-                                    if provider.contains("luluvid") { return 99 }
-                                    return 5
-                                }
-                                
-                                func getQualityValue(_ quality: String) -> Int {
-                                    let q = quality.lowercased()
-                                    if q.contains("4k") || q.contains("2160") { return 2160 }
-                                    if q.contains("1080") { return 1080 }
-                                    if q.contains("720") { return 720 }
-                                    if q.contains("480") { return 480 }
-                                    if q.contains("360") { return 360 }
-                                    return 0
-                                }
-                                
-                                let rank1 = getRank(s1)
-                                let rank2 = getRank(s2)
-                                
-                                // Primary sort: by provider rank
-                                if rank1 != rank2 {
-                                    return rank1 < rank2
-                                }
-                                
-                                // Secondary sort: by quality DESCENDING (1080p before 360p)
-                                return getQualityValue(s1.quality) > getQualityValue(s2.quality)
-                            }.enumerated()), id: \.element.id) { index, source in
+                            ForEach(Array(filterSources(episodeSources, language: theme.preferredSourceLanguage)
+                                .sorted(by: StreamingSourceListOrdering.isSortedBefore)
+                                .enumerated()), id: \.element.id) { index, source in
                                 HStack(spacing: 8) {
                                     Button(action: {
                                         handleSourceSelection(source, episode: episode)

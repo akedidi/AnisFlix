@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.116",
-          "buildVersion": "116",
+          "version": "1.0.117",
+          "buildVersion": "117",
           "date": "2026-10-21",
-          "size": 31087136,
-          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=116",
+          "size": 31080491,
+          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=117",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix Vixsrc VO Animals: HTTPS master + qualités (plus de file://)"
+          "localizedDescription": "Sources regroupées par provider (Vixsrc VO en fin) + Vixsrc HTTPS"
         }
       ]
     }
