@@ -204,24 +204,21 @@ class TMDBService {
     func fetchSeriesByGenre(genreId: Int, page: Int = 1, language: String = "fr-FR", sortBy: String? = nil) async throws -> [Media] {
         let todayStr = ReleaseDateUtils.maxReleasedDateString(sameDayCutoffHour: 12)
         
-        // Special handling for Sci-Fi & Fantasy (10765) to match web logic
+        // Sci-Fi keeps the streaming-region filter; all series genres sort by
+        // premiere date so catalog rows show recent shows, not classics.
         if genreId == 10765 {
-            let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=popularity.desc&first_air_date.lte=\(todayStr)&with_watch_monetization_types=flatrate&watch_region=FR"
+            let endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=first_air_date.desc&first_air_date.lte=\(todayStr)&include_null_first_air_dates=false&with_watch_monetization_types=flatrate&watch_region=FR"
             let response: TMDBResponse = try await fetch(from: endpoint)
             return response.results.map { $0.toMedia(mediaType: .series) }
         }
         
-        var endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)"
+        let resolvedSort = sortBy ?? "first_air_date.desc"
+        var endpoint = "\(baseURL)/discover/tv?api_key=\(apiKey)&language=\(language)&page=\(page)&with_genres=\(genreId)&sort_by=\(resolvedSort)"
         
-        if let sortBy = sortBy {
-            endpoint += "&sort_by=\(sortBy)"
-            // If sorting by air date, filter out future releases
-            if sortBy.contains("first_air_date") {
-                endpoint += "&first_air_date.lte=\(todayStr)"
-            }
+        if resolvedSort.contains("first_air_date") {
+            endpoint += "&first_air_date.lte=\(todayStr)&include_null_first_air_dates=false"
         }
         
-        // Default behavior (Popularity sort if sortBy is nil)
         let response: TMDBResponse = try await fetch(from: endpoint)
         return response.results.map { $0.toMedia(mediaType: .series) }
     }

@@ -72,12 +72,10 @@ export default function SeriesGenre() {
         setError(null);
 
         const maxDate = getMaxReleasedDateString({ sameDayCutoffHour: 12 });
-        const sortBy = genreSlug === 'science-fiction' ? 'first_air_date.desc' : 'popularity.desc';
-        const dateFilter = genreSlug === 'science-fiction' ? `&first_air_date.lte=${maxDate}` : '';
         const streamingFilter = genreSlug === 'science-fiction' ? '&with_watch_monetization_types=flatrate&watch_region=FR' : '';
 
         const response = await fetch(
-          `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=${sortBy}${dateFilter}${streamingFilter}&vote_average_gte=5&page=${currentPage}`
+          `https://api.themoviedb.org/3/discover/tv?api_key=f3d757824f08ea2cff45eb8f47ca3a1e&with_genres=${genreId}&sort_by=first_air_date.desc&first_air_date.lte=${maxDate}&include_null_first_air_dates=false${streamingFilter}&vote_average_gte=5&page=${currentPage}`
         );
 
         if (!response.ok) {
