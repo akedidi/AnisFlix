@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
-  "version": "1.0.2",
-  "buildNumber": 17,
-  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-17/anisflix-android-tv.apk",
-  "sha256": "f7e8fbb4e45ba808552e44a8a144aea2c728e1df2a3f865f54abc5920eda2e8c",
-  "releaseNotes": "TV 1.0.2 (17) : suppression de l’APK en cache après installation de la MAJ.",
+  "version": "1.0.3",
+  "buildNumber": 18,
+  "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
+  "sha256": "c31a83ae4ef9f907e7438eba1615f3dc415721b8e108b4ebc5f3ffaef5a6cc9c",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (18) : focus Accueil, sources ≥6, check maj 30s, minutage TV, bouton maj masqué si à jour.",
   "mandatory": false
 }
