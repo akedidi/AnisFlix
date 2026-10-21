@@ -310,7 +310,7 @@ class StreamingService {
     
     /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter.
     private static let allowedStreamingProviders: Set<String> = [
-        "yflix", "vidmoly", "vidzy", "primewire", "2embed",
+        "yflix", "vaplayer", "vidmoly", "vidzy", "primewire", "2embed",
         "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "frenchstream", "streamzo", "animepahe", "moviebox",
         "megacdn", "premilkyway", "luluvid", "mob", "hianime"
     ]
@@ -330,6 +330,7 @@ class StreamingService {
         async let mobSources = fetchMobSources(tmdbId: movieId)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
+        async let vaPlayerSources = fetchVaPlayerSources(tmdbId: movieId, type: "movie")
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: movieId, type: "movie")
 
@@ -377,11 +378,13 @@ class StreamingService {
         let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let animeSources = await (try? animeTask?.value) ?? []
         let yflixMovieResults = await (try? yflixSources) ?? []
+        let vaPlayerMovieResults = await (try? vaPlayerSources) ?? []
         let frenchStreamMovieResults = await frenchStreamSources
         let streamzoMovieResults = await streamzoSources
 
         print("📊 [StreamingService] Sources fetched:")
         print("   - YFlix: \(yflixMovieResults.count)")
+        print("   - VaPlayer: \(vaPlayerMovieResults.count)")
         print("   - French Stream: \(frenchStreamMovieResults.count)")
         print("   - Streamzo: \(streamzoMovieResults.count)")
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
@@ -398,6 +401,7 @@ class StreamingService {
         if !yflixMovieResults.isEmpty {
             allSources.append(contentsOf: yflixMovieResults)
         }
+        allSources.append(contentsOf: vaPlayerMovieResults)
 
         allSources.append(contentsOf: frenchStreamMovieResults)
         allSources.append(contentsOf: streamzoMovieResults)
@@ -518,6 +522,7 @@ class StreamingService {
         async let mobSources = fetchMobSeriesSources(tmdbId: seriesId, season: season, episode: episode)
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let vaPlayerSources = fetchVaPlayerSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
@@ -577,11 +582,13 @@ class StreamingService {
         // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / vixsrc / wiflix / TMDB proxy
         let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let yflixResults = await (try? yflixSources) ?? []
+        let vaPlayerResults = await (try? vaPlayerSources) ?? []
         let frenchStreamResults = await frenchStreamSources
         let streamzoResults = await streamzoSources
 
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - YFlix: \(yflixResults.count)")
+        print("   - VaPlayer: \(vaPlayerResults.count)")
         print("   - French Stream: \(frenchStreamResults.count)")
         print("   - Streamzo: \(streamzoResults.count)")
         print("   - FStream: \(fstream?.count ?? 0)")
@@ -598,6 +605,7 @@ class StreamingService {
         if !yflixResults.isEmpty {
             allSources.append(contentsOf: yflixResults)
         }
+        allSources.append(contentsOf: vaPlayerResults)
 
         allSources.append(contentsOf: frenchStreamResults)
         allSources.append(contentsOf: streamzoResults)
@@ -1421,6 +1429,71 @@ class StreamingService {
             return streamingSources
         } catch {
             print("❌ [StreamingService] Vidlink fetching failed: \(error)")
+            return []
+        }
+    }
+
+    // MARK: - VaPlayer (movix-proxy?path=vaplayer)
+
+    private func fetchVaPlayerSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")!
+        var queryItems = [
+            URLQueryItem(name: "path", value: "vaplayer"),
+            URLQueryItem(name: "tmdbId", value: String(tmdbId)),
+            URLQueryItem(name: "type", value: type)
+        ]
+        if let season = season {
+            queryItems.append(URLQueryItem(name: "season", value: String(season)))
+        }
+        if let episode = episode {
+            queryItems.append(URLQueryItem(name: "episode", value: String(episode)))
+        }
+        components.queryItems = queryItems
+        guard let url = components.url else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 25
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return []
+            }
+
+            struct ProxyStream: Codable {
+                let name: String?
+                let url: String
+                let quality: String?
+                let type: String?
+                let language: String?
+                let headers: [String: String]?
+            }
+            struct ProxyResponse: Codable {
+                let success: Bool?
+                let streams: [ProxyStream]?
+            }
+
+            let decoded = try JSONDecoder().decode(ProxyResponse.self, from: data)
+            guard let streams = decoded.streams, !streams.isEmpty else { return [] }
+
+            return streams.compactMap { stream in
+                guard !stream.url.isEmpty else { return nil }
+                let streamType = stream.type
+                    ?? (stream.url.contains(".m3u8") ? "m3u8" : (stream.url.contains(".mp4") ? "mp4" : "m3u8"))
+                return StreamingSource(
+                    url: stream.url,
+                    directUrl: stream.url,
+                    quality: stream.quality ?? "Auto",
+                    type: streamType,
+                    provider: "vaplayer",
+                    language: stream.language ?? "VO",
+                    origin: "vaplayer",
+                    headers: stream.headers
+                )
+            }
+        } catch {
+            print("❌ [StreamingService] vaplayer fetch failed: \(error)")
             return []
         }
     }
