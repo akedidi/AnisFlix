@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 25,
+  "buildNumber": 27,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "302f45528c9d8420864998e639292635b4694874b2dcd2f19d7b160fbcec0bcf",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (25) : minutage TV via horloge fiable + auto-hide / Back des contrôles player.",
+  "sha256": "38c591ef2c4cd9cb62064eba3cd8c9e403435b2b75639404deb271a6e14471a2",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (27) : minutage TV (plus de rewind sur position native figée), auto-hide / Back chrome player, num de build visible dans Paramètres.",
   "mandatory": false
 }
