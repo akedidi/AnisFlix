@@ -1,9 +1,9 @@
 {
   "channel": "android-mobile",
   "version": "1.0.3",
-  "buildNumber": 8,
+  "buildNumber": 9,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-3/anisflix-android-mobile.apk",
-  "sha256": "b31e723e1811d0b4fa35b9d74a38f4541ba2453b19e5f322c56b6cba95b34468",
-  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (8) : TMDB recharge dans la langue choisie (accueil, catalogues, détails).",
+  "sha256": "28902e363bf39c7f22d322948091ac9ec50fd47bbebc7b539bee286ccbb1a4dd",
+  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (9) : écran reste allumé pendant la lecture film/série.",
   "mandatory": false
 }
