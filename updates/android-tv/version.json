@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 24,
+  "buildNumber": 25,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "4356214bde7a2d3b0ee10143fb7fee089375ff73592747f80919148817ee1837",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (24) : TMDB recharge dans la langue choisie (accueil, catalogues, détails).",
+  "sha256": "302f45528c9d8420864998e639292635b4694874b2dcd2f19d7b160fbcec0bcf",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (25) : minutage TV via horloge fiable + auto-hide / Back des contrôles player.",
   "mandatory": false
 }
