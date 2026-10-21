@@ -1212,29 +1212,60 @@ class StreamingService {
                 }
 
                 let html = String(decoding: embedData, as: UTF8.self)
-                guard let master = Self.parseVixsrcMasterPlaylist(html: html) else {
+                guard let master = Self.parseVixsrcMasterPlaylist(html: html),
+                      let masterURL = URL(string: master) else {
                     print("⚠️ [Vixsrc] playlist parse failed (html \(html.count) bytes)")
                     return []
                 }
 
-                print("✅ [Vixsrc] extracted playlist for \(type) \(tmdbId)")
                 let headers: [String: String] = [
                     "Referer": referer,
                     "Origin": origin,
                     "User-Agent": userAgent
                 ]
-                return [
+
+                var masterRequest = URLRequest(url: masterURL)
+                masterRequest.httpMethod = "GET"
+                for (key, value) in headers {
+                    masterRequest.setValue(value, forHTTPHeaderField: key)
+                }
+                let (masterData, masterResponse) = try await session.data(for: masterRequest)
+                let masterStatus = (masterResponse as? HTTPURLResponse)?.statusCode ?? -1
+                guard masterStatus == 200 else {
+                    print("⚠️ [Vixsrc] master HTTP \(masterStatus)")
+                    throw URLError(.badServerResponse)
+                }
+                let masterBody = String(decoding: masterData, as: UTF8.self)
+                let variants = Self.parseVixsrcQualityVariants(masterBody: masterBody)
+                if variants.isEmpty {
+                    print("⚠️ [Vixsrc] no quality variants — falling back to Auto")
+                    return [
+                        StreamingSource(
+                            url: master,
+                            directUrl: master,
+                            quality: "Auto",
+                            type: "m3u8",
+                            provider: "vixsrc",
+                            language: "VO",
+                            origin: "vixsrc",
+                            headers: headers
+                        )
+                    ]
+                }
+
+                print("✅ [Vixsrc] extracted \(variants.count) qualities for \(type) \(tmdbId)")
+                return variants.map { variant in
                     StreamingSource(
-                        url: master,
-                        directUrl: master,
-                        quality: "Auto",
+                        url: variant.playbackURL,
+                        directUrl: variant.streamURL,
+                        quality: variant.quality,
                         type: "m3u8",
                         provider: "vixsrc",
                         language: "VO",
                         origin: "vixsrc",
                         headers: headers
                     )
-                ]
+                }
             } catch {
                 lastError = error
                 print("⚠️ [Vixsrc] attempt failed (\(userAgent.prefix(30))…): \(error)")
@@ -1294,7 +1325,65 @@ class StreamingService {
         components.queryItems = items
         return components.url?.absoluteString
     }
-    
+
+    /// One playable single-variant master per resolution (keeps AUDIO/SUBS tags).
+    static func parseVixsrcQualityVariants(masterBody: String) -> [(quality: String, playbackURL: String, streamURL: String)] {
+        let lines = masterBody.components(separatedBy: .newlines)
+        var prefix: [String] = []
+        var variants: [(info: String, uri: String)] = []
+        var index = 0
+        while index < lines.count {
+            let line = lines[index]
+            if line.hasPrefix("#EXT-X-STREAM-INF:") {
+                let uri = index + 1 < lines.count ? lines[index + 1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+                if uri.hasPrefix("http") {
+                    variants.append((info: line, uri: uri))
+                }
+                index += 2
+                continue
+            }
+            prefix.append(line)
+            index += 1
+        }
+
+        var seen = Set<String>()
+        var output: [(quality: String, playbackURL: String, streamURL: String)] = []
+        let tmp = FileManager.default.temporaryDirectory
+        for variant in variants {
+            let quality = vixsrcQualityLabel(streamInf: variant.info, uri: variant.uri)
+            guard seen.insert(quality).inserted else { continue }
+            let body = (prefix + [variant.info, variant.uri, ""]).joined(separator: "\n")
+            let fileURL = tmp.appendingPathComponent("anisflix-vixsrc-\(quality)-\(UUID().uuidString).m3u8")
+            do {
+                try body.write(to: fileURL, atomically: true, encoding: .utf8)
+                output.append((quality: quality, playbackURL: fileURL.absoluteString, streamURL: variant.uri))
+            } catch {
+                print("⚠️ [Vixsrc] failed to write \(quality) playlist: \(error)")
+            }
+        }
+        output.sort { vixsrcQualityRank($0.quality) > vixsrcQualityRank($1.quality) }
+        return output
+    }
+
+    static func vixsrcQualityLabel(streamInf: String, uri: String) -> String {
+        if let match = uri.range(of: #"[?&]rendition=([0-9]+p)"#, options: [.regularExpression, .caseInsensitive]) {
+            let matched = String(uri[match])
+            if let value = matched.split(separator: "=").last {
+                return value.lowercased()
+            }
+        }
+        if let regex = try? NSRegularExpression(pattern: #"RESOLUTION=\d+x(\d+)"#, options: [.caseInsensitive]),
+           let match = regex.firstMatch(in: streamInf, range: NSRange(streamInf.startIndex..., in: streamInf)),
+           let range = Range(match.range(at: 1), in: streamInf) {
+            return "\(streamInf[range])p"
+        }
+        return "HD"
+    }
+
+    static func vixsrcQualityRank(_ quality: String) -> Int {
+        let digits = quality.filter(\.isNumber)
+        return Int(digits) ?? 0
+    }
 
     func fetchUniversalVOSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
         var urlString = "\(baseUrl)/api/movix-proxy?path=universalvo&tmdbId=\(tmdbId)&type=\(type)"

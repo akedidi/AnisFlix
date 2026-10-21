@@ -11,13 +11,13 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
-          "version": "1.0.114",
-          "buildVersion": "114",
+          "version": "1.0.115",
+          "buildVersion": "115",
           "date": "2026-10-21",
-          "size": 31086405,
-          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=114",
+          "size": 31093024,
+          "downloadURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/anisflix.ipa?v=115",
           "minOSVersion": "16.0",
-          "localizedDescription": "Fix Vixsrc VO (Animals) + cache-bust SideStore IPA"
+          "localizedDescription": "Vixsrc VO: liste 1080p/720p/480p au lieu de Auto"
         }
       ]
     }
