@@ -1,9 +1,9 @@
 {
   "channel": "android-mobile",
   "version": "1.0.3",
-  "buildNumber": 4,
+  "buildNumber": 5,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.2-3/anisflix-android-mobile.apk",
-  "sha256": "d3be8b4e0802905d1e6bf8c7fe9766045e8e617ee83348b08fa01d403e7376ef",
-  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (4) : check maj toutes les 30s, suppression cache APK après install, bouton masqué si à jour.",
+  "sha256": "d9dd5b19c15624366c5fdda25766d2df5f1d9829c16bd7f1303e16a4635ad8ab",
+  "releaseNotes": "APK servi pour le code Downloader 7858463 — build 1.0.3 (5) : Vixsrc VO extraction native (sans worker).",
   "mandatory": false
 }

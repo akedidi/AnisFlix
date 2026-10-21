@@ -310,7 +310,7 @@ class StreamingService {
     
     /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter.
     private static let allowedStreamingProviders: Set<String> = [
-        "yflix", "vaplayer", "vidmoly", "vidzy", "primewire", "2embed",
+        "yflix", "vaplayer", "vixsrc", "vidmoly", "vidzy", "primewire", "2embed",
         "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "frenchstream", "streamzo", "animepahe", "moviebox",
         "megacdn", "premilkyway", "luluvid", "mob", "hianime"
     ]
@@ -331,6 +331,7 @@ class StreamingService {
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
         async let vaPlayerSources = fetchVaPlayerSources(tmdbId: movieId, type: "movie")
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: movieId, type: "movie")
 
@@ -374,17 +375,19 @@ class StreamingService {
              print("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
         }
         
-        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / vixsrc / wiflix / TMDB proxy
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / wiflix / TMDB proxy
         let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let animeSources = await (try? animeTask?.value) ?? []
         let yflixMovieResults = await (try? yflixSources) ?? []
         let vaPlayerMovieResults = await (try? vaPlayerSources) ?? []
+        let vixsrcMovieResults = await (try? vixsrcSources) ?? []
         let frenchStreamMovieResults = await frenchStreamSources
         let streamzoMovieResults = await streamzoSources
 
         print("📊 [StreamingService] Sources fetched:")
         print("   - YFlix: \(yflixMovieResults.count)")
         print("   - VaPlayer: \(vaPlayerMovieResults.count)")
+        print("   - Vixsrc: \(vixsrcMovieResults.count)")
         print("   - French Stream: \(frenchStreamMovieResults.count)")
         print("   - Streamzo: \(streamzoMovieResults.count)")
         print("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
@@ -402,6 +405,7 @@ class StreamingService {
             allSources.append(contentsOf: yflixMovieResults)
         }
         allSources.append(contentsOf: vaPlayerMovieResults)
+        allSources.append(contentsOf: vixsrcMovieResults)
 
         allSources.append(contentsOf: frenchStreamMovieResults)
         allSources.append(contentsOf: streamzoMovieResults)
@@ -523,6 +527,7 @@ class StreamingService {
         // YFlix Native iOS Source (VO)
         async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let vaPlayerSources = fetchVaPlayerSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: seriesId, type: "tv", season: season, episode: episode)
         
@@ -579,16 +584,18 @@ class StreamingService {
             print("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
         }
         
-        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / vixsrc / wiflix / TMDB proxy
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / wiflix / TMDB proxy
         let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
         let yflixResults = await (try? yflixSources) ?? []
         let vaPlayerResults = await (try? vaPlayerSources) ?? []
+        let vixsrcResults = await (try? vixsrcSources) ?? []
         let frenchStreamResults = await frenchStreamSources
         let streamzoResults = await streamzoSources
 
         print("📊 [StreamingService] Series Sources fetched:")
         print("   - YFlix: \(yflixResults.count)")
         print("   - VaPlayer: \(vaPlayerResults.count)")
+        print("   - Vixsrc: \(vixsrcResults.count)")
         print("   - French Stream: \(frenchStreamResults.count)")
         print("   - Streamzo: \(streamzoResults.count)")
         print("   - FStream: \(fstream?.count ?? 0)")
@@ -606,6 +613,7 @@ class StreamingService {
             allSources.append(contentsOf: yflixResults)
         }
         allSources.append(contentsOf: vaPlayerResults)
+        allSources.append(contentsOf: vixsrcResults)
 
         allSources.append(contentsOf: frenchStreamResults)
         allSources.append(contentsOf: streamzoResults)
@@ -1111,63 +1119,135 @@ class StreamingService {
         return []
     }
     
+    /// Device-side Vixsrc VO extract (API → embed → playlist). No worker/proxy.
     func fetchVixsrcSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
-        var urlString = "\(baseUrl)/api/movix-proxy?path=vixsrc&tmdbId=\(tmdbId)&type=\(type)"
-        if let season = season {
-            urlString += "&season=\(season)"
+        let origin = "https://vixsrc.to"
+        let pagePath: String
+        let apiPath: String
+        if type == "movie" {
+            pagePath = "/movie/\(tmdbId)"
+            apiPath = "/api/movie/\(tmdbId)"
+        } else {
+            let seasonNum = season ?? 1
+            let episodeNum = episode ?? 1
+            pagePath = "/tv/\(tmdbId)/\(seasonNum)/\(episodeNum)"
+            apiPath = "/api/tv/\(tmdbId)/\(seasonNum)/\(episodeNum)"
         }
-        if let episode = episode {
-            urlString += "&episode=\(episode)"
-        }
-        
-        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+        let referer = origin + pagePath
+        let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+        guard let apiURL = URL(string: origin + apiPath) else { throw URLError(.badURL) }
+        var apiRequest = URLRequest(url: apiURL)
+        apiRequest.httpMethod = "GET"
+        apiRequest.timeoutInterval = 15
+        apiRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        apiRequest.setValue("application/json,text/html;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+        apiRequest.setValue(referer, forHTTPHeaderField: "Referer")
+        apiRequest.setValue(origin, forHTTPHeaderField: "Origin")
+
+        let (apiData, apiResponse) = try await URLSession.shared.data(for: apiRequest)
+        guard let apiHTTP = apiResponse as? HTTPURLResponse, apiHTTP.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-        
-        struct VixsrcResponse: Codable {
-            let success: Bool
-            let streams: [VixsrcStream]?
+
+        struct VixsrcAPI: Codable { let src: String? }
+        let api = try JSONDecoder().decode(VixsrcAPI.self, from: apiData)
+        guard let src = api.src, !src.isEmpty else { return [] }
+
+        let embedString = src.hasPrefix("http") ? src : origin + src
+        guard let embedURL = URL(string: embedString),
+              embedURL.host == "vixsrc.to",
+              embedURL.path.hasPrefix("/embed/") else {
+            return []
         }
-        
-        struct VixsrcStream: Codable {
-            let name: String
-            let url: String
-            let quality: String
-            let type: String
+
+        var embedRequest = URLRequest(url: embedURL)
+        embedRequest.httpMethod = "GET"
+        embedRequest.timeoutInterval = 15
+        embedRequest.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        embedRequest.setValue(
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            forHTTPHeaderField: "Accept"
+        )
+        embedRequest.setValue(referer, forHTTPHeaderField: "Referer")
+        embedRequest.setValue(origin, forHTTPHeaderField: "Origin")
+
+        let (embedData, embedResponse) = try await URLSession.shared.data(for: embedRequest)
+        guard let embedHTTP = embedResponse as? HTTPURLResponse, embedHTTP.statusCode == 200,
+              let html = String(data: embedData, encoding: .utf8) else {
+            throw URLError(.badServerResponse)
         }
-        
-        let decoded = try JSONDecoder().decode(VixsrcResponse.self, from: data)
-        var sources: [StreamingSource] = []
-        
-        if let streams = decoded.streams {
-            for stream in streams {
-                // Wrap URL in proxy to handle CORS/Headers
-                let originalUrl = stream.url
-                // Use alphanumerics + unreserved to properly encode the nested URL parameter (like JS encodeURIComponent)
-                let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
-                let encodedUrl = originalUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? originalUrl
-                let proxyUrl = "\(baseUrl)/api/vixsrc-proxy?url=\(encodedUrl)"
-                
-                let source = StreamingSource(
-                    url: proxyUrl,
-                    quality: stream.quality,
-                    type: stream.type,
-                    provider: "vixsrc",
-                    language: "VO",
-                    origin: "vixsrc"
-                )
-                sources.append(source)
+
+        guard let master = Self.parseVixsrcMasterPlaylist(html: html) else { return [] }
+        let headers: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": userAgent
+        ]
+        return [
+            StreamingSource(
+                url: master,
+                directUrl: master,
+                quality: "Auto",
+                type: "m3u8",
+                provider: "vixsrc",
+                language: "VO",
+                origin: "vixsrc",
+                headers: headers
+            )
+        ]
+    }
+
+    static func parseVixsrcMasterPlaylist(html: String) -> String? {
+        func capture(_ pattern: String, in text: String) -> String? {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+                return nil
             }
+            let range = NSRange(text.startIndex..., in: text)
+            guard let match = regex.firstMatch(in: text, options: [], range: range),
+                  match.numberOfRanges > 1,
+                  let group = Range(match.range(at: 1), in: text) else {
+                return nil
+            }
+            return String(text[group])
         }
-        
-        return sources
+
+        var token: String?
+        var expires: String?
+        var playlist: String?
+
+        if let block = capture(#"window\.masterPlaylist\s*=\s*(\{.*?\})\s*;?\s*\n"#, in: html) {
+            token = capture(#"['"]token['"]\s*:\s*['"]([^'"]+)['"]"#, in: block)
+            expires = capture(#"['"]expires['"]\s*:\s*['"]([^'"]+)['"]"#, in: block)
+            playlist = capture(#"url\s*:\s*['"](https?://[^'"]+)['"]"#, in: block)
+        }
+
+        token = token ?? capture(#"token['"]\s*:\s*['"]([^'"]+)"#, in: html)
+        expires = expires ?? capture(#"expires['"]\s*:\s*['"]([^'"]+)"#, in: html)
+        playlist = playlist ?? capture(#"url\s*:\s*['"](https?://[^'"]*playlist[^'"]*)['"]"#, in: html)
+
+        guard let token, let expires, let playlist else {
+            return capture(#"(https?://[^'"\s]+\.m3u8[^'"\s]*)"#, in: html)
+        }
+        guard let expiresAt = Double(expires),
+              expiresAt * 1000 > Date().timeIntervalSince1970 * 1000 + 60_000,
+              var components = URLComponents(string: playlist),
+              components.host == "vixsrc.to",
+              components.path.hasPrefix("/playlist/") else {
+            return nil
+        }
+
+        var items = components.queryItems ?? []
+        func setQuery(_ name: String, _ value: String) {
+            items.removeAll { $0.name == name }
+            items.append(URLQueryItem(name: name, value: value))
+        }
+        setQuery("token", token)
+        setQuery("expires", expires)
+        setQuery("h", "1")
+        setQuery("lang", "en")
+        components.queryItems = items
+        return components.url?.absoluteString
     }
     
 
