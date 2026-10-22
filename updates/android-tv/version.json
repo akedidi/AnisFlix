@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 28,
+  "buildNumber": 29,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "8f7472aab59b7da8f854c1d00db2315665f8a01fcb5610bdf3babb1c3e3653c8",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (28) : minutage + auto-hide fiables sur ExoPlayer et media_kit (plus d'intermittence).",
+  "sha256": "1ab7422ecbfc0775a358213650c162091f6fcffc050f35c6105ee3d0ee7e829f",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (29) : TextureView (minutage + auto-hide plus bloqués par PlatformView), horloge murale TV.",
   "mandatory": false
 }
