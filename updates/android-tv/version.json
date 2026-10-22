@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 32,
+  "buildNumber": 33,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "df05c9131a998151f3639ad54ce0050fb5915aded4d465f11a3e691f4a4b8abd",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (32) : barre de progression MAJ + 3 essais auto si le téléchargement échoue.",
+  "sha256": "96c7e09ecde5387b1d2ab9916af8ca9b14ac4c70d4291f2886d128303f245e05",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (33) : maj au 1er clic (reprise auto après permission + cache-bust).",
   "mandatory": false
 }
