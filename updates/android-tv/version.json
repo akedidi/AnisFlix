@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
   "version": "1.0.3",
-  "buildNumber": 41,
+  "buildNumber": 42,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "014348cade260f707bb2905a87155de66f1a3d990ea9b3ef5722341cb1532c2f",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (41) : retour après mise à jour rétabli avec le lancement Android TV différé du build 37, sans double déclenchement par l’installateur.",
+  "sha256": "234044c00ecd507a9c1eead469467061de43c226bf9a96d69d5e05362d2fc8e0",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (42) : retour immédiat après mise à jour, sans délai fixe ni animation, avec une relance de secours uniquement si l’app n’a pas repris le premier plan.",
   "mandatory": false
 }
