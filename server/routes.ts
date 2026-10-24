@@ -9,6 +9,8 @@ import https from "https"; // Toujours utilisé pour d'autres routes
 import { vixsrcScraper } from "./vixsrc-scraper";
 // @ts-expect-error The shared Vercel handler is JavaScript and has no .d.ts.
 import movixProxyHandler from "../lib/handlers/movix-proxy.js";
+// @ts-expect-error The shared Vercel handler is JavaScript and has no .d.ts.
+import vaPlayerProxyHandler from "../api/vaplayer-proxy.js";
 // @ts-expect-error Shared release-date helper is JavaScript and has no .d.ts.
 import { getMaxReleasedDateString } from "../api/_utils/releaseDate.js";
 
@@ -282,9 +284,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const decodedPath = decodeURIComponent(path as string);
 
       // Keep the local web server aligned with the serverless route used in
-      // production. MovieBox has its own extractor and must not be forwarded
-      // to api.movix.cloud as a generic Movix path.
-      if (decodedPath === 'moviebox') {
+      // production. These providers have their own extractors.
+      if (decodedPath === 'moviebox' || decodedPath === 'vaplayer') {
         return await movixProxyHandler(req, res);
       }
 
@@ -1350,6 +1351,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, error: error.message });
     }
   });
+
+  app.get("/api/vaplayer-proxy", vaPlayerProxyHandler);
 
   // Route proxy pour Vixsrc - Supporte aussi /api/vixsrc-proxy/master.m3u8 pour Chromecast
   app.get(["/api/vixsrc-proxy", "/api/vixsrc-proxy/:filename"], async (req, res) => {

@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     if (isHlsContent) {
       const text = await response.text();
       const baseUrl = new URL(decodedUrl);
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       const host = req.headers.host;
       const origin = `${protocol}://${host}`;
 

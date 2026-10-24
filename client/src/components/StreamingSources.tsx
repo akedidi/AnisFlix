@@ -2,8 +2,8 @@ import { useState, useEffect, memo } from 'react';
 import { useFStream } from '@/hooks/useFStream';
 
 import { useAnimeVidMolyLinks } from '@/hooks/useAnimeSeries';
-import { useMovieBox } from '@/hooks/useMovieBox';
 import { useFrenchProviders } from '@/hooks/useFrenchProviders';
+import { useVaPlayer } from '@/hooks/useVaPlayer';
 
 import { useMovixLinks } from '@/hooks/useMovixLinks';
 
@@ -11,8 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Play } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
-import { isPlayableMovieBoxStream } from '@/utils/codecSupport';
-import { resolveMovieBoxPlaybackUrl } from '@/utils/movieboxCdn';
 import { isLuluvidCdnUrl, wrapLuluvidPlaybackUrl } from '@/lib/movix';
 
 interface Source {
@@ -63,6 +61,7 @@ interface StreamingSourcesProps {
     language?: string;
     tracks?: Array<{ file: string; label: string; kind?: string; default?: boolean }>;
     provider?: string;
+    headers?: Record<string, string>;
   }) => void;
   isLoadingSource: boolean;
   season?: number;
@@ -105,10 +104,11 @@ const StreamingSources = memo(function StreamingSources({
   // Désactiver les hooks si enabled est false
   const { data: fStreamData, isLoading: isLoadingFStream } = useFStream(type, id, season);
 
-  const { data: movieBoxData, isLoading: isLoadingMovieBox } = useMovieBox(type, id, season, episode);
   // DISABLED: AfterDark sources
   const afterDarkData: any = null;
   const { data: movixLinksData, isLoading: isLoadingMovixLinks } = useMovixLinks(type, id, season, episode);
+  // MovieBox stays disabled on web: its media relay consumes the CF Worker quota.
+  const { data: vaPlayerData, isLoading: isLoadingVaPlayer } = useVaPlayer(type, id, season, episode, enabled);
 
   // Debug spécifique pour comprendre pourquoi le hook n'est pas activé
   console.log('🔍 [STREAMING SOURCES] Hook Activation Check:', {
@@ -300,15 +300,11 @@ const StreamingSources = memo(function StreamingSources({
       }
     }
 
-    // MovieBox exposes VF, VOSTFR and VO variants. Older cached responses with
-    // no language remain VO for backward compatibility.
-    if (movieBoxData?.success && movieBoxData.streams?.some((stream) =>
-      (stream.language || 'VO').toUpperCase() === language && isPlayableMovieBoxStream(stream)
-    )) {
+    if (frenchProvidersData?.streams?.some(stream => stream.language.toUpperCase() === language)) {
       return true;
     }
 
-    if (frenchProvidersData?.streams?.some(stream => stream.language.toUpperCase() === language)) {
+    if (language === 'VO' && vaPlayerData?.success && vaPlayerData.streams?.some(s => !!s.url)) {
       return true;
     }
 
@@ -333,7 +329,7 @@ const StreamingSources = memo(function StreamingSources({
     if (
       isLoadingFStream ||
       isLoadingFrenchProviders ||
-      isLoadingMovieBox
+      isLoadingVaPlayer
     ) return;
 
     const hasVF = hasSourcesForLanguage('VF');
@@ -705,57 +701,36 @@ const StreamingSources = memo(function StreamingSources({
     });
   }
 
-
-
-  // Ajouter toutes les résolutions MovieBox de la catégorie sélectionnée.
-  if (movieBoxData && movieBoxData.success && movieBoxData.streams) {
-    console.log('📦 [MovieBox] Sources trouvées:', movieBoxData.streams);
-    movieBoxData.streams.forEach((stream: any, index: number) => {
-      const streamLanguage = (stream.language || 'VO').toUpperCase();
-      if (streamLanguage !== selectedLanguage) return;
-      if (!isPlayableMovieBoxStream(stream)) {
-        console.log(
-          `📦 [MovieBox] Source ${stream.quality} masquée (HEVC DASH non supporté par ce navigateur)`,
-        );
-        return;
-      }
-      // Web keeps the CF Worker relay — browsers get 428/429 on bare CDN.
-      const playback = resolveMovieBoxPlaybackUrl(stream);
-      const mediaUrl = playback.url || stream.directUrl || stream.url || '';
-      if (!mediaUrl) {
-        console.log(`📦 [MovieBox] Source ${stream.quality} ignorée (URL vide)`);
-        return;
-      }
-      const isDash =
-        stream.type === 'dash' || /\.mpd(?:$|[?#])/i.test(stream.directUrl || mediaUrl);
-      const movieBoxType: Source['type'] = isDash
-        ? 'dash'
-        : stream.type === 'hls' || mediaUrl.includes('.m3u8')
-          ? 'm3u8'
-          : 'mp4';
-      const tracks = (stream.subtitles || []).map((subtitle: any) => ({
-        file: subtitle.url,
-        label: subtitle.label || subtitle.language || 'Subtitle',
-        kind: 'subtitles',
-        default: Boolean(subtitle.default || (selectedLanguage === 'VOSTFR' && subtitle.code === 'fr')),
-      }));
+  // VaPlayer — VO HLS via path=vaplayer.
+  // Web must relay through /api/vaplayer-proxy: CDN 403s when browser sends Origin: anisflix.
+  if (selectedLanguage === 'VO' && vaPlayerData?.success && Array.isArray(vaPlayerData.streams)) {
+    vaPlayerData.streams.forEach((stream, index) => {
+      if (!stream?.url) return;
+      const streamType: Source['type'] =
+        stream.type === 'mp4' || stream.url.includes('.mp4')
+          ? 'mp4'
+          : stream.type === 'dash'
+            ? 'dash'
+            : 'm3u8';
+      const proxiedUrl = stream.url.includes('/api/vaplayer-proxy')
+        ? stream.url
+        : `/api/vaplayer-proxy?url=${encodeURIComponent(stream.url)}${streamType === 'm3u8' ? '&ext=.m3u8' : ''}`;
       allSources.push({
-        id: `moviebox-${index}`,
-        name: `MovieBox ${selectedLanguage} ${stream.quality}${stream.size ? ` - ${stream.size}` : ''}`,
-        provider: 'moviebox',
-        url: mediaUrl,
-        type: movieBoxType,
-        player: 'moviebox',
-        sourceKey: selectedLanguage,
-        quality: stream.quality,
-        language: selectedLanguage,
-        codec: stream.codec,
-        tracks,
-        headers: playback.headers,
+        id: `vaplayer-${index}`,
+        name: stream.name || `VaPlayer ${stream.quality || 'Auto'}`,
+        provider: 'vaplayer',
+        url: proxiedUrl,
+        type: streamType,
+        player: 'vaplayer',
+        sourceKey: 'VO',
+        quality: stream.quality || 'Auto',
+        language: 'VO',
+        // Headers applied client-side cannot override browser Origin; proxy handles auth.
       });
     });
-
   }
+
+
 
   // Ajouter les sources AfterDark
   /* AfterDark sources removed from Web Client
@@ -846,12 +821,6 @@ const StreamingSources = memo(function StreamingSources({
         source.provider.toLowerCase() === 'vidzy' ||
         (source.player && source.player.toLowerCase().includes('vidzy'))) {
         return 0;
-      }
-
-      // Rang 1: MovieBox
-      if (source.provider.toLowerCase() === 'moviebox' ||
-        source.name.toLowerCase().includes('moviebox')) {
-        return 1;
       }
 
       // Rang 3: VidMoly
@@ -981,7 +950,7 @@ const StreamingSources = memo(function StreamingSources({
         } as any);
       } else if (source.url) {
         console.log('✅ Source générique détectée (UniversalVO/Autre)');
-        // Pour les sources génériques avec URL (UniversalVO, PrimeWire, etc.)
+        // Pour les sources génériques avec URL (UniversalVO, PrimeWire, VaPlayer, etc.)
         onSourceClick({
           url: source.url,
           type: source.type || 'mp4',
@@ -991,6 +960,7 @@ const StreamingSources = memo(function StreamingSources({
           provider: source.provider,
           isExternalEmbed: source.isExternalEmbed,
           tracks: source.tracks,
+          headers: source.headers,
         });
       } else if (source.isAfterDark) {
         console.log('✅ Source AfterDark détectée, URL:', source.url);
@@ -1021,8 +991,8 @@ const StreamingSources = memo(function StreamingSources({
     isLoadingAnimeVidMoly ||
     isLoadingExternal ||
     isLoadingFrenchProviders ||
-    isLoadingMovieBox ||
-    isLoadingMovixLinks;
+    isLoadingMovixLinks ||
+    isLoadingVaPlayer;
 
   if (isLoadingProviders) {
     return (
@@ -1189,7 +1159,9 @@ const StreamingSources = memo(function StreamingSources({
                       )}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {loadingSources.has(source.id) ? t("streaming.loading") : "Regarder"}
+                      {loadingSources.has(source.id)
+                        ? t("streaming.loading")
+                        : "Regarder"}
                     </span>
                   </Button>
                 </div>
