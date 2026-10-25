@@ -1,9 +1,9 @@
 {
   "channel": "android-tv",
-  "version": "1.0.3",
-  "buildNumber": 45,
+  "version": "1.0.9",
+  "buildNumber": 49,
   "downloadUrl": "https://github.com/akedidi/AnisFlix/releases/download/android-v1.0.1-2/anisflix-android-tv.apk",
-  "sha256": "11198adea0f4c709b27ee78aebb501af8f6780dd64d369ccced92a4fc59d7a67",
-  "releaseNotes": "APK servi pour le code Downloader 5968194 — build 1.0.3 (45) : nouveau build pour tester l’installateur Android complet depuis la version 44, avec écran final Ouvrir / Terminé et sans réouverture automatique.",
+  "sha256": "4077b8904e5084b9eeed61bd2527a29a5b39f92a0becbd4d810e5b25e8d5e230",
+  "releaseNotes": "APK servi pour le code Downloader 5968194 — version 1.0.9 (49) : catalogue des saisons et épisodes aligné sur le web (L’Attaque des Titans S4 : 30 épisodes), pagination complète de Voir tout, affiches de même taille que l’accueil, contrôle du volume vidéo et qualités anime améliorées.",
   "mandatory": false
 }
