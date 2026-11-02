@@ -8,6 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../models/media.dart';
 import '../services/library.dart';
 import '../services/platform_bridge.dart';
+import '../widgets/subtitle_settings.dart';
 
 class PlayerScreen extends StatefulWidget {
   final Library library;
@@ -35,6 +36,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
   StreamSubscription<Duration>? durationSubscription;
   String? lastScrobble;
   bool pip = false;
+  int subtitleDelayMilliseconds = 0;
+  late double subtitleFontSize =
+      widget.library.prefs.getDouble('subtitleFontSize') ?? 32;
   void pipChanged() {
     if (mounted) setState(() => pip = PlatformBridge.pictureInPicture.value);
   }
@@ -44,6 +48,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    pip = PlatformBridge.pictureInPicture.value;
     PlatformBridge.pictureInPicture.addListener(pipChanged);
     playingSubscription = player.stream.playing.listen((playing) {
       unawaited(PlatformBridge.playbackActive(playing));
@@ -120,6 +125,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void dispose() {
     closed = true;
     PlatformBridge.pictureInPicture.removeListener(pipChanged);
+    if (pip) unawaited(PlatformBridge.exitPip());
     unawaited(playingSubscription?.cancel());
     unawaited(durationSubscription?.cancel());
     unawaited(PlatformBridge.playbackActive(false));
@@ -141,6 +147,32 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Future<void> showSubtitles() => showDialog<void>(
+    context: context,
+    builder: (_) => SubtitleSettingsDialog(
+      player: player,
+      externalTracks: widget.source.subtitles,
+      delayMilliseconds: subtitleDelayMilliseconds,
+      fontSize: subtitleFontSize,
+      onDelayChanged: (milliseconds) async {
+        final native = player.platform;
+        if (closed || native is! NativePlayer) {
+          throw StateError('Subtitle timing is unavailable.');
+        }
+        await native.setProperty(
+          'sub-delay',
+          (milliseconds / 1000).toStringAsFixed(3),
+        );
+        subtitleDelayMilliseconds = milliseconds;
+      },
+      onFontSizeChanged: (size) async {
+        if (!mounted) return;
+        await widget.library.prefs.setDouble('subtitleFontSize', size);
+        if (mounted) setState(() => subtitleFontSize = size);
+      },
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.black,
@@ -155,7 +187,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         const SingleActivator(LogicalKeyboardKey.arrowLeft): () => seek(-10),
         const SingleActivator(LogicalKeyboardKey.arrowRight): () => seek(10),
         const SingleActivator(LogicalKeyboardKey.escape): () =>
-            Navigator.maybePop(context),
+            pip ? PlatformBridge.exitPip() : Navigator.maybePop(context),
       },
       child: Focus(
         autofocus: true,
@@ -167,8 +199,41 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Video(
                 controller: controller,
                 controls: pip ? NoVideoControls : AdaptiveVideoControls,
+                subtitleViewConfiguration: SubtitleViewConfiguration(
+                  style: TextStyle(
+                    fontSize: subtitleFontSize,
+                    color: Colors.white,
+                    backgroundColor: const Color(0x99000000),
+                  ),
+                ),
               ),
             ),
+            if (pip && PlatformBridge.macos)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StreamBuilder<bool>(
+                      stream: player.stream.playing,
+                      initialData: player.state.playing,
+                      builder: (_, state) => IconButton.filledTonal(
+                        tooltip: state.data == true ? 'Pause' : 'Lecture',
+                        onPressed: player.playOrPause,
+                        icon: Icon(
+                          state.data == true ? Icons.pause : Icons.play_arrow,
+                        ),
+                      ),
+                    ),
+                    IconButton.filledTonal(
+                      tooltip: 'Revenir au lecteur',
+                      onPressed: PlatformBridge.exitPip,
+                      icon: const Icon(Icons.picture_in_picture_alt),
+                    ),
+                  ],
+                ),
+              ),
             if (!pip)
               Positioned(
                 top: 0,
@@ -187,6 +252,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         if (PlatformBridge.supportsPip)
                           IconButton(
                             tooltip: 'Image dans l’image',
+                            color: Colors.white,
                             onPressed: () async {
                               final entered = await PlatformBridge.enterPip();
                               if (!entered && context.mounted) {
@@ -201,44 +267,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             },
                             icon: const Icon(Icons.picture_in_picture_alt),
                           ),
-                        if (widget.source.subtitles.isNotEmpty)
-                          PopupMenuButton<int>(
-                            tooltip: 'Sous-titres',
-                            icon: const Icon(Icons.subtitles_outlined),
-                            onSelected: (index) async {
-                              final track = index < 0
-                                  ? null
-                                  : widget.source.subtitles[index];
-                              await player.setSubtitleTrack(
-                                track == null
-                                    ? SubtitleTrack.no()
-                                    : SubtitleTrack.uri(
-                                        track.url,
-                                        title: track.label,
-                                        language: track.language,
-                                      ),
-                              );
-                            },
-                            itemBuilder: (_) => [
-                              const PopupMenuItem(
-                                value: -1,
-                                child: Text('Désactivés'),
-                              ),
-                              for (
-                                var i = 0;
-                                i < widget.source.subtitles.length;
-                                i++
-                              )
-                                PopupMenuItem(
-                                  value: i,
-                                  child: Text(widget.source.subtitles[i].label),
-                                ),
-                            ],
-                          ),
+                        IconButton(
+                          tooltip: 'Sous-titres et décalage',
+                          color: Colors.white,
+                          onPressed: showSubtitles,
+                          icon: const Icon(Icons.subtitles_outlined),
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
                             widget.item.title,
+                            style: const TextStyle(color: Colors.white),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

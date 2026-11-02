@@ -21,6 +21,8 @@ Interface Flutter reconstruite à partir des APK officiels et du dépôt d’ori
 - Fournisseurs MovieBox, VaPlayer, VixSrc, YFlix, FStream et fournisseurs français/anime via les services existants ; conservation des liens embed et extraction à la sélection pour les hébergeurs pris en charge.
 - Thèmes clair, sombre et système, avec choix mémorisé et sélecteur accessible depuis l’en-tête et les paramètres.
 - Lecteur `media_kit`, commandes vidéo intégrées, raccourcis clavier et reprise de lecture.
+- Menu permanent de sous-titres : pistes de la vidéo et du fournisseur, décalage par pas de 0,1 seconde ou saisie signée, remise à zéro et taille du texte mémorisée.
+- PiP macOS sous forme de fenêtre flottante redimensionnable au-dessus des autres applications, avec pause/reprise et retour à la fenêtre normale sans recréer le lecteur.
 - Téléchargements MP4, HLS VOD (y compris AES-128 standard) et DASH statique non protégé, publication atomique, annulation et lecture hors ligne.
 - Service Android de téléchargement avec notification et maintien en activité, PiP sur les appareils compatibles.
 - Connexion Trakt par code, stockage sécurisé, renouvellement de session et scrobbling.
@@ -105,4 +107,4 @@ Les logos des 14 plateformes sont issus des chemins TMDB utilisés par le projet
 
 Depuis 0.5.0, les paramètres proposent une vérification au démarrage ou manuelle, le téléchargement avec contrôle SHA-256 et le passage à l'installateur Android ou au Finder sur macOS. Un canal de release dédié évite de confondre les anciens APK officiels avec cette reconstruction. La première release compatible et son manifeste doivent encore être publiés ; la version 0.4.0 nécessite une première installation manuelle. Voir [recovery/APP_UPDATES.md](recovery/APP_UPDATES.md).
 
-Les écarts fonctionnels encore confirmés avec iOS sont consignés dans [recovery/FEATURE_DIFFERENCES.md](recovery/FEATURE_DIFFERENCES.md), notamment Cast/AirPlay, mini-lecteur et épisode suivant.
+Les écarts fonctionnels encore confirmés avec iOS sont consignés dans [recovery/FEATURE_DIFFERENCES.md](recovery/FEATURE_DIFFERENCES.md), notamment Cast/AirPlay, le mini-lecteur dans les pages de navigation et l'épisode suivant.

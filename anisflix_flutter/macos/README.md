@@ -24,3 +24,14 @@ flutter test integration_test/player_layout_test.dart -d macos \
 ```
 
 La vidéo est placée dans le conteneur de l'application pour respecter la sandbox macOS. Ce test ouvre le véritable écran du lecteur, vérifie que la vidéo occupe sa surface dès l'ouverture et pendant la lecture, puis redimensionne le lecteur en paysage et en portrait. Il enregistre aussi une capture du rendu Flutter dans le répertoire temporaire de l'application.
+
+Le bouton **Sous-titres et décalage** est toujours accessible dans le lecteur. Il donne accès aux pistes de la vidéo et du fournisseur, au décalage signé et à la taille du texte. Un décalage positif affiche les sous-titres plus tard ; un décalage négatif les avance. La taille est mémorisée ; le décalage est propre à la lecture courante.
+
+Le bouton **Image dans l'image** transforme la fenêtre en lecteur flottant redimensionnable, au-dessus des autres applications. La vidéo, ses sous-titres et sa position restent dans le même lecteur. Le bouton **Revenir au lecteur**, Échap ou le bouton de fermeture de cette petite fenêtre restaurent la fenêtre normale. Il s'agit d'une fenêtre macOS flottante gérée par AnisFlix.
+
+Pour vérifier les pistes embarquées et du fournisseur, leur décalage réel et le passage en PiP (après la préparation de la fixture ci-dessus) :
+
+```sh
+flutter test integration_test/player_features_test.dart -d macos \
+  --dart-define=FIXTURE_DIR="$fixture_dir"
+```
