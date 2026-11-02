@@ -44,7 +44,7 @@ Cette reconstruction ne restitue pas les fichiers Dart originaux et n’établit
 
 0.4.0 : référence Swift exécutée pour tester les catégories, le classement et les libellés de liens ; grille de 14 logos et navigation Films/Séries testées. Trois tests natifs macOS contrôlent la grille, la fiche et ses thèmes, ainsi que des liens réels de film, épisode et animé.
 
-- Analyse Flutter sans anomalie et 47 tests unitaires/de widgets, dont les erreurs réseau, le stockage, la navigation et les titres longs sur petits écrans.
+- Analyse Flutter sans anomalie et 61 tests unitaires/de widgets, dont les erreurs réseau, le stockage, la navigation et les titres longs sur petits écrans.
 - Trois tests d’intégration sur émulateur Android TV ARM64, également réussis sur macOS : téléchargement de MP4/HLS/DASH, fermeture du serveur source, lecture locale avec rendu vidéo et piste audio, recherche dans la vidéo et persistance de la position.
 - Les tests utilisent un extrait de démonstration Flutter et un son synthétique, indépendants des fournisseurs du catalogue. Préparer avec `tool/prepare_media_fixture.py`, transférer vers `/data/local/tmp/anisflix-media`, puis lancer `flutter test integration_test/playback_test.dart -d <device> --flavor tv --dart-define=TV_MODE=true`.
 - Test macOS du démarrage réel de l’interface, du chargement du catalogue et d’une recherche TMDB.
@@ -98,3 +98,9 @@ Le détail des 14 familles de sources identifiées dans le build TV 50, de leurs
 À partir de la version 0.4.0, macOS réutilise les services Swift du projet iOS pour ses liens. Les listes VF/VOSTFR/VO suivent leurs filtres et leur ordre ; voir [IOS_NATIVE_PARITY.md](recovery/IOS_NATIVE_PARITY.md). L’écran Plateformes affiche les 14 logos de la liste iOS sous forme de grille.
 
 Les logos des 14 plateformes sont issus des chemins TMDB utilisés par le projet iOS et embarqués dans `assets/providers/`. Pour régénérer la référence de classement Swift sur macOS : `python3 tool/generate_ios_policy_reference.py /chemin/vers/ios-natve/anisflix/anisflix`.
+
+## Mises à jour de l'application
+
+Depuis 0.5.0, les paramètres proposent une vérification au démarrage ou manuelle, le téléchargement avec contrôle SHA-256 et le passage à l'installateur Android ou au Finder sur macOS. Un canal de release dédié évite de confondre les anciens APK officiels avec cette reconstruction. La première release compatible et son manifeste doivent encore être publiés ; la version 0.4.0 nécessite une première installation manuelle. Voir [recovery/APP_UPDATES.md](recovery/APP_UPDATES.md).
+
+Les écarts fonctionnels encore confirmés avec iOS sont consignés dans [recovery/FEATURE_DIFFERENCES.md](recovery/FEATURE_DIFFERENCES.md), notamment Cast/AirPlay, mini-lecteur et épisode suivant.

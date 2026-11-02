@@ -31,3 +31,12 @@ Validation 0.3.0 : analyseur sans problème, 42 tests unitaires/widgets réussis
 Voir [IOS_NATIVE_PARITY.md](IOS_NATIVE_PARITY.md) et [ios-native-engine-provenance.json](ios-native-engine-provenance.json) pour les adaptations et limites.
 
 Livrables finaux 0.4.0+4 : compilation macOS universelle (arm64/x86_64), APK mobile et TV réussies. Versions des deux APK confirmées par aapt et signatures vérifiées par apksigner. Application macOS signée localement, vérifiée par codesign --deep --strict, installée dans `~/Applications/AnisFlix.app` et démarrée. La signature du framework App a été renouvelée après compilation, puis celle du bundle avec les droits réseau et sandbox de production.
+
+## Mise à jour 0.5.0 — mécanisme de mise à jour de l'app
+
+- Analyse Flutter sans anomalie et 61 tests unitaires/widgets réussis. Nouvelles vérifications : versions/builds, pagination GitHub, identifiants/canal compatibles, erreurs réseau, URLs et métadonnées, contrôle SHA-256, fichier tronqué/corrompu/modifié, préférence de contrôle automatique.
+- Deux tests natifs macOS réussis : requête des releases GitHub réelles (aucune mise à jour compatible publiée), téléchargement d'une archive contrôlée, passage au Finder accepté et refus d'un chemin hors cache. Le premier essai a révélé un désaccord de dossier entre path_provider et le canal Swift ; corrigé en utilisant le cache macOS avec le suffixe d'identifiant de bundle.
+- Un test natif Android TV/API 34 réussi : refus de chemins hors cache, faux APK, autre application, signature différente et même build ; passage par les réglages d'autorisation puis l'installateur pour un APK de test compatible 0.5.1+6 signé avec la même clé de développement. Les APK de test restent dans work/ et ne sont pas diffusés.
+- Le mécanisme de publication de production et les écarts restants sont documentés dans APP_UPDATES.md et FEATURE_DIFFERENCES.md. Aucun succès de distribution GitHub n'est affirmé : le premier manifeste compatible reste à publier.
+
+Les certificats de signature des APK de production mobile et TV sont identiques à ceux des APK 0.4.0, ce qui permet leur remplacement par la même application. Le contrôle du canal s'appuie sur le paquet installé et non le type d'appareil : une édition mobile utilisée sur une TV reste sur le canal mobile.

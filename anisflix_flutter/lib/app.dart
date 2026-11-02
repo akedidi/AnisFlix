@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'widgets/theme_picker.dart';
+import 'widgets/update_panel.dart';
+import 'services/app_updates.dart';
 import 'widgets/search_box.dart';
 import 'screens/details.dart';
 import 'services/catalog_api.dart';
@@ -22,8 +26,16 @@ class AnisFlixApp extends StatefulWidget {
 
 class _AnisFlixAppState extends State<AnisFlixApp> {
   late final api = CatalogApi(widget.library);
+  late final updates = UpdateController(widget.library.prefs);
+  @override
+  void initState() {
+    super.initState();
+    unawaited(updates.initialize());
+  }
+
   @override
   void dispose() {
+    updates.dispose();
     api.close();
     super.dispose();
   }
@@ -44,7 +56,8 @@ class _AnisFlixAppState extends State<AnisFlixApp> {
       themeMode: widget.library.themeMode,
       home: AnimatedBuilder(
         animation: widget.library,
-        builder: (_, _) => Shell(api: api, library: widget.library),
+        builder: (_, _) =>
+            Shell(api: api, library: widget.library, updates: updates),
       ),
     ),
   );
@@ -76,9 +89,15 @@ ThemeData appTheme(Brightness brightness) {
 }
 
 class Shell extends StatefulWidget {
+  final UpdateController updates;
   final CatalogApi api;
   final Library library;
-  const Shell({super.key, required this.api, required this.library});
+  const Shell({
+    super.key,
+    required this.api,
+    required this.library,
+    required this.updates,
+  });
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -150,7 +169,7 @@ class _ShellState extends State<Shell> {
       tv: tv,
     ),
     6 => DownloadsScreen(library: widget.library),
-    7 => SettingsScreen(library: widget.library),
+    7 => SettingsScreen(library: widget.library, updates: widget.updates),
     8 => ProviderDirectoryScreen(
       api: widget.api,
       library: widget.library,
@@ -175,7 +194,12 @@ class _ShellState extends State<Shell> {
     final wide = tv || MediaQuery.sizeOf(context).width >= 900;
     final content = FocusTraversalGroup(
       policy: ReadingOrderTraversalPolicy(),
-      child: page(tv),
+      child: Column(
+        children: [
+          UpdateNotice(controller: widget.updates, onOpen: () => navigate(7)),
+          Expanded(child: page(tv)),
+        ],
+      ),
     );
     final flag = widget.library.language.startsWith('fr')
         ? '🇫🇷'

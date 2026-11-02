@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/library.dart';
+import '../services/app_updates.dart';
+import '../widgets/update_panel.dart';
 import '../models/media.dart';
 import 'player.dart';
 import 'trakt_panel.dart';
@@ -8,7 +10,12 @@ import '../widgets/theme_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Library library;
-  const SettingsScreen({super.key, required this.library});
+  final UpdateController updates;
+  const SettingsScreen({
+    super.key,
+    required this.library,
+    required this.updates,
+  });
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -39,6 +46,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: const Text('Clair, sombre ou thème du système'),
         trailing: ThemePicker(library: widget.library),
       ),
+      const SizedBox(height: 24),
+      UpdatePanel(controller: widget.updates),
       const SizedBox(height: 24),
       Form(
         key: form,
