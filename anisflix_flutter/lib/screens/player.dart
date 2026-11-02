@@ -160,6 +160,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       child: Focus(
         autofocus: true,
         child: Stack(
+          // Positioned video must use the viewport, not the header's height.
+          fit: StackFit.expand,
           children: [
             Positioned.fill(
               child: Video(
@@ -168,76 +170,81 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
             if (!pip)
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      IconButton.filledTonal(
-                        tooltip: 'Retour',
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                      if (PlatformBridge.supportsPip)
-                        IconButton(
-                          tooltip: 'Image dans l’image',
-                          onPressed: () async {
-                            final entered = await PlatformBridge.enterPip();
-                            if (!entered && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Le mode image dans l’image n’est pas disponible.',
-                                  ),
-                                ),
-                              );
-                            }
-                          },
-                          icon: const Icon(Icons.picture_in_picture_alt),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: 'Retour',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back),
                         ),
-                      if (widget.source.subtitles.isNotEmpty)
-                        PopupMenuButton<int>(
-                          tooltip: 'Sous-titres',
-                          icon: const Icon(Icons.subtitles_outlined),
-                          onSelected: (index) async {
-                            final track = index < 0
-                                ? null
-                                : widget.source.subtitles[index];
-                            await player.setSubtitleTrack(
-                              track == null
-                                  ? SubtitleTrack.no()
-                                  : SubtitleTrack.uri(
-                                      track.url,
-                                      title: track.label,
-                                      language: track.language,
+                        if (PlatformBridge.supportsPip)
+                          IconButton(
+                            tooltip: 'Image dans l’image',
+                            onPressed: () async {
+                              final entered = await PlatformBridge.enterPip();
+                              if (!entered && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Le mode image dans l’image n’est pas disponible.',
                                     ),
-                            );
-                          },
-                          itemBuilder: (_) => [
-                            const PopupMenuItem(
-                              value: -1,
-                              child: Text('Désactivés'),
-                            ),
-                            for (
-                              var i = 0;
-                              i < widget.source.subtitles.length;
-                              i++
-                            )
-                              PopupMenuItem(
-                                value: i,
-                                child: Text(widget.source.subtitles[i].label),
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.picture_in_picture_alt),
+                          ),
+                        if (widget.source.subtitles.isNotEmpty)
+                          PopupMenuButton<int>(
+                            tooltip: 'Sous-titres',
+                            icon: const Icon(Icons.subtitles_outlined),
+                            onSelected: (index) async {
+                              final track = index < 0
+                                  ? null
+                                  : widget.source.subtitles[index];
+                              await player.setSubtitleTrack(
+                                track == null
+                                    ? SubtitleTrack.no()
+                                    : SubtitleTrack.uri(
+                                        track.url,
+                                        title: track.label,
+                                        language: track.language,
+                                      ),
+                              );
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(
+                                value: -1,
+                                child: Text('Désactivés'),
                               ),
-                          ],
+                              for (
+                                var i = 0;
+                                i < widget.source.subtitles.length;
+                                i++
+                              )
+                                PopupMenuItem(
+                                  value: i,
+                                  child: Text(widget.source.subtitles[i].label),
+                                ),
+                            ],
+                          ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            widget.item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          widget.item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

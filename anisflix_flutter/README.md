@@ -54,6 +54,8 @@ Cette reconstruction ne restitue pas les fichiers Dart originaux et n’établit
 
 ## Développement et compilation
 
+Dans le dépôt principal AnisFlix, ce projet est versionné dans `anisflix_flutter/`, avec sa [cible macOS](macos/README.md), son projet Xcode et ses services Swift. Les commandes ci-dessous se lancent depuis ce dossier.
+
 Flutter utilisé : **3.47.9**, Dart **3.13.7**. Le fichier `pubspec.lock` fige les versions résolues.
 
 1. Installer Flutter et les outils de la plateforme : Android SDK/JDK pour Android ; Xcode complet et les dépendances de plugins pour macOS.

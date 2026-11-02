@@ -42,3 +42,10 @@ Livrables finaux 0.4.0+4 : compilation macOS universelle (arm64/x86_64), APK mob
 Les certificats de signature des APK de production mobile et TV sont identiques à ceux des APK 0.4.0, ce qui permet leur remplacement par la même application. Le contrôle du canal s'appuie sur le paquet installé et non le type d'appareil : une édition mobile utilisée sur une TV reste sur le canal mobile.
 
 Les trois builds de production finaux 0.5.0+5 ont réussi. macOS universel a été signé localement, contrôlé avec codesign --deep --strict, installé et lancé. Les deux APK ont passé aapt/apksigner, et leurs certificats correspondent à ceux de 0.4.0. Le générateur a produit anisflix-update.json à partir des trois livrables en vérifiant identifiants, versions et tailles ; la publication demeure bloquée par l'authentification GitHub.
+
+## Correction de la hauteur du lecteur macOS
+
+- Le nouveau test `integration_test/player_layout_test.dart` reproduit le défaut avant correction : une vidéo de 960 × 64 pixels dans un écran de 960 × 540. Le `Stack` se dimensionnait sur la barre de titre.
+- Le lecteur occupe désormais toute la surface disponible ; la barre de titre reste positionnée en haut. Le test natif passe à l'ouverture, pendant la lecture d'un MP4 de démonstration décodé en 1280 × 720, puis après redimensionnement à 640 × 360 et 480 × 600, sans recréer le lecteur. La capture Flutter du lecteur à 960 × 540 a été examinée.
+- Les 61 tests unitaires/widgets passent et l'analyse Flutter du dépôt principal ne signale aucune anomalie. La fixture macOS doit se trouver dans le conteneur de l'application pour respecter sa sandbox ; les commandes sont dans [macos/README.md](../macos/README.md).
+- La cible macOS, son projet Xcode et ses services Swift sont déjà suivis dans `anisflix_flutter/macos/` du dépôt principal. Le correctif, le test et les instructions sont synchronisés dans ce même projet.
