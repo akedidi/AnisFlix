@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/media.dart';
 import 'library.dart';
 import 'direct_extractors.dart';
+import 'native_sources.dart';
 
 class ApiFailure implements Exception {
   final String message;
@@ -22,8 +23,12 @@ class MediaPage {
 class CatalogApi {
   final Library library;
   final http.Client client;
+  final NativeSources? nativeSources;
   CatalogApi(this.library, {http.Client? client})
-    : client = client ?? http.Client();
+    : nativeSources = client == null && NativeSources.supported
+          ? NativeSources(library)
+          : null,
+      client = client ?? http.Client();
   void close() => client.close();
   Future<dynamic> readJson(Uri uri) async {
     final response = await client.get(uri).timeout(const Duration(seconds: 35));
@@ -105,7 +110,8 @@ class CatalogApi {
         if (anime) 'with_genres': '16',
         if (anime) 'with_original_language': 'ja',
         if (provider != null) 'with_watch_providers': '$provider',
-        if (provider != null) 'watch_region': 'FR',
+        if (provider != null)
+          'watch_region': (provider == 9 || provider == 386) ? 'US' : 'FR',
       });
     }
     final items = <MediaItem>[];
@@ -141,6 +147,17 @@ class CatalogApi {
       throw const ApiFailure(
         'Sélectionne un épisode pour afficher ses sources.',
       );
+    }
+    if (nativeSources != null) {
+      try {
+        final result = await nativeSources!.load(item, season, episode);
+        onProgress?.call(SourceProgress(result, 0, const []));
+        return result;
+      } catch (_) {
+        throw const ApiFailure(
+          'Impossible de charger les sources du moteur iOS natif. Réessaie.',
+        );
+      }
     }
     final parameters = {
       'type': item.type,
@@ -273,9 +290,11 @@ class CatalogApi {
                 for (final row in players.whereType<Map>()) {
                   rows.add({
                     ...Map<String, dynamic>.from(row),
-                    'language': ['Default', 'VFQ'].contains(language)
-                        ? 'VF'
-                        : language,
+                    'language': language == 'VOSTFR'
+                        ? 'VOSTFR'
+                        : ['VO', 'ENG', 'English'].contains(language)
+                        ? 'VO'
+                        : 'VF',
                     'type': row['type'] ?? 'embed',
                   });
                 }
@@ -449,6 +468,14 @@ class CatalogApi {
 
   Future<StreamSource> resolveSource(StreamSource source) async {
     if (!source.needsExtraction) return source;
+    if (nativeSources != null) {
+      try {
+        final resolved = await nativeSources!.resolve(source);
+        if (resolved != null && !resolved.needsExtraction) return resolved;
+      } catch (_) {
+        /* Existing extractors below remain available on failure. */
+      }
+    }
     final host = Uri.parse(source.url).host.toLowerCase();
     final type =
         [

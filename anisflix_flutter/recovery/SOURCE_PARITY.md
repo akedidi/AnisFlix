@@ -1,3 +1,5 @@
+> Historique du contrôle 0.3.0. Depuis la demande de parité iOS, macOS utilise le moteur Swift natif : voir [IOS_NATIVE_PARITY.md](IOS_NATIVE_PARITY.md). Les comptes ci-dessous incluaient des embeds que le filtre iOS retire.
+
 # Sources Android TV → Flutter macOS
 
 Référence : APK Android TV **1.0.9, build 50**, release `android-v1.0.1-2` du dépôt `akedidi/AnisFlix`. Examen du 2 novembre 2026. Les symboles retenus et le SHA-256 de `libapp.so` sont dans [tv-provider-evidence.txt](tv-provider-evidence.txt).

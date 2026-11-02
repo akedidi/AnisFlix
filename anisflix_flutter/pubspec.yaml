@@ -1,7 +1,7 @@
 name: anisflix_flutter
 description: "AnisFlix reconstruit pour Android mobile, Android TV et macOS."
 publish_to: 'none'
-version: 0.3.0+3
+version: 0.4.0+4
 
 environment:
   sdk: ^3.13.7
@@ -32,6 +32,7 @@ flutter:
   assets:
     - assets/images/anisflix_wordmark.png
     - assets/images/trakt_icon.png
+    - assets/providers/
   fonts:
     - family: Roboto
       fonts:

@@ -13,3 +13,7 @@ Accueil : les neuf rangées ont été vérifiées par tests de requêtes et navi
 Recherche : test du délai d'autocomplétion, rejet d'une réponse obsolète, choix aux flèches puis action de recherche, et effacement. Pas de validation visuelle complète de tous les états clavier de l'APK TV.
 
 Statut : contrôle fonctionnel et visuel ciblé des sources effectué ; conformité visuelle complète avec l'ancienne application non établie.
+
+## Mise à jour 0.4.0
+
+Le test natif affiche la grille des 14 logos carrés provenant de la liste iOS. Les listes de liens utilisent maintenant le moteur Swift iOS ; les captures de la fiche montrent les blocs de fournisseurs filtrés et leurs libellés natifs. La comparaison automatisée de catégories, ordre et libellés repose sur les fonctions Swift de référence exécutées séparément. La validation complète de l’accueil reste distincte de ces corrections.

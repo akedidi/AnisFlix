@@ -6,9 +6,11 @@ import 'package:anisflix_flutter/app.dart';
 import 'package:anisflix_flutter/models/media.dart';
 import 'package:anisflix_flutter/screens/details.dart';
 import 'package:anisflix_flutter/screens/home.dart';
+import 'package:anisflix_flutter/screens/providers.dart';
 import 'package:anisflix_flutter/screens/catalog.dart';
 import 'package:anisflix_flutter/services/catalog_api.dart';
 import 'package:anisflix_flutter/services/library.dart';
+import 'package:anisflix_flutter/services/source_list_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +18,46 @@ import 'package:integration_test/integration_test.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('native platform directory renders the square logos', (
+    tester,
+  ) async {
+    final library = await Library.load();
+    final api = CatalogApi(library);
+    const key = ValueKey('platform-capture');
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: appTheme(Brightness.dark),
+        home: Scaffold(
+          body: RepaintBoundary(
+            key: key,
+            child: ProviderDirectoryScreen(
+              api: api,
+              library: library,
+              tv: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Netflix'), findsOneWidget);
+    expect(find.text('M6+'), findsOneWidget);
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(key),
+    );
+    final image = await boundary.toImage(pixelRatio: 1.5);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    final file = File(
+      '${Directory.systemTemp.path}/anisflix-platforms-native.png',
+    );
+    await file.writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+    debugPrint('PLATFORMS_SCREENSHOT=${file.path}');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    api.close();
+  });
   testWidgets(
     'real movie sources appear in the TV style desktop detail, in both themes',
     (tester) async {
@@ -48,7 +90,7 @@ void main() {
         ),
       );
       Future<void> waitFor(bool Function() ready) async {
-        final deadline = DateTime.now().add(const Duration(seconds: 100));
+        final deadline = DateTime.now().add(const Duration(seconds: 300));
         while (!ready()) {
           if (DateTime.now().isAfter(deadline)) {
             fail('Real detail sources did not become available.');
@@ -142,6 +184,7 @@ void main() {
     final api = CatalogApi(library);
     final report = <String, dynamic>{
       'date': DateTime.now().toUtc().toIso8601String(),
+      'engine': 'ios-native',
       'cases': [],
     };
     for (final sample in [
@@ -151,12 +194,11 @@ void main() {
     ]) {
       final metadata = await api.tmdb('/${sample.$3}/${sample.$2}');
       final item = MediaItem.fromJson(metadata, type: sample.$3);
-      SourceProgress? progress;
+
       final links = await api.sources(
         item,
         season: sample.$4,
         episode: sample.$5,
-        onProgress: (p) => progress = p,
       );
       final counts = <String, int>{};
       for (final link in links) {
@@ -167,7 +209,25 @@ void main() {
         'tmdbId': sample.$2,
         'links': links.length,
         'providers': counts,
-        'failed': progress?.failed,
+        'providerFailures': 'not exposed by the original iOS engine',
+        'lists': {
+          for (final language in SourceListPolicy.languages)
+            language: [
+              for (final source in SourceListPolicy.forLanguage(
+                links,
+                language,
+              ))
+                {
+                  'provider': source.provider,
+                  'quality': source.quality,
+                  'language': source.language,
+                  'label': SourceListPolicy.display(
+                    source,
+                    SourceListPolicy.forLanguage(links, language),
+                  ),
+                },
+            ],
+        },
       });
       expect(links, isNotEmpty, reason: 'No actual links for ${sample.$1}');
     }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/media.dart';
+import '../models/watch_provider.dart';
 import '../services/catalog_api.dart';
 import '../services/library.dart';
 import 'details.dart';
@@ -223,26 +224,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         ),
                       DropdownButton<int?>(
                         value: provider,
-                        items: const [
-                          DropdownMenuItem(
+                        items: [
+                          const DropdownMenuItem(
                             value: null,
                             child: Text('Toutes les plateformes'),
                           ),
-                          DropdownMenuItem(value: 8, child: Text('Netflix')),
-                          DropdownMenuItem(
-                            value: 9,
-                            child: Text('Prime Video'),
-                          ),
-                          DropdownMenuItem(value: 337, child: Text('Disney+')),
-                          DropdownMenuItem(
-                            value: 350,
-                            child: Text('Apple TV+'),
-                          ),
-                          DropdownMenuItem(
-                            value: 531,
-                            child: Text('Paramount+'),
-                          ),
-                          DropdownMenuItem(value: 1899, child: Text('Max')),
+                          for (final p in watchProviders)
+                            DropdownMenuItem(value: p.id, child: Text(p.name)),
                         ],
                         onChanged: (v) {
                           provider = v;

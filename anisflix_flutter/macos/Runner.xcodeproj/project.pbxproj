@@ -30,6 +30,16 @@
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 		808E9DF342EA6D49A22F1EC0 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91F0CF31B99E878AB057042D /* Pods_RunnerTests.framework */; };
+		8C8E1D1B664090B1E0EF7A98 /* AnimePaheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C8237B9955FAB9EAC1FEAB /* AnimePaheService.swift */; };
+		38F9E46CDC6E39854E8E7A1A /* FrenchAnimeProvidersService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85A3D019F900045AC2C7FC66 /* FrenchAnimeProvidersService.swift */; };
+		9D5854E7AFDF027ECFCD44AB /* HiAnimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF486E112517A689C932F93F /* HiAnimeService.swift */; };
+		AFB393AE6504F93ED93413FE /* JsPackerUnpacker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A01050E3E09234F33D41E88 /* JsPackerUnpacker.swift */; };
+		6FDCF1383076FDA4813E0C40 /* MobService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8D9D24CB974DA552F77E36 /* MobService.swift */; };
+		355FE0E51E4801468642698C /* MovieBoxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2631537E923B567DB178072 /* MovieBoxService.swift */; };
+		777B1F69BA0FCA3C4748F47A /* NativeSourceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */; };
+		C375A8EDDB47E4BBB1C736E9 /* NativeSourceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */; };
+		82BE695EFE0D6A236DB83464 /* StreamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52505C9E9EB02160E56924FE /* StreamingService.swift */; };
+		3D10FE38752A787CC3158368 /* YFlixService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +100,16 @@
 		A00795B17D17D0F2540478D6 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		A50C4A513E0C42DF59CE99C0 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		F5ACFD67463E451DB81161CB /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		F3C8237B9955FAB9EAC1FEAB /* AnimePaheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimePaheService.swift; sourceTree = "<group>"; };
+		85A3D019F900045AC2C7FC66 /* FrenchAnimeProvidersService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrenchAnimeProvidersService.swift; sourceTree = "<group>"; };
+		CF486E112517A689C932F93F /* HiAnimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiAnimeService.swift; sourceTree = "<group>"; };
+		7A01050E3E09234F33D41E88 /* JsPackerUnpacker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JsPackerUnpacker.swift; sourceTree = "<group>"; };
+		AB8D9D24CB974DA552F77E36 /* MobService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobService.swift; sourceTree = "<group>"; };
+		B2631537E923B567DB178072 /* MovieBoxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieBoxService.swift; sourceTree = "<group>"; };
+		403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSourceBridge.swift; sourceTree = "<group>"; };
+		B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSourceConfiguration.swift; sourceTree = "<group>"; };
+		52505C9E9EB02160E56924FE /* StreamingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingService.swift; sourceTree = "<group>"; };
+		F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YFlixService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -180,6 +200,7 @@
 			isa = PBXGroup;
 			children = (
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
+				A17F11A01F11A01F11A01F11 /* NativeSources */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
@@ -210,6 +231,23 @@
 			);
 			name = Pods;
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		A17F11A01F11A01F11A01F11 /* NativeSources */ = {
+			isa = PBXGroup;
+			children = (
+				F3C8237B9955FAB9EAC1FEAB /* AnimePaheService.swift */,
+				85A3D019F900045AC2C7FC66 /* FrenchAnimeProvidersService.swift */,
+				CF486E112517A689C932F93F /* HiAnimeService.swift */,
+				7A01050E3E09234F33D41E88 /* JsPackerUnpacker.swift */,
+				AB8D9D24CB974DA552F77E36 /* MobService.swift */,
+				B2631537E923B567DB178072 /* MovieBoxService.swift */,
+				403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */,
+				B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */,
+				52505C9E9EB02160E56924FE /* StreamingService.swift */,
+				F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */,
+			);
+			path = NativeSources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -447,6 +485,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8C8E1D1B664090B1E0EF7A98 /* AnimePaheService.swift in Sources */,
+				38F9E46CDC6E39854E8E7A1A /* FrenchAnimeProvidersService.swift in Sources */,
+				9D5854E7AFDF027ECFCD44AB /* HiAnimeService.swift in Sources */,
+				AFB393AE6504F93ED93413FE /* JsPackerUnpacker.swift in Sources */,
+				6FDCF1383076FDA4813E0C40 /* MobService.swift in Sources */,
+				355FE0E51E4801468642698C /* MovieBoxService.swift in Sources */,
+				777B1F69BA0FCA3C4748F47A /* NativeSourceBridge.swift in Sources */,
+				C375A8EDDB47E4BBB1C736E9 /* NativeSourceConfiguration.swift in Sources */,
+				82BE695EFE0D6A236DB83464 /* StreamingService.swift in Sources */,
+				3D10FE38752A787CC3158368 /* YFlixService.swift in Sources */,
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,

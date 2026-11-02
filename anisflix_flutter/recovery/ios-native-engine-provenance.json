@@ -1,0 +1,44 @@
+{
+  "referenceCommit": "ba3dba4",
+  "files": [
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/StreamingService.swift",
+      "sha256": "043f14418fc72806fa79211c15acb422df8d0ff15a9c5542261038f842e7e932"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/MovieBoxService.swift",
+      "sha256": "1e0478ff16205b54e418d4bba788fb7101fb4665fbab9c99b653ca256c674739"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/MobService.swift",
+      "sha256": "72ce7e1577417df4d62151bf684a942ca5460f0b07f4d8d82d2ad22b9893b661"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/YFlixService.swift",
+      "sha256": "de76d995050760234e85861e5707241ecfc5337de685dee6d4f94d7429c5aa09"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/HiAnimeService.swift",
+      "sha256": "bb10048b015db6e4c9d266f58bf9c4fdcc8952d1e4c62fa6f307a3a3d567ce19"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/AnimePaheService.swift",
+      "sha256": "2129003f18a8ce922f52902374c4b4747f70ff5901a1d67113fb624e0f6d5b57"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/FrenchAnimeProvidersService.swift",
+      "sha256": "9763ee0ff931e59f9ad390d815760b3d93fc1818272844395e9984ffe6a539df"
+    },
+    {
+      "source": "ios-natve/anisflix/anisflix/Services/JsPackerUnpacker.swift",
+      "sha256": "017e52a503e0338edd470338c4d4dca0893e8035f7319c77ea2211b85277f810"
+    }
+  ],
+  "adaptations": [
+    "TMDB key injected from Flutter local configuration",
+    "Backend injected from Flutter settings",
+    "URL/token console logging disabled",
+    "Unused disabled Vidlink and next-episode navigation removed",
+    "TLS delegate uses platform certificate validation"
+  ]
+}

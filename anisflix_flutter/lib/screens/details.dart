@@ -7,6 +7,7 @@ import '../models/media.dart';
 import '../services/catalog_api.dart';
 import '../services/downloads.dart';
 import '../services/library.dart';
+import '../services/source_list_policy.dart';
 import '../widgets/theme_picker.dart';
 import 'catalog.dart';
 import 'player.dart';
@@ -702,54 +703,11 @@ class _SourcesPanelState extends State<SourcesPanel> {
 
   @override
   Widget build(BuildContext context) {
-    const languages = ['VF', 'VOSTFR', 'VO', 'Autres'];
+    const languages = SourceListPolicy.languages;
     final groups = rows.map((s) => s.languageGroup).toSet();
     final selected =
         language ?? languages.where(groups.contains).firstOrNull ?? 'VF';
-    final visible = rows.where((s) => s.languageGroup == selected).toList();
-    visible.sort((a, b) {
-      int providerRank(StreamSource s) {
-        final value = s.provider.toLowerCase();
-        return const {
-              'frenchstream': 0,
-              'vidzy': 1,
-              'moviebox': 2,
-              'vaplayer': 3,
-              'streamzo': 4,
-              'vixsrc': 5,
-            }[value] ??
-            (s.needsExtraction ? 20 : 10);
-      }
-
-      final providerOrder = providerRank(a).compareTo(providerRank(b));
-      if (providerOrder != 0) return providerOrder;
-      final p = a.provider.compareTo(b.provider);
-      if (p != 0) return p;
-      int rank(String q) => q.toLowerCase().contains('4k')
-          ? 2160
-          : int.tryParse(RegExp(r'\d+').firstMatch(q)?.group(0) ?? '') ?? 0;
-      return rank(b.quality).compareTo(rank(a.quality));
-    });
-    final sourceNumbers = <StreamSource, int>{};
-    final counters = <String, int>{};
-    for (final source in visible) {
-      sourceNumbers[source] = counters.update(
-        source.provider,
-        (n) => n + 1,
-        ifAbsent: () => 1,
-      );
-    }
-    String sourceLabel(StreamSource source) {
-      final quality =
-          RegExp(
-            r'(?:\d{3,4}p|4K|HD|Auto)',
-            caseSensitive: false,
-          ).firstMatch(source.quality)?.group(0) ??
-          source.quality;
-      final name = source.label.split(' · ').first;
-      return '$name ${sourceNumbers[source]} - $quality — ${source.language.isEmpty ? 'Langue non précisée' : source.language}';
-    }
-
+    final visible = SourceListPolicy.forLanguage(rows, selected);
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -762,9 +720,7 @@ class _SourcesPanelState extends State<SourcesPanel> {
         const SizedBox(height: 18),
         Row(
           children: [
-            for (final value in languages.where(
-              (v) => v != 'Autres' || groups.contains(v),
-            ))
+            for (final value in languages)
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(right: 6),
@@ -835,11 +791,11 @@ class _SourcesPanelState extends State<SourcesPanel> {
                           color: Color(0xffed214d),
                         ),
                   title: Text(
-                    sourceLabel(source),
+                    SourceListPolicy.display(source, visible),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w500,
                       fontSize: 14,
                     ),
                   ),

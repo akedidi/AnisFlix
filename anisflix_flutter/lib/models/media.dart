@@ -86,20 +86,27 @@ class StreamSource {
   bool get needsExtraction =>
       ['embed', 'iframe'].contains(format.toLowerCase());
   String get languageGroup {
-    final value = language.toLowerCase();
-    if (value.contains('vost') || value.contains('subfr')) return 'VOSTFR';
-    if (value.startsWith('vf') ||
-        value == 'fr' ||
-        value == 'fra' ||
-        value == 'fre' ||
-        value.contains('french') ||
-        value.contains('français') ||
-        value == 'vfq' ||
-        value == 'multi' ||
-        value.startsWith('fr-')) {
+    final lang = language.trim().toLowerCase();
+    if (lang.contains('vost') ||
+        lang.contains('subtitle') ||
+        lang.contains('subbed')) {
+      return 'VOSTFR';
+    }
+    final words = lang
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .split(' ')
+        .toSet();
+    if (words.intersection({
+      'vf',
+      'vfq',
+      'french',
+      'francais',
+      'fr',
+      'fra',
+      'fre',
+    }).isNotEmpty) {
       return 'VF';
     }
-    if (value.isEmpty) return 'Autres';
     return 'VO';
   }
 
