@@ -23,7 +23,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<MediaPage> movies, series, anime;
+  late Future<MediaPage> movies;
+  final sections = <String, Future<MediaPage>>{};
   int hero = 0;
   bool heroFocused = false;
   Timer? timer;
@@ -37,17 +38,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void reload() {
-    movies = widget.api.list('movie', latest: true);
-    series = widget.api.list('tv', latest: true);
-    anime = widget.api.list('tv', anime: true);
+    for (final section in homeCategories) {
+      sections[section.title] = fetch(section);
+    }
+    movies = sections[homeCategories.first.title]!;
     // Each row owns its error UI. Attach a handler immediately, before it scrolls into view.
-    for (final future in [movies, series, anime]) {
+    for (final future in sections.values) {
       unawaited(
         future.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
       );
     }
   }
 
+  Future<MediaPage> fetch(HomeCategory section, {int page = 1}) =>
+      widget.api.list(
+        section.type,
+        page: page,
+        latest: section.latest,
+        anime: section.anime,
+        filter: section.filter,
+      );
   @override
   void dispose() {
     timer?.cancel();
@@ -57,34 +67,40 @@ class _HomeScreenState extends State<HomeScreen> {
   void details(MediaItem item, {int? season, int? episode}) => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => DetailScreen(
-        api: widget.api,
-        library: widget.library,
-        item: item,
-        initialSeason: season,
-        initialEpisode: episode,
-      ),
+      builder: (_) => item.latestEpisode != null
+          ? EpisodeDetailScreen(
+              api: widget.api,
+              library: widget.library,
+              item: item,
+              season: item.latestSeason ?? 1,
+              episode: item.latestEpisode!,
+            )
+          : DetailScreen(
+              api: widget.api,
+              library: widget.library,
+              item: item,
+              initialSeason: season,
+              initialEpisode: episode,
+            ),
     ),
   );
-  void all(int section, {bool latest = false}) => Navigator.push(
+  void all(HomeCategory section) => Navigator.push(
     context,
     MaterialPageRoute(
       builder: (_) => Scaffold(
-        appBar: AppBar(
-          title: Text(
-            section == 1
-                ? 'Films'
-                : section == 2
-                ? 'Séries'
-                : 'Animés',
-          ),
-        ),
+        appBar: AppBar(title: Text(section.title)),
         body: CatalogScreen(
           api: widget.api,
           library: widget.library,
-          section: section,
+          section: section.anime
+              ? 3
+              : section.type == 'tv'
+              ? 2
+              : 1,
           tv: widget.tv,
-          latestOverride: latest,
+          latestOverride: section.latest,
+          initialMediaType: section.type,
+          filter: section.filter,
         ),
       ),
     ),
@@ -129,22 +145,30 @@ class _HomeScreenState extends State<HomeScreen> {
                               errorBuilder: (_, _, _) => const SizedBox(),
                             ),
                           ),
-                        const Positioned.fill(
+                        Positioned.fill(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xf5101216), Color(0x99101216)],
+                                colors: [
+                                  Theme.of(context).scaffoldBackgroundColor
+                                      .withValues(alpha: .96),
+                                  Theme.of(context).scaffoldBackgroundColor
+                                      .withValues(alpha: .45),
+                                ],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                               ),
                             ),
                           ),
                         ),
-                        const Positioned.fill(
+                        Positioned.fill(
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.transparent, Color(0xff101216)],
+                                colors: [
+                                  Colors.transparent,
+                                  Theme.of(context).scaffoldBackgroundColor,
+                                ],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
@@ -286,24 +310,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-        row(
-          'Derniers films',
-          movies,
-          () => all(1, latest: true),
-          () => setState(() => movies = widget.api.list('movie', latest: true)),
-        ),
-        row(
-          'Dernières séries',
-          series,
-          () => all(2, latest: true),
-          () => setState(() => series = widget.api.list('tv', latest: true)),
-        ),
-        row(
-          'Animés',
-          anime,
-          () => all(3),
-          () => setState(() => anime = widget.api.list('tv', anime: true)),
-        ),
+        for (final section in homeCategories)
+          row(
+            section.title,
+            sections[section.title]!,
+            () => all(section),
+            () => setState(() {
+              sections[section.title] = fetch(section);
+              if (section == homeCategories.first) {
+                movies = sections[section.title]!;
+              }
+            }),
+          ),
         const SizedBox(height: 24),
       ],
     );
@@ -397,3 +415,28 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 }
+
+class HomeCategory {
+  final String title, type;
+  final bool latest, anime;
+  final String? filter;
+  const HomeCategory(
+    this.title,
+    this.type, {
+    this.latest = false,
+    this.anime = false,
+    this.filter,
+  });
+}
+
+const homeCategories = [
+  HomeCategory('Derniers films', 'movie', latest: true),
+  HomeCategory('Derniers épisodes', 'tv', filter: 'last-episodes'),
+  HomeCategory('Dernières séries', 'tv', latest: true),
+  HomeCategory('Films Populaires', 'movie'),
+  HomeCategory('Séries Populaires', 'tv'),
+  HomeCategory('Anime - Derniers Films', 'movie', latest: true, anime: true),
+  HomeCategory('Anime - Dernières Séries', 'tv', latest: true, anime: true),
+  HomeCategory('Anime - Films Populaires', 'movie', anime: true),
+  HomeCategory('Anime - Séries Populaires', 'tv', anime: true),
+];

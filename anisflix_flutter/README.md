@@ -12,11 +12,14 @@ Projet indépendant, réécrit à partir des APK officiels et du code Web public
 
 ## Fonctions réécrites
 
+- Accueil avec les neuf rangées observées dans l’APK TV : derniers films, derniers épisodes, dernières séries, films/séries populaires et quatre catégories d’animés.
 - Catalogue des dernières sorties, films, séries, animés et filtres par plateforme.
 - Recherche multi-type, pagination et exclusion des résultats de personnes.
 - Fiches, saisons et épisodes utilisant le proxy existant, notamment pour ses saisons virtuelles.
 - Favoris locaux, historique et reprise distincts par épisode.
-- Choix de sources via les contrats des services Web existants, avec tolérance à la panne d’un fournisseur.
+- Fiches de film et d’épisode à deux colonnes sur TV/macOS : informations à gauche, sources à droite, filtres VF/VOSTFR/VO et résultats progressifs. Sur mobile, les sources restent dans la même fiche sous les informations.
+- Fournisseurs MovieBox, VaPlayer, VixSrc, YFlix, FStream et fournisseurs français/anime via les services existants ; conservation des liens embed et extraction à la sélection pour les hébergeurs pris en charge.
+- Thèmes clair, sombre et système, avec choix mémorisé et sélecteur accessible depuis l’en-tête et les paramètres.
 - Lecteur `media_kit`, commandes vidéo intégrées, raccourcis clavier et reprise de lecture.
 - Téléchargements MP4, HLS VOD (y compris AES-128 standard) et DASH statique non protégé, publication atomique, annulation et lecture hors ligne.
 - Service Android de téléchargement avec notification et maintien en activité, PiP sur les appareils compatibles.
@@ -29,17 +32,17 @@ Projet indépendant, réécrit à partir des APK officiels et du code Web public
 Cette reconstruction ne restitue pas les fichiers Dart originaux et n’établit pas une parité complète avec les APK.
 
 - Les 12 releases GitHub accessibles vérifiées le 2 novembre 2026 ne contiennent aucun paquet macOS. La version Mac est compilée depuis cette reconstruction.
-- L’accueil TV a été comparé visuellement avec l’APK original exécuté en émulateur ; tous les écrans et parcours originaux ne sont pas reproduits à l’identique.
-- Les extracteurs directs propres aux APK, Chromecast/AirPlay, actualisation automatique et recherche de sous-titres externes restent à reconstruire. Les pistes embarquées sont disponibles dans les commandes du lecteur.
+- L’accueil et la fiche de film ont été comparés avec l’APK TV original exécuté en émulateur. Le contrôle macOS utilise des captures du rendu Flutter pendant un test natif. Les extracteurs natifs, certains écrans et certains parcours restent différents.
+- Extraction locale VixSrc, Vidzy et Vidmoly ajoutée. Les extracteurs locaux AnimePahe/HiAnime, Chromecast/AirPlay, actualisation automatique et recherche de sous-titres externes restent à reconstruire. Les pistes retournées par les fournisseurs et les pistes embarquées sont disponibles dans le lecteur.
 - Les téléchargements acceptent les fichiers MP4, HLS à la demande et une partie des manifestes DASH statiques (SegmentTemplate/SegmentList). Les flux en direct, DRM et formes de segmentation non prises en charge échouent explicitement.
 - Sur Android, le service de téléchargement reste soumis aux limites du système, aux autorisations et aux arrêts forcés. Les fichiers interrompus sont nettoyés au prochain lancement ; la reprise réseau après arrêt n’est pas implémentée. Sur Mac, garder l’application ouverte pendant le téléchargement.
-- Les intégrations de sources dépendent des services externes existants. Une requête de contrôle vers `vixsrc` pour TMDB 550 a renvoyé une liste vide ; une lecture vidéo de test réussie ne valide pas les sources de tous les films du catalogue.
+- Les intégrations de sources dépendent des services externes existants. Les fournisseurs peuvent être indisponibles ou ne pas proposer un titre. Les anciens endpoints Cinepro/Vidlink renvoient actuellement HTTP 410 et ne sont plus interrogés. Les liens embed non pris en charge peuvent être listés, mais leur extraction échoue explicitement. Une liste de liens chargée ne valide pas la lecture de chaque hébergeur.
 - Trakt est testé avec des réponses simulées ; aucune connexion à un compte réel n’a été effectuée.
 - Le code de signature d’origine n’est pas récupérable depuis les APK. Les applications reconstruites ont de nouveaux identifiants et une nouvelle clé locale ; elles s’installent séparément des applications d’origine.
 
 ## Vérifications
 
-- Analyse Flutter sans anomalie et 24 tests unitaires/de widgets, dont les erreurs réseau, le stockage, la navigation et les titres longs sur petits écrans.
+- Analyse Flutter sans anomalie et 33 tests unitaires/de widgets, dont les erreurs réseau, le stockage, la navigation et les titres longs sur petits écrans.
 - Trois tests d’intégration sur émulateur Android TV ARM64, également réussis sur macOS : téléchargement de MP4/HLS/DASH, fermeture du serveur source, lecture locale avec rendu vidéo et piste audio, recherche dans la vidéo et persistance de la position.
 - Les tests utilisent un extrait de démonstration Flutter et un son synthétique, indépendants des fournisseurs du catalogue. Préparer avec `tool/prepare_media_fixture.py`, transférer vers `/data/local/tmp/anisflix-media`, puis lancer `flutter test integration_test/playback_test.dart -d <device> --flavor tv --dart-define=TV_MODE=true`.
 - Test macOS du démarrage réel de l’interface, du chargement du catalogue et d’une recherche TMDB.
@@ -83,3 +86,9 @@ Sans configuration locale de signature, le modèle utilise la signature de déve
 ## Ressources et licences
 
 Les ressources graphiques proviennent des APK fournis par le dépôt de l’utilisateur. `recovery/original-NOTICES.Z` conserve les notices incluses dans le build TV examiné. Les licences des dépendances de cette reconstruction sont accessibles avec le mécanisme de licences Flutter. Vérifier les droits sur les ressources et les contenus avant toute redistribution publique.
+
+## Typographie
+
+Roboto est embarquée pour conserver sur macOS la typographie de la version Android TV. Les fichiers proviennent du dépôt officiel googlefonts/roboto ; leur licence Apache 2.0 est incluse dans `assets/fonts/LICENSE.txt`.
+
+Le détail des 14 familles de sources identifiées dans le build TV 50, de leurs adaptations macOS et de leurs limites est dans [SOURCE_PARITY.md](recovery/SOURCE_PARITY.md). Le contrôle réseau peut être relancé avec `python3 tool/audit_sources.py rapport.json`.

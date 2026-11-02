@@ -3,6 +3,8 @@ class MediaItem {
   final String type, title, overview, date;
   final String? poster, backdrop;
   final double rating;
+  final List<int> genreIds;
+  final int? latestSeason, latestEpisode;
   const MediaItem({
     required this.id,
     required this.type,
@@ -12,10 +14,24 @@ class MediaItem {
     this.backdrop,
     this.rating = 0,
     this.date = '',
+    this.genreIds = const [],
+    this.latestSeason,
+    this.latestEpisode,
   });
   factory MediaItem.fromJson(Map<String, dynamic> j, {String? type}) =>
       MediaItem(
         id: (j['id'] as num).toInt(),
+        genreIds:
+            (j['genre_ids'] as List? ??
+                    (j['genres'] as List? ?? [])
+                        .whereType<Map>()
+                        .map((g) => g['id'])
+                        .toList())
+                .whereType<num>()
+                .map((n) => n.toInt())
+                .toList(),
+        latestSeason: (j['episodeInfo']?['season'] as num?)?.toInt(),
+        latestEpisode: (j['episodeInfo']?['episode'] as num?)?.toInt(),
         type: type ?? j['media_type'] ?? 'movie',
         title: j['title'] ?? j['name'] ?? 'Sans titre',
         overview: j['overview'] ?? '',
@@ -29,6 +45,9 @@ class MediaItem {
       poster == null ? null : 'https://image.tmdb.org/t/p/w500$poster';
   Map<String, dynamic> toJson() => {
     'id': id,
+    'genre_ids': genreIds,
+    if (latestEpisode != null)
+      'episodeInfo': {'season': latestSeason, 'episode': latestEpisode},
     'media_type': type,
     'title': title,
     'overview': overview,
@@ -39,24 +58,63 @@ class MediaItem {
   };
 }
 
+class SourceSubtitle {
+  final String url, label, language;
+  const SourceSubtitle(this.url, this.label, this.language);
+  Map<String, String> toJson() => {
+    'file': url,
+    'label': label,
+    'language': language,
+  };
+}
+
 class StreamSource {
   final String url, label, language;
-  final String format;
+  final String format, provider, quality;
   final Map<String, String> headers;
+  final List<SourceSubtitle> subtitles;
   const StreamSource(
     this.url,
     this.label, {
     this.language = '',
     this.format = '',
+    this.provider = '',
+    this.quality = '',
     this.headers = const {},
+    this.subtitles = const [],
   });
-  static StreamSource? parse(Map<String, dynamic> j, String provider) {
-    final value = j['url'] ?? j['link'] ?? j['file'];
-    if (value is! String) return null;
-    final uri = Uri.tryParse(value);
+  bool get needsExtraction =>
+      ['embed', 'iframe'].contains(format.toLowerCase());
+  String get languageGroup {
+    final value = language.toLowerCase();
+    if (value.contains('vost') || value.contains('subfr')) return 'VOSTFR';
+    if (value.startsWith('vf') ||
+        value == 'fr' ||
+        value == 'fra' ||
+        value == 'fre' ||
+        value.contains('french') ||
+        value.contains('français') ||
+        value == 'vfq' ||
+        value == 'multi' ||
+        value.startsWith('fr-')) {
+      return 'VF';
+    }
+    if (value.isEmpty) return 'Autres';
+    return 'VO';
+  }
+
+  static StreamSource? parse(
+    Map<String, dynamic> j,
+    String provider, {
+    Uri? base,
+  }) {
+    if ('${j['provider'] ?? ''}'.toLowerCase() == 'debug') return null;
+    final value = j['url'] ?? j['decoded_url'] ?? j['link'] ?? j['file'];
+    if (value is! String || value.trim().isEmpty) return null;
+    final uri = base?.resolve(value) ?? Uri.tryParse(value);
     if (uri == null ||
         !['http', 'https'].contains(uri.scheme) ||
-        j['type'] == 'embed') {
+        uri.host.isEmpty) {
       return null;
     }
     final headers = <String, String>{};
@@ -65,12 +123,47 @@ class StreamSource {
         if (v is String) headers[k.toString()] = v;
       });
     }
+    final name = '${j['provider'] ?? j['server'] ?? j['player'] ?? provider}';
+    final display =
+        const {
+          'moviebox': 'MovieBox',
+          'vaplayer': 'VaPlayer',
+          'yflix': 'YFlix',
+          'frenchstream': 'French Stream',
+          'streamzo': 'Streamzo',
+          'vixsrc': 'VixSrc',
+          'animesama': 'Anime-Sama',
+          'frenchanime': 'French-Anime',
+          'animepahe': 'AnimePahe',
+          'hianime': 'HiAnime',
+          'anime-api': 'AnimeAPI',
+          'afterdark': 'AfterDark',
+        }[name.toLowerCase()] ??
+        name;
+    final quality = '${j['quality'] ?? 'Auto'}';
     return StreamSource(
-      value,
-      '${j['provider'] ?? j['server'] ?? provider} · ${j['quality'] ?? 'Auto'}',
-      language: '${j['language'] ?? j['lang'] ?? ''}',
-      format: '${j['type'] ?? ''}',
+      uri.toString(),
+      '$display · $quality',
+      provider: name,
+      quality: quality,
+      language: '${j['language'] ?? j['lang'] ?? j['languageLabel'] ?? ''}',
+      format: '${j['type'] ?? j['format'] ?? ''}',
       headers: headers,
+      subtitles: [
+        for (final track in (j['tracks'] ?? j['subtitles'] ?? []) as List)
+          if (track is Map &&
+              (track['kind'] == null ||
+                  ['captions', 'subtitles'].contains(track['kind'])))
+            if (Uri.tryParse('${track['file'] ?? track['url'] ?? ''}')
+                case final Uri uri
+                when ['https', 'http'].contains(uri.scheme) &&
+                    uri.host.isNotEmpty)
+              SourceSubtitle(
+                uri.toString(),
+                '${track['label'] ?? track['language'] ?? 'Sous-titres'}',
+                '${track['language'] ?? track['srclang'] ?? ''}',
+              ),
+      ],
     );
   }
 }

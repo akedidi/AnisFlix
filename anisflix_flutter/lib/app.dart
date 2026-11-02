@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'widgets/theme_picker.dart';
+import 'widgets/search_box.dart';
+import 'screens/details.dart';
 import 'services/catalog_api.dart';
 import 'services/library.dart';
 import 'services/platform_bridge.dart';
@@ -26,34 +29,48 @@ class _AnisFlixAppState extends State<AnisFlixApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'AnisFlix',
-    debugShowCheckedModeBanner: false,
-    shortcuts: {
-      ...WidgetsApp.defaultShortcuts,
-      const SingleActivator(LogicalKeyboardKey.select): const ActivateIntent(),
-    },
-    theme: ThemeData(
-      brightness: Brightness.dark,
-      useMaterial3: true,
-      colorScheme:
-          ColorScheme.fromSeed(
-            seedColor: const Color(0xffed214d),
-            brightness: Brightness.dark,
-          ).copyWith(
-            primary: const Color(0xffffb1ba),
-            surface: const Color(0xff211b1c),
-          ),
-      scaffoldBackgroundColor: const Color(0xff101216),
-      focusColor: const Color(0xffec2747),
-      cardTheme: const CardThemeData(clipBehavior: Clip.antiAlias),
-      inputDecorationTheme: const InputDecorationTheme(
-        border: OutlineInputBorder(),
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: widget.library,
+    builder: (context, _) => MaterialApp(
+      title: 'AnisFlix',
+      debugShowCheckedModeBanner: false,
+      shortcuts: {
+        ...WidgetsApp.defaultShortcuts,
+        const SingleActivator(LogicalKeyboardKey.select):
+            const ActivateIntent(),
+      },
+      theme: appTheme(Brightness.light),
+      darkTheme: appTheme(Brightness.dark),
+      themeMode: widget.library.themeMode,
+      home: AnimatedBuilder(
+        animation: widget.library,
+        builder: (_, _) => Shell(api: api, library: widget.library),
       ),
     ),
-    home: AnimatedBuilder(
-      animation: widget.library,
-      builder: (_, _) => Shell(api: api, library: widget.library),
+  );
+}
+
+ThemeData appTheme(Brightness brightness) {
+  final dark = brightness == Brightness.dark;
+  return ThemeData(
+    fontFamily: 'Roboto',
+    brightness: brightness,
+    useMaterial3: true,
+    colorScheme:
+        ColorScheme.fromSeed(
+          seedColor: const Color(0xffed214d),
+          brightness: brightness,
+        ).copyWith(
+          primary: dark ? const Color(0xffffb1ba) : const Color(0xffbc123c),
+          surface: dark ? const Color(0xff211b1c) : const Color(0xfffff8f8),
+        ),
+    scaffoldBackgroundColor: dark
+        ? const Color(0xff101216)
+        : const Color(0xfffffbfc),
+    focusColor: const Color(0xffec2747),
+    cardTheme: const CardThemeData(clipBehavior: Clip.antiAlias),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: OutlineInputBorder(),
     ),
   );
 }
@@ -68,6 +85,7 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int selected = 0;
+  String searchQuery = '';
   static const labels = [
     'Accueil',
     'Films',
@@ -140,12 +158,14 @@ class _ShellState extends State<Shell> {
     ),
     _ => CatalogScreen(
       key: ValueKey(
-        '$selected:${widget.library.language}:${widget.library.backend}',
+        '$selected:$searchQuery:${widget.library.language}:${widget.library.backend}',
       ),
       api: widget.api,
       library: widget.library,
       section: selected,
       tv: tv,
+      initialQuery: selected == 4 ? searchQuery : '',
+      showSearchField: tv || MediaQuery.sizeOf(context).width < 900,
     ),
   };
   @override
@@ -174,6 +194,7 @@ class _ShellState extends State<Shell> {
                 ),
               ),
               actions: [
+                ThemePicker(library: widget.library),
                 IconButton(
                   tooltip: 'Rechercher',
                   onPressed: () => navigate(4),
@@ -219,9 +240,11 @@ class _ShellState extends State<Shell> {
           ? Row(
               children: [
                 SizedBox(
-                  width: 190,
+                  width: 170,
                   child: ColoredBox(
-                    color: const Color(0xff251a1b),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xff251a1b)
+                        : const Color(0xfffff0f2),
                     child: SafeArea(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,54 +290,67 @@ class _ShellState extends State<Shell> {
                 Expanded(
                   child: Column(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 22,
-                          vertical: 16,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
+                      if (!(selected == 4 && tv))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 48,
+                                  child: tv
+                                      ? OutlinedButton.icon(
+                                          onPressed: () => navigate(4),
+                                          icon: const Icon(Icons.search),
+                                          label: const Text(
+                                            'Rechercher un film, une série ou un anime…',
+                                          ),
+                                        )
+                                      : SearchBox(
+                                          api: widget.api,
+                                          onSubmitted: (query) => setState(() {
+                                            searchQuery = query;
+                                            selected = 4;
+                                          }),
+                                          onSelected: (item) => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => DetailScreen(
+                                                api: widget.api,
+                                                library: widget.library,
+                                                item: item,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ThemePicker(library: widget.library),
+                              const SizedBox(width: 8),
+                              SizedBox(
                                 height: 48,
-                                child: OutlinedButton.icon(
-                                  onPressed: () => navigate(4),
-                                  icon: const Icon(Icons.search),
+                                width: 48,
+                                child: OutlinedButton(
+                                  onPressed: languagePicker,
                                   style: OutlinedButton.styleFrom(
-                                    alignment: Alignment.centerLeft,
+                                    padding: EdgeInsets.zero,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  label: const Text(
-                                    'Rechercher un film, une série ou un anime…',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  child: Text(
+                                    flag,
+                                    style: const TextStyle(fontSize: 24),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            SizedBox(
-                              height: 48,
-                              width: 48,
-                              child: OutlinedButton(
-                                onPressed: languagePicker,
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                child: Text(
-                                  flag,
-                                  style: const TextStyle(fontSize: 24),
-                                ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
                       const Divider(height: 1),
                       Expanded(child: content),
                     ],
@@ -409,12 +445,17 @@ class _SidebarButtonState extends State<SidebarButton> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
-            Icon(widget.icon, size: 20),
+            Icon(
+              widget.icon,
+              size: 20,
+              color: widget.selected ? Colors.white : null,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 widget.label,
-                style: const TextStyle(
+                style: TextStyle(
+                  color: widget.selected ? Colors.white : null,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),

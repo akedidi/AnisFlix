@@ -16,6 +16,7 @@ class FixtureCatalog extends CatalogApi {
     bool latest = false,
     bool anime = false,
     int? provider,
+    String? filter,
   }) async => MediaPage(
     [
       MediaItem(

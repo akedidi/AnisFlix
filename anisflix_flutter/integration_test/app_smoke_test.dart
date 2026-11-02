@@ -29,6 +29,7 @@ void main() {
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'Fight Club');
     await tester.pump(const Duration(milliseconds: 600));
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     final result = find.byWidgetPredicate(
       (widget) =>
           widget is MediaCard &&
@@ -38,8 +39,8 @@ void main() {
     await waitFor(() => result.evaluate().isNotEmpty);
     await tester.tap(result.first);
     await tester.pump();
-    await waitFor(() => find.text('Regarder').evaluate().isNotEmpty);
-    expect(find.text('Regarder'), findsOneWidget);
+    await waitFor(() => find.text('Sources disponibles').evaluate().isNotEmpty);
+    expect(find.text('Sources disponibles'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

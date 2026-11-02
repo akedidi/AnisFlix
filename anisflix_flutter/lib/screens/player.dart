@@ -195,6 +195,40 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           },
                           icon: const Icon(Icons.picture_in_picture_alt),
                         ),
+                      if (widget.source.subtitles.isNotEmpty)
+                        PopupMenuButton<int>(
+                          tooltip: 'Sous-titres',
+                          icon: const Icon(Icons.subtitles_outlined),
+                          onSelected: (index) async {
+                            final track = index < 0
+                                ? null
+                                : widget.source.subtitles[index];
+                            await player.setSubtitleTrack(
+                              track == null
+                                  ? SubtitleTrack.no()
+                                  : SubtitleTrack.uri(
+                                      track.url,
+                                      title: track.label,
+                                      language: track.language,
+                                    ),
+                            );
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: -1,
+                              child: Text('Désactivés'),
+                            ),
+                            for (
+                              var i = 0;
+                              i < widget.source.subtitles.length;
+                              i++
+                            )
+                              PopupMenuItem(
+                                value: i,
+                                child: Text(widget.source.subtitles[i].label),
+                              ),
+                          ],
+                        ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Text(

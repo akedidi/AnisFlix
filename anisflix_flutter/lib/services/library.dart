@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/media.dart';
@@ -13,6 +13,15 @@ class Library extends ChangeNotifier {
   final Map<String, Map<String, dynamic>> progress = {};
   final List<Map<String, dynamic>> downloads = [];
   String language, apiKey, backend;
+  ThemeMode get themeMode => ThemeMode.values.firstWhere(
+    (mode) => mode.name == prefs.getString('themeMode'),
+    orElse: () => ThemeMode.dark,
+  );
+  Future<void> setThemeMode(ThemeMode mode) async {
+    await prefs.setString('themeMode', mode.name);
+    notifyListeners();
+  }
+
   Library(this.prefs)
     : language = prefs.getString('language') ?? 'fr-FR',
       apiKey = const String.fromEnvironment('TMDB_API_KEY'),

@@ -123,7 +123,8 @@ void main() {
         }),
       );
       final result = await api.sources(movie);
-      expect(result.length, 1);
+      expect(result.length, 2);
+      expect(result.any((s) => s.needsExtraction), isTrue);
       expect(result.first.headers['Referer'], 'https://example.com');
       api.close();
     },

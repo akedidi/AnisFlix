@@ -6,6 +6,7 @@ import '../models/media.dart';
 import '../services/catalog_api.dart';
 import '../services/library.dart';
 import 'details.dart';
+import '../widgets/tv_search_keyboard.dart';
 
 class CatalogScreen extends StatefulWidget {
   final CatalogApi api;
@@ -14,6 +15,9 @@ class CatalogScreen extends StatefulWidget {
   final bool tv;
   final bool latestOverride;
   final int? initialProvider;
+  final String? initialMediaType, filter;
+  final String initialQuery;
+  final bool showSearchField;
   const CatalogScreen({
     super.key,
     required this.api,
@@ -22,6 +26,10 @@ class CatalogScreen extends StatefulWidget {
     required this.tv,
     this.latestOverride = false,
     this.initialProvider,
+    this.initialMediaType,
+    this.filter,
+    this.initialQuery = '',
+    this.showSearchField = true,
   });
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -46,7 +54,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
   void initState() {
     super.initState();
     provider = widget.initialProvider;
-    if (widget.section != 5 && widget.section != 4) {
+    search.text = widget.initialQuery;
+    animeType = widget.initialMediaType ?? 'tv';
+    if (widget.section != 5 &&
+        (widget.section != 4 || search.text.trim().isNotEmpty)) {
       unawaited(load(reset: true));
     }
   }
@@ -86,6 +97,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         latest: widget.section == 0 || widget.latestOverride,
         anime: widget.section == 3,
         provider: provider,
+        filter: widget.filter,
       );
       if (!mounted || ticket != generation) return;
       setState(() {
@@ -109,6 +121,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   void searchChanged(String _) {
     debounce?.cancel();
+    generation++;
+    setState(() {
+      items = [];
+      error = null;
+      loading = search.text.trim().isNotEmpty;
+    });
     debounce = Timer(
       const Duration(milliseconds: 450),
       () => load(reset: true),
@@ -149,16 +167,18 @@ class _CatalogScreenState extends State<CatalogScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
+                if (!(widget.section == 4 && widget.tv))
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
                 const SizedBox(height: 16),
-                if (widget.section == 4) ...[
+                if (widget.section == 4 && widget.showSearchField) ...[
                   TextField(
                     controller: search,
                     autofocus: !widget.tv,
+                    readOnly: widget.tv,
                     onChanged: searchChanged,
                     onSubmitted: (_) => load(reset: true),
                     decoration: InputDecoration(
@@ -168,7 +188,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         tooltip: 'Effacer',
                         onPressed: () {
                           search.clear();
-                          unawaited(load(reset: true));
+                          searchChanged('');
                         },
                         icon: const Icon(Icons.clear),
                       ),
@@ -176,45 +196,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   ),
                   if (widget.tv)
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          for (final letter
-                              in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split(
-                                '',
-                              ))
-                            SizedBox(
-                              width: 48,
-                              height: 44,
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  search.text += letter;
-                                  unawaited(load(reset: true));
-                                },
-                                child: Text(letter),
-                              ),
-                            ),
-                          OutlinedButton(
-                            onPressed: () {
-                              search.text += ' ';
-                            },
-                            child: const Text('Espace'),
-                          ),
-                          OutlinedButton(
-                            onPressed: () {
-                              if (search.text.isNotEmpty) {
-                                search.text = search.text.substring(
-                                  0,
-                                  search.text.length - 1,
-                                );
-                              }
-                              unawaited(load(reset: true));
-                            },
-                            child: const Icon(Icons.backspace_outlined),
-                          ),
-                        ],
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: TvSearchKeyboard(
+                        controller: search,
+                        onChanged: searchChanged,
+                        onSubmitted: () => load(reset: true),
                       ),
                     ),
                 ],
@@ -360,11 +346,19 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => DetailScreen(
-                        api: widget.api,
-                        library: widget.library,
-                        item: visible[i],
-                      ),
+                      builder: (_) => visible[i].latestEpisode != null
+                          ? EpisodeDetailScreen(
+                              api: widget.api,
+                              library: widget.library,
+                              item: visible[i],
+                              season: visible[i].latestSeason ?? 1,
+                              episode: visible[i].latestEpisode!,
+                            )
+                          : DetailScreen(
+                              api: widget.api,
+                              library: widget.library,
+                              item: visible[i],
+                            ),
                     ),
                   ),
                 ),

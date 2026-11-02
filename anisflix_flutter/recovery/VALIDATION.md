@@ -13,3 +13,9 @@ Dépôt Web d’origine : `/Users/anis/Documents/perso/AnisFlix`.
 - Les services de lecture du catalogue, les intégrations natives manquantes et la parité visuelle complète ne sont pas certifiés par ces tests. Voir README.
 
 Les journaux complets sont conservés localement dans `work/` et les journaux finaux accompagnent les livrables.
+
+## Mise à jour 0.3.0 — sources et interface TV
+
+La couverture des fournisseurs et les limites de lecture sont détaillées dans [SOURCE_PARITY.md](SOURCE_PARITY.md). Les tests natifs contrôlent les sources réelles pour un film, un épisode et un animé, le panneau à droite et les thèmes. Les comparaisons visuelles et leurs réserves sont dans [design-qa.md](design-qa.md). Les validations 0.2.0 ci-dessus concernent le build précédent et ne prouvent pas la lecture de toutes les sources ajoutées.
+
+Validation 0.3.0 : analyseur sans problème, 42 tests unitaires/widgets réussis, 2 tests natifs macOS réussis. Collecte réelle : 33 liens film, 24 épisode, 15 animé. Ces comptes incluent des embeds et ne garantissent pas la lecture de chaque hébergeur.

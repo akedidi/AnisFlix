@@ -4,6 +4,7 @@ import '../services/library.dart';
 import '../models/media.dart';
 import 'player.dart';
 import 'trakt_panel.dart';
+import '../widgets/theme_picker.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Library library;
@@ -31,6 +32,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     padding: const EdgeInsets.all(24),
     children: [
       Text('Paramètres', style: Theme.of(context).textTheme.headlineMedium),
+      const SizedBox(height: 16),
+      ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Apparence'),
+        subtitle: const Text('Clair, sombre ou thème du système'),
+        trailing: ThemePicker(library: widget.library),
+      ),
       const SizedBox(height: 24),
       Form(
         key: form,
@@ -50,28 +58,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) => language = value!,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: backend,
-              decoration: const InputDecoration(
-                labelText: 'Adresse du service AnisFlix',
-              ),
-              validator: (value) {
-                final uri = Uri.tryParse(value ?? '');
-                return uri?.scheme == 'https' && uri!.host.isNotEmpty
-                    ? null
-                    : 'Saisis une adresse HTTPS valide.';
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: keyController,
-              obscureText: true,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'Clé TMDB',
-                helperText: 'Conservée pour cette session uniquement.',
-              ),
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Réglages avancés'),
+              children: [
+                TextFormField(
+                  controller: backend,
+                  decoration: const InputDecoration(
+                    labelText: 'Adresse du service AnisFlix',
+                  ),
+                  validator: (value) {
+                    final uri = Uri.tryParse(value ?? '');
+                    return uri?.scheme == 'https' && uri!.host.isNotEmpty
+                        ? null
+                        : 'Saisis une adresse HTTPS valide.';
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: keyController,
+                  obscureText: true,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: const InputDecoration(
+                    labelText: 'Clé TMDB (configuration avancée)',
+                    helperText: 'Déjà incluse dans cette application. Aucune saisie nécessaire.',
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             FilledButton(
