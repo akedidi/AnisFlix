@@ -29,3 +29,5 @@ Validation 0.3.0 : analyseur sans problème, 42 tests unitaires/widgets réussis
 - Les régions des catalogues de plateformes correspondent à iOS : US pour Amazon Prime et Peacock, FR pour les autres.
 
 Voir [IOS_NATIVE_PARITY.md](IOS_NATIVE_PARITY.md) et [ios-native-engine-provenance.json](ios-native-engine-provenance.json) pour les adaptations et limites.
+
+Livrables finaux 0.4.0+4 : compilation macOS universelle (arm64/x86_64), APK mobile et TV réussies. Versions des deux APK confirmées par aapt et signatures vérifiées par apksigner. Application macOS signée localement, vérifiée par codesign --deep --strict, installée dans `~/Applications/AnisFlix.app` et démarrée. La signature du framework App a été renouvelée après compilation, puis celle du bundle avec les droits réseau et sandbox de production.
