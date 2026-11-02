@@ -40,3 +40,5 @@ Livrables finaux 0.4.0+4 : compilation macOS universelle (arm64/x86_64), APK mob
 - Le mécanisme de publication de production et les écarts restants sont documentés dans APP_UPDATES.md et FEATURE_DIFFERENCES.md. Aucun succès de distribution GitHub n'est affirmé : le premier manifeste compatible reste à publier.
 
 Les certificats de signature des APK de production mobile et TV sont identiques à ceux des APK 0.4.0, ce qui permet leur remplacement par la même application. Le contrôle du canal s'appuie sur le paquet installé et non le type d'appareil : une édition mobile utilisée sur une TV reste sur le canal mobile.
+
+Les trois builds de production finaux 0.5.0+5 ont réussi. macOS universel a été signé localement, contrôlé avec codesign --deep --strict, installé et lancé. Les deux APK ont passé aapt/apksigner, et leurs certificats correspondent à ceux de 0.4.0. Le générateur a produit anisflix-update.json à partir des trois livrables en vérifiant identifiants, versions et tailles ; la publication demeure bloquée par l'authentification GitHub.
