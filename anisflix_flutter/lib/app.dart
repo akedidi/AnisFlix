@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'l10n/app_localizations.dart';
+
 import 'widgets/theme_picker.dart';
+import 'widgets/anime_icon.dart';
 import 'widgets/update_panel.dart';
 import 'services/app_updates.dart';
 import 'widgets/search_box.dart';
@@ -12,6 +15,7 @@ import 'services/catalog_api.dart';
 import 'services/library.dart';
 import 'services/platform_bridge.dart';
 import 'screens/catalog.dart';
+import 'screens/catalog_categories.dart';
 import 'screens/home.dart';
 import 'screens/settings.dart';
 import 'screens/downloads.dart';
@@ -46,6 +50,9 @@ class _AnisFlixAppState extends State<AnisFlixApp> {
     builder: (context, _) => MaterialApp(
       title: 'AnisFlix',
       debugShowCheckedModeBanner: false,
+      locale: AppLocalizations.resolve(widget.library.language),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.delegates,
       shortcuts: {
         ...WidgetsApp.defaultShortcuts,
         const SingleActivator(LogicalKeyboardKey.select):
@@ -117,34 +124,30 @@ class _ShellState extends State<Shell> {
     'Plateformes',
   ];
   static const icons = [
-    Icons.home_outlined,
-    Icons.movie_outlined,
-    Icons.live_tv_outlined,
-    Icons.auto_awesome,
-    Icons.search,
-    Icons.favorite_outline,
-    Icons.download_outlined,
-    Icons.settings_outlined,
-    Icons.grid_view_rounded,
+    Icon(Icons.home_outlined),
+    Icon(Icons.movie_outlined),
+    Icon(Icons.live_tv_outlined),
+    AnimeIcon(),
+    Icon(Icons.search),
+    Icon(Icons.favorite_outline),
+    Icon(Icons.download_outlined),
+    Icon(Icons.settings_outlined),
+    Icon(Icons.grid_view_rounded),
   ];
-  static const menuOrder = [0, 1, 2, 8, 3, 5, 6, 7];
+  static const menuOrder = [0, 1, 2, 3, 8, 5, 6, 7];
   void navigate(int index) => setState(() => selected = index);
   Future<void> languagePicker() async {
     final value = await showDialog<String>(
       context: context,
       builder: (context) => SimpleDialog(
-        title: const Text('Langue du catalogue'),
+        title: Text(context.tr("Langue de l’application et du catalogue")),
         children: [
-          for (final item in [
-            ('fr-FR', '🇫🇷 Français'),
-            ('en-US', '🇬🇧 English'),
-            ('es-ES', '🇪🇸 Español'),
-          ])
+          for (final item in AppLocalizations.supportedLanguages)
             SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, item.$1),
+              onPressed: () => Navigator.pop(context, item.code),
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(item.$2),
+                child: Text('${item.flag} ${item.name}'),
               ),
             ),
         ],
@@ -160,6 +163,15 @@ class _ShellState extends State<Shell> {
   }
 
   Widget page(bool tv) => switch (selected) {
+    1 || 2 => CatalogCategoriesScreen(
+      key: ValueKey(
+        'categories:$selected:${widget.library.language}:${widget.library.backend}',
+      ),
+      api: widget.api,
+      library: widget.library,
+      type: selected == 2 ? 'tv' : 'movie',
+      tv: tv,
+    ),
     0 => HomeScreen(
       key: ValueKey(
         'home:${widget.library.language}:${widget.library.backend}',
@@ -183,8 +195,10 @@ class _ShellState extends State<Shell> {
       library: widget.library,
       section: selected,
       tv: tv,
+      latestOverride: selected == 3,
       initialQuery: selected == 4 ? searchQuery : '',
       showSearchField: tv || MediaQuery.sizeOf(context).width < 900,
+      showHeading: ![3, 5].contains(selected),
     ),
   };
   @override
@@ -201,11 +215,12 @@ class _ShellState extends State<Shell> {
         ],
       ),
     );
-    final flag = widget.library.language.startsWith('fr')
-        ? '🇫🇷'
-        : widget.library.language.startsWith('es')
-        ? '🇪🇸'
-        : '🇬🇧';
+    final flag = AppLocalizations.supportedLanguages
+        .firstWhere(
+          (item) => item.code == widget.library.language,
+          orElse: () => AppLocalizations.supportedLanguages.first,
+        )
+        .flag;
     return Scaffold(
       appBar: wide
           ? null
@@ -218,9 +233,9 @@ class _ShellState extends State<Shell> {
                 ),
               ),
               actions: [
-                ThemePicker(library: widget.library),
+                if (selected == 0) ThemePicker(library: widget.library),
                 IconButton(
-                  tooltip: 'Rechercher',
+                  tooltip: context.tr("Rechercher"),
                   onPressed: () => navigate(4),
                   icon: const Icon(Icons.search),
                 ),
@@ -248,8 +263,8 @@ class _ShellState extends State<Shell> {
                     ),
                     for (final i in menuOrder)
                       ListTile(
-                        leading: Icon(icons[i]),
-                        title: Text(labels[i]),
+                        leading: icons[i],
+                        title: Text(context.tr(labels[i])),
                         selected: selected == i,
                         onTap: () {
                           Navigator.pop(context);
@@ -295,7 +310,7 @@ class _ShellState extends State<Shell> {
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 5),
                                     child: SidebarButton(
-                                      label: labels[i],
+                                      label: context.tr(labels[i]),
                                       icon: icons[i],
                                       selected: selected == i,
                                       autofocus: i == 0,
@@ -329,8 +344,10 @@ class _ShellState extends State<Shell> {
                                       ? OutlinedButton.icon(
                                           onPressed: () => navigate(4),
                                           icon: const Icon(Icons.search),
-                                          label: const Text(
-                                            'Rechercher un film, une série ou un anime…',
+                                          label: Text(
+                                            context.tr(
+                                              "Rechercher un film, une série ou un anime…",
+                                            ),
                                           ),
                                         )
                                       : SearchBox(
@@ -352,8 +369,10 @@ class _ShellState extends State<Shell> {
                                         ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              ThemePicker(library: widget.library),
+                              if (selected == 0) ...[
+                                const SizedBox(width: 8),
+                                ThemePicker(library: widget.library),
+                              ],
                               const SizedBox(width: 8),
                               SizedBox(
                                 height: 48,
@@ -396,8 +415,8 @@ class _ShellState extends State<Shell> {
                           children: [
                             for (final j in [3, 8, 4, 5, 6, 7])
                               ListTile(
-                                leading: Icon(icons[j]),
-                                title: Text(labels[j]),
+                                leading: icons[j],
+                                title: Text(context.tr(labels[j])),
                                 onTap: () {
                                   Navigator.pop(context);
                                   navigate(j);
@@ -408,13 +427,22 @@ class _ShellState extends State<Shell> {
                       ),
                     )
                   : navigate(i),
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.home), label: 'Accueil'),
-                NavigationDestination(icon: Icon(Icons.movie), label: 'Films'),
-                NavigationDestination(icon: Icon(Icons.tv), label: 'Séries'),
+              destinations: [
+                NavigationDestination(
+                  icon: Icon(Icons.home),
+                  label: context.tr("Accueil"),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.movie),
+                  label: context.tr("Films"),
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.tv),
+                  label: context.tr("Séries"),
+                ),
                 NavigationDestination(
                   icon: Icon(Icons.more_horiz),
-                  label: 'Plus',
+                  label: context.tr("Plus"),
                 ),
               ],
             ),
@@ -424,7 +452,7 @@ class _ShellState extends State<Shell> {
 
 class SidebarButton extends StatefulWidget {
   final String label;
-  final IconData icon;
+  final Widget icon;
   final bool selected, autofocus;
   final VoidCallback onPressed;
   const SidebarButton({
@@ -469,10 +497,12 @@ class _SidebarButtonState extends State<SidebarButton> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           children: [
-            Icon(
-              widget.icon,
-              size: 20,
-              color: widget.selected ? Colors.white : null,
+            IconTheme.merge(
+              data: IconThemeData(
+                size: 20,
+                color: widget.selected ? Colors.white : null,
+              ),
+              child: widget.icon,
             ),
             const SizedBox(width: 10),
             Expanded(

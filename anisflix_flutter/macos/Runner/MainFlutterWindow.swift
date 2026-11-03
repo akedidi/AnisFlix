@@ -17,6 +17,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
   }
   private var normalWindow: WindowState?
   private var pendingPip: FlutterResult?
+  private var pictureInPictureTitle = "AnisFlix"
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = NSRect(x: self.frame.origin.x, y: self.frame.origin.y, width: 1280, height: 800)
@@ -36,6 +37,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       switch call.method {
       case "enterPictureInPicture":
         if self.pendingPip != nil { reply(false); return }
+        self.pictureInPictureTitle = (call.arguments as? [String: Any])?["title"] as? String ?? "AnisFlix"
         if self.styleMask.contains(.fullScreen) {
           self.pendingPip = reply
           self.toggleFullScreen(nil)
@@ -92,7 +94,7 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     level = .floating
     collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     isMovableByWindowBackground = true
-    title = "AnisFlix — Image dans l’image"
+    title = pictureInPictureTitle
     let visible = (screen ?? NSScreen.main)?.visibleFrame ?? frame
     let size = frameRect(forContentRect: NSRect(x: 0, y: 0, width: 400, height: 225)).size
     setFrame(NSRect(x: visible.maxX - size.width - 20, y: visible.minY + 20,

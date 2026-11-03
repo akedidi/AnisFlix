@@ -38,7 +38,7 @@ final class FrenchAnimeProvidersService {
     }
 
     private struct FrenchAnimeCandidate {
-        let id: String
+        let url: String
         let slug: String
         let category: String
         let score: Double
@@ -51,8 +51,10 @@ final class FrenchAnimeProvidersService {
     private let streamzoBase = "https://streamzo.fr"
     private var backendBase: String { NativeSourceConfiguration.backend }
     private let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+    private let injectedSession: URLSession?
 
     private lazy var session: URLSession = {
+        if let injectedSession { return injectedSession }
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 18
         config.timeoutIntervalForResource = 65
@@ -60,7 +62,7 @@ final class FrenchAnimeProvidersService {
         return URLSession(configuration: config, delegate: TLSBypassDelegate(), delegateQueue: nil)
     }()
 
-    private init() {}
+    init(session: URLSession? = nil) { injectedSession = session }
 
     // MARK: - Public providers
 
@@ -70,8 +72,7 @@ final class FrenchAnimeProvidersService {
         season: Int? = nil,
         episode: Int? = nil
     ) async -> [ExtractedSource] {
-        guard let metadata = await tmdbMetadata(id: tmdbId, type: mediaType, season: season),
-              let firstTitle = metadata.titles.first else { return [] }
+        guard let metadata = await tmdbMetadata(id: tmdbId, type: mediaType, season: season) else { return [] }
 
         let targetSeason = max(season ?? 1, 1)
         let targetEpisode = max(episode ?? 1, 1)
@@ -80,49 +81,50 @@ final class FrenchAnimeProvidersService {
         // Prefer catalogue slugs returned by Anime-Sama. TMDB title slugs are
         // only guesses (for example "attack-on-titan"), and previously filled
         // the four-slot limit before "shingeki-no-kyojin" could be checked.
-        for title in metadata.titles.prefix(5) {
-            for slug in await searchAnimeSama(title: stripSeasonSuffix(title)).prefix(4)
+        let baseTitles = unique(metadata.titles.map(stripSeasonSuffix))
+        for title in baseTitles.prefix(5) {
+            for slug in await searchAnimeSama(title: title).prefix(4)
             where !slugs.contains(slug) {
                 slugs.append(slug)
             }
         }
+        // Keep room for verified title guesses even if search returns many
+        // loosely related series before the exact catalogue entry.
+        slugs = Array(slugs.prefix(4))
 
-        let primary = slugify(firstTitle)
+        // Search POST requests may be blocked while catalogue GETs work through
+        // the proxy. Try each localized/romaji base title before season suffixes.
+        let guessed = unique(baseTitles.map(slugify).filter { !$0.isEmpty })
+        for fallback in guessed where !slugs.contains(fallback) {
+            slugs.append(fallback)
+        }
         if mediaType != "movie" {
-            for fallback in [
-                primary,
-                "\(primary)-saison-\(targetSeason)",
-                "\(primary)-\(targetSeason)"
-            ] where !slugs.contains(fallback) {
-                slugs.append(fallback)
+            for base in guessed.prefix(3) {
+                for fallback in ["\(base)-saison-\(targetSeason)", "\(base)-\(targetSeason)"]
+                where !slugs.contains(fallback) { slugs.append(fallback) }
             }
         }
 
         var output: [ExtractedSource] = []
         for slug in slugs.prefix(8) {
+            // episodes.js contains no title; verify identity before accepting a
+            // guessed slug or a loose search result (e.g. Gate vs Steins;Gate).
+            guard await animeSamaTitleMatches(slug: slug, titles: baseTitles, mediaType: mediaType) else { continue }
             for language in ["vostfr", "vf"] {
-                let paths: [String]
-                if mediaType == "movie" {
-                    paths = ["film", "film2"]
-                } else {
-                    paths = ["saison\(targetSeason)", ""]
-                }
-                for path in paths {
-                    let jsURL = "\(animeSamaBase)/catalogue/\(slug)\(path.isEmpty ? "" : "/\(path)")/\(language)/episodes.js"
-                    guard let script = try? await fetchText(jsURL), !script.isEmpty else { continue }
-                    let arrays = parseJavaScriptArrays(script)
-                    let index = mediaType == "movie" ? 0 : targetEpisode - 1
-                    for array in arrays.prefix(4) where array.indices.contains(index) {
-                        guard let resolved = await resolveEmbed(array[index], referer: "\(animeSamaBase)/") else { continue }
-                        output.append(makeSource(
-                            provider: "animesama",
-                            resolved: resolved,
-                            quality: resolved.quality ?? "HD",
-                            language: language == "vf" ? "VF" : "VOSTFR"
-                        ))
-                        if output.count >= 4 { return dedupe(output) }
-                    }
-                    if output.contains(where: { $0.language == (language == "vf" ? "VF" : "VOSTFR") }) { break }
+                let players = await animeSamaEpisodePlayers(
+                    slug: slug, language: language, mediaType: mediaType,
+                    season: targetSeason, episode: targetEpisode
+                )
+                for player in players.prefix(4) {
+                    guard let resolved = await resolveEmbed(player, referer: "\(animeSamaBase)/") else { continue }
+                    output.append(makeSource(
+                        provider: "animesama",
+                        resolved: resolved,
+                        quality: resolved.quality ?? "HD",
+                        language: language == "vf" ? "VF" : "VOSTFR"
+                    ))
+                    if output.count >= 4 { return dedupe(output) }
+                    if output.filter({ $0.language == (language == "vf" ? "VF" : "VOSTFR") }).count >= 2 { break }
                 }
             }
             if !output.isEmpty { break }
@@ -142,19 +144,25 @@ final class FrenchAnimeProvidersService {
         let targetEpisode = max(episode ?? 1, 1)
 
         var candidates: [FrenchAnimeCandidate] = []
-        var cloudflareBlocked = false
         for title in metadata.titles.prefix(5) {
             do {
                 let found = try await searchFrenchAnime(title: title, wantedTitles: metadata.titles)
                 candidates.append(contentsOf: found)
                 if candidates.count >= 6 { break }
             } catch ProviderError.blocked {
-                cloudflareBlocked = true
                 break
             } catch { continue }
         }
 
-        if !cloudflareBlocked {
+        // The public sitemap remains available when DLE's search form is
+        // unavailable. Its article URLs also preserve the current category.
+        if candidates.isEmpty,
+           let index = try? await fetchText("\(frenchAnimeBase)/sitemap.xml", referer: "\(frenchAnimeBase)/"),
+           !isBlockPage(index) {
+            candidates = frenchAnimeCandidates(in: index, wantedTitles: metadata.titles)
+        }
+
+        if !candidates.isEmpty {
             let sorted = candidates
                 .filter { candidateMatchesSeason($0.slug, mediaType: mediaType, season: targetSeason) }
                 .sorted { $0.score > $1.score }
@@ -162,7 +170,7 @@ final class FrenchAnimeProvidersService {
             for language in ["VF", "VOSTFR"] {
                 let category = language == "VF" ? "vf" : "vostfr"
                 for candidate in sorted.filter({ $0.category == category }).prefix(2) {
-                    let page = "\(frenchAnimeBase)/animes-\(category)/\(candidate.id)-\(candidate.slug).html"
+                    let page = candidate.url
                     guard let html = try? await fetchText(page, referer: "\(frenchAnimeBase)/") else { continue }
                     let episodes = parseFrenchAnimeEpisodes(html)
                     let urls = episodes[targetEpisode] ?? []
@@ -190,27 +198,9 @@ final class FrenchAnimeProvidersService {
             return playableFallback
         }
 
-        // The French-Anime catalogue can point at a temporarily blocked host.
-        // Keep the provider usable by resolving the same episode locally from
-        // Anime-Sama, then retain the French-Anime label in the source picker.
-        let animeFallback = await getAnimeSamaStreams(
-            tmdbId: tmdbId,
-            mediaType: mediaType,
-            season: season,
-            episode: episode
-        ).map {
-            ExtractedSource(
-                provider: "frenchanime",
-                url: $0.url,
-                quality: $0.quality,
-                language: $0.language,
-                type: $0.type,
-                headers: $0.headers
-            )
-        }
-        let playableAnimeFallback = await playableSources(dedupe(animeFallback), provider: "FrenchAnime/Anime-Sama")
-        sourceEngineLog("🎌 [FrenchAnime] Local fallback returned \(playableAnimeFallback.count) stream(s)")
-        return playableAnimeFallback
+        // Anime-Sama is collected separately. Do not duplicate its streams
+        // under a French-Anime label when this catalogue is unavailable.
+        return []
     }
 
     func getStreamzoStreams(
@@ -317,14 +307,14 @@ final class FrenchAnimeProvidersService {
 
     private func tmdbMetadata(id: Int, type: String, season: Int?) async -> Metadata? {
         let endpoint = type == "movie" ? "movie" : "tv"
-        guard let main = try? await fetchJSON("https://api.themoviedb.org/3/\(endpoint)/\(id)?api_key=\(tmdbKey)&language=en-US") else { return nil }
+        guard let main = try? await fetchJSON("https://api.themoviedb.org/3/\(endpoint)/\(id)?api_key=\(tmdbKey)&language=en-US&append_to_response=translations,alternative_titles") else { return nil }
         var titles: [String] = []
         let primary = (endpoint == "movie" ? main["title"] : main["name"]) as? String
         let original = (endpoint == "movie" ? main["original_title"] : main["original_name"]) as? String
         if let primary, !primary.isEmpty { titles.append(primary) }
         if let original, !original.isEmpty, !titles.contains(where: { $0.caseInsensitiveCompare(original) == .orderedSame }) { titles.append(original) }
 
-        if let translations = try? await fetchJSON("https://api.themoviedb.org/3/\(endpoint)/\(id)/translations?api_key=\(tmdbKey)"),
+        if let translations = main["translations"] as? [String: Any],
            let rows = translations["translations"] as? [[String: Any]],
            let fr = rows.first(where: { ($0["iso_639_1"] as? String) == "fr" }),
            let data = fr["data"] as? [String: Any],
@@ -332,6 +322,19 @@ final class FrenchAnimeProvidersService {
            !french.isEmpty,
            !titles.contains(where: { $0.caseInsensitiveCompare(french) == .orderedSame }) {
             titles.insert(french, at: min(1, titles.count))
+        }
+
+        if let alternatives = main["alternative_titles"] as? [String: Any],
+           let rows = (alternatives["results"] ?? alternatives["titles"]) as? [[String: Any]] {
+            // Romaji is often the catalogue slug, while original_name is in
+            // Japanese script. Exclude OAD/season/spin-off aliases.
+            let romanized = rows.filter {
+                ["romaji", "romanized"].contains(($0["type"] as? String ?? "").lowercased())
+            }.compactMap { $0["title"] as? String }.sorted { $0.count < $1.count }
+            for title in romanized.prefix(2).reversed()
+            where !titles.contains(where: { $0.caseInsensitiveCompare(title) == .orderedSame }) {
+                titles.insert(title, at: min(1, titles.count))
+            }
         }
 
         if endpoint == "tv", let season, season > 1 {
@@ -347,6 +350,62 @@ final class FrenchAnimeProvidersService {
 
     // MARK: - Anime-Sama
 
+    private func animeSamaTitleMatches(slug: String, titles: [String], mediaType: String) async -> Bool {
+        guard let html = try? await fetchText("\(animeSamaBase)/catalogue/\(slug)/", referer: "\(animeSamaBase)/"),
+              !isBlockPage(html),
+              let raw = firstCapture(#"<h1\b[^>]*>([\s\S]*?)</h1>"#, in: html)
+                ?? firstCapture(#"<title\b[^>]*>([^<|]+)"#, in: html) else { return false }
+        let name = decodeHTMLAndUnicode(raw.replacingOccurrences(of: #"<[^>]+>"#, with: " ", options: .regularExpression))
+        let catalogueName = normalize(name)
+        guard !catalogueName.isEmpty else { return false }
+        return titles.contains {
+            let wanted = normalize($0)
+            // Anime films can live under their parent series' catalogue.
+            return wanted == catalogueName
+                || (mediaType == "movie" && wanted.hasPrefix("\(catalogueName) "))
+        }
+    }
+
+    private func animeSamaArrays(slug: String, path: String, language: String) async -> [[String]] {
+        let url = "\(animeSamaBase)/catalogue/\(slug)\(path.isEmpty ? "" : "/\(path)")/\(language)/episodes.js"
+        guard let script = try? await fetchText(url, referer: "\(animeSamaBase)/") else { return [] }
+        return parseJavaScriptArrays(script)
+    }
+
+    func animeSamaEpisodePlayers(slug: String, language: String, mediaType: String, season: Int, episode: Int) async -> [String] {
+        guard episode > 0 else { return [] }
+        func players(_ arrays: [[String]], index: Int) -> [String] {
+            arrays.compactMap { $0.indices.contains(index) ? $0[index] : nil }
+                .filter { $0.hasPrefix("http") }
+        }
+        if mediaType == "movie" {
+            for path in ["film", "film2"] {
+                let urls = players(await animeSamaArrays(slug: slug, path: path, language: language), index: 0)
+                if !urls.isEmpty { return urls }
+            }
+            return []
+        }
+        let main = await animeSamaArrays(slug: slug, path: "saison\(season)", language: language)
+        if let count = main.map(\.count).max(), count > 0 {
+            if episode <= count { return players(main, index: episode - 1) }
+            var preceding = count
+            for part in 2...5 {
+                let arrays = await animeSamaArrays(slug: slug, path: "saison\(season)-\(part)", language: language)
+                // A missing part leaves its length unknown: never shift a later
+                // part onto an earlier episode number.
+                guard let count = arrays.map(\.count).max(), count > 0 else { return [] }
+                let localEpisode = episode - preceding
+                if localEpisode <= count { return players(arrays, index: localEpisode - 1) }
+                preceding += count
+            }
+            return []
+        }
+        // Root catalogues usually contain season 1 or absolute numbering.
+        // Do not serve root episode 30 as S4 E30 without a proven mapping.
+        guard season == 1 else { return [] }
+        return players(await animeSamaArrays(slug: slug, path: "", language: language), index: episode - 1)
+    }
+
     private func searchAnimeSama(title: String) async -> [String] {
         guard let body = "query=\(formEncode(title))".data(using: .utf8),
               let html = try? await fetchText(
@@ -359,8 +418,12 @@ final class FrenchAnimeProvidersService {
     }
 
     private func parseJavaScriptArrays(_ script: String) -> [[String]] {
-        let bodies = captures(#"var\s+[a-zA-Z0-9_]+\s*=\s*\[([\s\S]*?)\s*\];"#, in: script)
-        return bodies.map { captures(#"['\"]([^'\"]+)['\"]"#, in: $0) }.filter { !$0.isEmpty }
+        let bodies = captures(#"(?:var|let|const)\s+[a-zA-Z0-9_]+\s*=\s*\[([\s\S]*?)\s*\];"#, in: script)
+        return bodies.map { body in
+            // Empty entries still occupy an episode position for this reader.
+            captureGroups(#"'((?:\\.|[^'\\])*)'|"((?:\\.|[^"\\])*)""#, in: body)
+                .map { decodeHTMLAndUnicode($0[0].isEmpty ? $0[1] : $0[0]) }
+        }.filter { !$0.isEmpty }
     }
 
     // MARK: - French-Anime
@@ -377,21 +440,44 @@ final class FrenchAnimeProvidersService {
             headers: ["Content-Type": "application/x-www-form-urlencoded", "Referer": "\(frenchAnimeBase)/"]
         )
         if isBlockPage(html) { throw ProviderError.blocked }
-        let rows = captureGroups(#"href=[\"']https?://french-anime\.com/animes-(vf|vostfr)/(\d+)-([^\"'/]+?)\.html"#, in: html)
-        return rows.compactMap { row in
-            guard row.count >= 3 else { return nil }
-            let score = wantedTitles.map { titleScore(candidate: row[2], wanted: $0) }.max() ?? 0
+        return frenchAnimeCandidates(in: html, wantedTitles: wantedTitles)
+    }
+
+    private func frenchAnimeCandidates(in text: String, wantedTitles: [String]) -> [FrenchAnimeCandidate] {
+        let links = captures(#"href=[\"']([^\"']+\.html)[\"']"#, in: text)
+            + captures(#"<loc>\s*([^<]+\.html)\s*</loc>"#, in: text)
+        var seen = Set<String>()
+        return links.compactMap { raw in
+            let link = absoluteURL(decodeHTMLAndUnicode(raw), base: frenchAnimeBase)
+            guard let url = URL(string: link), url.host == "french-anime.com",
+                  ["https", "http"].contains(url.scheme ?? ""), seen.insert(link).inserted,
+                  let slug = firstCapture(#"/\d+-([^/]+)\.html$"#, in: url.path) else { return nil }
+            let category: String
+            if url.path.contains("/animes-vostfr/") || slug.hasSuffix("-vostfr") { category = "vostfr" }
+            else if url.path.contains("/animes-vf/") || slug.hasSuffix("-vf") || slug.hasSuffix("-french") { category = "vf" }
+            else { return nil }
+            // Old articles use an editorial "x-" prefix; French elisions in
+            // slugs omit the apostrophe (L'Attaque becomes lattaque).
+            let titleSlug = slug.replacingOccurrences(of: #"^x-"#, with: "", options: .regularExpression)
+            let score = wantedTitles.map {
+                titleScore(candidate: titleSlug, wanted: $0.replacingOccurrences(of: #"['’]"#, with: "", options: .regularExpression))
+            }.max() ?? 0
             guard score >= 0.5 else { return nil }
-            return FrenchAnimeCandidate(id: row[1], slug: row[2], category: row[0].lowercased(), score: score)
+            return FrenchAnimeCandidate(url: link, slug: slug, category: category, score: score)
         }
     }
 
     private func parseFrenchAnimeEpisodes(_ html: String) -> [Int: [String]] {
         let body = firstCapture(#"<div[^>]*class=[\"']eps[\"'][^>]*>([\s\S]*?)</div>"#, in: html) ?? html
         var result: [Int: [String]] = [:]
-        for row in captureGroups(#"(\d+)!(https?://[^\s<]+)"#, in: body) where row.count >= 2 {
+        for row in captureGroups(#"(\d+)!\s*((?:https?:)?//[^\r\n<]+?)(?=\s+\d+!|[\r\n<]|$)"#, in: body) where row.count >= 2 {
             guard let number = Int(row[0]), result[number] == nil else { continue }
-            result[number] = row[1].split(separator: ",").map(String.init).filter { !$0.isEmpty }
+            result[number] = row[1].split(separator: ",").compactMap { raw in
+                let value = decodeHTMLAndUnicode(String(raw).trimmingCharacters(in: .whitespacesAndNewlines))
+                let link = value.hasPrefix("//") ? "https:\(value)" : value
+                guard let url = URL(string: link), ["https", "http"].contains(url.scheme ?? ""), url.host != nil else { return nil }
+                return link
+            }
         }
         return result
     }
@@ -739,7 +825,7 @@ final class FrenchAnimeProvidersService {
             // its block page. Connect to Cloudflare directly while keeping the
             // real TLS server name and HTTP Host, so extraction still happens
             // on the iPhone and the returned embed tokens belong to its IP.
-            if FrenchAnimeDirectHTTPClient.supports(url.host),
+            if injectedSession == nil, FrenchAnimeDirectHTTPClient.supports(url.host),
                let direct = try? await FrenchAnimeDirectHTTPClient.fetch(
                     url: url,
                     method: method,
@@ -820,10 +906,12 @@ final class FrenchAnimeProvidersService {
     }
 
     private func candidateMatchesSeason(_ slug: String, mediaType: String, season: Int) -> Bool {
-        if mediaType == "movie" { return !slug.range(of: #"(?:saison|season)-(\d+)"#, options: .regularExpression).isSome }
-        let explicit = firstCapture(#"(?:saison|season)-(\d+)"#, in: slug).flatMap(Int.init)
-        if season > 1 { return explicit == season || slug.hasSuffix("-\(season)-vf") || slug.hasSuffix("-\(season)-vostfr") }
-        return explicit == nil || explicit == 1
+        let namedSeason = firstCapture(#"(?:saison|season)-(\d+)"#, in: slug)
+        if mediaType == "movie" { return namedSeason == nil }
+        let explicit = (namedSeason
+            ?? firstCapture(#"-(\d+)(?:-(?:vf|vostfr|french|truefrench))?$"#, in: slug)).flatMap(Int.init)
+        guard slug.range(of: #"(?:^|-)(?:film|movie|oav|ova)(?:-|$)"#, options: .regularExpression) == nil else { return false }
+        return (explicit ?? 1) == season
     }
 
     private func titleScore(candidate: String, wanted: String) -> Double {

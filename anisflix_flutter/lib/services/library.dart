@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/media.dart';
 import 'trakt.dart';
+import 'platform_bridge.dart';
 
 class Library extends ChangeNotifier {
   final SharedPreferences prefs;
@@ -22,10 +23,30 @@ class Library extends ChangeNotifier {
     notifyListeners();
   }
 
+  static const defaultSubtitleFontSize = 32.0;
+  double get subtitleFontSize =>
+      (prefs.getDouble('subtitleFontSize') ?? defaultSubtitleFontSize).clamp(
+        16.0,
+        48.0,
+      );
+
+  Future<void> setSubtitleFontSize(double size) async {
+    await prefs.setDouble('subtitleFontSize', size.clamp(16.0, 48.0));
+    notifyListeners();
+  }
+
+  Future<void> clearProgress() async {
+    await prefs.remove('progress');
+    progress.clear();
+    notifyListeners();
+  }
+
   Library(this.prefs)
     : language = prefs.getString('language') ?? 'fr-FR',
       apiKey = const String.fromEnvironment('TMDB_API_KEY'),
-      backend = prefs.getString('backend') ?? 'https://anisflix.vercel.app';
+      backend = prefs.getString('backend') ?? 'https://anisflix.vercel.app' {
+    PlatformBridge.language = language;
+  }
   static Future<Library> load() async =>
       Library(await SharedPreferences.getInstance())..restore();
   void restore() {
@@ -63,6 +84,42 @@ class Library extends ChangeNotifier {
 
   String progressKey(MediaItem item, int? season, int? episode) =>
       '${item.key}:${season ?? 0}:${episode ?? 0}';
+
+  /// Series cards follow the last played episode; episode cards stay specific.
+  double? progressFraction(MediaItem item, {int? season, int? episode}) {
+    Map<String, dynamic>? saved;
+    final episodeNumber = episode ?? item.latestEpisode;
+    if (item.type != 'tv' || episodeNumber != null) {
+      saved =
+          progress[progressKey(
+            item,
+            item.type == 'tv' ? season ?? item.latestSeason ?? 1 : null,
+            item.type == 'tv' ? episodeNumber : null,
+          )];
+    } else {
+      for (final entry in progress.entries) {
+        if (!entry.key.startsWith('${item.key}:')) continue;
+        if (saved == null ||
+            '${entry.value['updated'] ?? ''}'.compareTo(
+                  '${saved['updated'] ?? ''}',
+                ) >
+                0) {
+          saved = entry.value;
+        }
+      }
+    }
+    final position = saved?['position'], duration = saved?['duration'];
+    if (position is! num ||
+        duration is! num ||
+        !position.isFinite ||
+        !duration.isFinite ||
+        position <= 0 ||
+        duration <= 0) {
+      return null;
+    }
+    return (position / duration).clamp(0.0, 1.0);
+  }
+
   Future<void> saveProgress(
     MediaItem item,
     int? season,
@@ -89,6 +146,7 @@ class Library extends ChangeNotifier {
     required String apiKey,
   }) async {
     this.language = language;
+    PlatformBridge.language = language;
     this.backend = backend.replaceAll(RegExp(r'/+$'), '');
     this.apiKey = apiKey.trim();
     await prefs.setString('language', language);

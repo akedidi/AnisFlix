@@ -44,4 +44,31 @@ class NativeSources {
     });
     return row == null ? null : StreamSource.parse(row, source.provider);
   }
+
+  Future<List<SourceSubtitle>> subtitles(
+    MediaItem item,
+    int? season,
+    int? episode,
+  ) async {
+    final rows = await channel.invokeListMethod<dynamic>('subtitles', {
+      'id': item.id,
+      'type': item.type,
+      'season': season,
+      'episode': episode,
+      'tmdbKey': library.apiKey,
+      'backend': library.backend,
+    });
+    return [
+      for (final row in rows ?? [])
+        if (row is Map)
+          if (Uri.tryParse('${row['url'] ?? ''}') case final Uri uri
+              when ['http', 'https'].contains(uri.scheme) &&
+                  uri.host.isNotEmpty)
+            SourceSubtitle(
+              uri.toString(),
+              '${row['label'] ?? row['language'] ?? ''}',
+              '${row['language'] ?? ''}',
+            ),
+    ];
+  }
 }

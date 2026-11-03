@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'cached_media_image.dart';
+
+import '../l10n/app_localizations.dart';
 import '../models/media.dart';
 import '../services/catalog_api.dart';
 
@@ -92,7 +95,7 @@ class _SearchBoxState extends State<SearchBox> {
           }
         },
         decoration: InputDecoration(
-          hintText: 'Rechercher un film, une série ou un anime…',
+          hintText: context.tr("Rechercher un film, une série ou un anime…"),
           prefixIcon: const Icon(Icons.search),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 14,
@@ -109,9 +112,12 @@ class _SearchBoxState extends State<SearchBox> {
                   ),
                 )
               : error != null
-              ? Tooltip(message: error!, child: const Icon(Icons.cloud_off))
+              ? Tooltip(
+                  message: context.l10n.message(error!),
+                  child: const Icon(Icons.cloud_off),
+                )
               : IconButton(
-                  tooltip: 'Effacer la recherche',
+                  tooltip: context.tr("Effacer la recherche"),
                   onPressed: () {
                     controller.clear();
                     focus.requestFocus();
@@ -149,7 +155,7 @@ class _SearchBoxState extends State<SearchBox> {
                             height: 50,
                             child: item.posterUrl == null
                                 ? const Icon(Icons.movie_outlined)
-                                : Image.network(
+                                : CachedMediaImage(
                                     item.posterUrl!,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, _, _) =>
@@ -157,12 +163,12 @@ class _SearchBoxState extends State<SearchBox> {
                                   ),
                           ),
                           title: Text(
-                            item.title,
+                            context.l10n.mediaTitle(item.title),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            '${item.type == 'tv' ? 'Série' : 'Film'} · ${item.date.split('-').first}',
+                            '${item.type == 'tv' ? context.tr("Série") : context.tr("Film")} · ${item.date.split('-').first}',
                           ),
                         );
                       },

@@ -72,6 +72,9 @@ class MainActivity : FlutterActivity() {
                             }
                             val intent = Intent(this, DownloadForegroundService::class.java)
                                 .putExtra("count",count).putExtra("progress",call.argument<Double>("progress") ?: -1.0)
+                                .putExtra("channelName",call.argument<String>("channelName"))
+                                .putExtra("title",call.argument<String>("title"))
+                                .putExtra("text",call.argument<String>("text"))
                             if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent) else startService(intent)
                         }
                         result.success(true)

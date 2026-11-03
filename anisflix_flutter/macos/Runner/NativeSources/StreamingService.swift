@@ -2501,76 +2501,9 @@ class StreamingService {
     
     // MARK: - Movix Anime Fetching (VidMoly - Original)
     
-    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) async throws -> [StreamingSource] {
-        sourceEngineLog("🎬 [Movix Anime] Fetching for: \(title) S\(season)E\(episode)")
-        
-        // Handle special cases for Attack on Titan
-        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
-        let searchTitle = isAOT ? "L'Attaque des Titans" : title.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespaces) ?? title
-        
-        // Step 1: Search for anime
-        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
-        components?.queryItems = [
-            URLQueryItem(name: "path", value: "anime/search/\(searchTitle)"),
-            URLQueryItem(name: "includeSeasons", value: "true"),
-            URLQueryItem(name: "includeEpisodes", value: "true")
-        ]
-        
-        guard let searchURL = components?.url else { return [] }
-        
-        sourceEngineLog("🎬 [Movix Anime] Search URL: \(searchURL)")
-        
-        var request = URLRequest(url: searchURL)
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
-        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
-        request.timeoutInterval = 15
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            sourceEngineLog("⚠️ [Movix Anime] Search failed")
-            return []
-        }
-        
-        // Parse response - expecting array of anime objects
-        guard let animeList = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            sourceEngineLog("⚠️ [Movix Anime] Failed to parse response")
-            return []
-        }
-        
-        sourceEngineLog("🎬 [Movix Anime] Found \(animeList.count) results")
-        
-        // Find best match
-        var match: [String: Any]? = nil
-        
-        if isAOT {
-            match = animeList.first { ($0["name"] as? String)?.lowercased() == "shingeki no kyojin" }
-        }
-        
-        if match == nil {
-            match = animeList.first { anime in
-                let name = (anime["name"] as? String)?.lowercased() ?? ""
-                return name == searchTitle.lowercased() || name == title.lowercased()
-            }
-        }
-        
-        if match == nil {
-            match = animeList.first { anime in
-                let name = (anime["name"] as? String)?.lowercased() ?? ""
-                if name.contains("junior") || name.contains("high-school") { return false }
-                return name.contains(searchTitle.lowercased()) || name.contains(title.lowercased())
-            }
-        }
-        
-        guard let anime = match, let seasons = anime["seasons"] as? [[String: Any]] else {
-            sourceEngineLog("⚠️ [Movix Anime] No matching anime found")
-            return []
-        }
-        
-        sourceEngineLog("✅ [Movix Anime] Found anime: \(anime["name"] ?? "unknown")")
-        
-        // Find target season and episode
+    /// Pure catalogue selection shared by the live extractor and native regression fixtures.
+    static func movixAnimeEpisode(seasons: [[String: Any]], isAOT: Bool, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) -> [String: Any]? {
+        guard season >= 0, episode > 0 else { return nil }
         var targetEpisode: [String: Any]? = nil
         var targetSeason: [String: Any]? = nil
 
@@ -2581,8 +2514,10 @@ class StreamingService {
         func episodeInSeason(_ seasonObj: [String: Any]?, matching episodeNumber: Int) -> [String: Any]? {
             guard let eps = seasonObj?["episodes"] as? [[String: Any]] else { return nil }
             return eps.first { e in
-                if let idx = e["index"] as? Int, idx == episodeNumber { return true }
-                if let name = e["name"] as? String, name.contains(String(format: "%02d", episodeNumber)) { return true }
+                if let idx = e["index"] as? Int { return idx == episodeNumber }
+                if e["index"] == nil, let name = e["name"] as? String,
+                   let range = name.range(of: #"\d+"#, options: .regularExpression),
+                   Int(name[range]) == episodeNumber { return true }
                 return false
             }
         }
@@ -2636,6 +2571,13 @@ class StreamingService {
             targetEpisode = episodeInSeason(targetSeason, matching: episode)
         }
         
+        // The current catalogue can expose one full S4 instead of four parts.
+        // Preserve the TMDB episode number (30), not the part-relative one (1).
+        if isAOT && targetEpisode == nil && (season == 4 || (season == 0 && [36, 37].contains(episode))) {
+            targetSeason = seasonNamed("Saison 4") ?? seasons.first { ($0["index"] as? Int) == 4 }
+            targetEpisode = episodeInSeason(targetSeason, matching: season == 0 ? episode - 7 : episode)
+        }
+
         // Fallback: Absolute episode search
         if targetEpisode == nil && season > 0 {
             let previousSeasons = tmdbInfo.seasons.filter { $0.seasonNumber > 0 && $0.seasonNumber < season }
@@ -2647,8 +2589,10 @@ class StreamingService {
             for s in seasons {
                 if let eps = s["episodes"] as? [[String: Any]] {
                     targetEpisode = eps.first { e in
-                        if let idx = e["index"] as? Int, idx == absoluteEpisodeNumber { return true }
-                        if let name = e["name"] as? String, name.contains(String(format: "%02d", absoluteEpisodeNumber)) { return true }
+                        if let idx = e["index"] as? Int { return idx == absoluteEpisodeNumber }
+                        if let name = e["name"] as? String,
+                           let range = name.range(of: #"\d+"#, options: .regularExpression),
+                           Int(name[range]) == absoluteEpisodeNumber { return true }
                         return false
                     }
                     if targetEpisode != nil { break }
@@ -2656,6 +2600,82 @@ class StreamingService {
             }
         }
         
+        return targetEpisode
+    }
+
+    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) async throws -> [StreamingSource] {
+        sourceEngineLog("🎬 [Movix Anime] Fetching for: \(title) S\(season)E\(episode)")
+
+        // Handle special cases for Attack on Titan
+        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
+        let searchTitle = isAOT ? "L'Attaque des Titans" : title.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespaces) ?? title
+
+        // Step 1: Search for anime
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
+        components?.queryItems = [
+            URLQueryItem(name: "path", value: "anime/search/\(searchTitle)"),
+            URLQueryItem(name: "includeSeasons", value: "true"),
+            URLQueryItem(name: "includeEpisodes", value: "true")
+        ]
+
+        guard let searchURL = components?.url else { return [] }
+
+        sourceEngineLog("🎬 [Movix Anime] Search URL: \(searchURL)")
+
+        var request = URLRequest(url: searchURL)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.timeoutInterval = 15
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            sourceEngineLog("⚠️ [Movix Anime] Search failed")
+            return []
+        }
+
+        // Parse response - expecting array of anime objects
+        guard let animeList = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            sourceEngineLog("⚠️ [Movix Anime] Failed to parse response")
+            return []
+        }
+
+        sourceEngineLog("🎬 [Movix Anime] Found \(animeList.count) results")
+
+        // Find best match
+        var match: [String: Any]? = nil
+
+        if isAOT {
+            match = animeList.first { ($0["name"] as? String)?.lowercased() == "shingeki no kyojin" }
+        }
+
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                return name == searchTitle.lowercased() || name == title.lowercased()
+            }
+        }
+
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                if name.contains("junior") || name.contains("high-school") { return false }
+                return name.contains(searchTitle.lowercased()) || name.contains(title.lowercased())
+            }
+        }
+
+        guard let anime = match, let seasons = anime["seasons"] as? [[String: Any]] else {
+            sourceEngineLog("⚠️ [Movix Anime] No matching anime found")
+            return []
+        }
+
+        sourceEngineLog("✅ [Movix Anime] Found anime: \(anime["name"] ?? "unknown")")
+
+        let targetEpisode = Self.movixAnimeEpisode(
+            seasons: seasons, isAOT: isAOT, season: season, episode: episode, tmdbInfo: tmdbInfo
+        )
+
         guard let episode = targetEpisode,
               let streamingLinks = episode["streaming_links"] as? [[String: Any]] else {
             sourceEngineLog("⚠️ [Movix Anime] No episode or streaming links found")

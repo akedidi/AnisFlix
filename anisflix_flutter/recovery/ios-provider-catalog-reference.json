@@ -1,0 +1,964 @@
+{
+  "source": "ios-natve/anisflix/anisflix",
+  "sha256": {
+    "Services/TMDBService.swift": "b006aaf479c14c45c823d0a8a4782c422b7866a15d273c966e6d0a0504e1a464",
+    "Utils/ReleaseDateUtils.swift": "87c1ce333a6ed5ba22bf8ae2dfc07c25ac01262209de51199258687f2950a3aa",
+    "Views/Lists/ProviderMediaListView.swift": "995066c1aa91ce35f6937ccc1aba3bb4825dd571b242a784ccbdae30c9835fc1"
+  },
+  "categories": [
+    {
+      "title": "Films",
+      "type": "movie",
+      "genre": null
+    },
+    {
+      "title": "Séries",
+      "type": "tv",
+      "genre": null
+    },
+    {
+      "title": "Films d'Action",
+      "type": "movie",
+      "genre": 28
+    },
+    {
+      "title": "Films de Drame",
+      "type": "movie",
+      "genre": 18
+    },
+    {
+      "title": "Films de Comédie",
+      "type": "movie",
+      "genre": 35
+    },
+    {
+      "title": "Séries d'Action",
+      "type": "tv",
+      "genre": 10759
+    },
+    {
+      "title": "Séries de Drame",
+      "type": "tv",
+      "genre": 18
+    },
+    {
+      "title": "Séries de Comédie",
+      "type": "tv",
+      "genre": 35
+    }
+  ],
+  "cases": [
+    {
+      "now": "2026-01-15T10:59:00Z",
+      "page": 1,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-01-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T10:59:00Z",
+      "page": 2,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-01-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T10:59:00Z",
+      "page": 1,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-01-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T10:59:00Z",
+      "page": 2,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-01-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T11:00:00Z",
+      "page": 1,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-01-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T11:00:00Z",
+      "page": 2,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-01-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T11:00:00Z",
+      "page": 1,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-01-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-01-15T11:00:00Z",
+      "page": 2,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-01-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-01-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T09:59:00Z",
+      "page": 1,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-07-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T09:59:00Z",
+      "page": 2,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-07-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T09:59:00Z",
+      "page": 1,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-07-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T09:59:00Z",
+      "page": 2,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-07-14",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-14",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T10:00:00Z",
+      "page": 1,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-07-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T10:00:00Z",
+      "page": 2,
+      "provider": 8,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-07-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "FR",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "FR",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "FR",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "FR",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "8"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T10:00:00Z",
+      "page": 1,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "release_date.lte": "2026-07-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "1",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    },
+    {
+      "now": "2026-07-15T10:00:00Z",
+      "page": 2,
+      "provider": 9,
+      "requests": [
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "release_date.lte": "2026-07-15",
+            "sort_by": "release_date.desc",
+            "watch_region": "US",
+            "with_release_type": "4|5",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "popularity.desc",
+            "watch_region": "US",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        },
+        {
+          "parameters": {
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "primary_release_date.desc",
+            "watch_region": "US",
+            "with_genres": "28",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/movie"
+        },
+        {
+          "parameters": {
+            "first_air_date.lte": "2026-07-15",
+            "language": "fr-FR",
+            "page": "2",
+            "sort_by": "first_air_date.desc",
+            "watch_region": "US",
+            "with_genres": "10759",
+            "with_watch_monetization_types": "flatrate",
+            "with_watch_providers": "9"
+          },
+          "path": "/3/discover/tv"
+        }
+      ]
+    }
+  ]
+}

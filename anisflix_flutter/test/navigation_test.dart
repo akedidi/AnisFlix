@@ -1,6 +1,6 @@
 import 'package:anisflix_flutter/app.dart';
 import 'package:anisflix_flutter/models/media.dart';
-import 'package:anisflix_flutter/screens/catalog.dart';
+import 'package:anisflix_flutter/screens/catalog_categories.dart';
 import 'package:anisflix_flutter/services/library.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,13 +19,18 @@ void main() {
     final library = await Library.load();
     await tester.pumpWidget(AnisFlixApp(library: library));
     await tester.pump();
-    expect(find.byType(CatalogScreen), findsNothing);
+    expect(find.byType(CatalogCategoriesScreen), findsNothing);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.select);
     await tester.pump();
-    expect(find.byType(CatalogScreen), findsOneWidget);
-    expect(tester.widget<CatalogScreen>(find.byType(CatalogScreen)).section, 1);
+    expect(find.byType(CatalogCategoriesScreen), findsOneWidget);
+    expect(
+      tester
+          .widget<CatalogCategoriesScreen>(find.byType(CatalogCategoriesScreen))
+          .type,
+      'movie',
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

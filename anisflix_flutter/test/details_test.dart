@@ -6,6 +6,7 @@ import 'package:anisflix_flutter/models/media.dart';
 import 'package:anisflix_flutter/screens/details.dart';
 import 'package:anisflix_flutter/services/catalog_api.dart';
 import 'package:anisflix_flutter/services/library.dart';
+import 'package:anisflix_flutter/widgets/theme_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -190,13 +191,14 @@ void main() {
         expect(find.textContaining('— VO'), findsOneWidget);
         expect(find.textContaining('— VF'), findsNothing);
         expect(find.byType(DetailScreen), findsOneWidget);
+        expect(find.byType(ThemePicker), findsNothing);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
         api.close();
       },
     );
   }
-  testWidgets('episode details show sources for the selected episode', (
+  testWidgets('series details show sources inline for the selected episode', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -246,7 +248,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('3. Le retour'));
     await tester.pumpAndSettle();
-    expect(find.byType(EpisodeDetailScreen), findsOneWidget);
+    expect(find.byType(DetailScreen), findsOneWidget);
+    expect(
+      Navigator.of(tester.element(find.byType(DetailScreen))).canPop(),
+      isFalse,
+    );
+    expect(find.byType(ThemePicker), findsNothing);
     expect(find.text('Sources disponibles'), findsOneWidget);
     expect(find.text('Saison 2 · Épisode 3'), findsOneWidget);
     final requested = requests

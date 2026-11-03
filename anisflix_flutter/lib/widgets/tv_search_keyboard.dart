@@ -1,3 +1,5 @@
+import '../l10n/app_localizations.dart';
+
 import 'package:flutter/material.dart';
 
 class TvSearchKeyboard extends StatefulWidget {
@@ -80,9 +82,13 @@ class _TvSearchKeyboardState extends State<TvSearchKeyboard> {
   );
   @override
   Widget build(BuildContext context) {
+    final french = context.l10n.locale.languageCode == 'fr';
+    final spanish = context.l10n.locale.languageCode == 'es';
     final rows = numbers
         ? ['1234567890', '@#€%&*()!?', "+=/:;,\"'-."]
-        : ['azertyuiop', 'qsdfghjklm', "wxcvbn'-."];
+        : french
+        ? ['azertyuiop', 'qsdfghjklm', "wxcvbn'-."]
+        : ['qwertyuiop', spanish ? 'asdfghjklñ' : 'asdfghjkl', "zxcvbnm'-."];
     return Column(
       children: [
         for (var i = 0; i < rows.length; i++)
@@ -92,7 +98,7 @@ class _TvSearchKeyboardState extends State<TvSearchKeyboard> {
                 button(
                   uppercase ? char.toUpperCase() : char,
                   () => insert(uppercase ? char.toUpperCase() : char),
-                  autofocus: i == 0 && char == 'a',
+                  autofocus: i == 0 && char == rows.first[0],
                 ),
             ],
           ),
@@ -107,7 +113,7 @@ class _TvSearchKeyboardState extends State<TvSearchKeyboard> {
               () => setState(() => numbers = !numbers),
             ),
             button('◀', () => move(-1)),
-            button('Espace', () => insert(' '), flex: 3),
+            button(context.tr("Espace"), () => insert(' '), flex: 3),
             button('▶', () => move(1)),
             button('⌫', backspace),
             button('OK', widget.onSubmitted),

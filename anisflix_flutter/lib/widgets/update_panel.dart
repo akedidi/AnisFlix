@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 import '../services/app_updates.dart';
 
 class UpdatePanel extends StatelessWidget {
@@ -13,13 +15,20 @@ class UpdatePanel extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Mises à jour', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.tr("Mises à jour"),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
-          Text('Version installée : ${controller.installed ?? '…'}'),
+          Text(
+            context.tr("Version installée : {0}", [
+              controller.installed ?? '…',
+            ]),
+          ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Vérifier au démarrage'),
-            subtitle: const Text('Le téléchargement demande ton accord.'),
+            title: Text(context.tr("Vérifier au démarrage")),
+            subtitle: Text(context.tr("Le téléchargement demande ton accord.")),
             value: controller.automatic,
             onChanged: controller.setAutomatic,
           ),
@@ -27,16 +36,16 @@ class UpdatePanel extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
-                controller.message!,
+                context.l10n.message(controller.message!),
                 key: const ValueKey('update-message'),
               ),
             ),
           if (controller.available case final update?) ...[
-            Text('Nouvelle version : ${update.version}'),
+            Text(context.tr("Nouvelle version : {0}", [update.version])),
             if (update.notes.isNotEmpty)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                title: const Text('Nouveautés'),
+                title: Text(context.tr("Nouveautés")),
                 children: [SelectableText(update.notes)],
               ),
           ],
@@ -55,15 +64,15 @@ class UpdatePanel extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: Text(
                   controller.checking
-                      ? 'Vérification…'
-                      : 'Vérifier les mises à jour',
+                      ? context.tr("Vérification…")
+                      : context.tr("Vérifier les mises à jour"),
                 ),
               ),
               if (controller.available != null && controller.downloaded == null)
                 FilledButton.icon(
                   onPressed: busy ? null : controller.download,
                   icon: const Icon(Icons.download),
-                  label: const Text('Télécharger la mise à jour'),
+                  label: Text(context.tr("Télécharger la mise à jour")),
                 ),
               if (controller.downloaded != null)
                 FilledButton.icon(
@@ -71,8 +80,8 @@ class UpdatePanel extends StatelessWidget {
                   icon: const Icon(Icons.system_update),
                   label: Text(
                     controller.target?.platform == 'macos'
-                        ? 'Afficher dans le Finder'
-                        : 'Installer',
+                        ? context.tr("Afficher dans le Finder")
+                        : context.tr("Installer"),
                   ),
                 ),
             ],
@@ -106,16 +115,18 @@ class _UpdateNoticeState extends State<UpdateNotice> {
         return const SizedBox.shrink();
       }
       return MaterialBanner(
-        content: Text('AnisFlix ${update.version.name} est disponible.'),
+        content: Text(
+          context.tr("AnisFlix {0} est disponible.", [update.version.name]),
+        ),
         actions: [
           TextButton(
             onPressed: () =>
                 setState(() => dismissed = update.version.toString()),
-            child: const Text('Plus tard'),
+            child: Text(context.tr("Plus tard")),
           ),
           TextButton(
             onPressed: widget.onOpen,
-            child: const Text('Voir la mise à jour'),
+            child: Text(context.tr("Voir la mise à jour")),
           ),
         ],
       );

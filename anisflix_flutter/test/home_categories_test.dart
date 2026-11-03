@@ -76,6 +76,10 @@ void main() {
       );
       expect(catalogue.initialMediaType, 'movie');
       expect(catalogue.latestOverride, isFalse);
+      expect(find.text('Anime - Films Populaires'), findsOneWidget);
+      expect(find.text('Animés'), findsNothing);
+      expect(find.byType(DropdownButton<int?>), findsNothing);
+      expect(find.byType(SegmentedButton<String>), findsNothing);
       expect(requests.last.path, '/3/discover/movie');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

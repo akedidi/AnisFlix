@@ -3,10 +3,15 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/app_localizations.dart';
+
 class PlatformBridge {
   static const channel = MethodChannel('com.anisflix.reconstructed/platform');
   static final pictureInPicture = ValueNotifier(false);
   static bool deviceIsTv = false;
+  static String language = 'fr-FR';
+  static AppLocalizations get _strings =>
+      AppLocalizations(AppLocalizations.resolve(language));
   static VoidCallback? cancelDownloads;
   static bool get android => !kIsWeb && Platform.isAndroid;
   static bool get macos => !kIsWeb && Platform.isMacOS;
@@ -41,7 +46,10 @@ class PlatformBridge {
   }
 
   static Future<bool> enterPip() async =>
-      await _invoke<bool>('enterPictureInPicture') ?? false;
+      await _invoke<bool>('enterPictureInPicture', {
+        'title': 'AnisFlix — ${_strings.text('Image dans l’image')}',
+      }) ??
+      false;
   static Future<bool> exitPip() async =>
       macos ? await _invoke<bool>('exitPictureInPicture') ?? false : false;
   static Future<Map<dynamic, dynamic>?> pictureInPictureState() =>
@@ -55,6 +63,12 @@ class PlatformBridge {
       await _invoke<bool>('downloadForeground', {
         'count': count,
         'progress': progress,
+        'channelName': _strings.text('Téléchargements'),
+        'title': 'AnisFlix · ${_strings.text('Téléchargements')}',
+        'text': _strings.text(
+          count == 1 ? '1 fichier en cours' : '{0} fichiers en cours',
+          [count],
+        ),
       }) ??
       !android;
 }

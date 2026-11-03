@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -5,6 +6,8 @@ import 'package:anisflix_flutter/models/media.dart';
 import 'package:anisflix_flutter/screens/player.dart';
 import 'package:anisflix_flutter/services/library.dart';
 import 'package:anisflix_flutter/services/platform_bridge.dart';
+import 'package:anisflix_flutter/widgets/aspect_ratio_button.dart';
+import 'package:anisflix_flutter/widgets/subtitle_size_control.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +21,25 @@ void main() {
   testWidgets('native subtitle timing and floating PiP retain the video player', (
     tester,
   ) async {
+    final errorHandler = FlutterError.onError;
+    FlutterError.onError = (details) {
+      debugPrint(
+        'PLAYER_FEATURE_ERROR: ${details.exception}\n${details.stack}',
+      );
+      errorHandler?.call(details);
+    };
+    addTearDown(() => FlutterError.onError = errorHandler);
+    // Keep Flutter assertions running when macOS hides the test executable.
+    // Video, subtitle timing, fullscreen and PiP windows still run natively.
+    final frameTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!tester.binding.framesEnabled) {
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        tester.binding.scheduleForcedFrame();
+      }
+    });
+    addTearDown(frameTimer.cancel);
     // Only keyboard input is mocked; video, timing and windows remain native.
     tester.testTextInput.register();
     addTearDown(tester.testTextInput.unregister);
@@ -63,6 +85,27 @@ void main() {
       debugPrint('PLAYER_FEATURE_SCREENSHOT=${file.path}');
     }
 
+    Future<void> settleWindow() async {
+      // Native window animations can outlive Flutter's scheduled frames.
+      var size = tester.view.physicalSize;
+      var stableSince = DateTime.now();
+      final deadline = stableSince.add(const Duration(seconds: 30));
+      while (DateTime.now().difference(stableSince).inMilliseconds < 600) {
+        if (DateTime.now().isAfter(deadline)) {
+          fail('Window size did not settle.');
+        }
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump();
+        if (tester.view.physicalSize != size) {
+          size = tester.view.physicalSize;
+          stableSince = DateTime.now();
+        }
+      }
+      await tester.pumpAndSettle();
+    }
+
     try {
       await tester.pumpWidget(
         RepaintBoundary(
@@ -98,7 +141,76 @@ void main() {
       await waitFor(() => player.state.position.inMilliseconds > 500);
       await tester.runAsync(player.pause);
       await tester.pump();
+      await settleWindow();
 
+      final mouse = await tester.createGesture(
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await mouse.addPointer();
+      addTearDown(mouse.removePointer);
+      var hover = false;
+      Future<void> revealControls() async {
+        final video = tester.getRect(find.byType(Video).last);
+        hover = !hover;
+        await mouse.moveTo(
+          Offset(video.center.dx + (hover ? 1 : -1), video.center.dy),
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+
+      final originalRatio = player.state.videoParams.aspect!;
+      Future<void> selectFormat(String label, double ratio, BoxFit fit) async {
+        await revealControls();
+        await tester.tap(find.byTooltip('Format d’image'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.widgetWithText(CheckedPopupMenuItem<VideoAspectMode>, label),
+        );
+        await tester.pumpAndSettle();
+        await waitFor(() {
+          final parameters = tester
+              .state<VideoState>(find.byType(Video).last)
+              .videoViewParametersNotifier
+              .value;
+          return (parameters.aspectRatio! - ratio).abs() < .001 &&
+              parameters.fit == fit;
+        });
+        final video = tester.state<VideoState>(find.byType(Video).last);
+        expect(
+          video.videoViewParametersNotifier.value.aspectRatio,
+          closeTo(ratio, .001),
+        );
+        expect(video.videoViewParametersNotifier.value.fit, fit);
+        expect(video.widget.controller, same(controller));
+        expect(player.state.playing, isFalse);
+      }
+
+      await selectFormat('4:3', 4 / 3, BoxFit.contain);
+      await screenshot('anisflix-player-format-4-3');
+      await selectFormat('16:9', 16 / 9, BoxFit.contain);
+      await selectFormat('Étiré', originalRatio, BoxFit.fill);
+      await selectFormat('Original', originalRatio, BoxFit.contain);
+      expect(library.prefs.getString('videoAspectMode'), 'original');
+      await revealControls();
+      await tester.tap(find.byTooltip('Plein écran'));
+      await tester.pumpAndSettle();
+      await waitFor(
+        () => tester.state<VideoState>(find.byType(Video).last).isFullscreen(),
+      );
+      await settleWindow();
+      await selectFormat('4:3', 4 / 3, BoxFit.contain);
+      await screenshot('anisflix-player-format-fullscreen');
+      await selectFormat('Original', originalRatio, BoxFit.contain);
+      await revealControls();
+      await tester.tap(find.byTooltip('Quitter le plein écran'));
+      await tester.pumpAndSettle();
+      await waitFor(
+        () => !tester.state<VideoState>(find.byType(Video).last).isFullscreen(),
+      );
+      await settleWindow();
+      expect(tester.takeException(), isNull);
+
+      await revealControls();
       await tester.tap(find.byTooltip('Sous-titres et décalage'));
       await tester.pumpAndSettle();
       expect(find.text('Français embarqué'), findsOneWidget);
@@ -165,10 +277,11 @@ void main() {
       );
       await waitFor(() => player.state.subtitle.join().contains('FOURNISSEUR'));
 
-      await tester.ensureVisible(find.byType(DropdownButtonFormField<double>));
-      await tester.tap(find.byType(DropdownButtonFormField<double>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('48').last);
+      await tester.ensureVisible(find.byType(SubtitleSizeControl));
+      for (var i = 0; i < 5; i++) {
+        await tester.tap(find.byTooltip('Augmenter la taille des sous-titres'));
+        await tester.pumpAndSettle();
+      }
       await waitFor(() => library.prefs.getDouble('subtitleFontSize') == 48);
       expect(
         tester
@@ -184,8 +297,16 @@ void main() {
       expect(tester.takeException(), isNull);
 
       final original = (await PlatformBridge.pictureInPictureState())!;
+      await revealControls();
       await tester.tap(find.byTooltip('Image dans l’image'));
       await waitFor(() => PlatformBridge.pictureInPicture.value);
+      await waitFor(
+        () => find
+            .byKey(const ValueKey('player-aspect-ratio'))
+            .evaluate()
+            .isEmpty,
+      );
+      expect(find.byKey(const ValueKey('player-subtitles')), findsNothing);
       final floating = (await PlatformBridge.pictureInPictureState())!;
       expect(floating['active'], isTrue);
       expect(floating['floating'], isTrue);
@@ -196,7 +317,29 @@ void main() {
         same(controller),
       );
       expect(player.state.playing, isFalse);
+      await settleWindow();
+      final viewport = tester.getRect(find.byType(Video));
+      for (final key in ['pip-rewind', 'pip-play-pause', 'pip-forward']) {
+        final button = tester.getRect(find.byKey(ValueKey(key)));
+        expect(button.center.dy, closeTo(viewport.center.dy, 1));
+        expect(viewport.contains(button.topLeft), isTrue);
+        expect(viewport.contains(button.bottomRight), isTrue);
+      }
+      expect(
+        tester.getCenter(find.byKey(const ValueKey('pip-play-pause'))).dx,
+        closeTo(viewport.center.dx, 1),
+      );
       await screenshot('anisflix-pip-macos');
+      await tester.tap(find.byTooltip('Avancer de 10 secondes'));
+      await waitFor(
+        () =>
+            player.state.position >=
+            player.state.duration - const Duration(milliseconds: 100),
+      );
+      await tester.tap(find.byTooltip('Reculer de 10 secondes'));
+      await waitFor(
+        () => player.state.position <= const Duration(milliseconds: 100),
+      );
       await tester.tap(find.byTooltip('Lecture'));
       await waitFor(() => player.state.playing);
       await tester.tap(find.byTooltip('Pause'));

@@ -16,6 +16,7 @@ class FixtureCatalog extends CatalogApi {
     bool latest = false,
     bool anime = false,
     int? provider,
+    int? genre,
     String? filter,
   }) async => MediaPage(
     [
@@ -45,6 +46,13 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       SharedPreferences.setMockInitialValues({});
       final library = await Library.load();
+      await library.saveProgress(
+        const MediaItem(id: 1, type: 'movie', title: 'Film'),
+        null,
+        null,
+        const Duration(seconds: 40),
+        const Duration(seconds: 100),
+      );
       final api = FixtureCatalog(library);
       await tester.pumpWidget(
         MaterialApp(
@@ -57,6 +65,11 @@ void main() {
       await tester.pump();
       expect(tester.takeException(), isNull);
       expect(find.text('Plus d’infos'), findsOneWidget);
+      final heroProgress = find.descendant(
+        of: find.byKey(const ValueKey('home-hero-progress')),
+        matching: find.byType(LinearProgressIndicator),
+      );
+      expect(tester.widget<LinearProgressIndicator>(heroProgress).value, .4);
       await tester.pumpWidget(const SizedBox());
       api.close();
     });

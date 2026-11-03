@@ -24,6 +24,21 @@ final class NativeSourceBridge {
                         // Preserve the relative order of ties, as Swift's stable list sort does.
                         let rows = sources.sorted(by: StreamingSourceListOrdering.isSortedBefore).map(Self.row)
                         DispatchQueue.main.async { reply(rows) }
+                    } else if call.method == "subtitles", let id = args["id"] as? Int, id > 0,
+                              let type = args["type"] as? String, ["movie", "tv"].contains(type) {
+                        let season = type == "tv" ? args["season"] as? Int : nil
+                        let episode = type == "tv" ? args["episode"] as? Int : nil
+                        if type == "tv" && (season == nil || season! < 0 || episode == nil || episode! < 1) {
+                            DispatchQueue.main.async { reply([]) }
+                            return
+                        }
+                        guard let imdbId = await StreamingService.shared.fetchImdbId(tmdbId: id, type: type) else {
+                            DispatchQueue.main.async { reply([]) }
+                            return
+                        }
+                        let subtitles = await StreamingService.shared.getSubtitles(imdbId: imdbId, season: season, episode: episode)
+                        let rows = subtitles.map { ["url": $0.url, "label": $0.label, "language": $0.code] }
+                        DispatchQueue.main.async { reply(rows) }
                     } else if call.method == "resolve", let url = args["url"] as? String {
                         let source = StreamingSource(url: url, quality: args["quality"] as? String ?? "Auto", type: args["format"] as? String ?? "embed", provider: args["provider"] as? String ?? "", language: args["language"] as? String ?? "VO", headers: args["headers"] as? [String:String])
                         let resolved = await StreamingService.shared.extractDirectLink(for: source)

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:anisflix_flutter/models/media.dart';
 import 'package:anisflix_flutter/screens/player.dart';
 import 'package:anisflix_flutter/services/library.dart';
+import 'package:anisflix_flutter/services/platform_bridge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,6 +68,21 @@ void main() {
       expect(viewport.height, greaterThan(300));
       expect(video, viewport, reason: 'Video must fill the player screen.');
       expect(tester.getTopLeft(find.byTooltip('Retour')).dy, lessThan(40));
+      for (final key in [
+        if (PlatformBridge.supportsPip) 'player-pip',
+        'player-subtitles',
+        'player-aspect-ratio',
+      ]) {
+        final button = tester.getRect(find.byKey(ValueKey(key)));
+        expect(button.left, greaterThanOrEqualTo(viewport.left));
+        expect(button.right, lessThanOrEqualTo(viewport.right));
+        expect(button.bottom, lessThanOrEqualTo(viewport.bottom));
+        expect(button.top, greaterThan(viewport.bottom - 100));
+      }
+      expect(
+        tester.getRect(find.byKey(const ValueKey('player-aspect-ratio'))).right,
+        greaterThan(viewport.right - 110),
+      );
       expect(tester.takeException(), isNull);
     }
 
@@ -110,7 +126,12 @@ void main() {
       image.dispose();
       debugPrint('PLAYER_SCREENSHOT=${screenshot.path}');
 
-      for (final size in [const Size(640, 360), const Size(480, 600)]) {
+      for (final size in [
+        const Size(640, 360),
+        const Size(480, 600),
+        const Size(320, 600),
+      ]) {
+        debugPrint('PLAYER_LAYOUT_SIZE=$size');
         await showPlayer(size);
         await tester.pump();
         expectFullViewport();

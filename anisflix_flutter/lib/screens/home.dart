@@ -2,11 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/cached_media_image.dart';
+
+import '../l10n/app_localizations.dart';
 import '../models/media.dart';
 import '../services/catalog_api.dart';
 import '../services/library.dart';
 import 'catalog.dart';
 import 'details.dart';
+import '../widgets/media_category_row.dart';
+import '../widgets/resume_card.dart';
+import '../widgets/watch_progress_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   final CatalogApi api;
@@ -67,28 +73,20 @@ class _HomeScreenState extends State<HomeScreen> {
   void details(MediaItem item, {int? season, int? episode}) => Navigator.push(
     context,
     MaterialPageRoute(
-      builder: (_) => item.latestEpisode != null
-          ? EpisodeDetailScreen(
-              api: widget.api,
-              library: widget.library,
-              item: item,
-              season: item.latestSeason ?? 1,
-              episode: item.latestEpisode!,
-            )
-          : DetailScreen(
-              api: widget.api,
-              library: widget.library,
-              item: item,
-              initialSeason: season,
-              initialEpisode: episode,
-            ),
+      builder: (_) => DetailScreen(
+        api: widget.api,
+        library: widget.library,
+        item: item,
+        initialSeason: season ?? item.latestSeason,
+        initialEpisode: episode ?? item.latestEpisode,
+      ),
     ),
   );
   void all(HomeCategory section) => Navigator.push(
     context,
     MaterialPageRoute(
       builder: (_) => Scaffold(
-        appBar: AppBar(title: Text(section.title)),
+        appBar: AppBar(title: Text(context.tr(section.title))),
         body: CatalogScreen(
           api: widget.api,
           library: widget.library,
@@ -101,6 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
           latestOverride: section.latest,
           initialMediaType: section.type,
           filter: section.filter,
+          showHeading: false,
+          showFilters: false,
         ),
       ),
     ),
@@ -139,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         if (item.backdrop != null)
                           Positioned.fill(
-                            child: Image.network(
+                            child: CachedMediaImage(
                               'https://image.tmdb.org/t/p/w1280${item.backdrop}',
                               fit: BoxFit.cover,
                               errorBuilder: (_, _, _) => const SizedBox(),
@@ -186,13 +186,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Chip(
-                                label: Text('Film'),
+                              Chip(
+                                label: Text(context.tr("Film")),
                                 visualDensity: VisualDensity.compact,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                item.title,
+                                context.l10n.mediaTitle(item.title),
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineMedium
@@ -202,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '⭐ ${item.rating.toStringAsFixed(1)}   ${item.date.length >= 4 ? item.date.substring(0, 4) : ''}',
+                                '⭐ ${context.l10n.decimal(item.rating)}   ${item.date.length >= 4 ? item.date.substring(0, 4) : ''}',
                               ),
                               const SizedBox(height: 10),
                               Text(
@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   FilledButton.icon(
                                     onPressed: () => details(item),
                                     icon: const Icon(Icons.info_outline),
-                                    label: const Text('Plus d’infos'),
+                                    label: Text(context.tr("Plus d’infos")),
                                   ),
                                   OutlinedButton.icon(
                                     onPressed: () =>
@@ -234,13 +234,23 @@ class _HomeScreenState extends State<HomeScreen> {
                                       widget.library.favorites.containsKey(
                                             item.key,
                                           )
-                                          ? 'Dans les favoris'
-                                          : 'Ajouter aux favoris',
+                                          ? context.tr("Dans les favoris")
+                                          : context.tr("Ajouter aux favoris"),
                                     ),
                                   ),
                                 ],
                               ),
                             ],
+                          ),
+                        ),
+                        Positioned(
+                          left: 24,
+                          right: 24,
+                          bottom: 0,
+                          child: WatchProgressBar(
+                            key: const ValueKey('home-hero-progress'),
+                            library: widget.library,
+                            item: item,
                           ),
                         ),
                       ],
@@ -258,12 +268,12 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Reprendre',
+                  context.tr("Reprendre"),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
-                  height: 88,
+                  height: 116,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: resume.length,
@@ -273,35 +283,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           item = MediaItem.fromJson(
                             Map<String, dynamic>.from(resume[i]['media']),
                           );
-                      return SizedBox(
-                        width: 240,
-                        child: Card(
-                          child: InkWell(
-                            onTap: () => details(
-                              item,
-                              season: p['season'],
-                              episode: p['episode'],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const Spacer(),
-                                  LinearProgressIndicator(
-                                    value:
-                                        (p['position'] as num) /
-                                        (p['duration'] as num),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                      return ResumeCard(
+                        item: item,
+                        progress:
+                            (p['position'] as num) / (p['duration'] as num),
+                        onTap: () => details(
+                          item,
+                          season: p['season'],
+                          episode: p['episode'],
                         ),
                       );
                     },
@@ -311,11 +300,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         for (final section in homeCategories)
-          row(
-            section.title,
-            sections[section.title]!,
-            () => all(section),
-            () => setState(() {
+          MediaCategoryRow(
+            title: section.title,
+            library: widget.library,
+            future: sections[section.title]!,
+            tv: widget.tv,
+            onSelected: details,
+            seeAll: () => all(section),
+            retry: () => setState(() {
               sections[section.title] = fetch(section);
               if (section == homeCategories.first) {
                 movies = sections[section.title]!;
@@ -326,94 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
-
-  Widget row(
-    String title,
-    Future<MediaPage> future,
-    VoidCallback seeAll,
-    VoidCallback retry,
-  ) => Padding(
-    padding: const EdgeInsets.only(top: 12, bottom: 16),
-    child: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              TextButton(
-                onPressed: seeAll,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Voir tout'),
-                    SizedBox(width: 6),
-                    Icon(Icons.chevron_right),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        FutureBuilder(
-          future: future,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text('Ce catalogue est momentanément indisponible.'),
-                    TextButton(
-                      onPressed: retry,
-                      child: const Text('Réessayer'),
-                    ),
-                  ],
-                ),
-              );
-            }
-            if (!snapshot.hasData) {
-              return const SizedBox(
-                height: 180,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (snapshot.data!.items.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Aucun titre pour le moment.'),
-              );
-            }
-            final items = snapshot.data!.items;
-            final width = widget.tv ? 148.0 : 145.0;
-            return SizedBox(
-              height: width / .57,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                scrollDirection: Axis.horizontal,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 16),
-                itemBuilder: (context, i) => SizedBox(
-                  width: width,
-                  child: MediaCard(
-                    item: items[i],
-                    onTap: () => details(items[i]),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    ),
-  );
 }
 
 class HomeCategory {

@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'package:anisflix_flutter/models/catalog_category.dart';
 import 'package:anisflix_flutter/models/watch_provider.dart';
+import 'package:anisflix_flutter/screens/catalog.dart';
 import 'package:anisflix_flutter/screens/providers.dart';
 import 'package:anisflix_flutter/services/catalog_api.dart';
 import 'package:anisflix_flutter/services/library.dart';
@@ -47,7 +51,21 @@ void main() {
         library,
         client: MockClient((r) async {
           requests.add(r.url);
-          return http.Response('{"results":[]}', 200);
+          return http.Response(
+            jsonEncode({
+              'results': [
+                for (var i = 1; i <= 20; i++)
+                  {
+                    'id': i,
+                    'title': 'Film $i',
+                    'name': 'Série $i',
+                    'release_date': '2025-01-01',
+                    'first_air_date': '2025-01-01',
+                  },
+              ],
+            }),
+            200,
+          );
         }),
       );
       addTearDown(api.close);
@@ -64,8 +82,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(watchProviders.length, 14);
+      final rowPositions = <double, int>{};
       for (final provider in watchProviders) {
         expect(find.text(provider.name), findsOneWidget);
+        final tile = find.byKey(ValueKey('provider-${provider.id}'));
+        rowPositions.update(
+          tester.getTopLeft(tile).dy,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
         final image = find.descendant(
           of: find.byKey(ValueKey('provider-${provider.id}')),
           matching: find.byType(Image),
@@ -74,14 +99,40 @@ void main() {
         final size = tester.getSize(image);
         expect(size.width, size.height);
       }
+      expect(rowPositions.values, [7, 7]);
       await tester.tap(find.byKey(const ValueKey('provider-147')));
       await tester.pumpAndSettle();
-      expect(requests.last.path, '/3/discover/movie');
-      expect(requests.last.queryParameters['with_watch_providers'], '147');
-      await tester.tap(find.text('Séries'));
+      expect(requests, hasLength(8));
+      for (var i = 0; i < providerCategories.length; i++) {
+        final category = providerCategories[i];
+        expect(requests[i].path, '/3/discover/${category.type}');
+        expect(requests[i].queryParameters['with_watch_providers'], '147');
+        expect(
+          requests[i].queryParameters['with_genres'],
+          category.genre?.toString(),
+        );
+      }
+      expect(find.byType(SegmentedButton<int>), findsNothing);
+      final seriesRow = find.byKey(
+        const ValueKey('provider-category-147-tv-all'),
+      );
+      await tester.scrollUntilVisible(
+        seriesRow,
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(
+        find.descendant(of: seriesRow, matching: find.text('Voir tout')),
+      );
       await tester.pumpAndSettle();
       expect(requests.last.path, '/3/discover/tv');
       expect(requests.last.queryParameters['with_watch_providers'], '147');
+      expect(find.text('M6+ - Séries'), findsOneWidget);
+      expect(find.byType(DropdownButton<int?>), findsNothing);
+      expect(
+        tester.widget<CatalogScreen>(find.byType(CatalogScreen)).showHeading,
+        isFalse,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -105,12 +156,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    await tester.scrollUntilVisible(
-      find.text('M6+'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.ensureVisible(find.text('M6+'));
     await tester.pumpAndSettle();
+    final lastTile = tester.getRect(find.byKey(const ValueKey('provider-147')));
+    expect(lastTile.left, greaterThanOrEqualTo(0));
+    expect(lastTile.right, lessThanOrEqualTo(480));
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('provider-381'))).dy,
+      lastTile.top,
+    );
     expect(tester.takeException(), isNull);
     api.close();
   });

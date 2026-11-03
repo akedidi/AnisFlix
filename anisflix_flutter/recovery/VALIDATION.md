@@ -56,3 +56,20 @@ Les trois builds de production finaux 0.5.0+5 ont réussi. macOS universel a ét
 - `integration_test/player_features_test.dart` réussit sur macOS : sélection d'une piste MKV embarquée et d'un SRT externe, lecture des valeurs réelles `sub-delay` du moteur et contrôle du texte aux positions attendues pour +1 et −1 seconde ; taille 48 appliquée et mémorisée. Seule la saisie clavier est simulée par Flutter dans ce test ; le moteur vidéo, les sous-titres et la fenêtre sont natifs.
 - Le même test vérifie le niveau flottant réel de la fenêtre PiP, sa réduction à 400 × 225 pixels de contenu, pause/reprise, restauration de la taille initiale et sortie du PiP à la fermeture de l'écran lecteur. Le contrôleur vidéo reste identique pendant ces transitions. Le PiP macOS utilise la fenêtre de l'application au niveau flottant.
 - Les captures Flutter du menu de sous-titres et de la vidéo sous-titrée en PiP ont été examinées. Les commandes de reproduction sont dans [macos/README.md](../macos/README.md).
+
+### Lecteur : Échap et décalage des sous-titres (2026-11-03)
+
+- Le décalage figure avant les pistes dans la fenêtre des sous-titres.
+- Les contrôles de bureau partagent un état de visibilité pour le survol, le masquage automatique et Échap. Le premier appui masque les contrôles visibles, y compris le titre et Retour ; un nouvel appui quitte le plein écran, ou la vidéo si elle est déjà en fenêtre. Les répétitions d'une touche maintenue sont ignorées.
+- `test/player_controls_test.dart` et `test/subtitle_settings_test.dart` : 14 tests réussis. L'analyse Flutter ne signale aucun problème.
+- `integration_test/player_escape_test.dart` réussit sur macOS avec une vidéo locale : focus initial, deux appuis en plein écran, priorité de fermeture des sous-titres, accès immédiat au décalage et sortie après masquage automatique.
+- Pour les tests natifs, placer les fixtures dans un sous-dossier temporaire de `~/Library/Containers/com.anisflix.reconstructed.anisflixFlutter/Data/tmp/` et passer ce chemin via `--dart-define=FIXTURE_DIR=...` ; le sandbox refuse l'accès direct à Documents.
+
+### Paramètres alignés sur iOS-native (2026-11-03)
+
+- Référence : `ios-natve/anisflix/anisflix/Views/SettingsView.swift` dans le dépôt d'origine. Sections Apparence (langue, mode sombre), Sous-titres, Trakt, Données et Version ; la section de mises à jour Flutter est conservée. Les champs de service/clé TMDB, le bouton Enregistrer, l'ouverture d'URL vidéo et les mentions de reconstruction ne figurent plus dans ces paramètres.
+- Les sept langues iOS sont disponibles dans les deux sélecteurs de langue. Les libellés communs des quatre langues ajoutées proviennent des traductions iOS ; les libellés spécifiques aux paramètres ont également été traduits. Les autres messages Flutter sans traduction conservent leur texte français.
+- Taille des sous-titres partagée entre paramètres et lecteur : 50–150 %, pas de 10 %, 100 % correspondant aux 32 pixels existants. Les anciennes tailles hors intervalle sont bornées lors de la lecture.
+- Le cache d'images se vide en mémoire et sur disque. La suppression de progression efface l'historique local et avertit les écrans abonnés sans toucher aux favoris, téléchargements ou préférences. Ces deux actions demandent confirmation dans l'app.
+- Trakt utilise une fenêtre de connexion avec suivi automatique de l'autorisation, fermeture à la connexion et annulation du code à la fermeture.
+- 125 tests unitaires/widgets réussis, dont persistance immédiate, disposition étroite/large, confirmations, préservation des favoris, rechargement des images après purge et cycle de connexion Trakt. Analyse Flutter sans anomalie.

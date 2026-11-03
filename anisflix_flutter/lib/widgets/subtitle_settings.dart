@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/media.dart';
+import '../services/subtitle_languages.dart';
+import 'subtitle_size_control.dart';
 
 class SubtitleSettingsDialog extends StatefulWidget {
   final Player player;
   final List<SourceSubtitle> externalTracks;
+  final Future<List<SourceSubtitle>> Function()? loadOpenSubtitles;
   final int delayMilliseconds;
   final double fontSize;
   final Future<void> Function(int) onDelayChanged;
@@ -15,6 +21,7 @@ class SubtitleSettingsDialog extends StatefulWidget {
     super.key,
     required this.player,
     required this.externalTracks,
+    this.loadOpenSubtitles,
     required this.delayMilliseconds,
     required this.fontSize,
     required this.onDelayChanged,
@@ -31,9 +38,33 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
   late final input = TextEditingController(text: formatDelay(delay));
   String? error;
   bool busy = false;
+  List<SourceSubtitle> openSubtitles = [];
+  bool loadingSubtitles = false;
+  bool subtitleSearchFailed = false;
 
-  static String formatDelay(int milliseconds) =>
-      (milliseconds / 1000).toStringAsFixed(3).replaceAll('.', ',');
+  @override
+  void initState() {
+    super.initState();
+    if (widget.loadOpenSubtitles != null) unawaited(loadSubtitles());
+  }
+
+  Future<void> loadSubtitles() async {
+    setState(() {
+      loadingSubtitles = true;
+      subtitleSearchFailed = false;
+    });
+    try {
+      final tracks = await widget.loadOpenSubtitles!();
+      if (mounted) setState(() => openSubtitles = tracks);
+    } catch (_) {
+      if (mounted) setState(() => subtitleSearchFailed = true);
+    } finally {
+      if (mounted) setState(() => loadingSubtitles = false);
+    }
+  }
+
+  String formatDelay(int milliseconds) =>
+      context.l10n.decimal(milliseconds / 1000, digits: 3);
 
   @override
   void dispose() {
@@ -88,14 +119,32 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
   Widget trackOption(SubtitleTrack track, String label) =>
       RadioListTile<SubtitleTrack>(
         value: track,
-        title: Text(label),
+        title: Text(context.tr(label)),
         enabled: !busy,
         contentPadding: EdgeInsets.zero,
       );
 
+  Widget openSubtitleOption(SourceSubtitle track, List<SourceSubtitle> tracks) {
+    final versions = tracks
+        .where((value) => value.language == track.language)
+        .toList();
+    final number = versions.length > 1
+        ? ' #${versions.indexOf(track) + 1}'
+        : '';
+    final flag = SubtitleLanguages.flags[track.language] ?? '🏳️';
+    return trackOption(
+      SubtitleTrack.uri(
+        track.url,
+        title: track.label,
+        language: track.language,
+      ),
+      '$flag ${context.tr(track.label)}$number · OpenSubtitles',
+    );
+  }
+
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Sous-titres'),
+    title: Text(context.tr("Sous-titres")),
     content: SizedBox(
       width: 440,
       child: SingleChildScrollView(
@@ -103,57 +152,7 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            StreamBuilder<Tracks>(
-              stream: widget.player.stream.tracks,
-              initialData: widget.player.state.tracks,
-              builder: (context, tracks) => StreamBuilder<Track>(
-                stream: widget.player.stream.track,
-                initialData: widget.player.state.track,
-                builder: (context, selected) => RadioGroup<SubtitleTrack>(
-                  groupValue: selected.data!.subtitle,
-                  onChanged: (track) {
-                    if (track != null) {
-                      perform(() => widget.player.setSubtitleTrack(track));
-                    }
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      trackOption(SubtitleTrack.no(), 'Désactivés'),
-                      trackOption(SubtitleTrack.auto(), 'Automatique'),
-                      for (final track in tracks.data!.subtitle.where(
-                        (track) => !['no', 'auto'].contains(track.id),
-                      ))
-                        trackOption(
-                          track,
-                          track.title ?? track.language ?? 'Piste ${track.id}',
-                        ),
-                      for (final track in widget.externalTracks)
-                        trackOption(
-                          SubtitleTrack.uri(
-                            track.url,
-                            title: track.label,
-                            language: track.language,
-                          ),
-                          '${track.label} · Fournisseur',
-                        ),
-                      if (tracks.data!.subtitle.every(
-                            (track) => ['no', 'auto'].contains(track.id),
-                          ) &&
-                          widget.externalTracks.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            'Aucune piste de sous-titres disponible.',
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const Divider(),
-            const Text('Décalage'),
+            Text(context.tr("Décalage")),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -161,7 +160,7 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 IconButton.outlined(
-                  tooltip: 'Avancer les sous-titres de 0,1 s',
+                  tooltip: context.tr("Avancer les sous-titres de 0,1 s"),
                   onPressed: busy ? null : () => applyDelay(-100),
                   icon: const Icon(Icons.remove),
                 ),
@@ -174,8 +173,8 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
                       signed: true,
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'Secondes',
+                    decoration: InputDecoration(
+                      labelText: context.tr("Secondes"),
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
@@ -183,49 +182,133 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
                   ),
                 ),
                 IconButton.outlined(
-                  tooltip: 'Retarder les sous-titres de 0,1 s',
+                  tooltip: context.tr("Retarder les sous-titres de 0,1 s"),
                   onPressed: busy ? null : () => applyDelay(100),
                   icon: const Icon(Icons.add),
                 ),
                 TextButton(
                   onPressed: busy ? null : () => applyDelay(),
-                  child: const Text('Appliquer'),
+                  child: Text(context.tr("Appliquer")),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Décalage appliqué : ${formatDelay(delay)} s'),
-            const Text('Positif : plus tard · Négatif : plus tôt'),
+            Text(context.tr("Décalage appliqué : {0} s", [formatDelay(delay)])),
+            Text(context.tr("Positif : plus tard · Négatif : plus tôt")),
             TextButton(
               onPressed: busy ? null : () => applyDelay(0, true),
-              child: const Text('Réinitialiser le décalage'),
+              child: Text(context.tr("Réinitialiser le décalage")),
             ),
             const Divider(),
-            DropdownButtonFormField<double>(
-              initialValue: fontSize,
-              decoration: const InputDecoration(labelText: 'Taille du texte'),
-              items: [
-                for (final value in [20, 24, 28, 32, 36, 40, 48, 56, 64])
-                  DropdownMenuItem(
-                    value: value.toDouble(),
-                    child: Text('$value'),
-                  ),
-              ],
+            StreamBuilder<Tracks>(
+              stream: widget.player.stream.tracks,
+              initialData: widget.player.state.tracks,
+              builder: (context, tracks) => StreamBuilder<Track>(
+                stream: widget.player.stream.track,
+                initialData: widget.player.state.track,
+                builder: (context, selected) {
+                  final urls = widget.externalTracks
+                      .map((track) => track.url)
+                      .toSet();
+                  final additional = openSubtitles
+                      .where((track) => urls.add(track.url))
+                      .toList();
+                  return RadioGroup<SubtitleTrack>(
+                    groupValue: selected.data!.subtitle,
+                    onChanged: (track) {
+                      if (track != null) {
+                        perform(() => widget.player.setSubtitleTrack(track));
+                      }
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        trackOption(
+                          SubtitleTrack.no(),
+                          context.tr("Désactivés"),
+                        ),
+                        trackOption(
+                          SubtitleTrack.auto(),
+                          context.tr("Automatique"),
+                        ),
+                        for (final track in tracks.data!.subtitle.where(
+                          (track) =>
+                              !['no', 'auto'].contains(track.id) &&
+                              !urls.contains(track.id),
+                        ))
+                          trackOption(
+                            track,
+                            track.title ??
+                                track.language ??
+                                context.tr("Piste {0}", [track.id]),
+                          ),
+                        for (final track in widget.externalTracks)
+                          trackOption(
+                            SubtitleTrack.uri(
+                              track.url,
+                              title: track.label,
+                              language: track.language,
+                            ),
+                            context.tr("{0} · Fournisseur", [
+                              context.tr(track.label),
+                            ]),
+                          ),
+                        for (final track in additional)
+                          openSubtitleOption(track, additional),
+                        if (loadingSubtitles) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 8),
+                          Text(context.tr('Recherche sur OpenSubtitles…')),
+                          const SizedBox(height: 12),
+                        ],
+                        if (subtitleSearchFailed) ...[
+                          Text(
+                            context.tr(
+                              'Recherche de sous-titres indisponible.',
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: loadingSubtitles ? null : loadSubtitles,
+                            icon: const Icon(Icons.refresh),
+                            label: Text(context.tr('Réessayer')),
+                          ),
+                        ],
+                        if (tracks.data!.subtitle.every(
+                              (track) => ['no', 'auto'].contains(track.id),
+                            ) &&
+                            widget.externalTracks.isEmpty &&
+                            additional.isEmpty &&
+                            !loadingSubtitles &&
+                            !subtitleSearchFailed)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              context.tr(
+                                "Aucune piste de sous-titres disponible.",
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const Divider(),
+            SubtitleSizeControl(
+              fontSize: fontSize,
               onChanged: busy
                   ? null
-                  : (value) {
-                      if (value == null) return;
-                      perform(() async {
-                        await widget.onFontSizeChanged(value);
-                        if (mounted) setState(() => fontSize = value);
-                      });
-                    },
+                  : (value) => perform(() async {
+                      await widget.onFontSizeChanged(value);
+                      if (mounted) setState(() => fontSize = value);
+                    }),
             ),
             if (error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Text(
-                  error!,
+                  context.l10n.message(error!),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
@@ -236,7 +319,7 @@ class _SubtitleSettingsDialogState extends State<SubtitleSettingsDialog> {
     actions: [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: const Text('Fermer'),
+        child: Text(context.tr("Fermer")),
       ),
     ],
   );

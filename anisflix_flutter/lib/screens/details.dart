@@ -1,14 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../widgets/cached_media_image.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/media.dart';
 import '../services/catalog_api.dart';
 import '../services/downloads.dart';
 import '../services/library.dart';
 import '../services/source_list_policy.dart';
-import '../widgets/theme_picker.dart';
+import '../widgets/watch_progress_bar.dart';
 import 'catalog.dart';
 import 'player.dart';
 
@@ -32,7 +36,8 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late Future<Map<String, dynamic>> details;
   Future<Map<String, dynamic>>? episodes;
-  int? season;
+  int? season, selectedEpisode;
+  final mobileSourcesKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -52,36 +57,55 @@ class _DetailScreenState extends State<DetailScreen> {
         available.contains(widget.initialSeason)
             ? widget.initialSeason!
             : available.firstWhere((s) => s > 0, orElse: () => available.first),
+        initialEpisode:
+            widget.initialSeason == null ||
+                available.contains(widget.initialSeason)
+            ? widget.initialEpisode
+            : null,
       );
     }
     return result;
   }
 
-  void chooseSeason(int value) => setState(() {
+  void chooseSeason(int value, {int? initialEpisode}) => setState(() {
     season = value;
+    selectedEpisode = initialEpisode;
     episodes = widget.api.season(widget.item.id, value);
   });
-  void episode(Map ep) => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => EpisodeDetailScreen(
-        api: widget.api,
-        library: widget.library,
-        item: widget.item,
-        season: season!,
-        episode: (ep['episode_number'] as num).toInt(),
-        metadata: Map<String, dynamic>.from(ep),
-      ),
+  void selectEpisode(int number) {
+    setState(() => selectedEpisode = number);
+    if (MediaQuery.sizeOf(context).width < 850) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = mobileSourcesKey.currentContext;
+        if (mounted && target != null) {
+          Scrollable.ensureVisible(
+            target,
+            alignment: .1,
+            duration: const Duration(milliseconds: 180),
+          );
+        }
+      });
+    }
+  }
+
+  Widget episodeSources() => SourcesPanel(
+    key: ValueKey(
+      'episode-sources-${widget.item.key}-$season-$selectedEpisode',
     ),
+    api: widget.api,
+    library: widget.library,
+    item: widget.item,
+    season: season,
+    episode: selectedEpisode,
   );
   @override
   Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
     future: details,
     builder: (context, snapshot) {
       final data = snapshot.data ?? <String, dynamic>{};
+      final wide = MediaQuery.sizeOf(context).width >= 850;
       return MediaDetailLayout(
         item: widget.item,
-        library: widget.library,
         information: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -93,12 +117,12 @@ class _DetailScreenState extends State<DetailScreen> {
             if (snapshot.hasError)
               TextButton(
                 onPressed: () => setState(() => details = loadDetails()),
-                child: const Text('Réessayer de charger la fiche'),
+                child: Text(context.tr("Réessayer de charger la fiche")),
               ),
             if (widget.item.type == 'tv') ...[
               const SizedBox(height: 24),
               Text(
-                'Saisons et épisodes',
+                context.tr("Saisons et épisodes"),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -112,12 +136,24 @@ class _DetailScreenState extends State<DetailScreen> {
                       in (data['seasons'] as List? ?? []).whereType<Map>())
                     ChoiceChip(
                       selected: season == s['season_number'],
-                      label: Text(s['name'] ?? 'Saison ${s['season_number']}'),
+                      label: Text(
+                        s['name'] ??
+                            context.tr("Saison {0}", [s['season_number']]),
+                      ),
                       onSelected: (_) =>
                           chooseSeason((s['season_number'] as num).toInt()),
                     ),
                 ],
               ),
+              if (!wide && selectedEpisode == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    context.tr(
+                      "Sélectionne un épisode pour afficher ses sources.",
+                    ),
+                  ),
+                ),
               if (episodes != null)
                 FutureBuilder<Map<String, dynamic>>(
                   future: episodes,
@@ -125,10 +161,10 @@ class _DetailScreenState extends State<DetailScreen> {
                     if (snapshot.hasError) {
                       return TextButton(
                         onPressed: () => chooseSeason(season!),
-                        child: const Text('Réessayer les épisodes'),
+                        child: Text(context.tr("Réessayer les épisodes")),
                       );
                     }
-                    if (!snapshot.hasData) {
+                    if (snapshot.connectionState != ConnectionState.done) {
                       return const Padding(
                         padding: EdgeInsets.all(24),
                         child: LinearProgressIndicator(),
@@ -139,23 +175,29 @@ class _DetailScreenState extends State<DetailScreen> {
                         for (final ep
                             in (snapshot.data!['episodes'] as List? ?? [])
                                 .whereType<Map>())
-                          Card(
-                            child: ListTile(
-                              dense: true,
-                              minTileHeight: 40,
-                              autofocus:
-                                  ep['episode_number'] == widget.initialEpisode,
-                              leading: const Icon(Icons.play_circle_outline),
-                              title: Text(
-                                '${ep['episode_number']}. ${ep['name'] ?? 'Épisode'}',
-                              ),
-                              subtitle: Text(
-                                ep['overview'] ?? '',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              onTap: () => episode(ep),
+                          _EpisodeCard(
+                            key: ValueKey(
+                              'episode-card-$season-${ep['episode_number']}',
                             ),
+                            item: widget.item,
+                            library: widget.library,
+                            metadata: ep,
+                            season: season!,
+                            selected: selectedEpisode == ep['episode_number'],
+                            autofocus:
+                                season == widget.initialSeason &&
+                                ep['episode_number'] == widget.initialEpisode,
+                            onSelected: () => selectEpisode(
+                              (ep['episode_number'] as num).toInt(),
+                            ),
+                            sources:
+                                !wide && selectedEpisode == ep['episode_number']
+                                ? Padding(
+                                    key: mobileSourcesKey,
+                                    padding: const EdgeInsets.all(16),
+                                    child: episodeSources(),
+                                  )
+                                : null,
                           ),
                       ],
                     );
@@ -176,10 +218,16 @@ class _DetailScreenState extends State<DetailScreen> {
                 library: widget.library,
                 item: widget.item,
               )
-            : const Padding(
+            : !wide
+            ? null
+            : selectedEpisode != null
+            ? episodeSources()
+            : Padding(
                 padding: EdgeInsets.symmetric(vertical: 36),
                 child: Text(
-                  'Sélectionne un épisode pour afficher ses sources.',
+                  context.tr(
+                    "Sélectionne un épisode pour afficher ses sources.",
+                  ),
                 ),
               ),
       );
@@ -187,70 +235,135 @@ class _DetailScreenState extends State<DetailScreen> {
   );
 }
 
-class EpisodeDetailScreen extends StatefulWidget {
-  final CatalogApi api;
-  final Library library;
+class _EpisodeCard extends StatelessWidget {
   final MediaItem item;
-  final int season, episode;
-  final Map<String, dynamic> metadata;
-  const EpisodeDetailScreen({
-    super.key,
-    required this.api,
-    required this.library,
-    required this.item,
-    required this.season,
-    required this.episode,
-    this.metadata = const {},
-  });
-  @override
-  State<EpisodeDetailScreen> createState() => _EpisodeDetailScreenState();
-}
+  final Library library;
+  final Map metadata;
+  final int season;
+  final bool selected, autofocus;
+  final VoidCallback onSelected;
+  final Widget? sources;
 
-class _EpisodeDetailScreenState extends State<EpisodeDetailScreen> {
-  late final Future<Map<String, dynamic>> metadata = widget.metadata.isNotEmpty
-      ? Future.value(widget.metadata)
-      : widget.api.season(widget.item.id, widget.season).then((data) {
-          final episodes = (data['episodes'] as List? ?? []).whereType<Map>();
-          final row = episodes
-              .where((e) => e['episode_number'] == widget.episode)
-              .firstOrNull;
-          return row == null
-              ? <String, dynamic>{}
-              : Map<String, dynamic>.from(row);
-        });
+  const _EpisodeCard({
+    super.key,
+    required this.item,
+    required this.library,
+    required this.metadata,
+    required this.season,
+    required this.selected,
+    required this.autofocus,
+    required this.onSelected,
+    this.sources,
+  });
+
   @override
-  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
-    future: metadata,
-    builder: (context, snapshot) => MediaDetailLayout(
-      item: widget.item,
-      library: widget.library,
-      information: MediaInformation(
-        item: widget.item,
-        library: widget.library,
-        metadata: snapshot.data ?? widget.metadata,
-        season: widget.season,
-        episode: widget.episode,
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final number = (metadata['episode_number'] as num).toInt();
+    final still = metadata['still_path'] as String?;
+    final overview = '${metadata['overview'] ?? ''}'.trim();
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: selected ? colors.primary : Colors.transparent,
+          width: 2,
+        ),
       ),
-      sources: SourcesPanel(
-        api: widget.api,
-        library: widget.library,
-        item: widget.item,
-        season: widget.season,
-        episode: widget.episode,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            selected: selected,
+            child: InkWell(
+              autofocus: autofocus,
+              onTap: onSelected,
+              onFocusChange: (focused) {
+                if (focused) {
+                  Scrollable.ensureVisible(
+                    context,
+                    alignment: .2,
+                    duration: const Duration(milliseconds: 180),
+                  );
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            key: ValueKey('episode-thumbnail-$season-$number'),
+                            width: 112,
+                            height: 63,
+                            child: ColoredBox(
+                              color: colors.surfaceContainerHighest,
+                              child: still == null || still.isEmpty
+                                  ? const Icon(Icons.movie_outlined)
+                                  : CachedMediaImage(
+                                      'https://image.tmdb.org/t/p/w300$still',
+                                      fit: BoxFit.cover,
+                                      excludeFromSemantics: true,
+                                      errorBuilder: (_, _, _) =>
+                                          const Icon(Icons.movie_outlined),
+                                    ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '$number. ${metadata['name'] ?? context.tr("Épisode")}',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          selected
+                              ? Icons.play_circle_fill
+                              : Icons.play_circle_outline,
+                          color: selected ? colors.primary : null,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      overview.isEmpty
+                          ? context.tr("Aucun résumé disponible.")
+                          : overview,
+                    ),
+                    WatchProgressBar(
+                      library: library,
+                      item: item,
+                      season: season,
+                      episode: number,
+                      padding: const EdgeInsets.only(top: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          ?sources,
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Matches the TV detail: full backdrop, information left, sources right.
 class MediaDetailLayout extends StatelessWidget {
   final MediaItem item;
-  final Library library;
-  final Widget information, sources;
+  final Widget information;
+  final Widget? sources;
   const MediaDetailLayout({
     super.key,
     required this.item,
-    required this.library,
     required this.information,
     required this.sources,
   });
@@ -263,7 +376,7 @@ class MediaDetailLayout extends StatelessWidget {
         children: [
           if (item.backdrop != null)
             Positioned.fill(
-              child: Image.network(
+              child: CachedMediaImage(
                 'https://image.tmdb.org/t/p/w1280${item.backdrop}',
                 fit: BoxFit.cover,
                 alignment: Alignment.topRight,
@@ -307,16 +420,10 @@ class MediaDetailLayout extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            tooltip: 'Retour',
-                            onPressed: () => Navigator.maybePop(context),
-                            icon: const Icon(Icons.arrow_back),
-                          ),
-                          const Spacer(),
-                          ThemePicker(library: library),
-                        ],
+                      IconButton(
+                        tooltip: context.tr("Retour"),
+                        onPressed: () => Navigator.maybePop(context),
+                        icon: const Icon(Icons.arrow_back),
                       ),
                       const SizedBox(height: 12),
                       information,
@@ -327,10 +434,11 @@ class MediaDetailLayout extends StatelessWidget {
                   return ListView(
                     children: [
                       info,
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: sources,
-                      ),
+                      if (sources != null)
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: sources!,
+                        ),
                     ],
                   );
                 }
@@ -368,14 +476,11 @@ class MediaInformation extends StatelessWidget {
   final MediaItem item;
   final Library library;
   final Map<String, dynamic> metadata;
-  final int? season, episode;
   const MediaInformation({
     super.key,
     required this.item,
     required this.library,
     this.metadata = const {},
-    this.season,
-    this.episode,
   });
   @override
   Widget build(BuildContext context) {
@@ -402,22 +507,10 @@ class MediaInformation extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          item.title,
+          context.l10n.mediaTitle(item.title),
           style: Theme.of(context).textTheme.headlineLarge
               ?.copyWith(fontSize: 32, fontWeight: FontWeight.w800),
         ),
-        if (episode != null) ...[
-          const SizedBox(height: 12),
-          Text(
-            'Saison $season · Épisode $episode',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          if (metadata['name'] != null)
-            Text(
-              metadata['name'],
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-        ],
         const SizedBox(height: 18),
         Wrap(
           spacing: 12,
@@ -428,7 +521,7 @@ class MediaInformation extends StatelessWidget {
               (metadata['air_date'] ?? item.date).toString().split('-').first,
             ),
             Text(
-              '★ ${item.rating.toStringAsFixed(1)}',
+              '★ ${context.l10n.decimal(item.rating)}',
               style: const TextStyle(color: Color(0xffffbc00)),
             ),
             if (metadata['runtime'] is num) Text('${metadata['runtime']} min'),
@@ -442,7 +535,7 @@ class MediaInformation extends StatelessWidget {
         const SizedBox(height: 22),
         Text(
           '${metadata['overview'] ?? item.overview}'.isEmpty
-              ? 'Aucun résumé disponible.'
+              ? context.tr("Aucun résumé disponible.")
               : '${metadata['overview'] ?? item.overview}',
           style: Theme.of(context).textTheme.bodyLarge
               ?.copyWith(fontSize: 14, height: 1.43),
@@ -461,7 +554,7 @@ class MediaInformation extends StatelessWidget {
                   mode: LaunchMode.externalApplication,
                 ),
                 icon: const Icon(Icons.ondemand_video),
-                label: const Text('Bande-annonce'),
+                label: Text(context.tr("Bande-annonce")),
               ),
             AnimatedBuilder(
               animation: library,
@@ -473,7 +566,9 @@ class MediaInformation extends StatelessWidget {
                     favorite ? Icons.favorite : Icons.favorite_outline,
                   ),
                   label: Text(
-                    favorite ? 'Dans les favoris' : 'Ajouter aux favoris',
+                    favorite
+                        ? context.tr("Dans les favoris")
+                        : context.tr("Ajouter aux favoris"),
                   ),
                 );
               },
@@ -482,7 +577,10 @@ class MediaInformation extends StatelessWidget {
         ),
         if (platforms.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text('Disponible sur', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            context.tr("Disponible sur"),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 12,
@@ -493,7 +591,7 @@ class MediaInformation extends StatelessWidget {
                   message: '${p['provider_name']}',
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
+                    child: CachedMediaImage(
                       'https://image.tmdb.org/t/p/w92${p['logo_path']}',
                       width: 62,
                       height: 62,
@@ -532,7 +630,7 @@ class _RelatedMedia extends StatelessWidget {
       children: [
         const SizedBox(height: 26),
         Text(
-          'Contenus similaires',
+          context.tr("Contenus similaires"),
           style: Theme.of(context).textTheme.titleLarge,
         ),
         const SizedBox(height: 14),
@@ -551,6 +649,7 @@ class _RelatedMedia extends StatelessWidget {
                 width: 122,
                 child: MediaCard(
                   item: related,
+                  library: library,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -664,9 +763,9 @@ class _SourcesPanelState extends State<SourcesPanel> {
           episode: widget.episode,
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Téléchargement demandé. Suivi dans Téléchargements.',
+              context.tr("Téléchargement demandé. Suivi dans Téléchargements."),
             ),
           ),
         );
@@ -691,7 +790,9 @@ class _SourcesPanelState extends State<SourcesPanel> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              e is ApiFailure ? e.message : 'Impossible d’ouvrir ce lien.',
+              e is ApiFailure
+                  ? context.l10n.message(e.message)
+                  : context.tr("Impossible d’ouvrir ce lien."),
             ),
           ),
         );
@@ -712,8 +813,18 @@ class _SourcesPanelState extends State<SourcesPanel> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (widget.episode != null) ...[
+          Text(
+            context.tr("Saison {0} · Épisode {1}", [
+              widget.season,
+              widget.episode,
+            ]),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+        ],
         Text(
-          'Sources disponibles',
+          context.tr("Sources disponibles"),
           style: Theme.of(context).textTheme.headlineSmall
               ?.copyWith(fontSize: 22),
         ),
@@ -734,7 +845,10 @@ class _SourcesPanelState extends State<SourcesPanel> {
                     ),
                     label: SizedBox(
                       width: double.infinity,
-                      child: Text(value, textAlign: TextAlign.center),
+                      child: Text(
+                        context.tr(value),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                     onSelected: (_) => setState(() => language = value),
                   ),
@@ -748,21 +862,21 @@ class _SourcesPanelState extends State<SourcesPanel> {
           const SizedBox(height: 8),
           Text(
             rows.isEmpty
-                ? 'Recherche des sources…'
-                : 'Recherche d’autres liens…',
+                ? context.tr("Recherche des sources…")
+                : context.tr("Recherche d’autres liens…"),
           ),
           const SizedBox(height: 12),
         ],
-        if (visible.isEmpty)
+        if (visible.isEmpty && (error != null || !loading))
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Text(
-              error ??
-                  (loading
-                      ? 'Les liens apparaissent au fur et à mesure.'
-                      : rows.isEmpty
-                      ? 'Aucun lien disponible pour ce titre.'
-                      : 'Aucun lien $selected disponible.'),
+              (error == null ? null : context.l10n.message(error!)) ??
+                  (rows.isEmpty
+                      ? context.tr("Aucun lien disponible pour ce titre.")
+                      : context.tr("Aucun lien {0} disponible.", [
+                          context.tr(selected),
+                        ])),
             ),
           ),
         for (final source in visible)
@@ -801,7 +915,7 @@ class _SourcesPanelState extends State<SourcesPanel> {
                   ),
                   onTap: () => openSource(source),
                   trailing: IconButton(
-                    tooltip: 'Télécharger',
+                    tooltip: context.tr("Télécharger"),
                     onPressed: () => openSource(source, download: true),
                     icon: const Icon(Icons.download_outlined, size: 20),
                   ),
@@ -811,14 +925,16 @@ class _SourcesPanelState extends State<SourcesPanel> {
           ),
         if (!loading && failed.isNotEmpty)
           Text(
-            '${failed.length} fournisseur(s) momentanément indisponible(s).',
+            context.tr("{0} fournisseur(s) momentanément indisponible(s).", [
+              failed.length,
+            ]),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         if (!loading)
           TextButton.icon(
             onPressed: load,
             icon: const Icon(Icons.refresh),
-            label: const Text('Actualiser les liens'),
+            label: Text(context.tr("Actualiser les liens")),
           ),
       ],
     );

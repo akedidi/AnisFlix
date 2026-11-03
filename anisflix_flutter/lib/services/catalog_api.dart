@@ -6,6 +6,7 @@ import '../models/media.dart';
 import 'library.dart';
 import 'direct_extractors.dart';
 import 'native_sources.dart';
+import 'provider_catalog_policy.dart';
 
 class ApiFailure implements Exception {
   final String message;
@@ -79,8 +80,10 @@ class CatalogApi {
     bool latest = false,
     bool anime = false,
     int? provider,
+    int? genre,
     String? filter,
   }) async {
+    final now = DateTime.now();
     final Map<String, dynamic> data;
     if (query.isNotEmpty) {
       data = await tmdb('/search/multi', {
@@ -88,7 +91,18 @@ class CatalogApi {
         'page': '$page',
         'include_adult': 'false',
       });
-    } else if ((latest || filter != null) && !anime && provider == null) {
+    } else if (provider != null) {
+      data = await tmdb(
+        '/discover/$type',
+        ProviderCatalogPolicy.parameters(
+          type,
+          provider: provider,
+          page: page,
+          genre: genre,
+          now: now,
+        ),
+      );
+    } else if ((latest || filter != null) && !anime && genre == null) {
       data = await proxy({
         'type': type == 'tv' ? 'series' : 'movie',
         'filter': filter ?? 'last',
@@ -107,11 +121,8 @@ class CatalogApi {
               DateTime.now().toIso8601String().substring(0, 10),
         if (latest && anime) 'vote_count.gte': '1',
         'include_adult': 'false',
-        if (anime) 'with_genres': '16',
+        if (genre != null || anime) 'with_genres': '${genre ?? 16}',
         if (anime) 'with_original_language': 'ja',
-        if (provider != null) 'with_watch_providers': '$provider',
-        if (provider != null)
-          'watch_region': (provider == 9 || provider == 386) ? 'US' : 'FR',
       });
     }
     final items = <MediaItem>[];
@@ -124,7 +135,9 @@ class CatalogApi {
       items.add(MediaItem.fromJson(row, type: kind));
     }
     return MediaPage(
-      items,
+      provider != null && query.isEmpty
+          ? ProviderCatalogPolicy.releasedItems(items, now: now)
+          : items,
       (data['page'] as num? ?? page).toInt(),
       (data['total_pages'] as num? ?? 1).toInt().clamp(1, 500),
     );
