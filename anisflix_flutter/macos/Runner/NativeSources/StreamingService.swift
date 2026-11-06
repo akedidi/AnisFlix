@@ -2064,6 +2064,20 @@ class StreamingService {
         throw URLError(.cannotParseResponse)
     }
 
+    static func quotedVidzyMediaURL(in html: String) -> String? {
+        let pattern = #"(?:file|src)\s*[:=]\s*['"](https?://[^'"]+)['"]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range(at: 1), in: html) else { continue }
+            let candidate = String(html[range]).replacingOccurrences(of: #"\/"#, with: "/").replacingOccurrences(of: "&amp;", with: "&")
+            if !candidate.lowercased().contains("/troll/"), !candidate.lowercased().contains("fake"),
+               candidate.range(of: #"^https?://.+\.(m3u8|mp4|mkv)(?:[?#].*)?$"#, options: [.regularExpression, .caseInsensitive]) != nil {
+                return candidate
+            }
+        }
+        return nil
+    }
+
     private func extractVidzyOnDevice(url: String) async throws -> String {
         guard let embedUrl = URL(string: url), let hostname = embedUrl.host else {
             throw URLError(.badURL)
@@ -2084,6 +2098,7 @@ class StreamingService {
             throw URLError(.badServerResponse)
         }
         let html = String(decoding: data, as: UTF8.self)
+        if let direct = Self.quotedVidzyMediaURL(in: html) { return direct }
         let pattern = #"\(\s*function\s*\(\s*s\s*\)\s*\{[\s\S]{20,4000}?\}\s*\)\s*\(\s*[\"']([^\"']+)[\"']\s*\)"#
         let regex = try NSRegularExpression(pattern: pattern)
         let fullRange = NSRange(html.startIndex..., in: html)

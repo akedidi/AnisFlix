@@ -22,6 +22,7 @@ class SeriesCatalog extends CatalogApi {
   final sourceCalls = <(int?, int?)>[];
   final pending = <(int?, int?), Completer<List<StreamSource>>>{};
   Completer<Map<String, dynamic>>? pendingSeason;
+  Map<int, String?> airDates = {};
   SeriesCatalog(super.library);
 
   @override
@@ -63,6 +64,7 @@ class SeriesCatalog extends CatalogApi {
         {
           'episode_number': number,
           'name': 'Titre $season-$number',
+          'air_date': airDates[number],
           'overview': number == 2 ? '' : '$synopsis Fin $season-$number.',
           if (number != 2) 'still_path': '/still-$season-$number.jpg',
         },
@@ -217,6 +219,38 @@ void main() {
     expect(find.text('Saison 2 · Épisode 3'), findsOneWidget);
     expect(find.byType(ThemePicker), findsNothing);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'unreleased episodes are hidden and cannot load resumed sources',
+    (tester) async {
+      api.airDates = {1: '2020-01-01', 2: '2999-01-01'};
+      await tester.pumpWidget(app(season: 1, episode: 2));
+      await tester.pumpAndSettle();
+      expect(find.text('1. Titre 1-1'), findsOneWidget);
+      expect(find.text('2. Titre 1-2'), findsNothing);
+      expect(find.text('3. Titre 1-3'), findsOneWidget);
+      expect(find.byType(SourcesPanel), findsNothing);
+      expect(api.sourceCalls, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('an unreleased season explains why its episode list is empty', (
+    tester,
+  ) async {
+    api.airDates = {
+      for (final number in [1, 2, 3]) number: '2999-01-01',
+    };
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Aucun épisode disponible pour le moment.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Titre 1-'), findsNothing);
+    expect(api.sourceCalls, isEmpty);
     await tester.pumpWidget(const SizedBox());
   });
 

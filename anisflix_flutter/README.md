@@ -17,7 +17,7 @@ Interface Flutter reconstruite à partir des APK officiels et du dépôt d’ori
 - Catalogues par plateforme alignés sur `ProviderMediaListView` iOS : Films, Séries, films d’Action/Drame/Comédie, puis séries d’Action/Drame/Comédie. Dix titres par rangée, catégories vides masquées et « Voir tout » paginé avec la même plateforme, le même genre et les mêmes paramètres TMDB que les services natifs.
 - Section Animés : films et séries classés par date de sortie décroissante, avec les titres déjà sortis les plus récents en premier, y compris après pagination, sans sélecteur de plateforme.
 - Recherche multi-type et exclusion des résultats de personnes. Les grilles chargent automatiquement la page suivante à l’approche du bas, avec un indicateur de chargement et un bouton de nouvelle tentative en cas d’erreur ; le genre et la plateforme restent appliqués.
-- Fiches, saisons et épisodes utilisant le proxy existant, notamment pour ses saisons virtuelles.
+- Fiches, saisons et épisodes utilisant le proxy existant, notamment pour ses saisons virtuelles. Les épisodes non diffusés sont masqués comme sur iOS natif : disponibilité à 20 h, heure de Paris, le jour annoncé, ou à l’heure précise si elle est fournie ; les épisodes sans date restent visibles.
 - Favoris locaux, historique et reprise distincts par épisode.
 - Fiches de film et d’épisode à deux colonnes sur TV/macOS : informations à gauche, sources à droite, filtres VF/VOSTFR/VO. macOS utilise la collecte native iOS ; les chemins Android affichent les résultats progressivement. Sur mobile, les sources restent dans la même fiche sous les informations.
 - Fournisseurs MovieBox, VaPlayer, VixSrc, YFlix, FStream et fournisseurs français/anime via les services existants ; conservation des liens embed et extraction à la sélection pour les hébergeurs pris en charge.
@@ -25,7 +25,7 @@ Interface Flutter reconstruite à partir des APK officiels et du dépôt d’ori
 - Lecteur `media_kit`, commandes vidéo intégrées, raccourcis clavier et reprise de lecture.
 - Commandes PiP, sous-titres et format d’image en bas à droite, également en plein écran. Formats Original, 16:9, 4:3 et Étiré, avec choix mémorisé.
 - Menu de sous-titres : pistes de la vidéo, du fournisseur et recherche OpenSubtitles identique à iOS natif (IMDb, saison et épisode sélectionnés). Toutes les versions sont conservées, français puis anglais en tête ; chargement indépendant de la vidéo. Décalage par pas de 0,1 seconde ou saisie signée, remise à zéro et taille du texte mémorisée.
-- PiP macOS sous forme de fenêtre flottante redimensionnable au-dessus des autres applications, avec commandes −10 s / lecture-pause / +10 s centrées et retour à la fenêtre normale sans recréer le lecteur.
+- PiP macOS sous forme de fenêtre flottante sans barre de titre, redimensionnable au-dessus des autres applications et déplaçable en glissant la vidéo pendant la lecture. Les commandes −10 s / lecture-pause / +10 s et le retour au lecteur se masquent après trois secondes d’inactivité et réapparaissent au mouvement ou au clic. Le retour à la fenêtre normale conserve le même lecteur.
 - Téléchargements MP4, HLS VOD (y compris AES-128 standard) et DASH statique non protégé, publication atomique, annulation et lecture hors ligne.
 - Service Android de téléchargement avec notification et maintien en activité, PiP sur les appareils compatibles.
 - Connexion Trakt par code, stockage sécurisé, renouvellement de session et scrobbling.

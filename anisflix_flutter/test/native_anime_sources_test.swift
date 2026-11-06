@@ -24,6 +24,9 @@ private final class FixtureProtocol: URLProtocol {
     }
 
     static func main() async {
+        let vidzyPage = #"var decoy={src:'https://cdn.example/troll/master.m3u8'};sources:[{src:"https://cdn.example/hls2/master.m3u8?t=signed&amp;fr=fixture"}]"#
+        check(StreamingService.quotedVidzyMediaURL(in: vidzyPage) == "https://cdn.example/hls2/master.m3u8?t=signed&fr=fixture", "Vidzy direct source skips decoy and keeps signed query")
+        check(StreamingService.quotedVidzyMediaURL(in: #"src:'https://cdn.example/fake.mp4'"#) == nil, "Vidzy decoy is never playable")
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [FixtureProtocol.self]
         let session = URLSession(configuration: config)

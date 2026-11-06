@@ -1,6 +1,15 @@
 // French source messages with English and Spanish translations.
 // Keep numbered placeholders identical in all three languages.
 const appMessages = <String, List<String>>{
+  'Actualiser': ['Refresh', 'Actualizar'],
+  'Impossible d’autoriser la lecture Vidzy. Réessaie ou choisis une autre source.': [
+    'Could not authorize Vidzy playback. Try again or choose another source.',
+    'No se pudo autorizar la reproducción de Vidzy. Inténtalo de nuevo o elige otra fuente.',
+  ],
+  'Aucun épisode disponible pour le moment.': [
+    'No episodes available yet.',
+    'No hay episodios disponibles por el momento.',
+  ],
   "Langue": ["Language", "Idioma"],
   "Mode sombre": ["Dark Mode", "Modo oscuro"],
   "Données": ["Data", "Datos"],

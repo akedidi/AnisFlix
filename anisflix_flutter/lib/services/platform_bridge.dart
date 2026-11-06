@@ -52,6 +52,10 @@ class PlatformBridge {
       false;
   static Future<bool> exitPip() async =>
       macos ? await _invoke<bool>('exitPictureInPicture') ?? false : false;
+  static Future<void> dragPip() async {
+    if (macos) await _invoke<bool>('dragPictureInPicture');
+  }
+
   static Future<Map<dynamic, dynamic>?> pictureInPictureState() =>
       _invoke<Map<dynamic, dynamic>>('getPictureInPictureState');
   static Future<void> playbackActive(bool active) async =>

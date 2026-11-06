@@ -486,6 +486,12 @@ class CatalogApi {
         final resolved = await nativeSources!.resolve(source);
         if (resolved != null && !resolved.needsExtraction) return resolved;
       } catch (_) {
+        if (source.provider.toLowerCase().contains('vidzy') ||
+            Uri.parse(source.url).host.contains('vidzy')) {
+          throw const ApiFailure(
+            'Impossible d’autoriser la lecture Vidzy. Réessaie ou choisis une autre source.',
+          );
+        }
         /* Existing extractors below remain available on failure. */
       }
     }

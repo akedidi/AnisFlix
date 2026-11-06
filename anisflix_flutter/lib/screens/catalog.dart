@@ -13,6 +13,7 @@ import 'details.dart';
 import '../widgets/tv_search_keyboard.dart';
 import '../widgets/resume_card.dart';
 import '../widgets/watch_progress_bar.dart';
+import '../widgets/catalog_refresh.dart';
 
 class CatalogScreen extends StatefulWidget {
   final CatalogApi api;
@@ -103,14 +104,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
     });
   }
 
-  Future<void> load({bool reset = false}) async {
+  Future<void> load({bool reset = false, bool keepItems = false}) async {
     if (!reset && (loading || page >= pages)) return;
     final ticket = reset ? ++generation : generation;
     if (reset) {
       page = 0;
       pages = 1;
-      items = [];
-      if (scroll.hasClients) scroll.jumpTo(0);
+      if (!keepItems) {
+        items = [];
+        if (scroll.hasClients) scroll.jumpTo(0);
+      }
     }
     if (widget.section == 4 && search.text.trim().isEmpty) {
       setState(() {
@@ -136,6 +139,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       );
       if (!mounted || ticket != generation) return;
       setState(() {
+        if (reset) items = [];
         final seen = items.map((x) => x.key).toSet();
         items.addAll(result.items.where((x) => seen.add(x.key)));
         page = result.page;
@@ -198,223 +202,231 @@ class _CatalogScreenState extends State<CatalogScreen> {
             (a, b) =>
                 (b['updated'] as String).compareTo(a['updated'] as String),
           );
+    final slivers = <Widget>[
+      if (showHeading ||
+          (widget.section == 4 && widget.showSearchField) ||
+          showFilters ||
+          (widget.section == 0 && resume.isNotEmpty))
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (showHeading) ...[
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (widget.section == 4 && widget.showSearchField) ...[
+                  TextField(
+                    controller: search,
+                    autofocus: !widget.tv,
+                    readOnly: widget.tv,
+                    onChanged: searchChanged,
+                    onSubmitted: (_) => load(reset: true),
+                    decoration: InputDecoration(
+                      hintText: context.tr("Un film, une série…"),
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        tooltip: context.tr("Effacer"),
+                        onPressed: () {
+                          search.clear();
+                          searchChanged('');
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+                    ),
+                  ),
+                  if (widget.tv)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: TvSearchKeyboard(
+                        controller: search,
+                        onChanged: searchChanged,
+                        onSubmitted: () => load(reset: true),
+                      ),
+                    ),
+                ],
+                if (showFilters)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (widget.section == 3)
+                        SegmentedButton<String>(
+                          segments: [
+                            ButtonSegment(
+                              value: 'tv',
+                              label: Text(context.tr("Séries")),
+                            ),
+                            ButtonSegment(
+                              value: 'movie',
+                              label: Text(context.tr("Films")),
+                            ),
+                          ],
+                          selected: {animeType},
+                          onSelectionChanged: (v) {
+                            animeType = v.first;
+                            unawaited(load(reset: true));
+                          },
+                        ),
+                      if (widget.section != 3)
+                        DropdownButton<int?>(
+                          value: provider,
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text(context.tr("Toutes les plateformes")),
+                            ),
+                            for (final p in watchProviders)
+                              DropdownMenuItem(
+                                value: p.id,
+                                child: Text(p.name),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            provider = v;
+                            unawaited(load(reset: true));
+                          },
+                        ),
+                    ],
+                  ),
+                if (widget.section == 0 && resume.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr("Reprendre"),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 116,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: resume.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 10),
+                      itemBuilder: (context, i) {
+                        final p = resume[i];
+                        final m = MediaItem.fromJson(
+                          Map<String, dynamic>.from(p['media']),
+                        );
+                        return ResumeCard(
+                          item: m,
+                          progress:
+                              (p['position'] as num) / (p['duration'] as num),
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetailScreen(
+                                api: widget.api,
+                                library: widget.library,
+                                item: m,
+                                initialSeason: p['season'],
+                                initialEpisode: p['episode'],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    context.tr("Dernières sorties"),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      if (visible.isEmpty && !loading && error == null)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(child: Text(context.tr("Aucun titre à afficher."))),
+        ),
+      SliverPadding(
+        padding: const EdgeInsets.all(24),
+        sliver: SliverLayoutBuilder(
+          builder: (context, constraints) {
+            final columns =
+                (constraints.crossAxisExtent / (widget.tv ? 190 : 160))
+                    .floor()
+                    .clamp(1, 9);
+            return SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                childAspectRatio: .57,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 20,
+              ),
+              itemCount: visible.length,
+              itemBuilder: (context, i) => MediaCard(
+                item: visible[i],
+                library: widget.library,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DetailScreen(
+                      api: widget.api,
+                      library: widget.library,
+                      item: visible[i],
+                      initialSeason: visible[i].latestSeason,
+                      initialEpisode: visible[i].latestEpisode,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
+          child: Center(
+            child: Column(
+              children: [
+                if (error != null) ...[
+                  Text(
+                    context.l10n.message(error!),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => load(
+                      reset: items.isEmpty || page == 0,
+                      keepItems: items.isNotEmpty,
+                    ),
+                    child: Text(context.tr("Réessayer")),
+                  ),
+                ],
+                if (loading) const CircularProgressIndicator(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
     return NotificationListener<ScrollMetricsNotification>(
       onNotification: (_) {
         scheduleNextPage();
         return false;
       },
-      child: CustomScrollView(
-        controller: scroll,
-        slivers: [
-          if (showHeading ||
-              (widget.section == 4 && widget.showSearchField) ||
-              showFilters ||
-              (widget.section == 0 && resume.isNotEmpty))
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (showHeading) ...[
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    if (widget.section == 4 && widget.showSearchField) ...[
-                      TextField(
-                        controller: search,
-                        autofocus: !widget.tv,
-                        readOnly: widget.tv,
-                        onChanged: searchChanged,
-                        onSubmitted: (_) => load(reset: true),
-                        decoration: InputDecoration(
-                          hintText: context.tr("Un film, une série…"),
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: IconButton(
-                            tooltip: context.tr("Effacer"),
-                            onPressed: () {
-                              search.clear();
-                              searchChanged('');
-                            },
-                            icon: const Icon(Icons.clear),
-                          ),
-                        ),
-                      ),
-                      if (widget.tv)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: TvSearchKeyboard(
-                            controller: search,
-                            onChanged: searchChanged,
-                            onSubmitted: () => load(reset: true),
-                          ),
-                        ),
-                    ],
-                    if (showFilters)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          if (widget.section == 3)
-                            SegmentedButton<String>(
-                              segments: [
-                                ButtonSegment(
-                                  value: 'tv',
-                                  label: Text(context.tr("Séries")),
-                                ),
-                                ButtonSegment(
-                                  value: 'movie',
-                                  label: Text(context.tr("Films")),
-                                ),
-                              ],
-                              selected: {animeType},
-                              onSelectionChanged: (v) {
-                                animeType = v.first;
-                                unawaited(load(reset: true));
-                              },
-                            ),
-                          if (widget.section != 3)
-                            DropdownButton<int?>(
-                              value: provider,
-                              items: [
-                                DropdownMenuItem(
-                                  value: null,
-                                  child: Text(
-                                    context.tr("Toutes les plateformes"),
-                                  ),
-                                ),
-                                for (final p in watchProviders)
-                                  DropdownMenuItem(
-                                    value: p.id,
-                                    child: Text(p.name),
-                                  ),
-                              ],
-                              onChanged: (v) {
-                                provider = v;
-                                unawaited(load(reset: true));
-                              },
-                            ),
-                        ],
-                      ),
-                    if (widget.section == 0 && resume.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr("Reprendre"),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 116,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: resume.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 10),
-                          itemBuilder: (context, i) {
-                            final p = resume[i];
-                            final m = MediaItem.fromJson(
-                              Map<String, dynamic>.from(p['media']),
-                            );
-                            return ResumeCard(
-                              item: m,
-                              progress:
-                                  (p['position'] as num) /
-                                  (p['duration'] as num),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetailScreen(
-                                    api: widget.api,
-                                    library: widget.library,
-                                    item: m,
-                                    initialSeason: p['season'],
-                                    initialEpisode: p['episode'],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        context.tr("Dernières sorties"),
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+      child: [0, 1, 2, 3].contains(widget.section)
+          ? CatalogRefresh(
+              onRefresh: () => load(reset: true, keepItems: true),
+              controller: scroll,
+              slivers: slivers,
+            )
+          : CustomScrollView(
+              controller: scroll,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: slivers,
             ),
-          if (visible.isEmpty && !loading && error == null)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: Text(context.tr("Aucun titre à afficher."))),
-            ),
-          SliverPadding(
-            padding: const EdgeInsets.all(24),
-            sliver: SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final columns =
-                    (constraints.crossAxisExtent / (widget.tv ? 190 : 160))
-                        .floor()
-                        .clamp(1, 9);
-                return SliverGrid.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    childAspectRatio: .57,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 20,
-                  ),
-                  itemCount: visible.length,
-                  itemBuilder: (context, i) => MediaCard(
-                    item: visible[i],
-                    library: widget.library,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(
-                          api: widget.api,
-                          library: widget.library,
-                          item: visible[i],
-                          initialSeason: visible[i].latestSeason,
-                          initialEpisode: visible[i].latestEpisode,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 36),
-              child: Center(
-                child: Column(
-                  children: [
-                    if (error != null) ...[
-                      Text(
-                        context.l10n.message(error!),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => load(reset: items.isEmpty),
-                        child: Text(context.tr("Réessayer")),
-                      ),
-                    ],
-                    if (loading) const CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

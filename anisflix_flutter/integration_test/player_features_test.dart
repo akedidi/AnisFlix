@@ -310,6 +310,8 @@ void main() {
       final floating = (await PlatformBridge.pictureInPictureState())!;
       expect(floating['active'], isTrue);
       expect(floating['floating'], isTrue);
+      expect(floating['titled'], isFalse);
+      expect(floating['resizable'], isTrue);
       expect(floating['width'] as num, lessThan(original['width'] as num));
       expect(floating['height'] as num, lessThan(300));
       expect(
@@ -318,6 +320,7 @@ void main() {
       );
       expect(player.state.playing, isFalse);
       await settleWindow();
+      await revealControls();
       final viewport = tester.getRect(find.byType(Video));
       for (final key in ['pip-rewind', 'pip-play-pause', 'pip-forward']) {
         final button = tester.getRect(find.byKey(ValueKey(key)));
@@ -330,24 +333,54 @@ void main() {
         closeTo(viewport.center.dx, 1),
       );
       await screenshot('anisflix-pip-macos');
+      await revealControls();
       await tester.tap(find.byTooltip('Avancer de 10 secondes'));
       await waitFor(
         () =>
             player.state.position >=
             player.state.duration - const Duration(milliseconds: 100),
       );
+      await revealControls();
       await tester.tap(find.byTooltip('Reculer de 10 secondes'));
       await waitFor(
         () => player.state.position <= const Duration(milliseconds: 100),
       );
       await tester.tap(find.byTooltip('Lecture'));
       await waitFor(() => player.state.playing);
+      await tester.runAsync(() => player.seek(Duration.zero));
+      await mouse.moveTo(const Offset(20, 20));
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 3300)),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.byKey(const ValueKey('player-controls-visibility')),
+            )
+            .opacity,
+        0,
+      );
+      expect(player.state.playing, isTrue);
+      await screenshot('anisflix-pip-hidden-macos');
+      await revealControls();
+      expect(
+        tester
+            .widget<AnimatedOpacity>(
+              find.byKey(const ValueKey('player-controls-visibility')),
+            )
+            .opacity,
+        1,
+      );
       await tester.tap(find.byTooltip('Pause'));
       await waitFor(() => !player.state.playing);
       await tester.tap(find.byTooltip('Revenir au lecteur'));
       await waitFor(() => !PlatformBridge.pictureInPicture.value);
       final restored = (await PlatformBridge.pictureInPictureState())!;
       expect(restored['floating'], isFalse);
+      expect(restored['titled'], original['titled']);
+      expect(restored['resizable'], original['resizable']);
       expect(restored['width'], original['width']);
       expect(restored['height'], original['height']);
       expect(

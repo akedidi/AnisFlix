@@ -4,7 +4,78 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+double opacity(WidgetTester tester) => tester
+    .widget<AnimatedOpacity>(
+      find.byKey(const ValueKey('player-controls-visibility')),
+    )
+    .opacity;
+
 void main() {
+  testWidgets('a late drag release after leaving the player creates no timer', (
+    tester,
+  ) async {
+    late VoidCallback release;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PlayerControlsOverlay(
+          onExit: () {},
+          onDoubleTap: () {},
+          shortcuts: const {},
+          builder: (_, end) {
+            release = end;
+            return const SizedBox.expand();
+          },
+        ),
+      ),
+    );
+    await tester.pumpWidget(const SizedBox());
+    release();
+    await tester.pump(const Duration(seconds: 4));
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'PiP drags work with hidden controls and preserve button clicks',
+    (tester) async {
+      var drags = 0;
+      var clicks = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlayerControlsOverlay(
+            onExit: () {},
+            onDoubleTap: () {},
+            onDragStart: () async {
+              drags++;
+            },
+            shortcuts: const {},
+            builder: (_, _) => Center(
+              child: IconButton(
+                onPressed: () {
+                  clicks++;
+                },
+                icon: const Icon(Icons.pause),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(IconButton));
+      expect(clicks, 1);
+      expect(drags, 0);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(opacity(tester), 0);
+      await tester.dragFrom(const Offset(40, 40), const Offset(120, 60));
+      expect(drags, 1);
+      expect(clicks, 1);
+      await tester.tapAt(const Offset(40, 40));
+      await tester.pumpAndSettle();
+      expect(opacity(tester), 1);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(opacity(tester), 0);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   Future<void> showPlayer(
     WidgetTester tester, {
     bool fullscreen = false,
@@ -57,12 +128,6 @@ void main() {
     await tester.tap(find.text('Ouvrir'));
     await tester.pumpAndSettle();
   }
-
-  double opacity(WidgetTester tester) => tester
-      .widget<AnimatedOpacity>(
-        find.byKey(const ValueKey('player-controls-visibility')),
-      )
-      .opacity;
 
   Future<void> escape(WidgetTester tester) async {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);

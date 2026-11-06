@@ -11,6 +11,7 @@ class PlayerControlsOverlay extends StatefulWidget {
   final VoidCallback onDoubleTap;
   final ValueChanged<bool>? onVisibilityChanged;
   final ValueChanged<PointerSignalEvent>? onPointerSignal;
+  final Future<void> Function()? onDragStart;
   final Map<ShortcutActivator, VoidCallback> shortcuts;
 
   const PlayerControlsOverlay({
@@ -21,6 +22,7 @@ class PlayerControlsOverlay extends StatefulWidget {
     required this.shortcuts,
     this.onVisibilityChanged,
     this.onPointerSignal,
+    this.onDragStart,
   });
 
   @override
@@ -43,10 +45,12 @@ class _PlayerControlsOverlayState extends State<PlayerControlsOverlay> {
 
   void scheduleHide() {
     timer?.cancel();
+    if (!mounted) return;
     if (!holding) timer = Timer(const Duration(seconds: 3), hide);
   }
 
   void show() {
+    if (!mounted) return;
     if (!visible) {
       setState(() => visible = true);
       widget.onVisibilityChanged?.call(true);
@@ -56,7 +60,7 @@ class _PlayerControlsOverlayState extends State<PlayerControlsOverlay> {
 
   void hide() {
     timer?.cancel();
-    if (!visible) return;
+    if (!mounted || !visible) return;
     Tooltip.dismissAllToolTips();
     setState(() => visible = false);
     widget.onVisibilityChanged?.call(false);
@@ -77,6 +81,7 @@ class _PlayerControlsOverlayState extends State<PlayerControlsOverlay> {
   }
 
   void tap(TapUpDetails details) {
+    show();
     focus.requestFocus();
     final now = DateTime.now();
     final previous = lastTap;
@@ -134,6 +139,14 @@ class _PlayerControlsOverlayState extends State<PlayerControlsOverlay> {
               behavior: HitTestBehavior.opaque,
               // A double-tap recognizer would delay every child button's tap.
               onTapUp: tap,
+              onPanStart: widget.onDragStart == null
+                  ? null
+                  : (_) {
+                      hold();
+                      unawaited(widget.onDragStart!());
+                    },
+              onPanEnd: widget.onDragStart == null ? null : (_) => release(),
+              onPanCancel: widget.onDragStart == null ? null : release,
               child: IgnorePointer(
                 ignoring: !visible,
                 child: ExcludeFocus(

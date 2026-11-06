@@ -13,6 +13,7 @@ import 'details.dart';
 import '../widgets/media_category_row.dart';
 import '../widgets/resume_card.dart';
 import '../widgets/watch_progress_bar.dart';
+import '../widgets/catalog_refresh.dart';
 
 class HomeScreen extends StatefulWidget {
   final CatalogApi api;
@@ -64,6 +65,19 @@ class _HomeScreenState extends State<HomeScreen> {
         anime: section.anime,
         filter: section.filter,
       );
+
+  Future<void> refresh() async {
+    setState(() {
+      hero = 0;
+      reload();
+    });
+    // Every row reports its own failure; still wait for all network requests.
+    await Future.wait([
+      for (final future in sections.values)
+        future.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+    ]);
+  }
+
   @override
   void dispose() {
     timer?.cancel();
@@ -120,201 +134,210 @@ class _HomeScreenState extends State<HomeScreen> {
             (a, b) =>
                 (b['updated'] as String).compareTo(a['updated'] as String),
           );
-    return ListView(
-      children: [
-        FutureBuilder(
-          future: movies,
-          builder: (context, snapshot) {
-            final rows = snapshot.data?.items ?? [];
-            if (rows.isEmpty) return const SizedBox(height: 16);
-            final item = rows[hero % rows.length.clamp(1, 5)];
-            return Focus(
-              onFocusChange: (value) => heroFocused = value,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final small = constraints.maxWidth < 600;
-                  return ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: small ? 330 : 290),
-                    child: Stack(
-                      children: [
-                        if (item.backdrop != null)
-                          Positioned.fill(
-                            child: CachedMediaImage(
-                              'https://image.tmdb.org/t/p/w1280${item.backdrop}',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => const SizedBox(),
-                            ),
-                          ),
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Theme.of(context).scaffoldBackgroundColor
-                                      .withValues(alpha: .96),
-                                  Theme.of(context).scaffoldBackgroundColor
-                                      .withValues(alpha: .45),
-                                ],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                            ),
-                          ),
+    return CatalogRefresh(
+      onRefresh: refresh,
+      slivers: [
+        SliverList.list(
+          children: [
+            FutureBuilder(
+              future: movies,
+              builder: (context, snapshot) {
+                final rows = snapshot.data?.items ?? [];
+                if (rows.isEmpty) return const SizedBox(height: 16);
+                final item = rows[hero % rows.length.clamp(1, 5)];
+                return Focus(
+                  onFocusChange: (value) => heroFocused = value,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final small = constraints.maxWidth < 600;
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: small ? 330 : 290,
                         ),
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  Theme.of(context).scaffoldBackgroundColor,
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
+                        child: Stack(
+                          children: [
+                            if (item.backdrop != null)
+                              Positioned.fill(
+                                child: CachedMediaImage(
+                                  'https://image.tmdb.org/t/p/w1280${item.backdrop}',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => const SizedBox(),
+                                ),
+                              ),
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Theme.of(context).scaffoldBackgroundColor
+                                          .withValues(alpha: .96),
+                                      Theme.of(context).scaffoldBackgroundColor
+                                          .withValues(alpha: .45),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            24,
-                            small ? 22 : 36,
-                            24,
-                            16,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Chip(
-                                label: Text(context.tr("Film")),
-                                visualDensity: VisualDensity.compact,
+                            Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      Colors.transparent,
+                                      Theme.of(context).scaffoldBackgroundColor,
+                                    ],
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                context.l10n.mediaTitle(item.title),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                24,
+                                small ? 22 : 36,
+                                24,
+                                16,
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '⭐ ${context.l10n.decimal(item.rating)}   ${item.date.length >= 4 ? item.date.substring(0, 4) : ''}',
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                item.overview,
-                                maxLines: small ? 3 : 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 16),
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 6,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  FilledButton.icon(
-                                    onPressed: () => details(item),
-                                    icon: const Icon(Icons.info_outline),
-                                    label: Text(context.tr("Plus d’infos")),
+                                  Chip(
+                                    label: Text(context.tr("Film")),
+                                    visualDensity: VisualDensity.compact,
                                   ),
-                                  OutlinedButton.icon(
-                                    onPressed: () =>
-                                        widget.library.toggleFavorite(item),
-                                    icon: Icon(
-                                      widget.library.favorites.containsKey(
-                                            item.key,
-                                          )
-                                          ? Icons.favorite
-                                          : Icons.favorite_outline,
-                                    ),
-                                    label: Text(
-                                      widget.library.favorites.containsKey(
-                                            item.key,
-                                          )
-                                          ? context.tr("Dans les favoris")
-                                          : context.tr("Ajouter aux favoris"),
-                                    ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    context.l10n.mediaTitle(item.title),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '⭐ ${context.l10n.decimal(item.rating)}   ${item.date.length >= 4 ? item.date.substring(0, 4) : ''}',
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    item.overview,
+                                    maxLines: small ? 3 : 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 6,
+                                    children: [
+                                      FilledButton.icon(
+                                        onPressed: () => details(item),
+                                        icon: const Icon(Icons.info_outline),
+                                        label: Text(context.tr("Plus d’infos")),
+                                      ),
+                                      OutlinedButton.icon(
+                                        onPressed: () =>
+                                            widget.library.toggleFavorite(item),
+                                        icon: Icon(
+                                          widget.library.favorites.containsKey(
+                                                item.key,
+                                              )
+                                              ? Icons.favorite
+                                              : Icons.favorite_outline,
+                                        ),
+                                        label: Text(
+                                          widget.library.favorites.containsKey(
+                                                item.key,
+                                              )
+                                              ? context.tr("Dans les favoris")
+                                              : context.tr(
+                                                  "Ajouter aux favoris",
+                                                ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Positioned(
-                          left: 24,
-                          right: 24,
-                          bottom: 0,
-                          child: WatchProgressBar(
-                            key: const ValueKey('home-hero-progress'),
-                            library: widget.library,
-                            item: item,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            );
-          },
-        ),
-        if (resume.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr("Reprendre"),
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 116,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: resume.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 10),
-                    itemBuilder: (context, i) {
-                      final p = resume[i],
-                          item = MediaItem.fromJson(
-                            Map<String, dynamic>.from(resume[i]['media']),
-                          );
-                      return ResumeCard(
-                        item: item,
-                        progress:
-                            (p['position'] as num) / (p['duration'] as num),
-                        onTap: () => details(
-                          item,
-                          season: p['season'],
-                          episode: p['episode'],
+                            ),
+                            Positioned(
+                              left: 24,
+                              right: 24,
+                              bottom: 0,
+                              child: WatchProgressBar(
+                                key: const ValueKey('home-hero-progress'),
+                                library: widget.library,
+                                item: item,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          ),
-        for (final section in homeCategories)
-          MediaCategoryRow(
-            title: section.title,
-            library: widget.library,
-            future: sections[section.title]!,
-            tv: widget.tv,
-            onSelected: details,
-            seeAll: () => all(section),
-            retry: () => setState(() {
-              sections[section.title] = fetch(section);
-              if (section == homeCategories.first) {
-                movies = sections[section.title]!;
-              }
-            }),
-          ),
-        const SizedBox(height: 24),
+            if (resume.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr("Reprendre"),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 116,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: resume.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
+                        itemBuilder: (context, i) {
+                          final p = resume[i],
+                              item = MediaItem.fromJson(
+                                Map<String, dynamic>.from(resume[i]['media']),
+                              );
+                          return ResumeCard(
+                            item: item,
+                            progress:
+                                (p['position'] as num) / (p['duration'] as num),
+                            onTap: () => details(
+                              item,
+                              season: p['season'],
+                              episode: p['episode'],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            for (final section in homeCategories)
+              MediaCategoryRow(
+                title: section.title,
+                library: widget.library,
+                future: sections[section.title]!,
+                tv: widget.tv,
+                onSelected: details,
+                seeAll: () => all(section),
+                retry: () => setState(() {
+                  sections[section.title] = fetch(section);
+                  if (section == homeCategories.first) {
+                    movies = sections[section.title]!;
+                  }
+                }),
+              ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ],
     );
   }

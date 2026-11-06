@@ -66,6 +66,7 @@ void main() {
         500,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.pumpAndSettle();
       final row = find.ancestor(of: target, matching: find.byType(Row)).first;
       await tester.tap(
         find.descendant(of: row, matching: find.text('Voir tout')),

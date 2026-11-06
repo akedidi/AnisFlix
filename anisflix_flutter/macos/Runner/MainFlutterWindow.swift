@@ -14,10 +14,41 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     let behavior: NSWindow.CollectionBehavior
     let movableByBackground: Bool
     let title: String
+    let styleMask: NSWindow.StyleMask
   }
   private var normalWindow: WindowState?
   private var pendingPip: FlutterResult?
   private var pictureInPictureTitle = "AnisFlix"
+  private var pipMouseOrigin: NSPoint?
+  private var pipWindowOrigin: NSPoint?
+  private var draggingPip = false
+  override var canBecomeKey: Bool { normalWindow != nil || super.canBecomeKey }
+
+  override func sendEvent(_ event: NSEvent) {
+    if normalWindow != nil {
+      switch event.type {
+      case .leftMouseDown:
+        pipMouseOrigin = convertPoint(toScreen: event.locationInWindow)
+        pipWindowOrigin = frame.origin
+        draggingPip = false
+      case .leftMouseDragged:
+        if draggingPip { movePictureInPicture() }
+      case .leftMouseUp:
+        if draggingPip { movePictureInPicture() }
+        draggingPip = false
+      default:
+        break
+      }
+    }
+    super.sendEvent(event)
+  }
+
+  private func movePictureInPicture() {
+    guard let mouse = pipMouseOrigin, let window = pipWindowOrigin else { return }
+    let current = NSEvent.mouseLocation
+    setFrameOrigin(NSPoint(x: window.x + current.x - mouse.x,
+                           y: window.y + current.y - mouse.y))
+  }
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = NSRect(x: self.frame.origin.x, y: self.frame.origin.y, width: 1280, height: 800)
@@ -54,7 +85,24 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
           "floating": self.level == .floating,
           "width": self.frame.width,
           "height": self.frame.height,
+          "titled": self.styleMask.contains(.titled),
+          "resizable": self.styleMask.contains(.resizable),
+          "x": self.frame.origin.x,
+          "y": self.frame.origin.y,
+          "dragging": self.draggingPip,
+          "dragAnchor": self.pipMouseOrigin != nil,
         ])
+      case "dragPictureInPicture":
+        guard self.normalWindow != nil, self.pipMouseOrigin != nil,
+              self.pipWindowOrigin != nil else {
+          reply(false)
+          return
+        }
+        // Flutter's gesture arrives asynchronously, after NSApp.currentEvent
+        // may have changed. Use the native mouse-down anchor and screen cursor.
+        self.draggingPip = NSEvent.pressedMouseButtons & 1 != 0
+        self.movePictureInPicture()
+        reply(true)
       case "setPlaybackActive":
         reply(nil)
       default:
@@ -86,14 +134,16 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
       frame: frame, minSize: minSize, maxSize: maxSize,
       aspectRatio: contentAspectRatio, level: level,
       behavior: collectionBehavior, movableByBackground: isMovableByWindowBackground,
-      title: title
+      title: title, styleMask: styleMask
     )
-    minSize = NSSize(width: 240, height: 155)
-    maxSize = NSSize(width: 960, height: 600)
+    styleMask = [.borderless, .resizable]
+    minSize = NSSize(width: 240, height: 135)
+    maxSize = NSSize(width: 960, height: 540)
     contentAspectRatio = NSSize(width: 16, height: 9)
     level = .floating
     collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-    isMovableByWindowBackground = true
+    // Flutter handles the hit testing so video drags and button clicks remain distinct.
+    isMovableByWindowBackground = false
     title = pictureInPictureTitle
     let visible = (screen ?? NSScreen.main)?.visibleFrame ?? frame
     let size = frameRect(forContentRect: NSRect(x: 0, y: 0, width: 400, height: 225)).size
@@ -108,6 +158,10 @@ class MainFlutterWindow: NSWindow, NSWindowDelegate {
     pendingPip = nil
     guard let saved = normalWindow else { return }
     normalWindow = nil
+    draggingPip = false
+    pipMouseOrigin = nil
+    pipWindowOrigin = nil
+    styleMask = saved.styleMask
     contentAspectRatio = saved.aspectRatio
     minSize = saved.minSize
     maxSize = saved.maxSize

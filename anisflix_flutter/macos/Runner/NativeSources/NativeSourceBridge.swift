@@ -42,7 +42,18 @@ final class NativeSourceBridge {
                     } else if call.method == "resolve", let url = args["url"] as? String {
                         let source = StreamingSource(url: url, quality: args["quality"] as? String ?? "Auto", type: args["format"] as? String ?? "embed", provider: args["provider"] as? String ?? "", language: args["language"] as? String ?? "VO", headers: args["headers"] as? [String:String])
                         let resolved = await StreamingService.shared.extractDirectLink(for: source)
-                        DispatchQueue.main.async { reply(Self.row(resolved)) }
+                        var row = Self.row(resolved)
+                        if let embed = URL(string: source.url),
+                           let media = URL(string: resolved.directUrl ?? resolved.url),
+                           (source.provider.lowercased().contains("vidzy") || embed.host?.contains("vidzy") == true),
+                           media.path.hasSuffix(".m3u8") {
+                            let session = await VidzyPlaybackResolver()
+                            let (authorized, headers) = try await session.resolve(embed: embed, media: media)
+                            row["url"] = authorized.absoluteString
+                            row["headers"] = headers
+                        }
+                        let result = row
+                        DispatchQueue.main.async { reply(result) }
                     } else {
                         DispatchQueue.main.async { reply(FlutterMethodNotImplemented) }
                     }

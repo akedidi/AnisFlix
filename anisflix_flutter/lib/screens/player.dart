@@ -480,6 +480,85 @@ class _PlayerScreenState extends State<PlayerScreen> {
     },
   );
 
+  Widget pipControls() => PlayerControlsOverlay(
+    key: const ValueKey('pip-controls'),
+    onExit: exitPip,
+    onDoubleTap: () {},
+    onDragStart: PlatformBridge.dragPip,
+    shortcuts: const {},
+    builder: (_, _) => Stack(
+      fit: StackFit.expand,
+      children: [
+        Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton.filledTonal(
+                key: const ValueKey('pip-rewind'),
+                tooltip: context.tr('Reculer de 10 secondes'),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xaa000000),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.square(48),
+                ),
+                onPressed: () => seek(-10),
+                icon: const Icon(Icons.replay_10, size: 28),
+              ),
+              const SizedBox(width: 12),
+              StreamBuilder<bool>(
+                stream: player.stream.playing,
+                initialData: player.state.playing,
+                builder: (_, state) => IconButton.filledTonal(
+                  key: const ValueKey('pip-play-pause'),
+                  tooltip: state.data == true
+                      ? context.tr("Pause")
+                      : context.tr("Lecture"),
+                  style: IconButton.styleFrom(
+                    backgroundColor: const Color(0xaa000000),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.square(56),
+                  ),
+                  onPressed: player.playOrPause,
+                  icon: Icon(
+                    state.data == true ? Icons.pause : Icons.play_arrow,
+                    size: 32,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton.filledTonal(
+                key: const ValueKey('pip-forward'),
+                tooltip: context.tr('Avancer de 10 secondes'),
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xaa000000),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.square(48),
+                ),
+                onPressed: () => seek(10),
+                icon: const Icon(Icons.forward_10, size: 28),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: IconButton.filledTonal(
+            tooltip: context.tr("Revenir au lecteur"),
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xaa000000),
+              foregroundColor: Colors.white,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: const Size.square(40),
+            ),
+            onPressed: exitPip,
+            icon: const Icon(Icons.picture_in_picture_alt),
+          ),
+        ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.black,
@@ -524,7 +603,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       // ratio: media_kit's copyWith retains the old value for null.
                       aspectRatio: mode.ratio(params.data?.aspect ?? 16 / 9),
                       fit: mode.fit,
-                      controls: pip ? NoVideoControls : videoControls,
+                      // NoVideoControls is null; media_kit's copyWith would
+                      // retain the previous controls when switching to PiP.
+                      controls: pip
+                          ? (_) => const SizedBox.shrink()
+                          : videoControls,
                       subtitleViewConfiguration: SubtitleViewConfiguration(
                         style: TextStyle(
                           fontSize: subtitleFontSize,
@@ -537,73 +620,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
               if (pip && PlatformBridge.macos)
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton.filledTonal(
-                        key: const ValueKey('pip-rewind'),
-                        tooltip: context.tr('Reculer de 10 secondes'),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xaa000000),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.square(48),
-                        ),
-                        onPressed: () => seek(-10),
-                        icon: const Icon(Icons.replay_10, size: 28),
-                      ),
-                      const SizedBox(width: 12),
-                      StreamBuilder<bool>(
-                        stream: player.stream.playing,
-                        initialData: player.state.playing,
-                        builder: (_, state) => IconButton.filledTonal(
-                          key: const ValueKey('pip-play-pause'),
-                          tooltip: state.data == true
-                              ? context.tr("Pause")
-                              : context.tr("Lecture"),
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color(0xaa000000),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.square(56),
-                          ),
-                          onPressed: player.playOrPause,
-                          icon: Icon(
-                            state.data == true ? Icons.pause : Icons.play_arrow,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton.filledTonal(
-                        key: const ValueKey('pip-forward'),
-                        tooltip: context.tr('Avancer de 10 secondes'),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xaa000000),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size.square(48),
-                        ),
-                        onPressed: () => seek(10),
-                        icon: const Icon(Icons.forward_10, size: 28),
-                      ),
-                    ],
-                  ),
-                ),
-              if (pip && PlatformBridge.macos)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: IconButton.filledTonal(
-                    tooltip: context.tr("Revenir au lecteur"),
-                    style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xaa000000),
-                      foregroundColor: Colors.white,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      minimumSize: const Size.square(40),
-                    ),
-                    onPressed: exitPip,
-                    icon: const Icon(Icons.picture_in_picture_alt),
-                  ),
-                ),
+                Positioned.fill(child: pipControls()),
               if (!pip &&
                   [
                     TargetPlatform.android,

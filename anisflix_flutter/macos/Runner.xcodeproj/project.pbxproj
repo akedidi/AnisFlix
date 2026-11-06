@@ -38,6 +38,7 @@
 		355FE0E51E4801468642698C /* MovieBoxService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2631537E923B567DB178072 /* MovieBoxService.swift */; };
 		777B1F69BA0FCA3C4748F47A /* NativeSourceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */; };
 		C375A8EDDB47E4BBB1C736E9 /* NativeSourceConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */; };
+		B695DD66AF084F689B52C410 /* VidzyPlaybackResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB183CAF10C84A3DB26CD5ED /* VidzyPlaybackResolver.swift */; };
 		82BE695EFE0D6A236DB83464 /* StreamingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52505C9E9EB02160E56924FE /* StreamingService.swift */; };
 		3D10FE38752A787CC3158368 /* YFlixService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */; };
 /* End PBXBuildFile section */
@@ -108,6 +109,7 @@
 		B2631537E923B567DB178072 /* MovieBoxService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieBoxService.swift; sourceTree = "<group>"; };
 		403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSourceBridge.swift; sourceTree = "<group>"; };
 		B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeSourceConfiguration.swift; sourceTree = "<group>"; };
+		BB183CAF10C84A3DB26CD5ED /* VidzyPlaybackResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VidzyPlaybackResolver.swift; sourceTree = "<group>"; };
 		52505C9E9EB02160E56924FE /* StreamingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamingService.swift; sourceTree = "<group>"; };
 		F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YFlixService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -244,6 +246,7 @@
 				B2631537E923B567DB178072 /* MovieBoxService.swift */,
 				403E4378564F0EFA8975CDB2 /* NativeSourceBridge.swift */,
 				B116D60CFDD7AE8C32C09EC4 /* NativeSourceConfiguration.swift */,
+				BB183CAF10C84A3DB26CD5ED /* VidzyPlaybackResolver.swift */,
 				52505C9E9EB02160E56924FE /* StreamingService.swift */,
 				F9D2CBFBA2CB2CA02BF6648F /* YFlixService.swift */,
 			);
@@ -493,6 +496,7 @@
 				355FE0E51E4801468642698C /* MovieBoxService.swift in Sources */,
 				777B1F69BA0FCA3C4748F47A /* NativeSourceBridge.swift in Sources */,
 				C375A8EDDB47E4BBB1C736E9 /* NativeSourceConfiguration.swift in Sources */,
+				B695DD66AF084F689B52C410 /* VidzyPlaybackResolver.swift in Sources */,
 				82BE695EFE0D6A236DB83464 /* StreamingService.swift in Sources */,
 				3D10FE38752A787CC3158368 /* YFlixService.swift in Sources */,
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,

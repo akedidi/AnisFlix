@@ -7,6 +7,7 @@ import '../models/catalog_category.dart';
 import '../services/catalog_api.dart';
 import '../services/library.dart';
 import '../widgets/media_category_row.dart';
+import '../widgets/catalog_refresh.dart';
 import 'catalog.dart';
 import 'details.dart';
 
@@ -53,6 +54,14 @@ class _CatalogCategoriesScreenState extends State<CatalogCategoriesScreen> {
     }
   }
 
+  Future<void> refresh() async {
+    setState(reload);
+    await Future.wait([
+      for (final future in pages.values)
+        future.then<void>((_) {}, onError: (Object _, StackTrace _) {}),
+    ]);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,34 +94,40 @@ class _CatalogCategoriesScreenState extends State<CatalogCategoriesScreen> {
   );
 
   @override
-  Widget build(BuildContext context) => ListView(
-    key: PageStorageKey('catalog-categories-${widget.type}'),
-    children: [
-      for (final category in categories)
-        MediaCategoryRow(
-          key: ValueKey(
-            'catalog-category-${category.type}-${category.genre ?? 'latest'}',
-          ),
-          title: category.title,
-          library: widget.library,
-          future: pages[category]!,
-          tv: widget.tv,
-          seeAll: () => seeAll(category),
-          retry: () => setState(() {
-            pages[category] = fetch(category);
-          }),
-          onSelected: (item) => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DetailScreen(
-                api: widget.api,
-                library: widget.library,
-                item: item,
+  Widget build(BuildContext context) => CatalogRefresh(
+    title: context.tr(widget.type == 'tv' ? 'Séries' : 'Films'),
+    onRefresh: refresh,
+    scrollKey: PageStorageKey('catalog-categories-${widget.type}'),
+    slivers: [
+      SliverList.list(
+        children: [
+          for (final category in categories)
+            MediaCategoryRow(
+              key: ValueKey(
+                'catalog-category-${category.type}-${category.genre ?? 'latest'}',
+              ),
+              title: category.title,
+              library: widget.library,
+              future: pages[category]!,
+              tv: widget.tv,
+              seeAll: () => seeAll(category),
+              retry: () => setState(() {
+                pages[category] = fetch(category);
+              }),
+              onSelected: (item) => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DetailScreen(
+                    api: widget.api,
+                    library: widget.library,
+                    item: item,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      const SizedBox(height: 24),
+          const SizedBox(height: 24),
+        ],
+      ),
     ],
   );
 }

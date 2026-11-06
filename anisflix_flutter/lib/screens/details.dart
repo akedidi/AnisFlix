@@ -10,6 +10,7 @@ import '../l10n/app_localizations.dart';
 import '../models/media.dart';
 import '../services/catalog_api.dart';
 import '../services/downloads.dart';
+import '../services/episode_release_policy.dart';
 import '../services/library.dart';
 import '../services/source_list_policy.dart';
 import '../widgets/watch_progress_bar.dart';
@@ -37,6 +38,7 @@ class _DetailScreenState extends State<DetailScreen> {
   late Future<Map<String, dynamic>> details;
   Future<Map<String, dynamic>>? episodes;
   int? season, selectedEpisode;
+  int seasonRequest = 0;
   final mobileSourcesKey = GlobalKey();
   @override
   void initState() {
@@ -69,9 +71,37 @@ class _DetailScreenState extends State<DetailScreen> {
 
   void chooseSeason(int value, {int? initialEpisode}) => setState(() {
     season = value;
-    selectedEpisode = initialEpisode;
-    episodes = widget.api.season(widget.item.id, value);
+    selectedEpisode = null;
+    episodes = loadSeason(value, initialEpisode, ++seasonRequest);
   });
+
+  Future<Map<String, dynamic>> loadSeason(
+    int value,
+    int? initialEpisode,
+    int request,
+  ) async {
+    final data = await widget.api.season(widget.item.id, value);
+    final now = DateTime.now();
+    final available = (data['episodes'] as List? ?? [])
+        .whereType<Map>()
+        .where(
+          (episode) => EpisodeReleasePolicy.isAvailable(
+            episode['air_date'] as String?,
+            now: now,
+          ),
+        )
+        .toList();
+    if (mounted &&
+        request == seasonRequest &&
+        initialEpisode != null &&
+        available.any(
+          (episode) => episode['episode_number'] == initialEpisode,
+        )) {
+      setState(() => selectedEpisode = initialEpisode);
+    }
+    return {...data, 'episodes': available};
+  }
+
   void selectEpisode(int number) {
     setState(() => selectedEpisode = number);
     if (MediaQuery.sizeOf(context).width < 850) {
@@ -168,6 +198,16 @@ class _DetailScreenState extends State<DetailScreen> {
                       return const Padding(
                         padding: EdgeInsets.all(24),
                         child: LinearProgressIndicator(),
+                      );
+                    }
+                    if ((snapshot.data!['episodes'] as List).isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          context.tr(
+                            'Aucun épisode disponible pour le moment.',
+                          ),
+                        ),
                       );
                     }
                     return Column(
