@@ -1,0 +1,217 @@
+{
+  "date": "2026-11-02T11:59:07.432993+00:00",
+  "backend": "https://anisflix.vercel.app",
+  "note": "API links/counts only; does not establish playback parity or device-side fallback parity.",
+  "results": [
+    {
+      "case": "film",
+      "provider": "vixsrc",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "film",
+      "provider": "moviebox",
+      "http": 200,
+      "links": 6,
+      "status": "links"
+    },
+    {
+      "case": "film",
+      "provider": "vaplayer",
+      "http": 200,
+      "links": 3,
+      "status": "links"
+    },
+    {
+      "case": "film",
+      "provider": "yflix",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "film",
+      "provider": "afterdark",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "film",
+      "provider": "fstream",
+      "http": 200,
+      "links": 17,
+      "status": "links"
+    },
+    {
+      "case": "film",
+      "provider": "frenchstream",
+      "http": 200,
+      "links": 3,
+      "status": "links"
+    },
+    {
+      "case": "film",
+      "provider": "streamzo",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "episode",
+      "provider": "vixsrc",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "episode",
+      "provider": "moviebox",
+      "http": 200,
+      "links": 10,
+      "status": "links"
+    },
+    {
+      "case": "episode",
+      "provider": "vaplayer",
+      "http": 200,
+      "links": 2,
+      "status": "links"
+    },
+    {
+      "case": "episode",
+      "provider": "yflix",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "episode",
+      "provider": "afterdark",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "episode",
+      "provider": "fstream",
+      "http": 200,
+      "links": 10,
+      "status": "links"
+    },
+    {
+      "case": "episode",
+      "provider": "frenchstream",
+      "http": 200,
+      "links": 2,
+      "status": "links"
+    },
+    {
+      "case": "episode",
+      "provider": "streamzo",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "vixsrc",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "moviebox",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "vaplayer",
+      "http": 200,
+      "links": 3,
+      "status": "links"
+    },
+    {
+      "case": "anime",
+      "provider": "yflix",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "afterdark",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "fstream",
+      "http": 200,
+      "links": 5,
+      "status": "links"
+    },
+    {
+      "case": "anime",
+      "provider": "frenchstream",
+      "http": 200,
+      "links": 1,
+      "status": "links"
+    },
+    {
+      "case": "anime",
+      "provider": "streamzo",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "animesama",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "frenchanime",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "animepahe",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "hianime",
+      "http": 200,
+      "links": 0,
+      "status": "provider-error"
+    },
+    {
+      "case": "anime",
+      "provider": "anime-api",
+      "http": 200,
+      "links": 0,
+      "status": "empty"
+    },
+    {
+      "case": "anime",
+      "provider": "movix-anime",
+      "http": 200,
+      "candidates": 2,
+      "status": "catalogue"
+    }
+  ]
+}

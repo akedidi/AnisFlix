@@ -45,3 +45,9 @@ api/*.log
 ios-natve/anisflix/AnisFlix.xcarchive/
 build/
 .vercel
+
+# Flutter reconstruction source and bundled resources
+!anisflix_flutter/assets/
+!anisflix_flutter/assets/**
+!anisflix_flutter/android/app/
+!anisflix_flutter/android/app/**

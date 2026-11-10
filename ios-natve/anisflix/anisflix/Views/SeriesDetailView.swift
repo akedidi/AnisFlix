@@ -526,17 +526,9 @@ struct SeriesDetailView: View {
             do {
                 if source.provider == "vidzy" {
                     print("🔍 [SeriesDetailView] Extracting Vidzy...")
-                    let extracted = try await StreamingService.shared.extractVidzy(url: source.url)
-                    finalURL = URL(string: extracted)
-                    
-                    var newHeaders = finalHeaders ?? [:]
-                    if let urlObj = URL(string: source.url), let host = urlObj.host {
-                        newHeaders["Referer"] = "\(urlObj.scheme ?? "https")://\(host)/"
-                    } else {
-                        newHeaders["Referer"] = source.url // Fallback
-                    }
-                    newHeaders["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    finalHeaders = newHeaders
+                    let session = try await StreamingService.shared.resolveVidzy(url: source.url)
+                    finalURL = URL(string: session.url)
+                    finalHeaders = (finalHeaders ?? [:]).merging(session.headers) { _, new in new }
                 } else if source.provider == "vidmoly" {
                     print("🔍 [SeriesDetailView] Extracting VidMoly...")
                     let extracted = try await StreamingService.shared.extractVidMoly(url: source.url)

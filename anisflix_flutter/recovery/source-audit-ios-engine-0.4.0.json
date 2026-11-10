@@ -1,0 +1,324 @@
+{
+  "date": "2026-11-02T12:35:48.903831Z",
+  "engine": "ios-native",
+  "cases": [
+    {
+      "case": "film",
+      "tmdbId": 969681,
+      "links": 19,
+      "providers": {
+        "frenchstream": 3,
+        "vaplayer": 3,
+        "vidzy": 4,
+        "moviebox": 6,
+        "vixsrc": 3
+      },
+      "providerFailures": "not exposed by the original iOS engine",
+      "lists": {
+        "VF": [
+          {
+            "provider": "frenchstream",
+            "quality": "720p H.264 AAC",
+            "language": "VF",
+            "label": "French Stream 1 - 720p — VF"
+          },
+          {
+            "provider": "frenchstream",
+            "quality": "720p H.264 AAC",
+            "language": "VF",
+            "label": "French Stream 2 - 720p — VF"
+          },
+          {
+            "provider": "frenchstream",
+            "quality": "360p H.264 AAC",
+            "language": "VF",
+            "label": "French Stream 3 - 360p — VF"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VF",
+            "label": "Vidzy 1 - HD — VF"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VF",
+            "label": "Vidzy 2 - HD — VF"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VF",
+            "label": "Vidzy 3 - HD — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "1080p",
+            "language": "VF",
+            "label": "Moviebox 1 - 1080p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VF",
+            "label": "Moviebox 2 - 480p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "360p",
+            "language": "VF",
+            "label": "Moviebox 3 - 360p — VF"
+          }
+        ],
+        "VOSTFR": [
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VOSTFR",
+            "label": "Vidzy 1 - HD — VOSTFR"
+          }
+        ],
+        "VO": [
+          {
+            "provider": "vaplayer",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "VaPlayer 1 - 1080p — VO"
+          },
+          {
+            "provider": "vaplayer",
+            "quality": "720p",
+            "language": "VO",
+            "label": "VaPlayer 2 - 720p — VO"
+          },
+          {
+            "provider": "vaplayer",
+            "quality": "360p",
+            "language": "VO",
+            "label": "VaPlayer 3 - 360p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "Moviebox 1 - 1080p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VO",
+            "label": "Moviebox 2 - 480p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "360p",
+            "language": "VO",
+            "label": "Moviebox 3 - 360p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 1080p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "720p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 720p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "480p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 480p — VO"
+          }
+        ]
+      }
+    },
+    {
+      "case": "episode",
+      "tmdbId": 1396,
+      "links": 19,
+      "providers": {
+        "frenchstream": 2,
+        "vaplayer": 2,
+        "vidzy": 2,
+        "moviebox": 10,
+        "vixsrc": 3
+      },
+      "providerFailures": "not exposed by the original iOS engine",
+      "lists": {
+        "VF": [
+          {
+            "provider": "frenchstream",
+            "quality": "360p H.264 AAC",
+            "language": "VF",
+            "label": "French Stream 1 - 360p — VF"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VF",
+            "label": "Vidzy 1 - HD — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "1080p",
+            "language": "VF",
+            "label": "Moviebox 1 - 1080p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "720p",
+            "language": "VF",
+            "label": "Moviebox 1 - 720p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VF",
+            "label": "Moviebox 1 - 480p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VF",
+            "label": "Moviebox 4 - 480p — VF"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "360p",
+            "language": "VF",
+            "label": "Moviebox 5 - 360p — VF"
+          }
+        ],
+        "VOSTFR": [
+          {
+            "provider": "frenchstream",
+            "quality": "360p H.264 AAC",
+            "language": "VOSTFR",
+            "label": "French Stream 1 - 360p — VOSTFR"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VOSTFR",
+            "label": "Vidzy 1 - HD — VOSTFR"
+          }
+        ],
+        "VO": [
+          {
+            "provider": "vaplayer",
+            "quality": "720p",
+            "language": "VO",
+            "label": "VaPlayer 1 - 720p — VO"
+          },
+          {
+            "provider": "vaplayer",
+            "quality": "360p",
+            "language": "VO",
+            "label": "VaPlayer 2 - 360p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "Moviebox 1 - 1080p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "720p",
+            "language": "VO",
+            "label": "Moviebox 1 - 720p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VO",
+            "label": "Moviebox 1 - 480p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "480p",
+            "language": "VO",
+            "label": "Moviebox 4 - 480p — VO"
+          },
+          {
+            "provider": "moviebox",
+            "quality": "360p",
+            "language": "VO",
+            "label": "Moviebox 5 - 360p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 1080p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "720p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 720p — VO"
+          },
+          {
+            "provider": "vixsrc",
+            "quality": "480p",
+            "language": "VO",
+            "label": "Vixsrc 1 - 480p — VO"
+          }
+        ]
+      }
+    },
+    {
+      "case": "anime",
+      "tmdbId": 1429,
+      "links": 5,
+      "providers": {
+        "frenchstream": 1,
+        "vaplayer": 3,
+        "vidzy": 1
+      },
+      "providerFailures": "not exposed by the original iOS engine",
+      "lists": {
+        "VF": [
+          {
+            "provider": "frenchstream",
+            "quality": "720p",
+            "language": "VF",
+            "label": "French Stream 1 - 720p — VF"
+          },
+          {
+            "provider": "vidzy",
+            "quality": "HD",
+            "language": "VF",
+            "label": "Vidzy 1 - HD — VF"
+          }
+        ],
+        "VOSTFR": [],
+        "VO": [
+          {
+            "provider": "vaplayer",
+            "quality": "1080p",
+            "language": "VO",
+            "label": "VaPlayer 1 - 1080p — VO"
+          },
+          {
+            "provider": "vaplayer",
+            "quality": "720p",
+            "language": "VO",
+            "label": "VaPlayer 2 - 720p — VO"
+          },
+          {
+            "provider": "vaplayer",
+            "quality": "360p",
+            "language": "VO",
+            "label": "VaPlayer 3 - 360p — VO"
+          }
+        ]
+      }
+    }
+  ]
+}

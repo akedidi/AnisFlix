@@ -528,16 +528,9 @@ struct MovieDetailView: View {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
                 } else if source.provider == "vidzy" {
                     print("🔍 [MovieDetailView] Extracting Vidzy...")
-                    streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
-                    
-                    var newHeaders = finalHeaders ?? [:]
-                    if let urlObj = URL(string: source.url), let host = urlObj.host {
-                        newHeaders["Referer"] = "\(urlObj.scheme ?? "https")://\(host)/"
-                    } else {
-                        newHeaders["Referer"] = source.url // Fallback
-                    }
-                    newHeaders["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    finalHeaders = newHeaders
+                    let session = try await StreamingService.shared.resolveVidzy(url: source.url)
+                    streamUrl = session.url
+                    finalHeaders = (finalHeaders ?? [:]).merging(session.headers) { _, new in new }
                 } else if StreamingService.isDarkiboxProvider(source.provider) {
                     print("🔍 [MovieDetailView] Extracting Darkibox...")
                     streamUrl = try await StreamingService.shared.extractDarkibox(url: source.url)

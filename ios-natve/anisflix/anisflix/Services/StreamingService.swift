@@ -2051,122 +2051,19 @@ class StreamingService {
         return nested
     }
     
+    /// Return the authorization and its matching browser headers together.
+    /// Signed HLS URLs without this device's gate key only expose a preview.
+    func resolveVidzy(url: String) async throws -> (url: String, headers: [String: String]) {
+        guard let embed = URL(string: url) else { throw URLError(.badURL) }
+        let resolver = await VidzyPlaybackResolver()
+        let (media, headers) = try await resolver.resolve(embed: embed)
+        return (media.absoluteString, headers)
+    }
+
     func extractVidzy(url: String) async throws -> String {
-        do {
-            let directUrl = try await extractVidzyOnDevice(url: url)
-            print("✅ Vidzy extracted on device: \(directUrl)")
-            return directUrl
-        } catch {
-            // Keep the API fallback for legacy Vidzy pages, but current signed
-            // streams must be extracted on-device so their token matches the
-            // network used by AVPlayer and the download manager.
-            print("⚠️ On-device Vidzy extraction failed, trying API: \(error.localizedDescription)")
-        }
-
-        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
-        var request = URLRequest(url: apiUrl)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
-        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
-        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
-        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
-        request.setValue("navigate", forHTTPHeaderField: "Sec-Fetch-Mode")
-        request.setValue("none", forHTTPHeaderField: "Sec-Fetch-Site")
-        request.setValue("document", forHTTPHeaderField: "Sec-Fetch-Dest")
-        
-        let body: [String: String] = ["type": "vidzy", "url": url]
-        request.httpBody = try JSONEncoder().encode(body)
-        
-        print("📤 Extracting Vidzy: \(url)")
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        
-        if httpResponse.statusCode != 200 {
-            print("❌ Vidzy extraction failed with status: \(httpResponse.statusCode)")
-            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                print("❌ Error details: \(errorJson)")
-            }
-            throw URLError(.badServerResponse)
-        }
-        
-        struct ExtractResponse: Codable {
-            let success: Bool
-            let m3u8Url: String?
-            let error: String?
-            let type: String?
-        }
-        
-        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
-        
-        if let m3u8 = result.m3u8Url {
-            print("✅ Vidzy extracted: \(m3u8)")
-            return m3u8
-        } else if let error = result.error {
-            print("❌ Vidzy API Error: \(error)")
-            throw NSError(domain: "StreamingService", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
-        }
-        
-        throw URLError(.cannotParseResponse)
+        try await resolveVidzy(url: url).url
     }
 
-    private func extractVidzyOnDevice(url: String) async throws -> String {
-        guard let embedUrl = URL(string: url), let hostname = embedUrl.host else {
-            throw URLError(.badURL)
-        }
-
-        var request = URLRequest(url: embedUrl)
-        request.timeoutInterval = 20
-        request.setValue(
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            forHTTPHeaderField: "User-Agent"
-        )
-        request.setValue("\(embedUrl.scheme ?? "https")://\(hostname)/", forHTTPHeaderField: "Referer")
-        request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
-        }
-        let html = String(decoding: data, as: UTF8.self)
-        let pattern = #"\(\s*function\s*\(\s*s\s*\)\s*\{[\s\S]{20,4000}?\}\s*\)\s*\(\s*[\"']([^\"']+)[\"']\s*\)"#
-        let regex = try NSRegularExpression(pattern: pattern)
-        let fullRange = NSRange(html.startIndex..., in: html)
-        let matches = regex.matches(in: html, range: fullRange)
-
-        let hostnameHash = hostname.utf8.reduce(0) { ($0 + Int($1)) & 255 }
-        let preferredCalibrations = [139, 0] + Array(1...255).filter { $0 != 139 }
-
-        for match in matches {
-            guard match.numberOfRanges > 1,
-                  let payloadRange = Range(match.range(at: 1), in: html),
-                  let payload = Data(base64Encoded: String(html[payloadRange])) else { continue }
-
-            let reversed = Array(payload.reversed())
-            for calibration in preferredCalibrations {
-                let decodedBytes = reversed.enumerated().map { index, byte in
-                    byte ^ UInt8((0x3d + index * 89 + hostnameHash + calibration) & 255)
-                }
-                guard let candidate = String(bytes: decodedBytes, encoding: .utf8),
-                      !candidate.lowercased().contains("/troll/"),
-                      candidate.range(of: #"^https?://.+\.(m3u8|mp4|mkv)(?:[?#].*)?$"#,
-                                      options: [.regularExpression, .caseInsensitive]) != nil else { continue }
-                return candidate
-            }
-        }
-
-        throw NSError(
-            domain: "StreamingService.Vidzy",
-            code: -2,
-            userInfo: [NSLocalizedDescriptionKey: "No valid Vidzy media URL found"]
-        )
-    }
-    
     func extractLuluvid(url: String) async throws -> (String, String?) {
         guard let luluvidUrl = URL(string: url) else {
             throw URLError(.badURL)
@@ -3273,7 +3170,8 @@ class StreamingService {
         } else if provider == "vidzy" {
             print("⛏️ [StreamingService] Extracting Vidzy via existing method...")
             do {
-                let directUrl = try await extractVidzy(url: source.url)
+                let session = try await resolveVidzy(url: source.url)
+                let directUrl = session.url
                 print("✅ [StreamingService] Vidzy extraction successful: \(directUrl)")
                 return StreamingSource(
                     id: source.id,
@@ -3284,7 +3182,7 @@ class StreamingService {
                     language: source.language,
                     origin: source.origin,
                     tracks: source.tracks,
-                    headers: source.headers
+                    headers: (source.headers ?? [:]).merging(session.headers) { _, new in new }
                 )
             } catch {
                  print("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")

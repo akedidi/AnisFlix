@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-02T12:10:10.029331Z",
+  "cases": [
+    {
+      "case": "film",
+      "tmdbId": 969681,
+      "links": 33,
+      "providers": {
+        "vixsrc": 4,
+        "Vidzy": 4,
+        "Uqload": 3,
+        "Dood": 3,
+        "Voe": 3,
+        "Filmoon": 3,
+        "Premium": 1,
+        "vaplayer": 3,
+        "moviebox": 6,
+        "frenchstream": 3
+      },
+      "failed": []
+    },
+    {
+      "case": "episode",
+      "tmdbId": 1396,
+      "links": 24,
+      "providers": {
+        "vixsrc": 4,
+        "Premium": 2,
+        "Vidzy": 2,
+        "Uqload": 2,
+        "Netu": 2,
+        "Voe": 2,
+        "vaplayer": 2,
+        "moviebox": 6,
+        "frenchstream": 2
+      },
+      "failed": []
+    },
+    {
+      "case": "anime",
+      "tmdbId": 1429,
+      "links": 15,
+      "providers": {
+        "Premium": 1,
+        "Vidzy": 1,
+        "Uqload": 1,
+        "Netu": 1,
+        "Voe": 1,
+        "uqload": 2,
+        "ansembed": 2,
+        "derricknationtop.com": 1,
+        "jamespatterncamera.com": 1,
+        "vaplayer": 3,
+        "frenchstream": 1
+      },
+      "failed": [
+        "hianime"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+Android TV 1.0.9 build 50 — arm64 libapp.so
+SHA256: 930b10119c3e7392d6647245893c741bed8973ec18acbe9d39b42f6288ea96e9
+Filtered symbols only. These identify integrations, not their complete original implementation.
+
+extractVixsrcOnDevice
+_loadFrenchProvider@708266655
+_fStream@708266655
+_movieBox@708266655
+animepahe
+_animeApi@708266655
+_movixAnime@708266655
+anime/search/
+frenchstream
+parseVixsrcQualityLabels
+streamzo
+hianime
+anime-api
+animesama
+_frenchProvider@708266655
+_vixsrc@708266655
+AnimePaheService
+_yFlix@708266655
+HiAnimeService
+frenchanime
+_afterDark@708266655
+_vaPlayer@708266655

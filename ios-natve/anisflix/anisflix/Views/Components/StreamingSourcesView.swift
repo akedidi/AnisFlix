@@ -239,19 +239,9 @@ struct DownloadButton: View {
                 if source.provider == "vidmoly" {
                     streamUrl = try await StreamingService.shared.extractVidMoly(url: source.url)
                 } else if source.provider == "vidzy" {
-                    streamUrl = try await StreamingService.shared.extractVidzy(url: source.url)
-                    var headers = downloadSource.headers ?? [:]
-                    if let urlObj = URL(string: source.url), let host = urlObj.host {
-                        headers["Referer"] = "\(urlObj.scheme ?? "https")://\(host)/"
-                        headers["Origin"] = "\(urlObj.scheme ?? "https")://\(host)"
-                    } else {
-                        headers["Referer"] = "https://vidzy.cc/"
-                        headers["Origin"] = "https://vidzy.cc"
-                    }
-                    // Vidzy rejects its HLS manifest with the mobile Safari UA (403).
-                    // Keep the same desktop UA returned by the extractor/playback path.
-                    headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    downloadSource.headers = headers
+                    let session = try await StreamingService.shared.resolveVidzy(url: source.url)
+                    streamUrl = session.url
+                    downloadSource.headers = (downloadSource.headers ?? [:]).merging(session.headers) { _, new in new }
                 } else {
                     streamUrl = source.url
                 }

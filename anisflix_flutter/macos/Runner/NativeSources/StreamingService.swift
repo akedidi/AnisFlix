@@ -1,0 +1,3349 @@
+//
+//  StreamingService.swift
+//  anisflix
+//
+//  Created by AI Assistant on 28/11/2025.
+//
+
+import Foundation
+
+struct Subtitle: Identifiable, Codable, Equatable {
+    var id: UUID
+    let url: String
+    let label: String
+    let code: String
+    let flag: String
+    
+    // CodingKeys to exclude id from decoding if it's not in JSON (it's generated)
+    enum CodingKeys: String, CodingKey {
+        case url, label, code, flag
+    }
+    
+    var lang: String { code } // Backward compatibility
+    
+    init(url: String, label: String, code: String, flag: String) {
+        self.id = UUID()
+        self.url = url
+        self.label = label
+        self.code = code
+        self.flag = flag
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        url = try container.decode(String.self, forKey: .url)
+        label = try container.decode(String.self, forKey: .label)
+        code = try container.decode(String.self, forKey: .code)
+        flag = try container.decode(String.self, forKey: .flag)
+        id = UUID()
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(url, forKey: .url)
+        try container.encode(label, forKey: .label)
+        try container.encode(code, forKey: .code)
+        try container.encode(flag, forKey: .flag)
+    }
+}
+
+struct StreamingSource: Identifiable, Codable {
+    var id: String
+    let url: String
+    var directUrl: String? // Direct URL for local playback with headers (MovieBox)
+    let quality: String
+    let language: String
+    let provider: String // Video host: "vidmoly", "vidzy", "darki", "unknown"
+    let type: String // "hls", "mp4", etc.
+    var origin: String? // Scraper/API origin: "fstream", "moviebox", "vixsrc", "tmdb", etc.
+    var tracks: [Subtitle]? // Added tracks
+    var headers: [String: String]? // Added custom headers support
+    
+    enum CodingKeys: String, CodingKey {
+        case url = "decoded_url"
+        case quality
+        case language
+        case tracks
+        case headers
+        // id is excluded
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        url = try container.decode(String.self, forKey: .url)
+        quality = try container.decodeIfPresent(String.self, forKey: .quality) ?? "HD"
+        let rawLanguage = try container.decodeIfPresent(String.self, forKey: .language) ?? "Français"
+        tracks = try container.decodeIfPresent([Subtitle].self, forKey: .tracks)
+        headers = try container.decodeIfPresent([String: String].self, forKey: .headers)
+        
+        // Normalize language (French -> VF, English -> VO, etc.)
+        let langLower = rawLanguage.lowercased()
+        if langLower.contains("french") || langLower.contains("français") || langLower == "fr" {
+            language = "VF"
+        } else if langLower.contains("english") || langLower == "en" || langLower == "eng" {
+            language = "VO"
+        } else if langLower.contains("vostfr") || langLower.contains("subtitle") {
+            language = "VOSTFR"
+        } else {
+            language = "VF" // Default to VF
+        }
+        
+        // Determine provider from quality string AND URL
+        let lowerQuality = quality.lowercased()
+        let lowerUrl = url.lowercased()
+        
+        if lowerQuality.contains("vidmoly") || lowerUrl.contains("vidmoly") {
+            provider = "vidmoly"
+        } else if lowerQuality.contains("vidzy") || lowerUrl.contains("vidzy") {
+            provider = "vidzy"
+        } else if lowerQuality.contains("darki") || lowerUrl.contains("darki") {
+            provider = "darki"
+        } else if lowerQuality.contains("moviebox") || lowerUrl.contains("moviebox") || (headers?["Referer"]?.contains("fmovies") ?? false) {
+             provider = "moviebox"
+        } else {
+            provider = "unknown"
+        }
+        
+        // Determine type
+        if url.contains(".m3u8") {
+            type = "hls"
+        } else {
+            type = "mp4"
+        }
+        
+        // Generate stable ID
+        id = "\(provider)_\(quality)_\(language)_\(url)".data(using: .utf8)?.base64EncodedString() ?? UUID().uuidString
+    }
+    
+    // Init for preview/manual creation
+    init(id: String? = nil, url: String, directUrl: String? = nil, quality: String, type: String, provider: String, language: String, origin: String? = nil, tracks: [Subtitle]? = nil, headers: [String: String]? = nil) {
+        self.url = url
+        self.directUrl = directUrl
+        self.quality = quality
+        self.type = type
+        self.provider = provider
+        self.language = language
+        self.origin = origin
+        self.tracks = tracks
+        self.headers = headers
+        
+        if let providedId = id {
+            self.id = providedId
+        } else {
+            self.id = "\(provider)_\(quality)_\(language)_\(url)".data(using: .utf8)?.base64EncodedString() ?? UUID().uuidString
+        }
+    }
+
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(url, forKey: .url)
+        try container.encode(quality, forKey: .quality)
+        try container.encode(language, forKey: .language)
+        try container.encodeIfPresent(tracks, forKey: .tracks)
+        try container.encodeIfPresent(headers, forKey: .headers)
+    }
+}
+
+
+
+struct MovixTmdbResponse: Codable {
+    let player_links: [StreamingSource]?
+}
+
+// For TV series, API returns player_links inside current_episode
+struct MovixTmdbSeriesResponse: Codable {
+    let current_episode: MovixCurrentEpisode?
+    let player_links: [StreamingSource]? // Fallback for direct player_links
+}
+
+struct MovixCurrentEpisode: Codable {
+    let season_number: Int?
+    let episode_number: Int?
+    let title: String?
+    let player_links: [StreamingSource]?
+}
+
+struct FStreamPlayer: Codable {
+    let url: String
+    let type: String
+    let quality: String
+    let player: String
+}
+
+struct FStreamResponse: Codable {
+    let players: [String: [FStreamPlayer]]?
+}
+
+struct UniversalVOResponse: Codable {
+    let files: [UniversalVOFile]?
+    // errors field removed to prevent decoding failures if error objects structure changes
+}
+
+struct UniversalVOFile: Codable {
+    let file: String
+    let type: String
+    let lang: String?
+    let quality: String?
+    let extractor: String?
+    let provider: String?
+}
+
+struct UniversalVOError: Codable {
+    let provider: String
+    let message: String
+}
+
+// MARK: - AfterDark Response Structures
+struct AfterDarkResponse: Codable {
+    let sources: [AfterDarkSource]?
+}
+
+struct AfterDarkSource: Codable {
+    let url: String
+    let quality: String?
+    let kind: String?  // Some responses use 'kind'
+    let type: String?  // Some responses use 'type' instead of 'kind'
+    let server: String?
+    let name: String?
+    let label: String? // Some responses use 'label' instead of 'name'
+    let proxied: Bool?
+    let language: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case url = "file" // Map JSON 'file' to 'url'
+        case quality, kind, type, server, name, label, proxied, language
+    }
+}
+
+// MARK: - Cinepro Response Structures
+struct CineproResponse: Codable {
+    let success: Bool?
+    let streams: [CineproStream]?
+}
+
+struct CineproStream: Codable {
+    let server: String?
+    let link: String
+    let type: String?
+    let quality: String?
+    let lang: String?
+}
+
+// MARK: - Cpasmal Response Structures
+struct CpasmalResponse: Codable {
+    let success: Bool?
+    let sources: [CpasmalSource]?
+    let count: Int?
+    let title: String?
+    let year: String?
+}
+
+struct CpasmalSource: Codable {
+    let url: String
+    let quality: String?
+    let type: String?
+    let provider: String?
+    let language: String?
+    let server: String?
+}
+
+// MARK: - Movix Download Response Structures (for TMDB ID matching)
+struct MovixSearchResult: Codable {
+    let id: Int
+    let name: String?
+    let tmdb_id: Int?
+    let type: String?
+}
+
+struct MovixSearchResponse: Codable {
+    let results: [MovixSearchResult]?
+}
+
+struct MovixDownloadSource: Codable {
+    let src: String?
+    let language: String?
+    let quality: String?
+    let m3u8: String?
+    let label: String?
+}
+
+struct MovixDownloadResponse: Codable {
+    let sources: [MovixDownloadSource]?
+}
+
+// MARK: - Movix Anime Structures (Added for Anime Support)
+
+struct MovixAnimeResponse: Codable {
+    // Top level is array of Anime
+    // We don't have a wrapper, so we'll decode directly as [MovixAnime]
+}
+
+struct MovixAnime: Codable {
+    let name: String
+    let seasons: [MovixAnimeSeason]?
+}
+
+struct MovixAnimeSeason: Codable {
+    let name: String
+    let index: Int?
+    let episodes: [MovixAnimeEpisode]?
+}
+
+struct MovixAnimeEpisode: Codable {
+    let name: String
+    let index: Int?
+    let streaming_links: [MovixAnimePlayer]?
+}
+
+struct MovixAnimePlayer: Codable {
+    let language: String
+    let players: [String]?
+}
+
+/// Shared source-list ordering: one contiguous block per provider, quality DESC inside.
+/// Vixsrc is last (VO).
+enum StreamingSourceListOrdering {
+    static func providerRank(_ provider: String) -> Int {
+        let value = provider.lowercased()
+        if value.contains("luluvid") { return 99 }
+        switch value {
+        case "frenchstream": return 0
+        case "streamzo": return 1
+        case "fsvid": return 2
+        case "yflix": return 3
+        case "vaplayer": return 4
+        case "vidzy": return 5
+        case "animesama": return 6
+        case "frenchanime": return 7
+        case "animepahe": return 8
+        case "hianime": return 9
+        case "moviebox": return 10
+        case "mob": return 11
+        case "megacdn": return 12
+        case "vidmoly": return 13
+        case "afterdark": return 14
+        case "darkibox", "darki": return 15
+        case "movix": return 16
+        case "vixsrc": return 90
+        default: return 50
+        }
+    }
+
+    static func qualityValue(_ quality: String) -> Int {
+        let q = quality.lowercased()
+        if q.contains("4k") || q.contains("2160") { return 2160 }
+        if q.contains("1080") { return 1080 }
+        if q.contains("720") { return 720 }
+        if q.contains("480") { return 480 }
+        if q.contains("360") { return 360 }
+        return 0
+    }
+
+    static func isSortedBefore(_ left: StreamingSource, _ right: StreamingSource) -> Bool {
+        let rankL = providerRank(left.provider)
+        let rankR = providerRank(right.provider)
+        if rankL != rankR { return rankL < rankR }
+        let name = left.provider.lowercased().compare(right.provider.lowercased())
+        if name != .orderedSame { return name == .orderedAscending }
+        return qualityValue(left.quality) > qualityValue(right.quality)
+    }
+}
+
+class StreamingService {
+    static let shared = StreamingService()
+    private init() {}
+    
+    private var baseUrl: String { NativeSourceConfiguration.backend }
+    
+    /// Single allow-list for movie + series so merged sources are never dropped by a mismatched filter.
+    private static let allowedStreamingProviders: Set<String> = [
+        "yflix", "vaplayer", "vixsrc", "vidmoly", "vidzy", "primewire", "2embed",
+        "afterdark", "movix", "darkibox", "darki", "animeapi", "animesama", "frenchanime", "frenchstream", "streamzo", "animepahe", "moviebox",
+        "megacdn", "premilkyway", "luluvid", "mob", "hianime"
+    ]
+    
+    private func filterToAllowedProviders(_ sources: [StreamingSource]) -> [StreamingSource] {
+        sources.filter { Self.allowedStreamingProviders.contains($0.provider) }
+    }
+    
+    // MARK: - Fetch Sources
+    
+    func fetchSources(movieId: Int) async throws -> [StreamingSource] {
+        // Fetch from all endpoints concurrently
+        async let fstreamSources = fetchFStreamSources(movieId: movieId)
+        // DISABLED: UniversalVO API is broken
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: movieId, type: "movie")
+        async let movieBoxSources = fetchMovieBoxSources(tmdbId: movieId)
+        async let mobSources = fetchMobSources(tmdbId: movieId)
+        // YFlix Native iOS Source (VO)
+        async let yflixSources = fetchYFlixSources(tmdbId: movieId, type: "movie")
+        async let vaPlayerSources = fetchVaPlayerSources(tmdbId: movieId, type: "movie")
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: movieId, type: "movie")
+        async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: movieId, type: "movie")
+        async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: movieId, type: "movie")
+
+        
+        // Anime Placeholder
+        var animeTask: Task<[StreamingSource], Error>? = nil
+        
+        sourceEngineLog("🔍 [StreamingService] Starting fetch for movie ID: \(movieId)")
+        
+        // Fetch TMDB info for AfterDark (needs title)
+        let tmdbInfo = try? await fetchMovieTmdbInfo(movieId: movieId)
+        var afterDarkSources: [StreamingSource] = []
+        
+        if let title = tmdbInfo?.title {
+            sourceEngineLog("ℹ️ [StreamingService] TMDB Info found: \(title) (\(tmdbInfo?.year ?? "?"))")
+            
+            // Fetch AfterDark sources (direct call - iOS has no CORS)
+            if let year = tmdbInfo?.year {
+                afterDarkSources = (try? await fetchAfterDarkSources(
+                    tmdbId: movieId,
+                    type: "movie",
+                    title: title,
+                    year: year,
+                    originalTitle: tmdbInfo?.originalTitle
+                )) ?? []
+            }
+            
+            // Check for Animation Genre (16)
+            if tmdbInfo?.genreIds.contains(16) == true {
+                sourceEngineLog("🎌 [StreamingService] Animation detected. Fetching Anime-Sama, French-Anime, AnimePahe and HiAnime...")
+                animeTask = Task {
+                    async let animeApi = (try? fetchAnimeAPISources(tmdbId: movieId, isMovie: true)) ?? []
+                    async let animeSama = fetchFrenchProviderSources(provider: "animesama", tmdbId: movieId, type: "movie")
+                    async let frenchAnime = fetchFrenchProviderSources(provider: "frenchanime", tmdbId: movieId, type: "movie")
+                    async let animePahe = (try? fetchAnimePaheSources(tmdbId: movieId, type: "movie")) ?? []
+                    async let hiAnime = (try? fetchHiAnimeSources(tmdbId: movieId, type: "movie")) ?? []
+                    return await animeApi + animeSama + frenchAnime + animePahe + hiAnime
+                }
+            }
+        } else {
+             sourceEngineLog("⚠️ [StreamingService] TMDB Info fetch failed for movie ID: \(movieId)")
+        }
+        
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / wiflix / TMDB proxy
+        let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
+        let animeSources = await (try? animeTask?.value) ?? []
+        let yflixMovieResults = await (try? yflixSources) ?? []
+        let vaPlayerMovieResults = await (try? vaPlayerSources) ?? []
+        let vixsrcMovieResults = await (try? vixsrcSources) ?? []
+        let frenchStreamMovieResults = await frenchStreamSources
+        let streamzoMovieResults = await streamzoSources
+
+        sourceEngineLog("📊 [StreamingService] Sources fetched:")
+        sourceEngineLog("   - YFlix: \(yflixMovieResults.count)")
+        sourceEngineLog("   - VaPlayer: \(vaPlayerMovieResults.count)")
+        sourceEngineLog("   - Vixsrc: \(vixsrcMovieResults.count)")
+        sourceEngineLog("   - French Stream: \(frenchStreamMovieResults.count)")
+        sourceEngineLog("   - Streamzo: \(streamzoMovieResults.count)")
+        sourceEngineLog("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
+        sourceEngineLog("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
+        sourceEngineLog("   - Anime sources: \(animeSources.count)")
+        sourceEngineLog("   - FStream: \(fstream?.count ?? 0)")
+        sourceEngineLog("   - MovieBox: \(mBox?.count ?? 0)")
+        sourceEngineLog("   - MOB: \(mMob?.count ?? 0)")
+        sourceEngineLog("   - AfterDark: \(afterDarkSources.count)")
+        
+        var allSources: [StreamingSource] = []
+
+        // Add YFlix Native sources (VO)
+        if !yflixMovieResults.isEmpty {
+            allSources.append(contentsOf: yflixMovieResults)
+        }
+        allSources.append(contentsOf: vaPlayerMovieResults)
+        allSources.append(contentsOf: vixsrcMovieResults)
+
+        allSources.append(contentsOf: frenchStreamMovieResults)
+        allSources.append(contentsOf: streamzoMovieResults)
+
+        // Add MovieBox sources
+        if let mBox = mBox {
+            allSources.append(contentsOf: mBox)
+        }
+        
+        // Add MOB sources (v2)
+        if let mMob = mMob {
+            allSources.append(contentsOf: mMob)
+        }
+        
+        // Add AfterDark sources
+        allSources.append(contentsOf: afterDarkSources)
+        
+        if let fstream = fstream {
+            allSources.append(contentsOf: fstream)
+        }
+        
+        // Add anime sources (AnimeAPI / Anime-Sama / French-Anime / AnimePahe / HiAnime)
+        if !animeSources.isEmpty {
+            allSources.append(contentsOf: animeSources)
+        }
+        
+        return filterToAllowedProviders(allSources)
+    }
+    
+    private func fetchTmdbSources(movieId: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/movie/\(movieId)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let decoded = try JSONDecoder().decode(MovixTmdbResponse.self, from: data)
+        return decoded.player_links ?? []
+    }
+    
+    private func fetchFStreamSources(movieId: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=fstream/movie/\(movieId)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let decoded = try JSONDecoder().decode(FStreamResponse.self, from: data)
+        var sources: [StreamingSource] = []
+        
+        if let players = decoded.players {
+            for (key, playerList) in players {
+                for player in playerList {
+                    // Map keys to language expected by UI (VF or VOSTFR)
+                    // "Default" usually means VF/French in FStream context if not specified
+                    // "VFQ" is also French
+                    let language: String
+                    if key == "VOSTFR" {
+                        language = "VOSTFR"
+                    } else if key == "Default" || key == "VFQ" {
+                        language = "VF"
+                    } else if key == "VO" || key == "ENG" || key == "English" {
+                        language = "VO"
+                    } else {
+                        language = "VF" // Default fallback
+                    }
+                    
+                    let provider = player.player.lowercased()
+                    
+                    // Map to StreamingSource
+                    // Only include if provider is known (vidmoly/vidzy) or if we want all
+                    // For now, we filter later, so just map correctly
+                    
+                    let normalizedProvider: String
+                    if provider.contains("vidmoly") {
+                        normalizedProvider = "vidmoly"
+                    } else if provider.contains("vidzy") {
+                        normalizedProvider = "vidzy"
+                    } else {
+                        normalizedProvider = provider
+                    }
+                    
+                    let source = StreamingSource(
+                        url: player.url,
+                        quality: player.quality,
+                        type: player.type,
+                        provider: normalizedProvider,
+                        language: language,
+                        origin: "fstream"
+                    )
+                    sources.append(source)
+                }
+            }
+        }
+        
+        return sources
+    }
+    
+    func fetchSeriesSources(seriesId: Int, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo? = nil) async throws -> [StreamingSource] {
+        // Fetch from all endpoints concurrently
+        async let fstreamSources = fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
+        // DISABLED: UniversalVO API is broken
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        // async let universalVOSources = fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let movieBoxSources = fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+        async let mobSources = fetchMobSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+        // YFlix Native iOS Source (VO)
+        async let yflixSources = fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let vaPlayerSources = fetchVaPlayerSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let vixsrcSources = fetchVixsrcSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let frenchStreamSources = fetchFrenchProviderSources(provider: "frenchstream", tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        async let streamzoSources = fetchFrenchProviderSources(provider: "streamzo", tmdbId: seriesId, type: "tv", season: season, episode: episode)
+        
+        sourceEngineLog("🔍 [StreamingService] Starting fetch for series ID: \(seriesId) S\(season)E\(episode)")
+
+        // Fetch TMDB info for AfterDark and Movix Download (needs title)
+        // Use provided info if available to avoid race conditions/double calls
+        var finalTmdbInfo: TmdbSeriesInfo? = tmdbInfo
+        
+        if finalTmdbInfo == nil {
+             finalTmdbInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+        }
+
+        var afterDarkSources: [StreamingSource] = []
+        // Add anime sources when genre animation is present.
+        var animeSources: [StreamingSource] = []
+        
+        if let info = finalTmdbInfo {
+            let title = info.title
+            sourceEngineLog("ℹ️ [StreamingService] TMDB Info found: \(title)")
+            
+            // Start Anime fetch concurrently if logic matches
+            // Check for Animation Genre (16)
+            if info.genreIds.contains(16) {
+                 sourceEngineLog("🎌 [StreamingService] Animation genre detected. Fetching ALL anime sources...")
+                 
+                 // Fetch VidMoly sources from Movix anime scraping
+                 let movixAnimeSources = (try? await fetchMovixAnimeSources(seriesId: seriesId, title: title, season: season, episode: episode, tmdbInfo: info)) ?? []
+                 
+                 // Fetch HLS sources from AnimeAPI (path=anime-api, not animekai)
+                 let animeApiSources = (try? await fetchAnimeAPISources(tmdbId: seriesId, isMovie: false, season: season, episode: episode)) ?? []
+
+                 async let animeSama = fetchFrenchProviderSources(provider: "animesama", tmdbId: seriesId, type: "tv", season: season, episode: episode)
+                 async let frenchAnime = fetchFrenchProviderSources(provider: "frenchanime", tmdbId: seriesId, type: "tv", season: season, episode: episode)
+                 async let animePahe = (try? fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
+                 async let hiAnime = (try? fetchHiAnimeSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)) ?? []
+
+                 let frenchSources = await animeSama + frenchAnime
+                 let remainingSources = await animePahe + hiAnime
+                 animeSources = movixAnimeSources + animeApiSources + frenchSources + remainingSources
+                 sourceEngineLog("🎌 [StreamingService] Total anime sources: \(animeSources.count) (Anime-Sama: \(frenchSources.filter { $0.provider == "animesama" }.count), French-Anime: \(frenchSources.filter { $0.provider == "frenchanime" }.count)")
+            }
+            
+            // Fetch AfterDark sources (direct call - iOS has no CORS)
+            afterDarkSources = (try? await fetchAfterDarkSources(
+                tmdbId: seriesId,
+                type: "tv",
+                title: title,
+                year: nil,
+                season: season,
+                episode: episode
+            )) ?? []
+        } else {
+            sourceEngineLog("⚠️ [StreamingService] TMDB Info fetch failed for series ID: \(seriesId)")
+        }
+        
+        // DISABLED: UniversalVO / Vidlink / 4KHDHub / cinepro / wiflix / TMDB proxy
+        let (fstream, mBox, mMob) = await (try? fstreamSources, try? movieBoxSources, try? mobSources)
+        let yflixResults = await (try? yflixSources) ?? []
+        let vaPlayerResults = await (try? vaPlayerSources) ?? []
+        let vixsrcResults = await (try? vixsrcSources) ?? []
+        let frenchStreamResults = await frenchStreamSources
+        let streamzoResults = await streamzoSources
+
+        sourceEngineLog("📊 [StreamingService] Series Sources fetched:")
+        sourceEngineLog("   - YFlix: \(yflixResults.count)")
+        sourceEngineLog("   - VaPlayer: \(vaPlayerResults.count)")
+        sourceEngineLog("   - Vixsrc: \(vixsrcResults.count)")
+        sourceEngineLog("   - French Stream: \(frenchStreamResults.count)")
+        sourceEngineLog("   - Streamzo: \(streamzoResults.count)")
+        sourceEngineLog("   - FStream: \(fstream?.count ?? 0)")
+        sourceEngineLog("   - MovieBox: \(mBox?.count ?? 0)")
+        sourceEngineLog("   - MOB: \(mMob?.count ?? 0)")
+        sourceEngineLog("   - AfterDark: \(afterDarkSources.count)")
+        sourceEngineLog("   - Anime-Sama: \(animeSources.filter { $0.provider == "animesama" }.count)")
+        sourceEngineLog("   - French-Anime: \(animeSources.filter { $0.provider == "frenchanime" }.count)")
+        sourceEngineLog("   - Anime sources: \(animeSources.count)")
+        
+        var allSources: [StreamingSource] = []
+
+        // Add YFlix Native sources (VO)
+        if !yflixResults.isEmpty {
+            allSources.append(contentsOf: yflixResults)
+        }
+        allSources.append(contentsOf: vaPlayerResults)
+        allSources.append(contentsOf: vixsrcResults)
+
+        allSources.append(contentsOf: frenchStreamResults)
+        allSources.append(contentsOf: streamzoResults)
+
+        // Add Anime sources (High Priority for VidMoly)
+        allSources.append(contentsOf: animeSources)
+        
+        // Add MovieBox sources
+        if let mBox = mBox {
+            allSources.append(contentsOf: mBox)
+        }
+        
+        // Add MOB sources (v2)
+        if let mMob = mMob {
+            allSources.append(contentsOf: mMob)
+        }
+        
+        // Add AfterDark sources
+        allSources.append(contentsOf: afterDarkSources)
+        
+        if let fstream = fstream {
+            allSources.append(contentsOf: fstream)
+        }
+        
+        return filterToAllowedProviders(allSources)
+    }
+    
+    private func fetchFourKHDHubSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")!
+        var queryItems = [
+            URLQueryItem(name: "path", value: "4KHDHUB"),
+            URLQueryItem(name: "tmdbId", value: String(tmdbId)),
+            URLQueryItem(name: "type", value: type)
+        ]
+        
+        if let season = season, let episode = episode {
+            queryItems.append(URLQueryItem(name: "season", value: String(season)))
+            queryItems.append(URLQueryItem(name: "episode", value: String(episode)))
+        }
+        
+        components.queryItems = queryItems
+        
+        guard let url = components.url else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        sourceEngineLog("🚀 [StreamingService] Fetching 4KHDHub: \(url.absoluteString)")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            
+            if httpResponse.statusCode != 200 {
+                sourceEngineLog("❌ [StreamingService] 4KHDHub Error: Status \(httpResponse.statusCode)")
+                return []
+            }
+            
+            // Expected response: { success: true, streams: [...] }
+            struct FourKHDHubResponse: Codable {
+                let success: Bool
+                let streams: [FourKHDHubStream]?
+            }
+            
+            struct FourKHDHubStream: Codable {
+                let url: String
+                let quality: String?
+                let provider: String?
+                let label: String?
+                let size: String?
+                let type: String?
+            }
+            
+            let decoded = try JSONDecoder().decode(FourKHDHubResponse.self, from: data)
+            
+            return (decoded.streams ?? []).map { stream in
+                StreamingSource(
+                    url: stream.url,
+                    quality: stream.quality ?? "HD",
+                    type: stream.type ?? "mkv",
+                    provider: "4khdhub",
+                    language: "VO", // Always VO for this provider
+                    origin: "4khdhub"
+                )
+            }
+            
+        } catch {
+            sourceEngineLog("❌ [StreamingService] 4KHDHub Exception: \(error.localizedDescription)")
+            return []
+        }
+    }
+    
+    private func fetchTmdbSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/tv/\(seriesId)?season=\(season)&episode=\(episode)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        // For TV series, player_links are inside current_episode
+        let decoded = try JSONDecoder().decode(MovixTmdbSeriesResponse.self, from: data)
+        
+        // Try current_episode.player_links first, fallback to direct player_links
+        let playerLinks = decoded.current_episode?.player_links ?? decoded.player_links ?? []
+        sourceEngineLog("🎬 [TMDB Series] Found \(playerLinks.count) player links")
+        return playerLinks
+    }
+    
+    // NEW: Targeted fetch for next episode optimization
+    func fetchNextEpisodeSources(targetProvider: String, seriesId: Int, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo? = nil) async throws -> [StreamingSource] {
+        sourceEngineLog("🎯 [StreamingService] Targeted fetch for provider: \(targetProvider)")
+        
+        switch targetProvider.lowercased() {
+        case "moviebox":
+            return try await fetchMovieBoxSeriesSources(tmdbId: seriesId, season: season, episode: episode)
+            
+        case "universalvo":
+             // UniversalVO usually is a single source, try fetching it
+             return try await fetchUniversalVOSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+            
+        case "afterdark":
+            // AfterDark needs title, ensure we have it
+            guard let info = tmdbInfo else {
+                // Should not happen if caller does setup correctly, but fallback to fetch
+                 let fetchedInfo = try? await fetchSeriesTmdbInfo(seriesId: seriesId)
+                 if let title = fetchedInfo?.title {
+                     return (try? await fetchAfterDarkSources(tmdbId: seriesId, type: "tv", title: title, year: nil, season: season, episode: episode)) ?? []
+                 }
+                 return []
+            }
+            return (try? await fetchAfterDarkSources(tmdbId: seriesId, type: "tv", title: info.title, year: nil, season: season, episode: episode)) ?? []
+
+        case "fstream":
+            return try await fetchFStreamSeriesSources(seriesId: seriesId, season: season, episode: episode)
+
+        case "yflix":
+            return try await fetchYFlixSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "animesama", "frenchanime", "frenchstream", "streamzo":
+            return await fetchFrenchProviderSources(provider: targetProvider.lowercased(), tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "hianime":
+            return try await fetchHiAnimeSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        case "animepahe":
+            return try await fetchAnimePaheSources(tmdbId: seriesId, type: "tv", season: season, episode: episode)
+
+        default:
+            sourceEngineLog("⚠️ [StreamingService] Check: Unknown provider '\(targetProvider)', falling back to full fetch")
+            return try await fetchSeriesSources(seriesId: seriesId, season: season, episode: episode, tmdbInfo: tmdbInfo)
+        }
+    }
+    
+    private func fetchFStreamSeriesSources(seriesId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        let urlString = "\(baseUrl)/api/movix-proxy?path=fstream/tv/\(seriesId)/season/\(season)"
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        // FStream TV response structure is different (nested episodes)
+        struct FStreamTVResponse: Codable {
+            let episodes: [String: FStreamEpisode]?
+        }
+        
+        struct FStreamEpisode: Codable {
+            let languages: [String: [FStreamPlayer]]?
+        }
+        
+        let decoded = try JSONDecoder().decode(FStreamTVResponse.self, from: data)
+        var sources: [StreamingSource] = []
+        
+        // Find the episode (keys are strings "1", "2", etc.)
+        if let episodes = decoded.episodes, let episodeData = episodes["\(episode)"], let languages = episodeData.languages {
+            for (key, playerList) in languages {
+                for player in playerList {
+                    // Map keys to language expected by UI (VF or VOSTFR)
+                    let language: String
+                    if key == "VOSTFR" {
+                        language = "VOSTFR"
+                    } else if key == "Default" || key == "VFQ" || key == "VF" {
+                        language = "VF"
+                    } else if key == "VO" || key == "ENG" || key == "English" {
+                        language = "VO"
+                    } else {
+                        language = "VF" // Default fallback
+                    }
+                    
+                    let provider = player.player.lowercased()
+                    
+                    let normalizedProvider: String
+                    if provider.contains("vidmoly") {
+                        normalizedProvider = "vidmoly"
+                    } else if provider.contains("vidzy") {
+                        normalizedProvider = "vidzy"
+                    } else {
+                        normalizedProvider = provider
+                    }
+                    
+                    let source = StreamingSource(
+                        url: player.url,
+                        quality: player.quality,
+                        type: player.type,
+                        provider: normalizedProvider,
+                        language: language,
+                        origin: "fstream"
+                    )
+                    sources.append(source)
+                }
+            }
+        }
+        
+        return sources
+    }
+    
+    // MARK: - MovieBox Proxy API
+    
+    struct MobProxyResponse: Codable {
+        let success: Bool?
+        let count: Int?
+        let streams: [StreamingSource]?
+    }
+    
+    struct MovieBoxResponse: Codable {
+        let streams: [MovieBoxStream]?
+        let success: Bool?
+    }
+    
+    struct MovieBoxStream: Codable {
+        let url: String
+        let directUrl: String?
+        let quality: String?
+        let type: String? // "mp4", "m3u8"
+        let language: String?
+        let headers: [String: String]?
+        let subtitles: [MovieBoxSubtitle]?
+    }
+
+    struct MovieBoxSubtitle: Codable {
+        let url: String
+        let label: String?
+        let language: String?
+        let code: String?
+        let isDefault: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case url, label, language, code
+            case isDefault = "default"
+        }
+    }
+
+    private func movieBoxTracks(_ subtitles: [MovieBoxSubtitle]?) -> [Subtitle]? {
+        guard let subtitles, !subtitles.isEmpty else { return nil }
+        let tracks = subtitles.map { subtitle in
+            let code = subtitle.code ?? subtitle.language ?? "und"
+            let flag: String
+            switch code.lowercased() {
+            case "fr", "fra", "french", "français": flag = "🇫🇷"
+            case "en", "eng", "english": flag = "🇬🇧"
+            default: flag = "🏳️"
+            }
+            return Subtitle(
+                url: subtitle.url,
+                label: subtitle.label ?? subtitle.language ?? "Subtitle",
+                code: code,
+                flag: flag
+            )
+        }
+        return tracks.isEmpty ? nil : tracks
+    }
+
+    /// Soft captions must not force VOSTFR — same rule as Android TV / API.
+    private func movieBoxLanguageCategory(_ raw: String?) -> String {
+        let value = (raw ?? "VO").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if value == "VOSTFR" || value.contains("VOST") { return "VO" }
+        if value == "VF" || value == "VFQ" || value == "FR" { return "VF" }
+        if value == "VO" { return "VO" }
+        return value.isEmpty ? "VO" : value
+    }
+
+    private func decodeMovieBoxProxyStreams(from data: Data) -> [StreamingSource] {
+        do {
+            let decoded = try JSONDecoder().decode(MovieBoxResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            for src in decoded.streams ?? [] {
+                let quality = src.quality ?? "HD"
+                sources.append(StreamingSource(
+                    url: src.url,
+                    directUrl: src.directUrl,
+                    quality: quality,
+                    type: src.type ?? (src.url.contains(".m3u8") ? "hls" : "mp4"),
+                    provider: "moviebox",
+                    language: movieBoxLanguageCategory(src.language),
+                    origin: "moviebox",
+                    tracks: movieBoxTracks(src.subtitles),
+                    headers: src.headers
+                ))
+            }
+            return sources
+        } catch {
+            sourceEngineLog("❌ [MovieBox] Decoding Error: \(error)")
+            return []
+        }
+    }
+
+    func fetchMovieBoxSources(tmdbId: Int) async throws -> [StreamingSource] {
+        // Prefer hosted MovieBox first — same pipeline as Android TV (detectors + VF/VO).
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=movie"
+        if let url = URL(string: urlString) {
+            sourceEngineLog("🌐 [MovieBox] Fetching Movie URL (Android TV parity): \(urlString)")
+            if let (data, response) = try? await URLSession.shared.data(for: URLRequest(url: url)),
+               let http = response as? HTTPURLResponse,
+               http.statusCode == 200 {
+                let proxySources = decodeMovieBoxProxyStreams(from: data)
+                if !proxySources.isEmpty {
+                    sourceEngineLog("🌐 [MovieBox] Using \(proxySources.count) hosted source(s)")
+                    return proxySources
+                }
+            }
+        }
+
+        do {
+            let nativeSources = try await MovieBoxService.shared.fetchSources(
+                tmdbId: tmdbId,
+                type: "movie",
+                season: 0,
+                episode: 0
+            )
+            if !nativeSources.isEmpty {
+                sourceEngineLog("📱 [MovieBox] Using \(nativeSources.count) native source(s)")
+                return nativeSources.map { source in
+                    StreamingSource(
+                        url: source.url,
+                        directUrl: source.directUrl,
+                        quality: source.quality,
+                        type: source.type,
+                        provider: source.provider,
+                        language: movieBoxLanguageCategory(source.language),
+                        origin: source.origin,
+                        tracks: source.tracks,
+                        headers: source.headers
+                    )
+                }
+            }
+        } catch {
+            sourceEngineLog("⚠️ [MovieBox] Native fetch failed: \(error.localizedDescription)")
+        }
+        return []
+    }
+    
+    func fetchMobSources(tmdbId: Int) async throws -> [StreamingSource] {
+        do {
+            let sources = try await MobService.shared.fetchSources(tmdbId: tmdbId, type: "movie")
+            sourceEngineLog("🚀 [StreamingService] fetchMobSources returned \(sources.count) sources for ID \(tmdbId)")
+            return sources
+        } catch {
+            sourceEngineLog("❌ [StreamingService] fetchMobSources threw error: \(error)")
+            throw error
+        }
+    }
+    
+    func fetchMovieBoxSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        // Prefer hosted MovieBox first — same pipeline as Android TV.
+        let urlString = "\(baseUrl)/api/movix-proxy?path=moviebox&tmdbId=\(tmdbId)&type=tv&season=\(season)&episode=\(episode)"
+        if let url = URL(string: urlString) {
+            sourceEngineLog("🌐 [MovieBox] Fetching Series URL (Android TV parity): \(urlString)")
+            if let (data, response) = try? await URLSession.shared.data(from: url),
+               let http = response as? HTTPURLResponse,
+               http.statusCode == 200 {
+                let proxySources = decodeMovieBoxProxyStreams(from: data)
+                if !proxySources.isEmpty {
+                    sourceEngineLog("🌐 [MovieBox] Using \(proxySources.count) hosted series source(s)")
+                    return proxySources
+                }
+            }
+        }
+
+        do {
+            let nativeSources = try await MovieBoxService.shared.fetchSources(
+                tmdbId: tmdbId,
+                type: "tv",
+                season: season,
+                episode: episode
+            )
+            if !nativeSources.isEmpty {
+                sourceEngineLog("📱 [MovieBox] Using \(nativeSources.count) native series source(s)")
+                return nativeSources.map { source in
+                    StreamingSource(
+                        url: source.url,
+                        directUrl: source.directUrl,
+                        quality: source.quality,
+                        type: source.type,
+                        provider: source.provider,
+                        language: movieBoxLanguageCategory(source.language),
+                        origin: source.origin,
+                        tracks: source.tracks,
+                        headers: source.headers
+                    )
+                }
+            }
+        } catch {
+            sourceEngineLog("⚠️ [MovieBox] Native series fetch failed: \(error.localizedDescription)")
+        }
+        return []
+    }
+    
+    func fetchMobSeriesSources(tmdbId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        return try await MobService.shared.fetchSources(tmdbId: tmdbId, type: "tv", season: season, episode: episode)
+    }
+
+    
+    func getSubtitles(imdbId: String, season: Int? = nil, episode: Int? = nil) async -> [Subtitle] {
+        let urlString: String
+        if let season = season, let episode = episode {
+            urlString = "https://opensubtitles-v3.strem.io/subtitles/series/\(imdbId):\(season):\(episode).json"
+        } else {
+            urlString = "https://opensubtitles-v3.strem.io/subtitles/movie/\(imdbId).json"
+        }
+        
+        guard let url = URL(string: urlString) else { return [] }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            
+            struct OpenSubtitlesResponse: Codable {
+                let subtitles: [OpenSubtitleItem]?
+            }
+            
+            struct OpenSubtitleItem: Codable {
+                let id: String
+                let url: String
+                let lang: String
+            }
+            
+            let decoded = try JSONDecoder().decode(OpenSubtitlesResponse.self, from: data)
+            guard let items = decoded.subtitles else { return [] }
+            
+            let languageFlags: [String: String] = [
+                "fre": "🇫🇷", "eng": "🇬🇧", "spa": "🇪🇸", "ger": "🇩🇪", "ita": "🇮🇹",
+                "por": "🇵🇹", "rus": "🇷🇺", "tur": "🇹🇷", "ara": "🇸🇦", "chi": "🇨🇳",
+                "jpn": "🇯🇵", "kor": "🇰🇷", "dut": "🇳🇱", "pol": "🇵🇱", "swe": "🇸🇪",
+                "dan": "🇩🇰", "fin": "🇫🇮", "nor": "🇳🇴", "cze": "🇨🇿", "hun": "🇭🇺",
+                "rom": "🇷🇴", "bul": "🇧🇬", "gre": "🇬🇷", "heb": "🇮🇱", "tha": "🇹🇭",
+                "vie": "🇻🇳", "ind": "🇮🇩", "may": "🇲🇾", "per": "🇮🇷", "ukr": "🇺🇦",
+                "hrv": "🇭🇷", "srp": "🇷🇸", "slv": "🇸🇮", "slk": "🇸🇰", "lit": "🇱🇹",
+                "lav": "🇱🇻", "est": "🇪🇪"
+            ]
+            
+            let languageNames: [String: String] = [
+                "fre": "Français", "eng": "Anglais", "spa": "Espagnol", "ger": "Allemand",
+                "ita": "Italien", "por": "Portugais", "rus": "Russe", "tur": "Turc",
+                "ara": "Arabe", "chi": "Chinois", "jpn": "Japonais", "kor": "Coréen",
+                "dut": "Néerlandais", "pol": "Polonais", "swe": "Suédois", "dan": "Danois",
+                "fin": "Finnois", "nor": "Norvégien", "cze": "Tchèque", "hun": "Hongrois",
+                "rom": "Roumain", "bul": "Bulgare", "gre": "Grec", "heb": "Hébreu",
+                "tha": "Thaï", "vie": "Vietnamien", "ind": "Indonésien", "may": "Malais",
+                "per": "Persan", "ukr": "Ukrainien", "hrv": "Croate", "srp": "Serbe",
+                "slv": "Slovène", "slk": "Slovaque", "lit": "Lituanien", "lav": "Letton",
+                "est": "Estonien"
+            ]
+            
+            var subtitles = items.map { item -> Subtitle in
+                let lang = item.lang
+                let flag = languageFlags[lang] ?? "🏳️"
+                let label = languageNames[lang] ?? lang
+                return Subtitle(url: item.url, label: label, code: lang, flag: flag)
+            }
+            
+            // Sort: French, English, then others
+            subtitles.sort { a, b in
+                if a.code == "fre" && b.code != "fre" { return true }
+                if a.code != "fre" && b.code == "fre" { return false }
+                if a.code == "eng" && b.code != "eng" { return true }
+                if a.code != "eng" && b.code == "eng" { return false }
+                return a.label < b.label
+            }
+            
+            return subtitles
+            
+        } catch {
+            sourceEngineLog("Error fetching subtitles: \(error)")
+            return []
+        }
+    }
+    
+    func fetchDarkiboxSources(mediaId: Int, season: Int, episode: Int) async throws -> [StreamingSource] {
+        // TODO: Implement Darkibox fetching
+        return []
+    }
+    
+    /// Device-side Vixsrc VO extract (API → embed → master). No worker/proxy.
+    /// Always returns https:// master URLs (never file://) so listing/playback
+    /// match YFlix/VaPlayer. Qualities share the adaptive master; AVPlayer/VLC
+    /// lock height via preferredVideoHeight.
+    func fetchVixsrcSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        do {
+            let sources = try await extractVixsrcOnDevice(tmdbId: tmdbId, type: type, season: season, episode: episode)
+            sourceEngineLog("✅ [Vixsrc] \(sources.count) source(s) for \(type) \(tmdbId): \(sources.map(\.quality))")
+            return sources
+        } catch {
+            sourceEngineLog("❌ [Vixsrc] extract failed for \(type) \(tmdbId): \(error)")
+            return []
+        }
+    }
+
+    private func extractVixsrcOnDevice(tmdbId: Int, type: String, season: Int?, episode: Int?) async throws -> [StreamingSource] {
+        let origin = "https://vixsrc.to"
+        let pagePath: String
+        let apiPath: String
+        if type == "movie" {
+            pagePath = "/movie/\(tmdbId)"
+            apiPath = "/api/movie/\(tmdbId)"
+        } else {
+            let seasonNum = season ?? 1
+            let episodeNum = episode ?? 1
+            pagePath = "/tv/\(tmdbId)/\(seasonNum)/\(episodeNum)"
+            apiPath = "/api/tv/\(tmdbId)/\(seasonNum)/\(episodeNum)"
+        }
+        let referer = origin + pagePath
+        let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        let headers: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": userAgent,
+            "Accept": "application/json,text/html;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
+        ]
+
+        func request(_ urlString: String) async throws -> (Data, Int) {
+            guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+            var req = URLRequest(url: url, timeoutInterval: 20)
+            req.httpMethod = "GET"
+            req.allHTTPHeaderFields = headers
+            let (data, response) = try await URLSession.shared.data(for: req)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            return (data, status)
+        }
+
+        let (apiData, apiStatus) = try await request(origin + apiPath)
+        guard apiStatus == 200 else {
+            sourceEngineLog("⚠️ [Vixsrc] API HTTP \(apiStatus)")
+            throw URLError(.badServerResponse)
+        }
+        struct VixsrcAPI: Codable { let src: String? }
+        let api = try JSONDecoder().decode(VixsrcAPI.self, from: apiData)
+        guard let src = api.src?.trimmingCharacters(in: .whitespacesAndNewlines), !src.isEmpty else {
+            sourceEngineLog("⚠️ [Vixsrc] missing src for \(apiPath)")
+            return []
+        }
+
+        let embedString = src.hasPrefix("http") ? src : origin + src
+        guard let embedURL = URL(string: embedString),
+              embedURL.host == "vixsrc.to",
+              embedURL.path.hasPrefix("/embed/") else {
+            sourceEngineLog("⚠️ [Vixsrc] invalid embed: \(embedString)")
+            return []
+        }
+
+        let (embedData, embedStatus) = try await request(embedURL.absoluteString)
+        guard embedStatus == 200 else {
+            sourceEngineLog("⚠️ [Vixsrc] embed HTTP \(embedStatus)")
+            throw URLError(.badServerResponse)
+        }
+        let html = String(decoding: embedData, as: UTF8.self)
+        guard let master = Self.parseVixsrcMasterPlaylist(html: html) else {
+            sourceEngineLog("⚠️ [Vixsrc] playlist parse failed (html \(html.count) bytes)")
+            return []
+        }
+
+        // Discover labeled qualities from the master when possible; otherwise
+        // still publish the common ladder so VO is never empty after a successful embed.
+        var qualities = ["1080p", "720p", "480p"]
+        if let (masterData, masterStatus) = try? await request(master), masterStatus == 200 {
+            let body = String(decoding: masterData, as: UTF8.self)
+            let parsed = Self.parseVixsrcQualityLabels(masterBody: body)
+            if !parsed.isEmpty { qualities = parsed }
+        } else {
+            sourceEngineLog("⚠️ [Vixsrc] master fetch skipped/failed — using default ladder")
+        }
+
+        let playbackHeaders: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": userAgent
+        ]
+        return qualities.map { quality in
+            StreamingSource(
+                url: master,
+                directUrl: master,
+                quality: quality,
+                type: "m3u8",
+                provider: "vixsrc",
+                language: "VO",
+                origin: "vixsrc",
+                headers: playbackHeaders
+            )
+        }
+    }
+
+    static func parseVixsrcMasterPlaylist(html: String) -> String? {
+        func capture(_ pattern: String, in text: String) -> String? {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+                return nil
+            }
+            let range = NSRange(text.startIndex..., in: text)
+            guard let match = regex.firstMatch(in: text, options: [], range: range),
+                  match.numberOfRanges > 1,
+                  let group = Range(match.range(at: 1), in: text) else {
+                return nil
+            }
+            return String(text[group])
+        }
+
+        // Prefer fields inside window.masterPlaylist, but never stop at the first
+        // nested `}` (params object) — match through the playlist url assignment.
+        let block = capture(
+            #"window\.masterPlaylist\s*=\s*(\{[\s\S]*?url\s*:\s*['"][^'"]+['"][\s\S]*?\})"#,
+            in: html
+        ) ?? html
+
+        let token = capture(#"['"]token['"]\s*:\s*['"]([^'"]+)['"]"#, in: block)
+            ?? capture(#"token['"]\s*:\s*['"]([^'"]+)"#, in: html)
+        let expires = capture(#"['"]expires['"]\s*:\s*['"]([^'"]+)['"]"#, in: block)
+            ?? capture(#"expires['"]\s*:\s*['"]([^'"]+)"#, in: html)
+        let playlist = capture(#"url\s*:\s*['"](https?://[^'"]+)['"]"#, in: block)
+            ?? capture(#"url\s*:\s*['"](https?://[^'"]*playlist[^'"]*)['"]"#, in: html)
+
+        guard let token, let expires, let playlist else {
+            return capture(#"(https?://[^'"\s]+\.m3u8[^'"\s]*)"#, in: html)
+        }
+        guard let expiresAt = Double(expires),
+              expiresAt > Date().timeIntervalSince1970 + 60,
+              var components = URLComponents(string: playlist),
+              components.host == "vixsrc.to",
+              components.path.hasPrefix("/playlist/") else {
+            return nil
+        }
+
+        var items = components.queryItems ?? []
+        func setQuery(_ name: String, _ value: String) {
+            items.removeAll { $0.name == name }
+            items.append(URLQueryItem(name: name, value: value))
+        }
+        setQuery("token", token)
+        setQuery("expires", expires)
+        setQuery("h", "1")
+        setQuery("lang", "en")
+        components.queryItems = items
+        return components.url?.absoluteString
+    }
+
+    /// Labels only — playback always uses the https master (audio/subs intact).
+    static func parseVixsrcQualityLabels(masterBody: String) -> [String] {
+        let lines = masterBody.components(separatedBy: .newlines)
+        var labels: [String] = []
+        var seen = Set<String>()
+        var index = 0
+        while index < lines.count {
+            let line = lines[index]
+            if line.hasPrefix("#EXT-X-STREAM-INF:") {
+                let uri = index + 1 < lines.count ? lines[index + 1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+                let quality = vixsrcQualityLabel(streamInf: line, uri: uri)
+                if seen.insert(quality).inserted {
+                    labels.append(quality)
+                }
+                index += 2
+                continue
+            }
+            index += 1
+        }
+        labels.sort { vixsrcQualityRank($0) > vixsrcQualityRank($1) }
+        return labels
+    }
+
+    static func vixsrcQualityLabel(streamInf: String, uri: String) -> String {
+        if let match = uri.range(of: #"[?&]rendition=([0-9]+p)"#, options: [.regularExpression, .caseInsensitive]) {
+            let matched = String(uri[match])
+            if let value = matched.split(separator: "=").last {
+                return value.lowercased()
+            }
+        }
+        if let regex = try? NSRegularExpression(pattern: #"RESOLUTION=\d+x(\d+)"#, options: [.caseInsensitive]),
+           let match = regex.firstMatch(in: streamInf, range: NSRange(streamInf.startIndex..., in: streamInf)),
+           let range = Range(match.range(at: 1), in: streamInf) {
+            return "\(streamInf[range])p"
+        }
+        return "HD"
+    }
+
+    static func vixsrcQualityRank(_ quality: String) -> Int {
+        let digits = quality.filter(\.isNumber)
+        return Int(digits) ?? 0
+    }
+
+    func fetchUniversalVOSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=universalvo&tmdbId=\(tmdbId)&type=\(type)"
+        if let season = season {
+            urlString += "&season=\(season)"
+        }
+        if let episode = episode {
+            urlString += "&episode=\(episode)"
+        }
+        
+        sourceEngineLog("🌐 [UniversalVO] Fetching URL: \(urlString)")
+        
+        guard let url = URL(string: urlString) else {
+            sourceEngineLog("❌ [UniversalVO] Invalid URL")
+            throw URLError(.badURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 30 // Increased to 30s to allow backend scraping time
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                sourceEngineLog("❌ [UniversalVO] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                throw URLError(.badServerResponse)
+            }
+            
+            let decoded = try JSONDecoder().decode(UniversalVOResponse.self, from: data)
+            sourceEngineLog("✅ [UniversalVO] Decoded response. Sources count: \(decoded.files?.count ?? 0)")
+            
+            var sources: [StreamingSource] = []
+            
+            if let files = decoded.files {
+                for file in files {
+                    let provider = file.provider?.lowercased() ?? file.extractor?.lowercased() ?? "unknown"
+                    let normalizedProvider: String
+                    
+                    if provider.contains("primewire") || provider.contains("streamtape") {
+                        normalizedProvider = "primewire"
+                    } else if provider.contains("2embed") || provider.contains("twoembed") {
+                        normalizedProvider = "2embed"
+                    } else {
+                        normalizedProvider = provider
+                    }
+                    
+                    let quality = file.quality ?? "HD"
+                    let language: String
+                    
+                    // Map language codes
+                    if let lang = file.lang {
+                        if lang.lowercased().contains("fr") || lang.lowercased().contains("vf") {
+                            language = "VF"
+                        } else if lang.lowercased().contains("vostfr") {
+                            language = "VOSTFR"
+                        } else if lang.lowercased().contains("en") || lang.lowercased().contains("vo") {
+                            language = "VO"
+                        } else {
+                            language = "VO" // Default
+                        }
+                    } else {
+                        language = "VO" // Default for UniversalVO
+                    }
+                    
+                    let source = StreamingSource(
+                        url: file.file,
+                        quality: quality,
+                        type: file.type,
+                        provider: normalizedProvider,
+                        language: language,
+                        origin: "universalvo"
+                    )
+                    sources.append(source)
+                }
+            }
+            
+            return sources
+        } catch {
+             sourceEngineLog("❌ [UniversalVO] Error fetching/decoding: \(error)")
+             return []
+        }
+    }
+    
+    
+    // MARK: - AfterDark API (Direct call - iOS has no CORS)
+    func fetchAfterDarkSources(
+        tmdbId: Int,
+        type: String,
+        title: String?,
+        year: String?,
+        originalTitle: String? = nil,
+        season: Int? = nil,
+        episode: Int? = nil
+    ) async throws -> [StreamingSource] {
+        // Build AfterDark API URL
+        let endpoint = type == "movie" ? "movies" : "shows"
+        var afterDarkUrl = "https://afterdark.mom/api/sources/\(endpoint)?tmdbId=\(tmdbId)"
+        
+        if let t = title {
+            let encoded = t.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? t
+            afterDarkUrl += "&title=\(encoded)"
+        }
+        
+        if type == "movie" {
+            if let y = year {
+                afterDarkUrl += "&year=\(y)"
+            }
+            if let ot = originalTitle {
+                let encoded = ot.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ot
+                afterDarkUrl += "&originalTitle=\(encoded)"
+            }
+        } else {
+            if let s = season { afterDarkUrl += "&season=\(s)" }
+            if let e = episode { afterDarkUrl += "&episode=\(e)" }
+        }
+        
+        // Wrap with CorsProxy.io (same as web client)
+        let corsProxyUrl = "https://corsproxy.io/?\(afterDarkUrl)"
+        
+        guard let url = URL(string: corsProxyUrl) else {
+            throw URLError(.badURL)
+        }
+        
+        sourceEngineLog("🌐 [AfterDark] Fetch via CorsProxy: \(url.absoluteString)")
+        
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 20
+        
+        // Headers to mimic browser request
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15", forHTTPHeaderField: "User-Agent")
+        request.setValue("https://afterdark.mom", forHTTPHeaderField: "Origin")
+        request.setValue("https://afterdark.mom/", forHTTPHeaderField: "Referer")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                sourceEngineLog("❌ [AfterDark] HTTP Error: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+                throw URLError(.badServerResponse)
+            }
+            
+            // AfterDark API returns { meta: {...}, sources: [...] }
+            // We need to decode this structure
+            struct AfterDarkDirectResponse: Codable {
+                let meta: AfterDarkMeta?
+                let sources: [AfterDarkSource]?
+            }
+            struct AfterDarkMeta: Codable {
+                let title: String?
+                let tmdbId: String?
+            }
+            
+            let decoder = JSONDecoder()
+            let afterdarkResponse = try decoder.decode(AfterDarkDirectResponse.self, from: data)
+            
+            sourceEngineLog("✅ [AfterDark] Decoded response. Sources: \(afterdarkResponse.sources?.count ?? 0)")
+            
+            var sources: [StreamingSource] = []
+            
+            if let afterdarkSources = afterdarkResponse.sources {
+                for source in afterdarkSources {
+                    // Accept ALL sources for now (no filtering)
+                    sourceEngineLog("🌑 [AfterDark] Processing source: \(source.label ?? source.name ?? "unknown") - type: \(source.type ?? source.kind ?? "?") - url: \(source.url.prefix(50))...")
+                    
+                    // Map language based on API response
+                    // "unknown", "multi", "VF", "french" => VF
+                    // "en", "english" => VO
+                    // "vostfr" => VOSTFR
+                    var language = "VF"
+                    if let lang = source.language?.lowercased() {
+                        if lang == "en" || lang == "english" || lang == "eng" {
+                            language = "VO"
+                        } else if lang.contains("vostfr") {
+                            language = "VOSTFR"
+                        } else {
+                            // "unknown", "multi", "vf", "french", or anything else => VF
+                            language = "VF"
+                        }
+                    }
+                    
+                    // Use quality from API (e.g. "HD", "FHD", "4K")
+                    let quality = source.quality?.uppercased() ?? "HD"
+                    
+                    // AfterDark streams need specific headers to play
+                    let afterDarkHeaders = [
+                        "Referer": "https://afterdark.mom/",
+                        "Origin": "https://afterdark.mom"
+                    ]
+                    
+                    let streamSource = StreamingSource(
+                        url: source.url,
+                        quality: quality,
+                        type: "m3u8",
+                        provider: "afterdark",
+                        language: language,
+                        origin: "afterdark",
+                        headers: afterDarkHeaders
+                    )
+                    sources.append(streamSource)
+                    sourceEngineLog("✅ [AfterDark] Added source: \(quality) \(language) - \(source.url.prefix(50))...")
+                }
+            }
+            
+            return sources
+        } catch {
+            sourceEngineLog("❌ [AfterDark] Error fetching/decoding: \(error)")
+            return []
+        }
+    }
+    
+        
+        
+    // MARK: - Vidlink Integration
+    
+    private func fetchVaPlayerSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")!
+        var queryItems = [
+            URLQueryItem(name: "path", value: "vaplayer"),
+            URLQueryItem(name: "tmdbId", value: String(tmdbId)),
+            URLQueryItem(name: "type", value: type)
+        ]
+        if let season = season {
+            queryItems.append(URLQueryItem(name: "season", value: String(season)))
+        }
+        if let episode = episode {
+            queryItems.append(URLQueryItem(name: "episode", value: String(episode)))
+        }
+        components.queryItems = queryItems
+        guard let url = components.url else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 25
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                return []
+            }
+
+            struct ProxyStream: Codable {
+                let name: String?
+                let url: String
+                let quality: String?
+                let type: String?
+                let language: String?
+                let headers: [String: String]?
+            }
+            struct ProxyResponse: Codable {
+                let success: Bool?
+                let streams: [ProxyStream]?
+            }
+
+            let decoded = try JSONDecoder().decode(ProxyResponse.self, from: data)
+            guard let streams = decoded.streams, !streams.isEmpty else { return [] }
+
+            return streams.compactMap { stream in
+                guard !stream.url.isEmpty else { return nil }
+                let streamType = stream.type
+                    ?? (stream.url.contains(".m3u8") ? "m3u8" : (stream.url.contains(".mp4") ? "mp4" : "m3u8"))
+                return StreamingSource(
+                    url: stream.url,
+                    directUrl: stream.url,
+                    quality: stream.quality ?? "Auto",
+                    type: streamType,
+                    provider: "vaplayer",
+                    language: stream.language ?? "VO",
+                    origin: "vaplayer",
+                    headers: stream.headers
+                )
+            }
+        } catch {
+            sourceEngineLog("❌ [StreamingService] vaplayer fetch failed: \(error)")
+            return []
+        }
+    }
+
+    // MARK: - YFlix Integration
+
+    private func fetchYFlixSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        do {
+            let extractedSources = await YFlixService.shared.getStreams(tmdbId: String(tmdbId), mediaType: type, season: season, episode: episode)
+            var streamingSources: [StreamingSource] = []
+
+            for source in extractedSources {
+                let streamURL = source.url.replacingOccurrences(of: ",", with: "%2C")
+                let referer: String
+                let origin: String
+                if let host = URL(string: streamURL)?.host,
+                   (host.contains("rapidshare") || host.contains("prime37node")) {
+                    referer = "https://rapidshare.cc/"
+                    origin = "https://rapidshare.cc"
+                } else {
+                    referer = "https://yflix.to/"
+                    origin = "https://yflix.to"
+                }
+                let headers = [
+                    "Referer": referer,
+                    "Origin": origin,
+                    "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+                ]
+
+                let streamSource = StreamingSource(
+                    url: streamURL,
+                    directUrl: streamURL,
+                    quality: source.quality,
+                    type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                    provider: "yflix",
+                    language: "VO",
+                    origin: "yflix",
+                    headers: headers
+                )
+                streamingSources.append(streamSource)
+            }
+            return streamingSources
+        } catch {
+            sourceEngineLog("❌ [StreamingService] YFlix fetching failed: \(error)")
+            return []
+        }
+    }
+
+
+    // MARK: - HiAnime Integration
+
+    private func fetchHiAnimeSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        let extractedSources = await HiAnimeService.shared.getStreams(
+            tmdbId: tmdbId,
+            mediaType: type,
+            season: season,
+            episode: episode
+        )
+        
+        var streamingSources: [StreamingSource] = []
+        for src in extractedSources {
+            var subs: [Subtitle] = []
+            for s in src.subtitles {
+                subs.append(Subtitle(url: s.url, label: s.language, code: s.language, flag: "🇬🇧"))
+            }
+            let streamSource = StreamingSource(
+                url: src.url,
+                directUrl: src.url,
+                quality: src.quality,
+                type: src.type,
+                provider: "hianime",
+                language: src.serverType,
+                origin: "hianime",
+                tracks: subs.isEmpty ? nil : subs,
+                headers: src.headers
+            )
+            streamingSources.append(streamSource)
+        }
+        if !streamingSources.isEmpty {
+            sourceEngineLog("✅ [StreamingService] HiAnime: \(streamingSources.count) source(s) for TMDB:\(tmdbId) S\(season ?? 1)E\(episode ?? 1)")
+        }
+        return streamingSources
+    }
+    // MARK: - AnimePahe Integration
+
+    private func fetchAnimePaheSources(tmdbId: Int, type: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        let extractedSources = await AnimePaheService.shared.getStreams(
+            tmdbId: tmdbId,
+            mediaType: type,
+            season: season,
+            episode: episode
+        )
+        var streamingSources: [StreamingSource] = []
+
+        for source in extractedSources {
+            var headers = source.headers
+            if headers["User-Agent"] == nil {
+                headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            }
+
+            let subLabel = source.serverType
+            let streamSource = StreamingSource(
+                url: source.url,
+                directUrl: source.url,
+                quality: source.quality,
+                type: source.url.contains(".m3u8") ? "m3u8" : "mp4",
+                provider: "animepahe",
+                language: "VO - \(subLabel)",
+                origin: "animepahe",
+                tracks: nil,
+                headers: headers
+            )
+            streamingSources.append(streamSource)
+        }
+        if !streamingSources.isEmpty {
+            sourceEngineLog("✅ [StreamingService] AnimePahe: \(streamingSources.count) source(s) for TMDB:\(tmdbId) S\(season ?? 1)E\(episode ?? 1)")
+        }
+        return streamingSources
+    }
+
+    // MARK: - French anime providers
+
+    private func fetchFrenchProviderSources(
+        provider: String,
+        tmdbId: Int,
+        type: String,
+        season: Int? = nil,
+        episode: Int? = nil
+    ) async -> [StreamingSource] {
+        let extracted: [FrenchAnimeProvidersService.ExtractedSource]
+        switch provider {
+        case "animesama":
+            extracted = await FrenchAnimeProvidersService.shared.getAnimeSamaStreams(
+                tmdbId: tmdbId, mediaType: type, season: season, episode: episode
+            )
+        case "frenchanime":
+            extracted = await FrenchAnimeProvidersService.shared.getFrenchAnimeStreams(
+                tmdbId: tmdbId, mediaType: type, season: season, episode: episode
+            )
+        case "streamzo":
+            extracted = await FrenchAnimeProvidersService.shared.getStreamzoStreams(
+                tmdbId: tmdbId, mediaType: type, season: season, episode: episode
+            )
+        case "frenchstream":
+            extracted = await FrenchAnimeProvidersService.shared.getFrenchStreamStreams(
+                tmdbId: tmdbId, mediaType: type, season: season, episode: episode
+            )
+        default:
+            return []
+        }
+
+        return extracted.map { source in
+            StreamingSource(
+                url: source.url,
+                directUrl: source.url,
+                quality: source.quality,
+                type: source.type,
+                provider: source.provider,
+                language: source.language,
+                origin: source.provider,
+                tracks: nil,
+                headers: source.headers
+            )
+        }
+    }
+
+    // MARK: - Extractors
+    
+    func extractVidMoly(url: String) async throws -> String {
+        // 1. Check if it's already an m3u8 (pre-extracted)
+        if url.contains(".m3u8") || url.contains("unified-streaming.com") || url.contains("vmeas.cloud") || url.contains("transitto.online") {
+            // Check for vidmoly/vmeas manually to ensure normalization
+            if url.contains("vidmoly.to") {
+                 let normalized = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+                 return getVidMolyProxyUrl(url: normalized, referer: "https://vidmoly.net/")
+            }
+             return getVidMolyProxyUrl(url: url, referer: "https://vidmoly.net/")
+        }
+        
+        // Normalize .to -> .net BEFORE calling API
+        let normalizedUrl = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: String] = ["type": "vidmoly", "url": normalizedUrl]
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        sourceEngineLog("🌐 Calling VidMoly API: \(url)")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            sourceEngineLog("❌ VidMoly API Error: Status \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw URLError(.badServerResponse)
+        }
+        
+        struct ExtractResponse: Codable {
+            let success: Bool
+            let m3u8Url: String?
+            let error: String?
+            let type: String?
+        }
+        
+        if let jsonString = String(data: data, encoding: .utf8) {
+            sourceEngineLog("🎬 VidMoly JSON Response: \(jsonString)")
+        }
+        
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        sourceEngineLog("✅ VidMoly API Response: success=\(result.success)")
+        
+        guard result.success, let m3u8Url = result.m3u8Url else {
+            sourceEngineLog("❌ VidMoly extraction failed: success=false or no m3u8")
+            throw URLError(.cannotParseResponse)
+        }
+        
+        // Clean URL
+        var cleanedUrl = m3u8Url
+        // Commas should NOT be removed as they are part of the path in some VidMoly variations (as per user/web behavior)
+        // if cleanedUrl.contains(",") && cleanedUrl.contains(".urlset") {
+        //    cleanedUrl = cleanedUrl.replacingOccurrences(of: ",", with: "")
+        // }
+        
+        // Check if proxy is needed (Real VidMoly links)
+        // With api/extract, we assume it returns the direct/proxied m3u8 or needs our proxy
+        // The unified api usually returns a usable m3u8Url
+        
+        // We still need to check if we should proxy it through our backend or play direct
+        let isRealVidMoly = cleanedUrl.contains("vidmoly") || 
+                            cleanedUrl.contains("vmeas") ||
+                            cleanedUrl.contains("to_be_proxied") // Adjust based on api/extract response
+        
+        // For now, trust the URL returned by api/extract, but if it's a raw vidmoly link, proxy it
+        // Always proxy through our backend to ensure headers (User-Agent, Referer) are correct for AVPlayer
+        // The API returns the raw direct link (e.g. vmwesa.online), which fails without proper headers.
+        return getVidMolyProxyUrl(url: cleanedUrl, referer: normalizedUrl)
+    }
+
+    /// Extracts stream URL from a Darkibox/Darki embed page and returns a playable URL (proxied for HLS).
+    func extractDarkibox(url: String) async throws -> String {
+        let embedUrl = url
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: String] = ["type": "darkibox", "url": embedUrl]
+        request.httpBody = try JSONEncoder().encode(body)
+
+        sourceEngineLog("🌑 [StreamingService] Extracting Darkibox: \(embedUrl)")
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            sourceEngineLog("❌ [StreamingService] Darkibox extract HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw URLError(.badServerResponse)
+        }
+
+        struct ExtractResponse: Codable {
+            let success: Bool?
+            let m3u8Url: String?
+            let error: String?
+        }
+
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        guard let streamUrl = result.m3u8Url, !streamUrl.isEmpty else {
+            sourceEngineLog("❌ [StreamingService] Darkibox extraction failed: \(result.error ?? "no stream URL")")
+            throw URLError(.cannotParseResponse)
+        }
+
+        sourceEngineLog("✅ [StreamingService] Darkibox extracted: \(streamUrl.prefix(80))...")
+        return getDarkiboxPlaybackUrl(streamUrl: streamUrl, embedReferer: embedUrl)
+    }
+
+    /// Wraps Darkibox CDN URLs for AVPlayer (HLS via movix proxy/hls, MP4 direct with headers).
+    func getDarkiboxPlaybackUrl(streamUrl: String, embedReferer: String) -> String {
+        let referer = embedReferer.contains("darkibox.com") ? embedReferer : "https://darkibox.com/"
+        let proxyHeaders: [String: String] = [
+            "Referer": referer,
+            "Origin": "https://darkibox.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ]
+
+        if streamUrl.contains(".m3u8") {
+            let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+            let encodedLink = streamUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? streamUrl
+            if let headersData = try? JSONSerialization.data(withJSONObject: proxyHeaders),
+               let headersStr = String(data: headersData, encoding: .utf8),
+               let encodedHeaders = headersStr.addingPercentEncoding(withAllowedCharacters: allowed) {
+                return "\(baseUrl)/api/movix?path=proxy/hls&link=\(encodedLink)&headers=\(encodedHeaders)"
+            }
+            return "\(baseUrl)/api/movix?path=proxy/hls&link=\(encodedLink)"
+        }
+
+        return streamUrl
+    }
+
+    static func isDarkiboxProvider(_ provider: String) -> Bool {
+        let p = provider.lowercased()
+        return p == "darki" || p == "darkibox"
+    }
+
+    static func darkiboxPlaybackHeaders(embedUrl: String? = nil) -> [String: String] {
+        let referer = (embedUrl?.contains("darkibox.com") == true) ? embedUrl! : "https://darkibox.com/"
+        return [
+            "Referer": referer,
+            "Origin": "https://darkibox.com",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ]
+    }
+    
+    /// Referer must match the embed page host (lulustream vs luluvid); CDN often checks full embed URL.
+    static func luluvidPlaybackHeaders(embedUrl: String, cookie: String? = nil) -> [String: String] {
+        let referer: String
+        let origin: String
+        if embedUrl.hasPrefix("http"), let u = URL(string: embedUrl), let host = u.host {
+            referer = embedUrl
+            origin = "\(u.scheme ?? "https")://\(host)"
+        } else if embedUrl.lowercased().contains("lulustream") {
+            referer = "https://lulustream.com/"
+            origin = "https://lulustream.com"
+        } else {
+            referer = "https://luluvid.com/"
+            origin = "https://luluvid.com"
+        }
+        var headers: [String: String] = [
+            "Referer": referer,
+            "Origin": origin,
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ]
+        if let cookie, !cookie.isEmpty {
+            headers["Cookie"] = cookie
+        }
+        return headers
+    }
+
+    /// Detect Luluvid / Lulustream embed or CDN URLs.
+    /// iOS always plays these **directly** with Referer/Origin headers (no Vercel proxy).
+    static func isLuluvidCdnUrl(_ url: String) -> Bool {
+        let lower = url.lowercased()
+        if lower.contains("dramiyos-cdn.com") { return true }
+        if lower.contains("luluvid.") || lower.contains("lulustream.") { return true }
+        if lower.contains("/hls2/") && lower.contains(".m3u8") { return true }
+        return false
+    }
+
+    /// Unwrap accidental web proxy URLs so AVPlayer hits the CDN directly.
+    static func unwrapProxiedMediaUrl(_ url: String) -> String {
+        guard url.contains("cinepro-proxy") || url.contains("/api/movix-proxy"),
+              let components = URLComponents(string: url),
+              let nested = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              nested.hasPrefix("http") else {
+            return url
+        }
+        return nested
+    }
+    
+    func extractVidzy(url: String) async throws -> String {
+        do {
+            let directUrl = try await extractVidzyOnDevice(url: url)
+            sourceEngineLog("✅ Vidzy extracted on device: \(directUrl)")
+            return directUrl
+        } catch {
+            // Keep the API fallback for legacy Vidzy pages, but current signed
+            // streams must be extracted on-device so their token matches the
+            // network used by AVPlayer and the download manager.
+            sourceEngineLog("⚠️ On-device Vidzy extraction failed, trying API: \(error.localizedDescription)")
+        }
+
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.setValue("navigate", forHTTPHeaderField: "Sec-Fetch-Mode")
+        request.setValue("none", forHTTPHeaderField: "Sec-Fetch-Site")
+        request.setValue("document", forHTTPHeaderField: "Sec-Fetch-Dest")
+        
+        let body: [String: String] = ["type": "vidzy", "url": url]
+        request.httpBody = try JSONEncoder().encode(body)
+        
+        sourceEngineLog("📤 Extracting Vidzy: \(url)")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        
+        if httpResponse.statusCode != 200 {
+            sourceEngineLog("❌ Vidzy extraction failed with status: \(httpResponse.statusCode)")
+            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                sourceEngineLog("❌ Error details: \(errorJson)")
+            }
+            throw URLError(.badServerResponse)
+        }
+        
+        struct ExtractResponse: Codable {
+            let success: Bool
+            let m3u8Url: String?
+            let error: String?
+            let type: String?
+        }
+        
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        
+        if let m3u8 = result.m3u8Url {
+            sourceEngineLog("✅ Vidzy extracted: \(m3u8)")
+            return m3u8
+        } else if let error = result.error {
+            sourceEngineLog("❌ Vidzy API Error: \(error)")
+            throw NSError(domain: "StreamingService", code: -1, userInfo: [NSLocalizedDescriptionKey: error])
+        }
+        
+        throw URLError(.cannotParseResponse)
+    }
+
+    static func quotedVidzyMediaURL(in html: String) -> String? {
+        let pattern = #"(?:file|src)\s*[:=]\s*['"](https?://[^'"]+)['"]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        for match in regex.matches(in: html, range: NSRange(html.startIndex..., in: html)) {
+            guard let range = Range(match.range(at: 1), in: html) else { continue }
+            let candidate = String(html[range]).replacingOccurrences(of: #"\/"#, with: "/").replacingOccurrences(of: "&amp;", with: "&")
+            if !candidate.lowercased().contains("/troll/"), !candidate.lowercased().contains("fake"),
+               candidate.range(of: #"^https?://.+\.(m3u8|mp4|mkv)(?:[?#].*)?$"#, options: [.regularExpression, .caseInsensitive]) != nil {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private func extractVidzyOnDevice(url: String) async throws -> String {
+        guard let embedUrl = URL(string: url), let hostname = embedUrl.host else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: embedUrl)
+        request.timeoutInterval = 20
+        request.setValue(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            forHTTPHeaderField: "User-Agent"
+        )
+        request.setValue("\(embedUrl.scheme ?? "https")://\(hostname)/", forHTTPHeaderField: "Referer")
+        request.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        let html = String(decoding: data, as: UTF8.self)
+        if let direct = Self.quotedVidzyMediaURL(in: html) { return direct }
+        let pattern = #"\(\s*function\s*\(\s*s\s*\)\s*\{[\s\S]{20,4000}?\}\s*\)\s*\(\s*[\"']([^\"']+)[\"']\s*\)"#
+        let regex = try NSRegularExpression(pattern: pattern)
+        let fullRange = NSRange(html.startIndex..., in: html)
+        let matches = regex.matches(in: html, range: fullRange)
+
+        let hostnameHash = hostname.utf8.reduce(0) { ($0 + Int($1)) & 255 }
+        let preferredCalibrations = [139, 0] + Array(1...255).filter { $0 != 139 }
+
+        for match in matches {
+            guard match.numberOfRanges > 1,
+                  let payloadRange = Range(match.range(at: 1), in: html),
+                  let payload = Data(base64Encoded: String(html[payloadRange])) else { continue }
+
+            let reversed = Array(payload.reversed())
+            for calibration in preferredCalibrations {
+                let decodedBytes = reversed.enumerated().map { index, byte in
+                    byte ^ UInt8((0x3d + index * 89 + hostnameHash + calibration) & 255)
+                }
+                guard let candidate = String(bytes: decodedBytes, encoding: .utf8),
+                      !candidate.lowercased().contains("/troll/"),
+                      candidate.range(of: #"^https?://.+\.(m3u8|mp4|mkv)(?:[?#].*)?$"#,
+                                      options: [.regularExpression, .caseInsensitive]) != nil else { continue }
+                return candidate
+            }
+        }
+
+        throw NSError(
+            domain: "StreamingService.Vidzy",
+            code: -2,
+            userInfo: [NSLocalizedDescriptionKey: "No valid Vidzy media URL found"]
+        )
+    }
+    
+    func extractLuluvid(url: String) async throws -> (String, String?) {
+        guard let luluvidUrl = URL(string: url) else {
+            throw URLError(.badURL)
+        }
+        
+        sourceEngineLog("🚀 [Luluvid iOS] Extracting locally: \(url)")
+        
+        let refererBase = Self.luluvidRefererBase(for: luluvidUrl)
+        
+        var request = URLRequest(url: luluvidUrl)
+        request.setValue("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+        request.setValue(refererBase, forHTTPHeaderField: "Referer")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
+              let html = String(data: data, encoding: .utf8) else {
+            sourceEngineLog("❌ [Luluvid iOS] Failed to fetch page. Status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            throw URLError(.badServerResponse)
+        }
+        
+        // Extract Cookies from Response
+        var cookieString: String? = nil
+        if let fields = httpResponse.allHeaderFields as? [String: String],
+           let url = response.url {
+            let cookies = HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
+            if !cookies.isEmpty {
+                 let cookieDict = cookies.reduce(into: [String: String]()) { $0[$1.name] = $1.value }
+                 cookieString = cookieDict.map { "\($0.key)=\($0.value)" }.joined(separator: "; ")
+                 sourceEngineLog("🍪 [Luluvid iOS] Extracted cookies: \(cookieString ?? "none")")
+            }
+        }
+        
+        var searchText = html
+        if JsPackerUnpacker.isPacked(html) {
+            sourceEngineLog("📦 [Luluvid iOS] Packed JS detected, unpacking...")
+            let unpacked = JsPackerUnpacker.unpackAll(in: html)
+            if unpacked.count > html.count + 100 {
+                searchText = unpacked
+                sourceEngineLog("✅ [Luluvid iOS] Unpack OK (\(unpacked.count) chars)")
+            } else {
+                sourceEngineLog("⚠️ [Luluvid iOS] Unpack produced no extra content, trying API fallback")
+            }
+        }
+        
+        if let extracted = Self.extractM3U8FromLuluvidText(searchText) {
+            sourceEngineLog("✅ [Luluvid iOS] Extracted M3U8: \(extracted)")
+            return (extracted, cookieString)
+        }
+        
+        // Fallback: Vercel extract API (same unpack logic server-side)
+        if let apiUrl = try? await extractLuluvidViaAPI(embedUrl: url) {
+            sourceEngineLog("✅ [Luluvid iOS] Extracted via API fallback: \(apiUrl)")
+            return (apiUrl, cookieString)
+        }
+        
+        sourceEngineLog("❌ [Luluvid iOS] No M3U8 found in HTML")
+        throw URLError(.cannotParseResponse)
+    }
+    
+    private static func luluvidRefererBase(for url: URL) -> String {
+        let host = url.host?.lowercased() ?? ""
+        if host.contains("lulustream") {
+            return "https://lulustream.com/"
+        }
+        return "https://luluvid.com/"
+    }
+    
+    private func extractLuluvidViaAPI(embedUrl: String) async throws -> String? {
+        let apiUrl = URL(string: "\(baseUrl)/api/extract")!
+        var request = URLRequest(url: apiUrl)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(["type": "luluvid", "url": embedUrl])
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+        
+        struct ExtractResponse: Codable {
+            let success: Bool?
+            let m3u8Url: String?
+        }
+        let result = try JSONDecoder().decode(ExtractResponse.self, from: data)
+        guard result.success == true, let m3u8 = result.m3u8Url, m3u8.contains(".m3u8") else { return nil }
+        return m3u8
+    }
+    
+    private static func extractM3U8FromLuluvidText(_ text: String) -> String? {
+        let patterns = [
+            #"sources:\s*\[\s*\{\s*file:\s*["']([^"']+\.m3u8[^"']*)["']"#,
+            #"file:\s*["']([^"']+\.m3u8[^"']*)["']"#,
+            #"(https?://[^\s"'<>]+\.m3u8[^\s"'<>]*)"#
+        ]
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: text, options: [], range: range),
+                  let captureRange = Range(match.range(at: 1), in: text) else { continue }
+            let candidate = String(text[captureRange])
+            if candidate.contains(".m3u8") {
+                return candidate
+            }
+        }
+        return nil
+    }
+    
+    // MARK: - Proxy Helpers
+    
+    func getVidMolyProxyUrl(url: String, referer: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        
+        // Match Web: Recursive decode first
+        // Web implementation:
+        // while (decodedUrl.includes('%25')) {
+        //   decodedUrl = decodeURIComponent(decodedUrl);
+        // }
+        // We do semantically equivalent in Swift:
+        
+        // Normalize URL .to -> .net
+        var decodedUrl = url.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+        // Safety counter to prevent infinite loops
+        var loopCount = 0
+        let maxLoops = 10
+        
+        while decodedUrl.contains("%") && loopCount < maxLoops {
+            if let unescaped = decodedUrl.removingPercentEncoding {
+                if unescaped == decodedUrl {
+                    // No change, stable
+                    break
+                }
+                decodedUrl = unescaped
+            } else {
+                // Decoding failed
+                break
+            }
+            loopCount += 1
+        }
+        
+        sourceEngineLog("🔍 Swift VidMoly: Final decoded URL: \(decodedUrl)")
+        
+        let encodedUrl = decodedUrl.addingPercentEncoding(withAllowedCharacters: allowed) ?? decodedUrl
+        
+        // Step 1: Encode referer string (equivalent to encodeURIComponent(referer))
+        let step1Referer = referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? referer
+        // Step 2: Double encode check - The user example shows double encoding for referer
+        // referer=https%253A%252F%252Fvidmoly.net
+        // %25 is % -> %3A is :
+        // So it is indeed double encoded.
+        let finalReferer = step1Referer.addingPercentEncoding(withAllowedCharacters: allowed) ?? step1Referer
+        
+        // REQUIRED for AVPlayer to detect HLS format correctly (Web players are more forgiving)
+        // User explicitly instructed NOT to add a suffix
+        return "\(baseUrl)/api/vidmoly?url=\(encodedUrl)&referer=\(finalReferer)"
+    }
+    
+    // MARK: - TMDB Info Helpers
+    struct TmdbMovieInfo {
+        let title: String
+        let year: String
+        let originalTitle: String?
+        let genreIds: [Int]
+    }
+    
+    struct TmdbSeriesInfo {
+        let title: String
+        let seasons: [TmdbSeasonInfo]
+        let genreIds: [Int]
+    }
+    
+    struct TmdbSeasonInfo {
+        let seasonNumber: Int
+        let episodeCount: Int
+    }
+    
+    private func fetchMovieTmdbInfo(movieId: Int) async throws -> TmdbMovieInfo {
+        let apiKey = NativeSourceConfiguration.tmdbKey
+        let urlString = "https://api.themoviedb.org/3/movie/\(movieId)?api_key=\(apiKey)"
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let title = json["title"] as? String ?? ""
+            let releaseDate = json["release_date"] as? String ?? ""
+            let year = String(releaseDate.prefix(4))
+            let originalTitle = json["original_title"] as? String
+            
+            // Extract genre IDs
+            var genreIds: [Int] = []
+            if let genres = json["genres"] as? [[String: Any]] {
+                genreIds = genres.compactMap { $0["id"] as? Int }
+            }
+            
+            return TmdbMovieInfo(title: title, year: year, originalTitle: originalTitle, genreIds: genreIds)
+        }
+        
+        throw URLError(.cannotParseResponse)
+    }
+    
+    private func fetchSeriesTmdbInfo(seriesId: Int) async throws -> TmdbSeriesInfo {
+        let apiKey = NativeSourceConfiguration.tmdbKey
+        let urlString = "https://api.themoviedb.org/3/tv/\(seriesId)?api_key=\(apiKey)&language=fr-FR"
+        
+        guard let url = URL(string: urlString) else {
+            throw URLError(.badURL)
+        }
+        
+        let (data, _) = try await URLSession.shared.data(from: url)
+        
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let title = json["name"] as? String ?? ""
+            
+            // Extract genre IDs
+            var genreIds: [Int] = []
+            if let genres = json["genres"] as? [[String: Any]] {
+                genreIds = genres.compactMap { $0["id"] as? Int }
+            }
+            
+            var seasons: [TmdbSeasonInfo] = []
+            if let seasonsArray = json["seasons"] as? [[String: Any]] {
+                for seasonData in seasonsArray {
+                    let number = seasonData["season_number"] as? Int ?? -1
+                    let count = seasonData["episode_count"] as? Int ?? 0
+                    seasons.append(TmdbSeasonInfo(seasonNumber: number, episodeCount: count))
+                }
+            }
+            
+            return TmdbSeriesInfo(title: title, seasons: seasons, genreIds: genreIds)
+        }
+        
+        throw URLError(.cannotParseResponse)
+    }
+    
+    // MARK: - Movix Download Sources (TMDB ID Matching)
+    
+    /// Search Movix API by title
+    private func searchMovix(title: String) async throws -> MovixSearchResponse {
+        guard let encodedTitle = title.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "\(baseUrl)/api/movix-proxy?path=search&title=\(encodedTitle)") else {
+            throw URLError(.badURL)
+        }
+        
+        sourceEngineLog("🔍 [Movix] Searching for: \(title)")
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        return try JSONDecoder().decode(MovixSearchResponse.self, from: data)
+    }
+    
+    /// Get Movix ID from TMDB ID by searching and matching
+    private func getMovixIdFromTmdb(tmdbId: Int, type: String, title: String) async throws -> Int? {
+        let searchResponse = try await searchMovix(title: title)
+        
+        guard let results = searchResponse.results else {
+            sourceEngineLog("⚠️ [Movix] No search results for: \(title)")
+            return nil
+        }
+        
+        // Find matching result by TMDB ID and type
+        // Note: Movix API returns 'series' for TV shows, while we use 'tv'
+        let matchingResult = results.first { result in
+            result.tmdb_id == tmdbId && (result.type == type || (type == "tv" && result.type == "series"))
+        }
+        
+        if let match = matchingResult {
+            sourceEngineLog("✅ [Movix] Found matching ID: \(match.id) for TMDB \(tmdbId)")
+            return match.id
+        }
+        
+        sourceEngineLog("⚠️ [Movix] No matching TMDB ID found in search results")
+        return nil
+    }
+    
+    /// Fetch download sources using Movix ID
+    func fetchMovixDownloadSources(tmdbId: Int, type: String, title: String, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        // Step 1: Get Movix ID from TMDB ID
+        guard let movixId = try await getMovixIdFromTmdb(tmdbId: tmdbId, type: type, title: title) else {
+            return []
+        }
+        
+        // Step 2: Build download URL
+        let path: String
+        if type == "movie" {
+            path = "films/download/\(movixId)"
+        } else {
+            guard let s = season, let e = episode else {
+                sourceEngineLog("❌ [Movix] Season and episode required for TV shows")
+                return []
+            }
+            path = "series/download/\(movixId)/season/\(s)/episode/\(e)"
+        }
+        
+        guard let url = URL(string: "\(baseUrl)/api/movix-proxy?path=\(path)") else {
+            throw URLError(.badURL)
+        }
+        
+        sourceEngineLog("📥 [Movix] Fetching download sources: \(path)")
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        let downloadResponse = try JSONDecoder().decode(MovixDownloadResponse.self, from: data)
+        
+        // Step 3: Convert to StreamingSource
+        var sources: [StreamingSource] = []
+        if let downloadSources = downloadResponse.sources {
+            for (index, source) in downloadSources.enumerated() {
+                // Use m3u8 URL if available, otherwise use src
+                let streamUrl = source.m3u8 ?? source.src ?? ""
+                guard !streamUrl.isEmpty else { continue }
+                
+                // Filter Alpha sources
+                if let label = source.label, label == "Alpha" {
+                    continue
+                }
+
+                // Detect provider from URL: darkibox.com = Darkibox, otherwise = Movix
+                let detectedProvider: String
+                if streamUrl.lowercased().contains("darkibox.com") {
+                    detectedProvider = "darkibox"
+                } else {
+                    detectedProvider = "movix"
+                }
+                
+                // Improved mapping
+                var lang = (source.language ?? "VF").lowercased()
+                let normalizedLang: String
+                
+                if lang.contains("french") || lang.contains("français") || lang == "fr" || lang == "vff" || lang == "vfq" || lang == "truefrench" || lang.contains("multi") {
+                    normalizedLang = "VF"
+                } else if lang.contains("english") || lang == "en" || lang == "eng" || lang.contains("vo") {
+                   if lang.contains("vostfr") {
+                       normalizedLang = "VOSTFR"
+                   } else {
+                       normalizedLang = "VO"
+                   }
+                } else if lang.contains("vostfr") {
+                    normalizedLang = "VOSTFR"
+                } else {
+                    normalizedLang = "VF"
+                }
+                
+                let streamingSource = StreamingSource(
+                    id: "\(detectedProvider)-download-\(movixId)-\(index)",
+                    url: streamUrl,
+                    quality: source.quality ?? "HD",
+                    type: streamUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: detectedProvider,
+                    language: normalizedLang,
+                    origin: "movix"
+                )
+                sources.append(streamingSource)
+            }
+        }
+        
+        sourceEngineLog("✅ [Movix] Found \(sources.count) download sources")
+        return sources
+    }
+
+    
+    // MARK: - Movix Anime Fetching (VidMoly - Original)
+    
+    /// Pure catalogue selection shared by the live extractor and native regression fixtures.
+    static func movixAnimeEpisode(seasons: [[String: Any]], isAOT: Bool, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) -> [String: Any]? {
+        guard season >= 0, episode > 0 else { return nil }
+        var targetEpisode: [String: Any]? = nil
+        var targetSeason: [String: Any]? = nil
+
+        func seasonNamed(_ name: String) -> [String: Any]? {
+            seasons.first { ($0["name"] as? String) == name }
+        }
+
+        func episodeInSeason(_ seasonObj: [String: Any]?, matching episodeNumber: Int) -> [String: Any]? {
+            guard let eps = seasonObj?["episodes"] as? [[String: Any]] else { return nil }
+            return eps.first { e in
+                if let idx = e["index"] as? Int { return idx == episodeNumber }
+                if e["index"] == nil, let name = e["name"] as? String,
+                   let range = name.range(of: #"\d+"#, options: .regularExpression),
+                   Int(name[range]) == episodeNumber { return true }
+                return false
+            }
+        }
+
+        // Attack on Titan: TMDB S4 is Part1 1-16, Part2 17-28, Final Chapters 29-30.
+        // Raw TMDB also lists Final Chapters under Specials as S0E36/E37.
+        if isAOT {
+            if season == 4 {
+                if episode <= 16 {
+                    targetSeason = seasonNamed("Saison 4 partie 1")
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode)
+                } else if episode <= 28 {
+                    targetSeason = seasonNamed("Saison 4 partie 2")
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode - 16)
+                } else if episode == 29 {
+                    targetSeason = seasonNamed("Saison 4 partie 3")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else if episode == 30 {
+                    targetSeason = seasonNamed("Saison 4 partie 4")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                }
+            } else if season == 0 {
+                if episode == 36 {
+                    targetSeason = seasonNamed("Saison 4 partie 3")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else if episode == 37 {
+                    targetSeason = seasonNamed("Saison 4 partie 4")
+                    targetEpisode = (targetSeason?["episodes"] as? [[String: Any]])?.first
+                } else {
+                    targetSeason = seasons.first {
+                        let name = ($0["name"] as? String)?.lowercased() ?? ""
+                        return name.contains("oav") || name.contains("special")
+                    }
+                    targetEpisode = episodeInSeason(targetSeason, matching: episode)
+                }
+            } else {
+                targetSeason = seasonNamed("Saison \(season)")
+                targetEpisode = episodeInSeason(targetSeason, matching: episode)
+            }
+        } else {
+            // Generic: find season by index or name
+            targetSeason = seasons.first { s in
+                if let idx = s["index"] as? Int, idx == season { return true }
+                if let name = s["name"] as? String, name.contains("Saison \(season)") { return true }
+                if season == 0, let name = s["name"] as? String {
+                    let lowered = name.lowercased()
+                    if lowered.contains("oav") || lowered.contains("special") { return true }
+                }
+                return false
+            }
+            targetEpisode = episodeInSeason(targetSeason, matching: episode)
+        }
+        
+        // The current catalogue can expose one full S4 instead of four parts.
+        // Preserve the TMDB episode number (30), not the part-relative one (1).
+        if isAOT && targetEpisode == nil && (season == 4 || (season == 0 && [36, 37].contains(episode))) {
+            targetSeason = seasonNamed("Saison 4") ?? seasons.first { ($0["index"] as? Int) == 4 }
+            targetEpisode = episodeInSeason(targetSeason, matching: season == 0 ? episode - 7 : episode)
+        }
+
+        // Fallback: Absolute episode search
+        if targetEpisode == nil && season > 0 {
+            let previousSeasons = tmdbInfo.seasons.filter { $0.seasonNumber > 0 && $0.seasonNumber < season }
+            let previousEpisodeCount = previousSeasons.reduce(0) { $0 + $1.episodeCount }
+            let absoluteEpisodeNumber = previousEpisodeCount + episode
+            
+            sourceEngineLog("🎯 [Movix Anime] Trying absolute episode: \(absoluteEpisodeNumber)")
+            
+            for s in seasons {
+                if let eps = s["episodes"] as? [[String: Any]] {
+                    targetEpisode = eps.first { e in
+                        if let idx = e["index"] as? Int { return idx == absoluteEpisodeNumber }
+                        if let name = e["name"] as? String,
+                           let range = name.range(of: #"\d+"#, options: .regularExpression),
+                           Int(name[range]) == absoluteEpisodeNumber { return true }
+                        return false
+                    }
+                    if targetEpisode != nil { break }
+                }
+            }
+        }
+        
+        return targetEpisode
+    }
+
+    private func fetchMovixAnimeSources(seriesId: Int, title: String, season: Int, episode: Int, tmdbInfo: TmdbSeriesInfo) async throws -> [StreamingSource] {
+        sourceEngineLog("🎬 [Movix Anime] Fetching for: \(title) S\(season)E\(episode)")
+
+        // Handle special cases for Attack on Titan
+        let isAOT = seriesId == 1429 || title.lowercased().contains("attaque des titans") || title.lowercased().contains("shingeki no kyojin")
+        let searchTitle = isAOT ? "L'Attaque des Titans" : title.components(separatedBy: ":").first?.trimmingCharacters(in: .whitespaces) ?? title
+
+        // Step 1: Search for anime
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
+        components?.queryItems = [
+            URLQueryItem(name: "path", value: "anime/search/\(searchTitle)"),
+            URLQueryItem(name: "includeSeasons", value: "true"),
+            URLQueryItem(name: "includeEpisodes", value: "true")
+        ]
+
+        guard let searchURL = components?.url else { return [] }
+
+        sourceEngineLog("🎬 [Movix Anime] Search URL: \(searchURL)")
+
+        var request = URLRequest(url: searchURL)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.timeoutInterval = 15
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            sourceEngineLog("⚠️ [Movix Anime] Search failed")
+            return []
+        }
+
+        // Parse response - expecting array of anime objects
+        guard let animeList = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            sourceEngineLog("⚠️ [Movix Anime] Failed to parse response")
+            return []
+        }
+
+        sourceEngineLog("🎬 [Movix Anime] Found \(animeList.count) results")
+
+        // Find best match
+        var match: [String: Any]? = nil
+
+        if isAOT {
+            match = animeList.first { ($0["name"] as? String)?.lowercased() == "shingeki no kyojin" }
+        }
+
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                return name == searchTitle.lowercased() || name == title.lowercased()
+            }
+        }
+
+        if match == nil {
+            match = animeList.first { anime in
+                let name = (anime["name"] as? String)?.lowercased() ?? ""
+                if name.contains("junior") || name.contains("high-school") { return false }
+                return name.contains(searchTitle.lowercased()) || name.contains(title.lowercased())
+            }
+        }
+
+        guard let anime = match, let seasons = anime["seasons"] as? [[String: Any]] else {
+            sourceEngineLog("⚠️ [Movix Anime] No matching anime found")
+            return []
+        }
+
+        sourceEngineLog("✅ [Movix Anime] Found anime: \(anime["name"] ?? "unknown")")
+
+        let targetEpisode = Self.movixAnimeEpisode(
+            seasons: seasons, isAOT: isAOT, season: season, episode: episode, tmdbInfo: tmdbInfo
+        )
+
+        guard let episode = targetEpisode,
+              let streamingLinks = episode["streaming_links"] as? [[String: Any]] else {
+            sourceEngineLog("⚠️ [Movix Anime] No episode or streaming links found")
+            return []
+        }
+        
+        // Extract VidMoly links
+        var sources: [StreamingSource] = []
+        
+        for link in streamingLinks {
+            let language = (link["language"] as? String)?.uppercased() ?? "VF"
+            
+            if let players = link["players"] as? [String] {
+                for (index, playerUrl) in players.enumerated() {
+                    let trimmedUrl = playerUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    // Only extract VidMoly links
+                    if trimmedUrl.lowercased().contains("vidmoly") {
+                        var normalized = trimmedUrl
+                        if normalized.contains("vidmoly.to") {
+                            normalized = normalized.replacingOccurrences(of: "vidmoly.to", with: "vidmoly.net")
+                        }
+                        if normalized.hasPrefix("http://") {
+                            normalized = normalized.replacingOccurrences(of: "http://", with: "https://")
+                        }
+                        
+                        let source = StreamingSource(
+                            id: "movix-anime-vidmoly-\(language)-\(index)",
+                            url: normalized,
+                            quality: "HD",
+                            type: "embed",
+                            provider: "vidmoly",
+                            language: language,
+                            origin: "movixanime"
+                        )
+                        sources.append(source)
+                        sourceEngineLog("   -> Added VidMoly: \(language) - \(normalized.prefix(50))...")
+                    }
+                }
+            }
+        }
+        
+        sourceEngineLog("✅ [Movix Anime] Found \(sources.count) VidMoly sources")
+        return sources
+    }
+    
+    // MARK: - Movix Anime Fetching (AnimeAPI - GogoAnime)
+    
+    private func fetchAnimeAPISources(tmdbId: Int, isMovie: Bool, season: Int = 1, episode: Int = 1) async throws -> [StreamingSource] {
+        // Step 1: Fetch English title using TMDB (en-US)
+        let apiKey = NativeSourceConfiguration.tmdbKey
+        let tmdbUrlString = "https://api.themoviedb.org/3/\(isMovie ? "movie" : "tv")/\(tmdbId)?api_key=\(apiKey)&language=en-US"
+        
+        guard let tmdbUrl = URL(string: tmdbUrlString) else { return [] }
+        
+        // Use a simple fetch for TMDB
+        let (tmdbData, tmdbResponse) = try await URLSession.shared.data(from: tmdbUrl)
+        
+        guard (tmdbResponse as? HTTPURLResponse)?.statusCode == 200,
+              let tmdbJson = try? JSONSerialization.jsonObject(with: tmdbData) as? [String: Any] else {
+            return []
+        }
+        
+        let title = (tmdbJson["title"] as? String) ?? (tmdbJson["name"] as? String) ?? (tmdbJson["original_title"] as? String) ?? (tmdbJson["original_name"] as? String) ?? ""
+        
+        guard !title.isEmpty else { return [] }
+        
+        sourceEngineLog("🎌 [AnimeAPI iOS] Searching for: \(title)")
+        
+        // Step 1.5: Calculate relative episode number (like web does)
+        // Fetch season details to find the episode's position in the season
+        var relativeEpisode = episode
+        
+        if !isMovie {
+            let seasonUrlString = "https://api.themoviedb.org/3/tv/\(tmdbId)/season/\(season)?api_key=\(apiKey)&language=en-US"
+            if let seasonUrl = URL(string: seasonUrlString) {
+                do {
+                    let (seasonData, seasonResponse) = try await URLSession.shared.data(from: seasonUrl)
+                    if (seasonResponse as? HTTPURLResponse)?.statusCode == 200,
+                       let seasonJson = try? JSONSerialization.jsonObject(with: seasonData) as? [String: Any],
+                       let episodes = seasonJson["episodes"] as? [[String: Any]] {
+                        // Find the index of the episode with this episode_number
+                        if let episodeIndex = episodes.firstIndex(where: { ($0["episode_number"] as? Int) == episode }) {
+                            // relative episode is index + 1 (1-indexed)
+                            relativeEpisode = episodeIndex + 1
+                            sourceEngineLog("🔢 [AnimeAPI iOS] Mapped absolute episode \(episode) to relative \(relativeEpisode) in season \(season)")
+                        }
+                    }
+                } catch {
+                    sourceEngineLog("⚠️ [AnimeAPI iOS] Failed to fetch season details: \(error)")
+                }
+            }
+        }
+        
+        // Step 2: Call movix-proxy anime-api endpoint
+        // URL needs to generally follow the pattern: /api/movix-proxy?path=anime-api&title=...&season=...&episode=...
+        
+        // Note: For movies, we use season 1, episode 1 as per backend logic
+        
+        var components = URLComponents(string: "\(baseUrl)/api/movix-proxy")
+        components?.queryItems = [
+            URLQueryItem(name: "path", value: "anime-api"),
+            URLQueryItem(name: "title", value: title),
+            URLQueryItem(name: "season", value: "\(season)"),
+            URLQueryItem(name: "episode", value: "\(relativeEpisode)"), // Use relative episode
+            URLQueryItem(name: "tmdbId", value: "\(tmdbId)")
+        ]
+        
+        guard let apiURL = components?.url else { return [] }
+        
+        sourceEngineLog("🎌 [AnimeAPI iOS] Request: \(apiURL)")
+        
+        var request = URLRequest(url: apiURL)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.timeoutInterval = 30
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            sourceEngineLog("⚠️ [AnimeAPI iOS] Request failed: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+            return []
+        }
+        
+        // Parse response
+        // Expected JSON: { success: true, results: [ { provider, url, type, quality, tracks: [] } ] }
+        
+        struct AnimeAPIResponse: Codable {
+            let success: Bool
+            let results: [AnimeAPISource]?
+        }
+        
+        struct AnimeAPITrack: Codable {
+            let file: String
+            let label: String
+            let kind: String?
+            let `default`: Bool?
+        }
+        
+        struct AnimeAPISource: Codable {
+            let provider: String?
+            let url: String
+            let type: String?
+            let quality: String?
+            let tracks: [AnimeAPITrack]?
+        }
+        
+        let decoder = JSONDecoder()
+        guard let apiResponse = try? decoder.decode(AnimeAPIResponse.self, from: data),
+              let results = apiResponse.results, !results.isEmpty else {
+            sourceEngineLog("❌ [AnimeAPI iOS] No results found")
+            return []
+        }
+        
+        sourceEngineLog("✅ [AnimeAPI iOS] Found \(results.count) sources")
+        
+        return results.map { source in
+            // Map tracks to Subtitle objects
+            var subtitles: [Subtitle]? = nil
+            if let apiTracks = source.tracks {
+                subtitles = apiTracks.map { track in
+                    Subtitle(
+                        url: track.file,
+                        label: track.label,
+                        code: track.label.lowercased(), // Usually "English", so code is "english"
+                        flag: "" // No flag for now
+                    )
+                }
+                sourceEngineLog("📝 [AnimeAPI iOS] Source has \(subtitles?.count ?? 0) tracks")
+            }
+
+            // For iOS, we use the DIRECT URL (CORS doesn't apply)
+            // Backend provides direct m3u8 link in 'url'
+            
+            return StreamingSource(
+                url: source.url,
+                quality: source.quality ?? "HD",
+                type: source.type == "hls" ? "m3u8" : "mp4",
+                provider: "animeapi",
+                language: "VO",
+                origin: "animeapi",
+                tracks: subtitles
+            )
+        }
+    }
+        
+    // MARK: - Cinepro API
+    private func fetchCineproSources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=cinepro&tmdbId=\(tmdbId)&type=\(season == nil ? "movie" : "tv")"
+        if let s = season { urlString += "&season=\(s)" }
+        if let e = episode { urlString += "&episode=\(e)" }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        // API returns: { success: true, streams: [{ server, link, type, quality, lang, headers }] }
+        struct CineproApiStream: Codable {
+            let server: String?
+            let link: String
+            let type: String?
+            let quality: String?
+            let lang: String?
+            let headers: [String: String]?
+        }
+        
+        struct CineproApiResponse: Codable {
+            let success: Bool?
+            let streams: [CineproApiStream]?
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(CineproApiResponse.self, from: data)
+            
+            return (decoded.streams ?? []).map { stream in
+                // Determine provider based on server name
+                let provider: String
+                if stream.server?.lowercased().contains("megacdn") == true {
+                    provider = "megacdn"
+                } else if stream.server?.lowercased().contains("milkyway") == true {
+                    provider = "premilkyway"
+                } else {
+                    provider = "cinepro"
+                }
+                
+                // Construct proxied URL for Cinepro sources EXCEPT MegaCDN
+                // MegaCDN links are accessed directly on iOS to avoid proxy overhead (no CORS issue)
+                var finalUrl = stream.link
+                var finalHeaders = stream.headers
+                
+                if provider != "megacdn" {
+                    var components = URLComponents(string: "\(self.baseUrl)/api/movix-proxy")!
+                    var queryItems = [
+                        URLQueryItem(name: "path", value: "cinepro-proxy"),
+                        URLQueryItem(name: "url", value: stream.link)
+                    ]
+                    
+                    if let headers = stream.headers, let jsonData = try? JSONEncoder().encode(headers), let jsonString = String(data: jsonData, encoding: .utf8) {
+                        queryItems.append(URLQueryItem(name: "headers", value: jsonString))
+                    }
+                    
+                    components.queryItems = queryItems
+                    finalUrl = components.url?.absoluteString ?? stream.link
+                    finalHeaders = nil // Headers handled by proxy
+                    sourceEngineLog("🔗 [Cinepro] Using PROXY for \(provider): \(finalUrl)")
+                } else {
+                    // For MegaCDN, the API itself might return a proxied URL in `stream.link`.
+                    // We must UNWRAP it to get the direct link.
+                    if finalUrl.contains("movix-proxy"), let components = URLComponents(string: finalUrl), let queryItems = components.queryItems {
+                        if let innerUrl = queryItems.first(where: { $0.name == "url" })?.value {
+                            finalUrl = innerUrl
+                            sourceEngineLog("🔓 [Cinepro] Unwrapped MegaCDN URL: \(finalUrl)")
+                        }
+                    }
+                    sourceEngineLog("🔗 [Cinepro] Using DIRECT link for \(provider): \(finalUrl)")
+                }
+                
+                // Extract Quality from Server Name for MegaCDN (e.g. "MegaCDN 1080p")
+                var finalQuality = stream.quality ?? "Auto"
+                if provider == "megacdn" && (finalQuality == "Auto" || finalQuality.isEmpty) {
+                    if let serverName = stream.server {
+                        if serverName.contains("1080p") { finalQuality = "1080p" }
+                        else if serverName.contains("720p") { finalQuality = "720p" }
+                        else if serverName.contains("480p") { finalQuality = "480p" }
+                        else if serverName.contains("360p") { finalQuality = "360p" }
+                        else if serverName.contains("4k") || serverName.contains("2160p") { finalQuality = "4K" }
+                    }
+                }
+
+                return StreamingSource(
+                    url: finalUrl,
+                    quality: finalQuality,
+                    type: "m3u8", // Always M3U8 for these proxies
+                    provider: provider,
+                    language: stream.lang ?? "VO",
+                    origin: "cinepro",
+                    tracks: nil,
+                    headers: finalHeaders
+                )
+            }
+        } catch {
+            sourceEngineLog("❌ [StreamingService] Cinepro decode error: \(error)")
+            return []
+        }
+    }
+
+    private func fetchWiflixSources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        let typePath = season == nil ? "movie" : "tv"
+        var urlString = "\(baseUrl)/api/movix-proxy?path=wiflix/\(typePath)/\(tmdbId)"
+        
+        if let s = season { urlString += "&season=\(s)" }
+        if let e = episode { urlString += "&episode=\(e)" }
+        
+        sourceEngineLog("🌐 [Wiflix] Fetching URL: \(urlString)")
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        // Correct Wiflix Structs based on user JSON
+        struct WiflixPlayer: Codable {
+            let name: String
+            let url: String
+            let episode: Int?
+            let type: String? // "VF", "VOSTFR"
+        }
+        
+        struct WiflixPlayersDict: Codable {
+            let vf: [WiflixPlayer]?
+            let vostfr: [WiflixPlayer]?
+        }
+        
+        struct WiflixApiResponse: Codable {
+            let success: Bool?
+            let players: WiflixPlayersDict?
+        }
+        
+        do {
+            let decoded = try JSONDecoder().decode(WiflixApiResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            let processPlayers = { (players: [WiflixPlayer]?, lang: String) in
+                guard let players = players else { return }
+                for player in players {
+                    // Check for Luluvid
+                    if player.name.lowercased().contains("luluvid") || player.url.contains("luluvid") {
+                        let provider = "luluvid"
+                        
+                        // Use raw URL for client-side extraction (via /api/extract)
+                        let finalUrl = player.url
+                        
+                        sourceEngineLog("🔗 [Wiflix] Found Luluvid (\(lang)): \(finalUrl)")
+                        
+                        sources.append(StreamingSource(
+                            url: finalUrl,
+                            quality: "HD", // Luluvid defaults to HD
+                            type: "hls", // Consistent with TMDB Proxy (will be extracted by extractDirectLink)
+                            provider: provider,
+                            language: lang,
+                            origin: "wiflix",
+                            tracks: nil,
+                            headers: nil
+                        ))
+                    }
+                }
+            }
+            
+            processPlayers(decoded.players?.vf, "VF")
+            processPlayers(decoded.players?.vostfr, "VOSTFR") // Map to "VO" or "VOSTFR"? Using "VOSTFR" as per UI
+            
+            return sources
+            
+        } catch {
+            sourceEngineLog("❌ [StreamingService] Wiflix decode error: \(error)")
+            // Try printing string for partial debug if needed
+            // if let str = String(data: data, encoding: .utf8) { sourceEngineLog("Dump: \(str)") }
+            return []
+        }
+    }
+
+    // MARK: - ID Conversion Helpers
+    
+    func fetchImdbId(tmdbId: Int, type: String) async -> String? {
+        let apiKey = NativeSourceConfiguration.tmdbKey
+        let urlString: String
+        
+        if type == "movie" {
+            urlString = "https://api.themoviedb.org/3/movie/\(tmdbId)?api_key=\(apiKey)"
+        } else {
+            urlString = "https://api.themoviedb.org/3/tv/\(tmdbId)/external_ids?api_key=\(apiKey)"
+        }
+        
+        guard let url = URL(string: urlString) else { return nil }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                if let imdbId = json["imdb_id"] as? String, !imdbId.isEmpty {
+                    sourceEngineLog("✅ [StreamingService] Resolved IMDB ID: \(imdbId) for TMDB: \(tmdbId)")
+                    return imdbId
+                }
+            }
+        } catch {
+            sourceEngineLog("❌ [StreamingService] Failed to fetch IMDB ID: \(error)")
+        }
+        return nil
+    }
+    
+    // MARK: - Next Episode Logic
+    
+    /// Determines the next episode (S+1 E1 or S same E+1)
+    func findMatchingSource(sources: [StreamingSource], previousProvider: String, previousLanguage: String, previousQuality: String = "") -> StreamingSource? {
+        sourceEngineLog("🔍 [StreamingService] Looking for source matching Provider: \(previousProvider), Language: \(previousLanguage), Quality: \(previousQuality)")
+        sourceEngineLog("🔍 [StreamingService] Candidates: \(sources.map { "(\($0.provider), \($0.language), \($0.quality))" })")
+        
+        // 1. Exact Match (Provider + Language + Quality)
+        if !previousQuality.isEmpty {
+            if let exactMatch = sources.first(where: {
+                $0.provider.lowercased() == previousProvider.lowercased() &&
+                $0.language.lowercased() == previousLanguage.lowercased() &&
+                $0.quality.lowercased() == previousQuality.lowercased()
+            }) {
+                sourceEngineLog("✅ [StreamingService] Found EXACT match (Provider+Language+Quality): \(exactMatch.provider) (\(exactMatch.language)) [\(exactMatch.quality)]")
+                return exactMatch
+            }
+        }
+        
+        // 2. Provider + Language Match (ignore quality)
+        if let providerLangMatch = sources.first(where: {
+            $0.provider.lowercased() == previousProvider.lowercased() &&
+            $0.language.lowercased() == previousLanguage.lowercased()
+        }) {
+            sourceEngineLog("✅ [StreamingService] Found PROVIDER+LANGUAGE match: \(providerLangMatch.provider) (\(providerLangMatch.language)) [\(providerLangMatch.quality)]")
+            return providerLangMatch
+        }
+        
+        // 3. Same Language, Any Provider
+        // Prefer "vidmoly" or "vidzy" if available as they are reliable, else take first
+        let sameLangSources = sources.filter { $0.language.lowercased() == previousLanguage.lowercased() }
+        
+        
+        // Highest priority: AnimeAPI (for VO anime content - User Request)
+        if let animeapi = sameLangSources.first(where: { $0.provider.lowercased() == "animeapi" }) {
+             sourceEngineLog("✅ [StreamingService] Found SAME LANGUAGE match (AnimeAPI): \(animeapi.provider)")
+             return animeapi
+        }
+        if let vidmoly = sameLangSources.first(where: { $0.provider == "vidmoly" }) {
+             sourceEngineLog("✅ [StreamingService] Found SAME LANGUAGE match (Vidmoly): \(vidmoly.provider)")
+             return vidmoly
+        }
+        
+        if let vidzy = sameLangSources.first(where: { $0.provider == "vidzy" }) {
+             sourceEngineLog("✅ [StreamingService] Found SAME LANGUAGE match (Vidzy): \(vidzy.provider)")
+             return vidzy
+        }
+        
+        if let anySameLang = sameLangSources.first {
+            sourceEngineLog("✅ [StreamingService] Found SAME LANGUAGE match: \(anySameLang.provider)")
+            return anySameLang
+        }
+        
+        // 4. Fallback: First available source
+        if let first = sources.first {
+            sourceEngineLog("⚠️ [StreamingService] No match found. Fallback to first available: \(first.provider) (\(first.language))")
+            return first
+        }
+        
+        sourceEngineLog("❌ [StreamingService] No matching source found.")
+        return nil
+    }
+    
+    // MARK: - Source Extraction
+    
+    /// Attempts to extract a direct playable link (mp4/hls) from an embed URL
+    func extractDirectLink(for source: StreamingSource) async -> StreamingSource {
+        let provider = source.provider.lowercased()
+        
+        // Only attempt extraction for providers known to strictly need it if they are embeds
+        // Use existing extraction methods that map to the backend API or proxy helpers
+        if provider == "vidmoly" {
+            sourceEngineLog("⛏️ [StreamingService] Extracting VidMoly via existing method...")
+            do {
+                let directUrl = try await extractVidMoly(url: source.url)
+                sourceEngineLog("✅ [StreamingService] VidMoly extraction successful: \(directUrl)")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: source.headers
+                )
+            } catch {
+                sourceEngineLog("⚠️ [StreamingService] VidMoly extraction failed: \(error). Using original.")
+            }
+        } else if provider == "vidzy" {
+            sourceEngineLog("⛏️ [StreamingService] Extracting Vidzy via existing method...")
+            do {
+                let directUrl = try await extractVidzy(url: source.url)
+                sourceEngineLog("✅ [StreamingService] Vidzy extraction successful: \(directUrl)")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") ? "hls" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: source.headers
+                )
+            } catch {
+                 sourceEngineLog("⚠️ [StreamingService] Vidzy extraction failed: \(error). Using original.")
+            }
+
+        } else if StreamingService.isDarkiboxProvider(provider) {
+            sourceEngineLog("⛏️ [StreamingService] Extracting Darkibox via API...")
+            do {
+                let directUrl = try await extractDarkibox(url: source.url)
+                sourceEngineLog("✅ [StreamingService] Darkibox extraction successful")
+                return StreamingSource(
+                    id: source.id,
+                    url: directUrl,
+                    directUrl: directUrl,
+                    quality: source.quality,
+                    type: directUrl.contains(".m3u8") || directUrl.contains("proxy/hls") ? "m3u8" : "mp4",
+                    provider: source.provider,
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: StreamingService.darkiboxPlaybackHeaders(embedUrl: source.url)
+                )
+            } catch {
+                sourceEngineLog("⚠️ [StreamingService] Darkibox extraction failed: \(error). Using original.")
+            }
+        } else if provider == "luluvid" || Self.isLuluvidCdnUrl(source.url) {
+            sourceEngineLog("⛏️ [StreamingService] Extracting Luluvid (direct device playback)...")
+            do {
+                let mediaUrl: String
+                let cookie: String?
+                let raw = Self.unwrapProxiedMediaUrl(source.url)
+                if raw.lowercased().contains(".m3u8") || raw.lowercased().contains("/hls2/") {
+                    mediaUrl = raw
+                    cookie = nil
+                } else {
+                    let extracted = try await extractLuluvid(url: raw)
+                    mediaUrl = extracted.0
+                    cookie = extracted.1
+                }
+                let headers = Self.luluvidPlaybackHeaders(embedUrl: source.url, cookie: cookie)
+                sourceEngineLog("✅ [StreamingService] Luluvid direct: \(mediaUrl.prefix(100))...")
+
+                return StreamingSource(
+                    id: source.id,
+                    url: mediaUrl,
+                    quality: source.quality,
+                    type: "hls",
+                    provider: "luluvid",
+                    language: source.language,
+                    origin: source.origin,
+                    tracks: source.tracks,
+                    headers: headers
+                )
+            } catch {
+                 sourceEngineLog("⚠️ [StreamingService] Luluvid extraction failed: \(error). Using original.")
+            }
+        }
+        
+        // Return original if no extraction needed or failed
+        return source
+    }
+
+
+    // MARK: - TMDB Proxy API (Luluvid Integration)
+    
+    private func fetchTmdbProxySources(tmdbId: Int, season: Int? = nil, episode: Int? = nil) async throws -> [StreamingSource] {
+        var urlString = "\(baseUrl)/api/movix-proxy?path=tmdb/\(season == nil ? "movie" : "tv")/\(tmdbId)"
+        if let s = season, let e = episode {
+            urlString += "&season=\(s)&episode=\(e)"
+        }
+        
+        guard let url = URL(string: urlString) else { throw URLError(.badURL) }
+        
+        sourceEngineLog("🌍 [TMDB Proxy] Fetching: \(urlString)")
+        
+        var request = URLRequest(url: url)
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7", forHTTPHeaderField: "Accept")
+        request.setValue("fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7", forHTTPHeaderField: "Accept-Language")
+        request.setValue("https://google.com", forHTTPHeaderField: "Referer")
+        request.timeoutInterval = 15
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            return []
+        }
+        
+        struct TmdbProxyLink: Codable {
+            let decoded_url: String
+            let quality: String?
+            let language: String?
+        }
+        
+        struct CurrentEpisode: Codable {
+            let player_links: [TmdbProxyLink]?
+        }
+        
+        struct TmdbProxyResponse: Codable {
+            let player_links: [TmdbProxyLink]?
+            let current_episode: CurrentEpisode?
+        }
+        
+        do {
+            let result = try JSONDecoder().decode(TmdbProxyResponse.self, from: data)
+            var sources: [StreamingSource] = []
+            
+            // Check both root player_links and current_episode.player_links
+            let links = result.current_episode?.player_links ?? result.player_links ?? []
+            
+            for (index, link) in links.enumerated() {
+                let url = link.decoded_url
+                
+                // Filter for Luluvid / Lulustream
+                if url.contains("luluvid") || url.contains("lulustream") {
+                     let lang = (link.language ?? "VF").uppercased()
+                     let normalizedLang = lang.contains("FRENCH") ? "VF" : lang
+                     
+                     // Use direct HLS type but rely on extractLink to handle the extraction logic internally
+                     // This matches the user's request for "internal treatment"
+                     let source = StreamingSource(
+                         id: "tmdb-proxy-luluvid-\(index)",
+                         url: url,
+                         quality: "HD",
+                         type: "hls", // Must be hls/mp4 to be visible in UI
+                         provider: "luluvid",
+                         language: normalizedLang,
+                         origin: "tmdb-proxy"
+                     )
+                     sources.append(source)
+                     sourceEngineLog("✅ [TMDB Proxy] Added Luluvid: \(url)")
+                }
+            }
+            return sources
+        } catch {
+            sourceEngineLog("❌ [TMDB Proxy] Decode error: \(error)")
+            return []
+        }
+    }
+}

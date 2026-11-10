@@ -1,0 +1,10 @@
+.gradle/
+/local.properties
+/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/captures/
+*.jks
+*.keystore
+/key.properties
+
+# Local Kotlin compiler state
+/.kotlin/

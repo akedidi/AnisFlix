@@ -1,0 +1,92 @@
+[
+  {
+    "bucket" : "VF",
+    "display" : "French Stream 1 - 1080p — VF",
+    "id" : "fr-high",
+    "language" : "VF",
+    "provider" : "frenchstream",
+    "quality" : "1080p H.264 AAC",
+    "url" : "https:\/\/example.com\/fr-high"
+  },
+  {
+    "bucket" : "VF",
+    "display" : "French Stream 2 - 720p — VF",
+    "id" : "fr-low",
+    "language" : "VF",
+    "provider" : "frenchstream",
+    "quality" : "720p H.264 AAC",
+    "url" : "https:\/\/example.com\/fr-low"
+  },
+  {
+    "bucket" : "VF",
+    "display" : "Vidzy 1 - HD — VF",
+    "id" : "vid",
+    "language" : "VF",
+    "provider" : "vidzy",
+    "quality" : "HD",
+    "url" : "https:\/\/example.com\/vid"
+  },
+  {
+    "bucket" : "VOSTFR",
+    "display" : "AnimePahe - 720p — VO - English Subbed",
+    "id" : "pahe",
+    "language" : "VO - English Subbed",
+    "provider" : "animepahe",
+    "quality" : "720p",
+    "url" : "https:\/\/example.com\/pahe"
+  },
+  {
+    "bucket" : "VO",
+    "display" : "Moviebox 1 - 720p — VO",
+    "id" : "movie-sub",
+    "language" : "VO",
+    "provider" : "moviebox",
+    "quality" : "720p",
+    "url" : "https:\/\/example.com\/movie-sub"
+  },
+  {
+    "bucket" : "VO",
+    "display" : "MOB - 4K",
+    "id" : "mob",
+    "language" : "VO",
+    "provider" : "mob",
+    "quality" : "2160p",
+    "url" : "https:\/\/example.com\/mob"
+  },
+  {
+    "bucket" : "VOSTFR",
+    "display" : "Vidmoly 1 - HD",
+    "id" : "vm",
+    "language" : "VOSTFR",
+    "provider" : "vidmoly",
+    "quality" : "720p",
+    "url" : "https:\/\/example.com\/vm"
+  },
+  {
+    "bucket" : "VO",
+    "display" : "Unknown 1 - Auto — ",
+    "id" : "unknown",
+    "language" : "",
+    "provider" : "unknown",
+    "quality" : "Auto",
+    "url" : "https:\/\/example.com\/unknown"
+  },
+  {
+    "bucket" : "VO",
+    "display" : "Vixsrc 1 - 1080p — VO",
+    "id" : "vix",
+    "language" : "VO",
+    "provider" : "vixsrc",
+    "quality" : "1080p",
+    "url" : "https:\/\/example.com\/vix"
+  },
+  {
+    "bucket" : "VF",
+    "display" : "Luluvid 1 - 1080p — VFQ",
+    "id" : "lulu",
+    "language" : "VFQ",
+    "provider" : "luluvid",
+    "quality" : "1080p",
+    "url" : "https:\/\/example.com\/lulu"
+  }
+]
