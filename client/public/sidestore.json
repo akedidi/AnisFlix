@@ -11,6 +11,15 @@
       "iconURL": "https://raw.githubusercontent.com/akedidi/AnisFlix/main/client/public/icon.png",
       "versions": [
         {
+          "version": "1.0.121",
+          "buildVersion": "121",
+          "date": "2026-11-10",
+          "size": 30894244,
+          "downloadURL": "https://github.com/akedidi/AnisFlix/releases/download/anisflix-vidzy-2026-11-10/AnisFlix-iOS-1.0.121-121.ipa",
+          "minOSVersion": "16.0",
+          "localizedDescription": "Correction de la session Vidzy : lecture des films et épisodes, en-têtes du lecteur et téléchargements."
+        },
+        {
           "version": "1.0.120",
           "buildVersion": "120",
           "date": "2026-11-08",
